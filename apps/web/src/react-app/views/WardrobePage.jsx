@@ -35,13 +35,10 @@ export function WardrobePageView({ view: view }) {
         if (label) view.tab.value = label;
       }}
     >
-      <TabsList className="tabs">
+      <TabsList className="max-w-full overflow-x-auto">
         <Fragment>
           {listValues(["为她搭配", "方案库", "全部衣服"]).map((x, rowIndex) => (
             <TabsTrigger
-              className={cn({
-                active: readValue(view.tab) === x,
-              })}
               key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
               value={tabKeys[x]}
             >

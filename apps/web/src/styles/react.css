@@ -143,6 +143,11 @@ body {
 .react-workspace.product-sheet {
   min-height: 0;
 }
+.react-workspace[data-slot="dialog-content"],
+.react-workspace[data-slot="alert-dialog-content"],
+.react-workspace[data-slot="sheet-content"] {
+  min-height: 0;
+}
 .product-sheet .drawer-form {
   position: static;
   width: 100%;

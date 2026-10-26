@@ -1,3 +1,5 @@
+import StarRating from '@/react-app/shared/StarRating';
+import {DiaryCalendar} from '@/react-app/shared/DateField';
 import { readValue } from "@/state/view-model";
 import { cn } from "@/lib/utils";
 import {
@@ -317,65 +319,7 @@ export function LifePageView({ view: view }) {
           </div>
           <div className="diary-layout">
             <Surface as="section" className="card calendar">
-              <h3>{view.calendarTitle.value}</h3>
-              <div className="calendar-grid">
-                <Fragment>
-                  {listValues(["一", "二", "三", "四", "五", "六", "日"]).map(
-                    (k) => (
-                      <small key={k}>{displayText(k)}</small>
-                    ),
-                  )}
-                </Fragment>
-                <Fragment>
-                  {listValues(view.calendarOffset.value).map((k) => (
-                    <span key={"blank" + k} />
-                  ))}
-                </Fragment>
-                <Fragment>
-                  {listValues(view.calendarDays.value).map((k) => (
-                    <ActionButton
-                      key={k}
-                      className={cn({
-                        marked: view.diaries.value.some(
-                          (ve) =>
-                            ve.date ===
-                            `${view.calendarMonth.value}-${String(k).padStart(2, "0")}`,
-                        ),
-                        selected:
-                          view.selectedDate.value ===
-                          `${view.calendarMonth.value}-${String(k).padStart(2, "0")}`,
-                      })}
-                      disabled={
-                        `${view.calendarMonth.value}-${String(k).padStart(2, "0")}` >
-                        view.closedDiaryDate.value
-                      }
-                      aria-label={`${view.calendarMonth.value}-${k}`}
-                      aria-pressed={
-                        view.selectedDate.value ===
-                        `${view.calendarMonth.value}-${String(k).padStart(2, "0")}`
-                      }
-                      data-testid={`calendar-day-${view.calendarMonth.value}-${String(k).padStart(2, "0")}`}
-                      onClick={(ve) =>
-                        view.selectDate(
-                          `${view.calendarMonth.value}-${String(k).padStart(2, "0")}`,
-                        )
-                      }
-                    >
-                      {displayText(k)}
-                      {view.diaries.value.some(
-                        (ve) =>
-                          ve.date ===
-                          `${view.calendarMonth.value}-${String(k).padStart(2, "0")}`,
-                      ) ? (
-                        <i key={0} />
-                      ) : null}
-                    </ActionButton>
-                  ))}
-                </Fragment>
-              </div>
-              <p className="calendar-note muted">
-                {"有圆点的日子，藏着一页故事。"}
-              </p>
+              <DiaryCalendar value={view.selectedDate.value} max={view.closedDiaryDate.value} dates={view.diaries.value.map(entry=>entry.date)} onChange={view.selectDate}/>
             </Surface>
             <section
               className="diary-book"
@@ -532,15 +476,7 @@ export function LifePageView({ view: view }) {
                         </div>
                         <div>
                           <dt>{"重要度"}</dt>
-                          <dd
-                            className="memory-stars"
-                            aria-label={k.importance + "星，共5星"}
-                          >
-                            {displayText("★".repeat(k.importance))}
-                            <span>
-                              {displayText("☆".repeat(5 - k.importance))}
-                            </span>
-                          </dd>
+                          <dd><StarRating value={k.importance}/></dd>
                         </div>
                         <div>
                           <dt>{"标签"}</dt>
@@ -654,126 +590,7 @@ export function LifePageView({ view: view }) {
                     }}
                   />
                 </label>
-                <fieldset className="chip-field">
-                  <legend>{"重要度"}</legend>
-                  <div
-                    className="star-control"
-                    role="group"
-                    aria-label="重要度"
-                  >
-                    <Fragment>
-                      {listValues(5).map((k) => (
-                        <ActionButton
-                          key={k}
-                          type="button"
-                          aria-label={k + "星"}
-                          aria-pressed={view.draftMemory.value.importance === k}
-                          data-testid={"memory-star-" + k}
-                          className={cn({
-                            filled: k <= view.draftMemory.value.importance,
-                          })}
-                          disabled={true}
-                          title="重要度由记忆记录维护"
-                          onClick={() => {}}
-                        >
-                          {"★"}
-                        </ActionButton>
-                      ))}
-                    </Fragment>
-                    <small>
-                      {displayText(view.draftMemory.value.importance) + " / 5"}
-                    </small>
-                  </div>
-                </fieldset>
-                <fieldset className="chip-field">
-                  <legend>{"类型"}</legend>
-                  <div
-                    className="chip-options scroll-lock-list"
-                    data-scroll-lock=""
-                  >
-                    <Fragment>
-                      {listValues(["长期记忆", "发生过的事情", "最近在想"]).map(
-                        (k) => (
-                          <ActionButton
-                            key={k}
-                            type="button"
-                            className={cn([
-                              "filter-chip",
-                              {
-                                active: view.draftMemory.value.category === k,
-                              },
-                            ])}
-                            aria-pressed={view.draftMemory.value.category === k}
-                            disabled={true}
-                            title="类型由记忆记录维护"
-                            onClick={() => {}}
-                          >
-                            {displayText(k)}
-                          </ActionButton>
-                        ),
-                      )}
-                    </Fragment>
-                  </div>
-                </fieldset>
-                <fieldset className="chip-field">
-                  <legend>{"标签"}</legend>
-                  <div
-                    className="chip-options scroll-lock-list"
-                    data-scroll-lock=""
-                  >
-                    <Fragment>
-                      {listValues(view.tags.value).map((k) => (
-                        <ActionButton
-                          key={k}
-                          type="button"
-                          className={cn([
-                            "filter-chip",
-                            {
-                              active: view.draftMemory.value.tags.includes(k),
-                            },
-                          ])}
-                          aria-pressed={view.draftMemory.value.tags.includes(k)}
-                          data-testid={"memory-tag-" + k}
-                          onClick={(ve) => view.toggleTag(k)}
-                          disabled={true}
-                          title="\u6765\u6E90\u5206\u7C7B\u4E0E\u8BC4\u5206\u7531\u771F\u5B9E\u8BB0\u5FC6\u8BB0\u5F55\u7EF4\u62A4"
-                        >
-                          {"# " + displayText(k)}
-                        </ActionButton>
-                      ))}
-                    </Fragment>
-                  </div>
-                  <div className="input-row">
-                    <FieldInput
-                      aria-label="新标签"
-                      placeholder="添加一个新标签"
-                      data-testid="memory-new-tag"
-                      onKeyDown={keyModifiers(
-                        eventModifiers(
-                          (k) => !k.isComposing && view.addTag(),
-                          ["prevent"],
-                        ),
-                        ["enter"],
-                      )}
-                      disabled={true}
-                      title="\u6765\u6E90\u5206\u7C7B\u4E0E\u8BC4\u5206\u7531\u771F\u5B9E\u8BB0\u5FC6\u8BB0\u5F55\u7EF4\u62A4"
-                      value={view.newTag.value}
-                      onChange={(event) => {
-                        ((k) => (view.newTag.value = k))(event.target.value);
-                      }}
-                    />
-                    <ActionButton
-                      type="button"
-                      className="text-button"
-                      data-testid="memory-add-tag"
-                      onClick={view.addTag}
-                      disabled={true}
-                      title="\u6765\u6E90\u5206\u7C7B\u4E0E\u8BC4\u5206\u7531\u771F\u5B9E\u8BB0\u5FC6\u8BB0\u5F55\u7EF4\u62A4"
-                    >
-                      {"添加"}
-                    </ActionButton>
-                  </div>
-                </fieldset>
+                <section className="grid gap-3 rounded-lg border bg-muted/30 p-4"><h3 className="font-medium">记录信息（只读）</h3><p className="text-sm text-muted-foreground">评分、来源、分类和标签由实际记忆记录维护，此处只修正正文。</p><StarRating value={view.draftMemory.value.importance}/><Badge variant="secondary">{view.draftMemory.value.category}</Badge><div className="flex flex-wrap gap-2">{view.draftMemory.value.tags.map(tag=><Badge key={tag} variant="outline">{tag}</Badge>)}</div></section>
                 <view.ActionFeedback labels={["记忆"]} />
                 <ActionButton
                   className="button primary"

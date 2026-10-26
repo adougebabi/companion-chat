@@ -15,7 +15,7 @@ test('intentions present their action, Chinese lifecycle and linked goal before 
 });
 test('profile fields use readable settings and keep machine source only in collapsed details',()=>{
  const s=profileSnapshotFromDetail({id:'role',identity:{name:'角色'},personality:{agreeableness:null},core_persona:{personality_system:{profiles:[{id:'public',name:'镜头前',personality:{curiosity:.8},voice:{tone:'明快',speech_patterns:['先听再说']},desires:['完成直播']}]}},personality_runtime:{active_profile_id:'public',revision:1},persona_compilation:{status:'ready',source_hash:'SECRET_SOURCE_HASH',working_persona:{portrait_text:'说话明快，先听再说。'}},developing_self:{claims:[]}});
- const main=ProfileGroups(s).split('<details class="card profile-technical">')[0];assert.match(main,/说话明快/);assert.doesNotMatch(main,/agreeableness|source_hash|SECRET_SOURCE_HASH/);
+ const main=ProfileGroups(s).split(/<details\b[^>]*class="card profile-technical"[^>]*>/)[0];assert.match(main,/说话明快/);assert.doesNotMatch(main,/agreeableness|source_hash|SECRET_SOURCE_HASH/);
  const persona=PersonaSection(s,false).split('此人格的完整设定记录')[0];assert.match(persona,/好奇心/);assert.match(persona,/80%/);assert.match(persona,/声音与说话方式/);assert.match(persona,/明快/);assert.match(persona,/完成直播/);
  const escaped=SemanticFields({notes:'<img onerror=alert(1)>',agreeableness:null});assert.match(escaped,/&lt;img/);assert.doesNotMatch(escaped,/<img/);
 });

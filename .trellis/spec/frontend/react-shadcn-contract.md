@@ -107,3 +107,32 @@ verify browser behavior and update tests/specs to the React Radix contract.
 - The build gate checks the real import graph, dependency manifest, root HTML
   scripts and public HTML. Computed/glob module entry points require explicit
   review; a package installation or unused generated file cannot satisfy it.
+
+## R11 shared domain primitive boundary
+
+Existing unique imperative controllers may use `DomainPrimitives` through
+explicit `data-domain-ui` markers. The port accepts only named primitives,
+keeps one nonvisual original form/event carrier, and renders shadcn portals in
+the application root. It is not a page HTML interpreter. Do not add another
+root per field, new imperative pages, or a second command implementation.
+
+Visible controls must not duplicate carrier names in FormData. Keep exact
+source listeners, checked/value, constraints, disabled/hidden and selection.
+Controllers that capture focused fields use the port's `domainSource` to find
+the original name/dataset and current selection; do not duplicate business
+attributes onto visible controls. Replacing content releases old ports and
+restores focus to the new visible control. Test actual submission, Radio groups,
+checkboxes, custom Select values and redraws, not only source markers.
+
+Dialogs/Sheets must not inherit the shell's full-screen minimum height. Keep
+old layout selectors domain-scoped: `.grid` is a Tailwind utility, not a place
+to install auto-fit columns. Diagnostic desktop Table and mobile Cards share
+one record/action model; avoid fighting table primitive utility styles with
+an incompatible grid display on table rows.
+
+Commands retain newer edits made during BOTH submission and post-receipt reads.
+Reread current draft after awaited onSaved before closing. Persist original
+body/key for endpoints with idempotency support and pass that SAME key through
+the provider. CAS-only endpoints never invent replay keys; unknown admission
+requires explicit current-object review. Acknowledged readback recovery never
+sends another mutation. Owner-scoped session records clear on logout/switch.

@@ -289,23 +289,6 @@ function createLifePageController(props, { emit }, lifecycle) {
       } else if (page !== "目标") w.state.appointmentHighlight = false;
     },
   );
-  const calendarMonth = selector(() =>
-    String(
-      selectedDate.value || day(new Date(), character.value.timezone),
-    ).slice(0, 7),
-  );
-  const calendarTitle = selector(() => {
-    const [year, month] = calendarMonth.value.split("-");
-    return year + " 年 " + Number(month) + " 月";
-  });
-  const calendarDays = selector(() => {
-    const [year, month] = calendarMonth.value.split("-").map(Number);
-    return new Date(Date.UTC(year, month, 0)).getUTCDate();
-  });
-  const calendarOffset = selector(() => {
-    const [year, month] = calendarMonth.value.split("-").map(Number);
-    return (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;
-  });
   async function forget() {
     const memory = forgetMemory.value,
       fid = character.value.id;
@@ -361,10 +344,6 @@ function createLifePageController(props, { emit }, lifecycle) {
     joined,
     props,
     todayLabel,
-    calendarMonth,
-    calendarTitle,
-    calendarDays,
-    calendarOffset,
     forget,
     character,
     CurrentOutfit,

@@ -1,3 +1,13 @@
+import {lazy} from 'react';
+import DomainPrimitives from '../shared/DomainPrimitives';
+const AvatarPage=lazy(()=>import('./AvatarPage'));
+const TaskDetailPage=lazy(()=>import('./TaskDetailPage'));
+const WorkflowRecovery=lazy(()=>import('../shared/WorkflowRecovery'));
+const StudioEditorPage=lazy(()=>import('./StudioEditorPage'));
+const StudioPreviewPage=lazy(()=>import('./StudioPreviewPage'));
+const StudioMaterialPage=lazy(()=>import('./StudioMaterialPage'));
+const GovernancePage=lazy(()=>import('./GovernancePage'));
+const SelfPage=lazy(()=>import('./SelfPage'));
 import { useEffect, useRef, useState } from 'react';
 import { useWorkspace } from '../page';
 import { Button } from '@/components/ui/button';
@@ -9,13 +19,13 @@ import { refreshProduct } from '@/v3/providers/real';
 
 // Existing unique domain tools share this React workspace. They own no app,
 // router or stylesheet; their remaining custom controls are tracked separately.
-export default function DomainPage({route}: {route:any}) {
-  const w=useWorkspace(),host=useRef<HTMLDivElement>(null),[failure,setFailure]=useState(''),[revision,refresh]=useState(0);
+function DomainToolHost({route}: {route:any}) {
+  const w=useWorkspace(),host=useRef<HTMLDivElement>(null),[primitiveRoot,setPrimitiveRoot]=useState<HTMLElement|null>(null),[failure,setFailure]=useState(''),[revision,refresh]=useState(0);
   const owner=w.state.session?.actorId;
   useEffect(()=>{
     if(!host.current)return;
     let active=true,dispose:void|(()=>void),validation:void|(()=>void);
-    const target=document.createElement('div');host.current.replaceChildren(target);setFailure('');
+    const target=document.createElement('div');host.current.replaceChildren(target);setPrimitiveRoot(target);setFailure('');
     const live=()=>active&&owner===w.state.session?.actorId;
     async function open(){
       try{
@@ -34,5 +44,17 @@ export default function DomainPage({route}: {route:any}) {
     void open();
     return()=>{active=false;dispose?.();validation?.();closeOverlays();};
   },[w,owner,route,revision]);
-  return <section className="approved-domain" data-testid="domain-workspace"><header className="domain-heading"><Button variant="outline" onClick={()=>w.navigatePath(approvedHref(route.page,route.fid).slice(1))}>返回{route.page}</Button><h2>{route.feature.title}</h2></header>{failure&&<div className="inline-error" role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></div>}<div className="domain-content" ref={host}/></section>;
+  return <section className="approved-domain" data-testid="domain-workspace"><header className="domain-heading"><Button variant="outline" onClick={()=>w.navigatePath(approvedHref(route.page,route.fid).slice(1))}>返回{route.page}</Button><h2>{route.feature.title}</h2></header>{failure&&<div className="inline-error" role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></div>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/></section>;
+}
+
+export default function DomainPage({route}:{route:any}) {
+ if(route.feature.native==='governance')return <GovernancePage route={route}/>;
+ if(route.feature.native==='self')return <SelfPage route={route}/>;
+ if(route.feature.native==='studio-edit')return <StudioEditorPage resourceId={route.feature.params.resId} kind={route.query.get('kind')||'event_template'} jobId={route.query.get('job')||''}/>;
+ if(route.feature.native==='studio-preview')return <StudioPreviewPage route={route}/>;
+ if(route.feature.native==='studio-material')return <StudioMaterialPage id={route.feature.params.materialId}/>;
+ if(route.feature.native==='avatar')return <AvatarPage fid={route.fid}/>;
+ if(route.feature.native==='task')return <TaskDetailPage route={route}/>;
+ if(route.feature.native==='workflow')return <WorkflowRecovery workflowId={route.feature.params.workflowId}/>;
+ return <DomainToolHost route={route}/>;
 }

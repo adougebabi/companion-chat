@@ -32,4 +32,4 @@ export function sourceDrawer(objId) {
 }
 export function avatarOf(id) { const f = store.find(id); return f?.obj.avatar || '/v3/assets/avatars/user.svg'; }
 /** 管理信息折叠区：ID、page key、来源等放这里，日常视图不直接露出 */
-export const mgmt = (html, label = '管理信息') => `<details class="mgmt small muted" data-test="mgmt"><summary>${label}</summary><div style="margin-top:4px">${html}</div></details>`;
+export const mgmt = (html, label = '管理信息') => `<details data-domain-ui="disclosure" class="mgmt small muted" data-test="mgmt"><summary>${label}</summary><div style="margin-top:4px">${html}</div></details>`;

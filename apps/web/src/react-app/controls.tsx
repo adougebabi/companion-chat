@@ -1,3 +1,8 @@
+import FilePicker from './shared/FilePicker';
+import {MinusIcon,PlusIcon} from 'lucide-react';
+import ControlHint from './shared/ControlHint';
+import {MoreHorizontalIcon, ArrowUpRightIcon} from 'lucide-react';
+import DateField from './shared/DateField';
 import {
   Sheet,
   SheetContent,
@@ -10,10 +15,10 @@ import { ChevronDownIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea as ShadcnTextarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Label as PrimitiveLabel } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+import { Badge as ShadcnBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -40,20 +45,41 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-export { Label, Badge };
+export function Label({children,className,...props}:React.ComponentProps<typeof PrimitiveLabel>){
+ const checkable=React.Children.toArray(children).some(child=>React.isValidElement(child)&&!!child.props&&typeof child.props==='object'&&'type' in child.props&&(child.props.type==='checkbox'||child.props.type==='radio'));
+ return <PrimitiveLabel {...props} className={cn('min-w-0',checkable?'flex-row items-center':'flex-col items-start',className)}>{children}</PrimitiveLabel>;
+}
+export function Badge({className='',title,variant,...props}:React.ComponentProps<typeof ShadcnBadge>){return <ControlHint text={title}><ShadcnBadge variant={variant||'secondary'} className={className.split(/\s+/).filter(token=>token!=='pill').join(' ')} {...props}/></ControlHint>;}
+const iconText=(children:React.ReactNode):React.ReactNode=>React.Children.map(children,child=>typeof child==='string'&&child.includes('↗')?<>{child.replace(/\s*↗/g,'')}<ArrowUpRightIcon className="size-3.5 shrink-0" aria-hidden="true"/></>:child==='⋯'?<MoreHorizontalIcon className="size-4" aria-hidden="true"/>:child);
+
+// React owns the immediate edit value; domain controllers may notify later.
+// Keep the same native element and never restore stale props during composition.
+function DraftTextControl({ multiline = false, value, onChange, onCompositionStart, onCompositionEnd, ...props }: any) {
+  const external = String(value ?? "");
+  const [draft, setDraft] = React.useState(external);
+  const composing = React.useRef(false);
+  const observed = React.useRef(external);
+  React.useLayoutEffect(() => {
+    if (observed.current === external) return;
+    observed.current = external;
+    if (!composing.current) setDraft(external);
+  }, [external]);
+  const Component = multiline ? ShadcnTextarea : Input;
+  return <Component {...props} value={draft}
+    onChange={(event: any) => { setDraft(event.target.value); onChange?.(event); }}
+    onCompositionStart={(event: any) => { composing.current = true; onCompositionStart?.(event); }}
+    onCompositionEnd={(event: any) => { composing.current = false; setDraft(event.currentTarget.value); onCompositionEnd?.(event); }} />;
+}
 export function Textarea(props: React.ComponentProps<typeof ShadcnTextarea>) {
-  return (
-    <ShadcnTextarea
-      {...props}
-      {...(Object.hasOwn(props, "value") ? { value: props.value ?? "" } : {})}
-    />
-  );
+  return Object.hasOwn(props, 'value') ? <DraftTextControl {...props} multiline /> : <ShadcnTextarea {...props}/>;
 }
 
 export function ActionButton({
   className = "",
   variant,
   type,
+  title,
+  children,
   ...props
 }: React.ComponentProps<typeof Button>) {
   const tokens = className.split(/\s+/);
@@ -66,35 +92,21 @@ export function ActionButton({
         : tokens.includes("button")
           ? "outline"
           : "ghost");
-  return (
-    <Button
-      className={cn("product-button", className)}
-      variant={selected}
-      type={type}
-      {...props}
-    />
-  );
+  const content = props.asChild && React.isValidElement(children)
+    ? React.cloneElement(children as React.ReactElement<any>, {}, iconText((children as React.ReactElement<any>).props.children))
+    : iconText(children);
+  return <ControlHint text={title}><Button className={cn('product-button',tokens.filter(token=>!['button','primary','text-button','danger','destructive'].includes(token)).join(' '))} variant={selected} type={type} {...props}>{content}</Button></ControlHint>;
 }
+
 export function Surface({
   as: Tag = "div",
   className,
   children,
   ...props
 }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) {
-  if (/\bcard\b/.test(className || ""))
-    return (
-      <Card asChild>
-        <Tag className={className} {...props}>
-          {children}
-        </Tag>
-      </Card>
-    );
-  return (
-    <Tag className={className} {...props}>
-      {children}
-    </Tag>
-  );
+  return <Card asChild><Tag className={className} {...props}>{children}</Tag></Card>;
 }
+
 type FieldProps = Omit<
   React.ComponentProps<typeof Input>,
   "value" | "onChange"
@@ -104,7 +116,7 @@ type FieldProps = Omit<
   onModelChange?: (value: any) => void;
   onChange?: (event: any) => void;
 };
-export function FieldInput({
+function FieldControl({
   type = "text",
   modelValue,
   onModelChange,
@@ -150,17 +162,15 @@ export function FieldInput({
       </span>
     );
   }
-  return (
-    <Input
-      type={type}
-      className={className}
-      value={type === "file" ? undefined : (value ?? "")}
-      onChange={onChange}
-      onInput={onInput}
-      {...props}
-    />
-  );
+  if (type === "date") return <DateField value={value} onChange={onChange} onInput={onInput} {...props}/>;
+  if (type === "time") return <DraftTextControl type="text" inputMode="numeric" placeholder="HH:mm" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?" value={value} onChange={onChange} onInput={onInput} className={className} {...props}/>;
+  if (type === "file") return <FilePicker onChange={onChange} onInput={onInput} {...props}/>;
+  if (type === "number") return <NumberControl className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
+  return <DraftTextControl type={type} className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
 }
+function NumberControl(props:any){const input=React.useRef<HTMLInputElement>(null);const step=(direction:number)=>{const element=input.current;if(!element)return;try{if(direction>0)element.stepUp();else element.stepDown();}catch{const current=Number(element.value)||0,min=element.min===''?-Infinity:Number(element.min),max=element.max===''?Infinity:Number(element.max);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(element,String(Math.max(min,Math.min(max,current+direction))));}element.dispatchEvent(new Event('input',{bubbles:true}));};return <span className="inline-flex w-full min-w-0 items-center gap-1"><Button type="button" variant="outline" size="icon" aria-label={'减少'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(-1)}><MinusIcon className="size-3.5"/></Button><DraftTextControl {...props} ref={input} type="number" className={cn('min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',props.className)}/><Button type="button" variant="outline" size="icon" aria-label={'增加'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(1)}><PlusIcon className="size-3.5"/></Button></span>;}
+export function FieldInput({title,...props}:FieldProps){return <ControlHint text={title}><FieldControl {...props}/></ControlHint>;}
+
 function flatten(nodes: React.ReactNode): React.ReactElement<any>[] {
   return React.Children.toArray(nodes).flatMap((node) => {
     if (!React.isValidElement(node)) return [];
@@ -187,7 +197,7 @@ export function ChoiceSelect({
   required,
   ...props
 }: any) {
-  const options = flatten(children).filter((item) => item.type === "option");
+  const options = flatten(children).filter((item) => item.type === "option").filter((item, index, all) => all.findIndex(candidate => Object.is(optionValue(candidate), optionValue(item))) === index);
   const selected = options.findIndex((option) =>
     Object.is(optionValue(option), value),
   );
@@ -289,7 +299,7 @@ export function MenuDisclosure({ title, children, className, ...props }: any) {
           size="icon"
           aria-label={props["aria-label"] || "更多操作"}
         >
-          {title}
+          {iconText(title)}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

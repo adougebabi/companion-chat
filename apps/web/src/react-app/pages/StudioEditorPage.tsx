@@ -1,250 +1,36 @@
-import { useEffect, useRef, useState } from "react";
-import { useWorkspace } from "../page";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Disclosure } from "../controls";
-import { ActionFeedback } from "../components";
-import { worldDefinitionError } from "@/v3/proto/components/world-definition.js";
-import { errorMessage } from "@/v3/domain-presentation.mjs";
-const labels: Record<string, string> = {
-  background: "世界背景",
-  description: "描述",
-  flavor: "风格",
-  rules: "规则",
-  atmosphere: "氛围",
-  floor: "楼层",
-  layout: "布局",
-  occupation: "职业",
-  biography: "人物背景",
-};
-const ordinaryFields: Record<string, string[]> = {
-  world: ["background", "description", "flavor", "rules"],
-  place: ["description", "atmosphere", "floor", "layout"],
-  npc: ["description", "occupation", "biography"],
-  item: ["description"],
-  outfit: ["description"],
-};
-export default function StudioEditorPage({
-  resourceId,
-  kind = "world",
-}: {
-  resourceId: string;
-  kind?: string;
-}) {
-  const w = useWorkspace(),
-    [resource, setResource] = useState<any>(null),
-    [name, setName] = useState(""),
-    [body, setBody] = useState<Record<string, any>>({}),
-    [advanced, setAdvanced] = useState("{}"),
-    [advancedDirty, setAdvancedDirty] = useState(false),
-    [busy, setBusy] = useState(false),
-    [loading, setLoading] = useState(resourceId !== "new"),
-    [error, setError] = useState("");
-  const draft = useRef({ name, body, advanced, advancedDirty });
-  draft.current = { name, body, advanced, advancedDirty };
-  const actualKind = resource?.kind || kind,
-    actualId = resource?.id || (resourceId === "new" ? null : resourceId);
-  useEffect(() => {
-    let active = true;
-    if (resourceId === "new") {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    void w.services.studioClient
-      .resource(resourceId)
-      .then((value: any) => {
-        if (!active) return;
-        setResource(value);
-        setName(value.name || "");
-        setBody(value.body || {});
-        setAdvanced(JSON.stringify(value.body || {}, null, 2));
-        setAdvancedDirty(false);
-      })
-      .catch((cause: unknown) => {
-        if (active) setError(errorMessage(cause));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [w, resourceId]);
-  async function save() {
-    if (busy) return;
-    const submitted = draft.current;
-    setError("");
-    let payload: Record<string, unknown>;
-    try {
-      payload = submitted.advancedDirty
-        ? JSON.parse(submitted.advanced)
-        : submitted.body;
-      if (!payload || typeof payload !== "object" || Array.isArray(payload))
-        throw Error("资源内容需要是一个对象。");
-      if (!submitted.name.trim()) throw Error("请填写资源名称。");
-      if (actualKind === "world") {
-        const invalid = worldDefinitionError(payload);
-        if (invalid) throw Error(invalid);
-      }
-    } catch (cause) {
-      setError(errorMessage(cause));
-      return;
-    }
-    setBusy(true);
-    const command = w.command(
-      "创作资源",
-      "studio-save:" + String(actualId || actualKind),
-      {
-        kind: actualKind,
-        name: submitted.name.trim(),
-        body: payload,
-        ...(resource ? { expectedVersion: resource.draft_version } : {}),
-        reason: actualId ? "更新创作资源" : "创建创作资源",
-      },
-      (value: any, key: string) =>
-        w.services.studioClient.save(actualId, {
-          ...value,
-          idempotencyKey: key,
-        }),
-      { success: "资源草稿已保存，发布后才能作为已发布底稿使用" },
-    );
-    try {
-      const saved = await command.completion;
-      setResource(saved);
-      if (JSON.stringify(draft.current) === JSON.stringify(submitted)) {
-        setName(saved.name);
-        setBody(saved.body || payload);
-        setAdvanced(JSON.stringify(saved.body || payload, null, 2));
-        setAdvancedDirty(false);
-      }
-    } catch (cause) {
-      setError(errorMessage(cause));
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function publish() {
-    if (!resource || busy) return;
-    setBusy(true);
-    setError("");
-    const command = w.command(
-      "创作资源",
-      "studio-publish:" + resource.id,
-      { expectedRevision: resource.revision, reason: "发布已保存的资源定义" },
-      (value: any, key: string) =>
-        w.client.publishStudioResource(resource.id, {
-          ...value,
-          idempotencyKey: key,
-        }),
-      { success: "已发布保存的资源定义" },
-    );
-    try {
-      await command.completion;
-      setResource(await w.services.studioClient.resource(resource.id));
-    } catch (cause) {
-      setError(errorMessage(cause));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="grid gap-5">
-      <Button variant="outline" className="w-fit" asChild>
-        <a href="#/studio">返回创作中心</a>
-      </Button>
-      <Card>
-        <CardHeader>
-          <CardTitle>{actualId ? "编辑资源" : "创建资源"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p role="status">正在读取资源…</p>
-          ) : (
-            <form
-              className="grid gap-5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void save();
-              }}
-            >
-              <div className="grid gap-2">
-                <Label htmlFor="resource-name">名称</Label>
-                <Input
-                  id="resource-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={busy}
-                />
-              </div>
-              {(ordinaryFields[actualKind] || []).map((field) => (
-                <div className="grid gap-2" key={field}>
-                  <Label htmlFor={"resource-" + field}>
-                    {labels[field] || field}
-                  </Label>
-                  <Textarea
-                    id={"resource-" + field}
-                    value={typeof body[field] === "string" ? body[field] : ""}
-                    onChange={(e) => {
-                      const value = { ...body, [field]: e.target.value };
-                      setBody(value);
-                      if (!advancedDirty)
-                        setAdvanced(JSON.stringify(value, null, 2));
-                    }}
-                    disabled={busy || advancedDirty}
-                  />
-                </div>
-              ))}
-              <Disclosure title="完整资源字段（高级）">
-                <Label htmlFor="resource-json">
-                  保留已有结构，仅修改需要调整的字段
-                </Label>
-                <Textarea
-                  id="resource-json"
-                  className="min-h-60 font-mono"
-                  value={advanced}
-                  onChange={(e) => {
-                    setAdvanced(e.target.value);
-                    setAdvancedDirty(true);
-                  }}
-                  disabled={busy}
-                />
-              </Disclosure>
-              {error && (
-                <p role="alert" className="text-destructive">
-                  {error}
-                </p>
-              )}
-              <ActionFeedback labels={["创作资源"]} />
-              <div className="flex flex-wrap gap-3">
-                <Button type="submit" disabled={busy}>
-                  {busy ? "正在处理…" : "保存草稿"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!resource || busy}
-                  onClick={() => void publish()}
-                >
-                  发布已保存版本
-                </Button>
-                {resource && (
-                  <Button variant="link" asChild>
-                    <a
-                      href={"#/studio/edit/" + encodeURIComponent(resource.id)}
-                    >
-                      打开已保存资源
-                    </a>
-                  </Button>
-                )}
-              </div>
-            </form>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+import {useEffect,useMemo,useSyncExternalStore} from 'react';
+import {Button} from '@/components/ui/button';
+import {Card,CardHeader,CardTitle,CardContent} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+import {Alert,AlertDescription} from '@/components/ui/alert';
+import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {Table,TableBody,TableCell,TableHead,TableHeader,TableRow} from '@/components/ui/table';
+import {Label,FieldInput,Textarea,ChoiceSelect,Disclosure} from '../controls';
+import {useWorkspace} from '../page';
+import StudioDefinitionForm from '../shared/StudioDefinitionForm';
+import StudioLifecycle from '../shared/StudioLifecycle';
+import StudioJobs from '../shared/StudioJobs';
+import JsonDetails from '../shared/JsonDetails';
+import LoadingState from '../shared/LoadingState';
+import {createStudioEditor,studioKinds} from '@/state/studio-editor.mjs';
+import {studioChanges} from '@/v3/proto/components/studio-comparison.js';
+const clone=(value:any)=>JSON.parse(JSON.stringify(value));
+export default function StudioEditorPage({resourceId,kind='event_template',jobId='',sandbox=false}:{resourceId:string;kind?:string;jobId?:string;sandbox?:boolean}){
+ const w=useWorkspace(),owner=w.state.session.actorId;
+ const controller=useMemo(()=>createStudioEditor({owner,resourceId,kind,jobId,allowNpc:sandbox,service:w.services.studioClient,ownerCurrent:()=>w.state.session?.actorId===owner,navigate:(path:string)=>w.navigatePath(path)}),[w,owner,resourceId]);
+ const state:any=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);
+ useEffect(()=>{void controller.start();return()=>controller.dispose();},[controller]);
+ const d=state.draft,r=state.resource,readOnly=r?.status==='archived',preview=state.preview;
+ const changes=d&&studioChanges({name:r?.name||'',body:r?.body||{}},{name:d.name,body:d.body});
+ const resourceChanged=(value:any)=>{controller.state.resource=clone(value);controller.state.preview=null;};
+ const jobs=d?<StudioJobs key={r?.id||'new'} resource={r} readDraft={()=>controller.state.draft} adopt={controller.adoptDefinition} jobId={state.jobId} onSelect={(id:string)=>controller.state.jobId=id} initialKind={sandbox?'text_preview':'assistant'} onResourceChanged={resourceChanged}/>:null;
+ const targets=w.state.characters.filter((actor:any)=>!['retired','archived','已退休','已归档'].includes(actor.status));
+ return <section className="grid min-w-0 gap-5" data-testid="studio-editor"><div className="flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={()=>w.navigatePath('/studio')}>返回创作中心</Button><Button type="button" variant="outline" disabled={state.loading||state.busy} onClick={()=>void controller.load()}>重读并保留工作草稿</Button>{sandbox&&r&&<Button type="button" variant="outline" onClick={()=>w.navigatePath('/studio/edit/'+encodeURIComponent(r.id))}>编辑同一份工作草稿</Button>}</div>{state.error&&<Alert variant="destructive"><AlertDescription>{state.error}</AlertDescription></Alert>}{state.notice&&<p role="status">{state.notice}</p>}{state.loading&&!d&&<LoadingState label="正在读取创作资源…"/>}{d&&(sandbox?<><Card><CardHeader><CardTitle>文本预览沙盒 · {r?.name}</CardTitle></CardHeader><CardContent><p>使用同一份工作草稿进行隔离预览，不会进入角色生活。</p><JsonDetails value={d} title="当前工作草稿"/></CardContent></Card>{jobs}</>:<div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]"><div className="grid min-w-0 gap-5"><Card><CardHeader><CardTitle>{resourceId==='new'?'新建资源':r?.name||'编辑创作资源'}</CardTitle><div className="flex flex-wrap gap-2"><Badge variant="secondary">{studioKinds[d.kind as keyof typeof studioKinds]||d.kind}</Badge><Badge variant="outline">{r?.status==='archived'?'已归档':r?.published_version?'已发布 '+r.published_version:'尚未发布'}</Badge></div><p className="text-sm text-muted-foreground">保存、发布与应用分别进行；这里的编辑不会直接改写角色生活。</p></CardHeader><CardContent><form className="grid gap-5" onSubmit={event=>{event.preventDefault();void controller.save();}}><Label htmlFor="resource-name">名称<FieldInput id="resource-name" required value={d.name} disabled={readOnly} onChange={(event:any)=>controller.edit({name:event.target.value})}/></Label>{resourceId==='new'&&<Label htmlFor="resource-kind">资源类型<ChoiceSelect id="resource-kind" value={d.kind} disabled={state.busy||!!state.pending} onChange={(event:any)=>controller.setKind(event.target.value)}>{Object.entries(studioKinds).map(([value,label])=><option key={value} value={value}>{label}</option>)}</ChoiceSelect></Label>}<StudioDefinitionForm key={d.kind+':'+state.definitionEpoch} kind={d.kind} value={d.body} disabled={readOnly||d.bodyText!==undefined} onChange={(body:any)=>controller.edit({body})}/><Disclosure title="编辑完整 JSON 定义"><div className="grid gap-3"><p className="text-sm text-muted-foreground">保留当前完整字段。输入错误会保留在草稿中，修正后才会发送。</p><Textarea aria-label="完整 JSON 定义" className="min-h-72 font-mono" value={d.bodyText??JSON.stringify(d.body,null,2)} disabled={readOnly} onChange={event=>controller.edit({bodyText:event.target.value})}/>{d.bodyText!==undefined&&<div className="flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={()=>controller.parseBodyText()}>核对并采用 JSON 输入</Button><Button type="button" variant="outline" onClick={()=>controller.edit({bodyText:undefined})}>撤销 JSON 输入</Button></div>}</div></Disclosure><Label htmlFor="resource-reason">保存原因<FieldInput id="resource-reason" required maxLength={500} disabled={readOnly} value={d.reason} onChange={(event:any)=>controller.edit({reason:event.target.value})}/></Label><Button type="submit" disabled={readOnly||state.busy||!!state.pending}>保存草稿</Button></form></CardContent></Card>
+ <Card><CardHeader><CardTitle>保存版本与工作草稿</CardTitle></CardHeader><CardContent className="grid gap-4"><p className="text-sm text-muted-foreground">工作草稿基于版本 {d.expectedVersion||'尚未保存'}，当前保存版本 {r?.draft_version||'无'}。重新读取不会自动改变草稿基线。</p>{d.bodyText!==undefined&&<p className="text-sm text-destructive">完整 JSON 输入尚待核对，不包含在此前的保存或发布中。</p>}<JsonDetails value={changes} title="当前工作草稿的完整差异"/>{state.pending&&<Alert><AlertDescription><p>原提交结果尚未确认；当前新编辑仍单独保留。</p><JsonDetails value={state.pending.value} title="原提交内容"/>{!state.pending.rejection&&<Button type="button" disabled={state.busy} onClick={()=>void controller.retry()}>重试原提交</Button>}</AlertDescription></Alert>}<div className="flex flex-wrap gap-3"><Button type="button" disabled={readOnly||state.busy||!!state.pending||!r?.draft_version||controller.dirty()||r.draft_version===r.published_version} onClick={()=>controller.reviewPublish()}>发布已保存版本</Button>{r&&<Button type="button" variant="outline" disabled={state.busy||!!state.pending&&!state.pending.rejection} onClick={()=>void controller.reviewRebase()}>核对最新版本基线</Button>}</div>{r&&<Button type="button" variant="link" className="justify-start" onClick={()=>w.navigatePath('/studio/preview?res='+encodeURIComponent(r.id))}>文本预览沙盒</Button>}</CardContent></Card>
+ {r&&<StudioLifecycle key={r.id} resource={r} onChanged={resourceChanged}/>}</div><div className="grid min-w-0 gap-5">{jobs}<Card><CardHeader><CardTitle>应用已发布版本</CardTitle></CardHeader><CardContent className="grid gap-4"><p className="text-sm text-muted-foreground">只应用已发布版本 {r?.published_version||'尚未发布'}。先核对目标和真实差异，再确认。</p><Label htmlFor="studio-apply-target">目标角色<ChoiceSelect id="studio-apply-target" value={d.target||''} disabled={readOnly} onChange={(event:any)=>controller.setTarget(event.target.value)}><option value="">请选择角色</option>{targets.map((actor:any)=><option key={actor.id} value={actor.id}>{actor.name}</option>)}</ChoiceSelect></Label><Button type="button" variant="outline" disabled={readOnly||state.busy||!r?.published_version||!d.target} onClick={()=>void controller.readPreview()}>读取应用差异</Button>{preview&&<div className="grid gap-4">{preview.preparation_required?<><p>{preview.semantics}</p><Button type="button" disabled={state.busy||!!state.pending} onClick={()=>void controller.prepare()}>解析已发布文本为结构化定义</Button><p className="text-sm text-muted-foreground">先审阅生成建议、采用到草稿、保存和发布，再重新读取应用差异。</p></>:<>{preview.create_required&&<p>这是新定义，确认后会在目标运行世界中新建记录。</p>}<Table><TableHeader><TableRow><TableHead>字段</TableHead><TableHead>当前值</TableHead><TableHead>发布值</TableHead></TableRow></TableHeader><TableBody>{(preview.diff||[]).map((row:any)=><TableRow key={row.field}><TableCell>{row.field}</TableCell><TableCell className="whitespace-pre-wrap break-words">{JSON.stringify(row.from)}</TableCell><TableCell className="whitespace-pre-wrap break-words">{JSON.stringify(row.to)}</TableCell></TableRow>)}</TableBody></Table>{preview.runtime_id&&(preview.diff||[]).map((row:any)=><Label key={row.field}>{row.field} 的处理<ChoiceSelect value={preview.choices[row.field]||''} onChange={(event:any)=>controller.chooseDifference(row.field,event.target.value,preview.viewEpoch)}><option value="">请选择</option><option value="keep">保留当前值</option><option value="override">采用发布值</option></ChoiceSelect></Label>)}{preview.target_kind==='wardrobe_outfit'&&(preview.members||[]).map((member:any,index:number)=><div key={index} className="grid gap-2"><b>{member.name||member.resource_id} · {member.resource_version}</b><ChoiceSelect aria-label={'成员 '+(index+1)+' 的实际服饰'} value={preview.memberItems[index]} onChange={(event:any)=>controller.chooseMember(index,event.target.value,preview.viewEpoch)}><option value="">请选择实际库存服饰</option>{(member.candidates||[]).map((item:any)=><option key={item.item_id||item.id} value={item.item_id||item.id}>{item.description||item.name||item.item_id}</option>)}</ChoiceSelect><FieldInput aria-label={'成员 '+(index+1)+' 的其他实际库存 ID'} placeholder="目录未完整读取时，可填明确的实际库存 ID" value={preview.memberItems[index]} onChange={(event:any)=>controller.chooseMember(index,event.target.value,preview.viewEpoch)}/></div>)}{preview.semantics&&<p className="text-sm text-muted-foreground">{preview.semantics}</p>}<Button type="button" disabled={readOnly||state.busy||!!state.pending||!preview.create_required&&!preview.diff?.length} onClick={()=>void controller.apply()}>{preview.target_kind==='foundation'?'创建身份核心应用提议':'确认应用'} {preview.version}</Button><JsonDetails value={preview.conflicts} title="冲突来源"/></>}</div>}
+ {r?.published_version&&['world','character_template'].includes(r.kind)&&<Button type="button" variant="link" onClick={()=>w.navigatePath('/library/create?'+(r.kind==='world'?'worldResourceId='+encodeURIComponent(r.id)+'&worldVersion=':'template='+encodeURIComponent(r.id)+'&version=')+encodeURIComponent(r.published_version))}>以已发布{r.kind==='world'?'世界底稿':'角色模板'}继续初始化</Button>}
+ </CardContent></Card>{r?.referenced_by?.filter((entry:any)=>entry.target_kind==='foundation').length>0&&<Card><CardHeader><CardTitle>身份核心应用与提议</CardTitle></CardHeader><CardContent>{r.referenced_by.filter((entry:any)=>entry.target_kind==='foundation').map((entry:any,index:number)=><Button key={index} type="button" variant="link" className="h-auto whitespace-normal text-left" onClick={()=>w.navigatePath('/c/'+encodeURIComponent(entry.fluctlight_id)+'/governance/foundation/'+encodeURIComponent(entry.runtime_id))}>{w.state.characters.find((actor:any)=>actor.id===entry.fluctlight_id)?.name||'目标角色'} · 发布版本 {entry.running_version} · {entry.currently_effective?'当前生效':entry.status==='proposed'?'提议待审核，尚未生效':'查看来源与历史'}</Button>)}</CardContent></Card>}<JsonDetails value={r?.versions||[]} title="保存版本记录"/></div></div>)}
+ <Dialog open={!!state.rebaseReview} onOpenChange={open=>!open&&(controller.state.rebaseReview=null)}><DialogContent><DialogTitle>核对最新版本基线</DialogTitle><DialogDescription>保留当前工作草稿内容，只采用已读到的保存版本 {state.rebaseReview?.resource.draft_version||state.rebaseReview?.resource.published_version}。未知结果的原请求需要先恢复。</DialogDescription><Button type="button" onClick={()=>controller.confirmRebase()}>已核对，采用最新基线</Button></DialogContent></Dialog>
+ <Dialog open={!!state.publishReview} onOpenChange={open=>!open&&(controller.state.publishReview=null)}><DialogContent><DialogTitle>发布已保存版本</DialogTitle><DialogDescription>发布「{state.publishReview?.resource.name}」版本 {state.publishReview?.resource.draft_version}。应用到角色仍需单独核对。</DialogDescription><Button type="button" disabled={state.busy} onClick={()=>void controller.confirmPublish()}>确认发布保存版本</Button></DialogContent></Dialog>
+ </section>;
 }

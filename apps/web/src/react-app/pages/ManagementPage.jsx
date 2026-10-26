@@ -856,6 +856,7 @@ function createManagementPageController(props, context, lifecycle) {
           selectedId.value = record.id;
           highlight.value = record.id;
         },
+        openMediaAsset: id=>w.navigatePath('/media/'+encodeURIComponent(id)),
         recordTime: (record) =>
           record.start
             ? userInstant(new Date(record.start).toISOString())

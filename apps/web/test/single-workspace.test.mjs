@@ -25,7 +25,7 @@ test('every registered domain route preserves its selector and has an existing e
   const route=approvedRoute('#'+definition.path.replace(/:([a-zA-Z]+)/g,(_m,key)=>key==='charId'?'role':key==='section'?'turns':'selected%20'+key));
   assert.equal(route.page,definition.page);assert.ok(route.feature,definition.path);assert.equal(route.legacy,undefined);
   const spec=/import\(['"]([^'"]+)['"]\)/.exec(route.feature.load.toString());assert.ok(spec);
-  const file=resolve(base,'approved-ui',spec[1]);assert.ok(existsSync(file));assert.match(readFileSync(file,'utf8'),new RegExp('export (?:(?:async )?function |const )'+route.feature.render+'\\b'));
+  const file=resolve(base,'approved-ui',spec[1]);assert.ok(existsSync(file));assert.match(readFileSync(file,'utf8'),new RegExp('export '+(route.feature.native?'default function ':'(?:(?:async )?function |const )')+route.feature.render+'\\b'));
  }
 });
 test('legacy flags are rejected and unknown routes cannot activate another implementation',()=>{

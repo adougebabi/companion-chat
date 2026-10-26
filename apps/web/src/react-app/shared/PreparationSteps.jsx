@@ -1,3 +1,5 @@
+import {Progress} from '@/components/ui/progress';
+import {Badge} from '@/components/ui/badge';
 import { cn } from "@/lib/utils";
 import { ActionButton } from "@/react-app/controls";
 import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
@@ -15,7 +17,7 @@ export default function PreparationSteps(input = {}) {
     unknown: "状态待确认",
   };
   return (
-    <ol className="preparation-list">
+    <section className="grid gap-4"><Progress value={__props.stages.length?__props.stages.filter(stage=>stage.state==='ready').length/__props.stages.length*100:0} aria-label="已读回确认的准备环节"/><p className="text-sm text-muted-foreground">已完成 {__props.stages.filter(stage=>stage.state==='ready').length} / {__props.stages.length} 个准备环节</p><ol className="preparation-list">
       <Fragment>
         {listValues(__props.stages).map((stage, index) => {
           return (
@@ -31,18 +33,7 @@ export default function PreparationSteps(input = {}) {
                 <div className="row">
                   <b>{displayText(stage.title)}</b>
                   <span className="spacer" />
-                  <span
-                    className={cn([
-                      "preparation-state",
-                      {
-                        "is-failed": stage.state === "failed",
-                        "is-current": stage.state === "running",
-                      },
-                    ])}
-                    role="status"
-                  >
-                    {displayText(labels[stage.state] || "状态待确认")}
-                  </span>
+                  <Badge variant={stage.state==='failed'?'destructive':'secondary'} role="status">{labels[stage.state]||'状态待确认'}</Badge>
                 </div>
                 <p
                   className={cn(
@@ -79,8 +70,8 @@ export default function PreparationSteps(input = {}) {
                   ) : null}
                   {stage.href ? (
                     <ActionButton asChild className="text-button" key={2}>
-                      <a key={2} className="text-button" href={stage.href}>
-                        {"查看原任务与结果 ↗"}
+                      <a key={2} className="text-button" href={stage.href+(stage.href.includes('?')?'&':'?')+'returnTo='+encodeURIComponent(globalThis.location?.hash||'#/library')}>
+                        {"查看技术详情"}
                       </a>
                     </ActionButton>
                   ) : null}
@@ -90,6 +81,6 @@ export default function PreparationSteps(input = {}) {
           );
         })}
       </Fragment>
-    </ol>
+    </ol></section>
   );
 }

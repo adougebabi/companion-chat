@@ -8,51 +8,11 @@ export default function ProfileForm(input = {}) {
     ...input,
   };
   const props = __props;
-  const primary = {
-    identity: new Set([
-      "name",
-      "gender",
-      "age",
-      "occupation",
-      "residence",
-      "timezone",
-      "background_story",
-      "core_values",
-    ]),
-    behavioral_policy: new Set([
-      "response_style",
-      "message_length",
-      "directness",
-      "initiative",
-      "conflict_style",
-      "refusal_style",
-    ]),
-    life_profile: new Set([
-      "social_background",
-      "preferences",
-      "life_habits",
-      "character_constraints",
-    ]),
-  };
-  const sections = selector(() =>
-    [
-      ["identity", "身份与背景", "更多身份资料"],
-      ["behavioral_policy", "表达与相处", "更多表达设置"],
-      ["life_profile", "生活设定", "更多生活与外貌设定"],
-    ]
-      .map(([key, title, moreTitle]) => {
-        const fields = props.fields.filter((f) => f.path[0] === key);
-        return {
-          key,
-          title,
-          moreTitle,
-          fields,
-          primary: fields.filter((f) => primary[key].has(f.path[1])),
-          more: fields.filter((f) => !primary[key].has(f.path[1])),
-        };
-      })
-      .filter((g) => g.fields.length),
-  );
+  const basic=new Set(['name','gender','age','occupation','residence','timezone']);
+  const expression=new Set(['core_values','response_style','message_length','directness','initiative','conflict_style','refusal_style']);
+  const life=new Set(['background_story','social_background','preferences','life_habits','character_constraints']);
+  const category=field=>basic.has(field.path.at(-1))&&field.path[0]==='identity'?'basic':expression.has(field.path.at(-1))?'expression':life.has(field.path[1])||life.has(field.path.at(-1))?'life':'more';
+  const sections={value:[['basic','基本资料','名字、身份与生活所在地。'],['expression','性格与说话方式','这些表达偏好会和性格设定一起影响相处方式。'],['life','生活','核对习惯、偏好和相处边界。'],['more','更多设定','保留当前资料中的其他字段。']].map(([key,title,note])=>({key,title,note,fields:props.fields.filter(field=>category(field)===key)})).filter(group=>group.fields.length&&(!props.primaryOnly||group.key!=='more')&&(!props.additionalOnly||group.key==='more'))};
   return (
     <fieldset
       className="character-fieldset character-stack"
@@ -63,36 +23,7 @@ export default function ProfileForm(input = {}) {
           return (
             <section key={group.key} className="character-stack">
               <h3>{displayText(group.title)}</h3>
-              {group.primary.length ? (
-                <div key={0} className="character-field-grid">
-                  <Fragment>
-                    {listValues(group.primary).map((field) => {
-                      return (
-                        <ProfileField
-                          key={JSON.stringify(field.path)}
-                          field={field}
-                        />
-                      );
-                    })}
-                  </Fragment>
-                </div>
-              ) : null}
-              {group.more.length ? (
-                <Disclosure key={1} title={<>{displayText(group.moreTitle)}</>}>
-                  <div className="character-field-grid approved-more-fields">
-                    <Fragment>
-                      {listValues(group.more).map((field) => {
-                        return (
-                          <ProfileField
-                            key={JSON.stringify(field.path)}
-                            field={field}
-                          />
-                        );
-                      })}
-                    </Fragment>
-                  </div>
-                </Disclosure>
-              ) : null}
+              <p className="muted">{group.note}</p><div className="character-field-grid">{group.fields.map(field=><ProfileField key={JSON.stringify(field.path)} field={field} disabled={props.disabled}/>)}</div>
             </section>
           );
         })}

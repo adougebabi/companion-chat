@@ -97,6 +97,7 @@ test('native invalid capture marks controls inline, focuses first only, and clea
       delete this.attributes[key];
     },
     after() {},
+    dispatchEvent() {},
     focus() {
       focus = name;
     },

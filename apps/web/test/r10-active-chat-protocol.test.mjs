@@ -6,7 +6,7 @@ test('React chat opens the selected conversation and retains drafts while render
   assert.deepEqual(f.calls[0],['open','role',true]);const field=f.view.host.querySelector('textarea');await f.view.input(field,'未提交的草稿');
   await f.update(()=>{f.store.messages=[{id:'answer',kind:'assistant',text:'原始正文 <tag>',createdAt:'2026-10-26T04:00:00Z',attachmentRefs:['real-asset']}];});
   assert.equal(field.value,'未提交的草稿');assert.match(f.view.host.innerHTML,/原始正文 &lt;tag&gt;/);assert.match(f.view.host.innerHTML,/\/api\/media\/real-asset/);
-  await f.view.click(f.button('回复设置'));assert.deepEqual(f.calls.at(-1),['navigate','/settings/reply-vision?returnTo='+encodeURIComponent('#/c/role/chat')]);assert.equal(field.value,'未提交的草稿');
+  assert.equal(f.button('回复设置'),undefined);assert.equal(field.value,'未提交的草稿');
  }finally{await f.dispose();}
 });
 test('React stop button follows cancellation authority and delegates to the original controller',async()=>{

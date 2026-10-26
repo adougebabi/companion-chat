@@ -1,0 +1,4 @@
+import {useId} from 'react';
+import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
+import {Label} from '@/components/ui/label';
+export default function ChoiceCards({label,value,options,onChange,disabled=false}:any){const prefix=useId();return <RadioGroup aria-label={label} value={value} onValueChange={onChange} disabled={disabled} className="grid gap-3 sm:grid-cols-2">{options.map((option:any,index:number)=><Label key={option.value} htmlFor={prefix+index} className="flex min-w-0 cursor-pointer items-start gap-3 rounded-lg border p-4 text-left has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-accent"><RadioGroupItem id={prefix+index} value={option.value} className="mt-0.5 shrink-0"/><span className="grid min-w-0 gap-1"><span className="font-medium">{option.label}</span>{option.description&&<span className="text-sm font-normal text-muted-foreground">{option.description}</span>}</span></Label>)}</RadioGroup>;}

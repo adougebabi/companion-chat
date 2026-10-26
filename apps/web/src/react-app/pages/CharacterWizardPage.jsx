@@ -1,3 +1,6 @@
+import WorkspaceBreadcrumb from '@/react-app/shared/WorkspaceBreadcrumb';
+import ChoiceCards from '@/react-app/shared/ChoiceCards';
+import {hasVisibleSemanticValue} from '@/react-app/shared/SemanticTree';
 import { reusableWorlds } from "@/approved-ui/world-sources.mjs";
 import { useController } from "@/react-app/page";
 import { selector, readValue, elementRef } from "@/state/view-model";
@@ -71,6 +74,9 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     worldCursor = lifecycle.cell(""),
     templateCursor = lifecycle.cell(""),
     sourceError = lifecycle.cell(""),
+    existingWorldError = lifecycle.cell(""),
+    templateError = lifecycle.cell(""),
+    existingWorldLoading = lifecycle.cell(false),
     configured = lifecycle.cell(null);
   const wizardRoot = lifecycle.cell(null);
   const analysisNow = lifecycle.cell(Date.now());
@@ -127,10 +133,20 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
       })[s] || "状态待确认";
   const configHref = (section) =>
     "#/settings?section=" + encodeURIComponent(section || "模型用途");
+  let worldReadEpoch = 0;
   async function loadExistingWorlds() {
-    try { const result=await reusableWorlds(w.client,w.state.characters); if(!active||!c.live())return; existingWorlds.value=result.items; if(result.unavailable)sourceError.value="部分已有世界暂未读到，可以重新读取后选择。"; }
-    catch(cause){if(active&&c.live())sourceError.value=errorMessage(cause);}
+    const token = ++worldReadEpoch;
+    const characters = w.state.characters.map(({id,name}) => ({id,name}));
+    existingWorldLoading.value = true;
+    try {
+      const result = await reusableWorlds(w.client, characters);
+      if (!active || !c.live() || token !== worldReadEpoch) return;
+      existingWorlds.value = result.items;
+      existingWorldError.value = result.unavailable ? `${result.unavailable} 个角色的世界暂未读到，已读到的世界仍可选择。` : "";
+    } catch (cause) { if (active && c.live() && token === worldReadEpoch) existingWorldError.value = errorMessage(cause); }
+    finally { if (active && c.live() && token === worldReadEpoch) existingWorldLoading.value = false; }
   }
+  lifecycle.observe(() => w.state.characters.map(({id,name}) => [id,name]), () => void loadExistingWorlds(), {immediate:true});
   function chooseWorld(world){c.selectWorld(world);worldChoice.value=true;}
   function chooseExistingWorld(world){c.selectExistingWorld(world);worldChoice.value=true;}
   async function loadSources(kind, more = false) {
@@ -154,9 +170,9 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           : result.items;
         templateCursor.value = result.next_cursor || "";
       }
-      sourceError.value = "";
+      (kind === "world" ? sourceError : templateError).value = "";
     } catch (cause) {
-      if (active) sourceError.value = errorMessage(cause);
+      if (active && c.live()) (kind === "world" ? sourceError : templateError).value = errorMessage(cause);
     }
   }
   function templateChanged(event) {
@@ -199,7 +215,6 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     if (!document.hidden) void poll();
   };
   lifecycle.onStart(() => {
-    void loadExistingWorlds();
     void loadSources("world");
     void loadSources("character_template");
     void w.services.configurationClient
@@ -222,22 +237,13 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     c.dispose();
   });
   return (_ctx, _cache) => {
+    const worldOptions=[...existingWorlds.value.map(world=>({value:'existing:'+world.fluctlightId+':'+world.id,label:world.name,description:'来自 '+world.characterName+' · 复用背景和地点，独立生活记录',select:()=>chooseExistingWorld(world)})),...worlds.value.map(world=>({value:'definition:'+world.id+':'+world.published_version,label:world.name,description:'已发布底稿 · 版本 '+world.published_version,select:()=>chooseWorld(world)})),{value:'default',label:'使用日常生活世界',description:'建立独立的生活世界，地点可以继续补充。',select:()=>chooseWorld(null)}];
+    const worldValue=!worldChoice.value?'':draft.worldSource?'existing:'+draft.worldSource.fluctlightId+':'+draft.worldSource.worldId:draft.useDefaultWorld?'default':'definition:'+draft.worldResourceId+':'+draft.worldResourceVersion;
+
     return (
       <div ref={elementRef(wizardRoot)} className="character-workflow">
-        <div className="character-breadcrumb">
-          <ActionButton asChild className="text-button">
-            <a className="text-button" href="#/library">
-              {"角色库"}
-            </a>
-          </ActionButton>
-          <span>{"›"}</span>
-          <small>
-            {displayText(
-              readValue(draft).activatedId ? "为新的生活做准备" : "新的相识",
-            )}
-          </small>
-        </div>
-        <ol className="wizard-steps">
+        <WorkspaceBreadcrumb parentLabel="角色库" parentHref="#/library" currentLabel={draft.name||"新的相识"}/>
+      <ol className="wizard-steps">
           <Fragment>
             {listValues(navSteps).map((label, index) => {
               return (
@@ -280,53 +286,13 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             </header>
             <section className="character-stack">
               <h3>已有生活世界</h3>
+              {existingWorldLoading.value && <p role="status">正在读取已有世界…</p>}
+              {existingWorldError.value && <p className="inline-error" role="alert">{existingWorldError.value}</p>}
+              {!existingWorldLoading.value && !existingWorldError.value && !existingWorlds.value.length && <p className="muted">还没有角色关联的生活世界，可以选择下面的已发布底稿，或创建新的世界设定。</p>}
               <p className="muted">只复用世界背景、规则和地点；人物、物品实例、事件模板、运行位置与生活历史不复制。</p>
-              {existingWorlds.value.map(world => <ActionButton key={world.fluctlightId+":"+world.id} type="button" className="button world-choice" aria-pressed={draft.worldSource?.worldId===world.id && draft.worldSource?.fluctlightId===world.fluctlightId} onClick={()=>chooseExistingWorld(world)}><b>{world.name}</b><small>来自 {world.characterName}</small></ActionButton>)}
+              <ChoiceCards label="生活世界来源" value={worldValue} disabled={readValue(busy)||!!readValue(pending)} options={worldOptions} onChange={value=>worldOptions.find(option=>option.value===value)?.select()}/>
               <ActionButton type="button" className="text-button" onClick={()=>void loadExistingWorlds()}>重新读取已有世界</ActionButton>
-            </section>
-            <ActionButton
-              type="button"
-              className={cn([
-                "button",
-                {
-                  primary: worldChoice.value && readValue(draft).useDefaultWorld,
-                },
-              ])}
-              aria-pressed={worldChoice.value && readValue(draft).useDefaultWorld}
-              onClick={($event) => chooseWorld(null)}
-            >
-              {"使用日常生活世界"}
-            </ActionButton>
-            <small className="muted">
-              {"会为新角色建立独立的生活世界，具体地点可在相处中继续补充。"}
-            </small>
-            <div className="character-stack">
-              <Fragment>
-                {listValues(worlds.value).map((world) => {
-                  return (
-                    <ActionButton
-                      key={world.id}
-                      type="button"
-                      className="world-choice button"
-                      aria-pressed={
-                        readValue(draft).worldResourceId === world.id &&
-                        !readValue(draft).useDefaultWorld
-                      }
-                      onClick={($event) => chooseWorld(world)}
-                    >
-                      <b>{displayText(world.name)}</b>
-                      <small>
-                        {"已发布版本 " + displayText(world.published_version)}
-                      </small>
-                    </ActionButton>
-                  );
-                })}
-              </Fragment>
-              {!worlds.value.length && !sourceError.value ? (
-                <p key={0} className="muted">
-                  {" 还没有已发布的世界底稿，也可以先使用日常生活世界。 "}
-                </p>
-              ) : null}
+              {!worlds.value.length&&!sourceError.value&&<p className="muted">创作中心的世界草稿需要先发布，才会出现在可选底稿中。</p>}
               {worldCursor.value ? (
                 <ActionButton
                   key={1}
@@ -354,7 +320,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                   {"创建世界设定 ↗"}
                 </a>
               </ActionButton>
-            </div>
+            </section>
             {Object.keys(readValue(fieldErrors)).length ? (
               <ul key={0} className="inline-error" role="alert">
                 <Fragment>
@@ -412,29 +378,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               className="character-fieldset character-stack"
               disabled={readValue(busy) || !!readValue(pending)}
             >
-              <div className="creation-mode-choices">
-                <Fragment>
-                  {listValues(modes).map(([value, label, note]) => {
-                    return (
-                      <ActionButton
-                        key={value}
-                        type="button"
-                        className={cn([
-                          "button creation-mode",
-                          {
-                            active: readValue(draft).mode === value,
-                          },
-                        ])}
-                        aria-pressed={readValue(draft).mode === value}
-                        onClick={($event) => readValue(c).changeMode(value)}
-                      >
-                        <b>{displayText(label)}</b>
-                        <small>{displayText(note)}</small>
-                      </ActionButton>
-                    );
-                  })}
-                </Fragment>
-              </div>
+              <ChoiceCards label="创建方式" value={draft.mode} disabled={readValue(busy)||!!readValue(pending)} options={modes.map(([value,label,note])=>({value,label,description:note}))} onChange={value=>c.changeMode(value)}/>
               <div className="character-field-grid">
                 <label>
                   {"名字" +
@@ -658,6 +602,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                         displayText(readValue(draft).templateVersion)}
                     </p>
                   ) : null}
+                  {templateError.value && <p className="inline-error" role="alert">{templateError.value}<ActionButton type="button" onClick={()=>loadSources("character_template")}>重新读取模板</ActionButton></p>}
                   {templateCursor.value ? (
                     <ActionButton
                       key={1}
@@ -791,7 +736,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               <small>{"第 3 / 4 步"}</small>
               <h2>{"在相遇之前，先认识一下"}</h2>
               <p className="muted">
-                {" 先核对身份、表达和生活设定，确认后开始准备相遇。 "}
+                {" 这是根据你的资料整理的角色。确认后会开始准备衣柜、日程和形象；你可以在下一步查看进度或恢复失败环节。 "}
               </p>
             </header>
             {readValue(draft).mode === "blank" ? (
@@ -804,21 +749,14 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               </Fragment>
             ) : (
               <Fragment key={1}>
+                {hasVisibleSemanticValue(draft.analysis?.core_persona?.personality)&&<section className="character-stack"><h3>性格概览</h3><p className="muted">根据当前资料整理，性格维度在这里供你核对。</p><SemanticTree value={draft.analysis.core_persona.personality}/></section>}
                 <ProfileForm
                   fields={readValue(previewFields)}
+                  primaryOnly
                   disabled={readValue(busy) || !!readValue(pending)}
                 />
-                <Disclosure title={<>{"共同性格与人格档案（只读）"}</>}>
-                  <SemanticTree
-                    value={{
-                      personality:
-                        readValue(draft).analysis?.core_persona?.personality,
-                      personality_system:
-                        readValue(draft).analysis?.core_persona
-                          ?.personality_system,
-                    }}
-                  />
-                </Disclosure>
+
+                <Disclosure title="更多设定"><div className="character-stack"><ProfileForm fields={readValue(previewFields)} additionalOnly disabled={readValue(busy)||!!readValue(pending)}/>
                 <Disclosure title={<>{"初始关系、目标与意图"}</>}>
                   <SemanticTree
                     value={{
@@ -849,6 +787,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                     )}
                   </pre>
                 </Disclosure>
+                </div></Disclosure>
               </Fragment>
             )}
             {readValue(error) ? (
@@ -863,7 +802,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 disabled={readValue(busy) || !!readValue(pending)}
                 onClick={prev}
               >
-                {"返回修改输入"}
+                {"返回修改"}
               </ActionButton>
               <span className="spacer" />
               <ActionButton
@@ -871,7 +810,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 data-testid="wizard-activate"
                 disabled={readValue(busy) || !!readValue(pending)}
               >
-                {displayText(readValue(busy) ? "正在激活…" : "确认并开始准备")}
+                {displayText(readValue(busy) ? "正在激活…" : "确认，开始准备")}
               </ActionButton>
             </footer>
           </Surface>

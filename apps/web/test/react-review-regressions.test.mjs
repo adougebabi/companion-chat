@@ -234,11 +234,8 @@ test("world deletion confirmation supports its Radix close control without issui
   ];
   const view = await mountReact(vite, World, { workspace: w });
   try {
-    await view.click(
-      [...view.host.querySelectorAll("button")].find(
-        (node) => node.textContent === "删除",
-      ),
-    );
+    const menuTrigger=view.host.querySelector('[aria-label="保留世界的世界操作"]');menuTrigger.focus();act(()=>menuTrigger.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await view.flush();
+    await view.click([...document.querySelectorAll('[role="menuitem"]')].find(node=>node.textContent==='删除'));
     const dialog = document.querySelector('[role="dialog"]');
     assert.ok(dialog);
     await view.click(dialog.querySelector('[data-slot="dialog-close"]'));

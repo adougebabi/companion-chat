@@ -6,7 +6,7 @@ import {configureDomainService} from '../proto/services.js';
 import {get} from '../proto/store.js';
 export function createGovernanceProvider(client:BrowserClient,refresh:()=>Promise<unknown>){
  const keys=new Map<string,string>();
- async function command<T>(scope:unknown,body:object,execute:(key:string)=>Promise<T>){const identity=JSON.stringify([get('session')?.actorId,scope,body]);let key=keys.get(identity);if(!key){key=randomId();keys.set(identity,key);}const result=await execute(key);keys.delete(identity);return result;}
+ async function command<T>(scope:unknown,body:object,execute:(key:string)=>Promise<T>,providedKey?:string){const identity=JSON.stringify([get('session')?.actorId,scope,body]);let key=providedKey||keys.get(identity);if(!key){key=randomId();keys.set(identity,key);}const result=await execute(key);keys.delete(identity);return result;}
  const owned=<T extends {fluctlight_id:string}>(fid:string,row:T)=>{if(row.fluctlight_id!==fid)throw new Error('治理对象与当前角色不匹配，请重新读取');return row;};
  return {
   refresh,
@@ -15,10 +15,10 @@ export function createGovernanceProvider(client:BrowserClient,refresh:()=>Promis
   async foundation(fid:string,id:string){return owned(fid,await client.governanceObject(fid,'foundation',id));},
   async capability(fid:string,id:string){return owned(fid,await client.governanceObject(fid,'capability',id));},
   history:(fid:string,kind:'foundation'|'capability',id:string,cursor='')=>client.governanceHistory(fid,kind,id,cursor),
-  propose:(fid:string,body:Omit<BrowserFoundationProposalBody,'idempotencyKey'>)=>command([fid,'propose'],body,key=>client.submitFoundationRevision(fid,{...body,idempotencyKey:key})),
+  propose:(fid:string,body:Omit<BrowserFoundationProposalBody,'idempotencyKey'>,key?:string)=>command([fid,'propose'],body,key=>client.submitFoundationRevision(fid,{...body,idempotencyKey:key}),key),
   decide:(fid:string,id:string,action:'accept'|'reject',body:{expectedRevision:number;reason:string})=>action==='accept'?client.acceptFoundationRevision(fid,id,body):client.rejectFoundationRevision(fid,id,body),
   restore:(fid:string,targetRevision:number,body:{expectedRevision:number;reason:string})=>client.rollbackFoundationRevision(fid,{...body,targetRevision}),
-  review:(fid:string,id:string,body:Omit<BrowserCapabilityReviewBody,'idempotencyKey'>)=>command([fid,id,'review'],body,async key=>owned(fid,await client.reviewScopedCapabilityRequest(fid,id,{...body,idempotencyKey:key}))),
+  review:(fid:string,id:string,body:Omit<BrowserCapabilityReviewBody,'idempotencyKey'>,key?:string)=>command([fid,id,'review'],body,async key=>owned(fid,await client.reviewScopedCapabilityRequest(fid,id,{...body,idempotencyKey:key})),key),
  };
 }
 export function installGovernanceProvider(implementation:ReturnType<typeof createGovernanceProvider>){configureDomainService('governance',implementation);}

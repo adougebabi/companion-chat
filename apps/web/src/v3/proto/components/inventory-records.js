@@ -19,7 +19,7 @@ export function WearingSummary(worn,{known=true,link}={}){
  const name=item.name&&item.name!==description?item.name:description;
  const body=href?`<a href="${esc(href)}">${esc(name)}</a>`:`<span>${esc(name)}</span>`;
  // Long authored descriptions remain available without filling the overview.
- return description.length>60||name!==description?`<details class="wearing-garment"><summary>${body}</summary><p>${esc(description)}</p></details>`:`<div class="wearing-garment">${body}</div>`;
+ return description.length>60||name!==description?`<details data-domain-ui="disclosure" class="wearing-garment"><summary>${body}</summary><p>${esc(description)}</p></details>`:`<div class="wearing-garment">${body}</div>`;
  }).join(''):'<span class="muted">未登记该部位</span>'}</dd></div>`).join('')}</dl>`;
 }
 export function CurrentInventory(worn,used,{showUsed=true}={}){return `<div class="card tint-primary"><h3>当前穿着</h3>${WearingSummary(worn)}${showUsed?`<h3>当前使用</h3>${(used||[]).map(i=>`<p>${esc(i.description||i.item_id)} · ${esc(i.activity||'活动未记录')} · ${esc(instant(i.since||i.started_at))}</p>`).join('')||'<p class="small muted">当前没有已登记的物品使用。</p>'}`:''}</div>`;}

@@ -1332,7 +1332,7 @@
     margin: 25px 0 15px;
     font-size: 25px;
   }
-  .react-workspace .grid {
+  .react-workspace .now-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 20px;
@@ -1808,7 +1808,7 @@
     .react-workspace .switch-menu {
       left: 80px;
     }
-    .react-workspace .grid {
+    .react-workspace .now-grid {
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }
     .react-workspace .input-row {
@@ -4868,3 +4868,23 @@
     width: auto;
   }
 }
+
+@layer components {
+/* R11: rows own layout; shadcn buttons are limited to actual actions. */
+.react-workspace .diagnostic-table table{table-layout:fixed;width:100%;}
+.react-workspace .diagnostic-table th:nth-child(1){width:65px;}
+.react-workspace .diagnostic-table th:nth-child(2){width:125px;}
+.react-workspace .diagnostic-table th:nth-child(3){width:85px;}
+.react-workspace .diagnostic-table th:nth-child(4){width:90px;}
+.react-workspace .diagnostic-table th:nth-child(5){width:100px;text-align:right;}
+.react-workspace .diagnostic-table th:nth-child(7){width:110px;}
+.react-workspace .diagnostic-table .diagnostic-record{display:table-row;height:auto;}
+.react-workspace .diagnostic-table td{height:auto;padding:12px 8px;vertical-align:middle;overflow:hidden;}
+.react-workspace .diagnostic-summary-cell>span{display:block;}
+.react-workspace .diagnostic-table .diagnostic-summary{margin:0;line-height:1.6;white-space:nowrap;}
+.react-workspace .diagnostic-actions button{margin:2px;}
+.react-workspace .character-field-grid>label{display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:8px;}
+.react-workspace .configuration-nav button{width:100%;justify-content:flex-start;white-space:normal;}
+
+}
+[data-domain-carrier], [data-domain-react-control][hidden] { display: none !important; }

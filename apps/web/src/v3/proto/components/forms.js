@@ -10,7 +10,7 @@ export function attributes(values = {}) {
     }).join(' ');
 }
 export function Button({ label = '', content, tone = '', size = '', type = 'button', attrs = {} } = {}) {
-  return `<button class="btn${tone ? ` ${esc(tone)}` : ''}${size ? ` ${esc(size)}` : ''}" type="${esc(type)}" ${attributes(attrs)}>${content ?? esc(label)}</button>`;
+  return `<button data-domain-ui="button" class="btn${tone ? ` ${esc(tone)}` : ''}${size ? ` ${esc(size)}` : ''}" type="${esc(type)}" ${attributes(attrs)}>${content ?? esc(label)}</button>`;
 }
 let fieldSequence = 0;
 export function Field({ label, name, value = '', type = 'text', options, rows = 3, hint = '', attrs = {}, labelAttrs = {} }) {
@@ -18,27 +18,27 @@ export function Field({ label, name, value = '', type = 'text', options, rows = 
   const describedBy = [attrs['aria-describedby'], hint ? `${id}-hint` : ''].filter(Boolean).join(' ');
   const common = attributes({ name, ...(type === 'number' ? { step: 'any' } : {}), ...attrs, id,
     ...(attrs.required&&!attrs.readonly&&!attrs.disabled ? { 'aria-required': 'true' } : {}), ...(describedBy ? { 'aria-describedby': describedBy } : {}) });
-  const control = type === 'textarea' ? `<textarea class="input" rows="${rows}" ${common}>${esc(value)}</textarea>`
-    : type === 'select' ? `<select class="select" ${common}>${options.map(option => { const item = typeof option === 'string' ? { value: option, label: option } : option; return `<option value="${esc(item.value)}"${String(item.value) === String(value) ? ' selected' : ''}>${esc(item.label)}</option>`; }).join('')}</select>`
-      : `<input class="input" type="${esc(type)}" value="${esc(value)}" ${common}>`;
+  const control = type === 'textarea' ? `<textarea data-domain-ui="field" class="input" rows="${rows}" ${common}>${esc(value)}</textarea>`
+    : type === 'select' ? `<select data-domain-ui="field" class="select" ${common}>${options.map(option => { const item = typeof option === 'string' ? { value: option, label: option } : option; return `<option value="${esc(item.value)}"${String(item.value) === String(value) ? ' selected' : ''}>${esc(item.label)}</option>`; }).join('')}</select>`
+      : `<input data-domain-ui="field" class="input" type="${esc(type)}" value="${esc(value)}" ${common}>`;
   return `<label class="field" ${attributes(labelAttrs)}><span class="field-label">${esc(label)}${attrs.required&&!attrs.readonly&&!attrs.disabled ? '<span class="field-required" aria-hidden="true" title="必填">*</span>' : ''}</span>${control}${hint ? `<span class="small muted" id="${esc(id)}-hint">${esc(hint)}</span>` : ''}</label>`;
 }
 export function Tabs({ items, value, attribute = 'tab', className = 'tabs', attrs = {} }) {
-  return `<div class="${esc(className)}" ${attributes(attrs)}>${items.map(item => {
+  return `<div data-domain-ui="tabs" class="${esc(className)}" ${attributes(attrs)}>${items.map(item => {
     const cls = `tab ${item.value === value ? 'on' : ''}`;
     const body = item.content ?? esc(item.label);
-    return item.href ? `<a class="${cls}" href="${esc(item.href)}" ${attributes({ ...(item.value === value ? { 'aria-current': 'page' } : {}), ...(item.attrs || {}) })}>${body}</a>` : `<button type="button" class="${cls}" ${attributes({ [`data-${attribute}`]: item.value, 'aria-pressed': String(item.value === value), ...(item.attrs || {}) })}>${body}</button>`;
+    return item.href ? `<a class="${cls}" href="${esc(item.href)}" ${attributes({ ...(item.value === value ? { 'aria-current': 'page' } : {}), ...(item.attrs || {}) })}>${body}</a>` : `<button data-domain-ui="button" type="button" class="${cls}" ${attributes({ [`data-${attribute}`]: item.value, 'aria-pressed': String(item.value === value), ...(item.attrs || {}) })}>${body}</button>`;
   }).join('')}</div>`;
 }
 export function SearchForm({ value = '', placeholder = '搜索', submitLabel = '搜索', attrs = {}, inputAttrs = {}, inputClass = 'input grow', buttonClass = 'btn' } = {}) {
-  return `<form class="row" role="search" ${attributes(attrs)}><input class="${esc(inputClass)}" name="q" value="${esc(value)}" placeholder="${esc(placeholder)}" ${attributes({ 'aria-label': placeholder, ...inputAttrs })}><button class="${esc(buttonClass)}">${esc(submitLabel)}</button></form>`;
+  return `<form class="row" role="search" ${attributes(attrs)}><input data-domain-ui="field" class="${esc(inputClass)}" name="q" value="${esc(value)}" placeholder="${esc(placeholder)}" ${attributes({ 'aria-label': placeholder, ...inputAttrs })}><button data-domain-ui="button" class="${esc(buttonClass)}">${esc(submitLabel)}</button></form>`;
 }
 export function PromptChips(items, attribute = 'chip', className = 'chips') {
-  return `<div class="${esc(className)}">${items.map(text => `<button class="chip" data-${esc(attribute)}="${esc(text)}">${esc(text)}</button>`).join('')}</div>`;
+  return `<div class="${esc(className)}">${items.map(text => `<button data-domain-ui="button" class="chip" data-${esc(attribute)}="${esc(text)}">${esc(text)}</button>`).join('')}</div>`;
 }
 export function TextComposer({ variant = 'chat', placeholder = '', attrs = {}, name = 't' } = {}) {
-  if (variant === 'assistant') return `<form class="row" ${attributes(attrs)}><input class="input grow" name="${esc(name)}" aria-label="创作请求" placeholder="${esc(placeholder)}" data-test="assist-input"><button class="btn accent sm" aria-label="提交创作请求">${icon('send')}</button></form>`;
-  return `<form class="composer" data-test="composer" ${attributes(attrs)}><textarea class="input" rows="1" name="${esc(name)}" placeholder="${esc(placeholder)}" aria-label="消息" enterkeyhint="send" data-test="chat-input"></textarea><button class="btn primary" data-test="chat-send">${icon('send')} 发送</button></form>`;
+  if (variant === 'assistant') return `<form class="row" ${attributes(attrs)}><input data-domain-ui="field" class="input grow" name="${esc(name)}" aria-label="创作请求" placeholder="${esc(placeholder)}" data-test="assist-input"><button data-domain-ui="button" class="btn accent sm" aria-label="提交创作请求">${icon('send')}</button></form>`;
+  return `<form class="composer" data-test="composer" ${attributes(attrs)}><textarea data-domain-ui="field" class="input" rows="1" name="${esc(name)}" placeholder="${esc(placeholder)}" aria-label="消息" enterkeyhint="send" data-test="chat-input"></textarea><button data-domain-ui="button" class="btn primary" data-test="chat-send">${icon('send')} 发送</button></form>`;
 }
 export function DiffView(rows, { attrs = {}, emptyText = '无差异' } = {}) {
   return `<div class="diff" ${attributes(attrs)}>${DiffRows(rows, emptyText)}</div>`;
@@ -48,11 +48,11 @@ export function DiffRows(rows, emptyText = '无差异') {
 }
 export function PreferenceFields(model) {
   return Object.entries(model).filter(([key]) => key !== 'savedAt').map(([key, value]) => typeof value === 'boolean'
-    ? `<label class="toggle"><input type="checkbox" name="${esc(key)}" ${value ? 'checked' : ''}> ${esc(key)}</label>`
-    : `<label class="field">${esc(key)}<input class="input" name="${esc(key)}" value="${esc(value)}"></label>`).join('');
+    ? `<label class="toggle"><input data-domain-ui="field" type="checkbox" name="${esc(key)}" ${value ? 'checked' : ''}> ${esc(key)}</label>`
+    : `<label class="field">${esc(key)}<input data-domain-ui="field" class="input" name="${esc(key)}" value="${esc(value)}"></label>`).join('');
 }
 export function Toggle({label,name,checked=false,attrs={}}) {
-  return `<label class="toggle"><input type="checkbox" ${attributes({name,checked,...attrs})}> ${esc(label)}</label>`;
+  return `<label class="toggle"><input data-domain-ui="field" type="checkbox" ${attributes({name,checked,...attrs})}> ${esc(label)}</label>`;
 }
 export function CheckboxGroup({label,items,value=[],attribute,className=''}) {
   return `<div class="${esc(className)}" role="group" aria-label="${esc(label)}"><b>${esc(label)}</b>${items.map(([key,title])=>Toggle({label:title,checked:value.includes(key),attrs:{[`data-${attribute}`]:key}})).join('')}</div>`;
@@ -101,6 +101,7 @@ export function installFieldValidation(root=document) {
   error.textContent=constraintMessage(control);error.hidden=false;
   control.setAttribute('aria-invalid','true');
   const ids=new Set((control.getAttribute('aria-describedby')||'').split(/\s+/).filter(Boolean));ids.add(error.id);control.setAttribute('aria-describedby',[...ids].join(' '));
+  control.dispatchEvent(new Event('domain-reveal',{bubbles:true}));
   firstInvalid??=control;
   if(!scheduled){scheduled=true;queueMicrotask(()=>{scheduled=false;const field=firstInvalid;firstInvalid=null;if(field?.isConnected){let panel=field.closest?.('details');while(panel){panel.open=true;panel=panel.parentElement?.closest?.('details');}field.focus();field.scrollIntoView?.({block:'center',behavior:'auto'});}});}
  };

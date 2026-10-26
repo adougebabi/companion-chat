@@ -1,0 +1,71 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createServer} from 'vite';
+import {fileURLToPath} from 'node:url';
+import {React,act,mountReact,installDOM} from './helpers/react-dom.mjs';
+import {proxy,snapshot,subscribe} from 'valtio/vanilla';
+const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+test.after(async()=>{await vite.close();env.restore();});
+const load=path=>vite.ssrLoadModule('/src/'+path),buttons=host=>[...host.querySelectorAll('button')],button=(host,text)=>buttons(host).find(n=>n.textContent.trim()===text);
+function w(){const state=proxy({session:{actorId:'r11-owner'},characters:[],operations:[]});return {state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),navigatePath(){},services:{}};}
+test('native upload verifies and restores the original accepted upload without resending bytes after remount',async()=>{
+ const {default:Upload}=await load('react-app/shared/MediaUpload.tsx'),workspace=w();let uploaded=0,asset,seen;
+ workspace.services.mediaClient={lookup:async()=>{if(asset)return {status:'ready',asset};throw Object.assign(Error('not found'),{status:404});},upload:async(file,desc,key)=>{uploaded++;seen={file,desc,key};asset={id:'accepted',origin:'owner_upload',sha256:desc.sha256,byte_size:desc.size,source_filename:desc.filename,status:'available',readable:true};throw Error('network unavailable');},asset:async()=>asset};
+ let v=await mountReact(vite,Upload,{workspace});
+ try{const file=new File([new Uint8Array([1,2,3])],'known.png',{type:'image/png'}),input=v.host.querySelector('input[type=file]');Object.defineProperty(input,'files',{configurable:true,value:[file]});act(()=>input.dispatchEvent(new window.Event('change',{bubbles:true})));await v.flush();await v.click(button(v.host,'上传素材'));assert.equal(uploaded,1);assert.ok(seen.key);assert.match(v.host.textContent,/原上传|原上传|待确认/);}finally{await v.dispose();}
+ let saved;
+ v=await mountReact(vite,Upload,{workspace,props:{onSaved:value=>saved=value}});
+ try{await v.click(button(v.host,'查询或重试原上传'));assert.equal(uploaded,1);assert.equal(saved.id,'accepted');assert.match(v.host.textContent,/上传已保存/);}finally{await v.dispose();}
+});
+test('native task detail reads task authority and original workflow separately, retaining original recovery body and key',async()=>{
+ const {default:Task}=await load('react-app/pages/TaskDetailPage.tsx'),workspace=w(),reads=[],writes=[];
+ const task={task_id:'persona-job',kind:'persona_compile',workflow_id:'workflow-real',status:'failed',runs:1,created_at:'2026-10-26T01:00:00Z',started_at:'2026-10-26T01:00:01Z',completed_at:'2026-10-26T01:01:03Z',source:{last_error:'request_timeout'},steps:Array.from({length:5},(_,id)=>({id,event_type:'queued',status:'failed',at:'2026-10-26T01:00:01Z'}))};
+ const inspection={intent:{workflow_id:'workflow-real',status:'failed',revision:7},runtime_state:'available',runtime:{run_id:'run-real',status:'failed'},allowed_actions:['restart'],commands:[],recovery:{href:'/library/create?resume=role',label:'回到准备进度'}};
+ workspace.services.operationsClient={task:async id=>{reads.push(['task',id]);return task;}};
+ workspace.services.diagnosticsClient={workflow:async id=>{reads.push(['workflow',id]);return inspection;},control:async(id,action,body)=>{writes.push({id,action,body:structuredClone(body)});if(writes.length===1)throw Error('network unavailable');return {status:'accepted'};}};
+ const v=await mountReact(vite,Task,{workspace,props:{route:{feature:{params:{taskId:'persona-job'}},query:new URLSearchParams({returnTo:'#/library/create?resume=role'})}}});
+ try{assert.deepEqual(reads.slice(0,2),[['task','persona-job'],['workflow','workflow-real']]);assert.match(v.host.textContent,/人格整理/);assert.match(v.host.textContent,/模型服务响应超时/);assert.ok(button(v.host,'重试任务'));assert.equal(v.host.querySelectorAll('ol')[1].querySelectorAll('li').length,3);
+  await v.click(button(v.host,'重试任务'));const dialog=document.querySelector('[role=dialog]');await v.input(dialog.querySelector('textarea'),'恢复原任务');await v.click(button(dialog,'确认重试任务'));assert.equal(writes.length,1);assert.equal(writes[0].body.sourceRunId,'run-real');assert.equal(writes[0].body.expectedRevision,7);assert.equal(button(document.querySelector('[role=dialog]'),'确认重试任务').disabled,true);await v.click(document.querySelector('[data-slot=dialog-close]'));await v.click(button(v.host,'核对或重试原提交'));assert.equal(writes.length,2);assert.deepEqual(writes[1],writes[0]);assert.match(v.host.textContent,/操作已提交/);
+ }finally{await v.dispose();}
+});
+test('calendar supports month navigation and stable civil dates; no UTC conversion changes the selected business day',async()=>{
+ const {DiaryCalendar,civilDate,civilDateString}=await load('react-app/shared/DateField.tsx');assert.equal(civilDateString(civilDate('2026-10-25')),'2026-10-25');assert.equal(civilDate('2026-02-30'),undefined);let selected;
+ const v=await mountReact(vite,DiaryCalendar,{props:{value:'2026-10-25',max:'2026-10-25',dates:['2026-10-24'],onChange:value=>selected=value}});
+ try{assert.equal(v.host.querySelector('[data-testid=calendar-day-2026-10-26]').disabled,true);await v.click(v.host.querySelector('[data-testid=calendar-day-2026-10-24]'));assert.equal(selected,'2026-10-24');const previous=v.host.querySelector('.rdp-button_previous');assert.ok(previous);await v.click(previous);assert.ok(v.host.querySelector('[data-testid=calendar-day-2026-09-15]'));}finally{await v.dispose();}
+});
+test('wizard rereads worlds when the role directory arrives and a later successful template read cannot erase catalogue failure',async()=>{
+ const {default:Wizard}=await load('react-app/pages/CharacterWizardPage.jsx'),workspace=w();let fail=true,lateOld;
+ workspace.client={listStudioResources:async()=>({items:[],next_cursor:''}),worldCatalog:async id=>{if(id==='slow')return new Promise(resolve=>lateOld=resolve);if(fail)throw Error('offline');return {items:[{id:'world-real',revision:1,name:'新世界'}]};}};
+ workspace.services.configurationClient={read:async()=>({bindings:[]})};workspace.day=()=> '2026-10-26';workspace.refreshDirectory=async()=>{};
+ const v=await mountReact(vite,Wizard,{workspace});
+ try{act(()=>workspace.state.characters=[{id:'late',name:'后来角色'}]);await v.flush();assert.match(v.host.textContent,/1 个角色的世界暂未读到/);assert.match(v.host.textContent,/草稿需要先发布/);fail=false;await v.click(button(v.host,'重新读取已有世界'));assert.match(v.host.textContent,/新世界/);assert.doesNotMatch(v.host.textContent,/暂未读到/);
+  act(()=>workspace.state.characters=[{id:'slow',name:'旧目录'}]);await v.flush();act(()=>workspace.state.characters=[{id:'late',name:'后来角色'}]);await v.flush();await act(async()=>lateOld({items:[{id:'old',name:'迟到旧世界'}]}));await v.flush();assert.match(v.host.textContent,/新世界/);assert.doesNotMatch(v.host.textContent,/迟到旧世界/);
+ }finally{await v.dispose();}
+});
+
+test('native avatar recovers the original selection, preserves a newer draft, and rebases only after explicit review',async()=>{
+ const {default:Avatar}=await load('react-app/pages/AvatarPage.tsx'),workspace=w();workspace.state.characters=[{id:'A',name:'角色甲',status:'active'}];const owner=workspace.state.session.actorId,slot=`fluctlight-media:${owner}:A:avatar`,writes=[],queries=[];let finish;
+ const original={mode:'asset',assetId:'original-image',expectedAssetRevision:2,expectedRevision:3,reason:'原选择理由'};
+ sessionStorage.setItem(slot+':command',JSON.stringify({version:1,idempotencyKey:'original-avatar-key',value:original,attempts:1}));
+ sessionStorage.setItem(slot+':draft',JSON.stringify({mode:'asset',selected:{id:'newer-image',asset_revision:5,title:'后来选择的图'},expectedRevision:3,reason:'后来编辑的理由'}));
+ let server={fluctlight_id:'A',revision:3,mode:'canonical',selection:{},avatar:null,read_state:'missing'};
+ workspace.services.mediaClient={avatar:async()=>structuredClone(server),avatarHistory:async()=>({items:[],next_cursor:''}),list:async options=>{queries.push(options);return {items:[{id:'newer-image',asset_revision:5,title:'跨角色来源图',readable:true}],next_cursor:''};},url:id=>'/api/media/'+id,selectAvatar:async(fid,body)=>{writes.push({fid,body});return new Promise(resolve=>finish=()=>{server={...server,revision:4,mode:'asset',selection:{asset_id:body.assetId},avatar:{asset_id:body.assetId,url:'authorized'}};resolve(structuredClone(server));});},refresh:async()=>{}};
+ const v=await mountReact(vite,Avatar,{workspace,props:{fid:'A'}});
+ try{assert.equal(queries[0].kind,'image');assert.equal(queries[0].fluctlightId,undefined);await v.click(button(v.host,'重试原提交'));assert.equal(writes.length,1);assert.deepEqual(writes[0],{fid:'A',body:{...original,idempotencyKey:'original-avatar-key'}});await v.input(v.host.querySelector('#avatar-reason'),'回复期间的新理由');await act(async()=>finish());await v.flush();assert.match(v.host.textContent,/后来编辑的选择和原因仍保留/);let saved=JSON.parse(sessionStorage.getItem(slot+':draft'));assert.equal(saved.selected.id,'newer-image');assert.equal(saved.reason,'回复期间的新理由');assert.equal(saved.expectedRevision,3);
+  await v.click(button(v.host,'读取最新版本并保留选择'));assert.equal(JSON.parse(sessionStorage.getItem(slot+':draft')).expectedRevision,3);const dialog=document.querySelector('[role=alertdialog]');assert.ok(dialog);await v.click(button(dialog,'已核对，采用最新基线'));saved=JSON.parse(sessionStorage.getItem(slot+':draft'));assert.equal(saved.expectedRevision,4);assert.equal(saved.selected.id,'newer-image');assert.equal(saved.reason,'回复期间的新理由');assert.equal(writes.length,1);
+ }finally{await v.dispose();sessionStorage.removeItem(slot+':draft');sessionStorage.removeItem(slot+':command');}
+});
+
+test('native governance uses current Foundation revision, preserves stale rejection, and never accepts a stale proposal',async()=>{
+ const {default:Gov}=await load('react-app/pages/GovernancePage.tsx'),workspace=w();workspace.state.characters=[{id:'A',name:'角色甲',status:'active'}];let record={id:'proposal',fluctlight_id:'A',status:'proposed',revision:2,base_revision:3,changes:{identity:{occupation:'新职业'}},reason:'原提议'},writes=[];
+ workspace.services.governanceClient={current:async()=>({revision:4,identity:{name:'角色甲'}}),foundation:async()=>structuredClone(record),history:async()=>({items:[],next_cursor:''}),decide:async(fid,id,action,body)=>{writes.push({fid,id,action,body});record={...record,status:'rejected'};return record;}};
+ const v=await mountReact(vite,Gov,{workspace,props:{route:{fid:'A',feature:{params:{governanceId:'proposal',governanceKind:'foundation'}},query:new URLSearchParams()}}});
+ try{assert.equal(button(v.host,'接受并应用').disabled,true);assert.equal(button(v.host,'拒绝提议').disabled,false);await v.click(button(v.host,'拒绝提议'));const dialog=document.querySelector('[role=dialog]');await v.input(dialog.querySelector('textarea'),'保留当前身份');await v.click(button(dialog,'确认提交'));assert.deepEqual(writes,[{fid:'A',id:'proposal',action:'reject',body:{expectedRevision:4,reason:'保留当前身份'}}]);assert.equal(document.querySelector('[role=dialog]'),null);assert.match(v.host.textContent,/未采纳/);}finally{await v.dispose();}
+});
+test('native self claim restores only complete accepted snapshots using current claim CAS and the exact chosen historical revision',async()=>{
+ const {default:Self}=await load('react-app/pages/SelfPage.tsx'),workspace=w();workspace.state.characters=[{id:'A',name:'角色甲',status:'active'}];let claim={id:'claim',fluctlight_id:'A',category:'preference',claim:'喜欢阅读',value:false,confidence:0,status:'active',revision:4},writes=[];
+ const complete={category:'preference',claim:'喜欢阅读',value:false,confidence:0,evidence_refs:[],provenance:{},status:'active'};
+ workspace.services.selfClient={read:async()=>structuredClone(claim),history:async(_fid,_id,kind)=>({items:kind==='revisions'?[{revision:1,status:'accepted',after_value:complete},{revision:2,status:'accepted',after_value:{category:'preference'}}]:[],next_cursor:''}),command:async(fid,id,operation,body)=>{writes.push({fid,id,operation,body});claim={...claim,revision:5};return {id,fluctlight_id:fid,revision:5,status:'active'};}};
+ const v=await mountReact(vite,Self,{workspace,props:{route:{fid:'A',feature:{params:{claimId:'claim'}},query:new URLSearchParams()}}});
+ try{assert.equal(buttons(v.host).filter(node=>node.textContent==='恢复此版本内容').length,1);assert.match(v.host.textContent,/置信度 0/);await v.click(button(v.host,'恢复此版本内容'));const dialog=document.querySelector('[role=dialog]');await v.input(dialog.querySelector('textarea'),'恢复已确认来源');await v.click(button(dialog,'确认提交'));assert.deepEqual(writes,[{fid:'A',id:'claim',operation:'restore',body:{expectedRevision:4,reason:'恢复已确认来源',targetRevision:1}}]);}finally{await v.dispose();}
+});

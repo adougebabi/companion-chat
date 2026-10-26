@@ -1,3 +1,9 @@
+import ModelTranscript from '@/react-app/shared/ModelTranscript';
+import JsonDetails from '@/react-app/shared/JsonDetails';
+import {Table,TableBody,TableCell,TableRow} from '@/components/ui/table';
+import {ScrollArea} from '@/components/ui/scroll-area';
+import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
+import DiagnosticRecords from '@/react-app/shared/DiagnosticRecords';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { readValue, elementRef } from "@/state/view-model";
 import { cn } from "@/lib/utils";
@@ -23,7 +29,7 @@ export function ManagementPageView({ view: view }) {
       value={view.tab.value}
       onValueChange={(value) => (view.tab.value = value)}
     >
-      <TabsList className="tabs">
+      <TabsList className="max-w-full overflow-x-auto">
         <Fragment>
           {listValues(["配置中心", "运行诊断"]).map((h) => (
             <TabsTrigger
@@ -48,17 +54,7 @@ export function ManagementPageView({ view: view }) {
             >
               <Fragment>
                 {listValues(view.sections.value).map((h) => (
-                  <a
-                    key={h}
-                    href={"#" + encodeURIComponent("管理中心")}
-                    data-testid={"config-anchor-" + h}
-                    onClick={eventModifiers(
-                      (b) => view.scrollTo(h),
-                      ["prevent"],
-                    )}
-                  >
-                    {displayText(h)}
-                  </a>
+                  <ActionButton type="button" key={h} className="text-button justify-start text-left" data-testid={"config-anchor-"+h} onClick={()=>view.scrollTo(h)}>{h}</ActionButton>
                 ))}
               </Fragment>
             </nav>
@@ -419,23 +415,7 @@ export function ManagementPageView({ view: view }) {
                     </label>
                   </div>
                   <p>{"生效日期（Asia/Shanghai，支持跨夜）"}</p>
-                  <div className="quiet-days">
-                    <Fragment>
-                      {listValues(readValue(Yi)).map((h, rowIndex) => (
-                        <label
-                          key={typeof h === "object" ? (h?.id ?? rowIndex) : h}
-                        >
-                          <FieldInput
-                            type="checkbox"
-                            value={h}
-                            modelValue={view.quiet.value.days}
-                            onModelChange={(b) => (view.quiet.value.days = b)}
-                          />
-                          {displayText(h)}
-                        </label>
-                      ))}
-                    </Fragment>
-                  </div>
+                  <ToggleGroup type="multiple" variant="outline" disabled={!view.quiet.value.enabled} aria-label="安静时段生效星期" value={view.quiet.value.days} onValueChange={values=>view.quiet.value.days=values} className="max-w-full flex-wrap justify-start">{readValue(Yi).map(day=><ToggleGroupItem key={day} value={day}>{day}</ToggleGroupItem>)}</ToggleGroup>
                 </fieldset>
               </Surface>
               <Fragment>
@@ -516,22 +496,7 @@ export function ManagementPageView({ view: view }) {
             <p className="muted">
               {"每次回应背后的记录。模型与媒体的运行情况，都在这里。"}
             </p>
-            <div className="tabs">
-              <Fragment>
-                {listValues(["模型调用", "媒体调用"]).map((h) => (
-                  <ActionButton
-                    key={h}
-                    className={cn({
-                      active: view.kind.value === h,
-                    })}
-                    data-testid={"diag-tab-" + h}
-                    onClick={(b) => view.selectKind(h)}
-                  >
-                    {displayText(h)}
-                  </ActionButton>
-                ))}
-              </Fragment>
-            </div>
+            <Tabs value={view.kind.value} onValueChange={view.selectKind}><TabsList>{['模型调用','媒体调用'].map(kind=><TabsTrigger key={kind} value={kind} data-testid={'diag-tab-'+kind}>{kind}</TabsTrigger>)}</TabsList></Tabs>
             <view.FilterChips
               search={view.search.value}
               onUpdateSearch={(h) => (view.search.value = h)}
@@ -544,68 +509,8 @@ export function ManagementPageView({ view: view }) {
             <small className="muted">
               {displayText(view.rows.value.length) + " 条记录 · 最近的记录在前"}
             </small>
-            <section className="diagnostic-feed" data-testid="diagnostic-feed">
-              <Fragment>
-                {listValues(view.rows.value).map((h) => {
-                  var b;
-                  return (
-                    <article
-                      id={"diag-record-" + h.id}
-                      key={h.id}
-                      className={cn([
-                        "diagnostic-record",
-                        {
-                          highlighted: view.highlight.value === h.id,
-                        },
-                      ])}
-                      data-testid={"diag-record-" + h.id}
-                    >
-                      <ActionButton
-                        className="diagnostic-open"
-                        data-testid={"diag-open-" + h.id}
-                        onClick={(k) => view.selectRecord(h)}
-                      >
-                        <div className="diagnostic-meta">
-                          <time>{displayText(view.recordTime(h))}</time>
-                          <Badge className="pill">{displayText(h.label)}</Badge>
-                          <span>{displayText(h.character)}</span>
-                          <span className="spacer" />
-                          <span className={cn(["call-status", h.status])}>
-                            {displayText(view.statusLabel(h.status))}
-                          </span>
-                          <small>{displayText(h.durationLabel)}</small>
-                        </div>
-                        <p className="diagnostic-summary">
-                          {displayText(h.summary)}
-                        </p>
-                      </ActionButton>
-                      {h.status === "error" ? (
-                        <ActionButton
-                          key={0}
-                          className="text-button diagnostic-retry"
-                          data-testid={"diag-retry-" + h.id}
-                          onClick={(k) => view.retry(h)}
-                        >
-                          {"重试"}
-                        </ActionButton>
-                      ) : null}
-                    </article>
-                  );
-                })}
-              </Fragment>
-              {view.rows.value.length ? null : (
-                <Surface as="div" key={0} className="card empty-state">
-                  <p>{"暂无符合条件的调用。"}</p>
-                  <ActionButton
-                    className="button"
-                    data-testid="diag-empty-clear"
-                    onClick={view.clear}
-                  >
-                    {"清除筛选"}
-                  </ActionButton>
-                </Surface>
-              )}
-            </section>
+            <p className="muted">{view.kind.value === "媒体调用" ? "图片、音频和视频任务的实际生成记录。" : "模型处理请求的状态、用时和结果摘要。"}</p>
+            <DiagnosticRecords view={view}/>
             {view.selected.value ? (
               <view.DetailDrawer
                 key={0}
@@ -672,60 +577,22 @@ export function ManagementPageView({ view: view }) {
                     </dl>
                     <section className="detail-section">
                       <h3>{"提示词 / Prompt"}</h3>
-                      <pre>{displayText(view.selected.value.media.prompt)}</pre>
+                      <ScrollArea className="h-64"><pre className="whitespace-pre-wrap break-words">{view.selected.value.media.prompt}</pre></ScrollArea>
                     </section>
                     <section className="detail-section">
                       <h3>{"负面提示词 / Negative prompt"}</h3>
-                      <pre>
-                        {displayText(view.selected.value.media.negativePrompt)}
-                      </pre>
+                      <ScrollArea className="h-48"><pre className="whitespace-pre-wrap break-words">{view.selected.value.media.negativePrompt}</pre></ScrollArea>
                     </section>
                     <section className="detail-section">
                       <h3>{"生成参数"}</h3>
-                      <dl className="media-call-attributes">
-                        <Fragment>
-                          {listValues(view.selected.value.media.params).map(
-                            (h, b) => (
-                              <div key={b}>
-                                <dt>
-                                  {displayText(
-                                    {
-                                      width: "宽度",
-                                      height: "高度",
-                                      steps: "步数",
-                                      cfg: "CFG",
-                                      seed: "种子",
-                                      sampler: "采样器",
-                                    }[b],
-                                  )}
-                                </dt>
-                                <dd>{displayText(h)}</dd>
-                              </div>
-                            ),
-                          )}
-                        </Fragment>
-                      </dl>
+                      <Table><TableBody>{Object.entries(view.selected.value.media.params||{}).map(([key,value])=><TableRow key={key}><TableCell>{({width:'宽度',height:'高度',steps:'步数',cfg:'CFG',seed:'种子',sampler:'采样器'})[key]||key}</TableCell><TableCell>{value===null||value===undefined?'尚未记录':typeof value==='object'?JSON.stringify(value):String(value)}</TableCell></TableRow>)}</TableBody></Table>
                     </section>
                     <section
                       className="detail-section"
                       data-testid="media-call-output"
                     >
                       <h3>{"输出"}</h3>
-                      {view.selected.value.status === "success" ? (
-                        <div key={0} className="mock-image-output">
-                          <span>{"◇"}</span>
-                          <p>{displayText(view.selected.value.media.output)}</p>
-                          <small>{"实际图片输出"}</small>
-                        </div>
-                      ) : (
-                        <p key={1} className="muted">
-                          {displayText(
-                            view.selected.value.status === "pending"
-                              ? "等待图片工作流完成"
-                              : "未生成输出，请重试。",
-                          )}
-                        </p>
-                      )}
+                      {view.selected.value.media.assetId?<><p>{view.selected.value.media.output}</p><ActionButton type="button" className="button" onClick={()=>view.openMediaAsset(view.selected.value.media.assetId)}>查看已记录素材</ActionButton></>:<p className="muted">{view.selected.value.status==='pending'?'媒体任务仍在处理。':'尚未关联可读取的媒体素材；调用完成不代表图片已生成。'}</p>}
                     </section>
                   </Fragment>
                 ) : (
@@ -740,60 +607,15 @@ export function ManagementPageView({ view: view }) {
                         </Fragment>
                       ) : null}
                     </p>
-                    <section className="detail-section">
-                      <h3>{"请求提示词 / Prompt"}</h3>
-                      <pre>{displayText(view.selected.value.input)}</pre>
-                    </section>
-                    <section className="detail-section">
-                      <h3>{"响应内容"}</h3>
-                      <pre>
-                        {displayText(
-                          view.selected.value.status === "success"
-                            ? view.selected.value.response
-                            : "尚未收到响应",
-                        )}
-                      </pre>
-                    </section>
+                    <ModelTranscript key={view.selected.value.id} record={view.selected.value}/>
                   </Fragment>
                 )}
-                <Disclosure
-                  className="detail-section"
-                  title={<>{"技术详情"}</>}
-                >
-                  <p>
-                    {"失败码：" +
-                      displayText(
-                        view.selected.value.status === "error"
-                          ? view.selected.value.code
-                          : "无",
-                      )}
-                    <br />
-                    {"关联记录：" +
-                      displayText(view.selected.value.correlationId)}
-                  </p>
-                </Disclosure>
+                <JsonDetails value={view.selected.value._record} title="技术详情与关联标识"/>
               </view.DetailDrawer>
             ) : null}
             <div className="secondary-diagnostics">
               <small>{"其它诊断"}</small>
-              <div className="quiet-days">
-                <Fragment>
-                  {listValues(readValue(view.referenceSections)).map(
-                    (h, rowIndex) => (
-                      <ActionButton
-                        className="text-button"
-                        onClick={(b) =>
-                          (view.reference.value =
-                            view.reference.value === h.title ? "" : h.title)
-                        }
-                        key={typeof h === "object" ? (h?.id ?? rowIndex) : h}
-                      >
-                        {displayText(h.title)}
-                      </ActionButton>
-                    ),
-                  )}
-                </Fragment>
-              </div>
+              <ToggleGroup type="single" variant="outline" value={view.reference.value} onValueChange={value=>view.reference.value=value} className="max-w-full flex-wrap justify-start" aria-label="其他诊断">{readValue(view.referenceSections).map(section=><ToggleGroupItem key={section.title} value={section.title}>{section.title}</ToggleGroupItem>)}</ToggleGroup>
               {view.referenceSection.value ? (
                 <Surface as="div" key={0} className="card">
                   <div className="row">

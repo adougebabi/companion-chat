@@ -1,3 +1,11 @@
+import {configureToast} from '@/v3/proto/components/toast.js';
+import OverlayHost from './shared/OverlayHost';
+import WorkspaceBreadcrumb from './shared/WorkspaceBreadcrumb';
+import {SidebarProvider,Sidebar,SidebarContent,SidebarInset,SidebarTrigger,useSidebar} from '@/components/ui/sidebar';
+import {XIcon} from 'lucide-react';
+import {Toaster} from '@/components/ui/sonner';
+import {toast} from 'sonner';
+import LoadingState from './shared/LoadingState';
 import {
   lazy,
   Suspense,
@@ -89,6 +97,7 @@ const globalNavigation = [
 ] as const;
 
 export default function App() {
+  useEffect(()=>configureToast((text:string,type:string)=>{if(type==='err')toast.error(text);else if(['ok','success'].includes(type))toast.success(text);else toast(text);}),[]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   useEffect(() => {
     const current = createWorkspace();
@@ -98,11 +107,11 @@ export default function App() {
   return workspace ? (
     <WorkspaceContext.Provider value={workspace}>
       <div className="react-workspace">
-        <WorkspaceShell workspace={workspace} />
+        <SidebarProvider className="h-dvh min-h-0 w-full overflow-hidden" style={{"--sidebar-width":"202px"} as React.CSSProperties}><WorkspaceShell workspace={workspace}/><OverlayHost/><Toaster richColors closeButton/></SidebarProvider>
       </div>
     </WorkspaceContext.Provider>
   ) : (
-    <p role="status">正在准备工作区…</p>
+    <LoadingState label="正在准备工作区…"/>
   );
 }
 function WorkspaceShell({ workspace }: { workspace: Workspace }) {
@@ -112,8 +121,8 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     workspace.getSnapshot,
   );
   const [route, setRoute] = useState<Route>(() => approvedRoute(location.hash));
+  const {setOpenMobile:setMobileOpen}=useSidebar();
   const [lifeOpen, setLifeOpen] = useState(true),
-    [mobileOpen, setMobileOpen] = useState(false),
     [preview, setPreview] = useState(() => !window.matchMedia("(max-width: 800px)").matches);
   const main = useRef<HTMLElement>(null),
     page = route.page || state.page;
@@ -180,6 +189,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
       active = false;
     };
   }, [route, state.ready, state.session?.actorId, workspace, navigate, page, routeCharacterExists]);
+  useEffect(()=>{if(!state.toast)return;const item=state.toast;toast(item.text,{action:item.link?{label:'去方案库',onClick:()=>{workspace.state.outfitTab='方案库';navigate('衣柜');}}:undefined});},[state.toast,navigate,workspace]);
   const togglePreview = () => {
     const next = !preview;
     setPreview(next);
@@ -203,7 +213,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   if (state.ready && state.session && !routeCharacterExists) return <section className="approved-bootstrap"><h1>角色不存在</h1><p>请回到角色库选择当前可用的角色。</p><Button asChild><a href="#/library">返回角色库</a></Button></section>;
   if (state.ready && !state.session)
     return (
-      <Suspense fallback={<p role="status">正在读取登录状态…</p>}>
+      <Suspense fallback={<LoadingState label="正在读取登录状态…"/>}>
         <AuthPage onAuthenticated={() => void workspace.bootstrap()} />
       </Suspense>
     );
@@ -297,27 +307,9 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const readError = Object.values(state.errors).filter(Boolean).at(-1) as
     string | undefined;
   return (
-    <div className="shell">
+    <div className="shell w-full min-w-0">
       <header className="topbar">
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mobile-nav-trigger"
-              aria-label="打开导航"
-            >
-              <MenuIcon />
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side="left"
-            className="react-workspace mobile-nav-content overflow-y-auto"
-          >
-            <SheetTitle className="sr-only">工作区导航</SheetTitle>
-            {navigation}
-          </SheetContent>
-        </Sheet>
+        <SidebarTrigger aria-label="打开导航"/>
         <Button
           variant="ghost"
           className="brand"
@@ -373,19 +365,15 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         <span className="self-avatar">我</span>
       </header>
       <div className="layout">
-        <aside className="sidebar">{navigation}</aside>
-        <main
+        <Sidebar className="top-[68px] h-[calc(100dvh-68px)]"><SidebarContent className="react-workspace gap-3 px-3 py-5"><Button type="button" variant="ghost" size="icon" className="self-end md:hidden" aria-label="关闭导航" onClick={()=>setMobileOpen(false)}><XIcon/></Button>{navigation}</SidebarContent></Sidebar>
+        <SidebarInset
           ref={main}
           tabIndex={-1}
           className={page === "聊天" ? "chat-main" : ""}
         >
           <div className="page-heading">
             <div>
-              <div className="breadcrumb">
-                {character.id ? `${character.name} 的工作区 ` : "我的空间 "}
-                <ChevronRightIcon size={12} />
-                {page}
-              </div>
+              <WorkspaceBreadcrumb parentLabel={character.id?`${character.name} 的工作区`:'我的空间'} parentHref="#/library" currentLabel={page}/>
               <h1>
                 {page}
                 {page === "聊天" && (
@@ -406,31 +394,15 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
               </Button>
             )}
           </div>
-          <Suspense key={state.session?.actorId} fallback={<p role="status">正在读取页面…</p>}>
+          <Suspense key={state.session?.actorId} fallback={<LoadingState label="正在读取页面…"/>}>
             {page === "聊天" ? (
               content
             ) : (
               <div className="page-content">{content}</div>
             )}
           </Suspense>
-        </main>
+        </SidebarInset>
       </div>
-      {state.toast && (
-        <div className="toast" role="status" data-testid="toast">
-          {state.toast.text}{" "}
-          {state.toast.link && (
-            <Button
-              variant="link"
-              onClick={() => {
-                workspace.state.outfitTab = "方案库";
-                navigate("衣柜");
-              }}
-            >
-              去方案库 ↗
-            </Button>
-          )}
-        </div>
-      )}
       {readError && (
         <div className="approved-read-feedback" role="alert">
           {readError}

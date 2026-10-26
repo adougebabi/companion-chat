@@ -1,0 +1,2 @@
+import {Tooltip,TooltipContent,TooltipProvider,TooltipTrigger} from '@/components/ui/tooltip';
+export default function ControlHint({text,children}:{text?:string;children:React.ReactNode}){return text?<TooltipProvider delayDuration={250}><Tooltip><TooltipTrigger asChild><span className="inline-flex min-w-0 max-w-full" tabIndex={0}>{children}</span></TooltipTrigger><TooltipContent className="max-w-80 break-words">{text}</TooltipContent></Tooltip></TooltipProvider>:children;}

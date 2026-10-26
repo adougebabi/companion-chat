@@ -12,6 +12,10 @@ import {
 import { get, list, subscribe, setUi } from "../v3/proto/store.js";
 import {
   lifeClient,
+  governanceClient,
+  selfClient,
+  reflectionClient,
+  visualClient,
   diaryClient,
   memoryClient,
   inventoryClient,
@@ -1034,6 +1038,10 @@ export function createWorkspace({ observable = proxy } = {}) {
     slots,
     services: {
       lifeClient,
+      governanceClient,
+      selfClient,
+      reflectionClient,
+      visualClient,
       diaryClient,
       memoryClient,
       inventoryClient,

@@ -97,7 +97,7 @@ test('plan windows use half-open instants across midnight, offset and DST, never
   assert.match(html, /地点未记录/);
   assert.match(html, /aria-label="尚无执行结果"/);
   assert.doesNotMatch(html, /正在执行|>scheduled<|>家</);
-  assert.match(html, /<details class="schedule-item-options"><summary>计划操作与来源<\/summary>/);
+  assert.match(html, /<details\b[^>]*class="schedule-item-options"[^>]*><summary>计划操作与来源<\/summary>/);
   assert.match(html, /data-edit="original"/);
   assert.equal(item.status, 'scheduled');
   const classes = new Map(),

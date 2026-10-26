@@ -10,9 +10,9 @@ export function normalizeStudioDraft(saved,resource,{kind='event_template',body=
  if(typeof draft.kind!=='string'||typeof draft.name!=='string'||typeof draft.reason!=='string'||typeof draft.target!=='string'||(draft.expectedVersion!==undefined&&typeof draft.expectedVersion!=='string'))throw new Error('工作室草稿字段格式损坏，请核对原草稿');
  return draft;
 }
-export function readStudioDraft(actor,id,resource,options){
- const raw=studioDraftStorage().getItem(studioWorkingDraftKey(actor,id));let saved=null;
+export function readStudioDraft(actor,id,resource,options,storageProvider=studioDraftStorage){
+ const raw=storageProvider().getItem(studioWorkingDraftKey(actor,id));let saved=null;
  if(raw!==null){try{saved=JSON.parse(raw);}catch{throw new Error('工作室草稿不可读取，请核对原草稿');}if(saved===null)throw new Error('工作室草稿格式损坏，请核对原草稿');}
  return normalizeStudioDraft(saved,resource,options);
 }
-export function writeStudioDraft(actor,id,draft){studioDraftStorage().setItem(studioWorkingDraftKey(actor,id),JSON.stringify(draft));}
+export function writeStudioDraft(actor,id,draft,storageProvider=studioDraftStorage){storageProvider().setItem(studioWorkingDraftKey(actor,id),JSON.stringify(draft));}

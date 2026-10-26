@@ -10,6 +10,8 @@ export function chatFailureText(value, delivered = false) {
   const text=String(value || '');
   if(!text)return '';
   if(/reply_media_no_progress/.test(text))return '图片准备尚未推进，原消息和草稿已保留。请查看本次运行后恢复。';
+  if(/media_subject_not_authorized/.test(text))return '图片中的人物范围尚未确认，生成没有开始。原消息已保留，请查看本次运行后核对人物。';
+  if(/capability_prepare_failed/.test(text))return '本次工具准备没有完成，原消息已保留。请查看本次运行中的失败原因后重试。';
   if(/agent_partial_committed/.test(text))return '这次回应没有完成，有些行动可能已经发生。请先查看近况。';
   if(/tool_discovery_no_progress/.test(text))return '工具准备未能继续，已停止重复尝试。原消息已保留，可以查看本次运行后重试。';
   if(/gateway_timeout|\b524\b/.test(text))return '模型中转服务等待超时，没能收到回应。原消息已保留，可以检查模型通道后再试。';

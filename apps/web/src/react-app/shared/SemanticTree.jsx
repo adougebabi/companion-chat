@@ -16,6 +16,13 @@ import {
   portraitPresentation,
 } from "@/approved-ui/profile-presentation.mjs";
 import { bodyFieldVisible } from "@/lib/body-field-presentation.mjs";
+const technicalSemanticKey = k => /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets|owner_switch_status|hash|source_hash)$/.test(k) || /_(?:id|ids|revision|version|at)$/.test(k);
+export function hasVisibleSemanticValue(value,field='',identity={}) {
+ if(technicalSemanticKey(field)||!bodyFieldVisible(field,value,identity))return false;
+ if(Array.isArray(value))return value.some(item=>hasVisibleSemanticValue(item,'',identity));
+ if(value&&typeof value==='object')return semanticEntries(value).some(([key,item])=>hasVisibleSemanticValue(item,key,identity));
+ return hasSemanticValue(value);
+}
 /** @param {{value?: unknown, field?: string, depth?: number, identity?: object}} input */
 export default function SemanticTree(input = {}) {
   const __props = {
@@ -25,10 +32,7 @@ export default function SemanticTree(input = {}) {
     ...input,
   };
   const props = __props;
-  const technical = (k) =>
-    /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets|owner_switch_status|hash|source_hash)$/.test(
-      k,
-    ) || /_(?:id|ids|revision|version|at)$/.test(k);
+  const technical = technicalSemanticKey;
   function categoryLabel(value) {
     const category = wardrobeCategoryLabel(value);
     if (category !== value || !/^[a-z\d_.-]+$/i.test(category)) return category;
@@ -42,7 +46,7 @@ export default function SemanticTree(input = {}) {
       ? semanticEntries(props.value).filter(
           ([key, value]) =>
             !technical(key) &&
-            hasSemanticValue(value) &&
+            hasVisibleSemanticValue(value,key,props.identity) &&
             bodyFieldVisible(key, value, props.identity),
         )
       : [],

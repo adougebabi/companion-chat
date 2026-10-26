@@ -401,36 +401,36 @@ test("React resource editor rejects whitespace and preserves edits made while an
     writes = 0,
     payload;
   const resource = {
-    id: "npc",
-    kind: "npc",
+    id: "place",
+    kind: "place",
     name: "原名称",
     body: { description: "原描述" },
     draft_version: "v1",
     revision: 1,
   };
   const w = {
-    ...storeFacade(proxy({ selectedId: "A", operations: [] })),
+    ...storeFacade(proxy({ session:{actorId:"editor-render-owner"},characters:[],selectedId: "A", operations: [] })),
     services: {
       studioClient: {
+        jobs:async()=>({items:[],next_cursor:""}),materials:async()=>({items:[],next_cursor:""}),referenceGrants:async()=>({items:[],next_cursor:""}),versions:async()=>({items:[],next_cursor:""}),
         resource: async () => structuredClone(resource),
         save: async (id, body) => {
-          assert.equal(id, "npc");
+          assert.equal(id, "place");
           writes++;
           payload = body;
-          return new Promise((resolve) => (release = resolve));
+          return new Promise((resolve) => (release = value=>{Object.assign(resource,value);resolve(structuredClone(resource));}));
         },
       },
     },
-    command(_label, _operation, body, execute) {
-      return { completion: execute(structuredClone(body), "original-key") };
-    },
+    navigatePath() {},
   };
   const view = await mountReact(vite, Editor, {
     workspace: w,
-    props: { resourceId: "npc" },
+    props: { resourceId: "place" },
   });
   try {
     const name = view.host.querySelector("#resource-name");
+    await view.input(view.host.querySelector("#resource-reason"),"明确保存理由");
     await view.input(name, "   ");
     await view.click(button("保存草稿"));
     assert.equal(writes, 0);

@@ -1,3 +1,4 @@
+import {semanticEntries} from './profile-presentation.mjs';
 import { bodyFieldVisible } from '../lib/body-field-presentation.mjs';
 const clone = (value) =>
   value === undefined ? undefined : JSON.parse(JSON.stringify(value));
@@ -75,7 +76,7 @@ export function profileFields(core, label = (key) => key) {
     if (technical(key) || (path[0] === "life_profile" && readOnlyLife.has(key)))
       return;
     if (value && typeof value === "object" && !Array.isArray(value)) {
-      for (const [key, child] of Object.entries(value))
+      for (const [key, child] of semanticEntries(value))
         walk(child, [...path, key]);
       return;
     }
@@ -152,11 +153,11 @@ export function profileFields(core, label = (key) => key) {
     walk(value, ["identity", key]);
   const policy = {
     ...Object.fromEntries(
-      Object.keys(behavioralFields).map((k) => [k, undefined]),
+      Object.keys(behavioralFields).filter(k => !["expression","traits"].some(carrier => Object.hasOwn(core.behavioral_policy?.[carrier] || {}, k))).map((k) => [k, undefined]),
     ),
     ...core.behavioral_policy,
   };
-  for (const [key, value] of Object.entries(policy))
+  for (const [key, value] of semanticEntries(policy))
     walk(value, ["behavioral_policy", key]);
   for (const [key, value] of Object.entries(core.life_profile || {}))
     walk(value, ["life_profile", key]);

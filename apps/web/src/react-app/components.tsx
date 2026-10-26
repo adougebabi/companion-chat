@@ -1,3 +1,6 @@
+import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
+import {Alert,AlertDescription} from '@/components/ui/alert';
+import {toast} from '@/v3/proto/components/toast.js';
 import * as React from "react";
 import {
   Sheet,
@@ -91,6 +94,7 @@ export function ActionFeedback({
           !r.operation?.startsWith(excludeOperationPrefix)),
     )
     .at(-1);
+  React.useEffect(()=>{if(latest?.requestId&&latest.status==='success'&&latest.response)toast(latest.response,'success');},[latest?.id,latest?.status,latest?.response]);
   if (!latest) return null;
   return (
     <>
@@ -102,12 +106,12 @@ export function ActionFeedback({
         </p>
       )}
       {latest.status === "error" && (
-        <p className="inline-error" role="alert">
+        <Alert variant="destructive"><AlertDescription>
           {latest.reason}{" "}
           <ActionButton className="text-button" onClick={() => latest.run?.()}>
             {latest.actionText || "重试"}
           </ActionButton>
-        </p>
+        </AlertDescription></Alert>
       )}
       {latest.readbackError && (
         <p className="inline-error" role="alert">
@@ -180,37 +184,7 @@ export function FilterChips({
           </ActionButton>
         )}
       </div>
-      {groups.map((group: any) => (
-        <div
-          key={group.key}
-          className="filter-group"
-          role="group"
-          aria-label={group.label}
-        >
-          <small>{group.label}</small>
-          <ActionButton
-            type="button"
-            className={`filter-chip ${!filters[group.key] ? "active" : ""}`}
-            aria-pressed={!filters[group.key]}
-            onClick={() => choose(group.key, "")}
-            data-testid={`${prefix}-${group.key}-all`}
-          >
-            全部
-          </ActionButton>
-          {group.options.map((value: string) => (
-            <ActionButton
-              key={value}
-              type="button"
-              className={`filter-chip ${filters[group.key] === value ? "active" : ""}`}
-              aria-pressed={filters[group.key] === value}
-              data-testid={`${prefix}-${group.key}-${value}`}
-              onClick={() => choose(group.key, value)}
-            >
-              {value}
-            </ActionButton>
-          ))}
-        </div>
-      ))}
+      {groups.map((group:any)=><div key={group.key} className="flex min-w-0 items-center gap-3"><small className="shrink-0">{group.label}</small><ToggleGroup type="single" variant="outline" aria-label={group.label} value={filters[group.key]?'option:'+group.options.indexOf(filters[group.key]):'all'} onValueChange={key=>{const value=key.startsWith('option:')?group.options[Number(key.slice(7))]:'';props.onUpdateFilters?.({...filters,[group.key]:value});}} className="max-w-full justify-start overflow-x-auto"><ToggleGroupItem value="all" data-testid={`${prefix}-${group.key}-all`}>全部</ToggleGroupItem>{group.options.map((value:string,index:number)=><ToggleGroupItem key={value} value={'option:'+index} data-testid={`${prefix}-${group.key}-${value}`}>{value}</ToggleGroupItem>)}</ToggleGroup></div>)}
     </section>
   );
 }

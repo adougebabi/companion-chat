@@ -244,13 +244,12 @@ export default function ChatPage({
                 <div className="message-body">
                   <div className="message-meta">
                     {mine ? "我" : character.name}
-                    <time
+                    <ControlHint text={userInstant(message.createdAt)}><time
                       dateTime={message.createdAt}
-                      title={userInstant(message.createdAt)}
                       aria-label={userInstant(message.createdAt)}
                     >
                       {workspace.clock(message.createdAt, "Asia/Shanghai")}
-                    </time>
+                    </time></ControlHint>
                   </div>
                   <div className="bubble">
                     <span>{message.text}</span>
@@ -327,7 +326,6 @@ export default function ChatPage({
           />
           <div className="composer-bottom">
             <small>Enter 发送 · Shift + Enter 换行</small>
-            <Button type="button" variant="link" onClick={()=>workspace.navigatePath("/settings/reply-vision?returnTo="+encodeURIComponent("#/c/"+encodeURIComponent(character.id)+"/chat"))}>回复设置</Button>
             <Button
               disabled={!draft.trim() || busy}
               onClick={() => void send()}
@@ -409,3 +407,4 @@ export default function ChatPage({
     </div>
   );
 }
+import ControlHint from '../shared/ControlHint';

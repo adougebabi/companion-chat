@@ -6,7 +6,7 @@ const BADGE_CLASS = { '生成图·非事实': 'b-nonfact', '创作预览·不进
 /** badge('已确认') / badge('交流') / badge('生成图·非事实') / badge('角色范围') / badge('任意文字','plain') */
 export function badge(label, kind) {
   const cls = kind ? 'b-' + kind : (BADGE_CLASS[label] || 'b-' + label);
-  return `<span class="badge ${esc(cls)}" data-badge="${esc(label)}">${esc(label)}</span>`;
+  return `<span data-domain-ui="badge" class="badge ${esc(cls)}" data-badge="${esc(label)}">${esc(label)}</span>`;
 }
 export const LABELS = {
   identity: ['交流', '行动请求', '所有者修改', '系统运维'],

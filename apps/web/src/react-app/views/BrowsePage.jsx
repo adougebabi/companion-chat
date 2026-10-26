@@ -1,3 +1,4 @@
+import CharacterAvatar from '@/react-app/shared/CharacterAvatar';
 import { DrawerFrame } from "@/react-app/controls";
 import { readValue } from "@/state/view-model";
 import { cn } from "@/lib/utils";
@@ -25,9 +26,7 @@ export function BrowsePageView({ view: view }) {
           return (
             <Surface as="article" key={ee} className="card post compact">
               <div className="row">
-                <span className="avatar small">
-                  {displayText(_.authorInitial)}
-                </span>
+                <CharacterAvatar className="small" name={_.authorName} initial={_.authorInitial}/>
                 <b>{displayText(_.authorName)}</b>
                 <small>{displayText(_.time)}</small>
               </div>
