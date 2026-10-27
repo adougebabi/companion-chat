@@ -217,3 +217,25 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Next Steps
 
 - 用户拉取重建后复验主要页面；可选 HoverCard/ContextMenu 等不新增，NAS 未部署。
+
+
+## Session 72: R12 UI layout and interaction regressions
+<!-- trellis-session: v=2 fp=4c4a0225d80d8977 -->
+
+**Date**: 2026-10-27
+**Task**: R12 UI layout and interaction regressions
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+修复 r12 角色/世界网格、Sidebar 菜单、CTA 拉伸、菜单对齐、确认语义、设置 Disclosure、聊天与日记反馈。Web 395 测试及 typecheck/build 通过；原问题两轮隔离回归与证据已保存。用户要求停止追加 QA 并直接提交，后续视觉问题另起一轮；未动提示词或恢复模型接口。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `85b5916f` | fix(web): address r12 layout and interaction regressions |
+
+### Status
+
+[OK] **Completed**
