@@ -1,3 +1,4 @@
+import Combobox from '@/react-app/shared/Combobox';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import ModelTranscript from '@/react-app/shared/ModelTranscript';
@@ -31,7 +32,7 @@ export function ManagementPageView({ view: view }) {
       value={view.tab.value}
       onValueChange={(value) => (view.tab.value = value)}
     >
-      <TabsList className="max-w-full overflow-x-auto">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><TabsList className="h-auto group-data-horizontal/tabs:h-auto max-w-full flex-wrap">
         <Fragment>
           {listValues(["配置中心", "运行诊断"]).map((h) => (
             <TabsTrigger
@@ -45,7 +46,7 @@ export function ManagementPageView({ view: view }) {
             </TabsTrigger>
           ))}
         </Fragment>
-      </TabsList>
+      </TabsList>{view.accountActions?.()}</div>
       <TabsContent value={view.tab.value} className="min-w-0">
         {readValue(view.tab) === "配置中心" ? (
           <div key={0} className="configuration-layout">
@@ -166,12 +167,12 @@ export function ManagementPageView({ view: view }) {
                         ) : null}
                       </div>
                       <view.ModelDirectory models={h.models} />
-                      <ActionButton variant="ghost"
+                      <ActionButton variant="outline"
                         type="button"
 
                         onClick={(k) => view.test(h)}
                       >
-                        {"读取模型目录（已保存连接）"}
+                        {"同步模型目录（已保存服务）"}
                       </ActionButton>
                       {h.feedback ? (
                         <OperationStatus variant="default" className="muted" role="status">
@@ -248,33 +249,7 @@ export function ManagementPageView({ view: view }) {
                           </label>
                           <label>
                             {"模型 ID"}
-                            <FieldInput
-                              list={"models-" + h.role}
-                              required={required}
-                              aria-label="模型 ID"
-                              value={h.model}
-                              onChange={(event) => {
-                                ((value) => (h.model = value))(
-                                  event.target.value,
-                                );
-                              }}
-                            />
-                            <datalist id={"models-" + h.role}>
-                              {(
-                                view.endpoints.value.find(
-                                  (endpoint) => endpoint.id === h.endpoint,
-                                )?.models || []
-                              ).map((model, rowIndex) => (
-                                <option
-                                  value={model}
-                                  key={
-                                    typeof model === "object"
-                                      ? (model?.id ?? rowIndex)
-                                      : model
-                                  }
-                                />
-                              ))}
-                            </datalist>
+                            <Combobox label="模型 ID" required={required} value={h.model} allowCustom options={[{value:'',label:'尚未配置'},...(view.endpoints.value.find(endpoint=>endpoint.id===h.endpoint)?.models||[]).map(model=>typeof model==='string'?model:model.id||model.name).filter(Boolean)]} onChange={value=>h.model=value}/>
                           </label>
                           <label>
                             {"超时（秒，可选）"}

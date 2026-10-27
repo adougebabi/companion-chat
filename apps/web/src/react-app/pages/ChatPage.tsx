@@ -1,3 +1,11 @@
+import {MessageScrollerProvider,MessageScroller,MessageScrollerViewport,MessageScrollerContent,MessageScrollerItem,MessageScrollerButton} from '@/components/ui/message-scroller';
+import {Message,MessageContent,MessageHeader} from '@/components/ui/message';
+import {Bubble,BubbleContent} from '@/components/ui/bubble';
+import {Attachment,AttachmentMedia,AttachmentTrigger,AttachmentGroup} from '@/components/ui/attachment';
+import {Marker,MarkerContent} from '@/components/ui/marker';
+import {Spinner} from '@/components/ui/spinner';
+import {Kbd} from '@/components/ui/kbd';
+import {SidebarProvider,Sidebar,SidebarContent} from '@/components/ui/sidebar';
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
@@ -5,7 +13,6 @@ import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription,SheetClose} f
 import {XIcon} from "lucide-react";
 import {
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -67,8 +74,8 @@ export default function ChatPage({
   const latestDraft = useRef(draft);
   latestDraft.current = draft;
   const composing = useRef(false),
-    timeline = useRef<HTMLDivElement>(null),
-    following = useRef(true);
+    attachmentFocus = useRef<HTMLButtonElement>(null);
+  const [attachment,setAttachment]=useState<string|null>(null);
   const busy =
     snapshot.sending || store.hasPendingTurn || store.hasSettlingTurn;
   useEffect(() => {
@@ -131,10 +138,6 @@ export default function ChatPage({
             message.kind !== "system" && !message.id.startsWith("stream-"),
         )
       : [];
-  useLayoutEffect(() => {
-    if (following.current && timeline.current)
-      timeline.current.scrollTop = timeline.current.scrollHeight;
-  }, [snapshot.messages, busy]);
   async function send() {
     const submitted = latestDraft.current,
       text = submitted.trim();
@@ -287,38 +290,27 @@ export default function ChatPage({
             只属于你们的对话
           </span>
         </header>
-        <div
-          ref={timeline}
-          className="timeline"
-          aria-label="聊天消息"
-          onScroll={() => {
-            const node = timeline.current;
-            if (node)
-              following.current =
-                node.scrollHeight - node.scrollTop - node.clientHeight < 80;
-          }}
-        >
-          <div className="date-divider">
-            <span>{dateLabel}</span>
-          </div>
-          <div className="conversation-note">
-            从一句问候开始，让陪伴慢慢发生。
-          </div>
+        <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollEdgeThreshold={80}>
+          <MessageScroller className="flex-1 h-auto bg-muted/30">
+            <MessageScrollerViewport aria-label="聊天消息" className="timeline p-4 sm:p-6">
+              <MessageScrollerContent>
+                <MessageScrollerItem messageId="date"><Marker variant="separator"><MarkerContent>{dateLabel}</MarkerContent></Marker></MessageScrollerItem>
+                <MessageScrollerItem messageId="intro"><Marker className="justify-center text-xs"><MarkerContent>从一句问候开始，让陪伴慢慢发生。</MarkerContent></Marker></MessageScrollerItem>
           {messages.map((message) => {
             const mine = message.kind === "user",
               failed =
                 mine &&
                 ["failed", "cancelled"].includes(message.turnStatus || "");
             return (
-              <div key={message.id} className={`message ${mine ? "mine" : ""}`}>
+              <MessageScrollerItem key={message.id} messageId={message.id}><Message align={mine?"end":"start"} className="items-start gap-3">
                 <CharacterAvatar
-                  className="message-avatar"
+                  className="size-8 shrink-0"
                   name={mine ? "我" : character.name}
                   initial={mine ? "我" : character.initial}
                   color={mine ? "#e9eae6" : character.color}
                 />
-                <div className="message-body">
-                  <div className="message-meta">
+                <MessageContent>
+                  <MessageHeader className="gap-2">
                     {mine ? "我" : character.name}
                     <ControlHint text={userInstant(message.createdAt)}><time
                       dateTime={message.createdAt}
@@ -326,19 +318,10 @@ export default function ChatPage({
                     >
                       {workspace.clock(message.createdAt, "Asia/Shanghai")}
                     </time></ControlHint>
-                  </div>
-                  <div className="bubble">
-                    <span>{message.text}</span>
-                    {(message.attachmentRefs || []).map((id) => (
-                      <img
-                        key={id}
-                        src={workspace.services.mediaClient.url(id)}
-                        alt={character.name + " 的附件"}
-                        loading="lazy"
-                        className="approved-chat-attachment"
-                      />
-                    ))}
-                  </div>
+                  </MessageHeader>
+                  <Bubble variant={mine?"tinted":"outline"} align={mine?"end":"start"}><BubbleContent className="whitespace-pre-wrap">{message.text}</BubbleContent>
+                    {!!message.attachmentRefs?.length&&<AttachmentGroup className="flex-wrap overflow-visible">{message.attachmentRefs.map(id=><Attachment key={id} orientation="vertical" className="w-36"><AttachmentMedia variant="image"><img src={workspace.services.mediaClient.url(id)} alt={character.name+' 的附件'} loading="lazy"/></AttachmentMedia><AttachmentTrigger aria-label="查看对话附件" onClick={event=>{attachmentFocus.current=event.currentTarget;setAttachment(id);}}/></Attachment>)}</AttachmentGroup>}
+                  </Bubble>
                   {failed && (
                     <ChatTurnFeedback
                       message={message}
@@ -346,14 +329,14 @@ export default function ChatPage({
                       store={store}
                     />
                   )}
-                </div>
-              </div>
+                </MessageContent>
+              </Message></MessageScrollerItem>
             );
           })}
           {busy && (
-            <div className="typing">
+            <MessageScrollerItem messageId="waiting"><Message><MessageContent role="status" className="items-start text-sm text-muted-foreground"><div className="flex items-center gap-2"><Spinner aria-hidden="true"/>
               {waiting.label}
-              <span aria-hidden="true">•••</span>
+              </div>
               {waiting.detail && <small>{waiting.detail}</small>}
               {waiting.showDiagnostics && (
                 <Button variant="link" asChild>
@@ -365,17 +348,21 @@ export default function ChatPage({
                   停止本次生成
                 </Button>
               )}
-            </div>
+            </MessageContent></Message></MessageScrollerItem>
           )}
           {error && !busy && (
-            <InlineFeedback  role="alert">
+            <MessageScrollerItem messageId="error"><InlineFeedback role="alert">
               {error}
               <Button variant="link" asChild>
                 <a href={diagnosticHref}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
               </Button>
-            </InlineFeedback>
+            </InlineFeedback></MessageScrollerItem>
           )}
-        </div>
+              </MessageScrollerContent>
+            </MessageScrollerViewport>
+            <MessageScrollerButton aria-label="回到最新消息"/>
+          </MessageScroller>
+        </MessageScrollerProvider>
         <div className="composer">
           <Textarea
             aria-label="聊天消息"
@@ -401,7 +388,7 @@ export default function ChatPage({
             }}
           />
           <div className="composer-bottom">
-            <small>Enter 发送 · Shift + Enter 换行</small>
+            <small><Kbd>Enter</Kbd> 发送 · <Kbd>Shift + Enter</Kbd> 换行</small>
             <Button
               className="touch-target"
               disabled={!draft.trim() || busy}
@@ -413,13 +400,14 @@ export default function ChatPage({
           </div>
         </div>
       </section>
-      {preview&&!narrow&&<aside className="preview">{previewContent}</aside>}
+      {preview&&!narrow&&<SidebarProvider keyboardShortcut={false} open={preview} onOpenChange={onPreviewChange} className="contents min-h-0"><Sidebar side="right" data-side="right" collapsible="none" className="chat-preview-sidebar"><SidebarContent className="chat-preview-content">{previewContent}</SidebarContent></Sidebar></SidebarProvider>}
       <Sheet open={preview&&narrow} onOpenChange={onPreviewChange}>
         <SheetContent className="react-workspace chat-preview-sheet data-[side=right]:w-full sm:max-w-[380px] gap-0 p-0" showCloseButton={false} onCloseAutoFocus={event=>{const trigger=document.querySelector<HTMLElement>('[data-testid="chat-preview-toggle"]');if(trigger){event.preventDefault();trigger.focus({preventScroll:true});}}}>
           <SheetHeader className="relative border-b pr-16"><SheetTitle>此刻预览</SheetTitle><SheetDescription>查看穿着与接下来的安排</SheetDescription><SheetClose asChild><Button type="button" variant="ghost" size="icon" className="touch-target absolute right-2 top-2" aria-label="关闭预览"><XIcon/></Button></SheetClose></SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">{previewContent}</div>
         </SheetContent>
       </Sheet>
+      {attachment&&<Sheet open onOpenChange={open=>{if(!open)setAttachment(null);}}><SheetContent className="react-workspace gap-4" onCloseAutoFocus={event=>{if(attachmentFocus.current?.isConnected){event.preventDefault();attachmentFocus.current.focus({preventScroll:true});}}}><SheetHeader><SheetTitle>对话附件</SheetTitle><SheetDescription>{character.name} 的历史对话图片</SheetDescription></SheetHeader><div className="min-h-0 flex-1 overflow-y-auto p-4"><img className="h-auto w-full object-contain" src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></div></SheetContent></Sheet>}
     </div>
   );
 }

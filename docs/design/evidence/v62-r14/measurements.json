@@ -1,0 +1,1997 @@
+{
+  "fixture": "isolated ui-quality-server, no upstream calls",
+  "measurements": [
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/life/wardrobe",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [
+        {
+          "frame": {
+            "bottom": 503,
+            "height": 41,
+            "right": 266,
+            "width": 250,
+            "x": 16,
+            "y": 462
+          },
+          "overflowX": "visible",
+          "scrollWidth": 250,
+          "width": 250
+        }
+      ],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [
+        {
+          "days": [
+            {
+              "bottom": 444.34375,
+              "height": 39.859375,
+              "right": 80.359375,
+              "width": 39.859375,
+              "x": 40.5,
+              "y": 404.484375
+            },
+            {
+              "bottom": 444.328125,
+              "height": 39.84375,
+              "right": 120.203125,
+              "width": 39.84375,
+              "x": 80.359375,
+              "y": 404.484375
+            },
+            {
+              "bottom": 444.34375,
+              "height": 39.859375,
+              "right": 160.0625,
+              "width": 39.859375,
+              "x": 120.203125,
+              "y": 404.484375
+            },
+            {
+              "bottom": 444.34375,
+              "height": 39.859375,
+              "right": 199.921875,
+              "width": 39.859375,
+              "x": 160.0625,
+              "y": 404.484375
+            },
+            {
+              "bottom": 444.34375,
+              "height": 39.859375,
+              "right": 239.78125,
+              "width": 39.859375,
+              "x": 199.921875,
+              "y": 404.484375
+            },
+            {
+              "bottom": 444.34375,
+              "height": 39.859375,
+              "right": 279.640625,
+              "width": 39.859375,
+              "x": 239.78125,
+              "y": 404.484375
+            },
+            {
+              "bottom": 444.34375,
+              "height": 39.859375,
+              "right": 319.5,
+              "width": 39.859375,
+              "x": 279.640625,
+              "y": 404.484375
+            },
+            {
+              "bottom": 491.203125,
+              "height": 39.859375,
+              "right": 80.359375,
+              "width": 39.859375,
+              "x": 40.5,
+              "y": 451.34375
+            },
+            {
+              "bottom": 491.1875,
+              "height": 39.84375,
+              "right": 120.203125,
+              "width": 39.84375,
+              "x": 80.359375,
+              "y": 451.34375
+            },
+            {
+              "bottom": 491.203125,
+              "height": 39.859375,
+              "right": 160.0625,
+              "width": 39.859375,
+              "x": 120.203125,
+              "y": 451.34375
+            },
+            {
+              "bottom": 491.203125,
+              "height": 39.859375,
+              "right": 199.921875,
+              "width": 39.859375,
+              "x": 160.0625,
+              "y": 451.34375
+            },
+            {
+              "bottom": 491.203125,
+              "height": 39.859375,
+              "right": 239.78125,
+              "width": 39.859375,
+              "x": 199.921875,
+              "y": 451.34375
+            },
+            {
+              "bottom": 491.203125,
+              "height": 39.859375,
+              "right": 279.640625,
+              "width": 39.859375,
+              "x": 239.78125,
+              "y": 451.34375
+            },
+            {
+              "bottom": 491.203125,
+              "height": 39.859375,
+              "right": 319.5,
+              "width": 39.859375,
+              "x": 279.640625,
+              "y": 451.34375
+            },
+            {
+              "bottom": 538.0625,
+              "height": 39.859375,
+              "right": 80.359375,
+              "width": 39.859375,
+              "x": 40.5,
+              "y": 498.203125
+            },
+            {
+              "bottom": 538.046875,
+              "height": 39.84375,
+              "right": 120.203125,
+              "width": 39.84375,
+              "x": 80.359375,
+              "y": 498.203125
+            },
+            {
+              "bottom": 538.0625,
+              "height": 39.859375,
+              "right": 160.0625,
+              "width": 39.859375,
+              "x": 120.203125,
+              "y": 498.203125
+            },
+            {
+              "bottom": 538.0625,
+              "height": 39.859375,
+              "right": 199.921875,
+              "width": 39.859375,
+              "x": 160.0625,
+              "y": 498.203125
+            },
+            {
+              "bottom": 538.0625,
+              "height": 39.859375,
+              "right": 239.78125,
+              "width": 39.859375,
+              "x": 199.921875,
+              "y": 498.203125
+            },
+            {
+              "bottom": 538.0625,
+              "height": 39.859375,
+              "right": 279.640625,
+              "width": 39.859375,
+              "x": 239.78125,
+              "y": 498.203125
+            },
+            {
+              "bottom": 538.0625,
+              "height": 39.859375,
+              "right": 319.5,
+              "width": 39.859375,
+              "x": 279.640625,
+              "y": 498.203125
+            },
+            {
+              "bottom": 584.921875,
+              "height": 39.859375,
+              "right": 80.359375,
+              "width": 39.859375,
+              "x": 40.5,
+              "y": 545.0625
+            },
+            {
+              "bottom": 584.90625,
+              "height": 39.84375,
+              "right": 120.203125,
+              "width": 39.84375,
+              "x": 80.359375,
+              "y": 545.0625
+            },
+            {
+              "bottom": 584.921875,
+              "height": 39.859375,
+              "right": 160.0625,
+              "width": 39.859375,
+              "x": 120.203125,
+              "y": 545.0625
+            },
+            {
+              "bottom": 584.921875,
+              "height": 39.859375,
+              "right": 199.921875,
+              "width": 39.859375,
+              "x": 160.0625,
+              "y": 545.0625
+            },
+            {
+              "bottom": 584.921875,
+              "height": 39.859375,
+              "right": 239.78125,
+              "width": 39.859375,
+              "x": 199.921875,
+              "y": 545.0625
+            },
+            {
+              "bottom": 584.921875,
+              "height": 39.859375,
+              "right": 279.640625,
+              "width": 39.859375,
+              "x": 239.78125,
+              "y": 545.0625
+            },
+            {
+              "bottom": 584.921875,
+              "height": 39.859375,
+              "right": 319.5,
+              "width": 39.859375,
+              "x": 279.640625,
+              "y": 545.0625
+            },
+            {
+              "bottom": 631.78125,
+              "height": 39.859375,
+              "right": 80.359375,
+              "width": 39.859375,
+              "x": 40.5,
+              "y": 591.921875
+            },
+            {
+              "bottom": 631.765625,
+              "height": 39.84375,
+              "right": 120.203125,
+              "width": 39.84375,
+              "x": 80.359375,
+              "y": 591.921875
+            },
+            {
+              "bottom": 631.78125,
+              "height": 39.859375,
+              "right": 160.0625,
+              "width": 39.859375,
+              "x": 120.203125,
+              "y": 591.921875
+            },
+            {
+              "bottom": 631.78125,
+              "height": 39.859375,
+              "right": 199.921875,
+              "width": 39.859375,
+              "x": 160.0625,
+              "y": 591.921875
+            },
+            {
+              "bottom": 631.78125,
+              "height": 39.859375,
+              "right": 239.78125,
+              "width": 39.859375,
+              "x": 199.921875,
+              "y": 591.921875
+            },
+            {
+              "bottom": 631.78125,
+              "height": 39.859375,
+              "right": 279.640625,
+              "width": 39.859375,
+              "x": 239.78125,
+              "y": 591.921875
+            },
+            {
+              "bottom": 631.78125,
+              "height": 39.859375,
+              "right": 319.5,
+              "width": 39.859375,
+              "x": 279.640625,
+              "y": 591.921875
+            }
+          ],
+          "frame": {
+            "bottom": 638.78125,
+            "height": 309.796875,
+            "right": 326.5,
+            "width": 293,
+            "x": 33.5,
+            "y": 328.984375
+          },
+          "table": {
+            "bottom": 631.78125,
+            "height": 250.296875,
+            "right": 319.5,
+            "width": 279,
+            "x": 40.5,
+            "y": 381.484375
+          }
+        }
+      ],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/life/diary",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/growth",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": false,
+      "route": "#/settings",
+      "sidebar": null,
+      "switches": [
+        {
+          "before": "none",
+          "frame": {
+            "bottom": 3007.078125,
+            "height": 18.390625,
+            "right": 153.5,
+            "width": 32,
+            "x": 121.5,
+            "y": 2988.6875
+          },
+          "state": "checked",
+          "thumbs": 1,
+          "translate": "0%"
+        }
+      ],
+      "tabs": [
+        {
+          "frame": {
+            "bottom": 192.5,
+            "height": 29,
+            "right": 145,
+            "width": 129,
+            "x": 16,
+            "y": 163.5
+          },
+          "overflowX": "visible",
+          "scrollWidth": 129,
+          "width": 129
+        }
+      ],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/life/schedule/planning",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": false,
+      "route": "#/library",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/world",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/life/wardrobe",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [
+        {
+          "frame": {
+            "bottom": 490.5,
+            "height": 41,
+            "right": 534,
+            "width": 250,
+            "x": 284,
+            "y": 449.5
+          },
+          "overflowX": "visible",
+          "scrollWidth": 250,
+          "width": 250
+        }
+      ],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [
+        {
+          "days": [
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.09375,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.09375,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 359.390625
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.8125,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.8125,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 400.109375
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.53125,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.53125,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 440.828125
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.25,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.25,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 481.546875
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.96875,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.96875,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 522.265625
+            }
+          ],
+          "frame": {
+            "bottom": 562.984375,
+            "height": 279.09375,
+            "right": 551.5,
+            "width": 250,
+            "x": 301.5,
+            "y": 283.890625
+          },
+          "table": {
+            "bottom": 555.984375,
+            "height": 219.59375,
+            "right": 544.5,
+            "width": 236,
+            "x": 308.5,
+            "y": 336.390625
+          }
+        }
+      ],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/life/diary",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/growth",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/settings",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [
+        {
+          "before": "none",
+          "frame": {
+            "bottom": 2000.984375,
+            "height": 18.390625,
+            "right": 598.5,
+            "width": 32,
+            "x": 566.5,
+            "y": 1982.59375
+          },
+          "state": "checked",
+          "thumbs": 1,
+          "translate": "0%"
+        }
+      ],
+      "tabs": [
+        {
+          "frame": {
+            "bottom": 204.5,
+            "height": 29,
+            "right": 413,
+            "width": 129,
+            "x": 284,
+            "y": 175.5
+          },
+          "overflowX": "visible",
+          "scrollWidth": 129,
+          "width": 129
+        }
+      ],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/life/schedule/planning",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/library",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/world",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/life/wardrobe",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [
+        {
+          "frame": {
+            "bottom": 490.5,
+            "height": 41,
+            "right": 534,
+            "width": 250,
+            "x": 284,
+            "y": 449.5
+          },
+          "overflowX": "visible",
+          "scrollWidth": 250,
+          "width": 250
+        }
+      ],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [
+        {
+          "days": [
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.09375,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.09375,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 359.390625
+            },
+            {
+              "bottom": 393.109375,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 359.390625
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.8125,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.8125,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 400.109375
+            },
+            {
+              "bottom": 433.828125,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 400.109375
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.53125,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.53125,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 440.828125
+            },
+            {
+              "bottom": 474.546875,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 440.828125
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.25,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.25,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 481.546875
+            },
+            {
+              "bottom": 515.265625,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 481.546875
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 342.21875,
+              "width": 33.71875,
+              "x": 308.5,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.96875,
+              "height": 33.703125,
+              "right": 375.921875,
+              "width": 33.703125,
+              "x": 342.21875,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 409.640625,
+              "width": 33.71875,
+              "x": 375.921875,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.96875,
+              "height": 33.703125,
+              "right": 443.34375,
+              "width": 33.703125,
+              "x": 409.640625,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 477.0625,
+              "width": 33.71875,
+              "x": 443.34375,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 510.78125,
+              "width": 33.71875,
+              "x": 477.0625,
+              "y": 522.265625
+            },
+            {
+              "bottom": 555.984375,
+              "height": 33.71875,
+              "right": 544.5,
+              "width": 33.71875,
+              "x": 510.78125,
+              "y": 522.265625
+            }
+          ],
+          "frame": {
+            "bottom": 562.984375,
+            "height": 279.09375,
+            "right": 551.5,
+            "width": 250,
+            "x": 301.5,
+            "y": 283.890625
+          },
+          "table": {
+            "bottom": 555.984375,
+            "height": 219.59375,
+            "right": 544.5,
+            "width": 236,
+            "x": 308.5,
+            "y": 336.390625
+          }
+        }
+      ],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/life/diary",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/growth",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/settings",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [
+        {
+          "before": "none",
+          "frame": {
+            "bottom": 2000.984375,
+            "height": 18.390625,
+            "right": 598.5,
+            "width": 32,
+            "x": 566.5,
+            "y": 1982.59375
+          },
+          "state": "checked",
+          "thumbs": 1,
+          "translate": "calc(1.97353% - 0.0394705px)"
+        }
+      ],
+      "tabs": [
+        {
+          "frame": {
+            "bottom": 204.5,
+            "height": 29,
+            "right": 413,
+            "width": 129,
+            "x": 284,
+            "y": 175.5
+          },
+          "overflowX": "visible",
+          "scrollWidth": 129,
+          "width": 129
+        }
+      ],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/life/schedule/planning",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/library",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": null,
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 0,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/world",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 868,
+        "height": 167,
+        "right": 495,
+        "width": 210,
+        "x": 285,
+        "y": 701
+      },
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 801
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": {
+        "bottom": 869,
+        "height": 693.5,
+        "right": 751,
+        "width": 240,
+        "x": 511,
+        "y": 175.5
+      },
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 801
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 868,
+        "height": 149,
+        "right": 544,
+        "width": 259,
+        "x": 285,
+        "y": 719
+      },
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 850
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": {
+        "bottom": 869,
+        "height": 693.5,
+        "right": 800,
+        "width": 240,
+        "x": 560,
+        "y": 175.5
+      },
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 850
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 868,
+        "height": 123,
+        "right": 718,
+        "width": 433,
+        "x": 285,
+        "y": 745
+      },
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1024
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": {
+        "bottom": 869,
+        "height": 693.5,
+        "right": 974,
+        "width": 240,
+        "x": 734,
+        "y": 175.5
+      },
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1024
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 868,
+        "height": 123,
+        "right": 907,
+        "width": 622,
+        "x": 285,
+        "y": 745
+      },
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1280
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": {
+        "bottom": 869,
+        "height": 693.5,
+        "right": 1230,
+        "width": 300,
+        "x": 930,
+        "y": 175.5
+      },
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1280
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 868,
+        "height": 123,
+        "right": 1067,
+        "width": 782,
+        "x": 285,
+        "y": 745
+      },
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": {
+        "bottom": 869,
+        "height": 693.5,
+        "right": 1390,
+        "width": 300,
+        "x": 1090,
+        "y": 175.5
+      },
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 256,
+        "width": 256,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 868,
+        "height": 123,
+        "right": 1067,
+        "width": 975,
+        "x": 92,
+        "y": 745
+      },
+      "dialogs": [],
+      "document": {
+        "height": 900,
+        "width": 1440
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": {
+        "bottom": 869,
+        "height": 693.5,
+        "right": 1390,
+        "width": 300,
+        "x": 1090,
+        "y": 175.5
+      },
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": {
+        "bottom": 900,
+        "height": 900,
+        "right": 58,
+        "width": 58,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 795,
+        "height": 132,
+        "right": 288,
+        "width": 271,
+        "x": 17,
+        "y": 663
+      },
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 320
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 320
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 795,
+        "height": 132,
+        "right": 343,
+        "width": 326,
+        "x": 17,
+        "y": 663
+      },
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 788,
+        "height": 132,
+        "right": 761,
+        "width": 681,
+        "x": 80,
+        "y": 656
+      },
+      "dialogs": [],
+      "document": {
+        "height": 812,
+        "width": 800
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": null,
+      "rail": true,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": {
+        "bottom": 812,
+        "height": 812,
+        "right": 58,
+        "width": 58,
+        "x": 0,
+        "y": 0
+      },
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 800
+      }
+    },
+    {
+      "blockedNavigation": [],
+      "calendars": [],
+      "composer": {
+        "bottom": 795,
+        "height": 132,
+        "right": 343,
+        "width": 326,
+        "x": 17,
+        "y": 663
+      },
+      "dialogs": [
+        {
+          "closes": 1,
+          "frame": {
+            "bottom": 812,
+            "height": 812,
+            "right": 375,
+            "width": 375,
+            "x": 0,
+            "y": 0
+          }
+        }
+      ],
+      "document": {
+        "height": 812,
+        "width": 375
+      },
+      "errors": [],
+      "messages": 2,
+      "preview": null,
+      "rail": false,
+      "route": "#/c/fluctlight-fixture-one/chat",
+      "sidebar": null,
+      "switches": [],
+      "tabs": [],
+      "viewport": {
+        "height": 812,
+        "width": 375
+      }
+    }
+  ],
+  "interactions": {
+    "memoryFocus": "memory-toggle-memory-react-fixture",
+    "shortcut": {
+      "leftAfter": "icon",
+      "previewAfter": true
+    }
+  }
+}

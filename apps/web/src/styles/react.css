@@ -167,9 +167,6 @@ body {
 /* R10 form/media contracts, adapted to Radix control roots. */
 .react-workspace .settings-save-bar{position:static;bottom:auto;flex-wrap:wrap;gap:12px;margin-top:20px;}
 .react-workspace .check-field{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;}
-.react-workspace [data-slot="switch"]{width:36px;min-width:36px;height:21px;padding:0;flex:none;}
-.react-workspace [data-slot="switch-thumb"]{width:17px;height:17px;transform:none;translate:1px 0;}
-.react-workspace [data-slot="switch-thumb"][data-state="checked"]{translate:16px 0;}
 .react-workspace .media-preview{display:block;height:108px;overflow:hidden;min-width:0;}
 .react-workspace .media-preview>.approved-media-content{display:block;width:100%;height:106px;max-width:100%;object-fit:cover;}
 .react-workspace .large-media.media-preview{height:auto;min-height:300px;}
@@ -179,3 +176,18 @@ body {
 
 /* Error placeholders have no visible frame until their controller writes text. */
 [data-domain-ui="alert"][data-slot="alert"]:empty { display: none; }
+
+/* The inset owns the header; the page owns its only document scroller. */
+.react-workspace .workspace-page{flex:1;min-width:0;min-height:0;overflow-y:auto;padding:24px 28px;}
+.react-workspace .workspace-page.chat-main{display:flex;flex-direction:column;overflow:hidden;}
+.react-workspace .topbar{min-width:0;height:60px;gap:12px;padding:0 20px;}
+.react-workspace .chat-preview-sidebar{width:100%;min-width:0;min-height:0;height:100%;overflow:hidden;border:1px solid var(--border);border-radius:var(--radius-lg);}
+.react-workspace .chat-preview-content{min-height:0;overflow-y:auto;padding:0;}
+.react-workspace .outfit-block>.row{flex-wrap:wrap;gap:8px;}
+.react-workspace .outfit-lines span{min-width:0;overflow-wrap:anywhere;}
+@media(max-width:1100px){.react-workspace .topbar .brand-en,.react-workspace .topbar .scope,.react-workspace .topbar .local{display:none;}}
+@media(max-width:800px){.react-workspace .workspace-page{padding:16px;}.react-workspace .topbar{gap:8px;padding:0 12px;}.react-workspace .topbar .brand{font-size:16px;gap:6px;}.react-workspace .character-switch{max-width:min(42vw,200px);min-width:0;}.react-workspace .character-switch b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.react-workspace .outfit-tags{grid-template-columns:minmax(0,1fr);}}
+
+.react-workspace .chat-header>div{min-width:0;}
+.react-workspace .chat-header strong{overflow-wrap:anywhere;}
+.react-workspace .composer-bottom>[data-slot="button"]{margin-left:auto;}

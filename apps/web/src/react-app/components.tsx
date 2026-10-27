@@ -5,7 +5,7 @@ import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import {Alert,AlertDescription} from '@/components/ui/alert';
 import {toast} from '@/v3/proto/components/toast.js';
 import {InputGroup,InputGroupAddon,InputGroupButton} from '@/components/ui/input-group';
-import {SearchIcon} from 'lucide-react';
+import {SearchIcon,XIcon} from 'lucide-react';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import * as React from "react";
 import {
@@ -193,7 +193,7 @@ export function FilterChips({
           </InputGroupButton></InputGroupAddon>
         )}
       </InputGroup>
-      {groups.map((group:any)=><div key={group.key} className="flex min-w-0 items-center gap-3"><small className="shrink-0">{group.label}</small><ToggleGroup type="single" variant="outline" aria-label={group.label} value={filters[group.key]?'option:'+group.options.indexOf(filters[group.key]):'all'} onValueChange={key=>{const value=key.startsWith('option:')?group.options[Number(key.slice(7))]:'';props.onUpdateFilters?.({...filters,[group.key]:value});}} className="max-w-full justify-start overflow-x-auto"><ToggleGroupItem value="all" data-testid={`${prefix}-${group.key}-all`}>全部</ToggleGroupItem>{group.options.map((value:string,index:number)=><ToggleGroupItem key={value} value={'option:'+index} data-testid={`${prefix}-${group.key}-${value}`}>{value}</ToggleGroupItem>)}</ToggleGroup></div>)}
+      {groups.map((group:any)=><div key={group.key} className="flex min-w-0 items-start gap-3"><small className="shrink-0 pt-2">{group.label}</small><ToggleGroup type="single" variant="outline" aria-label={group.label} value={filters[group.key]?'option:'+group.options.indexOf(filters[group.key]):'all'} onValueChange={key=>{const value=key.startsWith('option:')?group.options[Number(key.slice(7))]:'';props.onUpdateFilters?.({...filters,[group.key]:value});}} className="max-w-full flex-wrap justify-start gap-1"><ToggleGroupItem value="all" data-testid={`${prefix}-${group.key}-all`}>全部</ToggleGroupItem>{group.options.map((value:string,index:number)=><ToggleGroupItem key={value} value={'option:'+index} className="max-w-full whitespace-normal break-all" data-testid={`${prefix}-${group.key}-${value}`}>{value}</ToggleGroupItem>)}</ToggleGroup></div>)}
     </section>
   );
 }
@@ -202,6 +202,7 @@ export function DetailDrawer({
   testId,
   children,
   onClose,
+  returnFocus,
   ...props
 }: any) {
   const [previous] = React.useState(
@@ -217,30 +218,34 @@ export function DetailDrawer({
     >
       <SheetContent
         data-testid={prefix}
-        className="react-workspace product-sheet overflow-y-auto"
+        showCloseButton={false}
+        className="react-workspace product-sheet gap-0 overflow-hidden"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
-          (previous?.isConnected
-            ? previous
+          const target = returnFocus?.() || previous;
+          (target?.isConnected
+            ? target
             : document.querySelector<HTMLElement>("main")
           )?.focus({ preventScroll: true });
         }}
       >
-        <SheetHeader>
+        <SheetHeader className="relative shrink-0 border-b pr-16">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription className="sr-only">
             查看和编辑当前对象
           </SheetDescription>
           <ActionButton variant="ghost"
             type="button"
-
+            size="icon"
+            className="touch-target absolute right-3 top-3"
+            aria-label="关闭"
             data-testid={`${prefix}-close`}
             onClick={onClose}
           >
-            关闭
+            <XIcon aria-hidden="true"/>
           </ActionButton>
         </SheetHeader>
-        <div className="px-6 pb-6">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
       </SheetContent>
     </Sheet>
   );

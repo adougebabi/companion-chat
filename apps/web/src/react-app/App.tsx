@@ -3,7 +3,7 @@ import {Surface as CardSurface} from "@/react-app/controls";
 import {configureToast} from '@/v3/proto/components/toast.js';
 import OverlayHost from './shared/OverlayHost';
 import WorkspaceBreadcrumb from './shared/WorkspaceBreadcrumb';
-import {SidebarProvider,Sidebar,SidebarInset,SidebarTrigger,useSidebar} from '@/components/ui/sidebar';
+import {SidebarProvider,Sidebar,SidebarInset,SidebarTrigger,SidebarRail,useSidebar} from '@/components/ui/sidebar';
 import WorkspaceNavigation from './shared/WorkspaceNavigation';
 import {Toaster} from '@/components/ui/sonner';
 import {toast} from 'sonner';
@@ -95,7 +95,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const {setOpenMobile:setMobileOpen,open:sidebarOpen,isMobile}=useSidebar();
   const [lifeOpen, setLifeOpen] = useState(true),
     [preview, setPreview] = useState(() => !window.matchMedia("(max-width: 800px)").matches);
-  const main = useRef<HTMLElement>(null),
+  const main = useRef<HTMLDivElement>(null),
     page = route.page || state.page;
   const current = workspace.current.value;
   const routeCharacterExists = !route.fid || state.characters.some((character: {id:string}) => character.id === route.fid);
@@ -228,7 +228,9 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const readError = Object.values(state.errors).filter(Boolean).at(-1) as
     string | undefined;
   return (
-    <div className="shell w-full min-w-0">
+    <>
+      <Sidebar collapsible="icon" variant="inset"><WorkspaceNavigation page={page} character={character} lifeOpen={lifeOpen} onLifeOpenChange={setLifeOpen} onNavigate={navigate}/><SidebarRail aria-label="切换导航宽度"/></Sidebar>
+      <SidebarInset tabIndex={-1} className="min-w-0 min-h-0 overflow-hidden">
       <header className="topbar">
         <SidebarTrigger className="touch-target" aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
         <Button
@@ -285,12 +287,10 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         </span>
         <CharacterAvatar name="我" initial="我" className="small"/>
       </header>
-      <div className="layout">
-        <Sidebar className="top-[68px] h-[calc(100dvh-68px)]"><WorkspaceNavigation page={page} character={character} lifeOpen={lifeOpen} onLifeOpenChange={setLifeOpen} onNavigate={navigate}/></Sidebar>
-        <SidebarInset
+        <div
           ref={main}
           tabIndex={-1}
-          className={page === "聊天" ? "chat-main" : ""}
+          className={"workspace-page" + (page === "聊天" ? " chat-main" : "")}
         >
           <div className="page-heading">
             <div>
@@ -322,8 +322,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
               <div className="page-content">{content}</div>
             )}
           </Suspense>
-        </SidebarInset>
-      </div>
+        </div>
       {readError && (
         <div className="approved-read-feedback" role="alert">
           {readError}
@@ -332,6 +331,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
           </Button>
         </div>
       )}
-    </div>
+      </SidebarInset>
+    </>
   );
 }

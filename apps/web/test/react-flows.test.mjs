@@ -83,9 +83,10 @@ test("React settings stay busy through receipt readback and preserve newer model
   };
   const view = await mountReact(vite, Management, { workspace: w });
   try {
-    const model = view.host.querySelector('input[list="models-generic_llm"]');
+    const model = view.host.querySelector('[role="combobox"][aria-label="模型 ID"]');
+    const choose=async value=>{await view.click(model);await view.input(document.querySelector('input[aria-label="搜索模型 ID"]'),value);await view.click([...document.querySelectorAll('[cmdk-item]')].find(item=>item.textContent.includes('采用「'+value+'」')));};
     assert.ok(model);
-    await view.input(model, "new");
+    await choose("new");
     const form = view.host.querySelector("form");
     await act(async () =>
       form.dispatchEvent(
@@ -99,7 +100,7 @@ test("React settings stay busy through receipt readback and preserve newer model
     assert.equal(calls, 1);
     assert.equal(save().disabled, true);
     assert.match(status().textContent, /等待服务端确认/);
-    await view.input(model, "newer-unsaved");
+    await choose("newer-unsaved");
     await act(async () => finishWrite({}));
     await view.flush();
     assert.equal(save().disabled, true);
@@ -113,7 +114,7 @@ test("React settings stay busy through receipt readback and preserve newer model
     await view.flush();
     assert.equal(save().disabled, false);
     assert.match(status().textContent, /已保存/);
-    assert.equal(model.value, "newer-unsaved");
+    assert.match(model.textContent, /newer-unsaved/);
   } finally {
     await view.dispose();
   }

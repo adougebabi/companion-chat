@@ -814,6 +814,7 @@ function createManagementPageController(props, context, lifecycle) {
   const render = () => (
     <ManagementPageView
       view={{
+        accountActions:()=>(<div className="flex flex-wrap items-center justify-end gap-3" aria-label="账户">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton variant="ghost" type="button"  onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton variant="outline" type="button"  disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>),
         configForm,
         tab,
         sections,
@@ -916,7 +917,6 @@ function createManagementPageController(props, context, lifecycle) {
   );
   return (context, cache) => (
     <Fragment>
-      <div className="row account-actions">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton variant="ghost" type="button"  onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton variant="outline" type="button"  disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>
       {render(context, cache)}
       {error.value ? (
         <OperationStatus variant="default" className="approved-recovery" role="status">

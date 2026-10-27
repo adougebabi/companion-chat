@@ -98,7 +98,9 @@ verify browser behavior and update tests/specs to the React Radix contract.
 - Dynamic media tags use capitalized React element variables. Assert real
   img/video/audio elements in previews. Grid/count/empty-state consume the
   filtered list; detail lookup may use the complete list.
-- Expanded memory state is an ID or null, never a row object. Test direct links.
+- Selected memory detail state is an ID or null, never a row object. Direct links
+  open a reading Sheet; edits have a separate draft and cancellation keeps the
+  original record.
 - Tabs use stable machine values; display labels use the actual character name.
 - Every controlled modal receives onClose. Test Escape and the built-in close
   button as well as business Cancel.
@@ -180,7 +182,7 @@ with labelled content and cancellation that never invokes the mutation.
   The host owns navigation and accessible section naming; business content owns
   its visible heading. Explicit drawer titles use one SheetTitle.
 - At <=800px chat preview is a controlled Sheet with close/Escape, focus return
-  and the same App preference callback; wide layout retains one shared aside.
+  and the same App preference callback; wide layout uses an independently controlled right Sidebar.
   Composer bottom padding includes the safe-area environment value.
 - Root rem is 14px. Mobile 44px hit areas use physical pixel minimums on explicit
   semantic actions. Opt-in classes must reach portaled controls. Do not apply a
@@ -190,3 +192,44 @@ with labelled content and cancellation that never invokes the mutation.
   existing rows. Reading errors cannot replace Studio command recovery errors.
 - Badges contain labels, not taller editing buttons. Tag management uses natural
   height flex rows. Archive copy names archive while tag deletion names deletion.
+
+## R14 composed component ownership
+
+- The full-height left Sidebar uses `collapsible="icon"`, `variant="inset"` and
+  SidebarRail; its sibling SidebarInset contains the header and `.workspace-page`
+  owns page scrolling. No topbar offset or second `.shell/.layout` layout.
+  Icon mode keeps life subpages in a labelled DropdownMenu and all icons have
+  tooltips. Hidden group labels must leave hit testing as well as the paint
+  tree; opacity-only labels can block the preceding group. Do not share its
+  open state or Ctrl/Cmd+B listener with the chat preview; its nested provider
+  sets `keyboardShortcut={false}`.
+- Chat composes MessageScrollerProvider/Viewport/Content/Item. Every content row,
+  including markers and waiting/error states, is an Item. The primitive owns
+  follow/prepend behavior; do not attach a competing scroll-to-bottom effect.
+  Message/Bubble own the message layout; Attachment is for actual files only.
+- DetailDrawer disables the default Sheet X and exposes exactly one labelled
+  close button. Header stays visible, only its body scrolls. Escape and closing
+  restore the connected trigger; nested cancellation preserves reading state.
+  Detail/edit remount chains pass `returnFocus: () => HTMLElement | null` so
+  final dismissal restores the original memory row.
+- Switch visuals and thumb displacement belong to the local Radix primitive.
+  Never add `.switch::before`, `:checked` or size/translation overrides to the
+  root button. Tests use the real switch and its boolean value.
+- `Combobox` accepts strings or `{value:string,label:string}` options. Selection
+  sends the exact value, including empty string, and search includes IDs and
+  labels. Custom model IDs require explicit adoption; Escape commits nothing.
+  Known short enums retain ChoiceSelect and its typed-value mapping.
+- ModelDirectory is a searchable browsing popover; model-purpose drafts use a
+  separate Combobox with real `onChange`. Selecting a directory row never saves
+  a binding. Account actions share the management tabs' header.
+- Wrapping Tabs use `group-data-horizontal/tabs:h-auto` as well as `flex-wrap`;
+  the primitive's default group height otherwise wins. Long tab labels fit
+  their own row. Wardrobe renders slot choices only after a tag is selected.
+- Questionnaire is a form. Use it as the world's source form, never nest it in
+  another form. Its choices retain the existing source callbacks; step Tabs
+  display controlled progress and cannot bypass validation. Preparation Trace
+  shows independently read states and only confirmed-ready stages count.
+
+Regression assertions: `r14-regressions`, `r11-flows`, `react-flows`,
+`react-review-regressions` and `r10-media-default`. Geometry is verified on the
+production build separately from these DOM behavior tests.

@@ -1,3 +1,5 @@
+import {Item,ItemContent,ItemTitle,ItemDescription,ItemActions} from '@/components/ui/item';
+import {ChevronRightIcon} from 'lucide-react';
 import {AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog";
 import {Progress} from "@/components/ui/progress";
 import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
@@ -24,6 +26,8 @@ import {
   Fragment,
 } from "@/react-app/render-helpers";
 export function LifePageView({ view: view }) {
+  const editingMemoryId=view.draftMemory.value?.id;
+  const memory=readValue(view.life).memories.find(item=>item.id===view.selectedMemoryId.value);
   return (
     <Fragment>
       {view.props.page === "此刻" ? (
@@ -421,99 +425,11 @@ export function LifePageView({ view: view }) {
           <section className="memory-list">
             <Fragment>
               {listValues(view.memories.value).map((k) => (
-                <article
-                  key={k.id}
-                  className={cn([
-                    "memory-item",
-                    {
-                      expanded: view.expandedMemoryId.value === k.id,
-                    },
-                  ])}
-                  data-testid={"memory-row-" + k.id}
-                >
-                  <ActionButton variant="ghost"
-                    className="memory-summary"
-                    aria-expanded={view.expandedMemoryId.value === k.id}
-                    aria-controls={"memory-details-" + k.id}
-                    data-testid={"memory-toggle-" + k.id}
-                    onClick={(ve) =>
-                      (view.expandedMemoryId.value =
-                        view.expandedMemoryId.value === k.id ? null : k.id)
-                    }
-                  >
-                    <span className="memory-chevron">
-                      {displayText(
-                        view.expandedMemoryId.value === k.id ? "−" : "+",
-                      )}
-                    </span>
-                    <span className="memory-content">
-                      {displayText(k.text)}
-                    </span>
-                    <time>{displayText(k.date)}</time>
-                    <Badge >{displayText(k.category)}</Badge>
-                  </ActionButton>
-                  {view.expandedMemoryId.value === k.id ? (
-                    <div
-                      key={0}
-                      id={"memory-details-" + k.id}
-                      className="memory-details"
-                    >
-                      <dl>
-                        <div>
-                          <dt>{"来源"}</dt>
-                          <dd>
-                            {displayText(k.source) +
-                              " · " +
-                              displayText(k.date)}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{"重要度"}</dt>
-                          <dd><StarRating value={k.importance}/></dd>
-                        </div>
-                        <div>
-                          <dt>{"标签"}</dt>
-                          <dd>
-                            <Fragment>
-                              {listValues(k.tags).map((ve) => (
-                                <Badge key={ve} >
-                                  {"# " + displayText(ve)}
-                                </Badge>
-                              ))}
-                            </Fragment>
-                            {k.tags.length ? null : (
-                              <span key={0} className="muted">
-                                {"暂无标签"}
-                              </span>
-                            )}
-                          </dd>
-                        </div>
-                      </dl>
-                      <div className="row">
-                        <ActionButton variant="ghost"
-
-                          data-testid={"memory-edit-" + k.id}
-                          onClick={(ve) => {
-                            ((view.draftMemory.value = {
-                              ...k,
-                              tags: [...k.tags],
-                            }),
-                              (view.newTag.value = ""));
-                          }}
-                        >
-                          {"编辑"}
-                        </ActionButton>
-                        <ActionButton variant="ghost"
-
-                          data-testid={"memory-forget-" + k.id}
-                          onClick={(ve) => (view.forgetMemory.value = k)}
-                        >
-                          {"遗忘"}
-                        </ActionButton>
-                      </div>
-                    </div>
-                  ) : null}
-                </article>
+                <Item key={k.id} variant="outline" asChild data-testid={'memory-row-'+k.id}>
+                  <button id={'memory-trigger-'+k.id} type="button" className="w-full text-left" aria-haspopup="dialog" aria-controls={'memory-details-'+k.id} data-testid={'memory-toggle-'+k.id} onClick={()=>view.selectedMemoryId.value=k.id}>
+                    <ItemContent><ItemTitle className="line-clamp-3 whitespace-pre-wrap break-words">{k.text}</ItemTitle><ItemDescription>{k.date} · {k.category}</ItemDescription></ItemContent><ItemActions><ChevronRightIcon className="size-4" aria-hidden="true"/></ItemActions>
+                  </button>
+                </Item>
               ))}
             </Fragment>
           </section>
@@ -529,11 +445,19 @@ export function LifePageView({ view: view }) {
               </ActionButton>
             </EmptyState>
           )}
+          {memory&&!view.draftMemory.value&&<view.DetailDrawer title="记忆详情" testId="memory-detail-drawer" returnFocus={()=>document.getElementById('memory-trigger-'+memory.id)} onClose={()=>view.selectedMemoryId.value=null}>
+            <section id={'memory-details-'+memory.id} className="grid gap-5">
+              <p className="whitespace-pre-wrap break-words">{memory.text}</p>
+              <dl className="grid gap-3"><div><dt>来源</dt><dd>{memory.source} · {memory.date}</dd></div><div><dt>重要度</dt><dd><StarRating value={memory.importance}/></dd></div><div><dt>标签</dt><dd className="flex flex-wrap gap-2">{memory.tags.length?memory.tags.map(tag=><Badge key={tag}># {tag}</Badge>):'暂无标签'}</dd></div></dl>
+              <div className="flex flex-wrap gap-3"><ActionButton id={'memory-edit-'+memory.id} variant="outline" data-testid={'memory-edit-'+memory.id} onClick={()=>{view.draftMemory.value={...memory,tags:[...memory.tags]};view.newTag.value='';}}>编辑记忆</ActionButton><ActionButton variant="ghost" data-testid={'memory-forget-'+memory.id} onClick={()=>view.forgetMemory.value=memory}>遗忘记忆</ActionButton></div>
+            </section>
+          </view.DetailDrawer>}
           {view.draftMemory.value ? (
             <view.DetailDrawer
               key={1}
               title="编辑记忆"
               testId="memory-drawer"
+              returnFocus={()=>document.getElementById('memory-edit-'+editingMemoryId)}
               onClose={(k) => (view.draftMemory.value = null)}
             >
               <form

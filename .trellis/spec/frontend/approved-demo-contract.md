@@ -255,7 +255,7 @@ SFC harnesses. A dependency-graph test rejects imports of retired apps, proto
 pages/modules and old shells; React view components are allowed.
 
 At 390px the sidebar is a closed drawer and the chat preview starts collapsed;
-the chat composer must fit in the first viewport. Settings switches are 36×21px,
+the chat composer must fit in the first viewport. Settings switches use the local shadcn Radix sizing and thumb tokens;
 checkbox labels use adjacent text, and the save bar stays in document flow.
 Media card images fill their 108px preview using cover; the preview uses block
 layout so an intrinsic grid row cannot stretch a tall image. Detail images use

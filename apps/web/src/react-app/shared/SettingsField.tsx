@@ -1,3 +1,4 @@
+import {Field,FieldLabel,FieldSet,FieldLegend,FieldGroup} from '@/components/ui/field';
 import { useId } from "react";
 import { FieldInput, ChoiceSelect, Textarea, Label } from "../controls";
 import { autonomyActionChoices } from "@/v3/proto/components/configuration-fields.js";
@@ -10,8 +11,8 @@ export default function SettingsField({ field }: any) {
     for (const value of Array.isArray(field.value) ? field.value : [])
       if (!choices.has(value)) choices.set(value, value);
     return (
-      <fieldset className="action-type-field">
-        <legend>{field.label}</legend>
+      <FieldSet className="action-type-field">
+        <FieldLegend>{field.label}</FieldLegend><FieldGroup>
         {[...choices].map(([value, label], index) => (
           <Label key={value} htmlFor={`${id}-${index}`} className="check-field">
             <FieldInput
@@ -32,12 +33,12 @@ export default function SettingsField({ field }: any) {
             {label}
           </Label>
         ))}
-      </fieldset>
+      </FieldGroup></FieldSet>
     );
   }
   return (
-    <Label htmlFor={id} className={field.type === "checkbox" ? "check-field" : "settings-field"}>
-      {field.label}
+    <Field orientation={field.type === "checkbox" ? "horizontal" : "vertical"} className="min-w-0">
+      <FieldLabel htmlFor={id}>{field.label}</FieldLabel>
       {field.type === "select" ? (
         <ChoiceSelect
           id={id}
@@ -80,6 +81,6 @@ export default function SettingsField({ field }: any) {
           }
         />
       )}
-    </Label>
+    </Field>
   );
 }

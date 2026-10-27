@@ -84,7 +84,7 @@
     gap: 24px;
     padding: 28px;
   }
-  .react-workspace .character-form label {
+  .react-workspace .character-form label:not([data-slot="questionnaire-choice"]) {
     display: flex;
     flex-direction: column;
     gap: 9px;
@@ -725,12 +725,7 @@
   .react-workspace .switch-menu svg {
     margin-left: auto;
   }
-  .react-workspace main {
-    flex: 1;
-    min-width: 0;
-    overflow: auto;
-    padding: 27px 32px;
-  }
+
   .react-workspace .chat-main {
     display: flex;
     flex-direction: column;
@@ -783,7 +778,7 @@
   }
   .react-workspace .chat-layout {
     display: grid;
-    grid-template-columns: minmax(320px, 1fr) 274px;
+    grid-template-columns: minmax(0, 1fr) 300px;
     gap: 22px;
     flex: 1;
     min-height: 0;
@@ -792,6 +787,7 @@
     grid-template-columns: 1fr;
   }
   .react-workspace .chat-panel {
+    min-width: 0;
     border: 1px solid #dfe5dc;
     border-radius: 10px;
     background: #fff;
@@ -856,56 +852,6 @@
     color: #b2baaa;
     margin: 14px 0 25px;
   }
-  .react-workspace .message {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 24px;
-    align-items: flex-start;
-  }
-  .react-workspace .message.mine {
-    flex-direction: row-reverse;
-  }
-  .react-workspace .message-avatar {
-    width: 29px;
-    height: 29px;
-    font-size: 13px;
-    margin-top: 2px;
-  }
-  .react-workspace .message-body {
-    max-width: 80%;
-    min-width: 0;
-  }
-  .react-workspace .message-meta {
-    font-size: 12px;
-    color: #939d8e;
-    margin-bottom: 7px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .react-workspace .message-meta time {
-    font-size: 12px;
-    color: #b3bbab;
-  }
-  .react-workspace .mine .message-meta {
-    justify-content: flex-end;
-  }
-  .react-workspace .bubble {
-    background: #fff;
-    border: 1px solid #e3e8de;
-    border-radius: 0 11px 11px;
-    padding: 12px 15px;
-    line-height: 1.9;
-    font-size: 13px;
-    white-space: pre-wrap;
-    color: #4c5a4b;
-    box-shadow: 0 2px 3px #58694c04;
-  }
-  .react-workspace .mine .bubble {
-    background: #eaf0e5;
-    border-color: #e0e8d9;
-    border-radius: 11px 0 11px 11px;
-  }
   .react-workspace .composer {
     border-top: 1px solid #e6eae0;
     padding: 15px 20px 16px;
@@ -935,17 +881,21 @@
   }
   .react-workspace .composer-bottom {
     display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     align-items: center;
     justify-content: space-between;
   }
   .react-workspace .composer-bottom small {
+    min-width: 0;
+    max-width: 100%;
     font-size: 12px;
     color: #b2baaa;
   }
   .react-workspace .composer-bottom .button {
     padding: 9px 17px;
   }
-  .react-workspace .preview {
+  .react-workspace .chat-preview-content {
     border: 1px solid #e0e6db;
     border-radius: 10px;
     background: #fcfdf9;
@@ -1441,37 +1391,6 @@
   .react-workspace .setting-row b {
     font-weight: 500;
   }
-  .react-workspace .switch {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    flex: none;
-    width: 36px;
-    height: 21px;
-    background: #d8dfd0;
-    border-radius: 20px;
-    padding: 0;
-    position: relative;
-    border: 0;
-    cursor: pointer;
-  }
-  .react-workspace .switch:before {
-    content: "";
-    position: absolute;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    top: 3px;
-    left: 3px;
-    background: #fff;
-    transition: transform 0.2s;
-  }
-  .react-workspace .switch:checked {
-    background: #60836c;
-  }
-  .react-workspace .switch:checked:before {
-    transform: translate(15px);
-  }
   .react-workspace .search {
     display: flex;
     align-items: center;
@@ -1547,14 +1466,6 @@
     text-decoration: underline;
     margin-left: 8px;
   }
-  .react-workspace .typing {
-    font-size: 12px;
-    color: #8e9b82;
-    padding: 0 40px;
-  }
-  .react-workspace .typing span {
-    letter-spacing: 3px;
-  }
   .react-workspace .diagnostic {
     display: flex;
     gap: 15px;
@@ -1581,12 +1492,12 @@
     background: #eaf1e3;
   }
   @media (min-width: 1500px) {
-    .react-workspace main {
+    .react-workspace .workspace-page {
       padding: 30px 40px;
     }
 
     .react-workspace .chat-layout {
-      grid-template-columns: minmax(320px, 1fr) 300px;
+      grid-template-columns: minmax(0, 1fr) 300px;
       gap: 26px;
     }
     .react-workspace .timeline {
@@ -1598,11 +1509,11 @@
   }
   @media (max-width: 1100px) {
 
-    .react-workspace main {
+    .react-workspace .workspace-page {
       padding: 22px 20px;
     }
     .react-workspace .chat-layout {
-      grid-template-columns: minmax(280px, 1fr) 240px;
+      grid-template-columns: minmax(0, 1fr) 240px;
       gap: 15px;
     }
     .react-workspace .heading-caption,
@@ -1615,14 +1526,8 @@
       gap: 14px;
       padding: 0 20px;
     }
-    .react-workspace .message-body {
-      max-width: 85%;
-    }
     .react-workspace .preview-profile small {
       font-size: 12px;
-    }
-    .react-workspace .bubble {
-      padding: 10px 12px;
     }
     .react-workspace .timeline {
       padding: 18px 14px;
@@ -1669,7 +1574,7 @@
     .react-workspace .heading-actions .status {
       display: none;
     }
-    .react-workspace main {
+    .react-workspace .workspace-page {
       padding: 17px 13px;
     }
     .react-workspace .page-heading {
@@ -1684,9 +1589,6 @@
     .react-workspace .composer {
       padding: 12px;
       padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    }
-    .react-workspace .message-body {
-      max-width: 85%;
     }
     .react-workspace .quick-actions {
       gap: 4px;
@@ -2126,13 +2028,13 @@
 
   }
   .react-workspace,
-  .react-workspace main,
+  .react-workspace .workspace-page,
   .react-workspace .timeline,
-  .react-workspace .preview {
+  .react-workspace .chat-preview-content {
     scrollbar-gutter: stable;
   }
-  .react-workspace main > .page-heading,
-  .react-workspace main > .page-content {
+  .react-workspace .workspace-page > .page-heading,
+  .react-workspace .workspace-page > .page-content {
     width: 100%;
     max-width: 1360px;
     margin-left: auto;
@@ -2512,7 +2414,7 @@
   .react-workspace .outfit-block {
     padding: 16px 0;
   }
-  .react-workspace .preview .outfit-block {
+  .react-workspace .chat-preview-content .outfit-block {
     padding: 18px 16px;
     border-bottom: 1px solid #e5eade;
   }
@@ -2523,7 +2425,7 @@
   }
   .react-workspace .outfit-lines > div {
     display: grid;
-    grid-template-columns: 42px 1fr;
+    grid-template-columns: 42px minmax(0, 1fr);
     gap: 10px;
     font-size: 12px;
   }
@@ -2531,7 +2433,7 @@
     font-size: 12px;
   }
   .react-workspace .slot-accordion {
-    padding: 14px 0;
+    padding: 6px 0;
     border-bottom: 1px solid #e7ebe2;
   }
   .react-workspace .slot-accordion summary {
@@ -2755,7 +2657,7 @@
     flex: 1;
     min-width: 0;
   }
-  .react-workspace .preview .outfit-block .button {
+  .react-workspace .chat-preview-content .outfit-block .button {
     padding: 0;
   }
   @keyframes pulse {
@@ -2890,9 +2792,8 @@
     color: #97a08c;
   }
   .react-workspace .outfit-tags span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .react-workspace .now-grid {
     align-items: stretch;
@@ -3770,7 +3671,7 @@
   }
   .react-workspace .card,
   .react-workspace .chat-panel,
-  .react-workspace .preview,
+  .react-workspace .chat-preview-sidebar,
   .react-workspace .memory-list,
   .react-workspace .diagnostic-feed {
     background: var(--surface);
@@ -3829,9 +3730,6 @@
     color: #365845;
     font-weight: 600;
     box-shadow: inset 0 0 0 1px #1f2a2710;
-  }
-  .react-workspace .message.mine .avatar {
-    color: #56646d;
   }
   .react-workspace .people-grid .person-card:nth-child(5n + 1) .avatar {
     background: #f3e3cf;
@@ -3948,7 +3846,7 @@
   .react-workspace .chat-header,
   .react-workspace .composer,
   .react-workspace .compact-bio,
-  .react-workspace .preview .outfit-block {
+  .react-workspace .chat-preview-content .outfit-block {
     border-color: var(--rule);
   }
   .react-workspace .chat-header small,
@@ -3961,24 +3859,12 @@
   }
   .react-workspace .date-divider,
   .react-workspace .conversation-note,
-  .react-workspace .message-meta,
-  .react-workspace .message-meta time,
   .react-workspace .composer-bottom small {
     color: var(--copy-muted);
   }
   .react-workspace .date-divider:before,
   .react-workspace .date-divider:after {
     background: #e0e7df;
-  }
-  .react-workspace .bubble {
-    color: var(--ink);
-    font-size: 14px;
-    border-color: #dfe6de;
-    box-shadow: 0 2px 4px #20382d05;
-  }
-  .react-workspace .mine .bubble {
-    background: #e3efe5;
-    border-color: #c9dece;
   }
   .react-workspace .composer textarea {
     color: var(--ink);
@@ -4383,12 +4269,6 @@
     border-color: #d0ddd3;
     box-shadow: 0 -3px 12px #20382d06;
   }
-  .react-workspace .switch {
-    background: #cdd7ce;
-  }
-  .react-workspace .switch:checked {
-    background: var(--teal);
-  }
   .react-workspace .diagnostic-record + .diagnostic-record {
     border-color: var(--rule);
   }
@@ -4444,9 +4324,6 @@
   }
   .react-workspace .inline-error {
     color: #a5533c;
-  }
-  .react-workspace .typing {
-    color: var(--copy-secondary);
   }
   @media (max-width: 800px) {
     .react-workspace .now-card {
@@ -4631,9 +4508,6 @@
   }
   .react-workspace .approved-preparation {
     margin-bottom: 20px;
-  }
-  .react-workspace .typing {
-    flex-wrap: wrap;
   }
   .react-workspace .approved-more-fields {
     padding-top: 18px;

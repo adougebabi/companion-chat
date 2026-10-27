@@ -1,0 +1,16 @@
+{
+  "baseline": "650291cfca3d714fa1ec3af9df815bbc539e04f3",
+  "typecheck": "passed",
+  "web_tests": {
+    "passed": 407,
+    "failed": 0,
+    "skipped": 0
+  },
+  "production_build": "passed",
+  "fixture_exclusion": "passed",
+  "react_only_graph": "passed",
+  "browser_measurements": 31,
+  "browser_failures": 0,
+  "final_console_errors": 0,
+  "limitation": "Isolated synthetic fixture; no upstream models, live database or NAS acceptance."
+}

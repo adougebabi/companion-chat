@@ -1,3 +1,5 @@
+import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
+import {Questionnaire,QuestionnaireItem,QuestionnaireTitle,QuestionnaireChoices,QuestionnaireChoice,QuestionnaireChoiceDescription} from '@/components/ui/questionnaire';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {InlineFeedback,ReadState} from "@/react-app/shared/Presentation";
 import {Surface as CardSurface} from "@/react-app/controls";
@@ -247,33 +249,12 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     return (
       <div ref={elementRef(wizardRoot)} className="character-workflow">
         <WorkspaceBreadcrumb parentLabel="角色库" parentHref="#/library" currentLabel={draft.name||"新的相识"}/>
-      <ol className="wizard-steps">
-          <Fragment>
-            {listValues(navSteps).map((label, index) => {
-              return (
-                <li
-                  key={label}
-                  className={cn({
-                    active: index === currentStep.value,
-                    complete: index < currentStep.value,
-                  })}
-                  aria-current={
-                    index === currentStep.value ? "step" : undefined
-                  }
-                >
-                  <span>{displayText(index + 1)}</span>
-                  {displayText(label)}
-                </li>
-              );
-            })}
-          </Fragment>
-        </ol>
+      <Tabs value={'step-'+currentStep.value} aria-label="创建步骤"><TabsList className="h-auto group-data-horizontal/tabs:h-auto w-full flex-wrap justify-start gap-2">{navSteps.map((label,index)=><TabsTrigger key={label} value={'step-'+index} disabled={index!==currentStep.value} aria-current={index===currentStep.value?'step':undefined} className="min-h-11 flex-none gap-2"><span aria-hidden="true">{index<currentStep.value?'✓':index+1}</span>{label}</TabsTrigger>)}</TabsList></Tabs>
         {readValue(step) === "world" ? (
-          <Surface
+          <Questionnaire
             key={0}
-            as="form"
-            className="character-form"
-            noValidate=""
+            className="character-form rounded-xl border bg-card text-card-foreground shadow-sm"
+            noValidate
             onSubmit={eventModifiers(
               ($event) => worldChoice.value && readValue(c).next(),
               ["prevent"],
@@ -294,7 +275,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               {existingWorldError.value && <InlineFeedback  role="alert">{existingWorldError.value}</InlineFeedback>}
               {!existingWorldLoading.value && !existingWorldError.value && !existingWorlds.value.length && <p className="muted">还没有角色关联的生活世界，可以选择下面的已发布底稿，或创建新的世界设定。</p>}
               <p className="muted">只复用世界背景、规则和地点；人物、物品实例、事件模板、运行位置与生活历史不复制。</p>
-              <ChoiceCards label="生活世界来源" value={worldValue} disabled={readValue(busy)||!!readValue(pending)} options={worldOptions} onChange={value=>worldOptions.find(option=>option.value===value)?.select()}/>
+              <QuestionnaireItem name="world-source" required disabled={readValue(busy)||!!readValue(pending)}><QuestionnaireTitle>生活世界来源</QuestionnaireTitle><QuestionnaireChoices className="sm:grid-cols-2">{worldOptions.map(option=><QuestionnaireChoice key={option.value} value={option.value} checked={worldValue===option.value} onChange={()=>option.select()}><span>{option.label}</span><QuestionnaireChoiceDescription>{option.description}</QuestionnaireChoiceDescription></QuestionnaireChoice>)}</QuestionnaireChoices></QuestionnaireItem>
               <ActionButton variant="ghost" type="button"  onClick={()=>void loadExistingWorlds()}>重新读取已有世界</ActionButton>
               {!worlds.value.length&&!sourceError.value&&<p className="muted">创作中心的世界草稿需要先发布，才会出现在可选底稿中。</p>}
               {worldCursor.value ? (
@@ -354,7 +335,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 {"下一步"}
               </ActionButton>
             </footer>
-          </Surface>
+          </Questionnaire>
         ) : readValue(step) === "person" || readValue(step) === "analysis" ? (
           <Surface
             key={1}

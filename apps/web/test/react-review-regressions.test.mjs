@@ -120,7 +120,7 @@ test("media filtering changes the grid and previews use real img, video and audi
   }
 });
 
-test("memory deep links expand by ID and the confirmation supports Escape cancellation", async () => {
+test("memory deep links open a reading Sheet by ID and the confirmation supports Escape cancellation", async () => {
   const { default: Life } = await load("react-app/pages/LifePage.jsx"),
     w = workspace();
   w.current.value.life.memories = [
@@ -141,10 +141,12 @@ test("memory deep links expand by ID and the confirmation supports Escape cancel
   });
   try {
     const toggle = view.host.querySelector('[data-testid="memory-toggle-M"]');
-    assert.equal(toggle.getAttribute("aria-expanded"), "true");
-    assert.ok(view.host.querySelector("#memory-details-M"));
+    assert.equal(toggle.getAttribute("aria-haspopup"), "dialog");
+    assert.ok(document.querySelector("#memory-details-M"));
+    assert.equal(document.querySelectorAll('[role="dialog"]').length,1);
+    assert.equal(document.querySelector('[data-testid="memory-edit-content"]'),null);
     await view.click(
-      view.host.querySelector('[data-testid="memory-forget-M"]'),
+      document.querySelector('[data-testid="memory-forget-M"]'),
     );
     assert.ok(document.querySelector('[role="alertdialog"]'));
     await act(async () =>
@@ -154,7 +156,15 @@ test("memory deep links expand by ID and the confirmation supports Escape cancel
     );
     await view.flush();
     assert.equal(document.querySelector('[role="alertdialog"]'), null);
-    assert.equal(toggle.getAttribute("aria-expanded"), "true");
+    assert.ok(document.querySelector("#memory-details-M"));
+    await view.click(document.querySelector('[data-testid="memory-edit-M"]'));
+    const field=document.querySelector('[data-testid="memory-edit-content"]');
+    await view.input(field,"取消时应保留原文");
+    await view.click(document.querySelector('[data-testid="memory-drawer-close"]'));
+    assert.match(document.querySelector("#memory-details-M").textContent,/需要核对的真实记忆/);
+    assert.doesNotMatch(document.querySelector("#memory-details-M").textContent,/取消时应保留原文/);
+    await view.click(document.querySelector('[data-testid="memory-detail-drawer-close"]'));
+    assert.equal(document.activeElement,toggle);
   } finally {
     await view.dispose();
   }
@@ -255,5 +265,5 @@ test('memory forget keeps the original selected memory on failure and waits for 
  const {default:Life}=await load('react-app/pages/LifePage.jsx'),w=workspace();let reject,settle,writes=0;
  w.current.value.life.memories=[{id:'M',text:'保留的记忆正文',date:'2026-10-26',importance:3,category:'长期记忆',tags:[],_source:{id:'M',revision:4}}];
  w.command=()=>{writes++;return{completion:new Promise((resolve,no)=>{settle=resolve;reject=no;})};};
- const v=await mountReact(vite,Life,{workspace:w,props:{page:'记忆',initialMemoryId:'M'}});try{await v.click(v.host.querySelector('[data-testid=memory-forget-M]'));await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,1);assert.ok(document.querySelector('[role=alertdialog]'));await act(async()=>reject(Error('写入失败')));await v.flush();assert.ok(document.querySelector('[role=alertdialog]'));assert.match(document.querySelector('[data-slot=alert-dialog-description]').textContent,/保留的记忆正文/);await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,2);await act(async()=>settle({}));await v.flush();assert.equal(document.querySelector('[role=alertdialog]'),null);}finally{await v.dispose();}
+ const v=await mountReact(vite,Life,{workspace:w,props:{page:'记忆',initialMemoryId:'M'}});try{await v.click(document.querySelector('[data-testid=memory-forget-M]'));await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,1);assert.ok(document.querySelector('[role=alertdialog]'));await act(async()=>reject(Error('写入失败')));await v.flush();assert.ok(document.querySelector('[role=alertdialog]'));assert.match(document.querySelector('[data-slot=alert-dialog-description]').textContent,/保留的记忆正文/);await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,2);await act(async()=>settle({}));await v.flush();assert.equal(document.querySelector('[role=alertdialog]'),null);}finally{await v.dispose();}
 });

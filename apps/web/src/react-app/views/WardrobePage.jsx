@@ -1,3 +1,5 @@
+import Combobox from '@/react-app/shared/Combobox';
+import {Field,FieldLabel} from '@/components/ui/field';
 import {AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog";
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {InlineFeedback} from "@/react-app/shared/Presentation";
@@ -40,10 +42,10 @@ export function WardrobePageView({ view: view }) {
         if (label) view.tab.value = label;
       }}
     >
-      <TabsList className="max-w-full overflow-x-auto">
+      <TabsList className="h-auto group-data-horizontal/tabs:h-auto max-w-full flex-wrap">
         <Fragment>
           {listValues(["为她搭配", "方案库", "全部衣服"]).map((x, rowIndex) => (
-            <TabsTrigger
+            <TabsTrigger className="h-auto min-h-10 max-w-full flex-none whitespace-normal break-words"
               key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
               value={tabKeys[x]}
             >
@@ -60,41 +62,13 @@ export function WardrobePageView({ view: view }) {
         {readValue(view.tab) === "为她搭配" ? (
           <Fragment key={0}>
             <div className="toolbar">
-              <label>
-                {"先选标签 "}
-                <ChoiceSelect
-                  value={view.tag.value}
-                  onChange={(event) => {
-                    ((x) => (view.tag.value = x))(event.target.value);
-                  }}
-                >
-                  <option value="">{"请选择"}</option>
-                  <Fragment>
-                    {listValues(readValue(view.character).outfitTags).map(
-                      (x, rowIndex) => (
-                        <option
-                          key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
-                          value={x}
-                        >
-                          {displayText(view.tagLabel(x))}
-                        </option>
-                      ),
-                    )}
-                  </Fragment>
-                </ChoiceSelect>
-              </label>
+              <Field className="w-full min-w-0 sm:max-w-72">
+                <FieldLabel htmlFor="wardrobe-tag">先选标签</FieldLabel>
+                <Combobox id="wardrobe-tag" label="搭配标签" value={view.tag.value} options={[{value:'',label:'请选择标签'},...readValue(view.character).outfitTags.map(tag=>({value:tag,label:view.tagLabel(tag)}))]} onChange={value=>view.tag.value=value}/>
+              </Field>
               <small>{"标签可在方案库维护 · 每个部位选一件，配饰可多选"}</small>
             </div>
-            <Surface
-              as="div"
-              className="slot-picker scroll-lock-list"
-              data-scroll-lock=""
-            >
-              {view.tag.value ? null : (
-                <OperationStatus variant="default" key={0} className="muted" role="status">
-                  {"请先选择标签"}
-                </OperationStatus>
-              )}
+            {view.tag.value?<Surface as="div" className="slot-picker">
               <Fragment>
                 {listValues(readValue(At)).map((x, rowIndex) => (
                   <Disclosure
@@ -121,8 +95,7 @@ export function WardrobePageView({ view: view }) {
                     key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
                   >
                     <div
-                      className="slot-row scroll-lock-list"
-                      data-scroll-lock=""
+                      className="slot-row"
                     >
                       <Fragment>
                         {listValues(
@@ -166,7 +139,7 @@ export function WardrobePageView({ view: view }) {
                   </Disclosure>
                 ))}
               </Fragment>
-            </Surface>
+            </Surface>:<p className="py-4 text-sm text-muted-foreground" role="status">先选择一个搭配标签，再挑选各部位的衣服。</p>}
             <Surface as="div" >
               <h3>{"当前搭配"}</h3>
               <p className="slot-summary">

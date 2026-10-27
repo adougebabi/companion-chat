@@ -125,7 +125,7 @@ function createLifePageController(props, { emit }, lifecycle) {
       category: "",
       tag: "",
     }),
-    expandedMemoryId = lifecycle.cell(null),
+    selectedMemoryId = lifecycle.cell(null),
     draftMemory = lifecycle.cell(null),
     forgetMemory = lifecycle.cell(null),
     newTag = lifecycle.cell("");
@@ -163,7 +163,7 @@ function createLifePageController(props, { emit }, lifecycle) {
     () => [props.initialMemoryId, life.value.memories],
     () => {
       if (props.initialMemoryId)
-        expandedMemoryId.value = life.value.memories.some(
+        selectedMemoryId.value = life.value.memories.some(
           (item) => item.id === props.initialMemoryId,
         )
           ? props.initialMemoryId
@@ -279,6 +279,7 @@ function createLifePageController(props, { emit }, lifecycle) {
     () => props.page,
     async (page) => {
       editing.value = null;
+      selectedMemoryId.value = null;
       draftMemory.value = null;
       forgetMemory.value = null;
       if (page === "目标" && w.state.appointmentHighlight) {
@@ -384,7 +385,7 @@ function createLifePageController(props, { emit }, lifecycle) {
     filters,
     groups,
     memories,
-    expandedMemoryId,
+    selectedMemoryId,
     draftMemory,
     newTag,
     forgetMemory,
