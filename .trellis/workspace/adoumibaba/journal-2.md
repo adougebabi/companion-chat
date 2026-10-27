@@ -261,3 +261,37 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Status
 
 [OK] **Completed**
+
+
+## Session 74: r14 组件适配与基础交互修复
+<!-- trellis-session: v=2 fp=af5e13d228a8faf8 -->
+
+**Date**: 2026-10-27
+**Task**: r14 组件适配与基础交互修复
+**Branch**: `codex/fluctlight-functional-recovery`
+
+### Summary
+
+完成 r14 侧栏、对话、记忆、模型选择、衣柜、向导和 Switch 修复；407 项 Web 测试、类型检查、生产构建及 31 组生产浏览器布局验收通过。未创建任务，保留原有未跟踪材料。
+
+### Main Changes
+
+- 补齐官方 Radix 组件实际接入，修复图标导航命中、左右快捷键联动、记忆编辑往返焦点和 801px 预览裁切。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `20ee3aed` | fix(web): resolve r14 component and interaction regressions |
+
+### Testing
+
+- [OK] Web 407/407；typecheck/build/生产 fixture 排除及 React-only graph 通过；浏览器布局 31/31，验收阶段控制台无错误。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 后续真实 NAS 与模型联调验收应独立记录，当前证据为隔离 UI fixture。
