@@ -146,7 +146,7 @@ function createDiaryGenerationController(__props, { emit: __emit }, lifecycle) {
     return (
       <div className="diary-generation">
         <div className="row">
-          <label>
+          {__props.showDatePicker!==false&&<label>
             {"回顾日期"}
             <FieldInput
               type="date"
@@ -155,7 +155,7 @@ function createDiaryGenerationController(__props, { emit: __emit }, lifecycle) {
               disabled={busy.value}
               onInput={($event) => emit("select", $event.target.value)}
             />
-          </label>
+          </label>}
           <ActionButton variant="default"
 
             data-testid="diary-generate"

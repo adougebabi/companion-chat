@@ -1,3 +1,6 @@
+import RecordView from '@/react-app/shared/RecordView';
+import CursorControls from '@/react-app/shared/CursorControls';
+import {Field,FieldLabel} from '@/components/ui/field';
 import Combobox from '@/react-app/shared/Combobox';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {InlineFeedback} from "@/react-app/shared/Presentation";
@@ -46,21 +49,22 @@ export function ManagementPageView({ view: view }) {
             </TabsTrigger>
           ))}
         </Fragment>
-      </TabsList>{view.accountActions?.()}</div>
+      </TabsList></div>
       <TabsContent value={view.tab.value} className="min-w-0">
         {readValue(view.tab) === "配置中心" ? (
           <div key={0} className="configuration-layout">
             <nav
-              className="configuration-nav"
+              className="configuration-nav hidden min-[801px]:flex"
               aria-label="配置章节"
               data-testid="config-section-nav"
             >
               <Fragment>
                 {listValues(view.sections.value).map((h) => (
-                  <ActionButton variant="ghost" type="button" key={h} className="justify-start text-left" data-testid={"config-anchor-"+h} onClick={()=>view.scrollTo(h)}>{h}</ActionButton>
+                  <ActionButton variant={view.currentSection.value===h?"secondary":"ghost"} aria-current={view.currentSection.value===h?"location":undefined} type="button" key={h} className="justify-start text-left" data-testid={"config-anchor-"+h} onClick={()=>view.scrollTo(h)}>{view.sectionLabel(h)}</ActionButton>
                 ))}
               </Fragment>
             </nav>
+            <div className="configuration-mobile-nav min-[801px]:hidden"><label className="grid gap-2 text-sm">配置章节<ChoiceSelect aria-label="选择配置章节" value={view.currentSection.value} onChange={event=>view.scrollTo(event.target.value)}>{view.sections.value.map(section=><option key={section} value={section}>{view.sectionLabel(section)}</option>)}</ChoiceSelect></label></div>
             <form
               ref={elementRef(view.configForm)}
               className="settings-form management-form"
@@ -87,15 +91,15 @@ export function ManagementPageView({ view: view }) {
                     <div key={h.id} className="management-block">
                       <div className="row">
                         <b>{displayText(h.name)}</b>
-                        <small>{displayText(h.status)}</small>
+                        <Badge variant="secondary">{displayText(h.status)}</Badge>
                         <span className="spacer" />
-                        <ActionButton variant="ghost"
+                        {!h._source&&<ActionButton variant="destructive"
                           type="button"
 
                           onClick={() => view.removeEndpoint(b)}
                         >
                           {"移除"}
-                        </ActionButton>
+                        </ActionButton>}
                       </div>
                       <div className="form-grid">
                         <label>
@@ -156,17 +160,10 @@ export function ManagementPageView({ view: view }) {
                           />
                         </label>
                         {h._source?.secret_configured ? (
-                          <label className="check-field">
-                            {"清除已存密钥"}
-                            <FieldInput
-                              type="checkbox"
-                              modelValue={h.clearSecret}
-                              onModelChange={(k) => (h.clearSecret = k)}
-                            />
-                          </label>
+                          <Field orientation="horizontal" className="full-field min-h-11 rounded-lg border border-border p-3"><FieldInput id={'clear-secret-'+h.id} type="checkbox" modelValue={h.clearSecret} onModelChange={value=>h.clearSecret=value}/><FieldLabel htmlFor={'clear-secret-'+h.id}>清除已存密钥</FieldLabel></Field>
                         ) : null}
                       </div>
-                      <view.ModelDirectory models={h.models} />
+                      <view.ModelDirectory models={h.models} status={h.modelsStatus} error={h.modelsError} onRetry={()=>view.test(h)}/>
                       <ActionButton variant="outline"
                         type="button"
 
@@ -288,11 +285,11 @@ export function ManagementPageView({ view: view }) {
                     {listValues(readValue(view.sharedScenarios)).map(
                       (h, rowIndex) => (
                         <div
-                          className="shared-scenario"
+                          className="shared-scenario border-b border-border pb-3"
                           key={typeof h === "object" ? (h?.id ?? rowIndex) : h}
                         >
                           <span>{displayText(h)}</span>
-                          <small>{"使用：通用模型"}</small>
+
                         </div>
                       ),
                     )}
@@ -306,15 +303,7 @@ export function ManagementPageView({ view: view }) {
               >
                 <h2>{"安静时段"}</h2>
                 <div className="form-grid">
-                  <label className="check-field">
-                    {"启用安静时段"}
-                    <FieldInput
-                      className="switch"
-                      type="checkbox"
-                      modelValue={view.quiet.value.enabled}
-                      onModelChange={(h) => (view.quiet.value.enabled = h)}
-                    />
-                  </label>
+                  <Field orientation="horizontal" className="min-h-11 self-end rounded-lg border border-border p-3"><FieldInput id="quiet-enabled" className="switch" type="checkbox" modelValue={view.quiet.value.enabled} onModelChange={value=>view.quiet.value.enabled=value}/><FieldLabel htmlFor="quiet-enabled">启用安静时段</FieldLabel></Field>
                   <label>
                     {"适用角色"}
                     <ChoiceSelect
@@ -342,6 +331,7 @@ export function ManagementPageView({ view: view }) {
                     </ChoiceSelect>
                   </label>
                 </div>
+                {!view.quiet.value.enabled&&<p className="text-sm text-muted-foreground">开启后可设置每天暂停主动联系的时段。现有时间仍保留。</p>}
                 <fieldset disabled={!view.quiet.value.enabled}>
                   <div className="form-grid">
                     <label>
@@ -402,7 +392,7 @@ export function ManagementPageView({ view: view }) {
                     id={view.sectionId(h.title)}
                     className="settings-group"
                   >
-                    <Disclosure title={h.title === "高级" ? "高级 · Kev 决策服务" : h.title}>
+                    <Disclosure title={h.title === "高级" ? "高级 · 辅助决策服务" : view.sectionLabel(h.title)}>
                     {h.title === "图片（ComfyUI）" ? (
                       <p key={2} className="muted">
                         {"图片使用 ComfyUI；需要图片功能时再展开配置。"}
@@ -418,7 +408,7 @@ export function ManagementPageView({ view: view }) {
                     {["图片（ComfyUI）", "高级", "看图理解"].includes(
                       h.title,
                     ) ? (
-                      <ActionButton variant="ghost"
+                      <ActionButton variant="outline" className="mt-4"
                         key={3}
                         type="button"
 
@@ -440,24 +430,20 @@ export function ManagementPageView({ view: view }) {
                   {displayText(view.testResult.value)}
                 </OperationStatus>
               ) : null}
+              {view.testRaw.value&&<JsonDetails value={view.testRaw.value} title="测试回执与实际状态"/>}
               <div className="settings-save-bar" data-testid="config-save-bar">
                 {view.error.value ? (
                   <InlineFeedback key={0} role="alert" >
                     {displayText(view.error.value)}
                   </InlineFeedback>
                 ) : (
-                  <OperationStatus variant="default"
-                    className="muted"
-                    role="status"
-                    aria-live="polite"
-                    data-testid="config-save-status"
-                  >
-                    {view.saveStatus.value || "让相处的节奏，更合心意。"}
-                  </OperationStatus>
+                  <p className="text-sm" role="status" aria-live="polite" data-testid="config-save-status">{view.saveStatus.value||(view.dirty.value?'有未保存修改':'设置已同步')}{view.saveStatus.value&&view.dirty.value&&!view.saving.value&&' · 有未保存修改'}</p>
                 )}
+                <ActionButton variant="outline" className="h-auto min-h-11 whitespace-normal" type="button" disabled={!view.dirty.value||!view.canDiscard.value} onClick={view.discard}>放弃未保存修改</ActionButton>
                 <ActionButton variant="default"
 
                   disabled={view.saving.value}
+                  className="h-auto min-h-11 whitespace-normal"
                   data-testid="config-save"
                 >
                   {displayText(view.saving.value ? "保存中…" : "保存设置")}
@@ -471,6 +457,14 @@ export function ManagementPageView({ view: view }) {
               {"每次回应背后的记录。模型与媒体的运行情况，都在这里。"}
             </p>
             <Tabs value={view.kind.value} onValueChange={view.selectKind}><TabsList>{['模型调用','媒体调用'].map(kind=><TabsTrigger key={kind} value={kind} data-testid={'diag-tab-'+kind}>{kind}</TabsTrigger>)}</TabsList></Tabs>
+            <div className="diagnostic-navigation grid gap-4">
+              <ActionButton variant="outline" onClick={view.openTaskDiagnostics}>查看待处理事项与原任务恢复</ActionButton>
+              <label className="grid max-w-md gap-2 text-sm">查看其它运行记录<ChoiceSelect aria-label="其它运行记录" value={view.reference.value} onChange={event=>view.selectReference(event.target.value)}><option value="">模型与媒体调用</option>{readValue(view.referenceSections).map(section=><option key={section.title} value={section.title}>{section.title}</option>)}</ChoiceSelect></label>
+
+              {view.referenceSection.value ? <Surface as="section" key={view.referenceSection.value.kind+view.referenceSection.value.title} className="grid gap-4"><div className="row"><h3>{view.referenceSection.value.title}</h3><span className="spacer"/><ActionButton variant="outline" type="button" onClick={()=>view.reference.value=''}>收起面板</ActionButton></div>{view.referenceSection.value.loading&&<p role="status">正在读取记录…</p>}{view.referenceSection.value.error&&<InlineFeedback role="alert">{view.referenceSection.value.error}<ActionButton variant="outline" onClick={view.retryReference}>重新读取原记录页</ActionButton></InlineFeedback>}{!view.referenceSection.value.rows.length&&!view.referenceSection.value.loading&&!view.referenceSection.value.error&&<p className="text-sm text-muted-foreground">当前没有对应记录。</p>}{view.referenceSection.value.rows.map(record=><ActionButton key={view.referenceSection.value.kind+':'+record.ref} variant="outline" className="h-auto min-h-14 w-full justify-between whitespace-normal text-left" onClick={()=>view.openReference(record,view.referenceSection.value)}><span className="grid min-w-0 gap-1"><b>{view.referenceTitle(record)}</b><small>{record.occurred_at?view.userInstant(record.occurred_at):'时间未记录'}</small></span><Badge>{view.referenceStatus(record)}</Badge><span>查看详情</span></ActionButton>)}<CursorControls label="诊断记录" append={{loading:view.referenceSection.value.loading,hasMore:!!view.referenceSection.value.nextCursor,loadMore:view.loadMoreReference}}/></Surface>:null}
+              {view.referenceRecord.value&&<view.DetailDrawer title={view.referenceRecord.value.section.title+' · 记录详情'} testId="reference-drawer" onClose={()=>view.referenceRecord.value=null}>{view.referenceRecord.value.loading?<p role="status">正在读取详情…</p>:view.referenceRecord.value.error?<InlineFeedback role="alert">{view.referenceRecord.value.error}<ActionButton variant="outline" onClick={()=>view.openReference(view.referenceRecord.value.record,view.referenceRecord.value.section)}>重新读取</ActionButton></InlineFeedback>:<RecordView value={view.referenceRecord.value.detail?.data||view.referenceRecord.value.detail} technical/>}</view.DetailDrawer>}
+            </div>
+            {!view.reference.value&&<Fragment>
             <view.FilterChips
               search={view.search.value}
               onUpdateSearch={(h) => (view.search.value = h)}
@@ -481,10 +475,10 @@ export function ManagementPageView({ view: view }) {
               placeholder="搜索调用 / 提示词 / 工作流 / 角色"
             />
             <small className="muted">
-              {displayText(view.rows.value.length) + " 条记录 · 最近的记录在前"}
+              {displayText(view.rows.value.length) + " 条已读取记录 · 按记录顺序排列"}
             </small>
             <p className="muted">{view.kind.value === "媒体调用" ? "图片、音频和视频任务的实际生成记录。" : "模型处理请求的状态、用时和结果摘要。"}</p>
-            <DiagnosticRecords view={view}/>
+            <DiagnosticRecords view={view}/><CursorControls label="调用" append={{loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
             {view.selected.value ? (
               <view.DetailDrawer
                 key={0}
@@ -515,12 +509,12 @@ export function ManagementPageView({ view: view }) {
                       "：" +
                       displayText(view.selected.value.reason) +
                       " "}
-                    <ActionButton variant="ghost"
+                    <ActionButton variant="outline"
 
                       data-testid="diag-drawer-retry"
                       onClick={(h) => view.retry(view.selected.value)}
                     >
-                      {"重试"}
+                      {"查看原记录与恢复方式"}
                     </ActionButton>
                   </InlineFeedback>
                 ) : null}
@@ -551,11 +545,11 @@ export function ManagementPageView({ view: view }) {
                     </dl>
                     <section className="detail-section">
                       <h3>{"提示词 / Prompt"}</h3>
-                      <ScrollArea className="h-64"><pre className="whitespace-pre-wrap break-words">{view.selected.value.media.prompt}</pre></ScrollArea>
+                      <RecordView value={view.selected.value.media.prompt}/>
                     </section>
                     <section className="detail-section">
                       <h3>{"负面提示词 / Negative prompt"}</h3>
-                      <ScrollArea className="h-48"><pre className="whitespace-pre-wrap break-words">{view.selected.value.media.negativePrompt}</pre></ScrollArea>
+                      <RecordView value={view.selected.value.media.negativePrompt}/>
                     </section>
                     <section className="detail-section">
                       <h3>{"生成参数"}</h3>
@@ -587,47 +581,8 @@ export function ManagementPageView({ view: view }) {
                 <JsonDetails value={view.selected.value._record} title="技术详情与关联标识"/>
               </view.DetailDrawer>
             ) : null}
-            <div className="secondary-diagnostics">
-              <small>{"其它诊断"}</small>
-              <ToggleGroup type="single" variant="outline" value={view.reference.value} onValueChange={value=>view.reference.value=value} className="max-w-full flex-wrap justify-start" aria-label="其他诊断">{readValue(view.referenceSections).map(section=><ToggleGroupItem key={section.title} value={section.title}>{section.title}</ToggleGroupItem>)}</ToggleGroup>
-              {view.referenceSection.value ? (
-                <Surface as="div" key={0} >
-                  <div className="row">
-                    <b>
-                      {displayText(view.referenceSection.value.title) +
-                        " · 实际记录"}
-                    </b>
-                    <span className="spacer" />
-                    <ActionButton variant="ghost" onClick={(h) => (view.reference.value = "")}>
-                      {"关闭"}
-                    </ActionButton>
-                  </div>
-                  <Fragment>
-                    {listValues(view.referenceSection.value.rows).map(
-                      (h, rowIndex) => (
-                        <p
-                          key={typeof h === "object" ? (h?.id ?? rowIndex) : h}
-                        >
-                          {displayText(h)}
-                        </p>
-                      ),
-                    )}
-                  </Fragment>
-                  {["后台任务", "待处理事项 / 重试耗尽"].includes(
-                    view.reference.value,
-                  ) ? (
-                    <ActionButton variant="ghost"
-                      key={0}
+            </Fragment>}
 
-                      onClick={view.openTaskDiagnostics}
-                    >
-                      {"查看原任务与恢复"}
-                    </ActionButton>
-                  ) : null}
-                  <OperationStatus variant="default" role="status">{displayText(view.testResult.value)}</OperationStatus>
-                </Surface>
-              ) : null}
-            </div>
           </Fragment>
         )}
       </TabsContent>

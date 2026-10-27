@@ -13,7 +13,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
+  SheetDescription,SheetFooter,
 } from "@/components/ui/sheet";
 import { ActionButton, FieldInput, Disclosure } from "./controls";
 import { useWorkspace } from "./page";
@@ -74,7 +74,7 @@ export function CurrentOutfit({ compact = false }: { compact?: boolean }) {
           (slot) => (
             <div key={slot}>
               <small>{slot}</small>
-              <span>{names(slot)}</span>
+              <span data-empty={["未登记","状态待读取","衣物名称待读取"].includes(names(slot))}>{names(slot)}</span>
             </div>
           ),
         )}
@@ -193,7 +193,7 @@ export function FilterChips({
           </InputGroupButton></InputGroupAddon>
         )}
       </InputGroup>
-      {groups.map((group:any)=><div key={group.key} className="flex min-w-0 items-start gap-3"><small className="shrink-0 pt-2">{group.label}</small><ToggleGroup type="single" variant="outline" aria-label={group.label} value={filters[group.key]?'option:'+group.options.indexOf(filters[group.key]):'all'} onValueChange={key=>{const value=key.startsWith('option:')?group.options[Number(key.slice(7))]:'';props.onUpdateFilters?.({...filters,[group.key]:value});}} className="max-w-full flex-wrap justify-start gap-1"><ToggleGroupItem value="all" data-testid={`${prefix}-${group.key}-all`}>全部</ToggleGroupItem>{group.options.map((value:string,index:number)=><ToggleGroupItem key={value} value={'option:'+index} className="max-w-full whitespace-normal break-all" data-testid={`${prefix}-${group.key}-${value}`}>{value}</ToggleGroupItem>)}</ToggleGroup></div>)}
+      {groups.filter((group:any)=>group.options.length).map((group:any)=><div key={group.key} className="flex min-w-0 items-start gap-3"><small className="shrink-0 pt-2">{group.label}</small><ToggleGroup type="single" variant="outline" aria-label={group.label} value={filters[group.key]?'option:'+group.options.indexOf(filters[group.key]):'all'} onValueChange={key=>{const value=key.startsWith('option:')?group.options[Number(key.slice(7))]:'';props.onUpdateFilters?.({...filters,[group.key]:value});}} className="max-w-full flex-wrap justify-start gap-1"><ToggleGroupItem value="all" data-testid={`${prefix}-${group.key}-all`}>全部</ToggleGroupItem>{group.options.map((value:string,index:number)=><ToggleGroupItem key={value} value={'option:'+index} className="max-w-full whitespace-normal break-all" data-testid={`${prefix}-${group.key}-${value}`}>{value}</ToggleGroupItem>)}</ToggleGroup></div>)}
     </section>
   );
 }
@@ -202,7 +202,7 @@ export function DetailDrawer({
   testId,
   children,
   onClose,
-  returnFocus,
+  returnFocus,footer,
   ...props
 }: any) {
   const [previous] = React.useState(
@@ -232,7 +232,7 @@ export function DetailDrawer({
         <SheetHeader className="relative shrink-0 border-b pr-16">
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription className="sr-only">
-            查看和编辑当前对象
+            查看当前记录与相关信息
           </SheetDescription>
           <ActionButton variant="ghost"
             type="button"
@@ -246,6 +246,7 @@ export function DetailDrawer({
           </ActionButton>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {footer&&<SheetFooter className="shrink-0 border-t border-border p-4 sm:flex-row sm:justify-end">{footer}</SheetFooter>}
       </SheetContent>
     </Sheet>
   );

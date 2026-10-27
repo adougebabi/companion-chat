@@ -186,7 +186,7 @@ export function createWorkspace({ observable = proxy } = {}) {
     notifications: [],
     pending: [],
     errors: {},
-    loading: {},
+    loading: {},readSuccesses:{},errorScopes:{},
     toast: null,
     managementTab: "配置中心",
     managementSection: "",
@@ -228,6 +228,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       state.notifications = [];
       state.pending = [];
       state.errors = {};
+      state.readSuccesses={};state.errorScopes={};
       state.loading = {};
     }
     state.session = owner;
@@ -268,6 +269,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       scopeGeneration = generation,
       epoch = (epochs.get(key) || 0) + 1;
     epochs.set(key, epoch);
+    const readScope=JSON.stringify([owner,fid]);
     state.loading[key] = true;
     const live = () =>
       isCurrent(owner, fid) &&
@@ -276,10 +278,11 @@ export function createWorkspace({ observable = proxy } = {}) {
     try {
       const result = await run(live);
       if (!live()) return;
-      delete state.errors[key];
+      delete state.errors[key];delete state.errorScopes[key];
+      state.readSuccesses[readScope]??={};state.readSuccesses[readScope][key]=true;
       return result;
     } catch (error) {
-      if (live()) state.errors[key] = errorMessage(error);
+      if (live()){state.errors[key] = errorMessage(error);state.errorScopes[key]=readScope;}
       throw error;
     } finally {
       if (live()) state.loading[key] = false;
@@ -338,9 +341,10 @@ export function createWorkspace({ observable = proxy } = {}) {
       const accept = (index, key, update) => {
         const result = results[index];
         if (result.status === "fulfilled") {
-          delete state.errors[key];
+          delete state.errors[key];delete state.errorScopes[key];
+          state.readSuccesses[scope]??={};state.readSuccesses[scope][key]=true;
           update(result.value);
-        } else state.errors[key] = errorMessage(result.reason);
+        } else{state.errors[key] = errorMessage(result.reason);state.errorScopes[key]=scope;}
       };
       accept(0, "schedule", (value) => {
         c.schedule = (value.days || [])
@@ -603,6 +607,8 @@ export function createWorkspace({ observable = proxy } = {}) {
         ]);
         if (!live()) return;
         state.notifications = notices.items;
+        state.notificationsAsOf=notices.as_of||"";
+        state.notificationsCursor=notices.next_cursor||"";
         state.pending = pending.groups.flatMap((g) =>
           (g.items || []).map((item) => ({ ...item, kind: g.kind })),
         );

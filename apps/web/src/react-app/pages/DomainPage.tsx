@@ -34,7 +34,7 @@ function DomainToolHost({route}: {route:any}) {
         const render=await feature.load();
         if(route.fid)await refreshProduct();
         if(!live())return;
-        const context={charId:route.fid||w.state.selectedId,params:{...feature.params},query:Object.fromEntries(route.query),path:route.path,raw:route.path+(route.query.size?'?'+route.query:''),def:{title:feature.title,mockSection:feature.params.section},navigate:(path:string)=>w.navigatePath(String(path).replace(/^#/,'')),refresh:()=>{if(live())refresh(value=>value+1);}};
+        const context={charId:route.fid||w.state.selectedId,params:{...feature.params},query:Object.fromEntries(route.query),path:route.path,raw:route.path+(route.query.size?'?'+route.query:''),def:{title:feature.title,mockSection:feature.params.section},setHeading:(title:string)=>{if(live()&&typeof title==='string'&&title.trim())w.state.pageHeading={page:route.page,fid:route.fid||w.state.selectedId,route:route.path,owner,title};},navigate:(path:string)=>w.navigatePath(String(path).replace(/^#/,'')),refresh:()=>{if(live())refresh(value=>value+1);}};
         const cleanup=feature.render==='renderRealGovernance'&&context.query.tab==='developing'
           ? (await import('@/v3-domain/self.js')).renderRealSelfGovernance(target,context)
           : await render(target,context);
@@ -43,9 +43,9 @@ function DomainToolHost({route}: {route:any}) {
       }catch(cause){if(live())setFailure(errorMessage(cause,'这个功能暂时无法读取，请重试。'));}
     }
     void open();
-    return()=>{active=false;dispose?.();validation?.();closeOverlays();};
+    return()=>{active=false;dispose?.();validation?.();closeOverlays();if(w.state.pageHeading?.route===route.path&&w.state.pageHeading?.owner===owner)w.state.pageHeading=null;};
   },[w,owner,route,revision]);
-  return <section className="approved-domain" aria-label={route.feature.title} data-testid="domain-workspace"><header className="domain-heading"><Button variant="outline" onClick={()=>w.navigatePath(approvedHref(route.page,route.fid).slice(1))}>返回{route.page}</Button></header>{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/></section>;
+  return <section className="approved-domain" aria-label={route.feature.title} data-testid="domain-workspace">{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/></section>;
 }
 
 export default function DomainPage({route}:{route:any}) {

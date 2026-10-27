@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "./react-layout.css";
 @import "./domain-tools.css";
+@import "./r16-layout.css";
 
 @theme inline {
   --color-background: var(--background);
@@ -35,6 +36,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+@layer base {
+  *, ::before, ::after { border-color: var(--border); }
 }
 :root {
   --background: #f0f3f0;
@@ -72,7 +76,7 @@
     "PingFang SC",
     "Microsoft YaHei",
     sans-serif;
-  font-size: 14px;
+  font-size: 16px;
 }
 body {
   margin: 0;
@@ -165,7 +169,7 @@ body {
 }
 
 /* R10 form/media contracts, adapted to Radix control roots. */
-.react-workspace .settings-save-bar{position:static;bottom:auto;flex-wrap:wrap;gap:12px;margin-top:20px;}
+.react-workspace .settings-save-bar{position:sticky;bottom:0;flex-wrap:wrap;gap:12px;margin-top:20px;}
 .react-workspace .check-field{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;}
 .react-workspace .media-preview{display:block;height:108px;overflow:hidden;min-width:0;}
 .react-workspace .media-preview>.approved-media-content{display:block;width:100%;height:106px;max-width:100%;object-fit:cover;}

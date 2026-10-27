@@ -16,6 +16,7 @@ import { FilterChips, ActionFeedback } from "@/react-app/components";
 function createBrowsePageController(props, context, lifecycle) {
   const w = lifecycle.workspace,
     character = w.current,
+    noticeMode=lifecycle.cell("unread"),noticeCharacter=lifecycle.cell(""),noticeBusy=lifecycle.cell(false),
     playing = lifecycle.cell(null),
     progress = lifecycle.cell({}),
     search = lifecycle.cell(""),
@@ -81,7 +82,7 @@ function createBrowsePageController(props, context, lifecycle) {
   );
   const characters = selector(() =>
     props.page === "通知与待处理"
-      ? notificationGroups(w.state.notifications, w.state.characters).map(
+      ? notificationGroups(w.state.notifications.filter(notice=>!noticeCharacter.value||notice.fluctlight_id===noticeCharacter.value), w.state.characters,noticeMode.value==='all').map(
           (group) => ({
             ...group,
             notices: group.notices.map((notice) => ({
@@ -350,13 +351,17 @@ function createBrowsePageController(props, context, lifecycle) {
       set: (value) => w.select(value),
     }),
     characters,
+    noticeMode,noticeCharacter,noticeBusy,
+    noticeCharacters:selector(()=>w.state.characters),
+    markAllRead:async()=>{if(noticeBusy.value||!w.state.notificationsAsOf)return;noticeBusy.value=true;try{await w.services.operationsClient.readAllNotifications(w.state.notificationsAsOf);if(live())await w.loadBrowse("通知与待处理");}catch(cause){if(live())w.notify(cause?.message||"标记未能确认，请重试");}finally{if(live())noticeBusy.value=false;}},
+    canMarkAll:selector(()=>!!w.state.notificationsAsOf&&w.state.notifications.some(notice=>!notice.read_at)),
     openNotificationOrCharacter: async (id) => {
       if (props.page === "通知与待处理") {
         const notice = w.state.notifications.find((n) => n.id === id);
         if (!notice) return;
-        await w.services.operationsClient.readNotification(id);
+        try{await w.services.operationsClient.readNotification(id);}catch(cause){if(live())w.notify("通知可继续查看，已读状态暂未确认。");}
         if (!live()) return;
-        await w.loadBrowse("通知与待处理");
+        try{await w.loadBrowse("通知与待处理");}catch{}
         if (!live()) return;
         const href = notificationPath(notice.link);
         if (href) w.navigatePath(href);
@@ -373,12 +378,14 @@ function createBrowsePageController(props, context, lifecycle) {
     openIssue: (id) => {
       const pending = w.state.pending.find((p) => p.id === id);
       const href = notificationPath(pending?.href);
-      if (href) w.navigatePath(href);
+      if (href) w.navigatePath(href+(href.includes('?')?'&':'?')+'returnTo='+encodeURIComponent('#/inbox'));
       else {
         w.state.managementTab = "运行诊断";
-        w.navigate("管理中心");
+        w.navigatePath("/settings?returnTo="+encodeURIComponent("#/inbox"));
       }
     },
+    postMedia:post=>(post.media||[]).filter(asset=>asset?.id).map(asset=>({...asset,url:w.services.mediaClient?.url(asset.id)})),
+    openPost:post=>w.navigatePath("/feed/"+encodeURIComponent(post.id)),
     reactPost,
     playMedia,
   };
@@ -390,9 +397,9 @@ function createBrowsePageController(props, context, lifecycle) {
     <Fragment>
       {render(context, cache)}
       {props.page === "动态" && !character.value.posts.length ? (
-        <p className="muted approved-empty-feed">
+        <div className="approved-empty-feed rounded-xl border border-border bg-card p-6">
           {"这里还没有动态，真实生活里的片刻会慢慢留下来。"}
-        </p>
+        </div>
       ) : null}
     </Fragment>
   );

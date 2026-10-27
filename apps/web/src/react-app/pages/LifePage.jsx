@@ -1,3 +1,4 @@
+import {currentReadError} from '@/approved-ui/read-feedback.mjs';
 import { useController, afterPaint } from "@/react-app/page";
 import { selector } from "@/state/view-model";
 import { joined } from "@/approved-ui/presentation.mjs";
@@ -347,6 +348,8 @@ function createLifePageController(props, { emit }, lifecycle) {
     todayLabel,
     forget,
     character,
+    readError:key=>currentReadError(w.state,key,w.currentScope()),
+    openTimeline:()=>w.navigatePath("/c/"+encodeURIComponent(character.value.id)+"/life/timeline"),
     CurrentOutfit,
     FilterChips,
     DetailDrawer,

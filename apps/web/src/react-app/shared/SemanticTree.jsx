@@ -1,3 +1,5 @@
+import {Disclosure} from '../controls';
+import RecordView from './RecordView';
 import { selector, readValue } from "@/state/view-model";
 import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
 import {
@@ -20,6 +22,7 @@ const technicalSemanticKey = k => /^(?:id|schema_version|provenance|extensions|e
 export function hasVisibleSemanticValue(value,field='',identity={}) {
  if(technicalSemanticKey(field)||!bodyFieldVisible(field,value,identity))return false;
  if(Array.isArray(value))return value.some(item=>hasVisibleSemanticValue(item,'',identity));
+ if(value&&typeof value==='object'){if(value.status==='unknown'&&Object.entries(value).every(([key,item])=>key==='status'||technicalSemanticKey(key)||item==null||item===''))return false;}
  if(value&&typeof value==='object')return semanticEntries(value).some(([key,item])=>hasVisibleSemanticValue(item,key,identity));
  return hasSemanticValue(value);
 }
@@ -105,6 +108,7 @@ export default function SemanticTree(input = {}) {
     return translated === "未分类" ? String(value ?? "") : translated;
   });
   const _component_SemanticTree = SemanticTree;
+  if(props.value&&typeof props.value==='object'&&!Array.isArray(props.value)&&Object.hasOwn(props.value,'value')&&props.value.value!=null&&Object.keys(props.value).every(key=>['value','status'].includes(key)||technical(key)))return <SemanticTree value={props.value.value} field={props.field} depth={props.depth+1} identity={props.identity}/>;
   return __props.value == null || __props.value === "" ? (
     <span key={0} className="muted">
       {"尚未记录"}
@@ -160,7 +164,7 @@ export default function SemanticTree(input = {}) {
                     {displayText(
                       [
                         categoryLabel(item.category),
-                        item.slot && readValue(wardrobeSlotLabel)(item.slot),
+                        item.slot && categoryLabel(item.category)!==readValue(wardrobeSlotLabel)(item.slot)&&!(String(item.category)==='shoes'&&item.slot==='feet')&&readValue(wardrobeSlotLabel)(item.slot),
                         readValue(wardrobeOwnershipLabel)(item.ownership),
                         typeof item.available === "boolean"
                           ? item.available
@@ -208,16 +212,10 @@ export default function SemanticTree(input = {}) {
   ) : (
     <dl key={6} className="approved-facts">
       <Fragment>
-        {listValues(entries.value).map(([key, item], index) => {
+        {listValues(entries.value).filter(([key])=>!['strength','stability','trend'].includes(key)).map(([key, item], index) => {
           return (
             <div key={key}>
-              <dt>
-                {displayText(
-                  readValue(semanticLabel)(key) === "自定义字段"
-                    ? `补充设定 ${index + 1}`
-                    : readValue(semanticLabel)(key),
-                )}
-              </dt>
+              {readValue(semanticLabel)(key)!=="自定义字段"&&<dt>{displayText(readValue(semanticLabel)(key))}</dt>}
               <dd>
                 <_component_SemanticTree
                   value={item}
@@ -230,6 +228,7 @@ export default function SemanticTree(input = {}) {
           );
         })}
       </Fragment>
+      {entries.value.some(([key])=>['strength','stability','trend'].includes(key))&&<div><dd><Disclosure title="量表与评估记录"><p className="text-sm text-muted-foreground">这些数值是记录时的评估结果，不代表行为已经发生。</p><RecordView value={Object.fromEntries(entries.value.filter(([key])=>['strength','stability','trend'].includes(key)))} technical/></Disclosure></dd></div>}
       {!entries.value.length ? (
         <div key={0}>
           <dd className="muted">{"尚未记录"}</dd>

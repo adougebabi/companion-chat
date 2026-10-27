@@ -11,7 +11,7 @@ test('React media defaults to every character even from a bookmark and preserves
    const calls=[],state=proxy({session:{actorId:'owner'},characters:[]});
    const w={state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),services:{mediaClient:{list:async options=>{calls.push(options);return {items:[],next_cursor:''};}}}};
    const view=await mountReact(vite,Media,{workspace:w,props:{route:{fid:'selected-role',query:new URLSearchParams(filter?{fid:filter}:{})}}});
-   try{assert.equal(calls[0].fluctlightId,filter||undefined);assert.equal(calls[0].scope,'all');assert.equal(view.host.querySelector('[role=combobox][aria-label="角色"]').textContent.trim(),filter||'全部角色');assert.match(view.host.textContent,/上传素材/);}finally{await view.dispose();}
+   try{assert.equal(calls[0].fluctlightId,filter||undefined);assert.equal(calls[0].scope,'all');assert.equal(view.host.querySelector('[role=combobox][aria-label="角色"]').textContent.trim(),filter||'全部角色');assert.match(view.host.textContent,/上传文件/);}finally{await view.dispose();}
   }
  }finally{await vite.close();environment.restore();}
 });

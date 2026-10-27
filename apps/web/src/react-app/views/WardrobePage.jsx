@@ -31,6 +31,11 @@ import {
   Fragment,
 } from "@/react-app/render-helpers";
 const At = ["外套", "上衣", "内衣", "内裤", "下衣", "袜子", "鞋子", "配饰"];
+function OutfitSlots({plan,character}){
+ const chosen=At.filter(slot=>Array.isArray(plan.items?.[slot])&&plan.items[slot].length);
+ const name=id=>character.garments.find(item=>item.id===id)?.name||plan._source?.items?.find(item=>(item.item_id||item.id)===id)?.description||character._wardrobe?.wearing?.worn_items?.find(item=>(item.item_id||item.id)===id)?.description||'衣物名称待读取';
+ return chosen.length?<dl className="grid gap-3 sm:grid-cols-2">{chosen.map(slot=><div key={slot} className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)] gap-3 rounded-lg bg-muted/60 p-3"><dt className="text-sm text-muted-foreground">{slot}</dt><dd className="m-0 break-words text-sm">{plan.items[slot].map(name).join('、')}</dd></div>)}</dl>:<p className="text-sm text-muted-foreground">还没有选择衣服，先从上方部位挑选。</p>;
+}
 export function WardrobePageView({ view: view }) {
   return (
     <Tabs
@@ -61,10 +66,11 @@ export function WardrobePageView({ view: view }) {
       <TabsContent value={tabKeys[view.tab.value]} className="min-w-0">
         {readValue(view.tab) === "为她搭配" ? (
           <Fragment key={0}>
+            {view.editingId.value&&<p role="status" className="text-sm">正在编辑方案「{readValue(view.character).outfits.find(outfit=>outfit.id===view.editingId.value)?.name||view.name.value}」。保存前，原方案保持不变。</p>}
             <div className="toolbar">
               <Field className="w-full min-w-0 sm:max-w-72">
                 <FieldLabel htmlFor="wardrobe-tag">先选标签</FieldLabel>
-                <Combobox id="wardrobe-tag" label="搭配标签" value={view.tag.value} options={[{value:'',label:'请选择标签'},...readValue(view.character).outfitTags.map(tag=>({value:tag,label:view.tagLabel(tag)}))]} onChange={value=>view.tag.value=value}/>
+                <Combobox id="wardrobe-tag" label="搭配标签" value={view.tag.value} placeholder="请选择搭配标签" options={readValue(view.character).outfitTags.map(tag=>({value:tag,label:view.tagLabel(tag)}))} onChange={value=>view.tag.value=value}/>
               </Field>
               <small>{"标签可在方案库维护 · 每个部位选一件，配饰可多选"}</small>
             </div>
@@ -73,6 +79,7 @@ export function WardrobePageView({ view: view }) {
                 {listValues(readValue(At)).map((x, rowIndex) => (
                   <Disclosure
                     className="slot-accordion"
+                    open={view.openSlot.value===x} onOpenChange={open=>view.openSlot.value=open?x:null}
                     title={
                       <>
                         {displayText(x) + " "}
@@ -105,7 +112,8 @@ export function WardrobePageView({ view: view }) {
                         ).map((R, rowIndex) => {
                           var ye;
                           return (
-                            <ActionButton variant="ghost"
+                            <ActionButton variant={view.items.value[x]?.includes(R.id)?"secondary":"outline"}
+                              aria-pressed={!!view.items.value[x]?.includes(R.id)}
                               aria-label={R.name}
                               disabled={!view.tag.value}
                               title={view.tag.value ? void 0 : "请先选择标签"}
@@ -142,16 +150,7 @@ export function WardrobePageView({ view: view }) {
             </Surface>:<p className="py-4 text-sm text-muted-foreground" role="status">先选择一个搭配标签，再挑选各部位的衣服。</p>}
             <Surface as="div" >
               <h3>{"当前搭配"}</h3>
-              <p className="slot-summary">
-                {displayText(
-                  view.summarize({
-                    name: view.name.value,
-                    tag: view.tag.value,
-                    items: view.items.value,
-                  }),
-                )}
-              </p>
-            </Surface>
+              <OutfitSlots plan={{items:view.items.value}} character={readValue(view.character)}/>
             {view.duplicate.value ? (
               <InlineFeedback key={0} >
                 {"方案名称已存在，请换一个名称。"}
@@ -202,7 +201,7 @@ export function WardrobePageView({ view: view }) {
               >
                 {"重新搭配"}
               </ActionButton>
-            </form>
+            </form></Surface>
           </Fragment>
         ) : readValue(view.tab) === "方案库" ? (
           <Fragment key={1}>
@@ -219,8 +218,8 @@ export function WardrobePageView({ view: view }) {
 
                         key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
                       >
-                        <Badge className="h-auto min-h-5 max-w-full whitespace-normal break-all">{displayText(x)}</Badge>
-                        <ActionButton variant="ghost"
+                        <Badge className="h-auto min-h-5 max-w-full whitespace-normal break-all">{displayText(view.tagLabel(x))}</Badge>
+                        <MenuDisclosure title={<MoreActionsIcon className="size-4"/>} aria-label={view.tagLabel(x)+'的标签操作'}>                        <ActionButton variant="ghost"
                           onClick={(R) => {
                             ((view.renameTag.value = x),
                               (view.newTag.value = x));
@@ -228,9 +227,10 @@ export function WardrobePageView({ view: view }) {
                         >
                           {"改名"}
                         </ActionButton>
-                        <ActionButton variant="ghost" onClick={(R) => view.removeTag(x)}>
+                        <ActionButton variant="destructive" onClick={(R) => view.removeTag(x)}>
                           {"删除"}
                         </ActionButton>
+                        </MenuDisclosure>
                       </div>
                     ),
                   )}
@@ -337,15 +337,10 @@ export function WardrobePageView({ view: view }) {
                         >
                           {"重命名"}
                         </ActionButton>
-                        <ActionButton variant="ghost"
-                          disabled={true}
-                          title="服务端保留方案及其历史；可编辑或重命名"
-                        >
-                          {"删除"}
-                        </ActionButton>
+
                       </div>
                     </MenuDisclosure>
-                    <ActionButton variant="outline"
+                    <ActionButton variant="default" className="min-h-11"
 
                       aria-label={
                         "请" +
@@ -372,9 +367,7 @@ export function WardrobePageView({ view: view }) {
                     showStatus={true}
                   />
                   {view.preview.value === x.id ? (
-                    <p key={0} className="slot-summary">
-                      {displayText(view.summarize(x))}
-                    </p>
+                    <OutfitSlots key={0} plan={x} character={readValue(view.character)}/>
                   ) : null}
                 </Surface>
               ))}
@@ -387,7 +380,7 @@ export function WardrobePageView({ view: view }) {
           </Fragment>
         ) : (
           <Fragment key={2}>
-            <div className="toolbar">
+            <div className="wardrobe-filters grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
               <ChoiceSelect
                 aria-label="按类型筛选"
                 value={view.type.value}
@@ -424,7 +417,7 @@ export function WardrobePageView({ view: view }) {
                   ))}
                 </Fragment>
               </ChoiceSelect>
-              <span className="spacer" />
+
               <ActionButton variant="outline"
 
                 onClick={(x) =>
@@ -454,12 +447,12 @@ export function WardrobePageView({ view: view }) {
                       ])}
                     >
                       <view.GarmentArt type={x.type} />
-                      <small>{displayText(x.type)}</small>
+
                     </div>
                     <div className="row">
                       <div>
                         <h3>{displayText(x.name)}</h3>
-                        <small>{displayText(x.seasons.join(" / "))}</small>
+                        <div className="flex flex-wrap gap-2"><Badge variant="outline">{x.type}</Badge><small>{displayText(x.seasons.join(" / "))}</small></div>
                       </div>
                       <span className="spacer" />
                       <MenuDisclosure

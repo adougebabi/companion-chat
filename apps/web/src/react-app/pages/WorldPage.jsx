@@ -1,4 +1,4 @@
-import { useController } from "@/react-app/page";
+import { useController,afterPaint } from "@/react-app/page";
 import { selector } from "@/state/view-model";
 import { WorldPageView } from "@/react-app/views/WorldPage";
 import { DetailDrawer, ActionFeedback } from "@/react-app/components";
@@ -21,6 +21,11 @@ function createWorldPageController(props, context, lifecycle) {
     worldDraft = lifecycle.cell(null),
     removeId = lifecycle.cell(null),
     operation = lifecycle.cell("");
+  const headingFid=character.value.id;let headingActive=true,listTop=0;
+  lifecycle.observe(selected,async(value,previous)=>{const scroller=document.querySelector('.workspace-page');if(!scroller)return;if(value&&!previous)listTop=scroller.scrollTop;await afterPaint();if(headingActive&&character.value.id===headingFid)scroller.scrollTo({top:value?0:listTop});});
+  lifecycle.onDispose(()=>{headingActive=false;});
+  lifecycle.observe(()=>[selected.value,world.value?.name],()=>{w.state.pageHeading={page:'世界',fid:headingFid,title:world.value?.name||'世界'};},{immediate:true});
+  lifecycle.onDispose(()=>{if(w.state.pageHeading?.page==='世界'&&w.state.pageHeading?.fid===headingFid)w.state.pageHeading=null;});
   const busy = selector(() =>
     w.state.operations.some(
       (r) =>

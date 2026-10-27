@@ -155,7 +155,7 @@ function createLibraryPageController(__props, context, lifecycle) {
             />
             <EntityCardGrid className="library-grid" data-testid="library-grid" aria-label="角色卡片">
               {listValues(rows.value).map((character)=><Card key={character.id} asChild className="entity-card h-full gap-0 overflow-hidden py-0"><article className="library-character" data-testid={'library-card-'+character.id}>
-                <CardHeader className="gap-3 pb-4"><div className="flex min-w-0 items-start justify-between gap-3"><CharacterAvatar className="size-12" name={character.name} initial={character.initial} color={character.color} src={character._directory?.avatar}/><div className="flex shrink-0 items-center gap-1">{readValue(w).state.selectedId===character.id&&<Badge variant="secondary">当前</Badge>}
+                <CardHeader className="gap-3 pb-4"><div className="flex min-w-0 items-start justify-between gap-3"><CharacterAvatar className="size-12" name={character.name} initial={character.initial} color={character.color} src={character._directory?.avatar}/><div className="min-w-0 flex-1"><CardTitle className="line-clamp-2 break-words">{character.name}</CardTitle>{subtitle(character)&&<CardDescription>{subtitle(character)}</CardDescription>}</div><div className="flex shrink-0 items-center gap-1">{readValue(w).state.selectedId===character.id&&<Badge variant="secondary">当前</Badge>}
                       <MenuDisclosure
                         className="actions-menu"
                         title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
@@ -192,9 +192,9 @@ function createLibraryPageController(__props, context, lifecycle) {
                           ) : null}
                         </div>
                       </MenuDisclosure>
-                </div></div><ControlHint text={character.name}><CardTitle className="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{character.name}</CardTitle></ControlHint>{subtitle(character)&&<CardDescription className="line-clamp-2 break-words">{subtitle(character)}</CardDescription>}</CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-3 pb-4">{character.bio&&<p className="m-0 line-clamp-3 break-words text-sm text-muted-foreground">{character.bio}</p>}<div className="flex flex-wrap gap-1.5">{(character.tags||[]).map(tag=><Badge key={tag} variant="outline">{tag}</Badge>)}</div></CardContent>
-                <CardFooter className="flex-wrap gap-2"><ActionButton variant="outline" onClick={()=>details(character.id)}>角色详情</ActionButton><ActionButton variant="default" onClick={()=>choose(character.id)}>进入聊天</ActionButton></CardFooter>
+                </div></div></CardHeader>
+                <CardContent className="flex flex-1 flex-col gap-3 pb-4">{!character.bio&&!(character.tags||[]).length&&<p className="text-sm text-muted-foreground">生活细节会在相处中慢慢补充。</p>}{character.bio&&<p className="m-0 line-clamp-3 break-words text-sm text-muted-foreground">{character.bio}</p>}<div className="flex flex-wrap gap-1.5">{(character.tags||[]).map(tag=><Badge key={tag} variant="outline">{tag}</Badge>)}</div></CardContent>
+                <CardFooter className="grid grid-cols-2 gap-3 [&>button]:w-full"><ActionButton variant="outline" onClick={()=>details(character.id)}>角色详情</ActionButton><ActionButton variant="default" onClick={()=>choose(character.id)}>进入聊天</ActionButton></CardFooter>
               </article></Card>)}
             </EntityCardGrid>
             {!rows.value.length ? (

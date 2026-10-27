@@ -20,7 +20,7 @@ export default function NotificationGroup(input = {}) {
             />
             <b>{displayText(__props.group.name)}</b>
             <span className="spacer" />
-            <span>{displayText(__props.group.notices.length) + " 条未读"}</span>
+            <span>{displayText(__props.group.notices.length) + " 条通知 · "+__props.group.notices.filter(notice=>!notice.read_at).length+" 条未读"}</span>
           </>
         }
       >
@@ -34,7 +34,7 @@ export default function NotificationGroup(input = {}) {
             return (
               <ActionButton variant="ghost"
                 key={notice.id}
-                className="notification-item"
+                className="notification-item h-auto min-h-14 whitespace-normal text-left"
                 onClick={($event) => __props.onOpen?.(notice.id)}
               >
                 <b>{displayText(notice.title || "新通知")}</b>

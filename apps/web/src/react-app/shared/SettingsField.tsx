@@ -1,9 +1,10 @@
 import {Field,FieldLabel,FieldSet,FieldLegend,FieldGroup} from '@/components/ui/field';
 import { useId } from "react";
 import { FieldInput, ChoiceSelect, Textarea, Label } from "../controls";
-import { autonomyActionChoices } from "@/v3/proto/components/configuration-fields.js";
+import { autonomyActionChoices,configurationChoiceLabel,configurationPoints } from "@/v3/proto/components/configuration-fields.js";
 export default function SettingsField({ field }: any) {
   const id = useId();
+  if(field.type==="boolean-map"){const values=field.value&&typeof field.value==='object'&&!Array.isArray(field.value)?field.value:{};return <FieldSet className="full-field"><FieldLegend>{field.label}</FieldLegend><p className="text-sm text-muted-foreground">选择允许辅助判断的场景；未覆盖的媒体决策沿用系统默认。</p><FieldGroup className="grid gap-3 sm:grid-cols-2">{[...new Set([...configurationPoints,...Object.keys(values)])].map((key,index)=><Field key={key} orientation="horizontal"><FieldInput id={id+index} type="checkbox" checked={values[key]??true} onChange={(event:any)=>field.value={...(typeof field.value==='object'?values:Object.fromEntries(configurationPoints.map(point=>[point,true]))),[key]:event.target.checked}}/><FieldLabel htmlFor={id+index}>{configurationChoiceLabel(key)}</FieldLabel></Field>)}</FieldGroup></FieldSet>;}
   if (field.type === "action-types") {
     const choices = new Map<string, string>(
       autonomyActionChoices as [string, string][],
@@ -37,7 +38,7 @@ export default function SettingsField({ field }: any) {
     );
   }
   return (
-    <Field orientation={field.type === "checkbox" ? "horizontal" : "vertical"} className="min-w-0">
+    <Field orientation={field.type === "checkbox" ? "horizontal" : "vertical"} className={field.type==='json'?'min-w-0 full-field':'min-w-0'}>
       <FieldLabel htmlFor={id}>{field.label}</FieldLabel>
       {field.type === "select" ? (
         <ChoiceSelect
@@ -57,7 +58,9 @@ export default function SettingsField({ field }: any) {
           id={id}
           aria-label={field.label}
           value={String(field.value)}
-          rows={3}
+          rows={6}
+          className="min-h-36 font-mono text-sm"
+          placeholder={field._definition?.type==='workflow'?'{"1":{"class_type":"CLIPTextEncode","inputs":{"text":"{{prompt}}"}}}':'例如 {}；每个分支填写完整工作流节点对象'}
           onChange={(e) => (field.value = e.target.value)}
         />
       ) : (
@@ -70,7 +73,7 @@ export default function SettingsField({ field }: any) {
           checked={!!field.value}
           min={field.min}
           max={field.max}
-          step={field._definition?.step || "any"}
+          step={field._definition?.step || "1"}
           onChange={(e: any) =>
             (field.value =
               field.type === "checkbox"
@@ -81,6 +84,8 @@ export default function SettingsField({ field }: any) {
           }
         />
       )}
+      {field.type==='number'&&<p className="text-sm text-muted-foreground">{[field.min!=null?'最小 '+field.min:'',field.max!=null?'最大 '+field.max:''].filter(Boolean).join(' · ')}</p>}
+      {field.type==='json'&&<p className="text-sm text-muted-foreground">填写 JSON 对象；保存前会校验格式和工作流节点。可选覆盖留空时沿用默认。</p>}
     </Field>
   );
 }

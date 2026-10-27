@@ -67,7 +67,7 @@ export default function AuthPage({
     }
   }
   return (
-    <main className="grid min-h-dvh place-items-center p-6">
+    <main className="grid w-full min-w-0 flex-1 min-h-dvh place-items-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{setup ? "初始化摇光" : "欢迎回来"}</CardTitle>

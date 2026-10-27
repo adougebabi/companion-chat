@@ -5,7 +5,10 @@ export function modelTranscriptGroups(record){
  const data=record?._record?.data||{},input=messages(data.prompt),groups=[];
  if(input){let group={id:'input',title:'输入与历史',messages:[],failed:false},round=0;for(const message of input){if(message.role==='assistant'&&message.tool_calls?.length){if(group.messages.length)groups.push(group);group={id:'tool-'+(++round),title:'工具请求组 '+round,messages:[],failed:false};}group.messages.push(message);group.failed ||= failed(message);}if(group.messages.length)groups.push(group);}
  else groups.push({id:'input',title:'已记录的请求内容',messages:[{role:'user',content:record?.input||''}],failed:false});
- const output=data.response??record?.response,transport=output&&typeof output==='object'&&Array.isArray(output.choices)?output.choices.map(choice=>choice.message).filter(Boolean):[{role:'assistant',content:typeof output==='string'?output:JSON.stringify(output??'',null,2)}];
+ let output=Object.hasOwn(data,'response')?data.response:record?.response;
+ if(typeof output==='string'&&/^\s*[\[{]/.test(output)){try{output=JSON.parse(output);}catch{}}
+ const transport=output&&typeof output==='object'&&Array.isArray(output.choices)?output.choices.map(choice=>choice.message).filter(Boolean):messages(output)||[{role:'assistant',content:output&&typeof output==='object'?(output.text??output.output_text??output.content??output.structured??(Object.keys(output).length?output:null)):output||null,tool_calls:output?.tool_calls||output?.executed_tool_calls}];
+ if(output&&typeof output==='object'&&output.text&&output.structured!=null)transport.push({role:'assistant',name:'结构化结果',content:output.structured});
  groups.push({id:'response',title:'本次调用响应',messages:transport,failed:record?.status==='error'||transport.some(failed)});
  return groups;
 }

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   ActionButton,
   Surface,
-  Textarea,
+  Textarea,ChoiceSelect,
   DialogFrame,
   Badge,
 } from "@/react-app/controls";
@@ -33,11 +33,8 @@ export function BrowsePageView({ view: view }) {
                 <b>{displayText(_.authorName)}</b>
                 <small>{displayText(_.time)}</small>
               </div>
-              <p>{displayText(_.text)}</p>
-              <div className="post-art">
-                <LeafIcon size={36} />
-                <span>{"把日子过成一首小诗"}</span>
-              </div>
+              <p>{displayText(_.text)}</p><ActionButton variant="outline" className="w-fit" onClick={()=>view.openPost(_)}>查看完整动态</ActionButton>
+              {view.postMedia(_).map(asset=><div key={asset.id} className="min-w-0">{asset.readable&&asset.kind==='image'?<button type="button" className="block w-full" aria-label="查看动态配图与来源" onClick={()=>view.openPost(_)}><img src={asset.url} alt={asset.title||'动态配图'} className="max-h-96 w-full rounded-lg object-cover" loading="lazy"/></button>:asset.kind==='audio'&&asset.readable?<audio src={asset.url} controls className="w-full"/>:asset.kind==='video'&&asset.readable?<video src={asset.url} controls className="max-h-96 w-full"/>:<p className="text-sm text-muted-foreground">素材暂不可读取，可在完整动态中核对来源。</p>}</div>)}
               <div className="row">
                 <ActionButton variant="ghost"
 
@@ -55,14 +52,11 @@ export function BrowsePageView({ view: view }) {
                     (view.commentsOpen.value[ee] = !view.commentsOpen.value[ee])
                   }
                 >
-                  {"评论 " +
-                    displayText(_.comments.length) +
-                    " " +
-                    displayText(view.commentsOpen.value[ee] ? "收起" : "展开")}
+                  <span>评论</span><Badge variant="secondary">{_.comments.length}</Badge><span>{view.commentsOpen.value[ee]?"收起":"展开"}</span>
                 </ActionButton>
               </div>
               {view.commentsOpen.value[ee] ? (
-                <div key={0} className="comments">
+                <div key={0} className="comments">{!_.comments.length&&<p className="text-sm text-muted-foreground">还没有评论，可以留下第一句回应。</p>}
                   <Fragment>
                     {listValues(_.comments).map((j, T) => (
                       <p key={T}>
@@ -78,7 +72,7 @@ export function BrowsePageView({ view: view }) {
                     ))}
                   </Fragment>
                   <form
-                    className="input-row"
+                    className="input-row items-end"
                     onSubmit={eventModifiers(
                       (j) => view.comment(ee),
                       ["prevent"],
@@ -156,10 +150,10 @@ export function BrowsePageView({ view: view }) {
       </div>
       {view.people.value.length ? null : (
         <EmptyState as="div" key={0} >
-          <p>{"暂无匹配人物"}</p>
-          <ActionButton variant="outline"  onClick={view.clear}>
+          <p>{view.search.value.trim()||Object.values(view.filters.value).some(Boolean)?'暂无匹配人物':'这里还没有人物关系，生活中认识的人会保留在这里。'}</p>
+          {(view.search.value.trim()||Object.values(view.filters.value).some(Boolean))&&<ActionButton variant="outline"  onClick={view.clear}>
             {"清除筛选"}
-          </ActionButton>
+          </ActionButton>}
         </EmptyState>
       )}
       {view.person.value ? (
@@ -454,7 +448,8 @@ export function BrowsePageView({ view: view }) {
     </Surface>
   ) : view.props.page === "通知与待处理" ? (
     <Fragment key={5}>
-      <h2>{"未读通知"}</h2>
+      <div className="flex flex-wrap items-end gap-4"><label className="grid gap-2">阅读范围<ChoiceSelect aria-label="通知阅读范围" value={view.noticeMode.value} onChange={event=>view.noticeMode.value=event.target.value}><option value="unread">未读通知</option><option value="all">全部已读取通知</option></ChoiceSelect></label><label className="grid gap-2">角色<ChoiceSelect aria-label="通知角色" value={view.noticeCharacter.value} onChange={event=>view.noticeCharacter.value=event.target.value}><option value="">全部角色</option>{view.noticeCharacters.value.map(character=><option key={character.id} value={character.id}>{character.name}</option>)}</ChoiceSelect></label><ActionButton variant="outline" disabled={!view.canMarkAll.value||view.noticeBusy.value} onClick={view.markAllRead}>截至本次读取全部已读</ActionButton></div>
+      <h2>{view.noticeMode.value==='unread'?'未读通知':'通知记录'}</h2>
       {readValue(view.characters).length ? null : (
         <p className="muted">{"暂时没有未读通知。"}</p>
       )}

@@ -1,3 +1,4 @@
+import {RefreshCwIcon} from 'lucide-react';
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import { RotateCcwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ export default function ChatTurnFeedback({
           ),
         );
   return (
-    <InlineFeedback className="mt-2" role="alert">
+    <InlineFeedback variant="default" className="mt-2 border-border bg-muted/40 text-foreground" role="alert">
       {reason}
       {store.retrying && <p className="m-0 text-sm" role="status">正在提交重试请求并等待回复</p>}
       <Button
@@ -38,7 +39,7 @@ export default function ChatTurnFeedback({
             : store.refreshActiveTurn(true)
         }
       >
-        <RotateCcwIcon size={12} />
+        {message.turnRetryable?<RotateCcwIcon size={14}/>:<RefreshCwIcon size={14}/>}
         {store.retrying
           ? "重试中…"
           : message.turnRetryable

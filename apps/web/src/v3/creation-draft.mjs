@@ -1,7 +1,7 @@
 import { randomId } from '../random-id.mjs';
 // Only UI drafts and original command identities live in session storage.
 // The server remains the authority for analysis freshness and activation replay.
-export function creationDraft({owner,storage,timezone=Intl.DateTimeFormat().resolvedOptions().timeZone}) {
+export function creationDraft({owner,storage,timezone='Asia/Shanghai'}) {
   if(!owner)throw new Error('请先登录所有者会话');
   const key=`fluctlight-creation:${owner}:draft`;
   function read(){

@@ -1,3 +1,4 @@
+import {configurationPoints} from '../v3/proto/components/configuration-fields.js';
 import { providerBindingBody, defaultModelTimeoutSeconds } from "../v3/provider-budget.mjs";
 const clone = (value) => JSON.parse(JSON.stringify(value));
 export const weekdays = [
@@ -10,6 +11,14 @@ export const weekdays = [
   "周六",
 ];
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+const workflowGraph=g=>g&&typeof g==='object'&&!Array.isArray(g)&&Object.keys(g).length>0&&Object.values(g).every(node=>node&&typeof node==='object'&&!Array.isArray(node)&&typeof node.class_type==='string'&&node.class_type.trim()&&node.inputs&&typeof node.inputs==='object'&&!Array.isArray(node.inputs));
+function validateComfySetting(value){
+ let url;try{url=new URL(value.baseUrl||value.base_url);}catch{throw Error('ComfyUI 地址：请填写完整的 HTTP(S) 服务地址');}
+ if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.search||url.hash)throw Error('ComfyUI 地址不能包含嵌入凭据、查询或片段');
+ for(const [key,label] of [['workflow','默认 API 工作流'],['visual_identity_workflow','视觉身份工作流覆盖']])if((key==='workflow'||value[key]!==undefined)&&!workflowGraph(value[key]))throw Error(label+'：工作流须为非空节点对象，每个节点包含 class_type 和 inputs');
+ for(const [key,label] of [['visual_identity_workflows','视觉身份分阶段覆盖'],['media_workflows','媒体分支覆盖']])if(value[key]!==undefined&&(!value[key]||typeof value[key]!=='object'||Array.isArray(value[key])||!Object.values(value[key]).every(workflowGraph)))throw Error(label+'：每个分支须包含有效的 class_type 和 inputs 节点');
+}
 
 /** Validate the entire immutable form snapshot before any configuration write. */
 export function configurationPlan({
@@ -124,6 +133,10 @@ export function configurationPlan({
             throw Error(field.label + "：请填写有效 JSON");
           }
         }
+      } else if(field.type==='boolean-map'){
+        if(value===""&&field._initial===undefined)continue;
+        if(!value||typeof value!=='object'||Array.isArray(value)||Object.entries(value).some(([key,state])=>!configurationPoints.includes(key)||typeof state!=='boolean')||configurationPoints.filter(key=>!key.startsWith('media.')).some(key=>!Object.hasOwn(value,key)))throw Error(field.label+'：请选择有效的决策场景');
+        value=clone(value);
       } else if(field.type==='action-types'){
         if(!Array.isArray(value)||value.some(item=>typeof item!=='string'))throw Error(field.label+'：请选择有效的行动类型');
         value=[...value];
@@ -134,6 +147,7 @@ export function configurationPlan({
         value = Number(value);
         if (
           !Number.isFinite(value) ||
+          (field._definition?.step!=='any'&&!Number.isSafeInteger(value)) ||
           (field.min != null && value < field.min) ||
           (field.max != null && value > field.max)
         )
@@ -150,6 +164,9 @@ export function configurationPlan({
       if (value === undefined) delete values[field._settingKey][field._key];
       else values[field._settingKey][field._key] = value;
     }
+  if(values['media.comfyui'])validateComfySetting(values['media.comfyui']);
+  const kev=values.kev&&{...catalog.effective_values.kev,...values.kev};
+  if(kev&&kev.budget_ms<kev.timeout_ms)throw Error('辅助决策阶段总等待时间不能短于单次请求超时');
   const original =
     quiet._policy?.quiet_hours ||
     catalog.effective_values["product.autonomy"]?.quiet_hours ||

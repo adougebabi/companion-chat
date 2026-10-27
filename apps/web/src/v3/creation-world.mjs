@@ -61,6 +61,7 @@ async function finishDefaultCreationWorld({client,recovery,storage,owner,ownerCu
  if(command.pending())await command.retry();
  if(!current())return stale;
  let actual=await client.world(fid),draft=current();
+ if(!actual||actual.available===false||!Object.hasOwn(actual,'world')||actual.world!==null&&(!actual.world||typeof actual.world.id!=='string'||!actual.world.id.trim()))throw Error('生活世界读取结果不完整，请重新读取原创建步骤');
  if(!draft)return stale;
  if(!draft.worldRuntimeId&&actual.world?.id){draft.worldRuntimeId=actual.world.id;recovery.save(draft);}
  else if(!draft.worldRuntimeId){await command.submit({expectedRevision:0,name:'日常世界',background:'日常生活，具体地点和经历将在相处中逐渐补充。',reason:'为新角色建立默认生活世界'});if(!current())return stale;actual=await client.world(fid);}

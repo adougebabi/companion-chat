@@ -96,6 +96,7 @@ function createWardrobePreparationController(__props, context, lifecycle) {
     document.removeEventListener("visibilitychange", visibility);
   });
   return (_ctx, _cache) => {
+    if(stages.value[0]?.state==='ready'&&!readError.value)return null;
     return (
       <CardSurface
         className="approved-preparation"

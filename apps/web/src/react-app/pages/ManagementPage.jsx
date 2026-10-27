@@ -1,3 +1,4 @@
+import {configurationTestSummary} from '@/v3/configuration-feedback.mjs';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 
 import { useController, afterPaint } from "@/react-app/page";
@@ -23,7 +24,7 @@ import {
   restoreConnectionDraft,
   connectionIsSaved,
 } from "@/approved-ui/configuration-draft.mjs";
-import { errorMessage, domainName } from "@/v3/domain-presentation.mjs";
+import { errorMessage, domainName, stateLabel } from "@/v3/domain-presentation.mjs";
 import { randomId } from "@/random-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import { installFieldValidation } from "@/v3/proto/components/forms.js";
@@ -66,7 +67,7 @@ function uiField(settingKey, field, values) {
         ? "number"
         : field.type === "select"
           ? "select"
-          : ["workflow", "json", "boolean-map", "quiet-hours"].includes(
+          : ["workflow", "json", "quiet-hours"].includes(
                 field.type,
               )
             ? "json"
@@ -92,6 +93,8 @@ function uiField(settingKey, field, values) {
     _initial: raw,
   };
 }
+function editableConfiguration(settings,endpoints,bindings,quiet){const value=field=>{if(field.type==='json'){try{return JSON.parse(field.value);}catch{return field.value;}}if(field.type==='number'&&field.value!=='')return Number(field.value);if(field.type==='select')return field._choices?.find(choice=>choice.label===field.value)?.value??field.value;return field.value;};return JSON.stringify({settings:settings.map(group=>group.fields.map(value)),endpoints:endpoints.map(e=>[e.id,e.name,e.protocol,e.url.replace(/\/+$/,''),e.secret,e.clearSecret]).sort((a,b)=>a[0].localeCompare(b[0])),bindings:bindings.map(b=>[b.role,b.endpoint,b.model,b.timeout]).sort((a,b)=>a[0].localeCompare(b[0])),quiet:[quiet.enabled,quiet.start,quiet.end,quiet.days,quiet.character,quiet.behavior]});}
+
 function createManagementPageController(props, context, lifecycle) {
   const w = lifecycle.workspace,
     config = w.services.configurationClient,
@@ -119,7 +122,8 @@ function createManagementPageController(props, context, lifecycle) {
     saveStatus = lifecycle.cell(""),
     error = lifecycle.cell(""),
     reference = lifecycle.cell(""),
-    testResult = lifecycle.cell("");
+    testResult = lifecycle.cell(""),testRaw=lifecycle.cell(null),
+    currentSection=lifecycle.cell("服务地址");
   const settings = lifecycle.cell([]),
     endpoints = lifecycle.cell([]),
     bindings = lifecycle.cell([]),
@@ -132,13 +136,18 @@ function createManagementPageController(props, context, lifecycle) {
       character: "全部角色",
     }),
     records = lifecycle.cell([]),
+    diagnosticPages=lifecycle.cell({"模型调用":{cursor:"",loading:false,error:""},"媒体调用":{cursor:"",loading:false,error:""}}),
+    referenceRecord=lifecycle.cell(null),
     pending = new Map(),
     recovery = lifecycle.cell(null);
   const configForm = lifecycle.cell(null);
+  let sectionObserver=null;
+  function observeSections(){sectionObserver?.disconnect();if(typeof IntersectionObserver==='undefined'||!configForm.value)return;const root=configForm.value.closest('.workspace-page'),visible=new Map();sectionObserver=new IntersectionObserver(entries=>{if(!live()||tab.value!=='配置中心')return;for(const entry of entries){if(entry.isIntersecting)visible.set(entry.target.id,entry.target);else visible.delete(entry.target.id);}const first=[...visible.values()].sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top)[0];if(first)currentSection.value=sections.value.find(section=>sectionId(section)===first.id)||currentSection.value;},{root,rootMargin:'-96px 0px -55% 0px',threshold:0});for(const section of configForm.value.querySelectorAll('.settings-group'))sectionObserver.observe(section);}
+  lifecycle.onDispose(()=>sectionObserver?.disconnect());
   lifecycle.observe(
     configForm,
     (node, _old, cleanup) => {
-      if (node) cleanup(installFieldValidation(node));
+      if (node){cleanup(installFieldValidation(node));void afterPaint(()=>{if(live()&&configForm.value===node)observeSections();});}else sectionObserver?.disconnect();
     },
     {
       flush: "post",
@@ -214,8 +223,8 @@ function createManagementPageController(props, context, lifecycle) {
       ["生命周期", "lifecycle"],
       ["回合诊断", "turns"],
       ["Kev 决策", "kev"],
-      ["主动触达投递", "events"],
-      ["待处理事项 / 重试耗尽", "workflow-intents"],
+      ["系统事件与主动触达", "events"],
+      ["重试耗尽的后台任务", "workflow-intents"],
       ["技术详情", "links"],
       ["安全拦截", "harm"],
     ].map(([title, kind]) => ({
@@ -225,7 +234,7 @@ function createManagementPageController(props, context, lifecycle) {
     })),
   );
   const selected = selector(() =>
-    records.value.find((r) => r.id === selectedId.value),
+    records.value.find((r) => r.id === selectedId.value&&r.kind===kind.value),
   );
   const statusLabel = (status) =>
     ({
@@ -246,8 +255,7 @@ function createManagementPageController(props, context, lifecycle) {
             .join(" ")
             .toLowerCase()
             .includes(search.value.trim().toLowerCase()),
-      )
-      .sort((a, b) => b.start - a.start),
+      ),
   );
   const filterGroups = selector(() => [
     {
@@ -287,10 +295,12 @@ function createManagementPageController(props, context, lifecycle) {
     ...settings.value.map((g) => g.title),
   ]);
   const sectionId = (value) => "config-" + value;
-  const scrollTo = (value, focus = true) => {
+  const scrollTo = async (value, focus = true) => {
+    currentSection.value=value;
     const node = document.getElementById(sectionId(value));
     const trigger = node?.querySelector("[data-slot=collapsible-trigger]");
     if (trigger?.getAttribute("aria-expanded") === "false") trigger.click();
+    await afterPaint();
     node?.scrollIntoView({
       behavior: "smooth",
       block: "start",
@@ -303,6 +313,7 @@ function createManagementPageController(props, context, lifecycle) {
       });
     }
   };
+  lifecycle.observe(()=>w.state.managementSection,section=>{if(section&&tab.value==='配置中心')void afterPaint(()=>{if(live())scrollTo(section);});});
   const sharedScenarios = selector(() =>
     (w.state.runtimeCatalog?.agents || [])
       .filter((a) =>
@@ -321,6 +332,7 @@ function createManagementPageController(props, context, lifecycle) {
       )
       .map((a) => catalogLabel("agent", a.name, a.description)),
   );
+  function confirmedEditable(){if(!catalog)return '';const hours=quiet.value._source||catalog.effective_values['product.autonomy']?.quiet_hours||{};return editableConfiguration(settings.value.map(group=>({...group,fields:group.fields.map(field=>uiField(field._settingKey,field._definition,catalog.effective_values[field._settingKey]))})),catalog.endpoints.map(endpoint=>({id:endpoint.id,name:endpoint.id,protocol:endpoint.kind,url:endpoint.base_url,secret:'',clearSecret:false})),Object.entries(roleNames).map(([role])=>{const saved=catalog.bindings.find(binding=>binding.role===role);return {role,endpoint:saved?.endpoint_id||'',model:saved?.model_id||'',timeout:saved?.timeout_seconds??''};}),{...quiet.value,enabled:!!hours.start,start:hours.start||'',end:hours.end||'',days:(hours.days||[0,1,2,3,4,5,6]).map(day=>weekdays[day])});}
   async function readCatalog() {
     const snapshot = await config.read();
     if (!live()) return;
@@ -393,12 +405,13 @@ function createManagementPageController(props, context, lifecycle) {
       _source: hours,
     };
     for (const e of endpoints.value.filter(connectionIsSaved)) {
+      e.modelsStatus="loading";
       void config
         .models(e.id)
         .then((result) => {
-          if (live()) e.models = result.models || [];
+          if (live()&&endpoints.value.includes(e)&&connectionIsSaved(e)){e.models = result.models || [];e.modelsStatus="ready";e.modelsError="";}
         })
-        .catch(() => {});
+        .catch(cause => {if(live()&&endpoints.value.includes(e)){e.modelsStatus=connectionIsSaved(e)?"error":"stale";e.modelsError=connectionIsSaved(e)?errorMessage(cause):"";}});
     }
     void config
       .catalog()
@@ -407,15 +420,15 @@ function createManagementPageController(props, context, lifecycle) {
       })
       .catch(() => {});
     await afterPaint();
-    if (live()) scrollTo(w.state.managementSection || "服务地址", false);
+    if (live()){observeSections();scrollTo(w.state.managementSection || "服务地址", false);}
   }
   async function loadDiagnostics() {
     const [models, media] = await Promise.allSettled([
       diagnostics.page("model-runs", {
-        limit: 100,
+        limit: 20,
       }),
       diagnostics.page("media-prompts", {
-        limit: 100,
+        limit: 20,
       }),
     ]);
     if (!live()) return;
@@ -425,6 +438,7 @@ function createManagementPageController(props, context, lifecycle) {
         error.value = errorMessage(result.reason);
         continue;
       }
+      diagnosticPages.value[index?"媒体调用":"模型调用"].cursor=result.value.next_cursor||"";
       for (const record of result.value.items) {
         projected.push(diagnosticProjection(record, index, characters.value));
       }
@@ -432,6 +446,9 @@ function createManagementPageController(props, context, lifecycle) {
     records.value = projected;
     w.state.diagnostics = projected;
   }
+  async function loadMoreDiagnostics(){const selectedKind=kind.value,state=diagnosticPages.value[selectedKind],cursor=state.cursor;if(state.loading||!cursor)return;state.loading=true;state.error='';try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor});if(!live())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}catch(cause){if(live())state.error=errorMessage(cause);}finally{if(live())state.loading=false;}}
+  let referenceDetailEpoch=0;
+  async function openReference(record,section){const token=++referenceDetailEpoch;referenceRecord.value={record,section,loading:true,error:'',detail:null};try{const detail=await diagnostics.record(section.kind,record.ref);if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:'',detail};}catch(cause){if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:errorMessage(cause),detail:null};}}
   async function write(kind, body, run) {
     const keyName =
       "fluctlight:approved-config-command:" + JSON.stringify([scope, kind]);
@@ -642,13 +659,16 @@ function createManagementPageController(props, context, lifecycle) {
       if (live()) saving.value = false;
     }
   }
+  let testReadEpoch=0;
   async function test(target) {
     const endpoint = typeof target === "object" ? target : null;
-    const name = endpoint ? endpoint.name || "新服务" : target;
+    const name = endpoint ? endpoint.name || "新服务" : target,token=endpoint?null:++testReadEpoch;
+    if(!endpoint)testRaw.value=null;
     testResult.value = endpoint ? "" : name + "：测试中…";
-    if (endpoint) endpoint.feedback = "正在读取已保存连接的模型目录…";
+    if (endpoint){endpoint.feedback = "正在读取已保存连接的模型目录…";endpoint.modelsStatus="loading";endpoint.modelsError="";}
     try {
       if (endpoint && !connectionIsSaved(endpoint)) {
+        endpoint.modelsStatus="stale";
         endpoint.feedback =
           "请先保存服务地址和访问密钥，再读取已保存连接的模型目录。";
         return;
@@ -660,30 +680,34 @@ function createManagementPageController(props, context, lifecycle) {
             name === "高级" ? "kev" : name === "看图理解" ? "vision" : "media",
           );
       if (live()) {
+        if(!endpoint&&token!==testReadEpoch)return;
         if (
           endpoint &&
           (!connectionIsSaved(endpoint) || endpoint._source !== source)
         ) {
+          endpoint.modelsStatus="stale";
           endpoint.feedback = "连接输入已修改，请保存后重新读取目录。";
           return;
         }
         if (endpoint) {
           endpoint.models = result.models || [];
+          endpoint.modelsStatus="ready";
           endpoint.feedback =
             "已读取模型目录 " + endpoint.models.length + " 项";
           return;
         }
+        testRaw.value=result;
         testResult.value =
           name +
           "：" +
           (endpoint
             ? "已读取模型目录 " + (result.models || []).length + " 项"
-            : JSON.stringify(result));
+            : configurationTestSummary(result).text);
       }
     } catch (cause) {
       if (live()) {
-        if (endpoint) endpoint.feedback = errorMessage(cause);
-        else testResult.value = name + "：" + errorMessage(cause);
+        if (endpoint){endpoint.feedback = errorMessage(cause);endpoint.modelsStatus="error";endpoint.modelsError=endpoint.feedback;}
+        else if(token===testReadEpoch){testRaw.value={status:"failed",reason:errorMessage(cause)};testResult.value = name + "：" + errorMessage(cause);}
       }
     }
   }
@@ -742,48 +766,23 @@ function createManagementPageController(props, context, lifecycle) {
       }
     },
   );
-  lifecycle.observe(reference, async (title) => {
-    const section = referenceSections.value.find((s) => s.title === title);
-    if (!section) return;
-    section.rows = ["正在读取实际记录…"];
-    try {
-      const page = await diagnostics.page(section.kind, {
-        limit: 20,
-        ...(title === "待处理事项 / 重试耗尽"
-          ? {
-              status: "dead_letter",
-            }
-          : {}),
-      });
-      if (!live() || reference.value !== title) return;
-      section.rows = page.items.map((record) => {
-        const data = record.data;
-        return [
-          domainName(
-            data.event_type ||
-              data.intent_type ||
-              data.agent_id ||
-              data.boundary,
-            "运行记录",
-          ),
-          data.status || data.payload?.status || "",
-          record.occurred_at ? userInstant(record.occurred_at) : "时间未记录",
-        ]
-          .filter(Boolean)
-          .join(" · ");
-      });
-      if (!section.rows.length) section.rows = ["当前没有对应记录。"];
-    } catch (cause) {
-      if (live() && reference.value === title)
-        section.rows = [errorMessage(cause)];
-    }
-  });
+  let referenceEpoch=0;
+  async function readReference(title,more=false){
+    const section=referenceSections.value.find(s=>s.title===title);if(!section){referenceEpoch++;return;}if(more&&(section.loading||!section.nextCursor))return;const token=++referenceEpoch;
+    section.loading=true;section.error='';
+    try{const page=await diagnostics.page(section.kind,{limit:20,...(more?{cursor:section.nextCursor}:{}),...(title==='重试耗尽的后台任务'?{status:'dead_letter'}:{})});if(!live()||reference.value!==title||token!==referenceEpoch)return;section.rows=[...new Map([...(more?section.rows:[]),...page.items].map(record=>[record.ref,record])).values()];section.nextCursor=page.next_cursor||'';}
+    catch(cause){if(live()&&reference.value===title&&token===referenceEpoch){section.error=errorMessage(cause);section.failedMore=more;}}
+    finally{if(live()&&token===referenceEpoch)section.loading=false;}
+  }
+  lifecycle.observe(reference,title=>void readReference(title));
   lifecycle.observe(
     [endpoints, bindings],
     () => {
       for (const endpoint of endpoints.value)
-        if (!connectionIsSaved(endpoint) && endpoint.models?.length)
-          endpoint.models = [];
+        if (!connectionIsSaved(endpoint)){
+          if(endpoint.models?.length)endpoint.models=[];
+          if(endpoint._source)endpoint.modelsStatus="stale";
+        }
       if (live() && loaded)
         sessionStorage.setItem(
           connectionDraftKey(scope),
@@ -815,6 +814,17 @@ function createManagementPageController(props, context, lifecycle) {
     <ManagementPageView
       view={{
         accountActions:()=>(<div className="flex flex-wrap items-center justify-end gap-3" aria-label="账户">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton variant="ghost" type="button"  onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton variant="outline" type="button"  disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>),
+        sectionLabel:value=>({"聊天回复":"回复行为","看图理解":"图片理解设置"})[value]||value,
+        userInstant,diagnosticPages,loadMoreDiagnostics,referenceRecord,openReference,
+        selectReference:value=>{reference.value=value;selectedId.value=null;referenceRecord.value=null;},
+        loadMoreReference:()=>readReference(reference.value,true),
+        retryReference:()=>readReference(reference.value,referenceSections.value.find(section=>section.title===reference.value)?.failedMore||false),
+        referenceTitle:record=>domainName(record.data?.event_type||record.data?.intent_type||record.data?.agent_id||record.data?.boundary,({"agent-runs":"逻辑执行记录",events:"系统事件",links:"关联信息",kev:"辅助决策",harm:"安全拦截"})[record.kind]||"后台运行记录"),
+        referenceStatus:record=>record.data?.status||record.data?.payload?.status?stateLabel(record.data?.status||record.data?.payload?.status):({events:"系统事件",links:"关联记录",harm:"拦截记录"})[record.kind]||"未记录状态",
+        currentSection,
+        dirty:selector(()=>loaded&&confirmedEditable()!==editableConfiguration(settings.value,endpoints.value,bindings.value,quiet.value)),
+        canDiscard:selector(()=>!saving.value&&!recovery.value&&!policyRecovery.value&&!pending.size&&!Array.from(policyChannels.values()).some(channel=>channel.pending())),
+        discard:async()=>{if(saving.value||recovery.value||policyRecovery.value||pending.size||Array.from(policyChannels.values()).some(channel=>channel.pending()))return;loaded=false;sessionStorage.removeItem(connectionDraftKey(scope));try{await readCatalog();saveStatus.value="已放弃未保存修改";}catch(cause){if(live()){loaded=true;error.value=errorMessage(cause);}}},
         configForm,
         tab,
         sections,
@@ -838,13 +848,14 @@ function createManagementPageController(props, context, lifecycle) {
         quiet,
         characters,
         settings,
-        testResult,
+        testRaw,testResult,
         error,
         saving,
         saveStatus,
         kind,
         selectKind: (value) => {
           kind.value = value;
+          reference.value="";
           clear();
           selectedId.value = null;
           highlight.value = null;

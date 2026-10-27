@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import {
   ActionButton,
   Surface,
-  FieldInput,
+  FieldInput,Textarea,
   DialogFrame,
   Badge,
   MenuDisclosure,
@@ -33,9 +33,9 @@ export function WorldPageView({ view: view }) {
 
               onClick={(H) => (view.selected.value = null)}
             >
-              {"世界列表"}
+              {"返回世界列表"}
             </ActionButton>
-            <span>{" / " + displayText(view.world.value.name)}</span>
+
             <span className="spacer" />
             <ActionButton variant="outline"
 
@@ -46,7 +46,7 @@ export function WorldPageView({ view: view }) {
           </div>
           <Surface as="div" className="world-header">
             <div className="row">
-              <span className="eyebrow">{"A WORLD OF YOUR OWN"}</span>
+              <span className="eyebrow">{"生活世界"}</span>
               <span className="spacer" />
               <ActionButton variant="outline"
 
@@ -65,7 +65,7 @@ export function WorldPageView({ view: view }) {
 
                 onClick={(H) => (view.expanded.value = !view.expanded.value)}
               >
-                {displayText(view.expanded.value ? "结束编辑" : "编辑地点")}
+                {displayText(view.expanded.value ? "完成地点管理" : "管理场地与地点")}
               </ActionButton>
             </div>
             <h2>{displayText(view.world.value.name)}</h2>
@@ -181,7 +181,7 @@ export function WorldPageView({ view: view }) {
         <Fragment key={0}>
           <div className="row">
             <div>
-              <h2>{"世界列表"}</h2>
+              <h2>{"返回世界列表"}</h2>
               <p className="muted">{"每个人，都在自己的风景里生活。"}</p>
             </div>
             <span className="spacer" />
@@ -207,7 +207,7 @@ export function WorldPageView({ view: view }) {
                     >
                       {"编辑"}
                     </ActionButton>
-                    <ActionButton variant="ghost"
+                    <ActionButton variant="destructive"
 
                       onClick={(q) => (view.removeId.value = H.id)}
                     >
@@ -215,8 +215,8 @@ export function WorldPageView({ view: view }) {
                     </ActionButton>
                     </MenuDisclosure>
               </div></div></CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-3"><p className="m-0 text-sm">{(H.genre?H.genre+' · ':'')+H.sites.length+' 处场地'}</p><p className="m-0 break-words text-sm text-muted-foreground">{'居住在这里：'+(H.residents.map(id=>readValue(view.characters).find(character=>character.id===id)?.name).filter(Boolean).join('、')||'暂无角色')}</p></CardContent>
-              <CardFooter><ActionButton variant="default" onClick={()=>{view.selected.value=H.id;view.expanded.value=false;}}>进入</ActionButton></CardFooter>
+              <CardContent className="flex flex-1 flex-col gap-3 pb-5"><p className="m-0 text-sm">{(H.genre?H.genre+' · ':'')+H.sites.length+' 处场地'}</p><p className="m-0 break-words text-sm text-muted-foreground">{'居住在这里：'+(H.residents.map(id=>readValue(view.characters).find(character=>character.id===id)?.name).filter(Boolean).join('、')||'暂无角色')}</p></CardContent>
+              <CardFooter><ActionButton className="w-full" variant="default" onClick={()=>{view.selected.value=H.id;view.expanded.value=false;}}>进入</ActionButton></CardFooter>
             </Surface>)}
           </EntityCardGrid>
         </Fragment>
@@ -238,17 +238,18 @@ export function WorldPageView({ view: view }) {
               : "添加地点"
           }
           testId="place-drawer"
+          footer={<><ActionButton variant="outline" type="button" onClick={()=>{view.place.value=null;}}>取消</ActionButton><ActionButton variant="default" type="submit" form="world-place-form" disabled={readValue(view.busy)||!view.place.value.name.trim()} data-testid="place-save">{readValue(view.busy)&&view.operation.value==='place'?'处理中…':'保存地点'}</ActionButton></>}
           onClose={(H) => (view.place.value = null)}
         >
-          <form
+          <form id="world-place-form"
             className="form-grid"
             onSubmit={eventModifiers(view.savePlace, ["prevent"])}
           >
             <view.ActionFeedback labels={["世界"]} />
             <label>
-              {"地点名称"}
+              {"地点名称"}<span aria-hidden="true" className="text-destructive"> *</span>
               <FieldInput
-                readOnly={!!view.place.value._source}
+                required readOnly={!!view.place.value._source}
                 title={
                   view.place.value._source
                     ? "正式名称固定，可修改别名"
@@ -262,35 +263,16 @@ export function WorldPageView({ view: view }) {
               {view.place.value._source ? (
                 <small className="muted">{"正式名称固定，可修改别名"}</small>
               ) : null}
-              {view.place.value.name.trim() ? null : (
-                <InlineFeedback key={0} >
-                  {"请填写地点名称。"}
-                </InlineFeedback>
-              )}
+              {!view.place.value.name.trim()&&<p className="text-sm text-muted-foreground">填写地点名称后可以保存。</p>}
             </label>
             <Fragment>
               {listValues(view.fields).map(([H, q]) => (
-                <label key={H}>
+                <label key={H} className={['description','atmosphere','furniture','layout'].includes(H)?'full-field':undefined}>
                   {displayText(q)}
-                  <FieldInput
-                    value={view.place.value[H]}
-                    onChange={(event) => {
-                      ((V) => (view.place.value[H] = V))(event.target.value);
-                    }}
-                  />
+                  {['description','atmosphere','furniture','layout'].includes(H)?<Textarea rows={3} value={view.place.value[H]} onChange={event=>view.place.value[H]=event.target.value}/>:<FieldInput value={view.place.value[H]} onChange={event=>view.place.value[H]=event.target.value}/>}
                 </label>
               ))}
             </Fragment>
-            <ActionButton variant="default"
-
-              disabled={readValue(view.busy) || !view.place.value.name.trim()}
-            >
-              {displayText(
-                readValue(view.busy) && view.operation.value === "place"
-                  ? "处理中…"
-                  : "保存地点",
-              )}
-            </ActionButton>
           </form>
         </view.DetailDrawer>
       ) : null}
@@ -308,27 +290,24 @@ export function WorldPageView({ view: view }) {
               : "添加世界"
           }
           testId="world-drawer"
+          footer={<><ActionButton variant="outline" type="button" onClick={()=>{view.worldDraft.value=null;}}>取消</ActionButton><ActionButton variant="default" type="submit" form="world-info-form" disabled={readValue(view.busy)||!view.worldDraft.value.name.trim()} data-testid="world-save">{readValue(view.busy)&&view.operation.value==='world'?'处理中…':'保存世界'}</ActionButton></>}
           onClose={(H) => (view.worldDraft.value = null)}
         >
-          <form
+          <form id="world-info-form"
             className="form-grid"
             onSubmit={eventModifiers(view.saveWorld, ["prevent"])}
           >
             <view.ActionFeedback labels={["世界"]} />
             <label>
-              {"世界名称"}
+              {"世界名称"}<span aria-hidden="true" className="text-destructive"> *</span>
               <FieldInput
-                data-testid="world-name"
+                required data-testid="world-name"
                 value={view.worldDraft.value.name}
                 onChange={(event) => {
                   ((H) => (view.worldDraft.value.name = H))(event.target.value);
                 }}
               />
-              {view.worldDraft.value.name.trim() ? null : (
-                <InlineFeedback key={0} >
-                  {"请填写世界名称。"}
-                </InlineFeedback>
-              )}
+              {!view.worldDraft.value.name.trim()&&<p className="text-sm text-muted-foreground">填写世界名称后可以保存。</p>}
             </label>
             <label>
               {"世界类型"}
@@ -342,19 +321,6 @@ export function WorldPageView({ view: view }) {
                 }}
               />
             </label>
-            <ActionButton variant="default"
-
-              disabled={
-                readValue(view.busy) || !view.worldDraft.value.name.trim()
-              }
-              data-testid="world-save"
-            >
-              {displayText(
-                readValue(view.busy) && view.operation.value === "world"
-                  ? "处理中…"
-                  : "保存世界",
-              )}
-            </ActionButton>
           </form>
         </view.DetailDrawer>
       ) : null}
@@ -363,9 +329,10 @@ export function WorldPageView({ view: view }) {
           key={4}
           title="添加场地分类"
           testId="site-drawer"
+          footer={<><ActionButton variant="outline" type="button" onClick={()=>{view.siteDialog.value=false;}}>取消</ActionButton><ActionButton variant="default" type="submit" form="world-site-form" disabled={readValue(view.busy)||!view.siteName.value.trim()} data-testid="site-save">{readValue(view.busy)&&view.operation.value==='site'?'处理中…':'保存分类'}</ActionButton></>}
           onClose={(H) => (view.siteDialog.value = !1)}
         >
-          <form
+          <form id="world-site-form"
             className="form-grid"
             onSubmit={eventModifiers(view.addSite, ["prevent"])}
           >
@@ -376,27 +343,17 @@ export function WorldPageView({ view: view }) {
             </p>
             <view.ActionFeedback labels={["世界"]} />
             <label>
-              {"分类名称"}
+              {"分类名称"}<span aria-hidden="true" className="text-destructive"> *</span>
               <FieldInput
-                value={view.siteName.value}
+                required value={view.siteName.value}
                 onChange={(event) => {
                   ((H) => (view.siteName.value = H))(event.target.value);
                 }}
               />
               {view.siteName.value.trim() ? null : (
-                <small key={0}>{"请填写场地名称。"}</small>
+                <small key={0}>{"填写分类名称后可以保存。"}</small>
               )}
             </label>
-            <ActionButton variant="default"
-
-              disabled={readValue(view.busy) || !view.siteName.value.trim()}
-            >
-              {displayText(
-                readValue(view.busy) && view.operation.value === "site"
-                  ? "处理中…"
-                  : "保存场地",
-              )}
-            </ActionButton>
           </form>
         </view.DetailDrawer>
       ) : null}

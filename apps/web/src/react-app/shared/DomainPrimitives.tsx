@@ -1,7 +1,8 @@
-import {useEffect,useLayoutEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState,useCallback} from 'react';
 import {createPortal} from 'react-dom';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
+import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription,SheetTrigger} from '@/components/ui/sheet';
 import {Collapsible,CollapsibleContent,CollapsibleTrigger} from '@/components/ui/collapsible';
 import {ChevronDownIcon} from 'lucide-react';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
@@ -86,8 +87,8 @@ function OpaqueContent({source}:{source:HTMLElement}){
  // Retain already escaped domain nodes. No HTML parsing, evaluation or second
  // renderer is involved; React owns only the surrounding interaction primitive.
  const signature=source.innerHTML;
- useLayoutEffect(()=>{target.current?.replaceChildren(...Array.from(source.childNodes,node=>node.cloneNode(true)));},[source,signature]);
- return <span ref={target} className="inline-flex min-w-0 items-center gap-1.5"/>;
+ useLayoutEffect(()=>{target.current?.replaceChildren(...Array.from(source.childNodes).filter(node=>!(node instanceof HTMLElement&&node.getAttribute('aria-hidden')==='true'&&['⌄','⌃','›'].includes(node.textContent?.trim()||''))).map(node=>node.cloneNode(true)));},[source,signature]);
+ return <span ref={target} className="domain-rich-label inline-flex min-w-0 flex-wrap items-center gap-2 [&>.spacer]:flex-1 [&_.badge]:shrink-0"/>;
 }
 function copiedAttributes(source:HTMLElement){return Object.fromEntries(Array.from(source.attributes).filter(({name})=>name.startsWith('aria-')&&!['aria-hidden','aria-pressed'].includes(name)).map(({name,value})=>[name,value]));}
 function FieldPort({port}:{port:Port}){
@@ -96,13 +97,13 @@ function FieldPort({port}:{port:Port}){
  useLayoutEffect(()=>{const label=source.closest('label');if(label)label.htmlFor=id;},[source,id]);
  const syncSelection=(event:any)=>{try{if(event.target.selectionStart!==null)source.setSelectionRange?.(event.target.selectionStart,event.target.selectionEnd);}catch{}};
  const blur=(event:any)=>{syncSelection(event);source.dispatchEvent(new Event('change',{bubbles:true}));source.dispatchEvent(new Event('focusout',{bubbles:true}));};
- const props:any={...copiedAttributes(source),id,...(type==='radio'?{name:'domain-ui:'+(source.name||port.id)+':'+radioScope(source),form:'domain-visual-radios-'+radioScope(source),className:'size-4 rounded-full'}:{}),disabled:source.matches(':disabled')||!!source.readOnly&&['select','date','file','checkbox','radio'].includes(type),readOnly:source.readOnly,'aria-required':source.required&&!source.readOnly||undefined,'aria-invalid':source.getAttribute('aria-invalid')||undefined,'aria-describedby':source.getAttribute('aria-describedby')||undefined,placeholder:source.placeholder,min:source.min||undefined,max:source.max||undefined,minLength:source.minLength<0?undefined:source.minLength,maxLength:source.maxLength<0?undefined:source.maxLength,step:source.step||undefined,pattern:source.pattern||undefined,rows:source.rows||undefined};
+ const props:any={...copiedAttributes(source),'aria-label':source.getAttribute('aria-label')||source.closest('label')?.querySelector('.field-label')?.textContent?.replace(/\*$/,'').trim(),id,...(type==='radio'?{name:'domain-ui:'+(source.name||port.id)+':'+radioScope(source),form:'domain-visual-radios-'+radioScope(source),className:'size-4 rounded-full'}:{}),disabled:source.matches(':disabled')||!!source.readOnly&&['select','date','file','checkbox','radio'].includes(type),readOnly:source.readOnly,'aria-required':source.required&&!source.readOnly||undefined,'aria-invalid':source.getAttribute('aria-invalid')||undefined,'aria-describedby':source.getAttribute('aria-describedby')||undefined,placeholder:source.placeholder,min:source.min||undefined,max:source.max||undefined,minLength:source.minLength<0?undefined:source.minLength,maxLength:source.maxLength<0?undefined:source.maxLength,step:source.step||undefined,pattern:source.pattern||undefined,rows:source.rows||undefined};
  const commit=(value:any,checkbox=false)=>{
   if(!source.isConnected||source.matches(':disabled')||source.readOnly)return;
   if(checkbox)source.checked=value;else source.value=value;
   if(type==='radio')for(const peer of source.ownerDocument.querySelectorAll('input[data-domain-ui="field"][type="radio"]'))if(peer.name===source.name&&peer.form===source.form)peer.dispatchEvent(new Event('domain-sync'));
   source.dispatchEvent(new Event('input',{bubbles:true}));
-  if(type==='select'||type==='date'||checkbox)source.dispatchEvent(new Event('change',{bubbles:true}));
+  if(type==='select'||type==='date'||type==='datetime-local'||checkbox)source.dispatchEvent(new Event('change',{bubbles:true}));
  };
  if(type==='file')return <FieldInput {...props} type="file" accept={source.accept} multiple={source.multiple} onChange={(event:any)=>{if(!source.isConnected||source.disabled)return;source.files=event.target.files;source.dispatchEvent(new Event('change',{bubbles:true}));}}/>;
  const checkable=type==='checkbox'||type==='radio';
@@ -118,9 +119,12 @@ function ButtonPort({port}:{port:Port}){
 }
 function DisclosurePort({port}:{port:Port}){
  const source:any=port.source,target=useRef<HTMLDivElement>(null);
+ const mountContent=useCallback((node:HTMLDivElement|null)=>{target.current=node;if(node&&port.content)node.append(port.content);},[port]);
+ const sheet=source.dataset.domainSurface==='sheet';
  useLayoutEffect(()=>{if(port.content)target.current?.append(port.content);return()=>port.content?.remove();},[port]);
  useEffect(()=>{const reveal=()=>{source.open=true;};port.target.addEventListener('domain-reveal',reveal);return()=>port.target.removeEventListener('domain-reveal',reveal);},[port,source]);
- return <Collapsible open={source.open} onOpenChange={open=>{source.open=open;}} data-domain-disclosure className="min-w-0"><CollapsibleTrigger asChild><Button type="button" variant="ghost" className="w-full justify-start whitespace-normal text-left"><span className="min-w-0 flex-1">{port.summary?.textContent||'更多内容'}</span><ChevronDownIcon className={'size-4 shrink-0 transition-transform '+(source.open?'rotate-180':'')}/></Button></CollapsibleTrigger><CollapsibleContent forceMount hidden={!source.open} className="min-w-0 pt-3"><div ref={target} className="min-w-0 break-words [&_pre]:max-h-96 [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_pre]:break-all"/></CollapsibleContent></Collapsible>;
+ if(sheet)return <Sheet open={source.open} onOpenChange={open=>{source.open=open;}}><SheetTrigger asChild><Button type="button" variant="outline">{port.summary?<OpaqueContent source={port.summary}/>:"设置"}</Button></SheetTrigger><SheetContent className="react-workspace gap-0 overflow-hidden"><SheetHeader className="shrink-0 border-b border-border pr-14"><SheetTitle>{source.dataset.surfaceTitle||port.summary?.textContent||'设置'}</SheetTitle><SheetDescription>调整当前日程与约定设置</SheetDescription></SheetHeader><div ref={mountContent} className="min-h-0 flex-1 overflow-y-auto p-5"/></SheetContent></Sheet>;
+ return <Collapsible open={source.open} onOpenChange={open=>{source.open=open;}} data-domain-disclosure className="min-w-0"><CollapsibleTrigger asChild><Button type="button" variant="ghost" className="w-full justify-start whitespace-normal text-left"><span className="min-w-0 flex-1">{port.summary?<OpaqueContent source={port.summary}/>:"更多内容"}</span><ChevronDownIcon className={'size-4 shrink-0 transition-transform '+(source.open?'rotate-180':'')}/></Button></CollapsibleTrigger><CollapsibleContent forceMount hidden={!source.open} className="min-w-0 pt-3"><div ref={mountContent} className="min-w-0 break-words [&_pre]:max-h-96 [&_pre]:overflow-auto [&_pre]:whitespace-pre-wrap [&_pre]:break-all"/></CollapsibleContent></Collapsible>;
 }
 function InteractivePort({port}:{port:Port}){
  const source=useCarrier(port);port.target.hidden=source.hidden;
@@ -128,7 +132,7 @@ function InteractivePort({port}:{port:Port}){
  if(port.kind==='toggle-group'){const items=[...source.querySelectorAll('button')] as HTMLButtonElement[],selected=items.findIndex(item=>item.classList.contains('on')||item.getAttribute('aria-pressed')==='true');return <ToggleGroup type="single" variant="outline" value={selected<0?'':String(selected)} onValueChange={key=>{if(key!=='')items[Number(key)]?.click();}} aria-label={source.getAttribute('aria-label')||'筛选记录'} className="max-w-full flex-wrap justify-start">{items.map((item,index)=><ToggleGroupItem key={index} value={String(index)} disabled={item.disabled}><OpaqueContent source={item}/></ToggleGroupItem>)}</ToggleGroup>;}
  if(port.kind==='pagination')return <Pagination aria-label="记录分页" className="justify-start"><PaginationContent className="flex-wrap">{[...(source as HTMLElement).querySelectorAll<HTMLButtonElement>('button')].map((item,index)=><PaginationItem key={index}><Button type="button" variant="outline" disabled={item.disabled} onClick={()=>item.isConnected&&item.click()}>{item.hasAttribute('data-page-previous')?<ChevronLeftIcon/>:<ChevronRightIcon/>}{item.textContent}</Button></PaginationItem>)}</PaginationContent></Pagination>;
  if(port.kind==='calendar')return <Calendar locale={zhCN} mode="single" selected={civilDate(source.dataset.selected)} month={civilDate(source.dataset.monthState+'-01')} onMonthChange={date=>source.domainMonthChange?.(civilDateString(date).slice(0,7))} onSelect={date=>date&&source.domainDateSelect?.(civilDateString(date))} modifiers={{recorded:JSON.parse(source.dataset.recordDates||'[]').map(civilDate).filter(Boolean)}} components={{DayButton:props=><CalendarDayButton {...props} className={props.modifiers.recorded?'relative after:absolute after:bottom-0 after:left-1/2 after:size-1 after:rounded-full after:bg-primary':''}/>}} className="w-full"/>;
- if(port.kind==='tabs'){const items=[...source.children] as HTMLElement[],selected=items.findIndex(item=>item.classList.contains('on')||item.getAttribute('aria-current')==='page');return <Tabs value={selected<0?'':String(selected)} onValueChange={key=>items[Number(key)]?.click()}><TabsList className="h-auto max-w-full flex-wrap">{items.map((item,index)=><TabsTrigger key={index} value={String(index)} disabled={(item as any).disabled}><OpaqueContent source={item}/></TabsTrigger>)}</TabsList></Tabs>;}
+ if(port.kind==='tabs'){const items=[...source.children] as HTMLElement[],selected=items.findIndex(item=>item.classList.contains('on')||item.getAttribute('aria-current')==='page');return <Tabs value={selected<0?'':String(selected)} onValueChange={key=>items[Number(key)]?.click()}><TabsList className="h-auto group-data-horizontal/tabs:h-auto max-w-full flex-wrap">{items.map((item,index)=><TabsTrigger key={index} value={String(index)} disabled={(item as any).disabled}><OpaqueContent source={item}/></TabsTrigger>)}</TabsList></Tabs>;}
  if(port.kind==='progress')return <Progress value={Number(source.dataset.value)} aria-label={source.getAttribute('aria-label')||'处理阶段'}/>;
  if(port.kind==='skeleton')return <LoadingState label={source.textContent||undefined}/>;
  return port.kind==='field'?<FieldPort port={port}/>:port.kind==='disclosure'?<DisclosurePort port={port}/>:port.kind==='badge'?<Badge variant="secondary">{source.textContent}</Badge>:<ButtonPort port={port}/>;

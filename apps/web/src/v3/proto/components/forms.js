@@ -16,7 +16,7 @@ let fieldSequence = 0;
 export function Field({ label, name, value = '', type = 'text', options, rows = 3, hint = '', attrs = {}, labelAttrs = {} }) {
   const id = attrs.id || `field-${++fieldSequence}`;
   const describedBy = [attrs['aria-describedby'], hint ? `${id}-hint` : ''].filter(Boolean).join(' ');
-  const common = attributes({ name, ...(type === 'number' ? { step: 'any' } : {}), ...attrs, id,
+  const common = attributes({ name, ...(['number','datetime-local'].includes(type) ? { step: 'any' } : {}), ...attrs, id,
     ...(attrs.required&&!attrs.readonly&&!attrs.disabled ? { 'aria-required': 'true' } : {}), ...(describedBy ? { 'aria-describedby': describedBy } : {}) });
   const control = type === 'textarea' ? `<textarea data-domain-ui="field" class="input" rows="${rows}" ${common}>${esc(value)}</textarea>`
     : type === 'select' ? `<select data-domain-ui="field" class="select" ${common}>${options.map(option => { const item = typeof option === 'string' ? { value: option, label: option } : option; return `<option value="${esc(item.value)}"${String(item.value) === String(value) ? ' selected' : ''}>${esc(item.label)}</option>`; }).join('')}</select>`

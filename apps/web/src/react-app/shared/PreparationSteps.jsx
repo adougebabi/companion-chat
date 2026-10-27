@@ -33,7 +33,7 @@ export default function PreparationSteps(input = {}) {
             >
               <div className="grid min-w-0 gap-3">
                 <div className="flex min-w-0 flex-wrap items-center justify-between gap-2"><TraceLine status={stage.state==='failed'?'error':stage.state==='running'?'running':stage.state==='ready'?undefined:'pending'}><TraceIcon>{stage.state==='running'?<Spinner/>:stage.state==='ready'?<CheckIcon/>:stage.state==='failed'?<AlertCircleIcon/>:<CircleIcon/>}</TraceIcon><TraceTitle className="whitespace-normal">{stage.title}</TraceTitle></TraceLine><Badge variant={stage.state==='failed'?'destructive':'secondary'} role="status">{labels[stage.state]||'状态待确认'}</Badge></div>
-                <InlineFeedback variant={stage.state==='failed'?'destructive':'default'} role={stage.state==='failed'?'alert':undefined} className={stage.state==='failed'?'':'border-0 bg-transparent p-0'}>{displayText(stage.note)}</InlineFeedback>
+                {stage.note&&stage.note!==(labels[stage.state]||'状态待确认')&&<InlineFeedback variant={stage.state==='failed'?'destructive':'default'} role={stage.state==='failed'?'alert':undefined} className={stage.state==='failed'?'':'border-0 bg-transparent p-0'}>{displayText(stage.note)}</InlineFeedback>}
                 <div className="row">
                   {stage.state === "failed" && stage.configSection ? (
                     <ActionButton variant="ghost" asChild  key={0}>

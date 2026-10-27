@@ -1,3 +1,4 @@
+import DateTimeField from './shared/DateTimeField';
 import FilePicker from './shared/FilePicker';
 import {InputGroup,InputGroupAddon} from '@/components/ui/input-group';
 import {ClockIcon} from 'lucide-react';
@@ -152,13 +153,14 @@ function FieldControl({
       </span>
     );
   }
+  if (type === "datetime-local")return <DateTimeField value={value} onChange={onChange} onInput={onInput} {...props}/>;
   if (type === "date") return <DateField value={value} onChange={onChange} onInput={onInput} {...props}/>;
   if (type === "time") return <InputGroup className="h-auto min-h-11"><InputGroupAddon><ClockIcon/></InputGroupAddon><DraftTextControl {...props} type="text" inputMode="numeric" placeholder={props.placeholder||'HH:mm'} pattern={props.pattern||'(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?'} value={value} onChange={onChange} onInput={onInput} className={cn('border-0 shadow-none focus-visible:ring-0',className)} data-slot="input-group-control"/></InputGroup>;
   if (type === "file") return <FilePicker onChange={onChange} onInput={onInput} {...props}/>;
   if (type === "number") return <NumberControl className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
   return <DraftTextControl type={type} className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
 }
-function NumberControl(props:any){const input=React.useRef<HTMLInputElement>(null);const step=(direction:number)=>{const element=input.current;if(!element)return;try{if(direction>0)element.stepUp();else element.stepDown();}catch{const current=Number(element.value)||0,min=element.min===''?-Infinity:Number(element.min),max=element.max===''?Infinity:Number(element.max);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(element,String(Math.max(min,Math.min(max,current+direction))));}element.dispatchEvent(new Event('input',{bubbles:true}));};return <span className="inline-flex w-full min-w-0 items-center gap-1"><Button type="button" variant="outline" size="icon" className="touch-target shrink-0" aria-label={'减少'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(-1)}><MinusIcon className="size-3.5"/></Button><DraftTextControl {...props} ref={input} type="number" className={cn('min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',props.className)}/><Button type="button" variant="outline" size="icon" className="touch-target shrink-0" aria-label={'增加'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(1)}><PlusIcon className="size-3.5"/></Button></span>;}
+function NumberControl(props:any){const input=React.useRef<HTMLInputElement>(null);const step=(direction:number)=>{const element=input.current;if(!element)return;try{if(direction>0)element.stepUp();else element.stepDown();}catch{const current=Number(element.value)||0,min=element.min===''?-Infinity:Number(element.min),max=element.max===''?Infinity:Number(element.max);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(element,String(Math.max(min,Math.min(max,current+direction))));}element.dispatchEvent(new Event('input',{bubbles:true}));};return <span className="number-control inline-flex w-full min-w-0 items-stretch gap-0"><Button type="button" variant="outline" size="icon" className="touch-target h-auto self-stretch shrink-0" aria-label={'减少'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(-1)}><MinusIcon className="size-3.5"/></Button><DraftTextControl {...props} ref={input} type="number" className={cn('min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',props.className)}/><Button type="button" variant="outline" size="icon" className="touch-target h-auto self-stretch shrink-0" aria-label={'增加'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(1)}><PlusIcon className="size-3.5"/></Button></span>;}
 export function FieldInput({title,...props}:FieldProps){return <ControlHint text={title}><FieldControl {...props}/></ControlHint>;}
 
 function flatten(nodes: React.ReactNode): React.ReactElement<any>[] {
@@ -239,6 +241,7 @@ export function Disclosure({
   title,
   children,
   open: externalOpen,
+  onOpenChange,
   className,
   id,
   ...props
@@ -252,7 +255,7 @@ export function Disclosure({
       {...props}
       id={id}
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={next=>{setOpen(next);onOpenChange?.(next);}}
       className={cn("product-disclosure", className)}
     >
       <CollapsibleTrigger asChild>
@@ -261,7 +264,7 @@ export function Disclosure({
           variant="ghost"
           className="disclosure-summary w-full justify-start whitespace-normal text-left"
         >
-          <span className="min-w-0 flex-1">{title}</span>
+          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{title}</span>
           <ChevronDownIcon
             className={cn(
               "size-4 shrink-0 transition-transform",

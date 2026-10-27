@@ -2,7 +2,7 @@ export function normalizeRuntimeCatalog(value){
  return {...value,agents:Array.isArray(value.agents)?value.agents:[],capabilities:(Array.isArray(value.capabilities)?value.capabilities:[]).map(c=>({...c,name:c.name??c.Name,version:c.version??c.Version,type:c.type??c.Type,description:c.description??c.Description,sourceContract:c}))};
 }
 
-const agentLabels={'wardrobe-preparation':'初始穿搭准备',
+const agentLabels={'reply-action-check':'回复行动核对','wardrobe-preparation':'初始穿搭准备',
  'conversation-cognition':'对话认知','conversation-reply':'交流表达','conversation-summary':'对话总结','daily-review':'日常回顾','diary-expression':'日记表达','diary-material':'日记素材整理','goal-evaluation':'目标评估','goal-planner':'目标规划',initialization:'人物初始化','media-prompt':'图像提示整理','media-quality':'图像质量检查','native-cognition':'原生认知','npc-response':'NPC 回应','persistent-switch':'持久人格切换','persona-compilation':'工作人格准备',reflection:'反思成长','schedule-generation':'日程生成','schedule-replan':'日程调整','studio-assistant':'创作助手','studio-text-preview':'创作文本预览','takeover-judge':'人格接管判断','takeover-reply':'接管后的表达','virtual-activity-result':'虚拟活动结果','visual-identity':'视觉身份准备','visual-identity-patch':'视觉身份修正','visual-identity-vision':'视觉一致性检验','wake-up':'日常唤醒',
 };
 const toolLabels={

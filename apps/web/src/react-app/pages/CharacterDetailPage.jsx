@@ -1,3 +1,5 @@
+import JsonDetails from '@/react-app/shared/JsonDetails';
+import RecordView from '@/react-app/shared/RecordView';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {InlineFeedback,ReadState} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
@@ -771,26 +773,8 @@ const render=(_ctx, _cache) => {
                       " · 运行版本 " +
                       displayText(snapshot.value.runtimeRevision ?? "未读取")}
                   </p>
-                  <pre className="approved-json">
-                    {displayText(
-                      JSON.stringify(
-                        {
-                          core_persona: detail.value.core_persona,
-                          provenance: detail.value.provenance,
-                          initialization_source:
-                            detail.value.initialization_source,
-                          foundation_revisions:
-                            detail.value.foundation_revisions,
-                          persona_switch_history:
-                            detail.value.persona_switch_history,
-                          persona_compilation: detail.value.persona_compilation,
-                          working_personas: detail.value.working_personas,
-                        },
-                        null,
-                        2,
-                      ),
-                    )}
-                  </pre>
+                  <RecordView value={{provenance:detail.value.provenance,initialization_source:detail.value.initialization_source,foundation_revisions:detail.value.foundation_revisions,persona_switch_history:detail.value.persona_switch_history,persona_compilation:detail.value.persona_compilation,working_personas:detail.value.working_personas}} technical/><JsonDetails title="完整身份与来源记录（可下载）" value={{core_persona:detail.value.core_persona,provenance:detail.value.provenance,initialization_source:detail.value.initialization_source,foundation_revisions:detail.value.foundation_revisions,persona_switch_history:detail.value.persona_switch_history,persona_compilation:detail.value.persona_compilation,working_personas:detail.value.working_personas}}/>
+
                 </Disclosure>
               ) : null}
             </div>

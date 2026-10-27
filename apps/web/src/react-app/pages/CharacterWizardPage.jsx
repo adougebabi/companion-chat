@@ -1,3 +1,4 @@
+import Combobox from '@/react-app/shared/Combobox';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Questionnaire,QuestionnaireItem,QuestionnaireTitle,QuestionnaireChoices,QuestionnaireChoice,QuestionnaireChoiceDescription} from '@/components/ui/questionnaire';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
@@ -74,7 +75,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
       worldSourceReview,
     } = c,
     existingWorlds = lifecycle.cell([]),
-    worldChoice = lifecycle.cell(!!draft.worldSource || !!draft.worldResourceId || draft.step > 0 || !!draft.activatedId),
+    worldChoice = lifecycle.cell(!!draft.worldSource || !!draft.worldResourceId || !!draft.worldChoiceConfirmed || !!draft.activatedId),
     worlds = lifecycle.cell([]),
     templates = lifecycle.cell([]),
     worldCursor = lifecycle.cell(""),
@@ -83,7 +84,10 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     existingWorldError = lifecycle.cell(""),
     templateError = lifecycle.cell(""),
     existingWorldLoading = lifecycle.cell(false),
-    configured = lifecycle.cell(null);
+    configured = lifecycle.cell(null),
+    worldsConfirmed = lifecycle.cell(false),
+    worldReadNotice = lifecycle.cell("");
+  if(!draft.activatedId&&!pending.value&&!worldChoice.value)step.value="world";
   const wizardRoot = lifecycle.cell(null);
   const analysisNow = lifecycle.cell(Date.now());
   lifecycle.observe(
@@ -140,21 +144,26 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
   const configHref = (section) =>
     "#/settings?section=" + encodeURIComponent(section || "模型用途");
   let worldReadEpoch = 0;
-  async function loadExistingWorlds() {
-    const token = ++worldReadEpoch;
-    const characters = w.state.characters.map(({id,name}) => ({id,name}));
-    existingWorldLoading.value = true;
+  async function loadExistingWorlds(refresh=false) {
+    existingWorldLoading.value=true;worldsConfirmed.value=false;
+    if(refresh){try{await w.refreshDirectory?.();}catch(cause){if(c.live()){existingWorldError.value=errorMessage(cause);existingWorldLoading.value=false;}return;}}
+    const token=++worldReadEpoch,characters=w.state.characters.map(({id,name})=>({id,name}));
     try {
-      const result = await reusableWorlds(w.client, characters);
-      if (!active || !c.live() || token !== worldReadEpoch) return;
-      existingWorlds.value = result.items;
-      existingWorldError.value = result.unavailable ? `${result.unavailable} 个角色的世界暂未读到，已读到的世界仍可选择。` : "";
-    } catch (cause) { if (active && c.live() && token === worldReadEpoch) existingWorldError.value = errorMessage(cause); }
-    finally { if (active && c.live() && token === worldReadEpoch) existingWorldLoading.value = false; }
+      if(w.state.errors?.bootstrap)throw Error('角色目录尚未读到，请重新读取后选择世界。');
+      const result=await reusableWorlds(w.client,characters,existingWorlds.value);
+      if(!active||!c.live()||token!==worldReadEpoch)return;
+      existingWorlds.value=result.items;
+      worldsConfirmed.value=result.unavailable===0;
+      existingWorldError.value=result.unavailable?`${result.unavailable} 个角色的世界暂未读到（${result.unavailableNames.join('、')}），已读到的世界仍可选择。`:'';
+      worldReadNotice.value=result.unavailable?'上次已读到的世界保留，暂不可确认没有其他世界。':`已读取 ${characters.length} 个角色的世界目录，共 ${result.items.length} 个生活世界。`;
+      if(!busy.value&&!draft.activatedId&&!pending.value&&((result.items.length&&draft.worldResourceId)||(draft.worldSource&&!result.items.some(world=>world.id===draft.worldSource.worldId&&world.fluctlightId===draft.worldSource.fluctlightId)))){worldChoice.value=false;step.value='world';}
+      if(result.items.length&&!draft.activatedId&&!pending.value&&!draft.worldSource&&!draft.worldResourceId)chooseExistingWorld(result.items[0]);
+    }catch(cause){if(active&&c.live()&&token===worldReadEpoch)existingWorldError.value=errorMessage(cause);}
+    finally{if(active&&c.live()&&token===worldReadEpoch)existingWorldLoading.value=false;}
   }
   lifecycle.observe(() => w.state.characters.map(({id,name}) => [id,name]), () => void loadExistingWorlds(), {immediate:true});
-  function chooseWorld(world){c.selectWorld(world);worldChoice.value=true;}
-  function chooseExistingWorld(world){c.selectExistingWorld(world);worldChoice.value=true;}
+  function chooseWorld(world){c.selectWorld(world);worldChoice.value=true;draft.worldChoiceConfirmed=true;c.persist();}
+  function chooseExistingWorld(world){c.selectExistingWorld(world);worldChoice.value=true;draft.worldChoiceConfirmed=true;c.persist();}
   async function loadSources(kind, more = false) {
     try {
       const result = await w.client.listStudioResources({
@@ -243,20 +252,22 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     c.dispose();
   });
   return (_ctx, _cache) => {
-    const worldOptions=[...existingWorlds.value.map(world=>({value:'existing:'+world.fluctlightId+':'+world.id,label:world.name,description:'来自 '+world.characterName+' · 复用背景和地点，独立生活记录',select:()=>chooseExistingWorld(world)})),...worlds.value.map(world=>({value:'definition:'+world.id+':'+world.published_version,label:world.name,description:'已发布底稿 · 版本 '+world.published_version,select:()=>chooseWorld(world)})),{value:'default',label:'使用日常生活世界',description:'建立独立的生活世界，地点可以继续补充。',select:()=>chooseWorld(null)}];
+    const mayCreate=worldsConfirmed.value&&!existingWorldLoading.value&&!existingWorlds.value.length;
+    const worldOptions=existingWorlds.value.length?existingWorlds.value.map(world=>({value:'existing:'+world.fluctlightId+':'+world.id,label:world.name+' · '+world.characterName,description:'复用背景和地点，创建独立生活记录',select:()=>chooseExistingWorld(world)})):mayCreate?[...worlds.value.map(world=>({value:'definition:'+world.id+':'+world.published_version,label:world.name,description:'已发布世界设定 · '+world.published_version,select:()=>chooseWorld(world)})),{value:'default',label:'使用日常生活世界',description:'明确选择后建立独立的日常生活世界；不会自动创建。',select:()=>chooseWorld(null)}]:[];
+    const canContinue=worldChoice.value&&worldOptions.some(option=>option.value===(draft.worldSource?'existing:'+draft.worldSource.fluctlightId+':'+draft.worldSource.worldId:draft.useDefaultWorld?'default':'definition:'+draft.worldResourceId+':'+draft.worldResourceVersion));
     const worldValue=!worldChoice.value?'':draft.worldSource?'existing:'+draft.worldSource.fluctlightId+':'+draft.worldSource.worldId:draft.useDefaultWorld?'default':'definition:'+draft.worldResourceId+':'+draft.worldResourceVersion;
 
     return (
       <div ref={elementRef(wizardRoot)} className="character-workflow">
-        <WorkspaceBreadcrumb parentLabel="角色库" parentHref="#/library" currentLabel={draft.name||"新的相识"}/>
-      <Tabs value={'step-'+currentStep.value} aria-label="创建步骤"><TabsList className="h-auto group-data-horizontal/tabs:h-auto w-full flex-wrap justify-start gap-2">{navSteps.map((label,index)=><TabsTrigger key={label} value={'step-'+index} disabled={index!==currentStep.value} aria-current={index===currentStep.value?'step':undefined} className="min-h-11 flex-none gap-2"><span aria-hidden="true">{index<currentStep.value?'✓':index+1}</span>{label}</TabsTrigger>)}</TabsList></Tabs>
+
+      <Tabs value={'step-'+currentStep.value} onValueChange={value=>{const index=Number(value.slice(5));if(!busy.value&&!pending.value&&!draft.activatedId&&index<currentStep.value){step.value=index===0?'world':'person';c.persist();}}} aria-label="创建步骤"><TabsList className="h-auto group-data-horizontal/tabs:h-auto w-full flex-wrap justify-start gap-2">{navSteps.map((label,index)=><TabsTrigger key={label} value={'step-'+index} disabled={index>currentStep.value||index!==currentStep.value&&(!!busy.value||!!pending.value||!!draft.activatedId)} aria-current={index===currentStep.value?'step':undefined} className="min-h-11 flex-none gap-2"><span aria-hidden="true">{index<currentStep.value?'✓':index+1}</span>{label}</TabsTrigger>)}</TabsList></Tabs>
         {readValue(step) === "world" ? (
           <Questionnaire
             key={0}
-            className="character-form rounded-xl border bg-card text-card-foreground shadow-sm"
+            className="character-form rounded-xl border border-border bg-card text-card-foreground shadow-sm"
             noValidate
             onSubmit={eventModifiers(
-              ($event) => worldChoice.value && readValue(c).next(),
+              ($event) => canContinue && readValue(c).next(),
               ["prevent"],
             )}
           >
@@ -273,12 +284,12 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               <h3>已有生活世界</h3>
               {existingWorldLoading.value && <ReadState role="status">正在读取已有世界…</ReadState>}
               {existingWorldError.value && <InlineFeedback  role="alert">{existingWorldError.value}</InlineFeedback>}
-              {!existingWorldLoading.value && !existingWorldError.value && !existingWorlds.value.length && <p className="muted">还没有角色关联的生活世界，可以选择下面的已发布底稿，或创建新的世界设定。</p>}
+              {!existingWorldLoading.value && !existingWorldError.value && !existingWorlds.value.length && <p className="muted">已确认没有已有生活世界。请选择下方世界来源，或先创建一份世界设定。</p>}
               <p className="muted">只复用世界背景、规则和地点；人物、物品实例、事件模板、运行位置与生活历史不复制。</p>
               <QuestionnaireItem name="world-source" required disabled={readValue(busy)||!!readValue(pending)}><QuestionnaireTitle>生活世界来源</QuestionnaireTitle><QuestionnaireChoices className="sm:grid-cols-2">{worldOptions.map(option=><QuestionnaireChoice key={option.value} value={option.value} checked={worldValue===option.value} onChange={()=>option.select()}><span>{option.label}</span><QuestionnaireChoiceDescription>{option.description}</QuestionnaireChoiceDescription></QuestionnaireChoice>)}</QuestionnaireChoices></QuestionnaireItem>
-              <ActionButton variant="ghost" type="button"  onClick={()=>void loadExistingWorlds()}>重新读取已有世界</ActionButton>
-              {!worlds.value.length&&!sourceError.value&&<p className="muted">创作中心的世界草稿需要先发布，才会出现在可选底稿中。</p>}
-              {worldCursor.value ? (
+              <div className="grid gap-2"><ActionButton variant="outline" type="button" disabled={existingWorldLoading.value} onClick={()=>void loadExistingWorlds(true)}>{existingWorldLoading.value?'正在读取世界目录…':'重新读取已有世界'}</ActionButton>{worldReadNotice.value&&<p role="status" className="text-sm text-muted-foreground">{worldReadNotice.value}</p>}{!canContinue&&<p className="text-sm text-muted-foreground">请选择一个已读到的世界，再继续认识角色。</p>}</div>
+              {mayCreate&&!worlds.value.length&&!sourceError.value&&<p className="muted">创作中心的世界草稿需要先发布，才会出现在可选底稿中。</p>}
+              {mayCreate&&worldCursor.value ? (
                 <ActionButton variant="outline"
                   key={1}
                   type="button"
@@ -300,11 +311,11 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                   </ActionButton>
                 </InlineFeedback>
               ) : null}
-              <ActionButton variant="ghost" asChild >
+              {mayCreate&&<ActionButton variant="outline" asChild >
                 <a  href="#/studio/edit/new?kind=world">
                   {"创建世界设定 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
                 </a>
-              </ActionButton>
+              </ActionButton>}
             </section>
             {Object.keys(readValue(fieldErrors)).length ? (
               <InlineFeedback key={0}  role="alert">
@@ -330,7 +341,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               <ActionButton variant="default"
 
                 data-testid="wizard-world-next"
-                disabled={!worldChoice.value || readValue(busy)}
+                disabled={!canContinue || readValue(busy)}
               >
                 {"下一步"}
               </ActionButton>
@@ -343,7 +354,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             className="character-form"
             noValidate=""
             onSubmit={eventModifiers(
-              ($event) => readValue(c).analyze(),
+              ($event) => {if(canContinue&&!(configured.value===false&&draft.mode==='description'))return readValue(c).analyze();},
               ["prevent"],
             )}
           >
@@ -394,17 +405,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 </label>
                 <label>
                   {"生活时区（必填）"}
-                  <FieldInput
-                    aria-label="生活时区"
-                    placeholder="例如 Asia/Shanghai"
-                    value={readValue(draft).timezone}
-                    onChange={(event) => {
-                      (($event) => (readValue(draft).timezone = $event))(
-                        event.target.value,
-                      );
-                      (($event) => readValue(c).invalidate())(event);
-                    }}
-                  />
+                  <Combobox label="生活时区" value={draft.timezone} options={['Asia/Shanghai','Asia/Hong_Kong','Asia/Tokyo','Asia/Singapore','UTC',...(Intl.supportedValuesOf?.('timeZone')||[])]} allowCustom onChange={value=>{draft.timezone=value;c.invalidate();}}/>
                   {readValue(error) &&
                   (!readValue(draft).timezone ||
                     readValue(error).includes("时区")) ? (
@@ -688,6 +689,8 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               <ActionButton variant="default"
 
                 disabled={
+                  !canContinue ||
+                  (configured.value===false&&draft.mode==='description') ||
                   readValue(busy) ||
                   !!readValue(pending) ||
                   (readValue(draft).mode === "template" &&
@@ -713,7 +716,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             className="character-form"
             noValidate=""
             onSubmit={eventModifiers(
-              ($event) => readValue(c).activate(),
+              ($event) => canContinue && readValue(c).activate(),
               ["prevent"],
             )}
           >
@@ -729,7 +732,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 <h3>{displayText(readValue(draft).name)}</h3>
                 <p>{"生活时区：" + displayText(readValue(draft).timezone)}</p>
                 <p className="muted">
-                  {" 性格从服务端默认起点开始，经历与认识在后续互动中形成。 "}
+                  {" 性格与生活细节可以在相处中继续补充，经历与认识在后续互动中形成。 "}
                 </p>
               </Fragment>
             ) : (
@@ -793,7 +796,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               <ActionButton variant="default"
 
                 data-testid="wizard-activate"
-                disabled={readValue(busy) || !!readValue(pending)}
+                disabled={!canContinue || readValue(busy) || !!readValue(pending)}
               >
                 {displayText(readValue(busy) ? "正在激活…" : "确认，开始准备")}
               </ActionButton>
@@ -890,7 +893,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
                 <ActionButton variant="ghost"
                   key={2}
 
-                  onClick={($event) => (readValue(c).newDraft(), worldChoice.value=false)}
+                  onClick={()=>{c.newDraft();worldChoice.value=false;draft.worldChoiceConfirmed=false;step.value="world";c.persist();}}
                 >
                   {"创建新的角色"}
                 </ActionButton>
@@ -925,18 +928,14 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             )}
           </Surface>
         ) : null}
-        <ActionButton variant="ghost" asChild >
-          <a  href="#/library">
-            {"保留草稿并返回角色库"}
-          </a>
-        </ActionButton>
+
         {readValue(draft).activatedId &&
         !readValue(c).archived &&
         !readValue(pending) ? (
           <ActionButton variant="ghost"
             key={5}
 
-            onClick={($event) => (readValue(c).newDraft(), worldChoice.value=false)}
+            onClick={()=>{c.newDraft();worldChoice.value=false;draft.worldChoiceConfirmed=false;step.value="world";c.persist();}}
           >
             {"再认识一个人（保留当前进度）"}
           </ActionButton>

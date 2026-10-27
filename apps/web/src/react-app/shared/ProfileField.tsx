@@ -45,7 +45,7 @@ export default function ProfileField({ field, disabled=false }: any) {
           value={field.value ?? ""}
           rows={3}
           aria-label={field.label}
-          placeholder={field.kind === "lines" ? "每行一项，可留空" : "尚未填写"}
+          placeholder={field.kind === "lines" ? "每行一项，可留空" : field.label+'，可留空'}
           onChange={set}
         />
       ) : (
@@ -58,7 +58,7 @@ export default function ProfileField({ field, disabled=false }: any) {
           max={field.max}
           step={field.kind === "number" ? "any" : undefined}
           aria-label={field.label}
-          placeholder="尚未填写"
+          placeholder={field.label+'，可留空'}
           onChange={set}
         />
       )}

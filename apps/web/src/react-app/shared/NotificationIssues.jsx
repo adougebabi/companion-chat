@@ -28,7 +28,7 @@ export default function NotificationIssues(input = {}) {
                   return (
                     <ActionButton variant="ghost"
                       key={item.id}
-                      className="notification-item"
+                      className="notification-item h-auto min-h-14 whitespace-normal text-left"
                       data-testid={"notification-diagnostic-" + item.id}
                       onClick={($event) => __props.onOpen?.(item.id)}
                     >

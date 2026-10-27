@@ -1,6 +1,7 @@
 // Task-owned same-origin fixture for production-build UI verification.
 // Binds loopback only; never proxies to a real Core/Provider or persists user data.
 import http from 'node:http';
+import {r16Fixture} from './r16-fixture.mjs';
 import {reactWorkspaceFixture} from './react-workspace-fixture.mjs';
 import {wardrobeWorldFixture} from './wardrobe-world-fixture.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
@@ -15,6 +16,7 @@ let actorReads=0,diagnosticClears=0;
 const telemetryPath='/private/tmp/fluctlight-ui-fixture-telemetry.json';
 const owner='human-fixture-owner',instance='fluctlight-fixture-one';
 const date='2026-10-13T01:00:00.123Z';
+const r16=process.env.FLUCTLIGHT_UI_FIXTURE_R16==='1'?r16Fixture({owner,fid:instance,date}):null;
 const wardrobeWorld=process.env.FLUCTLIGHT_UI_FIXTURE_WARDROBE_WORLD==='1'?wardrobeWorldFixture({fid:instance,owner,date}):null;
 const clone=value=>JSON.parse(JSON.stringify(value));
 const instances=[{id:instance,status:'active',identity:{name:'林岚 · 验收样本',age:26,timezone:'Asia/Shanghai'},unread_count:2,last_conversation_at:date},{id:'fluctlight-fixture-two',status:'paused',identity:{name:'季川 · 验收样本',timezone:'Asia/Shanghai'},unread_count:0,last_conversation_at:date}];
@@ -23,7 +25,7 @@ let revision=1,factsRevision='facts-fixture-1',contextVersion='context-fixture-1
 let background={name:'验收用户',occupation:'编辑',background:'这是隔离验收环境中的样本资料。',interests:'阅读、绘画',preferences:'安静的交流',location_scope:'同城',location:'上海',timezone:'Asia/Shanghai',relationship_distance:'线上交流',meeting_confirmed:null};
 const waveform={'1':{class_type:'ExampleModel',inputs:{prompt:'{{prompt}}',seed:'{{seed}}'}}},identityWorkflow={'2':{class_type:'ExampleIdentity',inputs:{prompt:'{{prompt}}'}}};
 let settings={values:{kev:{enabled:true,media_enabled:true,endpoint:'http://fixture-service.invalid/v1/systemone',points:{'runtime.wakeup':true,'runtime.reflection':true,'goal.completion_check':true,'goal.replenish_plan':true,'tools.select':true,'persona.switch':true,'context.select':true,'media.subject_route':true,'media.capture_plan':true,'media.view_plan':true},timeout_ms:60000,budget_ms:120000,strategy:'choice_argmax',max_deferrals:3,retention_days:7,model_revision:'fixture'},'media.comfyui':{baseUrl:'http://fixture-service.invalid:8188',workflow:waveform,visual_identity_workflow:identityWorkflow,media_workflows:{back:{keep_branch:true}},visual_identity_workflows:{sheet:{keep_identity_branch:true}},custom_preserved:{owner:'fixture'}},'product.autonomy':{mode:'active',budget_remaining:1000,allowed_actions:['proactive_message','moment','memory_candidate'],quiet_hours:{from:'22:00',to:'08:00'},custom_preserved:'keep'},'product.wakeup':{enabled:true,interval_seconds:600},'llm.queue':{generated_concurrency:1,embedding_concurrency:1},'diagnostics.retention':{retention_days:14,max_rows:5000}},versions:{kev:7},configuredSecrets:[]};
-let endpoints=[{id:'fixture-model',kind:'openai-compatible',base_url:'http://fixture-model.invalid/v1',secret_configured:false,capability_status:'available',roles:[]}];
+let endpoints=[{id:'fixture-model',kind:'openai-compatible',base_url:'http://fixture-model.invalid/v1',secret_configured:process.env.FLUCTLIGHT_UI_FIXTURE_R16==='1',capability_status:'available',roles:[]}];
 let bindings=[{role:'generic_llm',endpoint_id:'fixture-model',model_id:'fixture-model',token_budget:40960,timeout_seconds:300,endpoint_status:'available'},{role:'embedding',endpoint_id:'fixture-model',model_id:'fixture-embedding',token_budget:4096,timeout_seconds:60,endpoint_status:'available'}];
 let goals=[{id:'goal-fixture-one',desired_outcome:'完成一幅新的水彩作品',description:'完成一幅新的水彩作品',motivation:'把观察到的街景画下来。',status:'active',criteria_version:1,revision:1,scope:'general',success_criteria:['完成并保存画作'],criterion_ids:['criterion-fixture'],deadline_policy:'soft',execution:{next_step:'选择构图',wait_condition:'有一段安静的时间',blocker:'',evaluation_request:{status:'pending'}},stages:[],commitments:[],evaluations:[],evidence:[],reviews:[],resolutions:[]},{id:'goal-fixture-two',desired_outcome:'根据真实偏好推荐一本小说',description:'根据真实偏好推荐一本小说',motivation:'分享有趣的阅读体验。',status:'active',criteria_version:1,revision:1,scope:'general',success_criteria:['完成推荐'],criterion_ids:['criterion-fixture-two'],deadline_policy:'soft',execution:{},stages:[],commitments:[],evaluations:[],evidence:[],reviews:[],resolutions:[]}];
 let goalSet={revision:1,facts_revision:factsRevision,active_count:2,max_active_goals:5,auto_planning_enabled:true,ordering_mode:'automatic',capacity_violation:false,goals,dependencies:[],source_reviews:[]};
@@ -54,6 +56,7 @@ const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1'),path=url.pathname,method=req.method ?? 'GET';
   let body={};if(!['GET','HEAD'].includes(method)){let raw='';for await(const chunk of req)raw+=chunk;if(raw)body=JSON.parse(raw);requests.push({method,path,query:Object.fromEntries(url.searchParams),body:{...body,...(body.secrets ? {secrets:'fixture-redacted'} : {})}});}
   else if(path.startsWith('/api/'))requests.push({method,path,query:Object.fromEntries(url.searchParams)});
+  if(r16?.({path,method,body,url,json,res}))return;
   if(wardrobeWorld?.({path,method,body,url,json,res}))return;
   if(reactWorkspace({path,method,body,url,json,res}))return;
   if(path==='/fixture/status')return json(res,{requests,settings,background,goals});

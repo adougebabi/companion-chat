@@ -29,14 +29,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import CharacterAvatar from "../shared/CharacterAvatar";
-import { CurrentOutfit } from "../components";
+import { DetailDrawer,CurrentOutfit } from "../components";
 import {
   chatWaitingPresentation,
   chatDiagnosticTurn,
   chatFailureText,
 } from "@/v3/chat-feedback.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import {approvedRoute} from "@/approved-ui/routing.mjs";
+import DomainPage from "./DomainPage";
 import type { ConversationController } from "@/state/conversation";
+function messageDay(value:string|undefined){const at=Date.parse(value||'');return Number.isFinite(at)?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'long'}).format(new Date(at)):'日期未记录';}
 export default function ChatPage({
   preview,
   onGo,
@@ -68,6 +71,7 @@ export default function ChatPage({
       return "";
     }
   });
+  const [diagnosticRoute,setDiagnosticRoute]=useState<any>(null);
   const [now, setNow] = useState(Date.now);
   const [narrow,setNarrow]=useState(()=>window.matchMedia("(max-width: 800px)").matches);
   useEffect(()=>{const media=window.matchMedia("(max-width: 800px)");const update=()=>setNarrow(media.matches);media.addEventListener("change",update);return()=>media.removeEventListener("change",update);},[]);
@@ -156,6 +160,7 @@ export default function ChatPage({
     diagnosticHref = turn
       ? "#/diag/turns?correlationId=" + encodeURIComponent("turn:" + turn)
       : "#/diag";
+  const openDiagnostic=(event:any)=>{event.preventDefault();setDiagnosticRoute(approvedRoute(diagnosticHref+(diagnosticHref.includes('?')?'&':'?')+'returnTo='+encodeURIComponent(location.hash)));};
   const pending = messages.findLast(
     (message) =>
       message.kind === "user" &&
@@ -186,21 +191,11 @@ export default function ChatPage({
       (item: any) =>
         !item._source?.end_at || Date.parse(item._source.end_at) > now,
     );
-  const dateLabel =
-    "今天 · " +
-    new Intl.DateTimeFormat("zh-CN", {
-      timeZone: "Asia/Shanghai",
-      month: "long",
-      day: "numeric",
-      weekday: "long",
-    })
-      .format(new Date(now))
-      .replace(/(日)(星期)/, "$1 $2");
   const previewContent=<>
 
           <div className="preview-heading">
             <span>{character.name}的此刻</span>
-            <Badge variant="secondary">实时预览</Badge>
+            <Badge variant="secondary">生活摘要</Badge>
           </div>
           <div className="scene">
             <div className="scene-window">
@@ -275,7 +270,7 @@ export default function ChatPage({
             src={character._directory?.avatar}
           />
           <div>
-            <strong>{character.name}</strong>
+            <strong className="line-clamp-2" title={character.name}>{character.name}</strong>
             <small>
               <i className="online-dot" />{" "}
               {character.status === "正常"
@@ -293,16 +288,17 @@ export default function ChatPage({
         <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollEdgeThreshold={80}>
           <MessageScroller className="flex-1 h-auto bg-muted/30">
             <MessageScrollerViewport aria-label="聊天消息" className="timeline p-4 sm:p-6">
-              <MessageScrollerContent>
-                <MessageScrollerItem messageId="date"><Marker variant="separator"><MarkerContent>{dateLabel}</MarkerContent></Marker></MessageScrollerItem>
+              <MessageScrollerContent className="pb-14">
+
                 <MessageScrollerItem messageId="intro"><Marker className="justify-center text-xs"><MarkerContent>从一句问候开始，让陪伴慢慢发生。</MarkerContent></Marker></MessageScrollerItem>
-          {messages.map((message) => {
+          {messages.map((message,index) => {
             const mine = message.kind === "user",
               failed =
                 mine &&
                 ["failed", "cancelled"].includes(message.turnStatus || "");
+            const day=messageDay(message.createdAt),previous=messages[index-1],newDay=!previous||day!==messageDay(previous.createdAt);
             return (
-              <MessageScrollerItem key={message.id} messageId={message.id}><Message align={mine?"end":"start"} className="items-start gap-3">
+              <MessageScrollerItem key={message.id} messageId={message.id}>{newDay&&<Marker variant="separator" className="mb-5"><MarkerContent>{day}</MarkerContent></Marker>}<Message align={mine?"end":"start"} className="items-start gap-3">
                 <CharacterAvatar
                   className="size-8 shrink-0"
                   name={mine ? "我" : character.name}
@@ -340,7 +336,7 @@ export default function ChatPage({
               {waiting.detail && <small>{waiting.detail}</small>}
               {waiting.showDiagnostics && (
                 <Button variant="link" asChild>
-                  <a href={diagnosticHref}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
+                  <a href={diagnosticHref} onClick={openDiagnostic}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
                 </Button>
               )}
               {waiting.showStop && store.canCancel && (
@@ -350,17 +346,17 @@ export default function ChatPage({
               )}
             </MessageContent></Message></MessageScrollerItem>
           )}
-          {error && !busy && (
+          {error && !busy && !messages.some(message=>message.kind==='user'&&['failed','cancelled'].includes(message.turnStatus||'')) && (
             <MessageScrollerItem messageId="error"><InlineFeedback role="alert">
               {error}
               <Button variant="link" asChild>
-                <a href={diagnosticHref}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
+                <a href={diagnosticHref} onClick={openDiagnostic}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
               </Button>
             </InlineFeedback></MessageScrollerItem>
           )}
               </MessageScrollerContent>
             </MessageScrollerViewport>
-            <MessageScrollerButton aria-label="回到最新消息"/>
+            <MessageScrollerButton className="bottom-3" aria-label="回到最新消息"/>
           </MessageScroller>
         </MessageScrollerProvider>
         <div className="composer">
@@ -388,7 +384,7 @@ export default function ChatPage({
             }}
           />
           <div className="composer-bottom">
-            <small><Kbd>Enter</Kbd> 发送 · <Kbd>Shift + Enter</Kbd> 换行</small>
+            <small className="composer-keyboard-hint"><Kbd>Enter</Kbd> 发送 · <Kbd>Shift + Enter</Kbd> 换行</small>
             <Button
               className="touch-target"
               disabled={!draft.trim() || busy}
@@ -408,6 +404,7 @@ export default function ChatPage({
         </SheetContent>
       </Sheet>
       {attachment&&<Sheet open onOpenChange={open=>{if(!open)setAttachment(null);}}><SheetContent className="react-workspace gap-4" onCloseAutoFocus={event=>{if(attachmentFocus.current?.isConnected){event.preventDefault();attachmentFocus.current.focus({preventScroll:true});}}}><SheetHeader><SheetTitle>对话附件</SheetTitle><SheetDescription>{character.name} 的历史对话图片</SheetDescription></SheetHeader><div className="min-h-0 flex-1 overflow-y-auto p-4"><img className="h-auto w-full object-contain" src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></div></SheetContent></Sheet>}
+      {diagnosticRoute&&<DetailDrawer title="本次对话运行" testId="chat-diagnostic-drawer" onClose={()=>setDiagnosticRoute(null)}><DomainPage route={diagnosticRoute}/></DetailDrawer>}
     </div>
   );
 }

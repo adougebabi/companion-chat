@@ -26,6 +26,7 @@ function createWardrobePageController(props, context, lifecycle) {
   const w = lifecycle.workspace,
     character = w.current,
     { inventoryClient } = w.services;
+  const openSlot=lifecycle.cell("上衣");
   const action = lifecycle.cell(""),
     selectedOutfit = lifecycle.cell(null),
     busy = selector(() =>
@@ -374,6 +375,7 @@ function createWardrobePageController(props, context, lifecycle) {
     <WardrobePageView
       view={{
         character,
+        openSlot,
         tagLabel: value => seasonNames[value] || value,
         tab,
         tag,

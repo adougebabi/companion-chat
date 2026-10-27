@@ -33,6 +33,7 @@ export function LifePageView({ view: view }) {
       {view.props.page === "此刻" ? (
         <Fragment key={0}>
           <Surface as="div" className="now-card">
+            <ActionButton variant="outline" type="button" className="w-fit" onClick={()=>view.openTimeline()}>生活时间线</ActionButton>
             <span className="eyebrow">
               {displayText(readValue(view.todayLabel))}
             </span>
@@ -213,7 +214,7 @@ export function LifePageView({ view: view }) {
               : view.schedule.value
             ).length ? null : (
               <div key={0} className="muted">
-                <p>{"暂时没有已确认的日程。"}</p>
+                <p>{view.readError?.('schedule')?'日程本次暂未读到，请重新读取。':'暂时没有已确认的日程。'}</p>
                 {view.props.page === "日程" ? (
                   <div className="row">
                     <ActionButton variant="outline"
@@ -310,6 +311,7 @@ export function LifePageView({ view: view }) {
             </div>
             <span className="spacer" />
             <view.DiaryGeneration
+              showDatePicker={false}
               date={view.selectedDate.value}
               onSelect={view.selectDate}
             />
@@ -361,12 +363,12 @@ export function LifePageView({ view: view }) {
                   </article>
                 ) : (
                   <EmptyState key={1} className="diary-paper">
-                    {[<p key={0}>{"这一天还没有日记。"}</p>]}
+                    {[<p key={0}>{view.readError?.('diary')?'日记本次暂未更新，请重新读取。':'这一天还没有日记。'}</p>]}
                   </EmptyState>
                 )}
               </Fragment>
-              <footer className="book-controls">
-                <ActionButton variant="ghost"
+              {view.diaries.value.length>0&&<footer className="book-controls">
+                <ActionButton variant="outline"
 
                   disabled={view.diaryIndex.value <= 0}
                   data-testid="diary-prev"
@@ -392,7 +394,7 @@ export function LifePageView({ view: view }) {
                 >
                   {"下一页 →"}
                 </ActionButton>
-              </footer>
+              </footer>}
             </section>
           </div>
         </Fragment>
@@ -435,14 +437,14 @@ export function LifePageView({ view: view }) {
           </section>
           {view.memories.value.length ? null : (
             <EmptyState as="div" key={0} >
-              <p>{"没有符合条件的记忆。"}</p>
-              <ActionButton variant="outline"
+              <p>{view.readError?.('memory')?'记忆本次暂未更新，已有内容仍保留。':view.search.value.trim()||Object.values(view.filters.value).some(Boolean)?'没有符合条件的记忆。':'相处中的重要细节会在整理后保存到这里。'}</p>
+              {(view.search.value.trim()||Object.values(view.filters.value).some(Boolean))&&<ActionButton variant="outline"
 
                 data-testid="memory-empty-clear"
                 onClick={view.clearFilters}
               >
                 {"清除筛选"}
-              </ActionButton>
+              </ActionButton>}
             </EmptyState>
           )}
           {memory&&!view.draftMemory.value&&<view.DetailDrawer title="记忆详情" testId="memory-detail-drawer" returnFocus={()=>document.getElementById('memory-trigger-'+memory.id)} onClose={()=>view.selectedMemoryId.value=null}>

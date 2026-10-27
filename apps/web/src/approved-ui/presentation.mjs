@@ -22,9 +22,9 @@ export function uniqueReplyNotifications(rows){
     if(seen.has(key))return false;seen.add(key);return true;
   });
 }
-export function notificationGroups(rows,characters){
+export function notificationGroups(rows,characters,includeRead=false){
   const groups=new Map();
-  for(const notice of uniqueReplyNotifications(rows.filter(n=>!n.read_at))){
+  for(const notice of uniqueReplyNotifications(rows.filter(n=>includeRead||!n.read_at))){
     const key=notice.fluctlight_id||'system';
     if(!groups.has(key)){
       const character=characters.find(c=>c.id===notice.fluctlight_id);
@@ -139,7 +139,7 @@ export function diagnosticProjection(
     rawResponse =
       typeof d.response === "string"
         ? d.response
-        : JSON.stringify(d.response || {}, null, 2),
+        : d.response==null?"":JSON.stringify(d.response, null, 2),
     latency = Number(d.latency_ms ?? d.metrics?.latency_ms),
     duration =
       Number.isFinite(latency) && latency >= 0
