@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 72
+- **Total Sessions**: 73
 - **Last Active**: 2026-10-27
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~241 | Active |
+| `journal-2.md` | ~263 | Active |
 | `journal-1.md` | ~1994 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 73 | 2026-10-27 | R13 mobile and domain regressions | `3bed0519` | `codex/v62-r3-retest` |
 | 72 | 2026-10-27 | R12 UI layout and interaction regressions | `85b5916f` | `codex/v62-r3-retest` |
 | 71 | 2026-10-26 | R2 shared presentation component closure | `22119e1c` | `codex/v62-r3-retest` |
 | 70 | 2026-10-26 | R11 UI controls, command recovery and media subject repair | `f3dfba3b`, `fef56b07` | `codex/v62-r3-retest` |

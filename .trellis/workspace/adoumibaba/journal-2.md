@@ -239,3 +239,25 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Status
 
 [OK] **Completed**
+
+
+## Session 73: R13 mobile and domain regressions
+<!-- trellis-session: v=2 fp=cad707768ee391d5 -->
+
+**Date**: 2026-10-27
+**Task**: R13 mobile and domain regressions
+**Branch**: `codex/v62-r3-retest`
+
+### Summary
+
+修复 r13 日历宽表污染、日程规划 ctx.store 挂载失败、移动预览 Sheet 与安全区、指定 44px 热区和侧栏宽度、追加分页原筛选游标重试、衣柜标签/标题/归档文案/初开提示、目标约定空态。402 测试与 typecheck/build/314 模块守卫通过，26 份实际 production DOM 测量和独立只读核验完成。未创建任务、未改提示词或恢复模型 API、未部署 NAS。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3bed0519` | fix(web): resolve r13 mobile and domain regressions |
+
+### Status
+
+[OK] **Completed**
