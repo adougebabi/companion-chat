@@ -1,3 +1,4 @@
+import {AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog";
 import {Progress} from "@/components/ui/progress";
 import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
@@ -595,41 +596,7 @@ export function LifePageView({ view: view }) {
               </form>
             </view.DetailDrawer>
           ) : null}
-          {view.forgetMemory.value ? (
-            <ConfirmationFrame
-              key={2}
-              className="modal-backdrop"
-              onClose={() => (view.forgetMemory.value = null)}
-            >
-              <div
-
-                className="grid gap-4"
-
-
-
-                data-testid="memory-forget-confirm"
-              >
-                <h2>{"遗忘这段记忆？"}</h2>
-                <p>{displayText(view.forgetMemory.value.text)}</p>
-                <div className="row">
-                  <ActionButton variant="outline"
-
-                    onClick={(k) => (view.forgetMemory.value = null)}
-                  >
-                    {"取消"}
-                  </ActionButton>
-                  <ActionButton variant="default"
-
-                    data-testid="memory-confirm-forget"
-                    onClick={() => view.forget()}
-                    disabled={view.memoryBusy.value}
-                  >
-                    {"确认遗忘"}
-                  </ActionButton>
-                </div>
-              </div>
-            </ConfirmationFrame>
-          ) : null}
+          {view.forgetMemory.value?<ConfirmationFrame title="遗忘这段记忆？" description={view.forgetMemory.value.text} data-testid="memory-forget-confirm" onClose={()=>view.forgetMemory.value=null}><AlertDialogCancel>取消</AlertDialogCancel><AlertDialogAction variant="destructive" data-testid="memory-confirm-forget" disabled={view.memoryBusy.value} onClick={event=>{event.preventDefault();void view.forget();}}>确认遗忘</AlertDialogAction></ConfirmationFrame>:null}
         </Fragment>
       ) : null}
       {view.draftMemory.value ? null : (

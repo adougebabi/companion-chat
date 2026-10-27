@@ -3,8 +3,8 @@ import {Surface as CardSurface} from "@/react-app/controls";
 import {configureToast} from '@/v3/proto/components/toast.js';
 import OverlayHost from './shared/OverlayHost';
 import WorkspaceBreadcrumb from './shared/WorkspaceBreadcrumb';
-import {SidebarProvider,Sidebar,SidebarContent,SidebarInset,SidebarTrigger,useSidebar} from '@/components/ui/sidebar';
-import {XIcon} from 'lucide-react';
+import {SidebarProvider,Sidebar,SidebarInset,SidebarTrigger,useSidebar} from '@/components/ui/sidebar';
+import WorkspaceNavigation from './shared/WorkspaceNavigation';
 import {Toaster} from '@/components/ui/sonner';
 import {toast} from 'sonner';
 import LoadingState from './shared/LoadingState';
@@ -20,19 +20,8 @@ import {
 import {
   LeafIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
-  MessageCircleIcon,
-  SproutIcon,
-  EarthIcon,
-  UsersIcon,
-  ImagesIcon,
-  InboxIcon,
-  LibraryIcon,
-  WandSparklesIcon,
-  SettingsIcon,
   PanelRightCloseIcon,
   PanelRightOpenIcon,
-  MenuIcon,
 } from "lucide-react";
 import { createWorkspace } from "../state/workspace.mjs";
 import {
@@ -49,15 +38,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetTrigger,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import CharacterAvatar from "./shared/CharacterAvatar";
-import { cn } from "@/lib/utils";
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const LifePage = lazy(() => import("./pages/LifePage"));
 const WardrobePage = lazy(() => import("./pages/WardrobePage"));
@@ -85,18 +66,6 @@ type Route = {
   path?: string;
   title?: string;
 };
-const characterNavigation = [
-  ["世界", EarthIcon],
-  ["动态", SproutIcon],
-  ["人物关系", UsersIcon],
-  ["媒体", ImagesIcon],
-] as const;
-const globalNavigation = [
-  ["通知与待处理", InboxIcon],
-  ["角色库", LibraryIcon],
-  ["创作中心", WandSparklesIcon],
-  ["管理中心", SettingsIcon],
-] as const;
 
 export default function App() {
   useEffect(()=>configureToast((text:string,type:string)=>{if(type==='err')toast.error(text);else if(['ok','success'].includes(type))toast.success(text);else toast(text);}),[]);
@@ -109,7 +78,7 @@ export default function App() {
   return workspace ? (
     <WorkspaceContext.Provider value={workspace}>
       <div className="react-workspace">
-        <SidebarProvider className="h-dvh min-h-0 w-full overflow-hidden" style={{"--sidebar-width":"202px"} as React.CSSProperties}><WorkspaceShell workspace={workspace}/><OverlayHost/><Toaster richColors closeButton/></SidebarProvider>
+        <SidebarProvider className="h-dvh min-h-0 w-full overflow-hidden" style={{"--sidebar-width":"256px"} as React.CSSProperties}><WorkspaceShell workspace={workspace}/><OverlayHost/><Toaster richColors closeButton/></SidebarProvider>
       </div>
     </WorkspaceContext.Provider>
   ) : (
@@ -123,7 +92,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     workspace.getSnapshot,
   );
   const [route, setRoute] = useState<Route>(() => approvedRoute(location.hash));
-  const {setOpenMobile:setMobileOpen}=useSidebar();
+  const {setOpenMobile:setMobileOpen,open:sidebarOpen,isMobile}=useSidebar();
   const [lifeOpen, setLifeOpen] = useState(true),
     [preview, setPreview] = useState(() => !window.matchMedia("(max-width: 800px)").matches);
   const main = useRef<HTMLElement>(null),
@@ -243,56 +212,6 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         </Button>
       </CardSurface>
     );
-  const navItem = (label: string, Icon?: typeof LeafIcon, scoped = true) => (
-    <Button
-      key={label}
-      type="button"
-      variant="ghost"
-      data-testid={`nav-${label}`}
-      disabled={scoped && !character.id}
-      aria-current={page === label ? "page" : undefined}
-      className={cn("nav-item justify-start", page === label && "active")}
-      onClick={() => navigate(label)}
-    >
-      {Icon && <Icon size={17} />}
-      <span>{label}</span>
-    </Button>
-  );
-  const navigation = (
-    <>
-      <div className="workspace-label">
-        角色工作区 <span>{character.name}</span>
-      </div>
-      <nav>
-        {navItem("聊天", MessageCircleIcon)}
-        <Button
-          type="button"
-          variant="ghost"
-          className="nav-item justify-start"
-          disabled={!character.id}
-          aria-expanded={lifeOpen}
-          onClick={() => setLifeOpen(!lifeOpen)}
-        >
-          <SproutIcon size={17} />
-          <span>生活</span>
-          <ChevronDownIcon size={13} />
-        </Button>
-        {lifeOpen && (
-          <div className="life-nav">
-            {lifePages.map((label) => navItem(label))}
-          </div>
-        )}
-        {characterNavigation.map(([label, Icon]) => navItem(label, Icon, label === "人物关系"))}
-      </nav>
-      <Separator className="nav-divider" />
-      <nav>
-        {globalNavigation.map(([label, Icon]) => navItem(label, Icon, false))}
-      </nav>
-      <div className="sidebar-footer">
-        每一个世界，都有回响 <small>Fluctlight · v6</small>
-      </div>
-    </>
-  );
   const content = route.feature ? <DomainPage key={route.path+"?"+route.query} route={route}/>
     : route.information ? <CardSurface as="section" ><h2>{route.information.title}</h2><p>{route.information.body}</p><Button variant="outline" onClick={()=>navigate(route.information!.page)}>{route.information.label}</Button></CardSurface>
     : page === "聊天" ? <ChatPage key={character.id} preview={preview} onGo={navigate}/>
@@ -311,7 +230,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   return (
     <div className="shell w-full min-w-0">
       <header className="topbar">
-        <SidebarTrigger aria-label="打开导航"/>
+        <SidebarTrigger aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
         <Button
           variant="ghost"
           className="brand"
@@ -364,10 +283,10 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
           <i />
           相伴此刻
         </span>
-        <span className="self-avatar">我</span>
+        <CharacterAvatar name="我" initial="我" className="small"/>
       </header>
       <div className="layout">
-        <Sidebar className="top-[68px] h-[calc(100dvh-68px)]"><SidebarContent className="react-workspace gap-3 px-3 py-5"><Button type="button" variant="ghost" size="icon" className="self-end md:hidden" aria-label="关闭导航" onClick={()=>setMobileOpen(false)}><XIcon/></Button>{navigation}</SidebarContent></Sidebar>
+        <Sidebar className="top-[68px] h-[calc(100dvh-68px)]"><WorkspaceNavigation page={page} character={character} lifeOpen={lifeOpen} onLifeOpenChange={setLifeOpen} onNavigate={navigate}/></Sidebar>
         <SidebarInset
           ref={main}
           tabIndex={-1}

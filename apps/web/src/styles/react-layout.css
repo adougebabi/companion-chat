@@ -585,6 +585,8 @@
     margin: 0 2px;
   }
   .react-workspace .character-switch {
+    min-width: 0;
+    max-width: min(34vw, 300px);
     display: flex;
     align-items: center;
     gap: 9px;
@@ -673,56 +675,13 @@
     flex: 1;
     min-height: 0;
   }
-  .react-workspace .sidebar {
-    width: 218px;
-    flex: none;
-    background: #fcfdfb;
-    border-right: 1px solid #e1e6df;
-    padding: 23px 14px 0;
-    overflow: auto;
-    display: flex;
-    flex-direction: column;
-  }
-  .react-workspace .workspace-label,
-  .react-workspace .nav-section {
-    color: #9aa195;
-    font-size: 12px;
-    letter-spacing: 1px;
-    padding: 0 13px;
-    margin-bottom: 12px;
-  }
-  .react-workspace .workspace-label span {
-    display: block;
-    letter-spacing: 0;
-    font-size: 12px;
-    margin-top: 8px;
-    color: #637760;
-  }
-  .react-workspace .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    text-align: left;
-    padding: 9px 13px;
-    margin: 2px 0;
-    border-radius: 6px;
-    color: #69766b;
-    font-size: 13px;
-    min-height: 34px;
-  }
-  .react-workspace .nav-item svg {
-    color: #8b978b;
-    stroke-width: 1.5;
-  }
-  .react-workspace .nav-item.active {
-    background: #e9f0e8;
-    color: #3e715b;
-    font-weight: 600;
-  }
-  .react-workspace .nav-item.active svg {
-    color: #52826b;
-  }
+
+
+
+
+
+
+
   .react-workspace .active-dot {
     width: 5px;
     height: 5px;
@@ -730,11 +689,7 @@
     border-radius: 50%;
     margin-left: auto;
   }
-  .react-workspace .nav-section {
-    margin-top: 25px;
-    border-top: 1px solid #e7ebe4;
-    padding-top: 20px;
-  }
+
   .react-workspace .count {
     margin-left: auto;
     background: #eeeae0;
@@ -743,21 +698,8 @@
     border-radius: 4px;
     font-size: 12px;
   }
-  .react-workspace .sidebar-footer {
-    margin-top: auto;
-    padding: 27px 10px 22px;
-    display: flex;
-    gap: 9px;
-    font-size: 12px;
-    color: #939c90;
-    white-space: nowrap;
-  }
-  .react-workspace .sidebar-footer small {
-    display: block;
-    font-size: 12px;
-    margin-top: 5px;
-    color: #b0b7ab;
-  }
+
+
   .react-workspace .mini-logo {
     font-size: 24px;
     color: #9eaf98;
@@ -1647,9 +1589,7 @@
     .react-workspace main {
       padding: 30px 40px;
     }
-    .react-workspace .sidebar {
-      width: 236px;
-    }
+
     .react-workspace .chat-layout {
       grid-template-columns: minmax(320px, 1fr) 300px;
       gap: 26px;
@@ -1662,11 +1602,7 @@
     }
   }
   @media (max-width: 1100px) {
-    .react-workspace .sidebar {
-      width: 185px;
-      padding-left: 9px;
-      padding-right: 9px;
-    }
+
     .react-workspace main {
       padding: 22px 20px;
     }
@@ -1698,32 +1634,12 @@
     }
   }
   @media (max-width: 800px) {
-    .react-workspace .sidebar {
-      width: 62px;
-      padding: 15px 8px;
-    }
-    .react-workspace .workspace-label,
-    .react-workspace .nav-section,
-    .react-workspace .nav-item span,
-    .react-workspace .sidebar-footer {
-      display: none;
-    }
-    .react-workspace .nav-item {
-      padding: 11px;
-      justify-content: center;
-    }
-    .react-workspace .sidebar nav + nav {
-      margin-top: 15px;
-    }
-    .react-workspace .sidebar nav:nth-of-type(2) {
-      border-top: 1px solid #e0e5d9;
-      margin-top: 15px;
-      padding-top: 15px;
-    }
-    .react-workspace .nav-item svg {
-      width: 19px;
-      height: 19px;
-    }
+
+
+
+
+
+
     .react-workspace .chat-layout {
       display: flex;
       position: relative;
@@ -1804,21 +1720,10 @@
 
   }
   @media (max-height: 800px) and (min-width: 801px) {
-    .react-workspace .nav-item {
-      padding-top: 6px;
-      padding-bottom: 6px;
-      min-height: 29px;
-    }
-    .react-workspace .nav-section {
-      margin-top: 14px;
-      padding-top: 14px;
-    }
-    .react-workspace .sidebar {
-      padding-top: 17px;
-    }
-    .react-workspace .sidebar-footer {
-      padding-top: 18px;
-    }
+
+
+
+
     .react-workspace .scene {
       height: 140px;
     }
@@ -1850,35 +1755,13 @@
   .react-workspace select {
     touch-action: manipulation;
   }
-  .react-workspace .sidebar {
-    width: 204px;
-    padding-top: 15px;
-  }
-  .react-workspace .nav-item {
-    padding: 6px 12px;
-    min-height: 29px;
-  }
-  .react-workspace .life-nav {
-    padding-left: 27px;
-  }
-  .react-workspace .life-nav .nav-item {
-    font-size: 12px;
-    min-height: 25px;
-    padding: 4px 12px;
-  }
-  .react-workspace .nav-divider {
-    border: 0;
-    border-top: 1px solid #e3e8df;
-    width: 100%;
-    margin: 14px 0;
-  }
-  .react-workspace .sidebar-footer {
-    display: block;
-    line-height: 1.9;
-  }
-  .react-workspace .sidebar-footer small {
-    display: block;
-  }
+
+
+
+
+
+
+
   .react-workspace .page-content {
     gap: 14px;
     max-width: 1250px;
@@ -2224,33 +2107,13 @@
     margin-bottom: 19px;
   }
   @media (max-width: 800px) {
-    .react-workspace .sidebar {
-      width: 128px;
-      padding: 10px 6px;
-    }
-    .react-workspace .nav-item {
-      justify-content: flex-start;
-      gap: 6px;
-      padding: 6px;
-      font-size: 12px;
-    }
-    .react-workspace .nav-item span {
-      display: inline;
-    }
-    .react-workspace .nav-item svg {
-      width: 14px;
-      flex: none;
-    }
-    .react-workspace .life-nav {
-      padding-left: 12px;
-    }
-    .react-workspace .life-nav .nav-item {
-      font-size: 12px;
-      padding-left: 8px;
-    }
-    .react-workspace .nav-divider {
-      display: block;
-    }
+
+
+
+
+
+
+
     .react-workspace .form-grid {
       grid-template-columns: 1fr;
     }
@@ -2281,7 +2144,6 @@
   .react-workspace,
   .react-workspace main,
   .react-workspace .timeline,
-  .react-workspace .sidebar,
   .react-workspace .preview {
     scrollbar-gutter: stable;
   }
@@ -2795,11 +2657,7 @@
     outline: 2px solid #9bb094;
     outline-offset: 3px;
   }
-  .react-workspace .world-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 18px;
-  }
+
   .react-workspace .world-list .current {
     border-color: #93ad90;
   }
@@ -3882,15 +3740,10 @@
   .react-workspace .brand-mark {
     background: var(--teal);
   }
-  .react-workspace .brand-en,
-  .react-workspace .workspace-label,
-  .react-workspace .nav-section {
+  .react-workspace .brand-en{
     color: var(--copy-muted);
   }
-  .react-workspace .workspace-label span {
-    color: #4d6356;
-    font-weight: 550;
-  }
+
   .react-workspace .scope {
     color: var(--copy-secondary);
     border-color: var(--border);
@@ -3915,37 +3768,14 @@
     background: #f4efe5;
     border-color: #e2dacb;
   }
-  .react-workspace .sidebar {
-    background: #f9fbf8;
-    border-color: #d9e2da;
-  }
-  .react-workspace .nav-item {
-    color: #52645a;
-  }
-  .react-workspace .nav-item svg {
-    color: #788b7e;
-    stroke-width: 1.7;
-  }
-  .react-workspace .nav-item:hover {
-    background: #edf2ec;
-  }
-  .react-workspace .nav-item.active {
-    background: #dcebe1;
-    color: #1d5945;
-    font-weight: 650;
-    box-shadow: inset 3px 0 var(--teal);
-  }
-  .react-workspace .nav-item.active svg {
-    color: var(--teal);
-    stroke-width: 2;
-  }
-  .react-workspace .nav-divider {
-    border-color: #dfe6de;
-  }
-  .react-workspace .sidebar-footer,
-  .react-workspace .sidebar-footer small {
-    color: var(--copy-muted);
-  }
+
+
+
+
+
+
+
+
   .react-workspace .breadcrumb {
     color: var(--copy-muted);
     font-size: 12px;
@@ -4781,10 +4611,7 @@
     padding-left: 18px;
     line-height: 1.9;
   }
-  .react-workspace .nav-item:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
+
   @media (max-width: 640px) {
     .react-workspace .character-field-grid,
     .react-workspace .creation-mode-choices {
@@ -4864,3 +4691,23 @@
 
 }
 [data-domain-carrier], [data-domain-react-control][hidden] { display: none !important; }
+
+@layer components {
+  .react-workspace .entity-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    align-items: stretch;
+    gap: 20px;
+    min-width: 0;
+  }
+  .react-workspace .entity-card-grid > .entity-card {
+    width: 100%;
+    max-width: 380px;
+    min-width: 0;
+    justify-self: start;
+  }
+}
+
+@layer components {
+ .react-workspace .character-switch b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

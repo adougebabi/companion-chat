@@ -1,4 +1,4 @@
-import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
+import {InlineFeedback} from "@/react-app/shared/Presentation";
 import { RotateCcwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { chatFailureText } from "@/v3/chat-feedback.mjs";
@@ -25,11 +25,12 @@ export default function ChatTurnFeedback({
           ),
         );
   return (
-    <div className="error" role="alert">
+    <InlineFeedback className="mt-2" role="alert">
       {reason}
-      {store.retrying && <OperationStatus variant="default" role="status">正在提交重试请求并等待回复</OperationStatus>}
+      {store.retrying && <p className="m-0 text-sm" role="status">正在提交重试请求并等待回复</p>}
       <Button
-        variant="ghost"
+        variant="outline"
+        className="ml-2 w-fit"
         disabled={store.sending || store.retrying}
         onClick={() =>
           message.turnRetryable
@@ -44,6 +45,6 @@ export default function ChatTurnFeedback({
             ? "重试原回应"
             : "查看状态"}
       </Button>
-    </div>
+    </InlineFeedback>
   );
 }

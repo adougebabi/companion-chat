@@ -1,6 +1,5 @@
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {InlineFeedback} from "@/react-app/shared/Presentation";
-import {Surface as CardSurface} from "@/react-app/controls";
 import ModelTranscript from '@/react-app/shared/ModelTranscript';
 import JsonDetails from '@/react-app/shared/JsonDetails';
 import {Table,TableBody,TableCell,TableRow} from '@/components/ui/table';
@@ -423,16 +422,12 @@ export function ManagementPageView({ view: view }) {
               </Surface>
               <Fragment>
                 {listValues(view.settings.value).map((h) => (
-                  <CardSurface
+                  <Surface as="section"
                     key={h.title}
                     id={view.sectionId(h.title)}
                     className="settings-group"
-                    title={
-                      <>
-                        {h.title === "高级" ? "高级 · Kev 决策服务" : h.title}
-                      </>
-                    }
                   >
+                    <Disclosure title={h.title === "高级" ? "高级 · Kev 决策服务" : h.title}>
                     {h.title === "图片（ComfyUI）" ? (
                       <p key={2} className="muted">
                         {"图片使用 ComfyUI；需要图片功能时再展开配置。"}
@@ -461,7 +456,8 @@ export function ManagementPageView({ view: view }) {
                         )}
                       </ActionButton>
                     ) : null}
-                  </CardSurface>
+                    </Disclosure>
+                  </Surface>
                 ))}
               </Fragment>
               {view.testResult.value ? (

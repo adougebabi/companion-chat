@@ -2,7 +2,7 @@ import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {Surface as CardSurface} from "@/react-app/controls";
 import { useController } from "@/react-app/page";
 import { selector } from "@/state/view-model";
-import { ActionButton, Disclosure } from "@/react-app/controls";
+import { ActionButton } from "@/react-app/controls";
 import { displayText } from "@/react-app/render-helpers";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
 import PreparationSteps from "@/react-app/shared/PreparationSteps";
@@ -99,29 +99,6 @@ function createWardrobePreparationController(__props, context, lifecycle) {
     return (
       <CardSurface
         className="approved-preparation"
-        open={
-          !!readError.value ||
-          preparation.value?.status === "failed" ||
-          preparation.value?.can_recover
-        }
-        title={
-          <>
-            {" 初始穿搭准备 "}
-            <small>
-              {displayText(
-                preparation.value
-                  ? {
-                      ready: "已完成",
-                      failed: "执行失败",
-                      running: "进行中",
-                      pending: "等待中",
-                      unknown: "状态待确认",
-                    }[stages.value[0].state]
-                  : "读取中",
-              )}
-            </small>
-          </>
-        }
       >
         <PreparationSteps
           stages={stages.value}
@@ -134,7 +111,7 @@ function createWardrobePreparationController(__props, context, lifecycle) {
           </InlineFeedback>
         ) : null}
         <ActionFeedback labels={["衣柜"]} />
-        <ActionButton variant="ghost"  type="button" onClick={load}>
+        <ActionButton variant="outline" className="w-fit self-start" type="button" onClick={load}>
           {" 重新读取准备状态 "}
         </ActionButton>
       </CardSurface>

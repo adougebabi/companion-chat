@@ -16,6 +16,12 @@ const labels={pending:'正在等待日记生成',running:'正在生成',ready:'�
 const entryHref=(fid,id)=>`#/c/${encodeURIComponent(fid)}/life/diary/${encodeURIComponent(id)}`;
 const drafts=new Map(),generationDrafts=new Map();store.subscribe(()=>{if(!store.get('session')){drafts.clear();generationDrafts.clear();}});
 
+export function diaryGenerationRecord(fid,entry){
+ const pending=['pending','running'].includes(entry.status);
+ const message=pending?'<p data-domain-ui="skeleton">正在整理这一天的经历，可以稍后回来查看。</p>':entry.status==='failed'?'<p data-domain-ui="alert" class="banner err" role="alert">这次日记生成失败，可查看原因并从原记录恢复。</p>':'<p>这一天还没有形成日记正文。</p>';
+ return `<article data-domain-ui="card" class="card diary-generation-state"><b>${esc(entry.date)} · ${esc(labels[entry.status]||'没有正文')}</b>${message}<a data-domain-ui="button" class="btn" href="${esc(entryHref(fid,entry.id))}">${entry.status==='failed'?'查看原因与恢复':'查看生成进度'}</a></article>`;
+}
+
 export function renderRealDiaryList(el,ctx){
  const fid=ctx.charId,favorite=ctx.query.favorite==='true',zone=store.get('characters',fid)?.timezone;
  const key=JSON.stringify([store.get('session')?.actorId,fid]);
@@ -23,7 +29,7 @@ export function renderRealDiaryList(el,ctx){
  const draft=generationDrafts.get(key);
  let active=true,reader,generationDrawer;
  el.innerHTML=`<div class="stack reading-workspace"><div class="row reading-page-heading"><h1 class="reading-business-title grow">她的日记</h1><button data-domain-ui="button" class="btn" data-open-generation>补写日记</button></div><div class="row diary-reading-toolbar">${Tabs({attrs:{role:'group','aria-label':'日记筛选'},value:favorite?'favorite':'all',items:[{value:'all',label:'全部日记',href:`#/c/${fid}/life/diary`},{value:'favorite',label:'收藏',href:`#/c/${fid}/life/diary?favorite=true`}]})}</div><div data-diary-reading></div></div>`;
- reader=mountCalendarReading(el.querySelector('[data-diary-reading]'),{scope:[fid,'diary',favorite],zone,initialDate:ctx.query.date||'',initialMonth:ctx.query.month||'',initialMode:ctx.query.mode||'list',visible:d=>typeof d.body==='string'&&!!d.body.trim(),emptyText:'还没有读到她写下的日记。',label:'日记',renderHidden:d=>`<article data-domain-ui="card" class="card diary-generation-state"><b>${esc(d.date)} · ${esc(labels[d.status]||'没有正文')}</b>${['pending','running'].includes(d.status)?'<progress aria-label="日记生成中"></progress><p>正在整理这一天的经历，可以稍后回来查看。</p>':d.status==='failed'?'<p>这次日记生成失败，可查看原因并从原记录恢复。</p>':'<p>这一天还没有形成日记正文。</p>'}<a data-domain-ui="button" class="btn" href="${esc(entryHref(fid,d.id))}">${d.status==='failed'?'查看原因与恢复':'查看生成进度'}</a></article>`,onView:view=>{ctx.raw=ctx.path+'?'+new URLSearchParams({...view,...(favorite?{favorite:'true'}:{})});history.replaceState(null,'','#'+ctx.raw);},read:cursor=>diaryClient.list(fid,cursor,favorite),dateOf:d=>d.date,
+ reader=mountCalendarReading(el.querySelector('[data-diary-reading]'),{scope:[fid,'diary',favorite],zone,initialDate:ctx.query.date||'',initialMonth:ctx.query.month||'',initialMode:ctx.query.mode||'list',visible:d=>typeof d.body==='string'&&!!d.body.trim(),emptyText:'还没有读到她写下的日记。',label:'日记',renderHidden:d=>diaryGenerationRecord(fid,d),onView:view=>{ctx.raw=ctx.path+'?'+new URLSearchParams({...view,...(favorite?{favorite:'true'}:{})});history.replaceState(null,'','#'+ctx.raw);},read:cursor=>diaryClient.list(fid,cursor,favorite),dateOf:d=>d.date,
   toolbar:'',
   render:d=>`<article class="reading-paper life-reading-paper"><div class="row"><h3 class="grow">${esc(d.date)}</h3>${d.annotation.favorite?badge('已收藏'):''}${badge(labels[d.status]||d.status,'plain')}</div><p class="paper-body">${esc(d.body||(d.date===localDate(new Date().toISOString(),zone||'Asia/Shanghai')?'今晚她会写下今天的日记，有合适素材时才会形成正文。':['pending','running'].includes(d.status)?'正在整理这一天的经历，打开可查看生成进度。':d.status==='failed'?'这篇日记没有生成，打开可查看原因并重试。':'还没有正文，打开查看这次回顾的结果。'))}</p><a data-domain-ui="button" class="btn" href="${esc(sourceHref(entryHref(fid,d.id),ctx,'返回日记'))}">阅读这篇日记</a></article>`});
  function openGeneration(){

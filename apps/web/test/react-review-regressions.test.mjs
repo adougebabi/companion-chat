@@ -245,3 +245,15 @@ test("world deletion confirmation supports its Radix close control without issui
     await view.dispose();
   }
 });
+test('world delete keeps its original confirmation on a rejected command and closes only after acknowledged completion',async()=>{
+ const {default:World}=await load('react-app/pages/WorldPage.jsx'),w=workspace(),bodies=[];let settle,reject;
+ w.state.worlds=[{id:'W',name:'保留的世界',genre:'日常',residents:[],sites:[],_source:{revision:7}}];
+ w.command=(_label,operation,body)=>{bodies.push({operation,body});return{completion:new Promise((resolve,no)=>{settle=resolve;reject=no;})};};
+ const v=await mountReact(vite,World,{workspace:w});try{const trigger=v.host.querySelector('[aria-label="保留的世界的世界操作"]');trigger.focus();await act(async()=>trigger.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await v.flush();await v.click([...document.querySelectorAll('[role=menuitem]')].find(n=>n.textContent==='删除'));await v.click(document.querySelector('[data-slot=alert-dialog-action]'));assert.equal(bodies.length,1);assert.equal(bodies[0].body.expectedRevision,7);assert.ok(document.querySelector('[role=alertdialog]'));await act(async()=>reject(Error('写入失败')));await v.flush();assert.ok(document.querySelector('[role=alertdialog]'));assert.match(document.querySelector('[data-slot=alert-dialog-description]').textContent,/保留的世界/);await v.click(document.querySelector('[data-slot=alert-dialog-action]'));assert.equal(bodies.length,2);assert.deepEqual(bodies[1],bodies[0]);await act(async()=>settle({}));await v.flush();assert.equal(document.querySelector('[role=alertdialog]'),null);}finally{await v.dispose();}
+});
+test('memory forget keeps the original selected memory on failure and waits for completion before closing',async()=>{
+ const {default:Life}=await load('react-app/pages/LifePage.jsx'),w=workspace();let reject,settle,writes=0;
+ w.current.value.life.memories=[{id:'M',text:'保留的记忆正文',date:'2026-10-26',importance:3,category:'长期记忆',tags:[],_source:{id:'M',revision:4}}];
+ w.command=()=>{writes++;return{completion:new Promise((resolve,no)=>{settle=resolve;reject=no;})};};
+ const v=await mountReact(vite,Life,{workspace:w,props:{page:'记忆',initialMemoryId:'M'}});try{await v.click(v.host.querySelector('[data-testid=memory-forget-M]'));await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,1);assert.ok(document.querySelector('[role=alertdialog]'));await act(async()=>reject(Error('写入失败')));await v.flush();assert.ok(document.querySelector('[role=alertdialog]'));assert.match(document.querySelector('[data-slot=alert-dialog-description]').textContent,/保留的记忆正文/);await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,2);await act(async()=>settle({}));await v.flush();assert.equal(document.querySelector('[role=alertdialog]'),null);}finally{await v.dispose();}
+});

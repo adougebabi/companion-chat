@@ -84,7 +84,8 @@ export function ActionButton({
   ...props
 }: React.ComponentProps<typeof Button>) {
 
-  return <ControlHint text={title}><Button className={className} variant={variant??'ghost'} type={type} {...props}>{children}</Button></ControlHint>;
+  const intrinsic=!className&&props['aria-expanded']===undefined&&props.role!=='menuitem';
+  return <ControlHint text={title}><Button className={cn(intrinsic&&'w-fit max-w-full',className)} variant={variant??'ghost'} type={type} {...props}>{children}</Button></ControlHint>;
 }
 
 export function Surface({
@@ -93,7 +94,7 @@ export function Surface({
   children,
   ...props
 }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) {
-  return <Card asChild className={cn('min-w-0 gap-4 p-5',className?.includes('media-tile')&&'p-0')}><Tag className={className} {...props}>{children}</Tag></Card>;
+  return <Card asChild className={cn('min-w-0 gap-4 p-5',className?.includes('media-tile')&&'p-0',className)}><Tag {...props}>{children}</Tag></Card>;
 }
 
 type FieldProps = Omit<
@@ -152,7 +153,7 @@ function FieldControl({
     );
   }
   if (type === "date") return <DateField value={value} onChange={onChange} onInput={onInput} {...props}/>;
-  if (type === "time") return <InputGroup className="h-auto min-h-11"><InputGroupAddon><ClockIcon/></InputGroupAddon><DraftTextControl type="text" inputMode="numeric" placeholder="HH:mm" pattern="(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?" value={value} onChange={onChange} onInput={onInput} className={cn('border-0 shadow-none focus-visible:ring-0',className)} data-slot="input-group-control" {...props}/></InputGroup>;
+  if (type === "time") return <InputGroup className="h-auto min-h-11"><InputGroupAddon><ClockIcon/></InputGroupAddon><DraftTextControl {...props} type="text" inputMode="numeric" placeholder={props.placeholder||'HH:mm'} pattern={props.pattern||'(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?'} value={value} onChange={onChange} onInput={onInput} className={cn('border-0 shadow-none focus-visible:ring-0',className)} data-slot="input-group-control"/></InputGroup>;
   if (type === "file") return <FilePicker onChange={onChange} onInput={onInput} {...props}/>;
   if (type === "number") return <NumberControl className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
   return <DraftTextControl type={type} className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
@@ -291,7 +292,7 @@ export function MenuDisclosure({ title, children, className, ...props }: any) {
           {title}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" sideOffset={6} collisionPadding={8}>
         {actions.map((action, index) => (
           <DropdownMenuItem key={action.key ?? index} asChild>
             {action}

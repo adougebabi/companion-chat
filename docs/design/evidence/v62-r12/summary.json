@@ -1,0 +1,33 @@
+{
+  "scope": "r12 original issues only; isolated production dist; no live model or media calls",
+  "rounds": [
+    {
+      "round": 1,
+      "snapshots": 45,
+      "recordedIssues": 0,
+      "desktopCases": 9,
+      "desktopWidths": [
+        1280,
+        1440
+      ],
+      "narrowWidth": 390
+    },
+    {
+      "round": 2,
+      "snapshots": 45,
+      "recordedIssues": 0,
+      "desktopCases": 9,
+      "desktopWidths": [
+        1280,
+        1440
+      ],
+      "narrowWidth": 390
+    }
+  ],
+  "nonReadRequests": [
+    {
+      "method": "POST",
+      "path": "/auth/logout"
+    }
+  ]
+}

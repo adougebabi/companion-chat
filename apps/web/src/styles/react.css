@@ -23,6 +23,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -48,6 +56,14 @@
   --input: #cfdad2;
   --ring: #286b59;
   --radius: 0.6rem;
+  --sidebar: #f6f8f5;
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
   font-family:
     Inter,
     -apple-system,
@@ -126,14 +142,8 @@ body {
   .mobile-nav-trigger {
     display: inline-flex;
   }
-  .react-workspace .sidebar {
-    display: none;
-  }
-  .mobile-nav-content .nav-item {
-    display: flex;
-    width: 100%;
-    justify-content: flex-start;
-  }
+
+
 }
 
 .react-workspace.product-dialog,
@@ -164,7 +174,8 @@ body {
 .react-workspace .media-preview>.approved-media-content{display:block;width:100%;height:106px;max-width:100%;object-fit:cover;}
 .react-workspace .large-media.media-preview{height:auto;min-height:300px;}
 .react-workspace .large-media.media-preview .approved-media-content{height:400px;object-fit:contain;}
-@media(max-width:800px){.react-workspace .sidebar{display:none;}.mobile-nav-trigger{display:inline-flex;}.react-workspace .chat-main{display:flex;flex-direction:column;min-height:0;overflow:hidden;}.react-workspace .chat-layout,.react-workspace .chat-layout.collapsed{flex:1;min-height:0;height:auto;}.react-workspace .chat-panel,.react-workspace .timeline{min-height:0;}.react-workspace .composer{flex:none;}}
+@media(max-width:800px){
+.mobile-nav-trigger{display:inline-flex;}.react-workspace .chat-main{display:flex;flex-direction:column;min-height:0;overflow:hidden;}.react-workspace .chat-layout,.react-workspace .chat-layout.collapsed{flex:1;min-height:0;height:auto;}.react-workspace .chat-panel,.react-workspace .timeline{min-height:0;}.react-workspace .composer{flex:none;}}
 
 /* Error placeholders have no visible frame until their controller writes text. */
 [data-domain-ui="alert"][data-slot="alert"]:empty { display: none; }

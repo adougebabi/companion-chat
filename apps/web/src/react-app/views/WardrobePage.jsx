@@ -1,3 +1,4 @@
+import {AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog";
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
@@ -626,41 +627,7 @@ export function WardrobePageView({ view: view }) {
             </form>
           </DrawerFrame>
         ) : null}
-        {view.confirmation.value ? (
-          <ConfirmationFrame
-            key={4}
-            className="modal-backdrop"
-            onClose={(x) => (view.confirmation.value = null)}
-          >
-            <div
-
-              className="grid gap-4"
-
-
-
-            >
-              <h2>{displayText(view.confirmation.value.title)}</h2>
-              <p>{displayText(view.confirmation.value.message)}</p>
-              <div className="row">
-                <ActionButton variant="outline"
-
-                  onClick={(x) => (view.confirmation.value = null)}
-                >
-                  {"取消"}
-                </ActionButton>
-                <ActionButton variant="default"
-
-                  onClick={(x) => {
-                    (view.confirmation.value.run(),
-                      (view.confirmation.value = null));
-                  }}
-                >
-                  {"确认删除"}
-                </ActionButton>
-              </div>
-            </div>
-          </ConfirmationFrame>
-        ) : null}
+        {view.confirmation.value?<ConfirmationFrame title={view.confirmation.value.title} description={view.confirmation.value.message} onClose={()=>view.confirmation.value=null}><AlertDialogCancel>取消</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={()=>{view.confirmation.value.run();view.confirmation.value=null;}}>确认删除</AlertDialogAction></ConfirmationFrame>:null}
         {view.garment.value ? null : (
           <view.ActionFeedback
             key={5}

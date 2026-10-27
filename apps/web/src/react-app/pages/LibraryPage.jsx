@@ -1,3 +1,6 @@
+import {Card,CardHeader,CardTitle,CardDescription,CardContent,CardFooter} from "@/components/ui/card";
+import EntityCardGrid from "@/react-app/shared/EntityCardGrid";
+import ControlHint from "@/react-app/shared/ControlHint";
 import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import { useController } from "@/react-app/page";
@@ -127,8 +130,8 @@ function createLibraryPageController(__props, context, lifecycle) {
               )}
             </b>
             <p>{"上次的资料和准备进度已经为你保留。"}</p>
-            <ActionButton variant="ghost" asChild >
-              <a  href="#/library/create">
+            <ActionButton variant="link" className="w-fit self-start" asChild>
+              <a href="#/library/create">
                 {"继续创建与查看进度 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
               </a>
             </ActionButton>
@@ -150,42 +153,9 @@ function createLibraryPageController(__props, context, lifecycle) {
               testId="library-filters"
               placeholder="搜索角色 / 职业"
             />
-            <Fragment>
-              {listValues(rows.value).map((character) => {
-                return (
-                  <Surface
-                    key={character.id}
-                    as="article"
-                    className="compact library-character"
-                  >
-                    <div className="row">
-                      <CharacterAvatar
-                        name={character.name}
-                        initial={character.initial}
-                        color={character.color}
-                        src={character._directory?.avatar}
-                      />
-                      <div className="library-character-copy">
-                        <b>{displayText(character.name)}</b>
-                        {subtitle(character) ? (
-                          <p key={0}>{displayText(subtitle(character))}</p>
-                        ) : null}
-                        <Fragment>
-                          {listValues(character.tags || []).map((tag) => {
-                            return (
-                              <Badge key={tag} >
-                                {displayText(tag)}
-                              </Badge>
-                            );
-                          })}
-                        </Fragment>
-                      </div>
-                      <span className="spacer" />
-                      {readValue(w).state.selectedId === character.id ? (
-                        <Badge key={0} className="current-badge">
-                          {"当前"}
-                        </Badge>
-                      ) : null}
+            <EntityCardGrid className="library-grid" data-testid="library-grid" aria-label="角色卡片">
+              {listValues(rows.value).map((character)=><Card key={character.id} asChild className="entity-card h-full gap-0 overflow-hidden py-0"><article className="library-character" data-testid={'library-card-'+character.id}>
+                <CardHeader className="gap-3 pb-4"><div className="flex min-w-0 items-start justify-between gap-3"><CharacterAvatar className="size-12" name={character.name} initial={character.initial} color={character.color} src={character._directory?.avatar}/><div className="flex shrink-0 items-center gap-1">{readValue(w).state.selectedId===character.id&&<Badge variant="secondary">当前</Badge>}
                       <MenuDisclosure
                         className="actions-menu"
                         title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
@@ -222,11 +192,11 @@ function createLibraryPageController(__props, context, lifecycle) {
                           ) : null}
                         </div>
                       </MenuDisclosure>
-                    </div>
-                  </Surface>
-                );
-              })}
-            </Fragment>
+                </div></div><ControlHint text={character.name}><CardTitle className="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{character.name}</CardTitle></ControlHint>{subtitle(character)&&<CardDescription className="line-clamp-2 break-words">{subtitle(character)}</CardDescription>}</CardHeader>
+                <CardContent className="flex flex-1 flex-col gap-3 pb-4">{character.bio&&<p className="m-0 line-clamp-3 break-words text-sm text-muted-foreground">{character.bio}</p>}<div className="flex flex-wrap gap-1.5">{(character.tags||[]).map(tag=><Badge key={tag} variant="outline">{tag}</Badge>)}</div></CardContent>
+                <CardFooter className="flex-wrap gap-2"><ActionButton variant="outline" onClick={()=>details(character.id)}>角色详情</ActionButton><ActionButton variant="default" onClick={()=>choose(character.id)}>进入聊天</ActionButton></CardFooter>
+              </article></Card>)}
+            </EntityCardGrid>
             {!rows.value.length ? (
               <EmptyState key={0} as="div" >
                 <p>{"暂无匹配角色。"}</p>

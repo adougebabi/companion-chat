@@ -292,3 +292,14 @@ form submission with fixture API, 390px overflow/console check, type/build.
 
 Wrong: require JSON for ordinary entry and submit availability=stored.
 Correct: typed Chinese choices and the canonical available/unavailable/lost codes.
+
+## R12 presentation regression evidence
+
+For layout migration fixes, inspect actual production DOM geometry at the report's
+widths and relevant narrow width. Verify single-item grids, long names, no-image
+records, intrinsic CTA width, menu alignment and structural full-width controls.
+Use apps/web/test/helpers/r12-layout.mjs for read-only measurements; wait for the
+measured state before recording a portal/confirmation sample. Component names,
+package installation and JSDOM alone cannot certify layout or visual acceptance.
+Regression tests must cover real consumer callbacks, async failure/cancel,
+Disclosure draft retention and invalid rich title props, not just JSX tag scans.

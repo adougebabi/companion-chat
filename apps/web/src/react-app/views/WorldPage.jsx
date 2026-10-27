@@ -1,3 +1,8 @@
+import {AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog";
+import {CardHeader,CardTitle,CardContent,CardFooter} from "@/components/ui/card";
+import EntityCardGrid from "@/react-app/shared/EntityCardGrid";
+import WorldScenePreview from "@/react-app/shared/WorldScenePreview";
+import ControlHint from "@/react-app/shared/ControlHint";
 import {MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
 import ConfirmationFrame from "@/react-app/shared/ConfirmationFrame";
@@ -180,7 +185,7 @@ export function WorldPageView({ view: view }) {
               <p className="muted">{"每个人，都在自己的风景里生活。"}</p>
             </div>
             <span className="spacer" />
-            <ActionButton variant="outline"
+            <ActionButton variant="default"
 
               data-testid="world-add"
               onClick={view.newWorld}
@@ -188,59 +193,10 @@ export function WorldPageView({ view: view }) {
               {"添加世界"}
             </ActionButton>
           </div>
-          <div className="world-list">
-            <Fragment>
-              {listValues(readValue(view.worlds)).map((H) => (
-                <Surface
-                  as="article"
-                  key={H.id}
-                  className={cn([
-                    "",
-                    {
-                      current: H.residents.includes(
-                        readValue(view.character).id,
-                      ),
-                    },
-                  ])}
-                >
-                  <div className="row">
-                    <h2>{displayText(H.name)}</h2>
-                    {H.residents.includes(readValue(view.character).id) ? (
-                      <Badge key={0} >
-                        {"当前"}
-                      </Badge>
-                    ) : null}
-                  </div>
-                  <p>
-                    {(H.genre ? displayText(H.genre) + " · " : "") +
-                      displayText(H.sites.length) +
-                      " 处场地"}
-                  </p>
-                  <p className="muted">
-                    {"居住在这里：" +
-                      displayText(
-                        H.residents
-                          .map((q) => {
-                            var V;
-                            return (V = readValue(view.characters).find(
-                              (c) => c.id === q,
-                            )) == null
-                              ? void 0
-                              : V.name;
-                          })
-                          .join("、") || "暂无角色",
-                      )}
-                  </p>
-                  <div className="row">
-                    <ActionButton variant="default"
-
-                      onClick={(q) => {
-                        ((view.selected.value = H.id),
-                          (view.expanded.value = !1));
-                      }}
-                    >
-                      {"进入"}
-                    </ActionButton>
+          <EntityCardGrid className="world-list" data-testid="world-grid" aria-label="世界卡片">
+            {listValues(readValue(view.worlds)).map(H=><Surface as="article" key={H.id} className={cn('entity-card world-card h-full gap-0 overflow-hidden p-0',H.residents.includes(readValue(view.character).id)&&'ring-primary/30')} data-testid={'world-card-'+H.id}>
+              <WorldScenePreview world={H}/>
+              <CardHeader className="gap-3"><div className="flex min-w-0 items-start justify-between gap-2"><ControlHint text={H.name}><CardTitle className="line-clamp-2 min-w-0 [overflow-wrap:anywhere]">{H.name}</CardTitle></ControlHint><div className="flex shrink-0 items-center gap-1">{H.residents.includes(readValue(view.character).id)&&<Badge variant="secondary">当前</Badge>}
                     <MenuDisclosure title={<MoreActionsIcon className="size-4"/>} aria-label={H.name + "的世界操作"}>
                     <ActionButton variant="ghost"
 
@@ -258,11 +214,11 @@ export function WorldPageView({ view: view }) {
                       {"删除"}
                     </ActionButton>
                     </MenuDisclosure>
-                  </div>
-                </Surface>
-              ))}
-            </Fragment>
-          </div>
+              </div></div></CardHeader>
+              <CardContent className="flex flex-1 flex-col gap-3"><p className="m-0 text-sm">{(H.genre?H.genre+' · ':'')+H.sites.length+' 处场地'}</p><p className="m-0 break-words text-sm text-muted-foreground">{'居住在这里：'+(H.residents.map(id=>readValue(view.characters).find(character=>character.id===id)?.name).filter(Boolean).join('、')||'暂无角色')}</p></CardContent>
+              <CardFooter><ActionButton variant="default" onClick={()=>{view.selected.value=H.id;view.expanded.value=false;}}>进入</ActionButton></CardFooter>
+            </Surface>)}
+          </EntityCardGrid>
         </Fragment>
       )}
       {view.place.value ? (
@@ -444,40 +400,7 @@ export function WorldPageView({ view: view }) {
           </form>
         </view.DetailDrawer>
       ) : null}
-      {view.removeId.value !== null ? (
-        <ConfirmationFrame
-          key={5}
-          className="modal-backdrop"
-          onClose={() => (view.removeId.value = null)}
-        >
-          <div  className="grid gap-4">
-            <h2>{"删除世界？"}</h2>
-            <p>
-              {"「" +
-                displayText(
-                  (le = readValue(view.worlds).find(
-                    (H) => H.id === view.removeId.value,
-                  )) == null
-                    ? void 0
-                    : le.name,
-                ) +
-                "」及其中的场地将被移除。"}
-            </p>
-            <ActionButton variant="outline"
-
-              onClick={(H) => (view.removeId.value = null)}
-            >
-              {"取消"}
-            </ActionButton>
-            <ActionButton variant="default"
-
-              onClick={() => view.removeWorld(view.removeId.value)}
-            >
-              {"确认删除"}
-            </ActionButton>
-          </div>
-        </ConfirmationFrame>
-      ) : null}
+      {view.removeId.value!==null?<ConfirmationFrame title="删除世界？" description={'「'+(readValue(view.worlds).find(world=>world.id===view.removeId.value)?.name||'')+'」及其中的场地将被移除。'} onClose={()=>view.removeId.value=null}><AlertDialogCancel>取消</AlertDialogCancel><AlertDialogAction variant="destructive" disabled={readValue(view.busy)} onClick={event=>{event.preventDefault();view.removeWorld(view.removeId.value);}}>确认删除</AlertDialogAction></ConfirmationFrame>:null}
       {!view.place.value && !view.worldDraft.value && !view.siteDialog.value ? (
         <view.ActionFeedback key={6} labels={["世界"]} />
       ) : null}

@@ -152,3 +152,19 @@ and Lucide icons are explicit at call sites; no legacy class-to-variant or text
 icon interpreter. Cursor pagination expresses only real previous/next cursors;
 append readers remain append readers. Confirmations use one AlertDialog role,
 with labelled content and cancellation that never invokes the mutation.
+
+## R12 composed layout and primitive contracts
+
+- Library/world cards share EntityCardGrid. Use auto-fill and bounded cards so one
+  item does not stretch across the content area; never invent placeholder data.
+- Sidebar adoption includes Group/Menu/MenuButton/Sub, not only the shell. Active
+  styles match data-active=true explicitly. Keep scoped disables and global routes.
+- Ordinary CTA buttons keep intrinsic width inside flex Cards. Disclosure, select
+  and navigable list rows may intentionally fill their structural click target.
+- Inline more menus use end with collision padding; the header switcher uses start.
+- Surface is a Card, not a Disclosure. Rich title/open belong to actual Disclosure
+  children; never serialize JSX as the HTML title. Test production consumers.
+- Confirmations use explicit labelled AlertDialog Header/Footer/Action/Cancel.
+  Async owners prevent default close until success; cancellation never mutates.
+- Calendar/Popover and text time controls replace visible browser date/time UI.
+  Numeric Input retains number semantics, constraints and explicit step buttons.
