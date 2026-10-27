@@ -303,3 +303,16 @@ measured state before recording a portal/confirmation sample. Component names,
 package installation and JSDOM alone cannot certify layout or visual acceptance.
 Regression tests must cover real consumer callbacks, async failure/cancel,
 Disclosure draft retention and invalid rich title props, not just JSX tag scans.
+
+## R13 geometry and renderer-boundary regressions
+
+A page can have zero document overflow while a Card clips an oversized child.
+Measure Calendar table/day bounds, including the final column, at the reported
+mobile width. Check real Portal controls against explicit 44px minimums; rem
+size names alone are not physical dimensions. Inspect both sides of a changed
+responsive breakpoint and close/Escape/focus restoration.
+
+Mount retained domain renderers with the current host context, without invented
+legacy dependencies. For append controls test a real failure, newer unsubmitted
+filter edits and retry of the original read while old rows remain. Empty states
+are independent per dataset. Initial untouched forms use neutral guidance.

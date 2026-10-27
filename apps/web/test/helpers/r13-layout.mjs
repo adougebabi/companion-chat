@@ -1,0 +1,16 @@
+// Read-only measurements of the actual production DOM; never imported by src.
+export function readR13Layout(){
+ const rect=node=>{if(!node)return null;const r=node.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom};};
+ const shown=node=>{const r=rect(node);return r.w>0&&r.h>0&&getComputedStyle(node).visibility!=='hidden'&&!node.closest('[hidden],[data-domain-carrier]');};
+ const all=selector=>[...document.querySelectorAll(selector)].filter(shown),text=node=>(node?.textContent||'').replace(/\s+/g,' ').trim();
+ const calendar=all('.calendar [data-slot=calendar]').map(node=>({box:rect(node),table:rect(node.querySelector('table')),minWidth:getComputedStyle(node.querySelector('table')).minWidth,days:[...node.querySelectorAll('button[data-day]')].filter(shown).map(rect)}));
+ return {route:location.hash,width:innerWidth,height:innerHeight,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,calendar,
+ subnav:all('[data-sidebar=menu-sub-button]').map(node=>({text:text(node),...rect(node),parent:rect(node.parentElement)})),
+ touch:all('.touch-target,.composer button,[aria-haspopup=menu]').map(node=>({label:node.getAttribute('aria-label')||text(node),...rect(node)})),
+ tags:all('.wardrobe-tag').map(node=>({...rect(node),children:[...node.children].map(rect),nestedButton:!!node.querySelector('[data-slot=badge] button')})),
+ headings:all('h1,h2,h3').map(text),alerts:all('[role=alert]').map(text).filter(Boolean),dialogs:all('[role=dialog]').map(node=>({label:node.getAttribute('aria-labelledby'),headings:[...node.querySelectorAll('h1,h2,h3')].map(text),...rect(node)})),
+ planning:!!document.querySelector('.schedule-workspace [data-date-query]'),pagination:all('[data-slot=pagination]').map(text),composer:rect(document.querySelector('.composer')),preview:rect(document.querySelector('aside.preview')),previewSheet:rect(document.querySelector('.chat-preview-sheet')),
+ mediaItems:all('.media-grid [data-slot=card]').length,studioItems:all('.resource-grid [data-slot=card]').length,focusLabel:document.activeElement?.getAttribute('aria-label')||text(document.activeElement),
+ goalEmpty:!!document.querySelector('[data-testid=goal-grid] [data-slot=empty]'),appointmentEmpty:!!document.querySelector('[data-testid=appointment-grid] [data-slot=empty]')};
+}
+export function validateR13Layout(data){const issues=[];if(data.overflow>1)issues.push('horizontal overflow');for(const calendar of data.calendar){if(calendar.days.length<28)issues.push('calendar day sample incomplete');if(calendar.table.w>calendar.box.w+1)issues.push('calendar table escapes frame');if(calendar.days.some(day=>day.x<calendar.box.x-1||day.right>calendar.box.right+1))issues.push('calendar day clipped');}for(const row of data.subnav){if(row.w<row.parent.w-1)issues.push('submenu hit width shrinks: '+row.text);if(data.width<=800&&row.h<43.9)issues.push('submenu hit height below 44px: '+row.text);}if(data.width<=800)for(const target of data.touch)if(target.w<43.9||target.h<43.9)issues.push('touch target below 44px: '+target.label);for(const tag of data.tags){if(tag.nestedButton)issues.push('button nested in fixed Badge');if(tag.children.some(child=>child.y<tag.y-1||child.bottom>tag.bottom+1))issues.push('tag child overflows');}return issues;}

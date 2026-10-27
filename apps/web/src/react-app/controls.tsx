@@ -85,7 +85,7 @@ export function ActionButton({
 }: React.ComponentProps<typeof Button>) {
 
   const intrinsic=!className&&props['aria-expanded']===undefined&&props.role!=='menuitem';
-  return <ControlHint text={title}><Button className={cn(intrinsic&&'w-fit max-w-full',className)} variant={variant??'ghost'} type={type} {...props}>{children}</Button></ControlHint>;
+  return <ControlHint text={title}><Button className={cn('touch-target',intrinsic&&'w-fit max-w-full',className)} variant={variant??'ghost'} type={type} {...props}>{children}</Button></ControlHint>;
 }
 
 export function Surface({
@@ -158,7 +158,7 @@ function FieldControl({
   if (type === "number") return <NumberControl className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
   return <DraftTextControl type={type} className={className} value={value} onChange={onChange} onInput={onInput} {...props}/>;
 }
-function NumberControl(props:any){const input=React.useRef<HTMLInputElement>(null);const step=(direction:number)=>{const element=input.current;if(!element)return;try{if(direction>0)element.stepUp();else element.stepDown();}catch{const current=Number(element.value)||0,min=element.min===''?-Infinity:Number(element.min),max=element.max===''?Infinity:Number(element.max);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(element,String(Math.max(min,Math.min(max,current+direction))));}element.dispatchEvent(new Event('input',{bubbles:true}));};return <span className="inline-flex w-full min-w-0 items-center gap-1"><Button type="button" variant="outline" size="icon" aria-label={'减少'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(-1)}><MinusIcon className="size-3.5"/></Button><DraftTextControl {...props} ref={input} type="number" className={cn('min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',props.className)}/><Button type="button" variant="outline" size="icon" aria-label={'增加'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(1)}><PlusIcon className="size-3.5"/></Button></span>;}
+function NumberControl(props:any){const input=React.useRef<HTMLInputElement>(null);const step=(direction:number)=>{const element=input.current;if(!element)return;try{if(direction>0)element.stepUp();else element.stepDown();}catch{const current=Number(element.value)||0,min=element.min===''?-Infinity:Number(element.min),max=element.max===''?Infinity:Number(element.max);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(element,String(Math.max(min,Math.min(max,current+direction))));}element.dispatchEvent(new Event('input',{bubbles:true}));};return <span className="inline-flex w-full min-w-0 items-center gap-1"><Button type="button" variant="outline" size="icon" className="touch-target shrink-0" aria-label={'减少'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(-1)}><MinusIcon className="size-3.5"/></Button><DraftTextControl {...props} ref={input} type="number" className={cn('min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',props.className)}/><Button type="button" variant="outline" size="icon" className="touch-target shrink-0" aria-label={'增加'+(props['aria-label']||props.name||'数值')} disabled={props.disabled||props.readOnly} onClick={()=>step(1)}><PlusIcon className="size-3.5"/></Button></span>;}
 export function FieldInput({title,...props}:FieldProps){return <ControlHint text={title}><FieldControl {...props}/></ControlHint>;}
 
 function flatten(nodes: React.ReactNode): React.ReactElement<any>[] {
@@ -287,6 +287,7 @@ export function MenuDisclosure({ title, children, className, ...props }: any) {
           type="button"
           variant="ghost"
           size="icon"
+          className="touch-target"
           aria-label={props["aria-label"] || "更多操作"}
         >
           {title}
@@ -343,7 +344,7 @@ export function DialogFrame({ children, onClose, className, ...props }: any) {
   );
 }
 
-export function DrawerFrame({ children, onClose }: any) {
+export function DrawerFrame({ children, onClose, title }: any) {
   const [trigger] = React.useState(
     () => document.activeElement as HTMLElement | null,
   );
@@ -364,13 +365,11 @@ export function DrawerFrame({ children, onClose }: any) {
           )?.focus({ preventScroll: true });
         }}
       >
-        <SheetTitle className="sr-only">
-          {headingText(children) || "编辑详情"}
-        </SheetTitle>
+        {!title&&<SheetTitle className="sr-only">{headingText(children) || "编辑详情"}</SheetTitle>}
         <SheetDescription className="sr-only">
           编辑当前对象，取消时保留未提交内容
         </SheetDescription>
-        <div className="p-6">{children}</div>
+        <div className="p-6">{title&&<SheetTitle className="mb-4 pr-8 text-lg">{title}</SheetTitle>}{children}</div>
       </SheetContent>
     </Sheet>
   );

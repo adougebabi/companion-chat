@@ -1337,11 +1337,6 @@
   .react-workspace .wardrobe h3 {
     margin: 18px 0 8px;
   }
-  .react-workspace .wardrobe .button {
-    display: flex;
-    width: 100%;
-    margin-top: 17px;
-  }
   .react-workspace .world-banner {
     background: linear-gradient(110deg, #dfe9d8, #f0eddd);
     border: 1px solid #e1e7d8;
@@ -1647,15 +1642,6 @@
     .react-workspace .chat-panel {
       flex: 1;
     }
-    .react-workspace .preview {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 270px;
-      box-shadow: -6px 0 18px #34472e18;
-      z-index: 3;
-    }
     .react-workspace .page-heading h1 {
       font-size: 21px;
     }
@@ -1697,6 +1683,7 @@
     }
     .react-workspace .composer {
       padding: 12px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     }
     .react-workspace .message-body {
       max-width: 85%;
@@ -1952,25 +1939,25 @@
     overflow: auto;
     padding: 0;
   }
-  .react-workspace table {
+  .react-workspace .table-wrap table {
     border-collapse: collapse;
     width: 100%;
     font-size: 12px;
     min-width: 850px;
   }
-  .react-workspace th {
+  .react-workspace .table-wrap th {
     text-align: left;
     font-weight: 500;
     color: var(--copy-secondary);
     background: #f8faf5;
     padding: 11px;
   }
-  .react-workspace td {
+  .react-workspace .table-wrap td {
     border-top: 1px solid #edf0e8;
     padding: 10px;
     line-height: 1.5;
   }
-  .react-workspace td small {
+  .react-workspace .table-wrap td small {
     display: block;
     font-size: 12px;
     margin-top: 3px;
@@ -1979,10 +1966,10 @@
     max-width: 215px;
     color: var(--copy-secondary);
   }
-  .react-workspace tbody tr {
+  .react-workspace .table-wrap tbody tr {
     cursor: pointer;
   }
-  .react-workspace tbody tr:hover {
+  .react-workspace .table-wrap tbody tr:hover {
     background: #f5f8f0;
   }
   .react-workspace .detail-drawer {
@@ -2137,9 +2124,6 @@
       display: none;
     }
 
-    .react-workspace .preview {
-      width: 255px;
-    }
   }
   .react-workspace,
   .react-workspace main,
@@ -4710,4 +4694,27 @@
 
 @layer components {
  .react-workspace .character-switch b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@layer components {
+  .react-workspace .wardrobe-tag {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .react-workspace.chat-preview-sheet {
+    min-height: 0;
+    height: 100dvh;
+    width: min(100vw, 380px);
+    max-width: 100vw;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (max-width: 800px) {
+    .touch-target { min-width: 44px; min-height: 44px; }
+  }
 }

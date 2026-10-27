@@ -1,5 +1,6 @@
 import {errorMessage,stateLabel} from '../v3/domain-presentation.mjs';
 import { lifeClient } from '../v3/proto/services.js';
+import * as store from '../v3/proto/store.js';
 import { asyncPage,requestReceipt,instant } from '../v3/proto/components/async-page.js';
 import { Field,Tabs } from '../v3/proto/components/forms.js';
 import {mountCursorRecords} from '../v3/proto/components/cursor-records.js';
@@ -49,9 +50,10 @@ export async function suggestRealSchedule(fid,{detail,item=null,placeId='',title
 }
 
 const scheduleViews=new Map();
+store.subscribe(()=>{if(!store.get('session'))scheduleViews.clear();});
 const nextDate=(value,days)=>{const date=new Date(value+'T12:00:00Z');date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10);};
 export function renderRealSchedule(el,ctx) {
-  const key=JSON.stringify([ctx.store.get('session')?.actorId,ctx.charId]);
+  const key=JSON.stringify([store.get('session')?.actorId,ctx.charId]);
   const view=scheduleViews.get(key)||{section:['today','upcoming','intentions','promises','habits'].includes(ctx.query.section)?ctx.query.section:'today',expanded:new Set()};if(['today','upcoming','intentions','promises','habits'].includes(ctx.query.section))view.section=ctx.query.section;scheduleViews.set(key,view);
   return asyncPage(el,async()=>{
     const detail=await lifeClient.detail(ctx.charId);let calendar;

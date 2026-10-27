@@ -161,8 +161,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     };
   }, [route, state.ready, state.session?.actorId, workspace, navigate, page, routeCharacterExists]);
   useEffect(()=>{if(!state.toast)return;const item=state.toast;toast(item.text,{action:item.link?{label:'去方案库',onClick:()=>{workspace.state.outfitTab='方案库';navigate('衣柜');}}:undefined});},[state.toast,navigate,workspace]);
-  const togglePreview = () => {
-    const next = !preview;
+  const changePreview = (next:boolean) => {
     setPreview(next);
     if (state.session && state.selectedId)
       chatSummaryPreference({
@@ -171,6 +170,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         defaultFolded: false,
       }).save(!next);
   };
+  const togglePreview = () => changePreview(!preview);
   if (route.removed || route.notFound)
     return (
       <section className="approved-bootstrap">
@@ -214,7 +214,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     );
   const content = route.feature ? <DomainPage key={route.path+"?"+route.query} route={route}/>
     : route.information ? <CardSurface as="section" ><h2>{route.information.title}</h2><p>{route.information.body}</p><Button variant="outline" onClick={()=>navigate(route.information!.page)}>{route.information.label}</Button></CardSurface>
-    : page === "聊天" ? <ChatPage key={character.id} preview={preview} onGo={navigate}/>
+    : page === "聊天" ? <ChatPage key={character.id} preview={preview} onPreviewChange={changePreview} onGo={navigate}/>
     : page === "衣柜" ? <WardrobePage key={"wardrobe:"+character.id}/>
     : page === "世界" ? character.id ? <WorldPage key={"world:"+character.id}/> : <StudioPage key="global-worlds" kind="world" route={route}/>
     : page === "媒体" ? <MediaPage key={route.path+"?"+route.query} route={route}/>
@@ -230,7 +230,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   return (
     <div className="shell w-full min-w-0">
       <header className="topbar">
-        <SidebarTrigger aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
+        <SidebarTrigger className="touch-target" aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
         <Button
           variant="ghost"
           className="brand"
@@ -244,7 +244,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         <span className="top-divider" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="character-switch">
+            <Button variant="ghost" className="character-switch touch-target">
               <CharacterAvatar
                 className="small"
                 name={character.name}
@@ -305,7 +305,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
               </h1>
             </div>
             {page === "聊天" && (
-              <Button variant="outline" onClick={togglePreview}>
+              <Button data-testid="chat-preview-toggle" className="touch-target" variant="outline" onClick={togglePreview}>
                 {preview ? (
                   <PanelRightCloseIcon size={15} />
                 ) : (

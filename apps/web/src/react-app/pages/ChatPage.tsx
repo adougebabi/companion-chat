@@ -1,6 +1,8 @@
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
+import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription,SheetClose} from "@/components/ui/sheet";
+import {XIcon} from "lucide-react";
 import {
   useEffect,
   useLayoutEffect,
@@ -31,8 +33,10 @@ import type { ConversationController } from "@/state/conversation";
 export default function ChatPage({
   preview,
   onGo,
+  onPreviewChange,
 }: {
   preview: boolean;
+  onPreviewChange?: (open:boolean)=>void;
   onGo: (page: string) => void;
 }) {
   const workspace = useWorkspace(),
@@ -58,6 +62,8 @@ export default function ChatPage({
     }
   });
   const [now, setNow] = useState(Date.now);
+  const [narrow,setNarrow]=useState(()=>window.matchMedia("(max-width: 800px)").matches);
+  useEffect(()=>{const media=window.matchMedia("(max-width: 800px)");const update=()=>setNarrow(media.matches);media.addEventListener("change",update);return()=>media.removeEventListener("change",update);},[]);
   const latestDraft = useRef(draft);
   latestDraft.current = draft;
   const composing = useRef(false),
@@ -187,6 +193,74 @@ export default function ChatPage({
     })
       .format(new Date(now))
       .replace(/(日)(星期)/, "$1 $2");
+  const previewContent=<>
+
+          <div className="preview-heading">
+            <span>{character.name}的此刻</span>
+            <Badge variant="secondary">实时预览</Badge>
+          </div>
+          <div className="scene">
+            <div className="scene-window">
+              <i />
+              <i />
+            </div>
+            <div className="scene-sun" />
+            <div className="scene-vase">♧</div>
+            <div className="scene-desk" />
+            <div className="scene-caption">
+              <span className="scene-tag">A LITTLE MOMENT</span>
+              <p>{character.location || character.activity || "此刻"}</p>
+            </div>
+          </div>
+          <div className="compact-bio">
+            <b>{[character.name, character.job].filter(Boolean).join(" · ")}</b>
+            <p>{character.bio}</p>
+            <small>
+              {[character.mood, character.location].filter(Boolean).join(" · ")}
+            </small>
+          </div>
+          <CurrentOutfit />
+          <div className="schedule-preview">
+            <div>
+              <span>接下来的安排</span>
+              <Button variant="ghost" onClick={() => {onPreviewChange?.(false);onGo("日程");}}>
+                查看全部
+                <ChevronRightIcon size={12} />
+              </Button>
+            </div>
+            {schedule && (
+              <div className="next-item">
+                <span className="schedule-dot" />
+                <div>
+                  <small>
+                    {schedule.time} —{" "}
+                    {schedule._source?.end_at
+                      ? workspace.clock(
+                          schedule._source.end_at,
+                          character.timezone,
+                        )
+                      : ""}
+                  </small>
+                  <p>{schedule.text}</p>
+                  <Badge variant="secondary">
+                    {schedule._source?.action_status === "in_progress"
+                      ? "进行中"
+                      : "日程安排"}
+                  </Badge>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="preview-tip">
+            <LeafIcon size={16} />
+            <p>
+              生活在继续，故事也在慢慢生长。
+              <br />
+              这里是 {character.name} 的小小世界。
+            </p>
+          </div>
+
+  </>;
   return (
     <div className={`chat-layout ${preview ? "" : "collapsed"}`}>
       <section className="chat-panel">
@@ -329,6 +403,7 @@ export default function ChatPage({
           <div className="composer-bottom">
             <small>Enter 发送 · Shift + Enter 换行</small>
             <Button
+              className="touch-target"
               disabled={!draft.trim() || busy}
               onClick={() => void send()}
             >
@@ -338,74 +413,13 @@ export default function ChatPage({
           </div>
         </div>
       </section>
-      {preview && (
-        <aside className="preview">
-          <div className="preview-heading">
-            <span>{character.name}的此刻</span>
-            <Badge variant="secondary">实时预览</Badge>
-          </div>
-          <div className="scene">
-            <div className="scene-window">
-              <i />
-              <i />
-            </div>
-            <div className="scene-sun" />
-            <div className="scene-vase">♧</div>
-            <div className="scene-desk" />
-            <div className="scene-caption">
-              <span className="scene-tag">A LITTLE MOMENT</span>
-              <p>{character.location || character.activity || "此刻"}</p>
-            </div>
-          </div>
-          <div className="compact-bio">
-            <b>{[character.name, character.job].filter(Boolean).join(" · ")}</b>
-            <p>{character.bio}</p>
-            <small>
-              {[character.mood, character.location].filter(Boolean).join(" · ")}
-            </small>
-          </div>
-          <CurrentOutfit />
-          <div className="schedule-preview">
-            <div>
-              <span>接下来的安排</span>
-              <Button variant="ghost" onClick={() => onGo("日程")}>
-                查看全部
-                <ChevronRightIcon size={12} />
-              </Button>
-            </div>
-            {schedule && (
-              <div className="next-item">
-                <span className="schedule-dot" />
-                <div>
-                  <small>
-                    {schedule.time} —{" "}
-                    {schedule._source?.end_at
-                      ? workspace.clock(
-                          schedule._source.end_at,
-                          character.timezone,
-                        )
-                      : ""}
-                  </small>
-                  <p>{schedule.text}</p>
-                  <Badge variant="secondary">
-                    {schedule._source?.action_status === "in_progress"
-                      ? "进行中"
-                      : "日程安排"}
-                  </Badge>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="preview-tip">
-            <LeafIcon size={16} />
-            <p>
-              生活在继续，故事也在慢慢生长。
-              <br />
-              这里是 {character.name} 的小小世界。
-            </p>
-          </div>
-        </aside>
-      )}
+      {preview&&!narrow&&<aside className="preview">{previewContent}</aside>}
+      <Sheet open={preview&&narrow} onOpenChange={onPreviewChange}>
+        <SheetContent className="react-workspace chat-preview-sheet data-[side=right]:w-full sm:max-w-[380px] gap-0 p-0" showCloseButton={false} onCloseAutoFocus={event=>{const trigger=document.querySelector<HTMLElement>('[data-testid="chat-preview-toggle"]');if(trigger){event.preventDefault();trigger.focus({preventScroll:true});}}}>
+          <SheetHeader className="relative border-b pr-16"><SheetTitle>此刻预览</SheetTitle><SheetDescription>查看穿着与接下来的安排</SheetDescription><SheetClose asChild><Button type="button" variant="ghost" size="icon" className="touch-target absolute right-2 top-2" aria-label="关闭预览"><XIcon/></Button></SheetClose></SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">{previewContent}</div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

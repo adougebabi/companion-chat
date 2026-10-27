@@ -168,3 +168,25 @@ with labelled content and cancellation that never invokes the mutation.
   Async owners prevent default close until success; cancellation never mutates.
 - Calendar/Popover and text time controls replace visible browser date/time UI.
   Numeric Input retains number semantics, constraints and explicit step buttons.
+
+## R13 layout, domain context and append reads
+
+- Wide business-table CSS belongs to .table-wrap, including table minimum width,
+  th/td spacing and tbody hover. Never target every table under the workspace:
+  embedded Calendar also owns a semantic table, while a portaled Calendar may
+  happen to escape the bad selector. Check every date column against its frame.
+- Domain renderers use the current imported store/service facade. DomainToolHost
+  does not provide the retired ctx.store. Tests must use its actual context shape.
+  The host owns navigation and accessible section naming; business content owns
+  its visible heading. Explicit drawer titles use one SheetTitle.
+- At <=800px chat preview is a controlled Sheet with close/Escape, focus return
+  and the same App preference callback; wide layout retains one shared aside.
+  Composer bottom padding includes the safe-area environment value.
+- Root rem is 14px. Mobile 44px hit areas use physical pixel minimums on explicit
+  semantic actions. Opt-in classes must reach portaled controls. Do not apply a
+  blanket min-width to all buttons and thereby expand seven Calendar columns.
+- CursorControls distinguishes page replacement and append reads. Append has no
+  fake previous page/index; failed reads retain original options/cursor/mode and
+  existing rows. Reading errors cannot replace Studio command recovery errors.
+- Badges contain labels, not taller editing buttons. Tag management uses natural
+  height flex rows. Archive copy names archive while tag deletion names deletion.

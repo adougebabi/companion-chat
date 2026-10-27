@@ -116,11 +116,12 @@ function createWardrobePageController(props, context, lifecycle) {
         ? []
         : [id];
   };
-  const confirm = (title, message, run) =>
+  const confirm = (title, message, run, confirmLabel = "确认删除") =>
     (confirmation.value = {
       title,
       message,
       run,
+      confirmLabel,
     });
   async function saveOutfit() {
     if (busy.value || duplicate.value || !name.value.trim() || !tag.value)
@@ -324,7 +325,7 @@ function createWardrobePageController(props, context, lifecycle) {
           success: "服装已归档",
         },
       );
-    });
+    }, "确认归档");
   }
   async function saveTags(remove) {
     if (busy.value) return;

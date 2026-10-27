@@ -1,0 +1,39 @@
+{
+  "scope": "r13 confirmed issues only; isolated production dist with synthetic data",
+  "measurements": 26,
+  "widths": [
+    375,
+    800,
+    801,
+    1440
+  ],
+  "issues": [],
+  "calendar375": {
+    "tableWidth": 285,
+    "containerWidth": 299,
+    "days": 35
+  },
+  "append": {
+    "media": [
+      2,
+      3
+    ],
+    "studio": [
+      2,
+      3
+    ]
+  },
+  "nonReadRequests": 0,
+  "tests": {
+    "passed": 402,
+    "failed": 0,
+    "typecheck": "pass",
+    "build": "pass",
+    "reactGraphModules": 314
+  },
+  "limits": [
+    "No live NAS/database/model acceptance",
+    "Safe-area CSS contract checked; physical iOS home indicator and software keyboard were not tested",
+    "Final evidence excludes preflight, incomplete loading snapshots and invalid about-you fixture samples"
+  ]
+}

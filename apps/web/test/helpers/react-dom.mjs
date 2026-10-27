@@ -66,6 +66,12 @@ export function installDOM() {
         writable: true,
       });
   }
+  dom.window.matchMedia = (query) => ({
+    media: query,
+    matches: query.includes("max-width") ? dom.window.innerWidth <= Number(query.match(/([0-9.]+)px/)?.[1] || 0) : false,
+    onchange: null,
+    addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent() { return true; },
+  });
   dom.window.HTMLElement.prototype.scrollIntoView = function () {};
   dom.window.HTMLElement.prototype.scrollTo = function () {};
   dom.window.HTMLElement.prototype.hasPointerCapture = () => false;

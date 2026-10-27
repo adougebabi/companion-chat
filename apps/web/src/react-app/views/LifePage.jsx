@@ -229,6 +229,7 @@ export function LifePageView({ view: view }) {
         <Fragment key={2}>
           <p className="muted">{"想做的事慢慢来，约好的事认真记住。"}</p>
           <div className="small-card-grid" data-testid="goal-grid">
+            {!readValue(view.character).goals.length&&<EmptyState className="col-span-full"><p>还没有记录想做的事。聊聊最近的想法，慢慢发现新的目标。</p><ActionButton variant="outline" onClick={()=>view.emit("go","聊天")}>去聊天</ActionButton></EmptyState>}
             <Fragment>
               {listValues(readValue(view.character).goals).map((k, ve) => (
                 <Surface as="article" key={k.id} className="goal-card">
@@ -270,6 +271,7 @@ export function LifePageView({ view: view }) {
           >
             <h2 className="section-heading">{"约定"}</h2>
             <div className="small-card-grid" data-testid="appointment-grid">
+              {!view.life.value.appointments.length&&<EmptyState className="col-span-full"><p>还没有约定。一起商量后，再把共同的期待记下来。</p><ActionButton variant="outline" onClick={()=>view.emit("go","聊天")}>去聊天</ActionButton></EmptyState>}
               <Fragment>
                 {listValues(
                   [...view.life.value.appointments].sort((k, ve) =>

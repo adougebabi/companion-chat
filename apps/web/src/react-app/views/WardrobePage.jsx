@@ -242,11 +242,11 @@ export function WardrobePageView({ view: view }) {
                 <Fragment>
                   {listValues(readValue(view.character).outfitTags).map(
                     (x, rowIndex) => (
-                      <Badge
+                      <div className="wardrobe-tag"
 
                         key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
                       >
-                        {displayText(x) + " "}
+                        <Badge className="h-auto min-h-5 max-w-full whitespace-normal break-all">{displayText(x)}</Badge>
                         <ActionButton variant="ghost"
                           onClick={(R) => {
                             ((view.renameTag.value = x),
@@ -258,7 +258,7 @@ export function WardrobePageView({ view: view }) {
                         <ActionButton variant="ghost" onClick={(R) => view.removeTag(x)}>
                           {"删除"}
                         </ActionButton>
-                      </Badge>
+                      </div>
                     ),
                   )}
                 </Fragment>
@@ -511,7 +511,7 @@ export function WardrobePageView({ view: view }) {
                           <ActionButton variant="ghost"
                             onClick={(R) => view.removeGarment(x.id)}
                           >
-                            {"删除"}
+                            {"归档"}
                           </ActionButton>
                         </div>
                       </MenuDisclosure>
@@ -530,6 +530,7 @@ export function WardrobePageView({ view: view }) {
         {view.garment.value ? (
           <DrawerFrame
             key={3}
+            title={readValue(view.character).garments.some(item=>item.id===view.garment.value.id)?"编辑衣服":"添加衣服"}
             className="drawer-backdrop"
             onClose={(x) => (view.garment.value = null)}
           >
@@ -540,32 +541,18 @@ export function WardrobePageView({ view: view }) {
               onSubmit={eventModifiers(view.saveGarment, ["prevent"])}
             >
               <view.ActionFeedback labels={["衣柜"]} />
-              <h2>
-                {displayText(
-                  readValue(view.character).garments.some((x) => {
-                    var R;
-                    return (
-                      x.id ===
-                      ((R = view.garment.value) == null ? void 0 : R.id)
-                    );
-                  })
-                    ? "编辑衣服"
-                    : "添加衣服",
-                )}
-              </h2>
+
               <label>
                 {"名称"}
                 <FieldInput
+                  required
+                  aria-label="衣服名称"
                   value={view.garment.value.name}
                   onChange={(event) => {
                     ((x) => (view.garment.value.name = x))(event.target.value);
                   }}
                 />
-                {view.garment.value.name.trim() ? null : (
-                  <InlineFeedback key={0} >
-                    {"请填写衣服名称。"}
-                  </InlineFeedback>
-                )}
+                <p className="text-sm text-muted-foreground">填写便于辨认的衣服名称。</p>
               </label>
               <label>
                 {"类型"}
@@ -627,7 +614,7 @@ export function WardrobePageView({ view: view }) {
             </form>
           </DrawerFrame>
         ) : null}
-        {view.confirmation.value?<ConfirmationFrame title={view.confirmation.value.title} description={view.confirmation.value.message} onClose={()=>view.confirmation.value=null}><AlertDialogCancel>取消</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={()=>{view.confirmation.value.run();view.confirmation.value=null;}}>确认删除</AlertDialogAction></ConfirmationFrame>:null}
+        {view.confirmation.value?<ConfirmationFrame title={view.confirmation.value.title} description={view.confirmation.value.message} onClose={()=>view.confirmation.value=null}><AlertDialogCancel>取消</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={()=>{view.confirmation.value.run();view.confirmation.value=null;}}>{view.confirmation.value.confirmLabel}</AlertDialogAction></ConfirmationFrame>:null}
         {view.garment.value ? null : (
           <view.ActionFeedback
             key={5}
