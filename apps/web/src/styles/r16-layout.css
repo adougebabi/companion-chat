@@ -1,0 +1,79 @@
+@layer components {
+ .react-workspace .topbar .scope{border:0;background:transparent;padding:0;color:var(--muted-foreground);}
+ .react-workspace .form-grid{gap:20px;align-items:start;}
+ .react-workspace .form-grid>[data-slot="field-set"],.react-workspace .full-field{grid-column:1/-1;}
+ .react-workspace .form-grid .check-field{justify-content:flex-start;align-items:center;gap:10px;min-height:44px;}
+ .react-workspace .form-grid label{min-width:0;}
+ .react-workspace input[readonly]{background:var(--muted);color:var(--muted-foreground);cursor:default;}
+ .react-workspace .number-control>[data-slot="button"]{height:auto;align-self:stretch;border-radius:0;}
+ .react-workspace .number-control>[data-slot="button"]:first-child{border-radius:var(--radius) 0 0 var(--radius);}
+ .react-workspace .number-control>[data-slot="button"]:last-child{border-radius:0 var(--radius) var(--radius) 0;}
+ .react-workspace .number-control input{border-radius:0;text-align:center;}
+ .react-workspace .settings-save-bar{gap:12px;align-items:center;padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);z-index:15;box-shadow:0 -6px 20px #20382d0a;}
+ .react-workspace .settings-save-bar>[role="status"]{flex:1;min-width:180px;margin:0;}
+ .react-workspace .configuration-mobile-nav{grid-column:1/-1;position:sticky;top:0;background:var(--background);z-index:12;padding:8px 0;}
+ .react-workspace .configuration-nav button[aria-current="location"]{background:var(--accent);color:var(--accent-foreground);font-weight:600;}
+ .react-workspace .configuration-nav button:hover{background:var(--accent);}
+ .react-workspace .settings-group{scroll-margin-top:80px;}
+ .react-workspace .settings-group .form-grid{margin:16px 0;}
+ .react-workspace .settings-group [data-slot="field-set"]{padding:16px;border:1px solid var(--border);border-radius:var(--radius);}
+ .react-workspace .settings-group [data-slot="field-legend"]{font-size:14px;font-weight:600;}
+ .react-workspace .settings-group [data-slot="field"]:has([role="switch"]){min-height:44px;justify-content:space-between;}
+ .react-workspace .secondary-diagnostics{border-top:1px solid var(--border);padding-top:20px;margin-top:20px;}
+ .react-workspace .diagnostic-feed{margin:12px 0;}
+ .react-workspace .diagnostic-feed .diagnostic-table{max-height:65dvh;overflow:auto;}
+ .react-workspace .diagnostic-row .diagnostic-time{white-space:nowrap;}
+ .react-workspace .notification-item{height:auto;min-height:64px;white-space:normal;text-align:left;gap:8px;}
+ .react-workspace .notification-item p{white-space:normal;overflow-wrap:anywhere;line-height:1.7;margin:0;}
+ .react-workspace .notification-group .disclosure-summary>span{display:flex;gap:12px;align-items:center;}
+ .react-workspace .post,.react-workspace .approved-empty-feed{width:100%;max-width:760px;margin-inline:auto;}
+ .react-workspace .post textarea{resize:none;}
+ .react-workspace .post .input-row{align-items:flex-end;}
+ .react-workspace .now-card,.react-workspace .now-grid,.react-workspace .schedule-list{max-width:960px;width:100%;margin-inline:auto;}
+ .react-workspace .now-card{padding:24px;}
+ .react-workspace .now-card>p{margin-top:12px;}
+ .react-workspace .outfit-block [data-empty="true"]{color:var(--muted-foreground);font-weight:400;font-style:italic;}
+ .react-workspace .outfit-lines small{color:var(--muted-foreground);}
+ .react-workspace .wardrobe-tag{display:inline-flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);}
+ .react-workspace .tag-list{display:flex;flex-wrap:wrap;gap:8px;}
+ .react-workspace .slot-accordion .disclosure-summary{gap:12px;}
+ .react-workspace .slot-row{padding:12px;gap:10px;}
+ .react-workspace .slot-row [aria-pressed="true"]{border-color:var(--primary);background:var(--accent);color:var(--accent-foreground);box-shadow:inset 0 0 0 1px var(--primary);}
+ .react-workspace .diary-heading{display:grid;gap:16px;}
+ .react-workspace .diary-heading>.spacer{display:none;}
+ .react-workspace .diary-generation{padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);}
+ .react-workspace .diary-layout .calendar{align-self:start;}
+ .react-workspace .diary-paper{border:1px solid var(--border);}
+ .react-workspace .chat-layout.collapsed{max-width:1360px;}
+ .react-workspace .timeline{scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+ .react-workspace .record-facts{font-size:14px;line-height:1.8;}
+ .react-workspace .record-facts dd{margin:4px 0 0;min-width:0;overflow-wrap:anywhere;}
+ .react-workspace .record-facts dt{font-weight:600;color:var(--muted-foreground);}
+ .react-workspace .approved-facts>div{grid-template-columns:minmax(90px,130px) minmax(0,1fr);gap:12px;}
+ .react-workspace .approved-facts dd>.approved-facts>div{display:block;}
+ .react-workspace .detail-form .wizard-footer{position:sticky;bottom:0;background:var(--card);padding:16px;border-top:1px solid var(--border);z-index:10;}
+ .react-workspace .domain-rich-label{line-height:1.7;}
+ .react-workspace .domain-rich-label .schedule-time{display:block;min-width:0;white-space:normal;}
+ .react-workspace .domain-rich-label>b{font-weight:600;}
+ @media(max-width:1100px){.react-workspace .settings-save-bar>[role="status"]{flex-basis:100%;min-width:0;}.react-workspace .settings-save-bar>[data-slot="button"]{flex:1 1 0%;}}
+ .react-workspace .media-grid [data-radix-aspect-ratio-wrapper]{min-width:0;}
+ .react-workspace .media-grid [data-slot="aspect-ratio"]>button{padding:0;border:0;}
+ .react-workspace .media-filters [data-slot="select-trigger"],.react-workspace .media-filters [role="combobox"]{width:100%;background:var(--card);min-height:44px;}
+ @media(max-width:800px){
+  .react-workspace .chat-main .page-heading{margin:0 0 8px;min-height:44px;justify-content:flex-end;}
+  .react-workspace .chat-main .page-heading>div{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  .react-workspace .chat-header{padding:10px 14px;}
+  .react-workspace .composer-keyboard-hint{display:none;}
+  .react-workspace .composer{padding:10px 12px max(10px,env(safe-area-inset-bottom));}
+  .react-workspace .character-form{padding:18px;}
+  .react-workspace .settings-save-bar{padding:12px;}
+  .react-workspace .settings-save-bar>[data-slot="button"]{flex:1;min-height:44px;}
+  .react-workspace .approved-facts>div{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;}
+  .react-workspace .notification-group{padding:16px;}
+  .react-workspace .notification-group .avatar{width:28px;height:28px;}
+  .react-workspace .configuration-layout{gap:16px;}
+  .react-workspace .configuration-nav{display:none;}
+ }
+}
+[data-sonner-toast]{font-size:14px!important;line-height:1.7!important;}
+[data-sonner-toast] [data-close-button]{width:28px;height:28px;}
