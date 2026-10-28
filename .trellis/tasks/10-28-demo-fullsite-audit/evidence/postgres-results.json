@@ -1,0 +1,41 @@
+{
+  "environment": "task-owned real PostgreSQL; test helper creates isolated databases; controlled producers/storage where test defines them",
+  "tests": [
+    {
+      "Time": "2026-10-28T12:14:18.081475+08:00",
+      "Action": "pass",
+      "Test": "TestActorUserBackgroundOwnerEditCASReplayAndChatCorrectionShareAuthority",
+      "Elapsed": 1.51
+    },
+    {
+      "Time": "2026-10-28T12:14:19.268007+08:00",
+      "Action": "pass",
+      "Test": "TestOwnerMediaUploadRecoversSameObjectAndFencesOwnerAndMetadata",
+      "Elapsed": 1.19
+    },
+    {
+      "Time": "2026-10-28T12:14:20.612378+08:00",
+      "Action": "pass",
+      "Test": "TestActionOutcomePersistsPerCallAndAsyncCompletionExactlyOnce",
+      "Elapsed": 1.34
+    },
+    {
+      "Time": "2026-10-28T12:14:21.889809+08:00",
+      "Action": "pass",
+      "Test": "TestStudioCatalogueFiltersBeforePagesAndReadsExactPublication",
+      "Elapsed": 1.28
+    },
+    {
+      "Time": "2026-10-28T12:14:23.236127+08:00",
+      "Action": "pass",
+      "Test": "TestWorldCatalogCreateSelectScopeCycleReferencesAndReplay",
+      "Elapsed": 1.35
+    },
+    {
+      "Time": "2026-10-28T12:14:24.366669+08:00",
+      "Action": "pass",
+      "Test": "TestWorldResourceDraftCASConcurrentApplyAndLocalOverrides",
+      "Elapsed": 1.13
+    }
+  ]
+}

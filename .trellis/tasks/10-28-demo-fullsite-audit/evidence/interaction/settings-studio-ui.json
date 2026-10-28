@@ -1,0 +1,331 @@
+[
+  {
+    "name": "settings-sections-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "聊天与视觉 exposes only its own sections",
+      "图片生成 exposes only its own sections",
+      "自主性与安静时段 exposes only its own sections",
+      "通知与后台 exposes only its own sections",
+      "高级设置 exposes only its own sections",
+      "connection draft survives section changes",
+      "four real purpose slots render",
+      "discard returns to confirmed connection",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-desktop-models-dirty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-desktop-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-desktop-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-desktop-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-desktop-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-desktop-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-desktop-roles.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-sections-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "聊天与视觉 exposes only its own sections",
+      "图片生成 exposes only its own sections",
+      "自主性与安静时段 exposes only its own sections",
+      "通知与后台 exposes only its own sections",
+      "高级设置 exposes only its own sections",
+      "connection draft survives section changes",
+      "four real purpose slots render",
+      "discard returns to confirmed connection",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-mobile-models-dirty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-mobile-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-mobile-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-mobile-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-mobile-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-mobile-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/settings-sections-mobile-roles.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-world",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "resource title is preserved",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-world-saved-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-character_template",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "resource title is preserved",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-character_template-saved-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-item",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "resource title is preserved",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-item-saved-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-outfit",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-outfit-new-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-place",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "resource title is preserved",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-place-saved-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-npc",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-npc-new-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-event_template",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "resource title is preserved",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-event_template-saved-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-persona_fragment",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-persona_fragment-new-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-editor-visual_style",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "real editor has structured fields",
+      "complete JSON definition remains reachable",
+      "resource title is preserved",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-editor-visual_style-saved-definition.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "shell-boundary-700",
+    "viewport": {
+      "width": 700,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "correct navigation mode at breakpoint",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/shell-boundary-700-normal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "shell-boundary-701",
+    "viewport": {
+      "width": 701,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "correct navigation mode at breakpoint",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/shell-boundary-701-normal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "shell-boundary-900",
+    "viewport": {
+      "width": 900,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "correct navigation mode at breakpoint",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/shell-boundary-900-normal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "shell-boundary-1600",
+    "viewport": {
+      "width": 1600,
+      "height": 925
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "correct navigation mode at breakpoint",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/shell-boundary-1600-normal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "auth-validation-failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [],
+    "errors": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('h1').first() to be visible\u001b[22m\n\u001b[2m    20 × locator resolved to hidden <h1>…</h1>\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n欢迎回来\n\n使用当前部署的所有者密码，回到你的工作区。\n\n所有者密码\n\n密码至少 12 个字符。密码仅用于向当前部署认证。\n\n登录",
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/auth-validation-failure-failure.png"
+    ]
+  }
+]

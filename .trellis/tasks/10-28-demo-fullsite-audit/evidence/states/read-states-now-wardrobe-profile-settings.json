@@ -1,0 +1,350 @@
+[
+  {
+    "page": "now",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "now",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "now",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "wardrobe",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/inventory?kind=wearable&state=current&limit=100&cursor=",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/wardrobe",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "wardrobe",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/inventory?kind=wearable&state=current&limit=100&cursor=",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/wardrobe",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "wardrobe",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/inventory?kind=wearable&state=current&limit=100&cursor=",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/wardrobe",
+        "failed": true
+      }
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 7000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('h1').first() to be visible\u001b[22m\n\u001b[2m    18 × locator resolved to hidden <h1 tabindex=\"-1\">林晚的衣柜</h1>\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\n\n当前内容尚未读到。\n\n衣柜：服务暂时无法连接，请稍后重新读取。\n\n重新读取当前页面",
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-failure-failure.png"
+    ],
+    "calls": 2
+  },
+  {
+    "page": "profile",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "profile",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "profile",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "settings",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "settings",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "settings",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  }
+]

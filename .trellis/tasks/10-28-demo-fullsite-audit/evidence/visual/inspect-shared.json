@@ -1,0 +1,28 @@
+{
+  "url": "http://127.0.0.1:4179/fluctlight-offline.html#/c/linwan/chat",
+  "style": {
+    "border": "1px solid rgb(220, 228, 212)",
+    "color": "rgb(105, 125, 92)",
+    "lineHeight": "18px",
+    "fontWeight": "500",
+    "background": "rgb(255, 255, 255)",
+    "height": "36px",
+    "ink": "",
+    "borderVar": "#e2e7de"
+  },
+  "rules": []
+}
+{
+  "url": "http://127.0.0.1:4381/#/c/linwan/chat",
+  "style": {
+    "border": "1px solid rgb(46, 57, 49)",
+    "color": "rgb(46, 57, 49)",
+    "lineHeight": "17.1429px",
+    "fontWeight": "500",
+    "background": "rgb(255, 255, 255)",
+    "height": "36px",
+    "ink": "#2e3931",
+    "borderVar": "#e2e7de"
+  },
+  "rules": []
+}

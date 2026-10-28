@@ -855,3 +855,76 @@ search restoration. Static55-route inventory supplements these interactions.
 Wrong: treat /chat?message=source as ordinary current chat or read current session
 when an explicitly named source is absent from the first directory page.
 Correct: use the shared read-only history reader and confirm the exact source.
+
+## Fullsite audit: shared presentation and notification ownership (2026-10-28)
+
+### 1. Scope and trigger
+
+The second pass uses the immutable supplied Demo at identical content/viewport.
+Its migrated replica styles share the same unlayered presentation cascade; the
+older react-layout remains in the components layer. Wrapping only the management
+replica in components lets unlayered shared control rules suppress its intended
+sizes/colors. Inspect computed rules before changing layer ownership. Keep
+`.settings-group[hidden]` protection and existing primitive disabled semantics.
+
+### 2. Signatures
+
+- `Sidebar({returnFocus?: () => HTMLElement | null})` restores the connected
+  mobile trigger from `SheetContent.onCloseAutoFocus`.
+- `ChatAttachment({src, alt, onOpen})` keeps one AttachmentTrigger node across
+  loading/error/retry. The media URL remains the original authenticated URL.
+- `workspace.refreshNotificationCount()`, `markNotificationRead(id)`, and
+  `markAllNotificationsRead(before)` own global notification synchronization.
+- Notification count GET returns `{count, alert_count}`; list role filters use
+  the existing `fluctlightId`. Read-all freezes the server-observed `as_of`.
+
+### 3. Contracts
+
+Directory `identity.occupation`, color and `last_conversation_at` remain in the
+projection even before a role detail loads. Unknown timestamps stay unknown.
+Global notification count uses Owner/session generation and request epochs,
+independent of character selection. A confirmed write invalidates older reads
+and starts count refresh without delaying or reversing the successful write.
+
+Creation's ordinary profileFields excludes shared personality. Its sliders
+therefore update `previewDefinition().core_persona.personality` through
+`updatePreviewDefinition`; they must not look for a nonexistent profileField.
+That path retains original analysis authority, the complete nested structure,
+and unknown extension facts. Pending full-JSON edits disable grouped edits.
+Creation preview themes remain one horizontally scrolling row at narrow widths;
+identity follows the Demo's known field order, with remaining fields retained.
+
+### 4. Validation and error matrix
+
+| Condition | Required behavior |
+| --- | --- |
+| Image fails, keyboard retries | Same focused button remains; original URL reread |
+| Mobile navigation Escape | Restore a connected, enabled source trigger |
+| Notification count fails after read commit | Keep committed read successful and last confirmed count |
+| Owner A → B → A or pre-write count returns late | Reject obsolete generation/epoch |
+| Shared personality number exists | Slider edits the full preview and persists it |
+| Full JSON is unapplied, activation accepted or Owner changed | No new grouped preview mutation |
+| No actual diary title/mood or personality dimensions | Show supported missing state; do not seed Demo facts |
+
+### 5. Good, base and bad cases
+
+Good: a 0.72 personality slider changes to0.73, full JSON and refresh retain0.73
+while relationships/extensions remain equal. Base: absent personality offers an
+explicit setting action. Bad: disable every slider because profileFields has no
+personality, or replace the failed-image retry button and drop keyboard focus.
+
+### 6. Verification assertions
+
+`demo-fullsite-shared`, `notification-counter`, `approved-workspace`, and
+`demo-replica-inbox` cover draft adoption, same image node/URL, confirmed counters,
+Owner races and server filters. Browser checks use production dist, including
+700/701 boundaries, keyboard image retry and full-preview persistence. Screenshot
+creation alone never certifies visual parity; raw pixel differences have no
+completion threshold. Controlled HTTP/JSDOM evidence never certifies live Core.
+
+### 7. Wrong and correct
+
+Wrong: `fields.find(f => f.path[0] === 'personality')` gates creation sliders, or
+badge=`notifications.filter(unread).length` caps total to the first list page.
+Correct: update the complete editable definition through its existing controller;
+consume the separate Owner-scoped authoritative notification counter.

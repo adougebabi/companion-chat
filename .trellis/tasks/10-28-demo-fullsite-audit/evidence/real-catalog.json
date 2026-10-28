@@ -1,0 +1,713 @@
+{
+  "schemaVersion": 1,
+  "case": "UI-CATALOG",
+  "title": "全站审计：真实资源持久化与发布",
+  "status": "review_required",
+  "invocationId": "61535599-b546-4166-a792-ece57b52f6bb",
+  "startedAt": "2026-10-28T04:10:47.585Z",
+  "executionLayer": "real-http-and-isolated-tests",
+  "baseURL": "http://127.0.0.1:18480",
+  "steps": [
+    {
+      "id": "preflight",
+      "expected": "Healthy real API, database and original Owner session",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.586Z",
+      "observed": {
+        "authenticated": true,
+        "ownerActorId": "human_0f11e4639481cbfc19259e83036b6fde",
+        "baseURL": "http://127.0.0.1:18480",
+        "liveEnabled": true
+      },
+      "finishedAt": "2026-10-28T04:10:47.604Z"
+    },
+    {
+      "id": "create-publish-world",
+      "expected": "真实保存、同key重放、读取、精确版本发布：world",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.605Z",
+      "observed": {
+        "id": "res_0d4eaf645b436487ddc7749d43f86783",
+        "kind": "world",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.626Z"
+    },
+    {
+      "id": "create-publish-place",
+      "expected": "真实保存、同key重放、读取、精确版本发布：place",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.626Z",
+      "observed": {
+        "id": "res_fcd19216b4746a7bc582ee892b09d8a9",
+        "kind": "place",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.637Z"
+    },
+    {
+      "id": "create-publish-item",
+      "expected": "真实保存、同key重放、读取、精确版本发布：item",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.637Z",
+      "observed": {
+        "id": "res_3841e75c7039e0a93cd0ab69781bdefc",
+        "kind": "item",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.647Z"
+    },
+    {
+      "id": "create-publish-event_template",
+      "expected": "真实保存、同key重放、读取、精确版本发布：event_template",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.648Z",
+      "observed": {
+        "id": "res_e845c8bd3a3aa400814cd0ebf7e8519b",
+        "kind": "event_template",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.658Z"
+    },
+    {
+      "id": "create-publish-character_template",
+      "expected": "真实保存、同key重放、读取、精确版本发布：character_template",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.659Z",
+      "observed": {
+        "id": "res_9c37fe6b9b1d343208fcaa3924eea4bd",
+        "kind": "character_template",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.669Z"
+    },
+    {
+      "id": "create-publish-persona_fragment",
+      "expected": "真实保存、同key重放、读取、精确版本发布：persona_fragment",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.670Z",
+      "observed": {
+        "id": "res_0a380430b990182a44c98c747db6dd2f",
+        "kind": "persona_fragment",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.680Z"
+    },
+    {
+      "id": "create-publish-visual_style",
+      "expected": "真实保存、同key重放、读取、精确版本发布：visual_style",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.680Z",
+      "observed": {
+        "id": "res_da0f26f7a5ec6554a33c6973dfc61aa1",
+        "kind": "visual_style",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.690Z"
+    },
+    {
+      "id": "create-publish-npc",
+      "expected": "真实保存、同key重放、读取、精确版本发布：npc",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.691Z",
+      "observed": {
+        "id": "res_7b984c6dd912fe0a57013d2d8b50ac49",
+        "kind": "npc",
+        "revision": 2,
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.701Z"
+    },
+    {
+      "id": "create-publish-outfit",
+      "expected": "真实搭配定义引用精确已发布物品，不生成库存或穿着",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.701Z",
+      "observed": {
+        "id": "res_f2f218b048854f40eed90879d943aaf2",
+        "published_version": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.712Z"
+    },
+    {
+      "id": "draft-version-copy-archive",
+      "expected": "新草稿不改变发布版本，复制独立草稿且归档恢复可读",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.713Z",
+      "observed": {
+        "source": "res_0d4eaf645b436487ddc7749d43f86783",
+        "copy": "res_47c6aa0eab43cfeaaf8472dc9ab13bd6",
+        "restored": "draft",
+        "originalPublication": "1"
+      },
+      "finishedAt": "2026-10-28T04:10:47.734Z"
+    },
+    {
+      "id": "notification-configuration",
+      "expected": "真实配置CAS保存、同key回放、旧版本拒绝与重新读取",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:10:47.735Z",
+      "observed": {
+        "revision": 1,
+        "staleRejected": true
+      },
+      "finishedAt": "2026-10-28T04:10:47.738Z"
+    }
+  ],
+  "requests": [
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/health/live",
+      "startedAt": "2026-10-28T04:10:47.593Z",
+      "status": 200,
+      "elapsedMs": 6
+    },
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/health/ready",
+      "startedAt": "2026-10-28T04:10:47.600Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/auth/session",
+      "startedAt": "2026-10-28T04:10:47.602Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-world",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783",
+      "startedAt": "2026-10-28T04:10:47.605Z",
+      "status": 200,
+      "elapsedMs": 8
+    },
+    {
+      "step": "create-publish-world",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783",
+      "startedAt": "2026-10-28T04:10:47.613Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "create-publish-world",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.616Z",
+      "status": 201,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-world",
+      "method": "POST",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783/publish",
+      "startedAt": "2026-10-28T04:10:47.619Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "create-publish-world",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783",
+      "startedAt": "2026-10-28T04:10:47.622Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "create-publish-world",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783/versions/1",
+      "startedAt": "2026-10-28T04:10:47.625Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-place",
+      "method": "GET",
+      "path": "/api/studio/resources/res_fcd19216b4746a7bc582ee892b09d8a9",
+      "startedAt": "2026-10-28T04:10:47.626Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "create-publish-place",
+      "method": "GET",
+      "path": "/api/studio/resources/res_fcd19216b4746a7bc582ee892b09d8a9",
+      "startedAt": "2026-10-28T04:10:47.629Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-place",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.631Z",
+      "status": 201,
+      "elapsedMs": 0
+    },
+    {
+      "step": "create-publish-place",
+      "method": "POST",
+      "path": "/api/studio/resources/res_fcd19216b4746a7bc582ee892b09d8a9/publish",
+      "startedAt": "2026-10-28T04:10:47.632Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-place",
+      "method": "GET",
+      "path": "/api/studio/resources/res_fcd19216b4746a7bc582ee892b09d8a9",
+      "startedAt": "2026-10-28T04:10:47.634Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-place",
+      "method": "GET",
+      "path": "/api/studio/resources/res_fcd19216b4746a7bc582ee892b09d8a9/versions/1",
+      "startedAt": "2026-10-28T04:10:47.636Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-item",
+      "method": "GET",
+      "path": "/api/studio/resources/res_3841e75c7039e0a93cd0ab69781bdefc",
+      "startedAt": "2026-10-28T04:10:47.638Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-item",
+      "method": "GET",
+      "path": "/api/studio/resources/res_3841e75c7039e0a93cd0ab69781bdefc",
+      "startedAt": "2026-10-28T04:10:47.639Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-item",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.641Z",
+      "status": 201,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-item",
+      "method": "POST",
+      "path": "/api/studio/resources/res_3841e75c7039e0a93cd0ab69781bdefc/publish",
+      "startedAt": "2026-10-28T04:10:47.643Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-item",
+      "method": "GET",
+      "path": "/api/studio/resources/res_3841e75c7039e0a93cd0ab69781bdefc",
+      "startedAt": "2026-10-28T04:10:47.645Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-item",
+      "method": "GET",
+      "path": "/api/studio/resources/res_3841e75c7039e0a93cd0ab69781bdefc/versions/1",
+      "startedAt": "2026-10-28T04:10:47.647Z",
+      "status": 200,
+      "elapsedMs": 0
+    },
+    {
+      "step": "create-publish-event_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_e845c8bd3a3aa400814cd0ebf7e8519b",
+      "startedAt": "2026-10-28T04:10:47.648Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-event_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_e845c8bd3a3aa400814cd0ebf7e8519b",
+      "startedAt": "2026-10-28T04:10:47.650Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-event_template",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.652Z",
+      "status": 201,
+      "elapsedMs": 0
+    },
+    {
+      "step": "create-publish-event_template",
+      "method": "POST",
+      "path": "/api/studio/resources/res_e845c8bd3a3aa400814cd0ebf7e8519b/publish",
+      "startedAt": "2026-10-28T04:10:47.653Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "create-publish-event_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_e845c8bd3a3aa400814cd0ebf7e8519b",
+      "startedAt": "2026-10-28T04:10:47.656Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-event_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_e845c8bd3a3aa400814cd0ebf7e8519b/versions/1",
+      "startedAt": "2026-10-28T04:10:47.658Z",
+      "status": 200,
+      "elapsedMs": 0
+    },
+    {
+      "step": "create-publish-character_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_9c37fe6b9b1d343208fcaa3924eea4bd",
+      "startedAt": "2026-10-28T04:10:47.659Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-character_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_9c37fe6b9b1d343208fcaa3924eea4bd",
+      "startedAt": "2026-10-28T04:10:47.661Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-character_template",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.663Z",
+      "status": 201,
+      "elapsedMs": 0
+    },
+    {
+      "step": "create-publish-character_template",
+      "method": "POST",
+      "path": "/api/studio/resources/res_9c37fe6b9b1d343208fcaa3924eea4bd/publish",
+      "startedAt": "2026-10-28T04:10:47.664Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-character_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_9c37fe6b9b1d343208fcaa3924eea4bd",
+      "startedAt": "2026-10-28T04:10:47.666Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "create-publish-character_template",
+      "method": "GET",
+      "path": "/api/studio/resources/res_9c37fe6b9b1d343208fcaa3924eea4bd/versions/1",
+      "startedAt": "2026-10-28T04:10:47.669Z",
+      "status": 200,
+      "elapsedMs": 0
+    },
+    {
+      "step": "create-publish-persona_fragment",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0a380430b990182a44c98c747db6dd2f",
+      "startedAt": "2026-10-28T04:10:47.670Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-persona_fragment",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0a380430b990182a44c98c747db6dd2f",
+      "startedAt": "2026-10-28T04:10:47.672Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-persona_fragment",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.674Z",
+      "status": 201,
+      "elapsedMs": 0
+    },
+    {
+      "step": "create-publish-persona_fragment",
+      "method": "POST",
+      "path": "/api/studio/resources/res_0a380430b990182a44c98c747db6dd2f/publish",
+      "startedAt": "2026-10-28T04:10:47.675Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-persona_fragment",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0a380430b990182a44c98c747db6dd2f",
+      "startedAt": "2026-10-28T04:10:47.678Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-persona_fragment",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0a380430b990182a44c98c747db6dd2f/versions/1",
+      "startedAt": "2026-10-28T04:10:47.679Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-visual_style",
+      "method": "GET",
+      "path": "/api/studio/resources/res_da0f26f7a5ec6554a33c6973dfc61aa1",
+      "startedAt": "2026-10-28T04:10:47.680Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-visual_style",
+      "method": "GET",
+      "path": "/api/studio/resources/res_da0f26f7a5ec6554a33c6973dfc61aa1",
+      "startedAt": "2026-10-28T04:10:47.682Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-visual_style",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.683Z",
+      "status": 201,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-visual_style",
+      "method": "POST",
+      "path": "/api/studio/resources/res_da0f26f7a5ec6554a33c6973dfc61aa1/publish",
+      "startedAt": "2026-10-28T04:10:47.685Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-visual_style",
+      "method": "GET",
+      "path": "/api/studio/resources/res_da0f26f7a5ec6554a33c6973dfc61aa1",
+      "startedAt": "2026-10-28T04:10:47.687Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-visual_style",
+      "method": "GET",
+      "path": "/api/studio/resources/res_da0f26f7a5ec6554a33c6973dfc61aa1/versions/1",
+      "startedAt": "2026-10-28T04:10:47.689Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-npc",
+      "method": "GET",
+      "path": "/api/studio/resources/res_7b984c6dd912fe0a57013d2d8b50ac49",
+      "startedAt": "2026-10-28T04:10:47.691Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-npc",
+      "method": "GET",
+      "path": "/api/studio/resources/res_7b984c6dd912fe0a57013d2d8b50ac49",
+      "startedAt": "2026-10-28T04:10:47.692Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-npc",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.694Z",
+      "status": 201,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-npc",
+      "method": "POST",
+      "path": "/api/studio/resources/res_7b984c6dd912fe0a57013d2d8b50ac49/publish",
+      "startedAt": "2026-10-28T04:10:47.696Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-npc",
+      "method": "GET",
+      "path": "/api/studio/resources/res_7b984c6dd912fe0a57013d2d8b50ac49",
+      "startedAt": "2026-10-28T04:10:47.698Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-npc",
+      "method": "GET",
+      "path": "/api/studio/resources/res_7b984c6dd912fe0a57013d2d8b50ac49/versions/1",
+      "startedAt": "2026-10-28T04:10:47.700Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "create-publish-outfit",
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "startedAt": "2026-10-28T04:10:47.702Z",
+      "status": 201,
+      "elapsedMs": 3
+    },
+    {
+      "step": "create-publish-outfit",
+      "method": "POST",
+      "path": "/api/studio/resources/res_f2f218b048854f40eed90879d943aaf2/publish",
+      "startedAt": "2026-10-28T04:10:47.706Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-outfit",
+      "method": "GET",
+      "path": "/api/studio/resources/res_f2f218b048854f40eed90879d943aaf2",
+      "startedAt": "2026-10-28T04:10:47.708Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "create-publish-outfit",
+      "method": "GET",
+      "path": "/api/studio/resources/res_f2f218b048854f40eed90879d943aaf2",
+      "startedAt": "2026-10-28T04:10:47.710Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "draft-version-copy-archive",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783",
+      "startedAt": "2026-10-28T04:10:47.713Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "draft-version-copy-archive",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783/versions/1",
+      "startedAt": "2026-10-28T04:10:47.715Z",
+      "status": 200,
+      "elapsedMs": 0
+    },
+    {
+      "step": "draft-version-copy-archive",
+      "method": "PUT",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783",
+      "startedAt": "2026-10-28T04:10:47.716Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "draft-version-copy-archive",
+      "method": "GET",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783/versions/1",
+      "startedAt": "2026-10-28T04:10:47.718Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "draft-version-copy-archive",
+      "method": "POST",
+      "path": "/api/studio/resources/res_0d4eaf645b436487ddc7749d43f86783/copy",
+      "startedAt": "2026-10-28T04:10:47.720Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "draft-version-copy-archive",
+      "method": "DELETE",
+      "path": "/api/studio/resources/res_47c6aa0eab43cfeaaf8472dc9ab13bd6",
+      "startedAt": "2026-10-28T04:10:47.723Z",
+      "status": 200,
+      "elapsedMs": 7
+    },
+    {
+      "step": "draft-version-copy-archive",
+      "method": "POST",
+      "path": "/api/studio/resources/res_47c6aa0eab43cfeaaf8472dc9ab13bd6/restore",
+      "startedAt": "2026-10-28T04:10:47.731Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "notification-configuration",
+      "method": "PUT",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:10:47.735Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "notification-configuration",
+      "method": "GET",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:10:47.736Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "notification-configuration",
+      "method": "PUT",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:10:47.737Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "notification-configuration",
+      "method": "PUT",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:10:47.738Z",
+      "status": 409,
+      "elapsedMs": 0,
+      "errorCode": "revision_conflict"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "browser",
+      "status": "pending_user_review",
+      "description": "API/持久化验证不代表该页视觉、焦点、弹窗和浏览器状态通过。",
+      "evidence": {}
+    }
+  ],
+  "coverageLimits": [
+    "HTTP and component tests do not certify real-browser rendering, IME or scrolling.",
+    "Controlled Provider fixtures do not certify a real model/renderer."
+  ],
+  "runId": "3bfd7cf2-a255-4dff-ac90-bdd2e204226d",
+  "automatedStatus": "passed",
+  "fullWorkflowAccepted": false,
+  "modelTriggerOperations": 0,
+  "finishedAt": "2026-10-28T04:10:47.739Z",
+  "executionMode": "scenario"
+}

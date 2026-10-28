@@ -1,0 +1,24 @@
+[
+  {
+    "name": "auth-validation-failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist / controlled HTTP",
+    "checks": [
+      "short password does not reach authentication",
+      "validation returns focus to password",
+      "authentication failure preserves input",
+      "failure came from actual request",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/auth-validation-failure-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/auth-validation-failure-rejected.png"
+    ],
+    "status": "passed"
+  }
+]

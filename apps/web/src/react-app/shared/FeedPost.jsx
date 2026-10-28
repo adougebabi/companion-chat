@@ -3,11 +3,13 @@ import { Heart, MessageCircle, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, Disclosure } from "../controls";
 import MediaPreview from "./MediaPreview";
+import CharacterAvatar from "./CharacterAvatar";
 import useWorkspaceRead from "./useWorkspaceRead";
 import { FeedReader } from "./FeedParts";
 import { momentAuthor, momentCount } from "@/approved-ui/feed-presentation.mjs";
 import { momentReading } from "@/v3/moment-reading.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import {compactDateTime} from '@/approved-ui/presentation.mjs';
 function PostMedia({ asset, model: m, full, onOpen }) {
   const [failed, setFailed] = useState(false);
   if (!asset?.id) return null;
@@ -111,20 +113,19 @@ export default function FeedPost({
 }) {
   const reading = momentReading(post),
     author = momentAuthor(post),
-    hidden = post.status === "hidden";
+    hidden = post.status === "hidden",
+    character = m.w.state.characters.find(c=>c.id===post.author_actor_id);
   return (
     <article
       className={"companion-feed-card" + (full ? " is-full" : "")}
       data-testid={"feed-post-" + post.id}
     >
       <header>
-        <span className="feed-author-avatar" aria-hidden="true">
-          {[...author].at(-1)}
-        </span>
+        <CharacterAvatar className="feed-author-avatar" name={author} src={character?._directory?.avatar} color={character?.color}/>
         <div>
           <strong>{author}</strong>
           <span>
-            {post.created_at ? userInstant(post.created_at) : "发布时间未记录"}
+            {post.created_at ? <time dateTime={post.created_at} title={userInstant(post.created_at)}>{compactDateTime(post.created_at,'Asia/Shanghai',Date.now(),true)||userInstant(post.created_at)}</time> : "发布时间未记录"}
           </span>
         </div>
         <Button

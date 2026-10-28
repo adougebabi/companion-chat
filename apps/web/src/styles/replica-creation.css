@@ -123,7 +123,8 @@
   background: transparent;
   gap: 19px;
   height: auto;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
   margin-bottom: 22px;
 }
 .replica-creation .creation-segment-tabs [data-slot="tabs-trigger"] {
@@ -133,16 +134,20 @@
   border-radius: 0;
   padding: 0 3px 12px;
   font-size: 11px;
+  height: auto;
+  flex-shrink: 0;
+  font-weight: 400;
   background: transparent;
   box-shadow: none;
-  color: #8a957d;
+  color: #7d8872;
 }
 .replica-creation .creation-segment-tabs [data-slot="tabs-trigger"]::after {
   display: none;
 }
 .replica-creation .creation-segment-tabs [data-state="active"] {
-  border-bottom-color: #739062;
-  color: #516d42;
+  border-bottom-color: #547b4b;
+  color: #33563d;
+  font-weight: 600;
 }
 .replica-creation .creation-world-toolbar {
   display: flex;
@@ -186,6 +191,11 @@
 .replica-creation .creation-structured [data-slot="semantic-tree"] {
   font-size: 11px;
 }
+.replica-creation .creation-structured .approved-facts > div:has(> dt) { display:grid;grid-template-columns:115px minmax(0,1fr);gap:15px;padding:12px 0;border-bottom:1px solid #edf1e5; }
+.replica-creation .creation-structured .approved-facts > div:last-child { border-bottom:0; }
+.replica-creation .creation-structured .approved-facts dt { font-size:10px;line-height:1.85;color:#99a38e; }
+.replica-creation .creation-structured .approved-facts dd { margin:0;min-width:0;font-size:11px;line-height:1.85;overflow-wrap:anywhere; }
+.replica-creation .creation-segments { min-width:0;width:100%; }
 .replica-creation .creation-actual-preparation > p {
   display: none;
 }
@@ -1185,7 +1195,9 @@
   margin-bottom: 20px;
 }
 .replica-creation .creation-segment-tabs {
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
 @media (max-width: 950px) {
   .replica-creation .creation-aside {
@@ -1193,6 +1205,7 @@
   }
 }
 @media (max-width: 700px) {
+  .replica-creation .creation-structured .approved-facts > div:has(> dt) { grid-template-columns:90px minmax(0,1fr);gap:10px; }
   .replica-creation .creation-form-grid {
     grid-template-columns: 1fr;
     gap: 18px;

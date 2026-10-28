@@ -1,0 +1,32 @@
+{
+  "origin": "http://127.0.0.1:18480",
+  "environment": "fresh actual Go Core + PostgreSQL",
+  "events": [
+    {
+      "path": "/health/ready",
+      "status": 200
+    },
+    {
+      "path": "/auth/setup-status",
+      "status": 200
+    },
+    {
+      "path": "/auth/setup",
+      "status": 200
+    },
+    {
+      "path": "/auth/session",
+      "status": 200
+    },
+    {
+      "path": "/api/fluctlights",
+      "status": 200
+    }
+  ],
+  "session": {
+    "actorId": "human_0f11e4639481cbfc19259e83036b6fde",
+    "authenticated": true
+  },
+  "empty_directory": [],
+  "credentials": "private tmp only; omitted"
+}

@@ -1,12 +1,16 @@
 import {MessageScrollerProvider,MessageScroller,MessageScrollerViewport,MessageScrollerContent,MessageScrollerItem,MessageScrollerButton} from '@/components/ui/message-scroller';
 import {Message,MessageContent,MessageHeader} from '@/components/ui/message';
 import {Bubble,BubbleContent} from '@/components/ui/bubble';
-import {Attachment,AttachmentMedia,AttachmentTrigger,AttachmentGroup} from '@/components/ui/attachment';
+import {AttachmentGroup} from '@/components/ui/attachment';
+import ChatAttachment from '../shared/ChatAttachment';
+import WorkspaceDialog from '../shared/WorkspaceDialog';
+import MediaPreview from '../shared/MediaPreview';
 import {Marker,MarkerContent} from '@/components/ui/marker';
 import {Spinner} from '@/components/ui/spinner';
 import WorkspacePageHeader from '../shared/WorkspacePageHeader';
 import WorkspaceMomentArt from '../shared/WorkspaceMomentArt';
 import WearingSummary from '../shared/WearingSummary';
+import {nextScheduleItem} from '@/approved-ui/presentation.mjs';
 import {currentReadError} from '@/approved-ui/read-feedback.mjs';
 import ConversationHistory from '../shared/ConversationHistory';
 import {Surface} from '../controls';
@@ -15,7 +19,6 @@ import {SidebarProvider,Sidebar,SidebarContent} from '@/components/ui/sidebar';
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
-import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription} from "@/components/ui/sheet";
 import {
   useEffect,
   useRef,
@@ -27,7 +30,7 @@ import {
   SendIcon,
   ShieldCheckIcon,
   ChevronRightIcon,
-  LeafIcon,
+  LeafIcon, XIcon,
 } from "lucide-react";
 import { useWorkspace } from "../page";
 import { Button } from "@/components/ui/button";
@@ -51,9 +54,11 @@ export default function ChatPage({
   onGo,
   onPreviewChange,
   historyRoute,
+  route,
 }: {
   preview: boolean;
   historyRoute?: any;
+  route?: any;
   onPreviewChange?: (open:boolean)=>void;
   onGo: (page: string) => void;
 }) {
@@ -82,9 +87,18 @@ export default function ChatPage({
   const [diagnosticRoute,setDiagnosticRoute]=useState<any>(null);
   const [now, setNow] = useState(Date.now);
   const [historyOpen,setHistoryOpen]=useState(false);
+  const [promptOffer,setPromptOffer]=useState('');
   const [readFailure,setReadFailure]=useState(''),[readLoading,setReadLoading]=useState(true);
   const latestDraft = useRef(draft);
   latestDraft.current = draft;
+  const incomingPrompt=route?.query?.get('say')||'';
+  useEffect(()=>{
+    setPromptOffer('');
+    if(!incomingPrompt.trim()||(route?.fid&&route.fid!==character.id))return;
+    const current=latestDraft.current;
+    if(!current.trim()||current.trim()===incomingPrompt.trim())setDraft(incomingPrompt);
+    else setPromptOffer(incomingPrompt);
+  },[incomingPrompt,route?.fid,character.id,scope]);
   const pageActive=useRef(false),historyFocus=useRef<HTMLButtonElement>(null);
   const composing = useRef(false),
     attachmentFocus = useRef<HTMLButtonElement>(null);
@@ -205,14 +219,7 @@ export default function ChatPage({
     catch(cause){if(live())setReadFailure(errorMessage(cause,'对话暂时无法读取。'));}
     finally{if(live())setReadLoading(false);}
   }
-  const schedule =
-    character.schedule.find(
-      (item: any) => item._source?.action_status === "in_progress",
-    ) ||
-    character.schedule.find(
-      (item: any) =>
-        !item._source?.end_at || Date.parse(item._source.end_at) > now,
-    );
+  const schedule = nextScheduleItem(character.schedule,now);
   const previewContent=<><Surface className="replica-moment-card">
     <div className="replica-section-heading"><h2>{character.name}的此刻</h2><Badge variant="outline">实时预览</Badge></div>
     <WorkspaceMomentArt/>
@@ -269,10 +276,11 @@ export default function ChatPage({
                   name={mine ? "我" : character.name}
                   initial={mine ? "我" : character.initial}
                   color={mine ? "#e9eae6" : character.color}
+                  src={mine ? undefined : character._directory?.avatar}
                 />
                 <MessageContent className="companion-message-body">
                   <MessageHeader className="companion-message-meta">
-                    {mine ? "我" : character.name}
+                    <span>{mine ? "我" : character.name}</span>
                     <ControlHint text={userInstant(message.createdAt)}><time
                       dateTime={message.createdAt}
                       aria-label={userInstant(message.createdAt)}
@@ -280,8 +288,11 @@ export default function ChatPage({
                       {workspace.clock(message.createdAt, "Asia/Shanghai")}
                     </time></ControlHint>
                   </MessageHeader>
-                  <Bubble className="replica-message-bubble" variant={mine?"tinted":"outline"} align={mine?"end":"start"}><BubbleContent className="companion-bubble">{message.text}</BubbleContent>
-                    {!!message.attachmentRefs?.length&&<AttachmentGroup className="flex-wrap overflow-visible">{message.attachmentRefs.map(id=><Attachment key={id} orientation="vertical" className="w-36"><AttachmentMedia variant="image"><img src={workspace.services.mediaClient.url(id)} alt={character.name+' 的附件'} loading="lazy"/></AttachmentMedia><AttachmentTrigger aria-label="查看对话附件" onClick={event=>{attachmentFocus.current=event.currentTarget;setAttachment(id);}}/></Attachment>)}</AttachmentGroup>}
+                  <Bubble className="replica-message-bubble" variant={mine?"tinted":"outline"} align={mine?"end":"start"}>
+                    <BubbleContent className="companion-bubble">
+                      {message.text}
+                      {!!message.attachmentRefs?.length&&<AttachmentGroup className="companion-message-attachments">{message.attachmentRefs.map(id=><ChatAttachment key={id} src={workspace.services.mediaClient.url(id)} alt={character.name+' 的附件'} onOpen={source=>{attachmentFocus.current=source;setAttachment(id);}}/>)}</AttachmentGroup>}
+                    </BubbleContent>
                   </Bubble>
                   {mine&&message.turnStatus==='completed'&&<div className="companion-message-state"><CheckCheckIcon size={12}/>已送达</div>}
                   {failed && (
@@ -325,6 +336,7 @@ export default function ChatPage({
           </MessageScroller>
         </MessageScrollerProvider>
         <div className="companion-composer">
+          {promptOffer&&<div className="companion-prefill-note"><span>已保留你的草稿，还有一条来自其他页面的请求。</span><Button variant="link" onClick={()=>{setDraft(current=>current.trim()?current+'\n\n'+promptOffer:promptOffer);setPromptOffer('');}}>加入草稿</Button><Button variant="ghost" size="icon" aria-label="放下这条请求" onClick={()=>setPromptOffer('')}><XIcon size={12}/></Button></div>}
           <Textarea
             aria-label="聊天消息"
             placeholder="说点什么，分享你的今天…"
@@ -364,7 +376,7 @@ export default function ChatPage({
       {preview&&<aside className="companion-moment-preview"><SidebarProvider keyboardShortcut={false} open={preview} onOpenChange={onPreviewChange} className="contents min-h-0"><Sidebar side="right" data-side="right" collapsible="none" className="replica-chat-preview"><SidebarContent className="replica-chat-preview-content">{previewContent}</SidebarContent></Sidebar></SidebarProvider></aside>}
       </div>
       {(historyOpen||historyRoute)&&<ConversationHistory key={historyRoute?historyRoute.path+'?'+historyRoute.query:'inline'} initialQuery={historyRoute?.query.get('q')||''} initialConversationId={historyRoute?.query.get('conversation')||''} initialMessageId={historyRoute?.query.get('message')||''} returnFocus={()=>historyFocus.current} busy={busy} onClose={closeHistory}/>}
-      {attachment&&<Sheet open onOpenChange={open=>{if(!open)setAttachment(null);}}><SheetContent className="react-workspace gap-4" onCloseAutoFocus={event=>{if(attachmentFocus.current?.isConnected){event.preventDefault();attachmentFocus.current.focus({preventScroll:true});}}}><SheetHeader><SheetTitle>对话附件</SheetTitle><SheetDescription>{character.name} 的历史对话图片</SheetDescription></SheetHeader><div className="min-h-0 flex-1 overflow-y-auto p-4"><img className="h-auto w-full object-contain" src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></div></SheetContent></Sheet>}
+      {attachment&&<WorkspaceDialog open onOpenChange={open=>{if(!open)setAttachment(null);}} title="对话附件" description={character.name+' 的历史对话图片'} returnFocus={()=>attachmentFocus.current}><MediaPreview src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></WorkspaceDialog>}
       {diagnosticRoute&&<DetailDrawer title="本次对话运行" testId="chat-diagnostic-drawer" onClose={()=>setDiagnosticRoute(null)}><DomainPage route={diagnosticRoute}/></DetailDrawer>}
     </div>
   );

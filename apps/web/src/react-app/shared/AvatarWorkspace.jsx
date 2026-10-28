@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Surface, Disclosure, FieldInput, Textarea } from "../controls";
+import { Surface, Disclosure, FieldInput, Textarea, Badge } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
 import useWorkspaceRead from "./useWorkspaceRead";
@@ -162,9 +162,10 @@ export default function AvatarWorkspace({ model: m }) {
                   )}
                 </div>
                 <h2>{m.actor?.name || "角色"}</h2>
-                <p>{d.mode === "asset" ? "明确选择的素材" : "跟随规范参考"}</p>
+                <p>{m.actor?.job || (d.mode === "asset" ? "明确选择的素材" : "跟随规范参考")}</p>
+                <Badge variant="outline" className="r-avatar-independent">显示头像独立保存</Badge>
                 <small>
-                  显示头像独立保存。名称首字是没有可读图片时的自动回退。
+                  更换头像不会替换角色的规范参考图。
                 </small>
                 {!value.avatar && (
                   <p className="r-fineprint">

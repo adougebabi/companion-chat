@@ -1,0 +1,21 @@
+✔ history browsing discards late session reads and closing never selects a conversation (289.571542ms)
+✔ history retries the exact failed search cursor while retaining previous rows and newer unsubmitted query (216.670042ms)
+✔ history directory failure recovers the directory and only explicit resume switches a real session (125.227167ms)
+✔ history cannot search before the initial directory completes and cannot dismiss an in-flight selection (178.50675ms)
+✔ a confirmed selection still reconciles the active Owner and role after its history view unmounts (94.588167ms)
+✔ source messages read the exact original anchor, retry the same read and never resume another conversation (127.994417ms)
+✔ a source outside the first directory page waits for its own role membership and rejects a foreign anchor (93.477958ms)
+✔ React settings stay busy through receipt readback and preserve newer model input (1991.347042ms)
+✔ React world editor preserves world identity, CAS and saved category on reread (549.260125ms)
+✔ React composer retains draft and selection during updates and never sends a composing Enter (307.238459ms)
+✔ React setup confirms the exact password and focuses the mismatch without authenticating (251.205458ms)
+✔ React diagnostic detail preserves the complete original request and retains it on read failure (133.172416ms)
+✔ React resource editor rejects whitespace and preserves edits made while an original save is pending (428.855292ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4318.479708

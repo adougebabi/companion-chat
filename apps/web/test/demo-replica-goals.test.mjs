@@ -38,6 +38,8 @@ const goal = (id = "one", status = "active") => ({
   criteria_version: 2,
   scope: "general",
   deadline_policy: "soft",
+  owner_protected: false,
+  deadline: null,
   progress: 0.25,
   execution: {},
   evaluations: [],
@@ -83,6 +85,9 @@ function workspace() {
         desired_outcome: body.desiredOutcome,
         motivation: body.motivation,
         success_criteria: body.successCriteria,
+        deadline_policy: body.deadlinePolicy,
+        owner_protected: body.ownerProtected,
+        deadline: body.clearDeadline ? null : body.deadline,
       };
       rows.set(g.id, g);
       return { goal_id: g.id, revision: g.revision, status: g.status };
@@ -108,6 +113,9 @@ function workspace() {
           desired_outcome: body.desiredOutcome,
           motivation: body.motivation,
           success_criteria: body.successCriteria,
+        deadline_policy: body.deadlinePolicy,
+        owner_protected: body.ownerProtected,
+        deadline: body.clearDeadline ? null : body.deadline,
         });
       else
         g.status = {
@@ -426,4 +434,29 @@ test("saving a new goal replaces the previous detail evidence and history with i
   } finally {
     await v.dispose();
   }
+});
+
+test('acknowledged goal saves verify criteria, deadlines and protection before success and recover by GET only',async()=>{
+ for(const mismatch of [{success_criteria:['被遗漏的完成条件']},{deadline_policy:'hard'},{owner_protected:true},{deadline:'2032-01-01T00:00:00Z'}]){
+  const w=workspace(),read=w.client.goalDetail,write=w.client.goalCommand;let corrupt=false;
+  w.client.goalCommand=async(...args)=>{const r=await write(...args);corrupt=true;return r;};
+  w.client.goalDetail=async(...args)=>{const r=await read(...args);return corrupt?{...r,...mismatch}:r;};
+  const v=await mount(w);
+  try{
+   await open(v);await v.click(button(dialog(),'编辑'));await input(v,'目标操作原因','核对完整定义');await v.click(button(dialog(),'保存目标'));
+   assert.match(dialog().textContent,/读回内容尚未确认一致/);assert.match(dialog().textContent,/原操作已有回执/);
+   assert.doesNotMatch(v.host.textContent,/目标已保存并读回/);
+   corrupt=false;await v.click(button(dialog(),'只读恢复页面结果'));
+   assert.equal(w.calls.filter(c=>c[0]==='update').length,1);assert.match(v.host.textContent,/目标已保存并读回/);
+  }finally{await v.dispose();}
+ }
+});
+
+test('goal details expose recorded stages, commitments and dependencies without claiming parent completion',async()=>{
+ const w=workspace();Object.assign(w.rows.get('one'),{
+  dependencies:[{prerequisite_id:'before',desired_outcome:'先确认读书会书单',satisfied:false,status:'active'}],
+  stages:[{id:'stage-one',purpose:'准备读书会',strategy:'邀请愿意参与的读者',entry_basis:'书单已确认',exit_basis:'收到三位明确回复',criteria:[{id:'stage-c',text:'三位读者确认'}],status:'active',revision:2,criteria_version:1,dependency_ids:[]}],
+  commitments:[{id:'commit-one',stage_id:'stage-one',expected_result:'联系第一位读者',opportunity_condition:'对方方便交流时',blocker:'尚未确认空闲时间',criteria:[{id:'commit-c',text:'取得明确回复'}],window_start:'2026-10-28T12:00:00Z',window_end:'2026-10-28T13:00:00Z',status:'active',revision:1}]
+ });
+ const v=await mount(w);try{await open(v);const d=dialog();assert.match(d.querySelector('[aria-label="目标阶段"]').textContent,/准备读书会.*邀请愿意参与的读者.*书单已确认.*收到三位明确回复.*三位读者确认/s);assert.match(d.querySelector('[aria-label="目标行动承诺"]').textContent,/联系第一位读者.*对方方便交流时.*尚未确认空闲时间.*取得明确回复/s);assert.match(d.querySelector('[aria-label="目标前置条件"]').textContent,/先确认读书会书单.*尚未完成/s);assert.equal(w.rows.get('one').status,'active');assert.equal(w.calls.some(c=>['update','reassess'].includes(c[0])),false);}finally{await v.dispose();}
 });

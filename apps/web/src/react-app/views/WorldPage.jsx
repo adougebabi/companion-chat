@@ -11,6 +11,7 @@ import {
   MapPinIcon,
   PlusIcon,
   RefreshCwIcon,
+  SearchIcon,
   UserRoundIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import { Surface, Badge, Disclosure, FieldInput } from "../controls";
 import { ActionFeedback } from "../components";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
-import { WorldArt } from "../shared/WorkspaceArtwork";
+import { WorldArt, worldArtworkKind as decorativeKind } from "../shared/WorkspaceArtwork";
 import LoadingState from "../shared/LoadingState";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
 import SemanticTree from "../shared/SemanticTree";
@@ -34,6 +35,7 @@ import {
 import WorldField from "../shared/WorldFields";
 const Search = ({ value, onChange, label }) => (
   <div className="r-search">
+    <SearchIcon size={15} aria-hidden="true"/>
     <FieldInput
       type="search"
       aria-label={label}
@@ -44,13 +46,6 @@ const Search = ({ value, onChange, label }) => (
   </div>
 );
 const Tiny = ({ children }) => <span className="r-tiny-label">{children}</span>;
-// Choose among the supplied decorative drawings; this is never a runtime scene or media reference.
-const decorativeKind = (world) =>
-  /森林|自然|forest/i.test(world.name + world.flavor)
-    ? "forest"
-    : /星海|星际|太空|科幻|space/i.test(world.name + world.flavor)
-      ? "space"
-      : "city";
 export function WorldPageView({ view: m }) {
   const [archived, setArchived] = useState(false);
   useEffect(() => setArchived(false), [m.selected]);
@@ -236,7 +231,8 @@ export function WorldPageView({ view: m }) {
                             <CharacterAvatar
                               key={p.id}
                               name={p.name}
-                              initial={[...p.name].at(-1)}
+                              src={p.fluctlight?m.c._directory?.avatar:undefined}
+                              color={p.fluctlight?m.c.color:undefined}
                             />
                           ))}
                       </div>

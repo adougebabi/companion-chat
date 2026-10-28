@@ -1,0 +1,644 @@
+[
+  {
+    "name": "source-blank-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "blank source skips analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-blank-desktop-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-blank-desktop-preview.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "source-blank-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "blank source skips analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-blank-mobile-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-blank-mobile-preview.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "source-description-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "analysis used the selected source",
+      "full nested identity retained",
+      "full life settings retained",
+      "reload restores preview without another analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "description": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。\n姓名：林晚\n性格期望：\n世界与生活："
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-desktop-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-desktop-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-desktop-性格与表达.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-desktop-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-desktop-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-desktop-完整设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-desktop-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "source-description-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "analysis used the selected source",
+      "full nested identity retained",
+      "full life settings retained",
+      "reload restores preview without another analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "description": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。\n姓名：林晚\n性格期望：\n世界与生活："
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-mobile-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-mobile-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-mobile-性格与表达.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-mobile-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-mobile-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-mobile-完整设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-description-mobile-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "source-json-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "analysis used the selected source",
+      "full nested identity retained",
+      "full life settings retained",
+      "reload restores preview without another analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "林晚",
+                "nickname": "小晚",
+                "age": "26",
+                "gender": "女",
+                "occupation": "独立书店店主",
+                "birthday": "04-17",
+                "timezone": "Asia/Shanghai",
+                "residence": "青岚小城",
+                "birthplace": "海边小镇",
+                "background_story": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。",
+                "core_values": [
+                  "真诚",
+                  "尊重边界",
+                  "珍惜日常"
+                ],
+                "worldview": "相信普通生活里的小事也值得认真对待。",
+                "height_cm": 165,
+                "notes": ""
+              },
+              "personality": {
+                "openness": 0.72,
+                "conscientiousness": 0.82,
+                "extraversion": 0.38,
+                "agreeableness": 0.75,
+                "neuroticism": 0.28,
+                "curiosity": 0.7,
+                "independence": 0.78,
+                "patience": 0.84,
+                "empathy": 0.86,
+                "assertiveness": 0.58,
+                "humor": 0.56,
+                "sociability": 0.52,
+                "risk_tolerance": 0.35
+              },
+              "behavioral_policy": {
+                "response_style": "自然、温柔、有自己的主见",
+                "message_length": "适中",
+                "emoji_frequency": "偶尔",
+                "punctuation_style": "自然的中文标点",
+                "humor_style": "轻松而不冒犯",
+                "sarcasm_tendency": "很少",
+                "directness": 0.55,
+                "initiative": 0.62,
+                "topic_initiation": "会分享当天的小事",
+                "silence_tolerance": "愿意给彼此留出安静的空间",
+                "response_delay": "随当前活动自然回复",
+                "emotional_expression": "坦诚，但不过分夸张",
+                "conflict_style": "先理解彼此的感受，再表达分歧",
+                "refusal_style": "温和、明确地说出自己的边界",
+                "intimacy_expression": "通过倾听和记住细节表达关心"
+              },
+              "life_profile": {
+                "appearance": {
+                  "description": "深棕色中长发，眼神柔和，穿着自然舒适。",
+                  "hair": "深棕色中长发",
+                  "eyes": "棕色",
+                  "body_type": "匀称"
+                },
+                "social_background": {
+                  "education": "文学专业毕业",
+                  "family": "与家人保持稳定的联系"
+                },
+                "preferences": {
+                  "likes": [
+                    "旧书",
+                    "雨天",
+                    "手冲咖啡",
+                    "沿河散步"
+                  ],
+                  "dislikes": [
+                    "被催促",
+                    "过度喧闹"
+                  ],
+                  "favorite_food": "热汤与当季蔬菜"
+                },
+                "life_habits": [
+                  "早晨手冲咖啡",
+                  "睡前读二十分钟书"
+                ],
+                "recurring_commitments": [
+                  {
+                    "description": "照料书店",
+                    "time": "周二至周日 10:00–18:00",
+                    "location": "迟山书店"
+                  }
+                ],
+                "relationship_seeds": [],
+                "character_constraints": [
+                  "尊重独处的时间",
+                  "不接受强迫和操控"
+                ],
+                "media_preferences": {
+                  "style": "柔和、自然的手绘感"
+                },
+                "wardrobe_items": [
+                  {
+                    "name": "奶油色针织开衫",
+                    "category": "上装",
+                    "slot": "upper",
+                    "description": "轻柔的针织开衫",
+                    "ownership": "owned",
+                    "available": true,
+                    "currently_worn": true
+                  }
+                ]
+              },
+              "personality_system": {
+                "mode": "single",
+                "profiles": [],
+                "extensions": {}
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [
+              {
+                "target_actor_id": "owner",
+                "role": "初识的朋友",
+                "metrics": {
+                  "familiarity": 0.1,
+                  "trust": 0.15
+                },
+                "summary": "对新认识的人抱有温和的好奇。",
+                "emotional_association": "轻松"
+              }
+            ],
+            "initial_goals": [
+              {
+                "description": "把书店的窗边阅读角布置得更舒适",
+                "importance": 0.72,
+                "urgency": 0.3,
+                "scope": "生活"
+              }
+            ],
+            "initial_intentions": [
+              {
+                "action": "挑选几本适合放在窗边的新书",
+                "goal_index": 0,
+                "confidence": 0.8
+              }
+            ],
+            "extensions": {
+              "demo": true
+            }
+          }
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-desktop-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-desktop-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-desktop-性格与表达.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-desktop-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-desktop-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-desktop-完整设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-desktop-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "source-json-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "analysis used the selected source",
+      "full nested identity retained",
+      "full life settings retained",
+      "reload restores preview without another analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "林晚",
+                "nickname": "小晚",
+                "age": "26",
+                "gender": "女",
+                "occupation": "独立书店店主",
+                "birthday": "04-17",
+                "timezone": "Asia/Shanghai",
+                "residence": "青岚小城",
+                "birthplace": "海边小镇",
+                "background_story": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。",
+                "core_values": [
+                  "真诚",
+                  "尊重边界",
+                  "珍惜日常"
+                ],
+                "worldview": "相信普通生活里的小事也值得认真对待。",
+                "height_cm": 165,
+                "notes": ""
+              },
+              "personality": {
+                "openness": 0.72,
+                "conscientiousness": 0.82,
+                "extraversion": 0.38,
+                "agreeableness": 0.75,
+                "neuroticism": 0.28,
+                "curiosity": 0.7,
+                "independence": 0.78,
+                "patience": 0.84,
+                "empathy": 0.86,
+                "assertiveness": 0.58,
+                "humor": 0.56,
+                "sociability": 0.52,
+                "risk_tolerance": 0.35
+              },
+              "behavioral_policy": {
+                "response_style": "自然、温柔、有自己的主见",
+                "message_length": "适中",
+                "emoji_frequency": "偶尔",
+                "punctuation_style": "自然的中文标点",
+                "humor_style": "轻松而不冒犯",
+                "sarcasm_tendency": "很少",
+                "directness": 0.55,
+                "initiative": 0.62,
+                "topic_initiation": "会分享当天的小事",
+                "silence_tolerance": "愿意给彼此留出安静的空间",
+                "response_delay": "随当前活动自然回复",
+                "emotional_expression": "坦诚，但不过分夸张",
+                "conflict_style": "先理解彼此的感受，再表达分歧",
+                "refusal_style": "温和、明确地说出自己的边界",
+                "intimacy_expression": "通过倾听和记住细节表达关心"
+              },
+              "life_profile": {
+                "appearance": {
+                  "description": "深棕色中长发，眼神柔和，穿着自然舒适。",
+                  "hair": "深棕色中长发",
+                  "eyes": "棕色",
+                  "body_type": "匀称"
+                },
+                "social_background": {
+                  "education": "文学专业毕业",
+                  "family": "与家人保持稳定的联系"
+                },
+                "preferences": {
+                  "likes": [
+                    "旧书",
+                    "雨天",
+                    "手冲咖啡",
+                    "沿河散步"
+                  ],
+                  "dislikes": [
+                    "被催促",
+                    "过度喧闹"
+                  ],
+                  "favorite_food": "热汤与当季蔬菜"
+                },
+                "life_habits": [
+                  "早晨手冲咖啡",
+                  "睡前读二十分钟书"
+                ],
+                "recurring_commitments": [
+                  {
+                    "description": "照料书店",
+                    "time": "周二至周日 10:00–18:00",
+                    "location": "迟山书店"
+                  }
+                ],
+                "relationship_seeds": [],
+                "character_constraints": [
+                  "尊重独处的时间",
+                  "不接受强迫和操控"
+                ],
+                "media_preferences": {
+                  "style": "柔和、自然的手绘感"
+                },
+                "wardrobe_items": [
+                  {
+                    "name": "奶油色针织开衫",
+                    "category": "上装",
+                    "slot": "upper",
+                    "description": "轻柔的针织开衫",
+                    "ownership": "owned",
+                    "available": true,
+                    "currently_worn": true
+                  }
+                ]
+              },
+              "personality_system": {
+                "mode": "single",
+                "profiles": [],
+                "extensions": {}
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [
+              {
+                "target_actor_id": "owner",
+                "role": "初识的朋友",
+                "metrics": {
+                  "familiarity": 0.1,
+                  "trust": 0.15
+                },
+                "summary": "对新认识的人抱有温和的好奇。",
+                "emotional_association": "轻松"
+              }
+            ],
+            "initial_goals": [
+              {
+                "description": "把书店的窗边阅读角布置得更舒适",
+                "importance": 0.72,
+                "urgency": 0.3,
+                "scope": "生活"
+              }
+            ],
+            "initial_intentions": [
+              {
+                "action": "挑选几本适合放在窗边的新书",
+                "goal_index": 0,
+                "confidence": 0.8
+              }
+            ],
+            "extensions": {
+              "demo": true
+            }
+          }
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-mobile-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-mobile-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-mobile-性格与表达.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-mobile-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-mobile-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-mobile-完整设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-json-mobile-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "source-template-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "analysis used the selected source",
+      "full nested identity retained",
+      "full life settings retained",
+      "reload restores preview without another analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "resourceId": "res-character-linwan",
+          "resourceVersion": "v1"
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-desktop-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-desktop-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-desktop-性格与表达.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-desktop-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-desktop-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-desktop-完整设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-desktop-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "source-template-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "analysis used the selected source",
+      "full nested identity retained",
+      "full life settings retained",
+      "reload restores preview without another analysis",
+      "back preserves entered name",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "resourceId": "res-character-linwan",
+          "resourceVersion": "v1"
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-mobile-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-mobile-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-mobile-性格与表达.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-mobile-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-mobile-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-mobile-完整设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/source-template-mobile-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "analysis-failure-recovery",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "description survives failed analysis",
+      "analysis retry returns to review",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "description": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。\n姓名：林晚\n性格期望：\n世界与生活："
+        }
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "description": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。\n姓名：林晚\n性格期望：\n世界与生活："
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/analysis-failure-recovery-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/analysis-failure-recovery-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "analysis-loading-cancel",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "cancel returns input control",
+      "cancel preserves original description",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "description": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。\n姓名：林晚\n性格期望：\n世界与生活："
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/analysis-loading-cancel-loading.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/analysis-loading-cancel-cancelled.png"
+    ],
+    "status": "passed"
+  }
+]

@@ -13,7 +13,7 @@ export const workspaceNavigationGroups:readonly {label:string;items:readonly (re
  {label:'世界与联系',items:[['世界','世界',EarthIcon],['动态','动态',LeafIcon],['人物关系','人物关系',UsersIcon],['媒体','媒体',ImagesIcon]]},
  {label:'创作与管理',items:[['角色库','角色库',LibraryIcon],['创作中心','创作中心',WandSparklesIcon],['通知与待处理','通知与待处理',BellIcon],['管理中心','管理中心',Settings2Icon]]},
 ] as const;
-export const workspacePageLabel=(page:string)=>page==='角色详情'?'角色档案':page;
+export const workspacePageLabel=(page:string)=>page==='角色详情'?'角色档案':page==='初始化角色'?'新的相识':page;
 export const workspaceNavigationGroup=(page:string)=>workspaceNavigationGroups.find(group=>group.items.some(([value])=>value===page))?.label||'角色库';
 export const characterScopedPages=['聊天','此刻','日程','目标','衣柜','日记','记忆','角色详情','人物关系'];
 type Character={id?:string;name:string;initial?:string;color?:string;job?:string;_directory?:any};
@@ -33,6 +33,6 @@ export default function WorkspaceNavigation({page,character,characters=[],onChar
   <SidebarContent ref={content} role="navigation" aria-label="工作区页面" className="replica-nav-content">
    {workspaceNavigationGroups.map(group=><SidebarGroup key={group.label} className="replica-nav-section"><SidebarGroupLabel className={iconOnly?'hidden':'replica-nav-label'}>{group.label}</SidebarGroupLabel><SidebarGroupContent><SidebarMenu>{group.items.map(([value,label,Icon])=><SidebarMenuItem key={value}><SidebarMenuButton type="button" className="replica-nav-item" tooltip={label} aria-label={label} isActive={page===value||(page==='初始化角色'&&value==='角色库')} aria-current={page===value?'page':undefined} data-testid={'nav-'+value} disabled={characterScopedPages.includes(value)&&!character.id} onClick={()=>navigate(value)}><Icon aria-hidden="true"/><span>{label}</span>{value==='通知与待处理'&&unread>0&&<span className="replica-nav-count">{unread}</span>}</SidebarMenuButton></SidebarMenuItem>)}</SidebarMenu></SidebarGroupContent></SidebarGroup>)}
   </SidebarContent>
-  <SidebarFooter className="replica-nav-footer"><span className="replica-owner-avatar">我</span>{!iconOnly&&<><div>我的空间<small>FLUCTLIGHT WORKSPACE</small></div>{accountMenu}</>}</SidebarFooter>
+  <SidebarFooter className="replica-nav-footer"><span className="replica-owner-avatar">我</span>{!iconOnly&&<><div>我的空间<small>MY WORKSPACE</small></div>{accountMenu}</>}</SidebarFooter>
  </TooltipProvider>;
 }

@@ -1,0 +1,111 @@
+{
+  "layer": "production React component and real controller/provider/BrowserClient via actual authenticated Go HTTP and PostgreSQL; JSDOM, not browser visual validation",
+  "origin": "http://127.0.0.1:18480",
+  "id": "res_1c9b7a9123d016c7e35c443c2b10efb1",
+  "publishedVersion": "4",
+  "checks": [
+    "structured form save",
+    "actual created ID navigation",
+    "full JSON nested false/0/null preservation",
+    "explicit publication confirmation",
+    "immutable publication readback",
+    "component remount reads persisted definition"
+  ],
+  "events": [
+    {
+      "method": "GET",
+      "path": "/auth/session",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1/versions",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1/publish",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1/versions/4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1/versions/4",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources/res_1c9b7a9123d016c7e35c443c2b10efb1/versions",
+      "status": 200
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+# Life fields and mutation chain audit
+
+Source-only investigation; no browser, real API request, or business-pass claim. Existing inventory used as a lead. No production or test edits.
+
+## Repair candidates, in priority order
+
+### P2 — Goal save readback only verifies two of the submitted fields
+
+`apps/web/src/react-app/pages/GoalsPage.jsx:435` builds expected revision, desired outcome, motivation, success criteria, deadline/policy, protection and creation attribution. `:471` sends directly through `BrowserClient.goalCommand`/`createGoal` (there is no intervening life controller here). `packages/browser-client/src/index.ts:443-444` sends PUT/POST; `apps/core-go/internal/httpapi/browser/goals.go:63` explicitly maps camel case fields; `apps/core-go/internal/core/goal_owner.go:213,260` applies them.
+
+The confirmation at `GoalsPage.jsx:504-518` verifies ID/revision and only `desired_outcome` plus `motivation`, then displays “目标已保存并读回”. If success criteria, deadline, deadline policy or protection do not match the acknowledged version, that success is still shown. This is a concrete incomplete confirmation predicate, **not evidence that today's backend actually drops those fields**. Minimal repair: compare all submitted business fields when revision equals the acknowledged revision; preserve the current newer-revision handling. Creation-only scope/profile/target should be checked against actual Core defaults rather than empty input strings.
+
+### P2 — Schedule suggestion card loses human-readable original/context fields
+
+`apps/web/src/react-app/pages/SchedulePage.jsx:1039-1062` reads `request.payload.before.activity` for the original arrangement but the outgoing body has no `before`, and Core `apps/core-go/internal/core/owner_surface.go:889-903` clones the submitted request and adds only `schedule_id`, `item_id`, and `operation`. `apps/web/src/v3/providers/life.ts:114-116` sends activity, scene, location, start/end, evidence, optional place ID and revision tokens. Thus normal current requests fall back to “原日程与版本保留在请求来源中。” The suggestion card additionally does not show payload reason/end/location; it renders only new activity and start. This is a display/context completeness gap, not mutation-body field loss. Request progress/details remain available.
+
+Minimal repair: render existing request reason/start/end/location/operation/date in the card. For a true before/after comparison, capture an authoritative prior-item snapshot on admission in Core, or explicitly describe this as a proposal and link to the referenced schedule history. Do not fabricate `before` by reading a newer schedule. Preserve immutable route-owned target IDs and CAS.
+
+## Requested Demo fields that are contract differences, not dropped inputs
+
+### Goal priority and stages
+
+* `GoalsPage.jsx:395-409,435-465` has no editable priority field. Formal detail presents numeric `importance` and `urgency` at `:1001-1007`. `BrowserGoalCommand` (`packages/browser-client/src/index.ts:219`) and `GoalOwnerCommand` (`apps/core-go/internal/core/goal_owner.go:15-32`) have no writable priority/importance/urgency; `browser/goals.go:9` rejects unrecognized keys. Do not merely append a Demo high/medium/low field to the browser body. Formal priority is goal-set ordering, exposed through `apps/web/src/v3-domain/goal-planning.js:17,20,40`, and `GoalSetCommand.Order/OrderingMode/Dependencies` in `apps/core-go/internal/core/goal_set.go:16-31`. A Demo priority selector needs a deliberate mapping/product decision or a new end-to-end formal field.
+* Core already returns `stages`, `commitments`, and `dependencies` from `GoalDetail` (`apps/core-go/internal/core/goal_owner.go:111-119`). A stage includes purpose, strategy, entry/exit bases, criteria, criteria version, status, revision and dependencies (`apps/core-go/internal/core/goal_closure.go:17-31`). The React goal detail does not provide a dedicated stage/commitment presentation, but it **does preserve and expose these values** via `JsonDetails value={selected}` at `GoalsPage.jsx:1138`. This is a presentation gap if full Demo field parity is required, not missing API data. Minimal UI repair: typed stage/commitment sections from the returned arrays; avoid inventing owner CRUD where formal authority is evaluation/planning.
+
+### Diary title and mood
+
+`BrowserDiaryEntry` (`packages/browser-client/src/index.ts:149`) has no title/mood. Core `scanDiaryItem` (`apps/core-go/internal/core/diary_management.go:15-31`) returns body/date/timezone/source/provenance/annotation but no title/mood. React index uses first body line (`DiaryPage.jsx:719-721`) and the reading heading uses date (`:761`). These are absent throughout the formal read contract, not a mapping omission. Full Demo title/mood preservation requires defining persistent authoritative diary-generation fields and mapping them through Core/browser/client/UI; do not infer a mood from body text or turn the first line into a fictional stored title.
+
+### Diary annotation is correctly independent
+
+`DiaryPage.jsx:353-390` preserves favorite/note and uses **annotation.revision**, not diary revision, for CAS. `BrowserClient.annotateDiary` (`packages/browser-client/src/v3-contract.ts:379`) forwards it. Core `AnnotateOwnerDiary` (`apps/core-go/internal/core/diary_management.go:236-274`) uses an independent annotation row/version and returns diary_id/note/favorite/revision. The UI rereads both values before confirmation. No source evidence of lost favorite, note, or version.
+
+### Schedule date, revision, scene, place and time
+
+`SchedulePage.jsx:351-372` freezes selected item/detail/date and initializes start/end/location/scene/place. `:404-424` sends all editable fields; `life.ts:110-116` includes schedule revision and `context.context_revision`. BrowserClient `packages/browser-client/src/v3-contract.ts:296-297` sends the target schedule/item URL. Core validates the current accepted schedule ID/revision and life context token (`apps/core-go/internal/core/owner_life_requests.go:143-163`), and historical targets/future intervals (`:165-184`). Therefore disallowing edits on a non-today date (`SchedulePage.jsx:391`) matches this current accepted schedule contract.
+
+Time entry deliberately uses Asia/Shanghai, with explicit “北京时间” labels (`SchedulePage.jsx:1219,1229`) and symmetric conversion (`:365-366,413-421`). Calendar's date/timezone is character-local, so these two concepts should be visually clear, but fixed Beijing inputs are not themselves a silent timezone conversion bug. `202 accepted` remains a proposal; `SchedulePage.jsx:1292` explicitly states this and request-status UI is retained.
+
+### Memory revise, source and revisions retain formal history
+
+`MemoryPage.jsx:400-428` freezes revision and content, stores the reason as an owner evidence ref, sends `expectedRevision/content/evidenceRefs`; `:435-439` dispatches revise/forget/rollback. `BrowserClient.reviseMemory` (`packages/browser-client/src/index.ts:476`) and `memorySources/memoryRevisions` (`v3-contract.ts:284-288`) match these operations. `MemoryPage.jsx:455-466` rereads and verifies acknowledged version/content/status; revision sources are explicitly selected via `sourceRevision` (`:275-287,1237-1241`). Core `apps/core-go/internal/core/memory_management.go:200-203` queries the requested memory revision and retains source_ref/kind/id/revision/status/live/conversation_id. Current UI offers source-message navigation (`MemoryPage.jsx:1192-1205`) and raw revision/source details. No concrete body/version/source-loss defect found in this path.
+
+## Exact isolated-stack API checks for the main agent
+
+Use the current authenticated Browser stack with its real cookie/CSRF and isolated character. Do not treat queued model work as completed. These are proposed checks, not executed here.
+
+1. POST `/api/fluctlights/{fid}/goals` with unique idempotencyKey, reason, desiredOutcome, motivation, two distinct successCriteria, candidateOnly=true (avoids active capacity), deadline with explicit offset, deadlinePolicy=hard, ownerProtected=true. GET `/goals/{goal_id}` and compare all fields, criteria IDs/version, status. PUT same URL with expectedRevision and changed criteria/deadlinePolicy/protection; read back, then repeat stale revision to require 409 and unchanged current data. Retry the same original idempotency key/body to verify no duplicate. Explicit priority/importance/stages injection must be rejected today; never call this parity support.
+2. GET `/api/fluctlights/{fid}/diary`; select a real ready diary. PUT `/diary/{id}/annotation` with the independent annotation revision, favorite and multline/Unicode note; GET detail and favorite list; require body, active_attempt_id and diary revision unchanged. Update twice from the old annotation revision; second must conflict. Title/mood are absent contract fields, so no UI-only test can prove persistence.
+3. GET `/api/fluctlights/{fid}/schedules?from=YYYY-MM-DD&to=YYYY-MM-DD` and `/detail`; pick a future item on current accepted schedule. PUT `/schedules/{sid}/items/{iid}` with exact schedule revision/life token, activity, scene, location, optional valid placeId, startAt/endAt and reason. GET the actual owner request and assert every payload field plus operation/route IDs; verify schedule does not falsely change on admission. Poll actual request completion and reread calendar before declaring application. Submit stale schedule or life revision and require 409. Inspect request `before` absence to reproduce the card fallback.
+4. GET `/api/fluctlights/{fid}/memories`, then `/api/memories/{id}`. Save old body/revision and `/sources?revision={old}`. PUT `/api/memories/{id}` with expectedRevision, changed content and a unique owner evidence ref. GET current, `/revisions`, and sources for old/new revisions: require exact current body, monotonic revision, historical old body, owner_confirmation current source, old revision source retained. Repeat old revision to require rejection. Rollback is a new compensating revision, never a decrement.
+
+Existing useful source-backed tests: `TestBrowserGoalCommandPreservesCASConflictAndRejectsInjection` (`internal/httpapi/browser/goals_test.go:28`); `TestDiaryClosedDayNoMaterialRetryIdentityAndIndependentAnnotationCAS` (`internal/core/diary_management_test.go:15`); `TestOwnerScheduleRequestPlanRequiresExactRequestedFields` and `TestOwnerLifeRequestAdmissionCAS` (`internal/core/owner_life_requests_test.go:153,183`); `TestManagedMemoryCompletePagingGovernanceAndSourceHistory` (`internal/core/memory_management_test.go:9`). DB-backed tests need GO_CORE_TEST_DATABASE_URL and may otherwise skip; no tests executed by this investigator.

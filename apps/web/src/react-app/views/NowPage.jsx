@@ -7,8 +7,12 @@ import WearingSummary from '../shared/WearingSummary';
 import LoadingState from '../shared/LoadingState';
 import {EmptyState,InlineFeedback} from '../shared/Presentation';
 import {useWorkspace} from '../page';
+import {day} from '@/state/workspace.mjs';
+import {nextScheduleItem} from '@/approved-ui/presentation.mjs';
 export default function NowPage({view}){
- const w=useWorkspace(),c=view.character.value,upcoming=view.upcoming.value,next=upcoming[0],readingSchedule=!!(w.state.loading.life||w.state.loading.schedule);
+ const w=useWorkspace(),c=view.character.value,now=Date.now(),today=day(new Date(now),c.timezone||'Asia/Shanghai');
+ const todayItems=view.schedule.value.filter(item=>item._schedule?.local_date===today||(Number.isFinite(Date.parse(item._source?.start_at))&&day(item._source.start_at,c.timezone||'Asia/Shanghai')===today));
+ const next=nextScheduleItem(view.schedule.value,now),readingSchedule=!!(w.state.loading.life||w.state.loading.schedule);
  const dateParts=Object.fromEntries(new Intl.DateTimeFormat('zh-CN',{timeZone:c.timezone||'Asia/Shanghai',month:'numeric',day:'numeric',weekday:'long'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
  const date=`${dateParts.month} 月 ${dateParts.day} 日　${dateParts.weekday}`;
  const go=page=>view.emit('go',page);
@@ -17,7 +21,7 @@ export default function NowPage({view}){
    <section className="lp-hero"><div><div className="lp-row lp-day-stamp"><span>{date}</span></div>{w.state.loading.detail&&!c.activity?<LoadingState label="正在读取此刻状态…"/>:<h2>{c.activity||'此刻状态尚未更新'}</h2>}<div className="lp-row"><span className="lp-chip"><MapPinIcon size={12}/>{c.location||'位置尚未记录'}</span><span className="lp-chip"><LeafIcon size={12}/>{c.mood||'心情尚未记录'}</span></div></div><div className="lp-hero-art" aria-hidden="true"><BookOpenIcon/></div></section>
    <Surface className="lp-pad"><div className="replica-section-heading"><div><h2>今天，慢慢走</h2><p>已确认的安排与即将到来的片刻</p></div><Button variant="link" onClick={()=>go('日程')}>完整日程<ArrowUpRightIcon size={12}/></Button></div>
     {readingSchedule&&<LoadingState label="正在读取日程…"/>}{view.readError('schedule')&&<InlineFeedback role="alert">日程读取未完成，保留已确认的安排。{view.readError('schedule')}<Button variant="outline" onClick={()=>void w.loadLife().catch(()=>{})}>重新读取日程</Button></InlineFeedback>}
-    {upcoming.length?<ScheduleTimeline items={upcoming.slice(0,4)} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
+    {todayItems.length?<ScheduleTimeline items={todayItems.slice(-4)} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
     <Button variant="link" className="replica-timeline-link" onClick={()=>view.openTimeline()}>生活时间线<ArrowUpRightIcon size={12}/></Button>
    </Surface>
   </div><div className="lp-stack"><Surface className="lp-pad"><div className="replica-section-heading"><h2>生活切片</h2></div>

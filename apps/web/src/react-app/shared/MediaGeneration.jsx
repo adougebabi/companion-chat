@@ -76,6 +76,7 @@ function GenerationFields({ model: m, draft: d, edit }) {
         <span>画面描述</span>
         <Textarea
           aria-label="画面描述"
+          placeholder="例如：想看看你在书店窗边看书的样子，午后的光线轻轻落在书页上。"
           rows={5}
           value={d.prompt}
           onChange={(e) => edit({ prompt: e.target.value })}

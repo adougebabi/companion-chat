@@ -205,16 +205,19 @@
   width: 100%;
 }
 .replica-people .people-search {
+  position: relative;
   flex: 1;
   max-width: 440px;
   min-width: 0;
 }
 .replica-people .people-search [data-slot="input"] {
+  padding-left: 34px;
   height: 39px;
   min-height: 39px;
   background: white;
   font-size: 12px;
 }
+.replica-people .people-search > svg { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca992;pointer-events:none;z-index:1; }
 .replica-people .companion-toolbar [data-slot="select-trigger"] {
   min-width: 145px;
   width: auto;

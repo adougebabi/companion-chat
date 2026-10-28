@@ -1,0 +1,70 @@
+[
+  {
+    "kind": "reference",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "shots": [
+      "reference-identity-desktop.png",
+      "reference-personality-desktop.png",
+      "reference-life-desktop.png",
+      "reference-relationships-desktop.png",
+      "reference-json-desktop.png"
+    ],
+    "errors": [],
+    "status": "captured"
+  },
+  {
+    "kind": "actual",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "shots": [
+      "actual-identity-desktop.png",
+      "actual-personality-desktop.png",
+      "actual-life-desktop.png",
+      "actual-relationships-desktop.png",
+      "actual-json-desktop.png"
+    ],
+    "errors": [],
+    "status": "captured"
+  },
+  {
+    "kind": "reference",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "shots": [
+      "reference-identity-mobile.png",
+      "reference-personality-mobile.png",
+      "reference-life-mobile.png",
+      "reference-relationships-mobile.png",
+      "reference-json-mobile.png"
+    ],
+    "errors": [],
+    "status": "captured"
+  },
+  {
+    "kind": "actual",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "shots": [
+      "actual-identity-mobile.png",
+      "actual-personality-mobile.png",
+      "actual-life-mobile.png",
+      "actual-relationships-mobile.png",
+      "actual-json-mobile.png"
+    ],
+    "errors": [],
+    "status": "captured"
+  }
+]

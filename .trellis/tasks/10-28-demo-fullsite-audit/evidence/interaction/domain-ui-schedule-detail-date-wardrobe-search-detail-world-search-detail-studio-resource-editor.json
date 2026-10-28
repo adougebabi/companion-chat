@@ -1,0 +1,63 @@
+[
+  {
+    "name": "schedule-detail-date",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "detail retains selected activity",
+      "tomorrow reads its actual arrangement",
+      "date is reflected by empty schedule",
+      "today restores five confirmed items",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/schedule-detail-date-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/schedule-detail-date-empty-day.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wardrobe-search-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "wardrobe search empty"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/wardrobe-search-detail-no-results.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/wardrobe-search-detail-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/wardrobe-search-detail-failure.png"
+    ],
+    "status": "failed",
+    "error": "detail retains exact garment",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nFLUCTLIGHT WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林晚的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n奶油色针织开衫、米白长裙、棕色乐福鞋\n\n当前穿着\n全部衣服\n8\n穿搭方案\n2\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n外套\n奶油色针织开衫\n春\n秋\n服装资料\n\n补录或修正已经知道的衣物信息。\n\n衣服名称 / 描述\n\n填写便于辨认的衣服名称。\n\n服装类型\n外套\n外套\n上衣\n内衣\n内裤\n下衣\n袜子\n鞋子\n配饰\n适合季节\n春季\n夏季\n秋季\n冬季\n拥有关系\n已拥有\n已拥有\n借用\n尚未确认\n可用状态\n可穿着\n可穿着\n暂不可用\n已遗失\n登记与修订历史\n完整服装与来源\n归档服装\n取消\n保存衣服\n关闭"
+  },
+  {
+    "name": "world-search-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "world search no matches",
+      "world has original place names",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/world-search-detail-no-results.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/world-search-detail-places.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-resource-editor",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "world background reads complete source",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-resource-editor-world-editor.png"
+    ],
+    "status": "passed"
+  }
+]

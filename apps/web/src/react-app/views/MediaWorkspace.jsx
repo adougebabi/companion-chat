@@ -14,6 +14,7 @@ import MediaGeneration from "../shared/MediaGeneration";
 import AvatarWorkspace from "../shared/AvatarWorkspace";
 import { mediaSource, mediaKind } from "@/approved-ui/media-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import {compactDateTime} from '@/approved-ui/presentation.mjs';
 export default function MediaWorkspaceView({ model: m }) {
   return (
     <div className="replica-media resource-page">
@@ -27,7 +28,7 @@ export default function MediaWorkspaceView({ model: m }) {
         }
         actions={
           <>
-            {m.tab !== "gallery" && (
+            {m.tab !== "gallery" && !m.route.fid && !m.route.query?.get('fid') && (
               <ChoiceSelect
                 aria-label="媒体操作角色"
                 value={m.target}
@@ -41,14 +42,14 @@ export default function MediaWorkspaceView({ model: m }) {
                 ))}
               </ChoiceSelect>
             )}
-            <Button
+            {m.tab === 'gallery' && <Button
               size="icon"
               variant="ghost"
               aria-label="刷新媒体库"
               onClick={m.library.load}
             >
               <RefreshCw size={15} />
-            </Button>
+            </Button>}
             <Button
               variant="outline"
               onClick={(event) => {
@@ -201,9 +202,9 @@ export default function MediaWorkspaceView({ model: m }) {
                     {asset.title || asset.source_filename || "未命名素材"}
                   </h3>
                   <div className="r-card-footer">
-                    <small>
+                    <small title={asset.created_at?userInstant(asset.created_at):undefined}>
                       {asset.created_at
-                        ? userInstant(asset.created_at)
+                        ? compactDateTime(asset.created_at)||userInstant(asset.created_at)
                         : "时间未记录"}
                     </small>
                     <small>{mediaSource(asset)}</small>

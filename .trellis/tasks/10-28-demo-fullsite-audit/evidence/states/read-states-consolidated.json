@@ -1,0 +1,1088 @@
+[
+  {
+    "page": "chat",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "chat",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "chat",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "schedule",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/schedule-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "schedule",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/schedule-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/schedule-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "schedule",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/schedule-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/schedule-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "goals",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/goals-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "goals",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/goals-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/goals-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "goals",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/goals-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/goals-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 3
+  },
+  {
+    "page": "diary",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/diary-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "diary",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/diary-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/diary-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "diary",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/diary-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/diary-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "memory",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/memory-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "memory",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/memory-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/memory-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "memory",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/memory-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/memory-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "world",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/world-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "world",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/world-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/world-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "world",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/world-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/world-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "people",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/people-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "people",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/people-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/people-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "people",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/people-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/people-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "feed",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/feed-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "feed",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/feed-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/feed-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "feed",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/feed-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/feed-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "media",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/media-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "media",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/media-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/media-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "media",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/media-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/media-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "studio",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/studio-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "studio",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/studio-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/studio-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "studio",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/studio-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/studio-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "inbox",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/inbox-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "inbox",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/inbox-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/inbox-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "inbox",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/inbox-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/inbox-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "now",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "now",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "now",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/schedules?",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/now-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "wardrobe",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/inventory?kind=wearable&state=current&limit=100&cursor=",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/wardrobe",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "wardrobe",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/inventory?kind=wearable&state=current&limit=100&cursor=",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/wardrobe",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "wardrobe",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/inventory?kind=wearable&state=current&limit=100&cursor=",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/wardrobe",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/inventory?kind=wearable&state=current&limit=100&cursor=",
+        "failed": false
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/wardrobe",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/wardrobe-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 4
+  },
+  {
+    "page": "profile",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "profile",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "profile",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/detail",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/profile-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  },
+  {
+    "page": "settings",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "settings",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "settings",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/configuration-catalog",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/settings-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  }
+]

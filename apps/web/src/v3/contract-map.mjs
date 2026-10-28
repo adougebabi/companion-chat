@@ -263,6 +263,9 @@ export function viewFromBundle(bundle) {
   if (!bundle.fluctlights) mark("characters");
   for (const item of bundle.fluctlights || []) {
     const character = { id: item.id, name: item.identity?.name || item.name || item.id, avatar: item.avatar?.url || "", status: ({active:"正常",paused:"已暂停",retired:"已退休",created:"未启动",failed:"异常"}[item.status] || item.status), groupId: item.group_id || "ungrouped", worldId: item.world_id, bio: item.bio, traits: item.traits || [], locationId: item.location_id };
+    if (Object.hasOwn(item,"last_conversation_at")) character.lastConversationAt=item.last_conversation_at;
+    if (typeof item.identity?.color==='string') character.color=item.identity.color;
+    if (typeof item.identity?.occupation==='string') character.job=item.identity.occupation;
     if (item.def_version !== undefined) character.defVersion = item.def_version;
     if (Object.hasOwn(item, "harm_intercepts")) character.harmIntercepts = item.harm_intercepts;
     if (item.status_note) character.statusNote = item.status_note;

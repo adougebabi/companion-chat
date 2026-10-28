@@ -1,0 +1,62 @@
+[
+  {
+    "kind": "reference",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "shots": [],
+    "errors": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-sonner-toast]').first() to be hidden\u001b[22m\n\u001b[2m    24 × locator resolved to visible <li class=\"\" tabindex=\"0\" data-index=\"0\" data-front=\"true\" data-styled=\"true\" data-mounted=\"true\" data-swiped=\"false\" data-visible=\"true\" data-type=\"success\" data-sonner-toast=\"\" data-promise=\"false\" data-removed=\"false\" data-swiping=\"false\" data-expanded=\"true\" data-swipe-out=\"false\" data-rich-colors=\"true\" data-x-position=\"right\" data-dismissible=\"true\" data-y-position=\"bottom\">…</li>\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚 · 独立书店店主\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nDEMO WORKSPACE\n角色库\n新的相识\n快速前往\n⌘ K\n交互演示\nA NEW BEGINNING / 新的相识\n把轮廓，变成鲜活的人。\n\n按主题逐组确认。未提供的信息会留白，完整结构与扩展字段都会保留。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n身份与背景\n性格与表达\n生活设定\n人格与关系\n完整设定\n身份与背景\n\n先认识是谁，再了解一路走来的经历。\n\n名字\n*\n昵称\n性别\n年龄\n职业\n生日\n生活时区\n*\n居住地\n出生地\n身高（cm）\n血型\n核心价值观\n背景与经历\n世界观\n补充备注\n演示准备状态\n正常完成\nYOUR NEW CHAPTER\n形象示意\n林晚\n\n独立书店店主\n\n生活世界\n日常生活世界\n认识方式\n一段描述\n生活时区\nAsia/Shanghai\n角色分组\n未分组\n每一个细节，\n都可以成为日后相处的回声。\n纯前端演示 · 输入仅保存在本地\n草稿自动保留\n确认后将创建角色，并开始准备生活。\n上一步\n确认，准备相遇\n演示资料已整理，可以逐项检查和修改"
+  },
+  {
+    "kind": "actual",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "shots": [
+      "actual-identity-desktop.png",
+      "actual-personality-desktop.png",
+      "actual-life-desktop.png",
+      "actual-relationships-desktop.png",
+      "actual-json-desktop.png"
+    ],
+    "errors": [],
+    "status": "captured"
+  },
+  {
+    "kind": "reference",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "shots": [],
+    "errors": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-sonner-toast]').first() to be hidden\u001b[22m\n\u001b[2m    24 × locator resolved to visible <li class=\"\" tabindex=\"0\" data-index=\"0\" data-front=\"true\" data-styled=\"true\" data-mounted=\"true\" data-swiped=\"false\" data-visible=\"true\" data-type=\"success\" data-sonner-toast=\"\" data-promise=\"false\" data-removed=\"false\" data-swiping=\"false\" data-expanded=\"true\" data-swipe-out=\"false\" data-rich-colors=\"true\" data-x-position=\"right\" data-dismissible=\"true\" data-y-position=\"bottom\">…</li>\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚 · 独立书店店主\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nDEMO WORKSPACE\n角色库\n新的相识\nA NEW BEGINNING / 新的相识\n把轮廓，变成鲜活的人。\n\n按主题逐组确认。未提供的信息会留白，完整结构与扩展字段都会保留。\n\n返回角色库\n生活世界\n认识角色\n资料预览\n准备相遇\n身份与背景\n性格与表达\n生活设定\n人格与关系\n完整设定\n身份与背景\n\n先认识是谁，再了解一路走来的经历。\n\n名字\n*\n昵称\n性别\n年龄\n职业\n生日\n生活时区\n*\n居住地\n出生地\n身高（cm）\n血型\n核心价值观\n背景与经历\n世界观\n补充备注\n演示准备状态\n正常完成\n草稿自动保留\n上一步\n确认，准备相遇\n演示资料已整理，可以逐项检查和修改"
+  },
+  {
+    "kind": "actual",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "shots": [
+      "actual-identity-mobile.png",
+      "actual-personality-mobile.png",
+      "actual-life-mobile.png",
+      "actual-relationships-mobile.png",
+      "actual-json-mobile.png"
+    ],
+    "errors": [],
+    "status": "captured"
+  }
+]

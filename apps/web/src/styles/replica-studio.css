@@ -600,6 +600,7 @@
   color: #89977d;
   margin-top: 10px;
 }
+.replica-studio .r-clamp-2 { display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
 .replica-studio .r-card-body h3 {
   overflow-wrap: anywhere;
 }

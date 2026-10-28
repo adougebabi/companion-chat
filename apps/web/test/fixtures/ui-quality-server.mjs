@@ -1,6 +1,7 @@
 // Task-owned same-origin fixture for production-build UI verification.
 // Binds loopback only; never proxies to a real Core/Provider or persists user data.
 import http from 'node:http';
+import {demoParityFixture} from './demo-parity-fixture.mjs';
 import {managementFixture} from './management-fixture.mjs';
 import {scheduleReplayFixture} from './schedule-fixture.mjs';
 import {goalsFixture} from './goals-fixture.mjs';
@@ -35,6 +36,7 @@ let actorReads=0,diagnosticClears=0;
 const telemetryPath='/private/tmp/fluctlight-ui-fixture-telemetry.json';
 const owner='human-fixture-owner',instance='fluctlight-fixture-one';
 const date='2026-10-13T01:00:00.123Z';
+const parityReplay=process.env.FLUCTLIGHT_UI_FIXTURE_DEMO?demoParityFixture({scenario:process.env.FLUCTLIGHT_UI_FIXTURE_DEMO}):null;
 const managementReplay=process.env.FLUCTLIGHT_UI_FIXTURE_MANAGEMENT?managementFixture({owner,fid:instance,date,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_MANAGEMENT}):null;
 const r16=process.env.FLUCTLIGHT_UI_FIXTURE_R16==='1'?r16Fixture({owner,fid:instance,date}):null;
 const wardrobeWorld=process.env.FLUCTLIGHT_UI_FIXTURE_WARDROBE_WORLD==='1'?wardrobeWorldFixture({fid:instance,owner,date,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_WARDROBE}):null;
@@ -96,6 +98,7 @@ const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,'http://127.0.0.1'),path=url.pathname,method=req.method ?? 'GET';
   let body={};if(!['GET','HEAD'].includes(method)){let raw='';for await(const chunk of req)raw+=chunk;if(raw)body=JSON.parse(raw);requests.push({method,path,query:Object.fromEntries(url.searchParams),body:{...body,...(body.secrets ? {secrets:'fixture-redacted'} : {})}});}
   else if(path.startsWith('/api/'))requests.push({method,path,query:Object.fromEntries(url.searchParams)});
+  if(parityReplay&&await parityReplay.handler({path,method,body,url,json,res}))return;
   if(managementReplay&&await managementReplay.handler({path,method,body,url,json,res}))return;
   if(creationReplay&&await creationReplay.handler({path,method,body,url,json,res})){
     if(process.env.FLUCTLIGHT_UI_FIXTURE_CREATION_AUDIT)await writeFile(process.env.FLUCTLIGHT_UI_FIXTURE_CREATION_AUDIT,JSON.stringify({calls:creationReplay.calls,records:[...creationReplay.records.values()]},null,2));

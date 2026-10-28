@@ -154,3 +154,15 @@ test("approved workspace drops late reads, recovers original commands after swit
     Object.assign(globalThis, previous);
   }
 });
+
+test('workspace starts an Owner-wide count without Inbox navigation and retains it through role selection',async()=>{
+ const {installDOM}=await import('./helpers/react-dom.mjs');const env=installDOM();
+ const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});let w;
+ try{
+  const {createWorkspace}=await vite.ssrLoadModule('/src/state/workspace.mjs'),store=await vite.ssrLoadModule('/src/v3/proto/store.js'),services=await vite.ssrLoadModule('/src/v3/proto/services.js');
+  let release,reads=0;services.configureDomainService('operations',{notificationCount:()=>{reads++;return new Promise(r=>release=r);}});
+  w=createWorkspace();store.replaceSnapshot({...store.get(),session:{actorId:'counter-owner'},characters:{A:{id:'A',name:'甲'},B:{id:'B',name:'乙'}},ui:{charId:'A'}});
+  assert.equal(reads,1);assert.equal(w.state.notificationCount,null);w.select('B');release({count:61,alert_count:3});await new Promise(r=>setTimeout(r,0));
+  assert.equal(w.state.notificationCount.count,61);assert.equal(w.state.notifications.length,0);assert.equal(w.current.value.id,'B');
+ }finally{w?.dispose();await vite.close();env.restore();}
+});

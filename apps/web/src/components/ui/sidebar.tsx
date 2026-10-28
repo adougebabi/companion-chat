@@ -160,11 +160,13 @@ function Sidebar({
   className,
   children,
   dir,
+  returnFocus,
   ...props
 }: React.ComponentProps<"div"> & {
   side?: "left" | "right"
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
+  returnFocus?: () => HTMLElement | null
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
@@ -187,6 +189,13 @@ function Sidebar({
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
+          onCloseAutoFocus={(event) => {
+            const source = returnFocus?.()
+            if (source?.isConnected && !source.matches(':disabled,[aria-disabled="true"]')) {
+              event.preventDefault()
+              source.focus({preventScroll:true})
+            }
+          }}
           dir={dir}
           data-sidebar="sidebar"
           data-slot="sidebar"

@@ -62,6 +62,38 @@ export function scheduleProjection(item, schedule, format) {
     _schedule: schedule,
   };
 }
+export function nextScheduleItem(items, now = Date.now()) {
+  return items.filter(item => {
+    const source=item._source;
+    return source && Number.isFinite(Date.parse(source.start_at)) &&
+      Date.parse(source.start_at)>now &&
+      !['completed','cancelled','failed','in_progress'].includes(source.action_status) &&
+      !['cancelled','rejected'].includes(source.status);
+  }).sort((a,b)=>Date.parse(a._source.start_at)-Date.parse(b._source.start_at))[0];
+}
+export function relativeTime(value, zone = 'Asia/Shanghai', now = Date.now()) {
+  const at=typeof value==='string'?Date.parse(value):NaN;
+  if(!Number.isFinite(at))return '';
+  const age=now-at;
+  if(age<0)return new Intl.DateTimeFormat('zh-CN',{timeZone:zone,dateStyle:'short',timeStyle:'short'}).format(at);
+  if(age<60000)return '刚刚';
+  if(age<3600000)return Math.floor(age/60000)+' 分钟前';
+  if(age<86400000)return Math.floor(age/3600000)+' 小时前';
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now).map(p=>[p.type,p.value]));
+  const previous=new Date(Date.UTC(Number(parts.year),Number(parts.month)-1,Number(parts.day))-86400000).toISOString().slice(0,10);
+  const date=new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(at);
+  return date===previous?'昨天':date;
+}
+// Compact list copy keeps the original instant in the element's title/datetime.
+export function compactDateTime(value, zone = 'Asia/Shanghai', now = Date.now(), relativeDay = false) {
+  const at=typeof value==='string'?Date.parse(value):NaN;
+  if(!Number.isFinite(at))return '';
+  const parts=time=>Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(time).map(p=>[p.type,p.value]));
+  const p=parts(at),today=parts(now),date=p.year+'-'+p.month+'-'+p.day;
+  const yesterday=new Date(Date.UTC(Number(today.year),Number(today.month)-1,Number(today.day))-86400000).toISOString().slice(0,10);
+  const label=relativeDay?(date===today.year+'-'+today.month+'-'+today.day?'今天':date===yesterday?'昨天':p.month+'/'+p.day):p.month+'/'+p.day;
+  return label+(relativeDay?' · ':' ')+p.hour+':'+p.minute;
+}
 export function readableSummary(
   value,
   fallback = "结构化记录，详情中可查看完整内容",

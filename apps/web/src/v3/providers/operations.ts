@@ -14,7 +14,7 @@ export function createOperationsProvider(client:BrowserClient,refresh:()=>Promis
   }
   return {
     health:()=>client.health('/health/ready'),
-    notifications:(cursor='',unread=false)=>client.listNotifications({cursor,unread,limit:30}),
+    notifications:(cursor='',unread=false,fid='')=>client.listNotifications({cursor,unread,limit:30,...(fid?{fluctlightId:fid}:{})}),
     notificationCount:()=>client.unreadNotificationCount(),
     readNotification:(id:string)=>command('notice:'+id,key=>client.markNotificationRead(id,{idempotencyKey:key})),
     readAllNotifications:(before:string)=>command('all-notices:'+before,key=>client.markAllNotificationsRead({before,idempotencyKey:key})),

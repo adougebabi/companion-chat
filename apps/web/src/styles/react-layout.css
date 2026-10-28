@@ -1239,7 +1239,7 @@
   .react-workspace .goal input {
     accent-color: #64886b;
   }
-  .react-workspace .done {
+  .react-workspace .goal.done {
     text-decoration: line-through;
     color: #a3ad9b;
   }

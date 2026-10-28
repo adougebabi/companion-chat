@@ -1,0 +1,20 @@
+[
+  {
+    "name": "wardrobe-search-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "wardrobe search empty",
+      "detail retains exact garment",
+      "closing preserves search",
+      "two saved outfits shown",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/wardrobe-search-detail-no-results.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/wardrobe-search-detail-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/wardrobe-search-detail-outfits.png"
+    ],
+    "status": "passed"
+  }
+]

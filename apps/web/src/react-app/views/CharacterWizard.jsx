@@ -63,6 +63,7 @@ const sections = [
   ["relationships", "人格与关系"],
   ["json", "完整设定"],
 ];
+const identityOrder = ['name','nickname','gender','age','occupation','birthday','timezone','residence','birthplace','height_cm','blood_type','core_values','background_story','worldview','notes'];
 const traits = {
   openness: "开放性",
   conscientiousness: "尽责性",
@@ -112,7 +113,7 @@ function KeyValue({ label, children }) {
 }
 function Segment({ value, onChange, items, label }) {
   return (
-    <Tabs value={value} onValueChange={onChange}>
+    <Tabs value={value} onValueChange={onChange} className="creation-segments">
       <TabsList
         variant="line"
         aria-label={label}
@@ -982,6 +983,7 @@ export default function CharacterWizardView({ model: m }) {
                     <div className="creation-form-grid">
                       {fields
                         .filter((f) => f.path[0] === "identity")
+                        .sort((a,b)=>(identityOrder.indexOf(a.path[1])<0?identityOrder.length:identityOrder.indexOf(a.path[1]))-(identityOrder.indexOf(b.path[1])<0?identityOrder.length:identityOrder.indexOf(b.path[1])))
                         .map((f) => (
                           <ProfileField
                             key={JSON.stringify(f.path)}
@@ -1002,11 +1004,7 @@ export default function CharacterWizardView({ model: m }) {
                     </div>
                     <div className="creation-traits-grid">
                       {Object.entries(traits).map(([key, label]) => {
-                        const value =
-                            definition?.core_persona?.personality?.[key],
-                          field = fields.find(
-                            (f) => f.path.join(".") === "personality." + key,
-                          );
+                        const value = definition?.core_persona?.personality?.[key];
                         return (
                           <div className="creation-trait" key={key}>
                             <div>
@@ -1047,11 +1045,11 @@ export default function CharacterWizardView({ model: m }) {
                                 busy ||
                                 locked ||
                                 typeof value !== "number" ||
-                                !field
+                                !!definitionError ||
+                                d.previewJsonText !== undefined
                               }
                               onValueChange={([v]) => {
-                                field.value = v;
-                                c.persistPreview();
+                                applyDefinition(setPath(copy(definition),['core_persona','personality',key],v));
                               }}
                             />
                           </div>

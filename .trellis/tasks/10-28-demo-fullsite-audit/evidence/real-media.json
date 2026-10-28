@@ -1,0 +1,473 @@
+{
+  "schemaVersion": 1,
+  "case": "L09",
+  "title": "本轮媒体专项：真实上传字节、元数据和显示头像",
+  "status": "blocked",
+  "invocationId": "017d0f39-3ed5-4d16-8b2f-9fcdb65a102d",
+  "startedAt": "2026-10-28T04:17:17.373Z",
+  "executionLayer": "real-http-and-isolated-tests",
+  "baseURL": "http://127.0.0.1:18480",
+  "steps": [
+    {
+      "id": "preflight",
+      "expected": "Healthy real API, database and original Owner session",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:17:17.375Z",
+      "observed": {
+        "authenticated": true,
+        "ownerActorId": "human_0f11e4639481cbfc19259e83036b6fde",
+        "baseURL": "http://127.0.0.1:18480",
+        "liveEnabled": true
+      },
+      "finishedAt": "2026-10-28T04:17:17.402Z"
+    },
+    {
+      "id": "upload",
+      "expected": "Owner upload persists actual original bytes and confirms the same identity after refresh",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:17:17.403Z",
+      "observed": {
+        "asset_id": "upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "asset_revision": 1,
+        "byte_size": 68,
+        "created_at": "2026-10-28T04:17:17.448+00:00",
+        "deletion_id": null,
+        "factual": false,
+        "fluctlight_id": null,
+        "generation_intent_id": null,
+        "generation_status": null,
+        "hidden": false,
+        "id": "upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "kind": "image",
+        "label": "用户上传素材·非角色事实",
+        "metadata_revision": 0,
+        "mime_type": "image/png",
+        "origin": "owner_upload",
+        "read_state": "ready",
+        "readable": true,
+        "ready_at": "2026-10-28T04:17:17.448+00:00",
+        "resource_id": null,
+        "retained": false,
+        "sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
+        "source_filename": "v3-regression:f1730708-d5c7-45ed-b374-42b19215db95:owner-media.png",
+        "source_job_status": null,
+        "source_snapshot": null,
+        "source_state": "owner_original",
+        "source_upload_status": "ready",
+        "status": "ready",
+        "studio_job_id": null,
+        "title": "v3-regression:f1730708-d5c7-45ed-b374-42b19215db95:owner-media.png",
+        "upload_id": "owner_upload_976849c278c08bd65c2e1ffc50ce3d79",
+        "url": "/api/media/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "version": "1"
+      },
+      "finishedAt": "2026-10-28T04:17:17.465Z"
+    },
+    {
+      "id": "upload-bytes",
+      "expected": "Owner media library, kind filter, checksum and private byte authorization agree",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:17:17.466Z",
+      "observed": {
+        "assetId": "upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "bytes": 68,
+        "sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+      },
+      "finishedAt": "2026-10-28T04:17:17.474Z"
+    },
+    {
+      "id": "upload-metadata",
+      "expected": "Dual CAS rejects stale metadata; hide and restore persist without changing bytes",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:17:17.475Z",
+      "finishedAt": "2026-10-28T04:17:17.494Z"
+    },
+    {
+      "id": "avatar",
+      "expected": "Explicit display selection persists across detail reads without altering canonical or effective appearance",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:17:17.495Z",
+      "observed": {
+        "assetId": "upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "revision": 1,
+        "canonicalAssetId": null
+      },
+      "finishedAt": "2026-10-28T04:17:17.548Z"
+    },
+    {
+      "id": "fixture",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "brief",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "style",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "generation",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "asset",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "authorization",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "general-request",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "item-photo",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "current-outfit",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    },
+    {
+      "id": "guards",
+      "status": "blocked",
+      "error": {
+        "code": "PREREQUISITE_NOT_MET",
+        "message": "An earlier required step did not produce its real prerequisite; this step was not executed."
+      }
+    }
+  ],
+  "requests": [
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/health/live",
+      "startedAt": "2026-10-28T04:17:17.383Z",
+      "status": 200,
+      "elapsedMs": 10
+    },
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/health/ready",
+      "startedAt": "2026-10-28T04:17:17.393Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/auth/session",
+      "startedAt": "2026-10-28T04:17:17.396Z",
+      "status": 200,
+      "elapsedMs": 5
+    },
+    {
+      "step": "upload",
+      "method": "POST",
+      "path": "/api/media",
+      "startedAt": "2026-10-28T04:17:17.405Z",
+      "status": 201,
+      "elapsedMs": 47
+    },
+    {
+      "step": "upload",
+      "method": "GET",
+      "path": "/api/media-uploads/by-key?key=v3-regression%3Af1730708-d5c7-45ed-b374-42b19215db95%3Aupload%3Aoriginal-png",
+      "startedAt": "2026-10-28T04:17:17.452Z",
+      "status": 200,
+      "elapsedMs": 7
+    },
+    {
+      "step": "upload",
+      "method": "POST",
+      "path": "/api/media",
+      "startedAt": "2026-10-28T04:17:17.460Z",
+      "status": 200,
+      "elapsedMs": 4
+    },
+    {
+      "step": "upload-bytes",
+      "method": "GET",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.466Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "upload-bytes",
+      "method": "GET",
+      "path": "/api/media-library?scope=owner_upload&kind=image&q=v3-regression%3Af1730708-d5c7-45ed-b374-42b19215db95%3Aowner-media.png&hidden=false",
+      "startedAt": "2026-10-28T04:17:17.468Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "upload-bytes",
+      "method": "GET",
+      "path": "/api/media/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.471Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "upload-bytes",
+      "method": "GET",
+      "path": "/api/media/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.473Z",
+      "status": 401,
+      "elapsedMs": 1,
+      "errorCode": "unauthenticated"
+    },
+    {
+      "step": "upload-bytes",
+      "method": "GET",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.474Z",
+      "status": 401,
+      "elapsedMs": 0,
+      "errorCode": "unauthenticated"
+    },
+    {
+      "step": "upload-metadata",
+      "method": "GET",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.475Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "upload-metadata",
+      "method": "PUT",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.477Z",
+      "status": 200,
+      "elapsedMs": 5
+    },
+    {
+      "step": "upload-metadata",
+      "method": "PUT",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.483Z",
+      "status": 409,
+      "elapsedMs": 3,
+      "errorCode": "revision_conflict"
+    },
+    {
+      "step": "upload-metadata",
+      "method": "PUT",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.486Z",
+      "status": 200,
+      "elapsedMs": 4
+    },
+    {
+      "step": "upload-metadata",
+      "method": "GET",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.490Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "upload-metadata",
+      "method": "GET",
+      "path": "/api/media-library?scope=owner_upload&q=v3-regression%3Af1730708-d5c7-45ed-b374-42b19215db95%3Arenamed-media",
+      "startedAt": "2026-10-28T04:17:17.491Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "upload-metadata",
+      "method": "GET",
+      "path": "/api/media-library?scope=owner_upload&q=v3-regression%3Af1730708-d5c7-45ed-b374-42b19215db95%3Arenamed-media&hidden=true",
+      "startedAt": "2026-10-28T04:17:17.493Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/media-assets/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+      "startedAt": "2026-10-28T04:17:17.495Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/display-avatar",
+      "startedAt": "2026-10-28T04:17:17.496Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
+      "startedAt": "2026-10-28T04:17:17.497Z",
+      "status": 200,
+      "elapsedMs": 18
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory?limit=100",
+      "startedAt": "2026-10-28T04:17:17.497Z",
+      "status": 200,
+      "elapsedMs": 9
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/diary?limit=100",
+      "startedAt": "2026-10-28T04:17:17.497Z",
+      "status": 200,
+      "elapsedMs": 4
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/media?limit=100",
+      "startedAt": "2026-10-28T04:17:17.497Z",
+      "status": 200,
+      "elapsedMs": 9
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/visual-identity",
+      "startedAt": "2026-10-28T04:17:17.515Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "avatar",
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/display-avatar",
+      "startedAt": "2026-10-28T04:17:17.519Z",
+      "status": 200,
+      "elapsedMs": 6
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/display-avatar",
+      "startedAt": "2026-10-28T04:17:17.525Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
+      "startedAt": "2026-10-28T04:17:17.527Z",
+      "status": 200,
+      "elapsedMs": 6
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/visual-identity",
+      "startedAt": "2026-10-28T04:17:17.533Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
+      "startedAt": "2026-10-28T04:17:17.534Z",
+      "status": 200,
+      "elapsedMs": 13
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory?limit=100",
+      "startedAt": "2026-10-28T04:17:17.535Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/diary?limit=100",
+      "startedAt": "2026-10-28T04:17:17.535Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/media?limit=100",
+      "startedAt": "2026-10-28T04:17:17.535Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "avatar",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/display-avatar/history",
+      "startedAt": "2026-10-28T04:17:17.547Z",
+      "status": 200,
+      "elapsedMs": 1
+    }
+  ],
+  "reviews": [
+    {
+      "id": "scoped-run",
+      "status": "pending_user_review",
+      "description": "这里只执行现有L09的上传、字节授权、元数据、独立显示头像分支。视觉候选/规范参考/设定图、生成任务和浏览器验证仍未执行，不以该专项替代完整L09。",
+      "evidence": {}
+    }
+  ],
+  "coverageLimits": [
+    "HTTP and component tests do not certify real-browser rendering, IME or scrolling.",
+    "Controlled Provider fixtures do not certify a real model/renderer."
+  ],
+  "runId": "f1730708-d5c7-45ed-b374-42b19215db95",
+  "automatedStatus": "blocked",
+  "fullWorkflowAccepted": false,
+  "modelTriggerOperations": 0,
+  "finishedAt": "2026-10-28T04:17:17.550Z",
+  "executionMode": "scenario"
+}

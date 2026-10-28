@@ -12,5 +12,5 @@ export async function activeChatFixture(){
  const workspace={state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),conversation:()=>store,current:{get value(){return state.characters[0];}},currentScope:()=> 'owner-role',clock:()=> '12:00',services:{mediaClient:{url:id=>'/api/media/'+id}},openConversation:async(id,live)=>calls.push(['open',id,live()]),navigatePath:path=>calls.push(['navigate',path]),detail:async()=>{},loadWardrobe:async()=>{}};
  const view=await mountReact(vite,Chat,{workspace,props:{preview:false,onGo(){}}});
  const button=text=>[...view.host.querySelectorAll('button')].find(node=>node.textContent.trim()===text);
- return {store,calls,view,button,async update(fn){await act(async()=>fn());await view.flush();},async dispose(){await view.dispose();await vite.close();environment.restore();}};
+ return {store,calls,view,button,workspace,async update(fn){await act(async()=>fn());await view.flush();},async dispose(){await view.dispose();await vite.close();environment.restore();}};
 }

@@ -20,7 +20,7 @@ export default function CharacterAvatar({
     >
       {url && <AvatarImage src={url} alt={`${name || "角色"}的头像`} />}
       <AvatarFallback style={{ background: color }}>
-        {initial || [...(name || "光")].at(-1)}
+        {initial || [...(name || "光")][0]}
       </AvatarFallback>
     </Avatar>
   );

@@ -71,10 +71,9 @@ export function ManagementPageView({ view: view }) {
                 id={view.sectionId("服务地址")}
                 className="settings-group"
               >
-                <div className="row">
-                  <h2>{"服务地址"}</h2>
-                  <span className="spacer" />
-                  <ActionButton variant="ghost"
+                <div className="replica-settings-section-head">
+                  <div><h2>模型服务</h2><p>兼容 OpenAI 协议的服务地址与模型目录</p></div>
+                  <ActionButton variant="outline"
                     type="button"
 
                     onClick={view.addEndpoint}
@@ -86,10 +85,9 @@ export function ManagementPageView({ view: view }) {
                 <Fragment>
                   {listValues(view.endpoints.value).map((h, b) => (
                     <div key={h.id} className="management-block">
-                      <div className="row">
-                        <b>{displayText(h.name)}</b>
-                        <Badge variant="secondary">{displayText(h.status)}</Badge>
-                        <span className="spacer" />
+                      <div className="replica-service-header">
+                        <span className="replica-service-icon"><Server size={19}/></span>
+                        <div><b>{displayText(h.name)}</b><small>{displayText(h.status)}</small></div>
                         {!h._source&&<ActionButton variant="destructive"
                           type="button"
 

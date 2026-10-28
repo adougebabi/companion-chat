@@ -1040,7 +1040,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                       <p>
                         {typeof request.payload?.before?.activity === "string"
                           ? request.payload.before.activity
-                          : "原日程与版本保留在请求来源中。"}
+                          : "该请求未保存原安排快照，可在完整请求中核对来源。"}
                       </p>
                     </div>
                     <ArrowRightIcon size={18} />
@@ -1050,12 +1050,13 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                         {typeof request.payload?.activity === "string" &&
                         request.payload.activity
                           ? request.payload.activity
-                          : "建议取消这段安排"}
-                        <br />
-                        {userInstant(request.payload?.start_at)}
+                          : request.payload?.operation === "cancel" ? "建议取消这段安排" : "建议内容见完整请求"}
                       </p>
+                      {request.payload?.start_at && <p className="lp-small">{userInstant(request.payload.start_at)}{request.payload.end_at ? " — " + userInstant(request.payload.end_at) : ""}</p>}
+                      {(request.payload?.location || request.payload?.scene) && <p className="lp-small">{[request.payload.location,request.payload.scene].filter(Boolean).join(" · ")}</p>}
                     </div>
                   </div>
+                  {typeof request.payload?.reason === "string" && request.payload.reason && <p className="lp-small">提出原因：{request.payload.reason}</p>}
                   <p className="lp-small">
                     {requestDecisionText(request) ||
                       "已提交建议，正在等待真实处理结果。"}

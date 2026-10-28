@@ -3,6 +3,11 @@
 import { useId } from "react";
 
 type ArtProps = { className?: string };
+// Decoration follows supplied world data, never an example character ID.
+export function worldArtworkKind(world?: {name?:string;flavor?:string}|null): "city"|"forest"|"space" {
+  const text=[world?.name,world?.flavor].filter(Boolean).join(" ");
+  return /森林|自然|forest/i.test(text)?"forest":/星海|星际|太空|科幻|星环|space/i.test(text)?"space":"city";
+}
 
 export function WorldArt({
   kind,

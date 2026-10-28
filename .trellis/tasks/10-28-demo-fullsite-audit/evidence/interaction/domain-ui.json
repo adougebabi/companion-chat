@@ -1,0 +1,165 @@
+[
+  {
+    "name": "schedule-detail-date",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "detail retains selected activity"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/schedule-detail-date-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/schedule-detail-date-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/这一天还没有|这天还没有|还没有读到这一天|没有确认的安排/).first() to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚 · 独立书店店主\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nFLUCTLIGHT WORKSPACE\nToggle Sidebar\n日常相处\n日程\n快速前往\n⌘ K\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-28\n今天\n10月28日 · 未来的安排\n\n1 项安排 · Asia/Shanghai\n\n刷新\n10:00\n准备周末的小型读书会\n计划中\n\n10:00—12:00　·　迟山书店\n\n日程小记\n已确认安排\n1 项\n已读取待处理建议\n0 条\n修改会先成为建议，等林晚确认后，再更新已接受的安排。\n约定、意向与日程来源"
+  },
+  {
+    "name": "goals-search-edit",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "goal search has no result",
+      "blank target stays in editor",
+      "blank target reports validation",
+      "cancel did not add a goal",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/goals-search-edit-no-results.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/goals-search-edit-create.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wardrobe-search-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [],
+    "errors": [],
+    "status": "failed",
+    "error": "locator.fill: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: /搜索衣物/ })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nFLUCTLIGHT WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林晚的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n奶油色针织开衫、米白长裙、棕色乐福鞋\n\n当前穿着\n全部衣服\n8\n穿搭方案\n2\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n外套\n奶油色针织开衫\n春\n秋\n上衣\n米白棉麻衬衫\n春\n夏\n秋\n正在穿\n下衣\n米白长裙\n春\n夏\n秋\n正在穿\n鞋子\n棕色乐福鞋\n春\n秋\n外套\n苔绿长风衣\n春\n秋\n下衣\n深灰直筒长裤\n秋\n冬\n配饰\n柔软羊毛围巾\n秋\n冬\n袜子\n奶白棉袜\n春\n秋\n冬",
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/wardrobe-search-detail-failure.png"
+    ]
+  },
+  {
+    "name": "diary-read-annotation",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "real full diary body renders",
+      "cancel does not publish annotation",
+      "shared view shows its empty state",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/diary-read-annotation-read.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/diary-read-annotation-annotation-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/diary-read-annotation-shared-empty.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "memory-source-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "full active memory list displayed",
+      "detail includes source/history",
+      "reflection source renders",
+      "self claims source renders",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/memory-source-detail-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/memory-source-detail-reflections.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/memory-source-detail-self.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "world-search-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "world search no matches"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/world-search-detail-no-results.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/world-search-detail-places.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/world-search-detail-failure.png"
+    ],
+    "status": "failed",
+    "error": "world has original place names",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nFLUCTLIGHT WORKSPACE\nToggle Sidebar\n世界与联系\n世界\n快速前往\n⌘ K\nYOUR WORLD / A PLACE TO BELONG\n青岚小城\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n青岚小城\n现代 · 沿海小城\n一座属于日常的世界\n\n一座靠海、被河流温柔穿过的小城。旧街上有书店与咖啡馆，午后可以慢慢走到海边。这里的人有各自的生活，也总能在日常里相逢。\n\n当前运行世界\n3 类场地 · 5 处地点\n编辑世界\n场地与地点\n5\n世界设定\n物品目录\n世界事件\n场地分类\n全部地点\n5\n老城街区\n2\n自然与户外\n2\n生活空间\n1\n添加分类\n添加地点\n显示已归档地点\n老城街区 · 1F\n迟山\n\n一间临河的独立书店，午后的光线落在靠窗的阅读桌上。\n\n安静、自然，适合慢慢停留\n原木书架、圆形阅读桌、落地灯、咖啡机\n修订记录\n查看与编辑\n老城街区 · 1F\n白日咖啡馆\n\n巷口的咖啡馆，黑板上写着今天的手冲豆单。\n\n安静、自然，适合慢慢停留\n吧台、双人桌、唱片机\n修订记录\n查看与编辑\n自然与户外 · 室外\n青岚河岸\n\n沿着河道延伸的步行道，傍晚会有温柔的风。\n\n明亮、轻松、微风\n木质长椅、绿植与柔和的灯光\n修订记录\n查看与编辑\n自然与户外 · 室外\n南湾海边\n\n细沙与礁石相接的海岸，远处能看到归港的小船。\n\n安静、自然，适合慢慢停留\n木质长椅、绿植与柔和的灯光\n修订记录\n查看与编辑\n生活空间 · 3F\n河畔公寓\n\n带一扇向东的窗，窗台上养着几盆绿植。\n\n安静、自然，适合慢慢停留\n书桌、沙发、开放式厨房、绿植\n修订记录\n查看与编辑"
+  },
+  {
+    "name": "people-about-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "person exact story is retained",
+      "about view reads owner background",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/people-about-detail-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/people-about-detail-about.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-read-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "comments retain exact content",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/feed-read-detail-detail.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "media-read-detail",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "media detail uses actual saved image",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/media-read-detail-detail.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-resource-editor",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [],
+    "errors": [],
+    "status": "failed",
+    "error": "page.waitForURL: Timeout 8000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n============================================================",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nFLUCTLIGHT WORKSPACE\nToggle Sidebar\n创作与管理\n编辑创作资源\n快速前往\n⌘ K\n创作中心\n青岚小城\nSTUDIO / MAKE IT YOUR OWN\n青岚小城\n\n把想法慢慢补全，保存，再选择何时使用。\n\n创作沙盒\n保存草稿\n资源设定\n已保存\n资源名称\n世界背景\n基础规则\n场地与具体地点 · 3 类\n保存原因\n完整 JSON 定义\n最近的使用\n\n尚未读到运行引用。发布、应用和实际使用分别记录。\n\n保存版本与当前工作草稿的完整差异\n保存与发布\n保存版本\nv2\n当前可用版本\nv2\n保存草稿\n发布版本\n用于生活\n\n当前保存版本已经发布，可供独立应用。\n\n发布已保存版本\n版本历史\n应用到角色\n用于创建新角色\n核对最新版本基线\n资源管理\n创建独立副本\n导出当前定义\n归档资源",
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/studio-resource-editor-failure.png"
+    ]
+  },
+  {
+    "name": "inbox-read-sync",
+    "kind": "production dist / controlled HTTP only",
+    "checks": [
+      "sidebar authoritative unread count cleared",
+      "unread filter reflects confirmed writes",
+      "reading does not finish pending task",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/inbox-read-sync-all-read.png"
+    ],
+    "status": "passed"
+  }
+]

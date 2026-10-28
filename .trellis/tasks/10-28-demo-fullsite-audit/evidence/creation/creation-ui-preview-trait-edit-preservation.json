@@ -1,0 +1,34 @@
+[
+  {
+    "name": "preview-trait-edit-preservation",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production wizard / controlled same-content analysis, no activation or backend preparation certified",
+    "checks": [
+      "existing personality score is editable",
+      "keyboard edit reaches full preview JSON",
+      "trait edit retains nested life fields",
+      "trait edit retains relationships",
+      "trait edit retains unknown extension",
+      "edited personality score survives reload",
+      "no activation was submitted",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "errors": [],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlight-creations/analysis",
+        "body": {
+          "description": "林晚，26 岁，女，在青岚小城经营一家名叫「迟山」的独立书店。她温柔、细腻，也很有自己的主见。喜欢旧书、雨天、手冲咖啡和傍晚沿河散步。说话自然、克制，不会一味附和，偶尔带一点轻松的幽默。她有一头深棕色中长发，常穿奶油色针织开衫和米白长裙。希望书店能成为一个让人安心停留的地方。\n姓名：林晚\n性格期望：\n世界与生活："
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/creation/preview-trait-edit-preservation-edited-trait.png"
+    ],
+    "status": "passed"
+  }
+]

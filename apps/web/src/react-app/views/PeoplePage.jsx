@@ -3,6 +3,7 @@ import {
   MapPinIcon,
   PlusIcon,
   RefreshCwIcon,
+  SearchIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -116,6 +117,7 @@ export default function PeoplePageView({ model: m }) {
             <PeopleReader source={m.profile} label="关系范围" />
             <div className="companion-toolbar">
               <div className="people-search">
+                <SearchIcon size={15} aria-hidden="true"/>
                 <FieldInput
                   type="search"
                   aria-label="搜索名字、身份或故事"

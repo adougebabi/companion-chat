@@ -1,0 +1,401 @@
+[
+  {
+    "scenario": "wardrobe-failure",
+    "origin": "http://127.0.0.1:4383",
+    "kind": "production dist with existing creation HTTP fixture; no live Core/LLM claim",
+    "checks": [
+      "seven independent preparation rows render",
+      "later stage waits for failed wardrobe",
+      "completion comes from all seven read sources",
+      "refresh retains same activation",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4383/api/fluctlight-creations/activate",
+        "body": {
+          "requestId": "9cdb2174-38da-4470-a2b6-e4961622914f",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "url": "http://127.0.0.1:4383/api/fluctlights/creation-character-1/inventory/preparation",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "恢复原角色的初始穿搭准备",
+          "idempotencyKey": "1de93d5b-bfb8-417a-a587-85e117bca02a"
+        }
+      }
+    ],
+    "errors": [],
+    "initial": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "失败"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "等待前序恢复"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "等待前序恢复"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "等待前序恢复"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "等待前序恢复"
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/wardrobe-failure-seven-stages.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/wardrobe-failure-wardrobe-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/wardrobe-failure-complete.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/wardrobe-failure-restored.png"
+    ],
+    "final": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "scenario": "recovery-unknown",
+    "origin": "http://127.0.0.1:4384",
+    "kind": "production dist with existing creation HTTP fixture; no live Core/LLM claim",
+    "checks": [
+      "seven independent preparation rows render",
+      "later stage waits for failed wardrobe",
+      "unknown recovery reuses exact original body",
+      "completion comes from all seven read sources",
+      "refresh retains same activation",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4384/api/fluctlight-creations/activate",
+        "body": {
+          "requestId": "d1a4b9a6-9139-4f62-9e6a-e33f5577f120",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "url": "http://127.0.0.1:4384/api/fluctlights/creation-character-1/inventory/preparation",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "恢复原角色的初始穿搭准备",
+          "idempotencyKey": "acf5021e-1638-45ca-950e-2d5b3c052b5d"
+        }
+      },
+      {
+        "url": "http://127.0.0.1:4384/api/fluctlights/creation-character-1/inventory/preparation",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "恢复原角色的初始穿搭准备",
+          "idempotencyKey": "acf5021e-1638-45ca-950e-2d5b3c052b5d"
+        }
+      }
+    ],
+    "errors": [],
+    "initial": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "失败"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "等待前序恢复"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "等待前序恢复"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "等待前序恢复"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "等待前序恢复"
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/recovery-unknown-seven-stages.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/recovery-unknown-wardrobe-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/recovery-unknown-original-recovery-retained.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/recovery-unknown-complete.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/recovery-unknown-restored.png"
+    ],
+    "final": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "scenario": "activation-unknown",
+    "origin": "http://127.0.0.1:4385",
+    "kind": "production dist with existing creation HTTP fixture; no live Core/LLM claim",
+    "checks": [
+      "unknown activation uses same original command",
+      "seven independent preparation rows render",
+      "completion comes from all seven read sources",
+      "refresh retains same activation",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4385/api/fluctlight-creations/activate",
+        "body": {
+          "requestId": "13632434-1faa-4542-98b0-a0d6933084af",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "url": "http://127.0.0.1:4385/api/fluctlight-creations/activate",
+        "body": {
+          "requestId": "13632434-1faa-4542-98b0-a0d6933084af",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/activation-unknown-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/activation-unknown-seven-stages.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/activation-unknown-complete.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/activation-unknown-restored.png"
+    ],
+    "initial": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成"
+      }
+    ],
+    "final": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "scenario": "pending",
+    "origin": "http://127.0.0.1:4386",
+    "kind": "production dist with existing creation HTTP fixture; no live Core/LLM claim",
+    "checks": [
+      "seven independent preparation rows render",
+      "progress reread does not fabricate completion",
+      "no browser exception",
+      "no horizontal overflow"
+    ],
+    "writes": [
+      {
+        "url": "http://127.0.0.1:4386/api/fluctlight-creations/activate",
+        "body": {
+          "requestId": "aceab9cc-ab95-4eaf-a045-6b4473164880",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      }
+    ],
+    "errors": [],
+    "initial": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "进行中"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "等待中"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "等待中"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "等待中"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "等待中"
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/pending-seven-stages.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation/pending-running.png"
+    ],
+    "final": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "进行中"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "等待中"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "等待中"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "等待中"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "等待中"
+      }
+    ],
+    "status": "passed"
+  }
+]

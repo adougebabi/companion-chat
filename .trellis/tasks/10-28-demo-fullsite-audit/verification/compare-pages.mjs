@@ -1,0 +1,49 @@
+// User-authorized local Playwright. One isolated Chrome version/context setup
+// for both immutable Demo and production dist, with no user browser profile.
+import {createRequire} from 'node:module';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+const require=createRequire('/private/tmp/fluctlight-demo-audit-20261028/browser-tools/package.json');
+const {chromium}=require('playwright-core'),{PNG}=require('pngjs');
+const pixelmatch=(await import(require.resolve('pixelmatch'))).default;
+const root=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/visual');
+const phase=process.env.AUDIT_CAPTURE_PHASE||'before';
+const selected=(process.argv[2]||'library,chat,now,schedule,wardrobe').split(',');
+const referenceRoutes={media:'/media',visual:'/media?tab=identity',generation:'/media?tab=generate',avatar:'/media?tab=avatar'};
+const routes={visual:'/c/linwan/media?tab=identity',generation:'/c/linwan/media?tab=generate',avatar:'/c/linwan/media?tab=avatar',library:'/library',chat:'/c/linwan/chat',now:'/c/linwan/life/now',schedule:'/c/linwan/life/schedule',wardrobe:'/c/linwan/life/wardrobe',goals:'/c/linwan/life/goals',diary:'/c/linwan/life/diary',memory:'/c/linwan/growth',profile:'/c/linwan/profile',world:'/c/linwan/world',people:'/c/linwan/people',feed:'/feed',media:'/c/linwan/media',studio:'/studio',inbox:'/inbox',settings:'/settings',creation:'/library/create',auth:'/auth'};
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const results=[];
+try{
+ for(const size of [{name:'desktop',width:1348,height:925},{name:'mobile',width:390,height:844}]){
+  const context=await browser.newContext({viewport:{width:size.width,height:size.height},deviceScaleFactor:1,locale:'zh-CN',timezoneId:'Asia/Shanghai',colorScheme:'light',reducedMotion:'reduce'});
+  const reference=await context.newPage(),actual=await context.newPage();
+  for(const name of selected){
+   const out=resolve(root,name,phase);await mkdir(out,{recursive:true});
+   const record={page:name,size,phase,browser:browser.version(),referenceUrl:'http://127.0.0.1:4179/fluctlight-offline.html#'+(referenceRoutes[name]||routes[name]),actualUrl:'http://127.0.0.1:4381/#'+routes[name],errors:{reference:[],actual:[]}};
+   const inspect=async(page,url,kind)=>{
+    const listener=error=>record.errors[kind].push(error.message);page.on('pageerror',listener);
+    await page.goto(url,{waitUntil:'networkidle'});await page.locator('h1').first().waitFor({state:'visible'});
+    if(kind==='actual'&&name==='library')await page.waitForFunction(()=>document.querySelectorAll('.library-chips').length===3&&document.querySelectorAll('.library-chips span').length>0);
+    if(name==='chat')await page.getByText('给你看看窗边这个小角落。',{exact:false}).waitFor();
+    await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));await Promise.all(Array.from(document.images).map(image=>image.complete?Promise.resolve():new Promise(resolve=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',resolve,{once:true});})));});
+    if(name==='chat')await page.locator('.companion-message-list').evaluate(e=>e.scrollTo({top:e.scrollHeight,behavior:'instant'}));
+    record[kind]=await page.evaluate(()=>{
+     const shape=element=>{const r=element.getBoundingClientRect(),s=getComputedStyle(element);return {tag:element.tagName,class:element.className,text:element.textContent?.trim().slice(0,140),x:r.x,y:r.y,width:r.width,height:r.height,font:s.fontFamily,fontSize:s.fontSize,fontWeight:s.fontWeight,lineHeight:s.lineHeight,color:s.color,padding:s.padding,gap:s.gap,display:s.display};};
+     const first=selectors=>selectors.map(s=>document.querySelector(s)).find(Boolean);
+     return {environment:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio,scale:visualViewport.scale,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,font:getComputedStyle(document.body).fontFamily,documentWidth:document.documentElement.scrollWidth},heading:shape(document.querySelector('h1')),header:first(['.page-heading','.replica-page-heading'])?shape(first(['.page-heading','.replica-page-heading'])):null,landmarks:Array.from(document.querySelectorAll('aside,nav,header,.library-hero,.library-header,.tag-filter,.character-grid,.character-list,.library-card,.character-card,.companion-chat-panel,.companion-message-list,.companion-composer,.companion-moment-card,.lp-hero,.lp-grid')).map(shape),images:Array.from(document.images).map(i=>({alt:i.alt,src:i.getAttribute('src'),loaded:i.complete&&i.naturalWidth>0,width:i.width,height:i.height})),scrolling:Array.from(document.querySelectorAll('*')).filter(e=>e.clientHeight>0&&e.scrollHeight>e.clientHeight+1&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({class:e.className,scrollTop:e.scrollTop,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight})),buttons:Array.from(document.querySelectorAll('button')).filter(e=>e.getBoundingClientRect().width&&e.getBoundingClientRect().height).map(shape)};
+    });
+    await page.screenshot({path:resolve(out,kind+'-'+size.name+'.png'),fullPage:false,animations:'disabled'});page.off('pageerror',listener);
+   };
+   try{
+    await inspect(reference,record.referenceUrl,'reference');await inspect(actual,record.actualUrl,'actual');
+    const a=PNG.sync.read(await readFile(resolve(out,'reference-'+size.name+'.png'))),b=PNG.sync.read(await readFile(resolve(out,'actual-'+size.name+'.png'))),diff=new PNG({width:a.width,height:a.height});
+    record.pixelDifference={pixels:pixelmatch(a.data,b.data,diff.data,a.width,a.height),total:a.width*a.height,meaning:'raw image difference only; no pass threshold, masking or completion inference'};
+    await writeFile(resolve(out,'difference-'+size.name+'.png'),PNG.sync.write(diff));
+    const pair=new PNG({width:a.width*2,height:a.height});for(let y=0;y<a.height;y++){a.data.copy(pair.data,y*pair.width*4,y*a.width*4,(y+1)*a.width*4);b.data.copy(pair.data,y*pair.width*4+a.width*4,y*b.width*4,(y+1)*b.width*4);}await writeFile(resolve(out,'comparison-'+size.name+'.png'),PNG.sync.write(pair));
+    console.log(name,size.name,'captured; heading',record.reference.heading.x,record.reference.heading.y,'vs',record.actual.heading.x,record.actual.heading.y,'errors',record.errors.actual.length);
+   }catch(error){record.failure=error.message;console.log(name,size.name,'FAILED',error.message.slice(0,180));}
+   results.push(record);await writeFile(resolve(root,'capture-'+phase+'.json'),JSON.stringify(results,null,2)+'\n');
+  }
+  await context.close();
+ }
+}finally{await browser.close();}

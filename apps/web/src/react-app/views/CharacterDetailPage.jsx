@@ -307,7 +307,7 @@ export default function CharacterDetailPageView({ model: m }) {
         <CharacterAvatar
           className="avatar-xl"
           name={m.title.value}
-          initial={[...m.title.value].at(-1)}
+          initial={[...m.title.value][0]}
           color={c.color}
           src={m.avatar.value}
         />
@@ -337,7 +337,8 @@ export default function CharacterDetailPageView({ model: m }) {
         <div className="companion-profile-quote">
           <QuoteIcon size={19} />
           <p>
-            {typeof biography === "string"
+            {typeof identity.tagline === "string" && identity.tagline.trim()
+              ? identity.tagline : typeof biography === "string"
               ? biography ||
                 (!m.detail.value
                   ? "角色资料待读取。"

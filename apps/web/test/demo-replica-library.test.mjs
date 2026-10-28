@@ -17,6 +17,7 @@ test('library filters actual tags and text, switches views, navigates the chosen
  const w=workspace();let v=await mountReact(vite,Library,{workspace:w});
  try{
   assert.equal(v.host.querySelectorAll('[data-testid^="library-card-"]').length,2);
+  assert.equal(v.host.querySelector('.library-footer a').getAttribute('href'),'#/studio?kind=character_template');
   assert.match(v.host.querySelector('[data-testid="library-card-B"]').textContent,/已暂停/);
   await v.click(button(v,'好奇'));assert.equal(v.host.querySelectorAll('[data-testid^="library-card-"]').length,1);
   await v.click(button(v,'全部'));await v.input(v.host.querySelector('input[type=search]'),'编辑');
@@ -44,6 +45,7 @@ test('quick jump supports page and character selection and Escape closes without
  try{
   const trigger=v.host.querySelector('button');trigger.focus();await v.click(trigger);const input=()=>document.querySelector('[aria-label="搜索页面或角色名字"]');await v.input(input(),'林青');await v.click([...document.querySelectorAll('[role=dialog] button')].find(node=>node.textContent.includes('进入聊天')));assert.deepEqual(roles,['A']);
   await act(async()=>window.dispatchEvent(new window.KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true})));await v.flush();await v.input(input(),'日记');await act(async()=>document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=dialog]'),null);assert.deepEqual(pages,[]);
+  await v.click(trigger);await v.input(input(),'新的相识');await v.click([...document.querySelectorAll('[role=dialog] button')].find(node=>node.textContent.includes('新的相识')));assert.deepEqual(pages,['初始化角色']);
  }finally{await v.dispose();}
 });
 

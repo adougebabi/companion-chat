@@ -1,3 +1,4 @@
+import {createNotificationCounter} from './notification-counter.mjs';
 import { approvedHref } from "../approved-ui/routing.mjs";
 import { selector } from "./view-model.ts";
 import { proxy, snapshot, subscribe as subscribeState } from "valtio/vanilla";
@@ -184,6 +185,9 @@ export function createWorkspace({ observable = proxy } = {}) {
     operations: [],
     diagnostics: [],
     notifications: [],
+    notificationCount: /** @type {{count:number;alert_count?:number}|null} */ (null),
+    notificationCountLoading: false,
+    notificationCountError: "",
     pending: [],
     errors: {},
     loading: {},readSuccesses:{},errorScopes:{},
@@ -216,9 +220,14 @@ export function createWorkspace({ observable = proxy } = {}) {
     state.toast = { text, link };
     toastTimer = setTimeout(() => (state.toast = null), 3500);
   };
+  const notificationCounter=createNotificationCounter({
+    read:()=>operationsClient.notificationCount(),
+    changed:patch=>Object.assign(state,patch),
+  });
   function replaceDirectory() {
-    const owner = get("session");
-    if (state.session?.actorId !== owner?.actorId) {
+    const owner = get("session"),ownerChanged=state.session?.actorId !== owner?.actorId;
+    if (ownerChanged) {
+      notificationCounter.reset(owner?.actorId);
       generation++;
       state.characters = [];
       channels.clear();
@@ -239,15 +248,17 @@ export function createWorkspace({ observable = proxy } = {}) {
         ...previous,
         id: row.id,
         name: row.name,
-        initial: [...(row.name || "光")].at(-1),
+        initial: [...(row.name || "光")][0],
         color: row.color || ["#e4ede4", "#e6e8ed", "#eee8df"][index % 3],
         bio: row.bio || "",
+        job: Object.hasOwn(row,"job") ? row.job : previous.job,
         status: row.status,
         _directory: row,
       };
     });
     if (!state.characters.some((c) => c.id === state.selectedId))
       state.selectedId = get("ui")?.charId || state.characters[0]?.id || "";
+    if(ownerChanged&&owner?.actorId)void notificationCounter.refresh();
   }
   const unsubscribe = subscribe(replaceDirectory);
   async function bootstrap() {
@@ -1049,6 +1060,9 @@ export function createWorkspace({ observable = proxy } = {}) {
     bootstrap,
     logout:async()=>{await auth.logout();navigatePath('/auth');},
     refreshDirectory: () => refreshProduct({ initialOnly: true }),
+    refreshNotificationCount: notificationCounter.refresh,
+    markNotificationRead: id=>notificationCounter.afterWrite(()=>operationsClient.readNotification(id)),
+    markAllNotificationsRead: before=>notificationCounter.afterWrite(()=>operationsClient.readAllNotifications(before)),
     detail,
     load,
     loadLife,
@@ -1089,6 +1103,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       active = false;
       generation++;
       unsubscribe();
+      notificationCounter.dispose();
       document.removeEventListener("visibilitychange", resumeRequests);
       observations.clear();
       clearTimeout(toastTimer);

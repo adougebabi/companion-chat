@@ -1,0 +1,88 @@
+[
+  {
+    "page": "chat",
+    "state": "empty",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "empty response passes through the production page and data mapper",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-empty-empty.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "chat",
+    "state": "loading",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "loading is visible while the actual HTTP read is held",
+      "held read completes without a replacement command",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": true
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-loading-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-loading-resolved.png"
+    ],
+    "status": "passed",
+    "calls": 1
+  },
+  {
+    "page": "chat",
+    "state": "failure",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production dist with intercepted test HTTP read state; formal error/loading state has no simulated-success claim",
+    "errors": [],
+    "checks": [
+      "read failure exposes a recovery action",
+      "recovery reads the original domain endpoint",
+      "no document horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": true
+      },
+      {
+        "url": "http://127.0.0.1:4381/api/fluctlights/linwan/conversation",
+        "failed": false
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-failure-error.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/states/chat-failure-recovered.png"
+    ],
+    "status": "passed",
+    "calls": 2
+  }
+]

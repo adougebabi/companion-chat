@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {ChevronRightIcon,SearchIcon} from 'lucide-react';
+import {ChevronRightIcon,SearchIcon,PlusIcon} from 'lucide-react';
 import {Dialog,DialogTrigger,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -8,7 +8,7 @@ import {characterScopedPages,workspaceNavigationGroups} from './WorkspaceNavigat
 export default function WorkspaceQuickJump({characters,hasCharacter,onNavigate,onCharacter}:{characters:{id:string;name:string}[];hasCharacter:boolean;onNavigate:(page:string)=>void;onCharacter:(id:string)=>void}){
  const [open,setOpen]=useState(false),[query,setQuery]=useState('');
  useEffect(()=>{const key=(event:KeyboardEvent)=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){event.preventDefault();setOpen(value=>!value);}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[]);
- const pages=workspaceNavigationGroups.flatMap(group=>group.items).filter(([value,label])=>label.includes(query.trim())&&(hasCharacter||!characterScopedPages.includes(value)));
+ const pages=[...workspaceNavigationGroups.flatMap(group=>group.items),['初始化角色','新的相识',PlusIcon] as const].filter(([value,label])=>(label.includes(query.trim())||value.includes(query.trim()))&&(hasCharacter||!characterScopedPages.includes(value)));
  const matches=characters.filter(character=>character.name.toLowerCase().includes(query.trim().toLowerCase()));
  const close=()=>{setOpen(false);setQuery('');};
  return <Dialog open={open} onOpenChange={next=>{setOpen(next);if(!next)setQuery('');}}>

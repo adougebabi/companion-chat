@@ -143,6 +143,9 @@ export async function mountReact(
     },
     async dispose() {
       await act(async () => root.unmount());
+      // Radix restores focus on the next timer turn; keep this DOM alive until
+      // that cleanup finishes instead of leaking its callback into the next test.
+      await flush();
       environment.restore();
     },
   };

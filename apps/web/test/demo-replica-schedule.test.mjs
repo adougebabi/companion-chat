@@ -559,3 +559,14 @@ test("an empty character scope cannot start a schedule read while the shell retu
     await v.dispose();
   }
 });
+
+test('suggestion details retain the submitted interval, place and reason without inventing an old snapshot',async()=>{
+ const w=workspace();w.request.payload={operation:'update',activity:'去书店整理新书',start_at:today+'T17:30:00+08:00',end_at:today+'T18:30:00+08:00',location:'迟山书店',scene:'工作',reason:'保留晚餐前的空档'};
+ w.life.requests=async()=>({items:[w.request],next_cursor:''});
+ const v=await mountReact(vite,Schedule,{workspace:w,props:{route:{query:new URLSearchParams({date:today,tab:'suggestions'})}}});
+ try{
+  assert.match(v.host.textContent,/去书店整理新书/);assert.match(v.host.textContent,/17:30/);assert.match(v.host.textContent,/18:30/);
+  assert.match(v.host.textContent,/迟山书店 · 工作/);assert.match(v.host.textContent,/提出原因：保留晚餐前的空档/);
+  assert.match(v.host.textContent,/未保存原安排快照/);assert.doesNotMatch(v.host.textContent,/原日程与版本保留在请求来源中/);
+ }finally{await v.dispose();}
+});

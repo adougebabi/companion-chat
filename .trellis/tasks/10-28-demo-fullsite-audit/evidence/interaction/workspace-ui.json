@@ -1,0 +1,131 @@
+[
+  {
+    "name": "library-search-view-back",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "real production dist with controlled HTTP DTOs, not live Core",
+    "checks": [
+      "full directory has three cards",
+      "search produces real empty result",
+      "list mode selected",
+      "filter survives profile and back",
+      "view survives profile and back",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/library-search-view-back-no-results.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/library-search-view-back-list.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "shell-keyboard-navigation",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "real production dist with controlled HTTP DTOs, not live Core",
+    "checks": [
+      "desktop sidebar collapses",
+      "quickjump receives keyboard focus",
+      "creation entry found",
+      "Escape closes quickjump",
+      "quickjump navigates to real page",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/shell-keyboard-navigation-collapsed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/shell-keyboard-navigation-quickjump.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "chat-input-image-history",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "real production dist with controlled HTTP DTOs, not live Core",
+    "checks": [
+      "empty draft disables send",
+      "whitespace disables send",
+      "text enables send",
+      "Shift Enter adds newline",
+      "attachment detail uses actual media URL",
+      "attachment dismissal restores source focus",
+      "history dismissal restores source focus",
+      "draft survived details",
+      "preview folds",
+      "preview unfolds",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/chat-input-image-history-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/chat-input-image-history-attachment.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/chat-input-image-history-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "chat-image-error-recovery",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "real production dist with controlled HTTP DTOs, not live Core",
+    "checks": [
+      "retry reads original image",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/chat-image-error-recovery-image-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/chat-image-error-recovery-image-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "shell-mobile-drawer",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "real production dist with controlled HTTP DTOs, not live Core",
+    "checks": [
+      "mobile document has no horizontal overflow",
+      "navigation dismisses after route choice",
+      "schedule remains within mobile viewport",
+      "Escape restores navigation trigger focus",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/shell-mobile-drawer-navigation.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "profile-edit-cancel",
+    "viewport": {
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "real production dist with controlled HTTP DTOs, not live Core",
+    "checks": [
+      "cancel preserved saved profile",
+      "unsaved name did not leak",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/profile-edit-cancel-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/profile-edit-cancel-discard-confirm.png"
+    ],
+    "status": "passed"
+  }
+]

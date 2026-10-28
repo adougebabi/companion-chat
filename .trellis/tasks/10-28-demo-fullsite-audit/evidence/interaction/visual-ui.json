@@ -1,0 +1,152 @@
+[
+  {
+    "name": "visual-definition-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "scoped visual does not repeat role picker",
+      "cancel does not submit visual write",
+      "canonical remains the accepted actual media",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/visual-definition-desktop-editing.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-select-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "selection alone does not save avatar",
+      "chosen image is visible in real preview",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/avatar-select-desktop-selected-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "generation-validation-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "prompt chip fills editable draft",
+      "missing reason keeps submission disabled",
+      "explicit reason enables valid draft",
+      "invalid form does not submit a media job",
+      "description survives validation",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/generation-validation-desktop-reason-required.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "visual-definition-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "scoped visual does not repeat role picker",
+      "cancel does not submit visual write",
+      "canonical remains the accepted actual media",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/visual-definition-mobile-editing.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-select-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "selection alone does not save avatar",
+      "chosen image is visible in real preview",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/avatar-select-mobile-selected-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "generation-validation-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "prompt chip fills editable draft",
+      "missing reason keeps submission disabled",
+      "explicit reason enables valid draft",
+      "invalid form does not submit a media job",
+      "description survives validation",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/generation-validation-mobile-reason-required.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "media-global-target",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "global visual retains target selector",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "status": "passed"
+  }
+]

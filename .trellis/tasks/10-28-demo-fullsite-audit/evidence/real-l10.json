@@ -1,0 +1,959 @@
+{
+  "schemaVersion": 1,
+  "case": "L10",
+  "title": "动态身份、通知及自治实际约束",
+  "status": "review_required",
+  "invocationId": "1ebd1d1c-baf6-4ab0-afce-bea32f90c0cc",
+  "startedAt": "2026-10-28T04:29:26.703Z",
+  "executionLayer": "real-http-and-isolated-tests",
+  "baseURL": "http://127.0.0.1:18480",
+  "steps": [
+    {
+      "id": "preflight",
+      "expected": "Healthy real API, database and original Owner session",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.706Z",
+      "observed": {
+        "authenticated": true,
+        "ownerActorId": "human_0f11e4639481cbfc19259e83036b6fde",
+        "baseURL": "http://127.0.0.1:18480",
+        "liveEnabled": true
+      },
+      "finishedAt": "2026-10-28T04:29:26.724Z"
+    },
+    {
+      "id": "fixture",
+      "expected": "Use task-owned actors for publication and role policy isolation",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.725Z",
+      "observed": {
+        "id": "fluctlight_27a911d19edc837e1f32a268ece6d756",
+        "name": "V3回归-f1730708-primary",
+        "activationCommand": "L04:fixture-primary-activate",
+        "detail": {
+          "actor_user": {
+            "background": {},
+            "facts": []
+          },
+          "avatar": null,
+          "avatar_state": {
+            "mode": "canonical",
+            "revision": 0,
+            "status": "not_configured"
+          },
+          "behavioral_policy": {
+            "conflict_style": "direct",
+            "directness": 0.6,
+            "emoji_frequency": 0.1,
+            "emotional_expression": 0.6,
+            "humor_style": "适度",
+            "initiative": 0.5,
+            "intimacy_expression": "自然",
+            "message_length": "short",
+            "punctuation_style": "自然",
+            "refusal_style": "clear",
+            "response_delay": 0,
+            "response_style": "温和简洁",
+            "sarcasm_tendency": 0.1,
+            "silence_tolerance": 0.5,
+            "topic_initiation": 0.5
+          },
+          "cognition_history": [],
+          "context": {
+            "activity": null,
+            "authority_status": "pending",
+            "context_revision": "life_ctx_c84551b2406ff37a2bc7aa20f523be61",
+            "effective_at": "2026-10-27T16:00:00.000+00:00",
+            "expires_at": "2026-10-28T16:00:00.000+00:00",
+            "instant": "2026-10-28T04:29:26.726+00:00",
+            "local_date": "2026-10-28",
+            "location": null,
+            "revision": 1212502450,
+            "scene": null,
+            "source": "pending",
+            "timezone": "Asia/Shanghai",
+            "world_binding_revision": 1,
+            "world_effects": [],
+            "world_id": "world_7426d9a18b453f390702cca1b4501ec3"
+          },
+          "core_persona": {
+            "behavioral_policy": {
+              "conflict_style": "direct",
+              "directness": 0.6,
+              "emoji_frequency": 0.1,
+              "emotional_expression": 0.6,
+              "humor_style": "适度",
+              "initiative": 0.5,
+              "intimacy_expression": "自然",
+              "message_length": "short",
+              "punctuation_style": "自然",
+              "refusal_style": "clear",
+              "response_delay": 0,
+              "response_style": "温和简洁",
+              "sarcasm_tendency": 0.1,
+              "silence_tolerance": 0.5,
+              "topic_initiation": 0.5
+            },
+            "extensions": {},
+            "identity": {
+              "age": null,
+              "background": null,
+              "background_story": null,
+              "biography": null,
+              "birthday": null,
+              "birthplace": null,
+              "blood_type": null,
+              "core_values": [],
+              "gender": null,
+              "height": null,
+              "height_cm": null,
+              "id": "fluctlight_27a911d19edc837e1f32a268ece6d756",
+              "name": "V3回归-f1730708-primary",
+              "nickname": null,
+              "notes": null,
+              "occupation": null,
+              "residence": null,
+              "timezone": "Asia/Shanghai",
+              "worldview": null
+            },
+            "life_profile": {
+              "appearance": {
+                "daily_outfit_preferences": [],
+                "description": null,
+                "physical_features": {},
+                "style_preferences": {}
+              },
+              "character_constraints": [],
+              "life_habits": [],
+              "media_preferences": {},
+              "preferences": {},
+              "recurring_commitments": [],
+              "relationship_seeds": [],
+              "social_background": {}
+            },
+            "personality": {
+              "agreeableness": 0.5,
+              "assertiveness": 0.5,
+              "conscientiousness": 0.5,
+              "curiosity": 0.5,
+              "empathy": 0.5,
+              "extraversion": 0.5,
+              "humor": 0.5,
+              "independence": 0.5,
+              "neuroticism": 0.5,
+              "openness": 0.5,
+              "patience": 0.5,
+              "risk_tolerance": 0.5,
+              "sociability": 0.5,
+              "update_policy": {
+                "cooldown_seconds": 86400,
+                "evidence_window_events": 3,
+                "max_delta": 0.05,
+                "minimum_confidence": 0.7
+              }
+            },
+            "personality_system": {
+              "active_profile_id": "default",
+              "behavior_state_machine": {},
+              "conflict_resolution": {},
+              "core_conflict": null,
+              "core_relationship": null,
+              "extensions": {},
+              "forced_activation": {},
+              "influence": {
+                "edges": []
+              },
+              "integration": {},
+              "mode": "single",
+              "profiles": [],
+              "switching": {
+                "rules": []
+              },
+              "takeover_rules": []
+            },
+            "schema_version": 1
+          },
+          "core_persona_revision": 0,
+          "current_facts_revision": "facts_gen_57",
+          "current_revision": 0,
+          "current_state": {
+            "active_activities": [],
+            "appearance": {
+              "body_fields": {
+                "chest_cup": {
+                  "status": "unknown"
+                },
+                "hair_color": {
+                  "status": "unknown"
+                },
+                "hair_length": {
+                  "status": "unknown"
+                },
+                "hair_style": {
+                  "status": "unknown"
+                },
+                "injuries": {
+                  "status": "unknown"
+                }
+              },
+              "body_revision": 0,
+              "captured_at": "2026-10-28T04:29:26.726+00:00",
+              "used_items": [],
+              "wardrobe_revision": 5,
+              "wearing_state": "known",
+              "worn_items": [
+                {
+                  "availability": "available",
+                  "category": "lower_body",
+                  "description": "藏青色弹力休闲长裤",
+                  "id": "wardrobe_2165207b9d02b052cba7ea4da052801a",
+                  "ownership": "owned",
+                  "slot": "lower_body",
+                  "source_verified": true
+                },
+                {
+                  "availability": "available",
+                  "category": "outer",
+                  "description": "深灰色防风轻便连帽外套",
+                  "id": "wardrobe_a17c24318edcdc75f58bcdb0671a4418",
+                  "ownership": "owned",
+                  "slot": "outer",
+                  "source_verified": true
+                },
+                {
+                  "availability": "available",
+                  "category": "panties",
+                  "description": "无痕棉质内裤",
+                  "id": "wardrobe_2768684543dbb5508ab2907085e25538",
+                  "ownership": "owned",
+                  "slot": "panties",
+                  "source_verified": true
+                },
+                {
+                  "availability": "available",
+                  "category": "shoes",
+                  "description": "黑色防滑轻便运动鞋",
+                  "id": "wardrobe_f3a28a594249ce9b3d2c799f790a994e",
+                  "ownership": "owned",
+                  "slot": "shoes",
+                  "source_verified": true
+                },
+                {
+                  "availability": "available",
+                  "category": "socks",
+                  "description": "中筒纯色棉袜",
+                  "id": "wardrobe_09b77681df9ef4b76dc773c63de2f38b",
+                  "ownership": "owned",
+                  "slot": "socks",
+                  "source_verified": true
+                },
+                {
+                  "availability": "available",
+                  "category": "underwear",
+                  "description": "纯棉基础款内衣",
+                  "id": "wardrobe_e28ca854e5f4bc6740573fd39808f8c4",
+                  "ownership": "owned",
+                  "slot": "underwear",
+                  "source_verified": true
+                },
+                {
+                  "availability": "available",
+                  "category": "upper_body",
+                  "description": "米白色基础款圆领针织长袖上衣",
+                  "id": "wardrobe_193e69668129eb3a5bcd9a494749d719",
+                  "ownership": "owned",
+                  "slot": "upper_body",
+                  "source_verified": true
+                }
+              ]
+            },
+            "context": {
+              "activity": null,
+              "authority_status": "pending",
+              "context_revision": "life_ctx_c84551b2406ff37a2bc7aa20f523be61",
+              "effective_at": "2026-10-27T16:00:00.000+00:00",
+              "expires_at": "2026-10-28T16:00:00.000+00:00",
+              "instant": "2026-10-28T04:29:26.726+00:00",
+              "local_date": "2026-10-28",
+              "location": null,
+              "revision": 1212502450,
+              "scene": null,
+              "source": "pending",
+              "timezone": "Asia/Shanghai",
+              "world_binding_revision": 1,
+              "world_effects": [],
+              "world_id": "world_7426d9a18b453f390702cca1b4501ec3"
+            },
+            "inner_state": {
+              "conflicts": [],
+              "drives": [],
+              "last_updated_at": "2026-10-28T04:25:23.824+00:00",
+              "momentum": {
+                "trend": 0,
+                "value": 0
+              },
+              "mood": {
+                "intensity": 0,
+                "label": "平静",
+                "source": "server_default"
+              },
+              "pad": {
+                "arousal": 0,
+                "dominance": 0,
+                "pleasure": 0
+              },
+              "regulation": {
+                "stability": 1,
+                "stress": 0
+              },
+              "revision": 0
+            }
+          },
+          "current_state_revision": 0,
+          "developing_self": {
+            "claims": []
+          },
+          "developing_self_revision": 0,
+          "developing_self_revisions": [],
+          "drive_slots": [],
+          "editable_actor_ids": [
+            "human_0f11e4639481cbfc19259e83036b6fde"
+          ],
+          "events": [],
+          "evolution_revisions": [],
+          "foundation_revisions": [
+            {
+              "accepted_at": "2026-10-28T04:25:23.824+00:00",
+              "changes": {},
+              "core_persona": {
+                "behavioral_policy": {
+                  "conflict_style": "direct",
+                  "directness": 0.6,
+                  "emoji_frequency": 0.1,
+                  "emotional_expression": 0.6,
+                  "humor_style": "适度",
+                  "initiative": 0.5,
+                  "intimacy_expression": "自然",
+                  "message_length": "short",
+                  "punctuation_style": "自然",
+                  "refusal_style": "clear",
+                  "response_delay": 0,
+                  "response_style": "温和简洁",
+                  "sarcasm_tendency": 0.1,
+                  "silence_tolerance": 0.5,
+                  "topic_initiation": 0.5
+                },
+                "extensions": {},
+                "identity": {
+                  "age": null,
+                  "background": null,
+                  "background_story": null,
+                  "biography": null,
+                  "birthday": null,
+                  "birthplace": null,
+                  "blood_type": null,
+                  "core_values": [],
+                  "gender": null,
+                  "height": null,
+                  "height_cm": null,
+                  "id": "fluctlight_27a911d19edc837e1f32a268ece6d756",
+                  "name": "V3回归-f1730708-primary",
+                  "nickname": null,
+                  "notes": null,
+                  "occupation": null,
+                  "residence": null,
+                  "timezone": "Asia/Shanghai",
+                  "worldview": null
+                },
+                "life_profile": {
+                  "appearance": {
+                    "daily_outfit_preferences": [],
+                    "description": null,
+                    "physical_features": {},
+                    "style_preferences": {}
+                  },
+                  "character_constraints": [],
+                  "life_habits": [],
+                  "media_preferences": {},
+                  "preferences": {},
+                  "recurring_commitments": [],
+                  "relationship_seeds": [],
+                  "social_background": {}
+                },
+                "personality": {
+                  "agreeableness": 0.5,
+                  "assertiveness": 0.5,
+                  "conscientiousness": 0.5,
+                  "curiosity": 0.5,
+                  "empathy": 0.5,
+                  "extraversion": 0.5,
+                  "humor": 0.5,
+                  "independence": 0.5,
+                  "neuroticism": 0.5,
+                  "openness": 0.5,
+                  "patience": 0.5,
+                  "risk_tolerance": 0.5,
+                  "sociability": 0.5,
+                  "update_policy": {
+                    "cooldown_seconds": 86400,
+                    "evidence_window_events": 3,
+                    "max_delta": 0.05,
+                    "minimum_confidence": 0.7
+                  }
+                },
+                "personality_system": {
+                  "active_profile_id": "default",
+                  "behavior_state_machine": {},
+                  "conflict_resolution": {},
+                  "core_conflict": null,
+                  "core_relationship": null,
+                  "extensions": {},
+                  "forced_activation": {},
+                  "influence": {
+                    "edges": []
+                  },
+                  "integration": {},
+                  "mode": "single",
+                  "profiles": [],
+                  "switching": {
+                    "rules": []
+                  },
+                  "takeover_rules": []
+                },
+                "schema_version": 1
+              },
+              "created_at": "2026-10-28T04:25:23.824+00:00",
+              "id": "foundation_revision_e4b59e73e35b985d7f80d279c3f4e02e",
+              "reason": null,
+              "revision": 0,
+              "source": "initialization",
+              "status": "accepted"
+            }
+          ],
+          "goals": [],
+          "hypotheses": [],
+          "id": "fluctlight_27a911d19edc837e1f32a268ece6d756",
+          "identity": {
+            "age": null,
+            "background": null,
+            "background_story": null,
+            "biography": null,
+            "birthday": null,
+            "birthplace": null,
+            "blood_type": null,
+            "core_values": [],
+            "gender": null,
+            "height": null,
+            "height_cm": null,
+            "id": "fluctlight_27a911d19edc837e1f32a268ece6d756",
+            "name": "V3回归-f1730708-primary",
+            "nickname": null,
+            "notes": null,
+            "occupation": null,
+            "residence": null,
+            "timezone": "Asia/Shanghai",
+            "worldview": null
+          },
+          "initialization_source": null,
+          "inner_state": {
+            "conflicts": [],
+            "drives": [],
+            "last_updated_at": "2026-10-28T04:25:23.824+00:00",
+            "momentum": {
+              "trend": 0,
+              "value": 0
+            },
+            "mood": {
+              "intensity": 0,
+              "label": "平静",
+              "source": "server_default"
+            },
+            "pad": {
+              "arousal": 0,
+              "dominance": 0,
+              "pleasure": 0
+            },
+            "regulation": {
+              "stability": 1,
+              "stress": 0
+            },
+            "revision": 0
+          },
+          "intentions": [],
+          "life_profile": {
+            "appearance": {
+              "daily_outfit_preferences": [],
+              "description": null,
+              "physical_features": {},
+              "style_preferences": {}
+            },
+            "character_constraints": [],
+            "life_habits": [],
+            "media_preferences": {},
+            "preferences": {},
+            "recurring_commitments": [],
+            "relationship_seeds": [],
+            "social_background": {}
+          },
+          "memories": [],
+          "momentum": {
+            "trend": 0,
+            "value": 0
+          },
+          "mood": {
+            "intensity": 0,
+            "label": "平静",
+            "source": "server_default"
+          },
+          "persona_compilation": {
+            "foundation_revision": 0,
+            "overlay_revision": 0,
+            "owner_switch_status": "assessment_required",
+            "owner_switch_targets": [],
+            "profile_id": "default",
+            "rules_version": "working-persona.compile.v2",
+            "source_hash": "e1f56a30cfaeb42d58dd19823b7eb258",
+            "status": "ready",
+            "working_persona": {
+              "profile_id": "default",
+              "working_persona": {
+                "portrait_text": "V3回归-f1730708-primary\nagreeableness: 0.5\nagreeableness: 0.5\nassertiveness: 0.5\nassertiveness: 0.5\nconscientiousness: 0.5\nconscientiousness: 0.5\ncuriosity: 0.5\ncuriosity: 0.5\nempathy: 0.5\nempathy: 0.5\nextraversion: 0.5\nextraversion: 0.5\nhumor: 0.5\nhumor: 0.5\nindependence: 0.5\nindependence: 0.5\nneuroticism: 0.5\nneuroticism: 0.5\nopenness: 0.5\nopenness: 0.5\npatience: 0.5\npatience: 0.5\nrisk_tolerance: 0.5\nrisk_tolerance: 0.5\nsociability: 0.5\nsociability: 0.5\nconflict_style: direct\nconflict_style: direct\ndirectness: 0.6\ndirectness: 0.6\nemoji_frequency: 0.1\nemoji_frequency: 0.1\nemotional_expression: 0.6\nemotional_expression: 0.6\nhumor_style: 适度\nhumor_style: 适度\ninitiative: 0.5\ninitiative: 0.5\nintimacy_expression: 自然\nintimacy_expression: 自然\nmessage_length: short\nmessage_length: short\npunctuation_style: 自然\npunctuation_style: 自然\nrefusal_style: clear\nrefusal_style: clear\nresponse_delay: 0\nresponse_delay: 0\nresponse_style: 温和简洁\nresponse_style: 温和简洁\nsarcasm_tendency: 0.1\nsarcasm_tendency: 0.1\nsilence_tolerance: 0.5\nsilence_tolerance: 0.5\ntopic_initiation: 0.5\ntopic_initiation: 0.5",
+                "profile_id": "default"
+              }
+            }
+          },
+          "persona_preparation": {
+            "can_recover": false,
+            "created_at": "2026-10-28T04:25:23.824+00:00",
+            "error_code": "",
+            "id": "persona_compile_b4386f1f8674ad0b68973b4bfb82eedd",
+            "intent_status": "completed",
+            "revision": 0,
+            "status": "ready",
+            "workflow_id": "persona-compile:persona_compile_b4386f1f8674ad0b68973b4bfb82eedd"
+          },
+          "persona_switch_history": [],
+          "persona_switch_history_has_more": false,
+          "personality": {
+            "agreeableness": 0.5,
+            "assertiveness": 0.5,
+            "conscientiousness": 0.5,
+            "curiosity": 0.5,
+            "empathy": 0.5,
+            "extraversion": 0.5,
+            "humor": 0.5,
+            "independence": 0.5,
+            "neuroticism": 0.5,
+            "openness": 0.5,
+            "patience": 0.5,
+            "risk_tolerance": 0.5,
+            "sociability": 0.5,
+            "update_policy": {
+              "cooldown_seconds": 86400,
+              "evidence_window_events": 3,
+              "max_delta": 0.05,
+              "minimum_confidence": 0.7
+            }
+          },
+          "personality_runtime": {
+            "active_profile_id": "default",
+            "revision": 0,
+            "switch_reason": ""
+          },
+          "preference_slots": [],
+          "provenance": {
+            "field_sources": {
+              "core_persona.behavioral_policy.conflict_style": "server_default",
+              "core_persona.behavioral_policy.directness": "server_default",
+              "core_persona.behavioral_policy.emoji_frequency": "server_default",
+              "core_persona.behavioral_policy.emotional_expression": "server_default",
+              "core_persona.behavioral_policy.humor_style": "server_default",
+              "core_persona.behavioral_policy.initiative": "server_default",
+              "core_persona.behavioral_policy.intimacy_expression": "server_default",
+              "core_persona.behavioral_policy.message_length": "server_default",
+              "core_persona.behavioral_policy.punctuation_style": "server_default",
+              "core_persona.behavioral_policy.refusal_style": "server_default",
+              "core_persona.behavioral_policy.response_delay": "server_default",
+              "core_persona.behavioral_policy.response_style": "server_default",
+              "core_persona.behavioral_policy.sarcasm_tendency": "server_default",
+              "core_persona.behavioral_policy.silence_tolerance": "server_default",
+              "core_persona.behavioral_policy.topic_initiation": "server_default",
+              "core_persona.personality.agreeableness": "server_default",
+              "core_persona.personality.assertiveness": "server_default",
+              "core_persona.personality.conscientiousness": "server_default",
+              "core_persona.personality.curiosity": "server_default",
+              "core_persona.personality.empathy": "server_default",
+              "core_persona.personality.extraversion": "server_default",
+              "core_persona.personality.humor": "server_default",
+              "core_persona.personality.independence": "server_default",
+              "core_persona.personality.neuroticism": "server_default",
+              "core_persona.personality.openness": "server_default",
+              "core_persona.personality.patience": "server_default",
+              "core_persona.personality.risk_tolerance": "server_default",
+              "core_persona.personality.sociability": "server_default",
+              "core_persona.personality.update_policy": "server_default"
+            },
+            "initialization_activation_digest": "be22d73927c78d71c55e8690e343706e",
+            "initialization_timezone_source": "device_at_activation"
+          },
+          "relationships": [],
+          "scene_image": null,
+          "schedule": null,
+          "status": "active",
+          "trigger_preferences": [],
+          "visual_identity": {
+            "active_session_id": "visual_identity_session_dcea9107fe45cb63ad5f88fa47572b4c",
+            "adapter_version": "chest-cup-adapter.v1",
+            "canonical_asset_id": "",
+            "character_sheet_asset_id": "",
+            "current_revision": 0,
+            "fluctlight_id": "fluctlight_27a911d19edc837e1f32a268ece6d756",
+            "id": "visual_identity_22e597d5b010b096d233c6001b5e0af2",
+            "identity_snapshot": {
+              "body_revision": 0,
+              "identity": {
+                "name": "V3回归-f1730708-primary"
+              },
+              "life_profile": {
+                "appearance": {}
+              },
+              "schema_version": "visual-identity.v1",
+              "source": "effective_life",
+              "wardrobe_revision": 0
+            },
+            "renderer_constraints": {
+              "adapter_version": "chest-cup-adapter.v1",
+              "schema_version": "visual-identity.v1"
+            },
+            "schema_version": "visual-identity.v1",
+            "status": "missing",
+            "timeline": [
+              {
+                "asset_ids": [],
+                "attempt_id": "visual_identity_session_dcea9107fe45cb63ad5f88fa47572b4c_attempt_1",
+                "correlation_id": "visual_identity_workflow_ffd61a0ccb70314ebba8491c2cb45d41",
+                "metadata": {
+                  "trigger": "initialization"
+                },
+                "occurred_at": "2026-10-28T04:25:23.824+00:00",
+                "session_id": "visual_identity_session_dcea9107fe45cb63ad5f88fa47572b4c",
+                "stage": "session_created",
+                "stage_order": 10,
+                "status": "queued",
+                "summary": "Visual Identity 初始化已排队"
+              }
+            ]
+          },
+          "wake_ups": []
+        }
+      },
+      "finishedAt": "2026-10-28T04:29:26.737Z"
+    },
+    {
+      "id": "publish",
+      "expected": "Owner publication persists the authenticated Human author",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.739Z",
+      "observed": {
+        "audit_id": "audit_world_37cada0a8894504b4ccee75ae7d9aed5",
+        "author_actor_id": "human_0f11e4639481cbfc19259e83036b6fde",
+        "author_name": "我",
+        "author_type": "user",
+        "comment_count": 0,
+        "created_at": "2026-10-28T04:29:26.741+00:00",
+        "id": "moment_8c32d446737ed7c5a0c309e81cdcc507",
+        "like_count": 0,
+        "media": [],
+        "media_asset_ids": [],
+        "owner_fluctlight_id": "fluctlight_27a911d19edc837e1f32a268ece6d756",
+        "reaction_count": 0,
+        "request_id": null,
+        "revision": 1,
+        "source_event_id": null,
+        "status": "visible",
+        "text": "V3回归动态 f1730708-d5c7-45ed-b374-42b19215db95",
+        "viewer_reaction": null,
+        "visibility": "owner"
+      },
+      "finishedAt": "2026-10-28T04:29:26.752Z"
+    },
+    {
+      "id": "identity",
+      "expected": "Forged role author fields are rejected by the real boundary",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.753Z",
+      "finishedAt": "2026-10-28T04:29:26.754Z"
+    },
+    {
+      "id": "policy",
+      "expected": "Role-specific mute/outreach settings read back as enforced and do not overwrite another character",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.755Z",
+      "observed": {
+        "revision": 1
+      },
+      "finishedAt": "2026-10-28T04:29:26.770Z"
+    },
+    {
+      "id": "configuration",
+      "expected": "Save the existing effective notification preference with CAS; verify original replay and stale/changed-key rejection",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.771Z",
+      "observed": {
+        "version": 2,
+        "replay": true,
+        "staleRejected": true,
+        "changedKeyRejected": true
+      },
+      "finishedAt": "2026-10-28T04:29:26.784Z"
+    },
+    {
+      "id": "notifications",
+      "expected": "Notifications, read receipts and pending sources preserve independent business state",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.785Z",
+      "observed": {
+        "notifications": 0,
+        "pendingGroups": [
+          {
+            "status": "ok"
+          },
+          {
+            "status": "ok"
+          },
+          {
+            "status": "ok"
+          },
+          {
+            "status": "ok"
+          },
+          {
+            "status": "ok"
+          }
+        ],
+        "unread": 1,
+        "momentId": "moment_8c32d446737ed7c5a0c309e81cdcc507"
+      },
+      "finishedAt": "2026-10-28T04:29:26.790Z"
+    },
+    {
+      "id": "guards",
+      "expected": "Actual Tool policy admission, mute semantics, dedup and independent moment writer regression",
+      "status": "passed",
+      "startedAt": "2026-10-28T04:29:26.791Z",
+      "observed": {
+        "layer": "controlled-tests",
+        "exitCode": 0,
+        "log": "/private/tmp/fluctlight-demo-audit-20261028/runtime-business/L10-policy-notification-guards.log"
+      },
+      "finishedAt": "2026-10-28T04:29:33.542Z"
+    }
+  ],
+  "requests": [
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/health/live",
+      "startedAt": "2026-10-28T04:29:26.712Z",
+      "status": 200,
+      "elapsedMs": 7
+    },
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/health/ready",
+      "startedAt": "2026-10-28T04:29:26.720Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "preflight",
+      "method": "GET",
+      "path": "/auth/session",
+      "startedAt": "2026-10-28T04:29:26.722Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "fixture",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_27a911d19edc837e1f32a268ece6d756/detail",
+      "startedAt": "2026-10-28T04:29:26.725Z",
+      "status": 200,
+      "elapsedMs": 12
+    },
+    {
+      "step": "publish",
+      "method": "POST",
+      "path": "/api/moments",
+      "startedAt": "2026-10-28T04:29:26.740Z",
+      "status": 200,
+      "elapsedMs": 9
+    },
+    {
+      "step": "publish",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_27a911d19edc837e1f32a268ece6d756/moments?includeHidden=true",
+      "startedAt": "2026-10-28T04:29:26.749Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "identity",
+      "method": "POST",
+      "path": "/api/moments",
+      "startedAt": "2026-10-28T04:29:26.753Z",
+      "status": 422,
+      "elapsedMs": 1,
+      "errorCode": "moment_author_forbidden"
+    },
+    {
+      "step": "policy",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_27a911d19edc837e1f32a268ece6d756/autonomy-policy",
+      "startedAt": "2026-10-28T04:29:26.755Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "policy",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_13d4797b3e91cae8d5f0c2f57d2a1a23/detail",
+      "startedAt": "2026-10-28T04:29:26.757Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "policy",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_13d4797b3e91cae8d5f0c2f57d2a1a23/autonomy-policy",
+      "startedAt": "2026-10-28T04:29:26.760Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "policy",
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight_27a911d19edc837e1f32a268ece6d756/autonomy-policy",
+      "startedAt": "2026-10-28T04:29:26.763Z",
+      "status": 200,
+      "elapsedMs": 5
+    },
+    {
+      "step": "policy",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_27a911d19edc837e1f32a268ece6d756/autonomy-policy",
+      "startedAt": "2026-10-28T04:29:26.768Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "policy",
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_13d4797b3e91cae8d5f0c2f57d2a1a23/autonomy-policy",
+      "startedAt": "2026-10-28T04:29:26.769Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "configuration",
+      "method": "GET",
+      "path": "/api/configuration-catalog",
+      "startedAt": "2026-10-28T04:29:26.771Z",
+      "status": 200,
+      "elapsedMs": 2
+    },
+    {
+      "step": "configuration",
+      "method": "PUT",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:29:26.775Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "configuration",
+      "method": "GET",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:29:26.779Z",
+      "status": 200,
+      "elapsedMs": 0
+    },
+    {
+      "step": "configuration",
+      "method": "PUT",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:29:26.780Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "configuration",
+      "method": "PUT",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:29:26.781Z",
+      "status": 409,
+      "elapsedMs": 1,
+      "errorCode": "revision_conflict"
+    },
+    {
+      "step": "configuration",
+      "method": "PUT",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:29:26.782Z",
+      "status": 409,
+      "elapsedMs": 1,
+      "errorCode": "idempotency_conflict"
+    },
+    {
+      "step": "configuration",
+      "method": "GET",
+      "path": "/api/settings",
+      "startedAt": "2026-10-28T04:29:26.783Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "notifications",
+      "method": "GET",
+      "path": "/api/notifications?fluctlightId=fluctlight_27a911d19edc837e1f32a268ece6d756&limit=100",
+      "startedAt": "2026-10-28T04:29:26.785Z",
+      "status": 200,
+      "elapsedMs": 1
+    },
+    {
+      "step": "notifications",
+      "method": "GET",
+      "path": "/api/pending",
+      "startedAt": "2026-10-28T04:29:26.786Z",
+      "status": 200,
+      "elapsedMs": 3
+    },
+    {
+      "step": "notifications",
+      "method": "GET",
+      "path": "/api/notifications/unread-count",
+      "startedAt": "2026-10-28T04:29:26.789Z",
+      "status": 200,
+      "elapsedMs": 1
+    }
+  ],
+  "reviews": [
+    {
+      "id": "autonomous-production",
+      "status": "pending_user_review",
+      "description": "Observe sourced autonomous publication/proactive action and NPC interaction. Owner publication and controlled Tool policy tests are separate evidence.",
+      "evidence": {}
+    }
+  ],
+  "coverageLimits": [
+    "HTTP and component tests do not certify real-browser rendering, IME or scrolling.",
+    "Controlled Provider fixtures do not certify a real model/renderer."
+  ],
+  "runId": "f1730708-d5c7-45ed-b374-42b19215db95",
+  "automatedStatus": "passed",
+  "fullWorkflowAccepted": false,
+  "modelTriggerOperations": 0,
+  "finishedAt": "2026-10-28T04:29:33.543Z",
+  "executionMode": "scenario"
+}
