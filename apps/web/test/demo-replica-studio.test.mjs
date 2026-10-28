@@ -702,6 +702,13 @@ test("sandbox text materials retain their original job and release only the reso
       f.writes().filter((c) => c.path.endsWith("/release")).length,
       1,
     );
+    j.status = "discarded";
+    j.revision++;
+    await f.v.click(button(f.v.host, "刷新任务状态"));
+    assert.equal(
+      f.v.host.querySelector('.r-sandbox-result [data-status="discarded"]').textContent,
+      "已丢弃",
+    );
   } finally {
     await f.dispose();
   }

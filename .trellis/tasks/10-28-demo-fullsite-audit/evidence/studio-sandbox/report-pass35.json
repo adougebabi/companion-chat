@@ -1,0 +1,766 @@
+[
+  {
+    "name": "assistant-adoption",
+    "size": "desktop",
+    "kind": "production dist / controlled studio jobs; outputs are fictional fixtures",
+    "checks": [
+      "empty request cannot start creation",
+      "proposal: no horizontal overflow",
+      "proposal does not save resource or publish",
+      "adoption-review: no horizontal overflow",
+      "adoption cancellation retains original complete draft",
+      "explicit adoption changes editable draft",
+      "adoption does not implicitly save/publish/apply",
+      "adopted-draft: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "POST",
+        "body": {
+          "resourceId": "studio-world",
+          "resourceRevision": 9,
+          "kind": "assistant",
+          "name": "晨雾小镇",
+          "body": {
+            "schema": "world-definition.v1",
+            "background": "UI核验 after-pass29 mobile world：保留原结构与扩展字段。",
+            "rules": "普通日常，尊重各自的生活。",
+            "framework": {
+              "schema": "world-framework.v1",
+              "venues": [
+                {
+                  "key": "home",
+                  "name": "住处",
+                  "places": [
+                    {
+                      "key": "study",
+                      "name": "书房",
+                      "description": "靠窗的书桌",
+                      "layout": "书架与窗台"
+                    }
+                  ]
+                }
+              ]
+            },
+            "custom_preserved": {
+              "value": false
+            }
+          },
+          "instruction": "补充河岸花园，核对建议后才采用。",
+          "reason": "所有者提交隔离创作任务",
+          "idempotencyKey": "a3ece1f5-ce45-462f-97a9-87f06d7e567d"
+        }
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-assistant-adoption-desktop-proposal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-assistant-adoption-desktop-adoption-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-assistant-adoption-desktop-adopted-draft.png"
+    ],
+    "jobId": "studio-job-12",
+    "status": "passed"
+  },
+  {
+    "name": "text-material-discard",
+    "size": "desktop",
+    "kind": "production dist / controlled studio jobs; outputs are fictional fixtures",
+    "checks": [
+      "text-preview: no horizontal overflow",
+      "material readback retains original job and resource",
+      "material-detail: no horizontal overflow",
+      "discard cancellation leaves original task completed",
+      "discarded status has an explicit label",
+      "discard changes only selected job; saved material stays readable",
+      "three explicit studio writes, no life mutation",
+      "discarded-material-retained: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "POST",
+        "body": {
+          "resourceId": "studio-world",
+          "resourceRevision": 9,
+          "kind": "text_preview",
+          "name": "晨雾小镇",
+          "body": {
+            "schema": "world-definition.v1",
+            "background": "UI核验 after-pass29 mobile world：保留原结构与扩展字段。",
+            "rules": "普通日常，尊重各自的生活。",
+            "framework": {
+              "schema": "world-framework.v1",
+              "venues": [
+                {
+                  "key": "home",
+                  "name": "住处",
+                  "places": [
+                    {
+                      "key": "study",
+                      "name": "书房",
+                      "description": "靠窗的书桌",
+                      "layout": "书架与窗台"
+                    }
+                  ]
+                }
+              ]
+            },
+            "custom_preserved": {
+              "value": false
+            }
+          },
+          "instruction": "写一段窗边的虚构小景，单独保留为创作素材。",
+          "reason": "所有者提交隔离创作任务",
+          "idempotencyKey": "0556751b-6fb9-446a-b6f6-1afb2948de02"
+        }
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-13/save-material",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "所有者保存虚构创作结果为定义素材",
+          "idempotencyKey": "bb717fd2-d8d9-4ff1-b4b0-70debd62b0b7"
+        }
+      },
+      {
+        "path": "/api/studio/materials/studio-material-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials/studio-material-14/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials/studio-material-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials//history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials/",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-13/discard",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "所有者丢弃创作任务",
+          "idempotencyKey": "54f8bcd0-dfda-4474-ab44-e5ea251d40dc"
+        }
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-text-material-discard-desktop-text-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-text-material-discard-desktop-material-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-text-material-discard-desktop-discarded-material-retained.png"
+    ],
+    "jobId": "studio-job-13",
+    "materialId": "studio-material-14",
+    "status": "passed"
+  },
+  {
+    "name": "assistant-adoption",
+    "size": "mobile",
+    "kind": "production dist / controlled studio jobs; outputs are fictional fixtures",
+    "checks": [
+      "empty request cannot start creation",
+      "proposal: no horizontal overflow",
+      "proposal does not save resource or publish",
+      "adoption-review: no horizontal overflow",
+      "adoption cancellation retains original complete draft",
+      "explicit adoption changes editable draft",
+      "adoption does not implicitly save/publish/apply",
+      "adopted-draft: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "POST",
+        "body": {
+          "resourceId": "studio-world",
+          "resourceRevision": 9,
+          "kind": "assistant",
+          "name": "晨雾小镇",
+          "body": {
+            "schema": "world-definition.v1",
+            "background": "UI核验 after-pass29 mobile world：保留原结构与扩展字段。",
+            "rules": "普通日常，尊重各自的生活。",
+            "framework": {
+              "schema": "world-framework.v1",
+              "venues": [
+                {
+                  "key": "home",
+                  "name": "住处",
+                  "places": [
+                    {
+                      "key": "study",
+                      "name": "书房",
+                      "description": "靠窗的书桌",
+                      "layout": "书架与窗台"
+                    }
+                  ]
+                }
+              ]
+            },
+            "custom_preserved": {
+              "value": false
+            }
+          },
+          "instruction": "补充河岸花园，核对建议后才采用。",
+          "reason": "所有者提交隔离创作任务",
+          "idempotencyKey": "628c167a-a7a8-4b30-a99b-7291148bf81c"
+        }
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-15",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-15",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-15",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-15",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-assistant-adoption-mobile-proposal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-assistant-adoption-mobile-adoption-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-assistant-adoption-mobile-adopted-draft.png"
+    ],
+    "jobId": "studio-job-15",
+    "status": "passed"
+  },
+  {
+    "name": "text-material-discard",
+    "size": "mobile",
+    "kind": "production dist / controlled studio jobs; outputs are fictional fixtures",
+    "checks": [
+      "text-preview: no horizontal overflow",
+      "material readback retains original job and resource",
+      "material-detail: no horizontal overflow",
+      "discard cancellation leaves original task completed",
+      "discarded status has an explicit label",
+      "discard changes only selected job; saved material stays readable",
+      "three explicit studio writes, no life mutation",
+      "discarded-material-retained: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "POST",
+        "body": {
+          "resourceId": "studio-world",
+          "resourceRevision": 9,
+          "kind": "text_preview",
+          "name": "晨雾小镇",
+          "body": {
+            "schema": "world-definition.v1",
+            "background": "UI核验 after-pass29 mobile world：保留原结构与扩展字段。",
+            "rules": "普通日常，尊重各自的生活。",
+            "framework": {
+              "schema": "world-framework.v1",
+              "venues": [
+                {
+                  "key": "home",
+                  "name": "住处",
+                  "places": [
+                    {
+                      "key": "study",
+                      "name": "书房",
+                      "description": "靠窗的书桌",
+                      "layout": "书架与窗台"
+                    }
+                  ]
+                }
+              ]
+            },
+            "custom_preserved": {
+              "value": false
+            }
+          },
+          "instruction": "写一段窗边的虚构小景，单独保留为创作素材。",
+          "reason": "所有者提交隔离创作任务",
+          "idempotencyKey": "71fec44d-f74d-4462-8f6d-67ca770d71cd"
+        }
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-16/save-material",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "所有者保存虚构创作结果为定义素材",
+          "idempotencyKey": "5ca10841-2aa9-4462-ba44-4c92182276ed"
+        }
+      },
+      {
+        "path": "/api/studio/materials/studio-material-17",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials/studio-material-17/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials/studio-material-17",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials//history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/materials/",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-16/discard",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "所有者丢弃创作任务",
+          "idempotencyKey": "c45f7c41-00ca-462b-8ce9-2d67f295a495"
+        }
+      },
+      {
+        "path": "/api/studio/jobs/studio-job-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/jobs",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-text-material-discard-mobile-text-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-text-material-discard-mobile-material-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-sandbox/pass35-text-material-discard-mobile-discarded-material-retained.png"
+    ],
+    "jobId": "studio-job-16",
+    "materialId": "studio-material-17",
+    "status": "passed"
+  }
+]

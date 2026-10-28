@@ -1,0 +1,2332 @@
+[
+  {
+    "name": "world",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "cc5b2c8a-8db4-45aa-a77f-f7549d190766",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 world desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-23/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "b6e42870-acb3-4ab0-863b-c8bccccc841f"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass46-world-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass46-world-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "状态待确认",
+        "text": "创建角色与生活世界状态待确认服务暂时无法连接，请稍后重新读取。恢复此环节"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recoveryNote": "The failed first world read interrupted binding; explicitly continue the existing world preparation, never activate again.",
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "persona",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "eba9a98a-3d10-4169-888b-0c0a959933f0",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 persona desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-4/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "52e7e0ee-3a3a-4219-a259-23c281585aec"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-persona-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-persona-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "状态待确认",
+        "text": "创建角色与生活世界状态待确认服务暂时无法连接，请稍后重新读取。"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wardrobe",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "2828748d-93c6-449d-ad94-d475bcc12805",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 wardrobe desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-5/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "b9bf024c-974f-4fc6-a928-facc1748ff9c"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-wardrobe-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-wardrobe-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "状态待确认",
+        "text": "初始衣柜状态待确认服务暂时无法连接，请稍后重新读取。"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "schedule",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "4fb9580a-7320-47ab-8bfb-13feebd8656b",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 schedule desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-6/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "1dbe008e-f808-473f-8c71-51c54758de3f"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-schedule-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-schedule-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "状态待确认",
+        "text": "初始日程状态待确认服务暂时无法连接，请稍后重新读取。"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "visual",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "ea2adc22-1f23-4dc0-a421-ec754626a799",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 visual desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-7/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "d83d9dad-cc64-4ef6-8aa0-7f611a661c4c"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-visual-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-visual-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "状态待确认",
+        "text": "形象参考图状态待确认受控验收：visual独立读取暂时失败查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "状态待确认",
+        "text": "角色设定图状态待确认受控验收：visual独立读取暂时失败查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "f449483a-9815-4f3f-9cfb-75de07d38026",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 avatar desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-8/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "c7359e63-db72-4596-890b-f437858660c0"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-avatar-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-avatar-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "状态待确认",
+        "text": "显示头像状态待确认受控验收：avatar独立读取暂时失败查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "reference",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "e1948b61-e2ef-435b-a36a-f8738c0a8168",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 reference desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-9/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "e695eaa0-26f7-44f2-9836-9db30deac098"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-reference-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-reference-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "状态待确认",
+        "text": "形象参考图状态待确认服务暂时无法连接，请稍后重新读取。查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "sheet",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "8d960e63-1ea4-49d8-ae94-97bcc6ddbfb7",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 sheet desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-10/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "652940af-c206-499a-8170-11e67415add3"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-sheet-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-sheet-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "状态待确认",
+        "text": "角色设定图状态待确认服务暂时无法连接，请稍后重新读取。查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "awaiting-review",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "review-action: no horizontal overflow",
+      "pending human review has an actionable explanation",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "37d7d045-9915-4c6e-a193-7748f9ad6f39",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 awaiting-review desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-11/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "05bc1643-1005-4aa3-9086-0b286d5e72d5"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-awaiting-review-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-awaiting-review-desktop-review-action.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-awaiting-review-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "等待中",
+        "text": "形象参考图等待中当前候选等待明确评审；接受后才会成为规范参考。前往审阅候选"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "等待中",
+        "text": "角色设定图等待中等待候选被接受后，继续准备角色设定图。前往审阅候选"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "等待中",
+        "text": "显示头像等待中等待头像生成并读回查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "image-failure",
+    "size": "desktop",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "image failure preserves completed non-image preparation",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "80a092aa-ff1a-4d06-aa6d-af34e40070c1",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 image-failure desktop",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-12/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "3fb0c55f-8f8d-41bc-bff7-8fa4326d2338"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-image-failure-desktop-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-image-failure-desktop-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "失败",
+        "text": "形象参考图失败服务暂时无法连接，请稍后重新读取。去配置中心 恢复此环节查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "失败",
+        "text": "角色设定图失败服务暂时无法连接，请稍后重新读取。去配置中心 恢复此环节查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "失败",
+        "text": "显示头像失败服务暂时无法连接，请稍后重新读取。去配置中心 查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "world",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "c845a05a-d896-44b5-a22f-9d4a2949de4d",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 world mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-24/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "e839d707-d056-4554-9c62-05c1cbfb1989"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass46-world-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass46-world-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "状态待确认",
+        "text": "创建角色与生活世界状态待确认服务暂时无法连接，请稍后重新读取。恢复此环节"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recoveryNote": "The failed first world read interrupted binding; explicitly continue the existing world preparation, never activate again.",
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "persona",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "135434b0-8551-4426-9734-f4d4bdbdb9d1",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 persona mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-14/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "d8bf2989-62b3-4d52-8582-d64b49b565f0"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-persona-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-persona-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "状态待确认",
+        "text": "创建角色与生活世界状态待确认服务暂时无法连接，请稍后重新读取。"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wardrobe",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "87cc1e81-db6c-4bcf-9271-b0ad3f326838",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 wardrobe mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-15/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "5fcb7769-6f32-476a-844e-c63b4970d0e8"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-wardrobe-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-wardrobe-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "状态待确认",
+        "text": "初始衣柜状态待确认服务暂时无法连接，请稍后重新读取。"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "schedule",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "c5c22d07-95e2-487f-9afc-cda042b28f64",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 schedule mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-16/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "12a2d6c0-1d7d-445a-a817-9feb48902fb1"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-schedule-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-schedule-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "状态待确认",
+        "text": "初始日程状态待确认服务暂时无法连接，请稍后重新读取。"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "visual",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "d791d5da-76a3-480e-9d72-92a580ee52c2",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 visual mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-17/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "5c481ef2-de52-48c5-9924-0eb337278c00"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-visual-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-visual-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "状态待确认",
+        "text": "形象参考图状态待确认受控验收：visual独立读取暂时失败查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "状态待确认",
+        "text": "角色设定图状态待确认受控验收：visual独立读取暂时失败查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "0143eb11-425d-4362-b312-3457e3af192e",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 avatar mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-18/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "8a943428-0ebf-43b4-bda4-9d0e2588231a"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-avatar-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-avatar-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "状态待确认",
+        "text": "显示头像状态待确认受控验收：avatar独立读取暂时失败查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "reference",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "7021b3fb-4c07-4d18-bc67-795e2996ecb4",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 reference mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-19/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "2f057c24-f305-4a24-ac26-37a971eec721"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-reference-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-reference-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "状态待确认",
+        "text": "形象参考图状态待确认服务暂时无法连接，请稍后重新读取。查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "sheet",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "006d3262-d12b-40f3-ba9c-5d8d27ae1c1f",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 sheet mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-20/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "16aa10fb-008e-4e60-b61a-6cbdb686e0a0"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-sheet-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-sheet-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "状态待确认",
+        "text": "角色设定图状态待确认服务暂时无法连接，请稍后重新读取。查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "awaiting-review",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "review-action: no horizontal overflow",
+      "pending human review has an actionable explanation",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "f515130d-2bf5-49be-8910-92a6cc0a4553",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 awaiting-review mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-21/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "ad713baa-1e80-4a79-a705-57c7a520416b"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-awaiting-review-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-awaiting-review-mobile-review-action.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-awaiting-review-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "等待中",
+        "text": "形象参考图等待中当前候选等待明确评审；接受后才会成为规范参考。前往审阅候选"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "等待中",
+        "text": "角色设定图等待中等待候选被接受后，继续准备角色设定图。前往审阅候选"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "等待中",
+        "text": "显示头像等待中等待头像生成并读回查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "image-failure",
+    "size": "mobile",
+    "kind": "production dist / existing normal creation HTTP with per-authority GET faults or fixture status projection; no live lifecycle proof",
+    "checks": [
+      "authority-state: no horizontal overflow",
+      "one source state does not erase all other confirmations",
+      "image failure preserves completed non-image preparation",
+      "original source reread confirms all seven stages",
+      "source recovery never repeats activation",
+      "read-recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "writes": [
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "e0ca2e3b-ef47-4ad8-b42d-d47ce007ef77",
+          "initializationMode": "blank_slate",
+          "name": "七阶段核验 image-failure mobile",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-22/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "ce1b1640-8e36-43f5-91bf-2bab1e3e36ce"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-image-failure-mobile-authority-state.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/preparation-read/pass45-image-failure-mobile-read-recovered.png"
+    ],
+    "observed": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "失败",
+        "text": "形象参考图失败服务暂时无法连接，请稍后重新读取。去配置中心 恢复此环节查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "失败",
+        "text": "角色设定图失败服务暂时无法连接，请稍后重新读取。去配置中心 恢复此环节查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "失败",
+        "text": "显示头像失败服务暂时无法连接，请稍后重新读取。去配置中心 查看技术详情"
+      }
+    ],
+    "recovered": [
+      {
+        "id": "prep-step-analysis",
+        "state": "已完成",
+        "text": "确认空白角色资料已完成使用服务端空白初始设定"
+      },
+      {
+        "id": "prep-step-world",
+        "state": "已完成",
+        "text": "创建角色与生活世界已完成以实际选用的独立世界为准"
+      },
+      {
+        "id": "prep-step-wardrobe",
+        "state": "已完成",
+        "text": "初始衣柜已完成"
+      },
+      {
+        "id": "prep-step-schedule",
+        "state": "已完成",
+        "text": "初始日程已完成已读回这一天的日程"
+      },
+      {
+        "id": "prep-step-reference",
+        "state": "已完成",
+        "text": "形象参考图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-sheet",
+        "state": "已完成",
+        "text": "角色设定图已完成已读回可以显示的图片查看技术详情"
+      },
+      {
+        "id": "prep-step-avatar",
+        "state": "已完成",
+        "text": "显示头像已完成已读回可显示头像查看技术详情"
+      }
+    ],
+    "status": "passed"
+  }
+]

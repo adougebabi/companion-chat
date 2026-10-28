@@ -1,0 +1,24 @@
+✔ Studio directory reads nine actual resource types, searches and keeps archived collection separate (415.421625ms)
+✔ Studio empty directory and failed initial read are distinct and recover via original GET (267.433167ms)
+✔ Studio saves typed edits using the opaque draft version and publishes an exact immutable saved version (342.72425ms)
+✔ Studio new save checkpoints the actual identity and canonical name before navigation (249.979083ms)
+✔ Studio apply freezes the exact publication and generic accepted receipt does not require a fabricated target kind (353.455875ms)
+✔ Studio version history reads immutable content, while independent copies stay unpublished (278.006708ms)
+✔ sandbox freezes current working input, observes actual jobs and adopts suggestions only after explicit review (268.35675ms)
+✔ acknowledged sandbox readback failure survives remount and recovers with GET only while preserving newer composer text (321.054ms)
+✔ late sandbox acceptance after unmount retains its pointer (190.571666ms)
+✔ legacy directory recovery replays the original localStorage identity and body (198.191791ms)
+✔ raw JSON edits cannot be silently replaced by an assistant proposal, including edits made while confirmation is open (283.836333ms)
+✔ event scope changes remove only the invalid place reference while preserving unknown extensions (192.9565ms)
+✔ an Owner purge prevents a late accepted sandbox task from recreating another Owners recovery pointer (178.035708ms)
+✔ a late independent-copy acknowledgement after unmount preserves its actual copied identity (183.578333ms)
+✔ copying a historical publication uses its exact immutable definition and restores dialog source focus on cancel (378.442458ms)
+✔ sandbox text materials retain their original job and release only the resource association (479.588833ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7967.588708

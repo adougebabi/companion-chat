@@ -1,0 +1,1518 @@
+[
+  {
+    "name": "item-update",
+    "size": "desktop",
+    "fid": "schedule-pass39-item-update-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "empty reason leaves draft and sends no suggestion",
+      "cancel keeps the confirmed arrangement",
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "e836a54e-5273-44b4-9bcb-81a164377927"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-update-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-update-desktop-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-update-desktop-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-unknown",
+    "size": "desktop",
+    "fid": "schedule-pass39-item-unknown-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "unknown-after-refresh: no horizontal overflow",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "refresh replays identical original request body/key",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "2906cfa1-8490-47fc-90fb-42124b13a466"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "2906cfa1-8490-47fc-90fb-42124b13a466"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-6",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-6",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-desktop-unknown-after-refresh.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-desktop-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-desktop-suggestions-history.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "lostReceiptStatus": 202,
+    "status": "passed"
+  },
+  {
+    "name": "plan-generate",
+    "size": "desktop",
+    "fid": "schedule-pass39-plan-generate-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "plan-review: no horizontal overflow",
+      "plan-review: dialog fits viewport",
+      "plan-completed: no horizontal overflow",
+      "plan-completed: dialog fits viewport",
+      "blank date plan reads back generated schedule with original request",
+      "planned day timeline updated from readback",
+      "one plan identity across receipt recovery",
+      "refresh retains original planned date and schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules/requests",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-29",
+          "expectedRevision": 0,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "保留空白日期上下文，按已有倾向规划。",
+          "idempotencyKey": "33260f52-59f6-44e4-a59d-9b9f9b7deddf"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules/requests/schedule-plan-request-7",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules/requests/schedule-plan-request-7",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-generate-desktop-plan-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-generate-desktop-plan-completed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "plan-unknown",
+    "size": "desktop",
+    "fid": "schedule-pass39-plan-unknown-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "plan-review: no horizontal overflow",
+      "plan-review: dialog fits viewport",
+      "unknown-plan: no horizontal overflow",
+      "unknown-plan: dialog fits viewport",
+      "plan-completed: no horizontal overflow",
+      "plan-completed: dialog fits viewport",
+      "blank date plan reads back generated schedule with original request",
+      "planned day timeline updated from readback",
+      "one plan identity across receipt recovery",
+      "refresh retains original planned date and schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules/requests",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-29",
+          "expectedRevision": 0,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "保留空白日期上下文，按已有倾向规划。",
+          "idempotencyKey": "3b74e48f-4fd1-46af-8226-362cce9db743"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules/requests",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-29",
+          "expectedRevision": 0,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "保留空白日期上下文，按已有倾向规划。",
+          "idempotencyKey": "3b74e48f-4fd1-46af-8226-362cce9db743"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules/requests/schedule-plan-request-8",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules/requests/schedule-plan-request-8",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-unknown-desktop-plan-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-unknown-desktop-unknown-plan.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-unknown-desktop-plan-completed.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "lostReceiptStatus": 202,
+    "status": "passed"
+  },
+  {
+    "name": "cancel-rejected",
+    "size": "desktop",
+    "fid": "schedule-pass39-cancel-rejected-desktop",
+    "origin": "http://127.0.0.1:4393",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "rejected cancellation leaves original arrangement",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "DELETE",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "idempotencyKey": "4fe9f356-5f9d-4546-80a5-123c7394a3fe"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-cancel-rejected-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-cancel-rejected-desktop-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-cancel-rejected-desktop-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-conflict",
+    "size": "desktop",
+    "fid": "schedule-pass39-item-conflict-desktop",
+    "origin": "http://127.0.0.1:4394",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "409 does not automatically resubmit",
+      "conflict-review: no horizontal overflow",
+      "conflict-review: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "explicit rebase keeps content and advances actual CAS baseline",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "6dd5c782-ee76-4bcf-b47e-b7f729c445c0"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 2,
+          "expectedLifeContextRevision": "life-fixture-2",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "65c5d183-2f9e-4c0a-917b-b461a18ead73"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-desktop-conflict-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-desktop-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-desktop-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-update",
+    "size": "mobile",
+    "fid": "schedule-pass39-item-update-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "empty reason leaves draft and sends no suggestion",
+      "cancel keeps the confirmed arrangement",
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "ae859c94-e522-4f47-a61a-1478f8de1960"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-9",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-9",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-update-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-update-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-update-mobile-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-update-mobile-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-unknown",
+    "size": "mobile",
+    "fid": "schedule-pass39-item-unknown-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "unknown-after-refresh: no horizontal overflow",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "refresh replays identical original request body/key",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "2859ff54-5855-4020-aff8-c9225880291c"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "2859ff54-5855-4020-aff8-c9225880291c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-10",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-10",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-mobile-unknown-after-refresh.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-mobile-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-unknown-mobile-suggestions-history.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "lostReceiptStatus": 202,
+    "status": "passed"
+  },
+  {
+    "name": "plan-generate",
+    "size": "mobile",
+    "fid": "schedule-pass39-plan-generate-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "plan-review: no horizontal overflow",
+      "plan-review: dialog fits viewport",
+      "plan-completed: no horizontal overflow",
+      "plan-completed: dialog fits viewport",
+      "blank date plan reads back generated schedule with original request",
+      "planned day timeline updated from readback",
+      "one plan identity across receipt recovery",
+      "refresh retains original planned date and schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules/requests",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-29",
+          "expectedRevision": 0,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "保留空白日期上下文，按已有倾向规划。",
+          "idempotencyKey": "7791b5c5-13b9-456b-bfa5-51d36968a096"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules/requests/schedule-plan-request-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules/requests/schedule-plan-request-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-generate-mobile-plan-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-generate-mobile-plan-completed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "plan-unknown",
+    "size": "mobile",
+    "fid": "schedule-pass39-plan-unknown-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "plan-review: no horizontal overflow",
+      "plan-review: dialog fits viewport",
+      "unknown-plan: no horizontal overflow",
+      "unknown-plan: dialog fits viewport",
+      "plan-completed: no horizontal overflow",
+      "plan-completed: dialog fits viewport",
+      "blank date plan reads back generated schedule with original request",
+      "planned day timeline updated from readback",
+      "one plan identity across receipt recovery",
+      "refresh retains original planned date and schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules/requests",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-29",
+          "expectedRevision": 0,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "保留空白日期上下文，按已有倾向规划。",
+          "idempotencyKey": "affac728-ef95-4546-8d24-48cf96a02daa"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules/requests",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-29",
+          "expectedRevision": 0,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "保留空白日期上下文，按已有倾向规划。",
+          "idempotencyKey": "affac728-ef95-4546-8d24-48cf96a02daa"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules/requests/schedule-plan-request-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules/requests/schedule-plan-request-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-unknown-mobile-plan-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-unknown-mobile-unknown-plan.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-plan-unknown-mobile-plan-completed.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "lostReceiptStatus": 202,
+    "status": "passed"
+  },
+  {
+    "name": "cancel-rejected",
+    "size": "mobile",
+    "fid": "schedule-pass39-cancel-rejected-mobile",
+    "origin": "http://127.0.0.1:4393",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "rejected cancellation leaves original arrangement",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "DELETE",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "idempotencyKey": "d7332b1a-0188-482e-a904-04f74c9665d8"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-4",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-4",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-cancel-rejected-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-cancel-rejected-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-cancel-rejected-mobile-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-cancel-rejected-mobile-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-conflict",
+    "size": "mobile",
+    "fid": "schedule-pass39-item-conflict-mobile",
+    "origin": "http://127.0.0.1:4395",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "409 does not automatically resubmit",
+      "conflict-review: no horizontal overflow",
+      "conflict-review: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "explicit rebase keeps content and advances actual CAS baseline",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "e05d325b-3eae-4661-8125-6e0daea82765"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 2,
+          "expectedLifeContextRevision": "life-fixture-2",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass39",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "47c0f549-1e8b-4089-af54-8d9e5fdf27a7"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass39-item-conflict-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-mobile-conflict-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-mobile-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass39-item-conflict-mobile-suggestions-history.png"
+    ],
+    "status": "passed"
+  }
+]

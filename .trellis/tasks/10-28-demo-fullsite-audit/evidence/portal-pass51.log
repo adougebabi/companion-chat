@@ -1,0 +1,19 @@
+✔ configuration categories preserve a newer draft while the actual services and four roles remain independently reachable (4313.158625ms)
+✔ task records use source actions and never turn a status into numeric progress (155.171292ms)
+✔ data validation refuses a changed input after the read and failed export preserves the exact raw draft (74.487833ms)
+✔ domain field blur records carrier selection without stealing pointer or Tab focus; explicit restoration still forwards (138.0375ms)
+✔ a received durable command recovers failed readback after reopening without a second mutation (289.483959ms)
+✔ a durable command checkpoints a late receipt after close, but never after logout and same-Owner re-entry (295.171583ms)
+✔ a durable receipt readback retains input edited while submission is waiting (141.22625ms)
+✔ logout clears configuration recovery and inactive management preferences for exactly the original Owner (0.633542ms)
+✔ the native history deep route waits for its role directory, retries the original cursor and returns without losing the chat draft (736.029792ms)
+✔ shared confirmation uses one Radix AlertDialog, Escape cancels once and restores its connected trigger (344.887916ms)
+✔ domain drawer retains its original content node and handlers in the application Sheet, including nested confirmation (268.171083ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6919.271167

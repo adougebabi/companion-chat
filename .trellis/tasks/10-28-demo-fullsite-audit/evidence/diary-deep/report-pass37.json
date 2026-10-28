@@ -1,0 +1,190 @@
+[
+  {
+    "name": "past-generation",
+    "size": "desktop",
+    "fid": "diary-pass37-past-generation-desktop",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "future date does not generate",
+      "generation receipt records pending instead of invented prose",
+      "pending: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/generate",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-27",
+          "timezone": "Asia/Shanghai",
+          "reason": "回顾所选已结束日期的真实经历",
+          "idempotencyKey": "e632c792-3550-417d-9c3a-63eda7163825"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/diary-generated-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/diary-generated-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/diary-generated-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/diary-generated-5/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary/diary-generated-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-desktop/diary",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass37-past-generation-desktop-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass37-past-generation-desktop-failure.png"
+    ],
+    "transportNote": "Hold completed generated-record GET until pending UI is captured; do not change server output.",
+    "diaryId": "diary-generated-5",
+    "status": "failed",
+    "error": "locator.waitFor: Error: strict mode violation: getByText('这是隔离服务整理完成后返回的真实样本正文。', { exact: true }) resolved to 2 elements:\n    1) <span>这是隔离服务整理完成后返回的真实样本正文。</span> aka getByRole('button', { name: '2026-10-27' })\n    2) <div class=\"lp-paper-body\">这是隔离服务整理完成后返回的真实样本正文。</div> aka getByRole('article', { name: '日记正文' }).getByText('这是隔离服务整理完成后返回的真实样本正文。')\n\nCall log:\n\u001b[2m  - waiting for getByText('这是隔离服务整理完成后返回的真实样本正文。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n日\n正在相处\n日记核验样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日记\n快速前往\n⌘ K\nLIFE / LITTLE PAGES\n日记\n\n那些没有说出口的日常，被认真地写在这里。\n\n整理一篇日记\n日记核验样本的日记\n3\n共同经历\n只看收藏\n整理请求已读回，正文以实际结果为准。\n日记正文已读回。\n2026-10-27\n这是隔离服务整理完成后返回的真实样本正文。\n2026-10-26\n这是一篇隔离验收日记。\n2026-10-25\n这是一篇隔离验收日记。\n2026 / 10 / 27\n已经写下\n2026-10-27的日记\n这是隔离服务整理完成后返回的真实样本正文。\n日记核验样本的主观记录\n写一点批注\n读完后，想对日记核验样本说\n留言与实际处理记录\n生成尝试、素材与来源"
+  },
+  {
+    "name": "past-generation",
+    "size": "mobile",
+    "fid": "diary-pass37-past-generation-mobile",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "future date does not generate",
+      "generation receipt records pending instead of invented prose",
+      "pending: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/generate",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-27",
+          "timezone": "Asia/Shanghai",
+          "reason": "回顾所选已结束日期的真实经历",
+          "idempotencyKey": "a323ccd5-5939-435b-b8a9-25953b3aa270"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/diary-generated-6",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/diary-generated-6",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/diary-generated-6",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/diary-generated-6/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary/diary-generated-6",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass37-past-generation-mobile/diary",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass37-past-generation-mobile-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass37-past-generation-mobile-failure.png"
+    ],
+    "transportNote": "Hold completed generated-record GET until pending UI is captured; do not change server output.",
+    "diaryId": "diary-generated-6",
+    "status": "failed",
+    "error": "locator.waitFor: Error: strict mode violation: getByText('这是隔离服务整理完成后返回的真实样本正文。', { exact: true }) resolved to 2 elements:\n    1) <span>这是隔离服务整理完成后返回的真实样本正文。</span> aka getByRole('button', { name: '2026-10-27' })\n    2) <div class=\"lp-paper-body\">这是隔离服务整理完成后返回的真实样本正文。</div> aka getByRole('article', { name: '日记正文' }).getByText('这是隔离服务整理完成后返回的真实样本正文。')\n\nCall log:\n\u001b[2m  - waiting for getByText('这是隔离服务整理完成后返回的真实样本正文。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n日记\n快速前往\nLIFE / LITTLE PAGES\n日记\n\n那些没有说出口的日常，被认真地写在这里。\n\n整理一篇日记\n日记核验样本的日记\n3\n共同经历\n只看收藏\n整理请求已读回，正文以实际结果为准。\n日记正文已读回。\n2026-10-27\n这是隔离服务整理完成后返回的真实样本正文。\n2026-10-26\n这是一篇隔离验收日记。\n2026-10-25\n这是一篇隔离验收日记。\n2026 / 10 / 27\n已经写下\n2026-10-27的日记\n这是隔离服务整理完成后返回的真实样本正文。\n日记核验样本的主观记录\n写一点批注\n读完后，想对日记核验样本说\n留言与实际处理记录\n生成尝试、素材与来源"
+  }
+]

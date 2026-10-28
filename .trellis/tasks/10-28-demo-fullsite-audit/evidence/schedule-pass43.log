@@ -1,0 +1,22 @@
+✔ schedule reading/edit cancellation preserve the saved record; submission carries frozen version, source item and exact time (596.538583ms)
+✔ schedule failed refresh retains the correct date; an older date response cannot overwrite a newer selection (334.637083ms)
+✔ planning protects a present empty schedule and re-reads an edited target date before admission (364.174417ms)
+✔ an unknown item admission is recovered after remount through the original provider operation, never a fresh suggestion (427.118417ms)
+✔ leaving the Owner scope during the preflight read prevents plan admission (192.587292ms)
+✔ request observer retains confirmed status through a failed refresh and never turns accepted intention into completed action (94.730417ms)
+✔ a first rejected plan requires explicit latest-date review and preserves the original reason (321.515917ms)
+✔ selecting a date with an unknown plan restores that date original input before offering retry (269.150833ms)
+✔ awaiting goal binding remains observable and does not notify completion before a later real result (91.644292ms)
+✔ retired directory status blocks new proposals even when a detail response still shows active (127.282667ms)
+✔ closing a frozen detail after a date change restores the current heading when its source row was removed (185.432708ms)
+✔ an empty character scope cannot start a schedule read while the shell returns to the library (63.289958ms)
+✔ suggestion details retain the submitted interval, place and reason without inventing an old snapshot (77.932125ms)
+✔ rejected item review emphasizes the frozen proposal and keeps protocol fields in an explicit disclosure (209.545709ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5470.068125

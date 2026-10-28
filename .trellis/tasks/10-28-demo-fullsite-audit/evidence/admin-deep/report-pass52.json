@@ -1,0 +1,140 @@
+[
+  {
+    "name": "task-rejected-review-focus",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "rejected-review: no horizontal overflow",
+      "rejected-review: single current shell",
+      "rejected-review: portal uses14px theme",
+      "rejected review Escape returns to its actual opening button",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "核对明确被拒绝的原操作",
+          "idempotencyKey": "deac4b32-5b54-46ee-b31a-e20b42107736"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass52-task-rejected-review-focus-desktop-rejected-review.png"
+    ],
+    "injectedFault": "409 before forwarding workflow restart; no server control mutation",
+    "portalGeometry": [
+      {
+        "state": "rejected-review",
+        "portals": [
+          {
+            "width": 590,
+            "fontSize": "14px",
+            "slot": "dialog-content",
+            "fields": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-rejected-review-focus",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "rejected-review: no horizontal overflow",
+      "rejected-review: single current shell",
+      "rejected-review: portal uses14px theme",
+      "rejected review Escape returns to its actual opening button",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "核对明确被拒绝的原操作",
+          "idempotencyKey": "ad7bebc3-27dc-4756-a772-05a61422f29e"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass52-task-rejected-review-focus-mobile-rejected-review.png"
+    ],
+    "injectedFault": "409 before forwarding workflow restart; no server control mutation",
+    "portalGeometry": [
+      {
+        "state": "rejected-review",
+        "portals": [
+          {
+            "width": 356,
+            "fontSize": "14px",
+            "slot": "dialog-content",
+            "fields": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  }
+]

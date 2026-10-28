@@ -1,0 +1,30 @@
+✔ opening and applying a nullable structured extension preserves null without manufacturing an empty collection (446.375625ms)
+✔ cancelling a structured edit leaves its original scalar type and value unchanged (321.590334ms)
+✔ legacy creation without a local world checkpoint exposes meeting after actual world readiness and keeps unresolved binding review reachable (180.598458ms)
+✔ retrying an unreadable publication page retains its original cursor and updates existing cards without appending duplicates (469.613ms)
+✔ creation preview JSON incorporates edited fields and preserves the complete nested source without exposing editable analysis credentials (11.376583ms)
+✔ explicit complete-preview edits preserve original authority and resynchronize the editable grouped fields (1.3975ms)
+✔ malformed or substituted-source preview edits remain unadopted and cannot erase the current definition (1.38675ms)
+✔ unapplied full JSON is durable, blocks activation and cannot be discarded by another structured edit (1.379291ms)
+✔ blank creation still skips analysis and its recorded accepted request has no Foundation or analysis authority (2.033375ms)
+✔ accepted creation snapshots detach from later local objects and new drafts clear prior errors while history survives (2.4425ms)
+✔ clearing a previously named preview never silently restores the original name on activation (0.8025ms)
+✔ clearing the preview timezone blocks activation instead of reusing an older timezone (0.701541ms)
+✔ a recovery whose transport outcome is unknown stays reachable after its stage has already become ready (2.599167ms)
+✔ a known rejected recovery is released only after reviewing actual authority and never resubmits until a new explicit recovery (3.726083ms)
+✔ deleted and null complete-JSON names never reuse an older accepted input name (2.947542ms)
+✔ deleting the timezone through complete JSON remains intentionally missing and blocks activation (1.202584ms)
+✔ an unknown blank activation moves to preparation without claiming that a model analysis failed (0.308834ms)
+✔ a definitive activation rejection preserves edited preview data as a durable importable copy while discarding rejected authority (3.298792ms)
+✔ creation progress requires a nonempty world identity matched by actual readback, without depending on a local selection checkpoint (2.868292ms)
+✔ male unknown body fields stay hidden while explicit stored values remain editable and readable (1440.063917ms)
+✔ initial schedule precedes image stages and image failure does not relabel it blocked (0.898708ms)
+✔ creation waiting for candidate review explains the human action without counting unread images as ready (0.33225ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3644.859583

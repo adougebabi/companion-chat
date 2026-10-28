@@ -157,7 +157,7 @@ export default function PreparationSteps(input = {}) {
                             )
                           }
                         >
-                          {"查看技术详情"}
+                          {stage.linkLabel || "查看技术详情"}
                         </a>
                       </ActionButton>
                     ) : null}

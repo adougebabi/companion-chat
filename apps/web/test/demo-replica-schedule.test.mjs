@@ -570,3 +570,20 @@ test('suggestion details retain the submitted interval, place and reason without
   assert.match(v.host.textContent,/未保存原安排快照/);assert.doesNotMatch(v.host.textContent,/原日程与版本保留在请求来源中/);
  }finally{await v.dispose();}
 });
+
+test('rejected item review emphasizes the frozen proposal and keeps protocol fields in an explicit disclosure',async()=>{
+ const w=workspace(),original={operation:'update',scheduleId:'schedule',itemId:'slot',request:{expectedRevision:1,expectedLifeContextRevision:'old-context',activity:'在窗边读诗',startAt:today+'T17:30:00+08:00',endAt:today+'T18:30:00+08:00',location:'书店窗边',reason:'保留晚餐前的空档'}};
+ w.setPending({idempotencyKey:'rejected-item-key',rejection:{code:'revision_conflict'},value:original});
+ let rebased;
+ w.life.rebaseScheduleItem=async(...args)=>{rebased=args;w.setPending(null);return{request:w.request};};
+ const v=await mount(w);
+ try{
+  await v.click(button(v.host,'保留原建议，核对最新日程'));
+  const review=[...document.querySelectorAll('[role=dialog]')].at(-1);
+  const fields=review.querySelector('.replica-key-values');
+  assert.match(fields.textContent,/在窗边读诗/);assert.match(fields.textContent,/17:30/);assert.match(fields.textContent,/18:30/);assert.match(fields.textContent,/书店窗边/);assert.match(fields.textContent,/保留晚餐前的空档/);
+  assert.doesNotMatch(review.textContent,/expectedRevision/);assert.equal(rebased,undefined);
+  await v.click(button(review,'原建议的完整请求与版本'));assert.match(review.textContent,/expectedRevision/);
+  await v.click(button(review,'保留原建议并重新提交'));assert.equal(rebased[0],'A');assert.equal(rebased[2],'rejected-item-key');assert.equal(original.request.activity,'在窗边读诗');
+ }finally{await v.dispose();}
+});

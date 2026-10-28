@@ -1530,9 +1530,26 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
           将采用最新日程版本 {review?.detail.schedule?.revision ?? "尚未读到"}{" "}
           核对。时间、地点、内容和原因保持原提交。
         </p>
-        <pre className="replica-source-record">
-          {review && JSON.stringify(review.original.request, null, 2)}
-        </pre>
+        {review && (
+          <div className="lp-stack">
+            <h3 className="lp-title">保留的原建议</h3>
+            <dl className="replica-key-values">
+              <dt>操作</dt>
+              <dd>{review.original.operation === "cancel" ? "建议取消这段安排" : "建议调整这段安排"}</dd>
+              {review.original.request.activity && <><dt>活动</dt><dd>{review.original.request.activity}</dd></>}
+              {(review.original.request.startAt || review.original.request.endAt) && <>
+                <dt>时间</dt>
+                <dd>{review.original.request.startAt ? userInstant(review.original.request.startAt) : "起始时间未提供"} — {review.original.request.endAt ? userInstant(review.original.request.endAt) : "结束时间未提供"}</dd>
+              </>}
+              {review.original.request.location && <><dt>地点</dt><dd>{review.original.request.location}</dd></>}
+              <dt>原因</dt>
+              <dd>{review.original.request.reason || "原建议未提供原因"}</dd>
+            </dl>
+            <Disclosure title="原建议的完整请求与版本">
+              <pre className="replica-source-record">{JSON.stringify(review.original.request, null, 2)}</pre>
+            </Disclosure>
+          </div>
+        )}
         {formError && <InlineFeedback role="alert">{formError}</InlineFeedback>}
       </WorkspaceDialog>
       <WorkspaceDialog

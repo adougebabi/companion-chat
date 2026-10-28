@@ -36,6 +36,7 @@ export async function readApprovedCreationProgress(client, draft) {
   const identity =
       visual.identity.state === "ready" ? visual.identity.value : null,
     session = identity?.session,
+    waitingForReview = session?.status === "awaiting_review",
     task = visual.task.state === "ready" ? visual.task.value : null,
     visualState = statusOf(session?.status || task?.status),
     visualReason =
@@ -75,8 +76,14 @@ export async function readApprovedCreationProgress(client, draft) {
           : visualState,
     note: asset?.value?.readable
       ? "已读回可以显示的图片"
-      : asset?.errorMessage || visualReason || "等待实际图片任务与产物",
+      : asset?.errorMessage || visualReason || (waitingForReview
+        ? key === "reference"
+          ? "当前候选等待明确评审；接受后才会成为规范参考。"
+          : "等待候选被接受后，继续准备角色设定图。"
+        : "等待实际图片任务与产物"),
     href: `#/c/${encodeURIComponent(fid)}/media/identity`,
+    linkLabel: waitingForReview && !asset?.value?.readable && asset?.state !== "unknown"
+      ? "前往审阅候选" : undefined,
     configSection: "图片（ComfyUI）",
     retryable: visualState === "failed" && !!identity,
   });

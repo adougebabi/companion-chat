@@ -1,0 +1,876 @@
+[
+  {
+    "name": "item-update",
+    "size": "desktop",
+    "fid": "schedule-pass37-item-update-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "empty reason leaves draft and sends no suggestion",
+      "cancel keeps the confirmed arrangement",
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass37",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "ed5574b8-3cf5-4132-a2aa-c23f61942940"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-update-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-update-desktop-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-update-desktop-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-unknown",
+    "size": "desktop",
+    "fid": "schedule-pass37-item-unknown-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass37",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "9adb9a7b-b3b3-4998-bc4f-4bc0259edac5"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-unknown-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-unknown-desktop-failure.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "lostReceiptStatus": 202,
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '继续上次日程建议', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n日\n正在相处\n日程核验样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日程\n快速前往\n⌘ K\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-28\n今天\n继续上次日程建议\n\n原提交的受理结果尚未确认。保留原输入与身份，先核对它。\n\n留一段安静的阅读时间 desktop pass37 · 2026-10-28 00:00 (北京时间)\n\n查询或重试原提交\n10月28日 · 今天\n\n13 项安排 · Asia/Shanghai\n\n刷新\n00:00\n自由安排\n计划中\n\n00:00—02:00\n\n02:00\n自由安排\n计划中\n\n02:00—04:00\n\n04:00\n自由安排\n计划中\n\n04:00—06:00\n\n06:00\n自由安排\n计划中\n\n06:00—08:00\n\n08:00\n自由安排\n计划中\n\n08:00—10:00\n\n10:00\n自由安排\n计划中\n\n10:00—12:00\n\n12:00\n自由安排\n计划中\n\n12:00—14:00\n\n14:00\n自由安排\n计划中\n\n14:00—16:00\n\n16:00\n自由安排\n计划中\n\n16:00—18:00\n\n18:00\n自由安排\n计划中\n\n18:00—20:00\n\n20:00\n自由安排\n计划中\n\n20:00—22:00\n\n22:00\n海边散步\n计划中\n\n22:00—23:00　·　家\n\n23:00\n睡眠\n计划中\n\n23:00—00:00\n\n日程小记\n已确认安排\n13 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源\n提出日程调整\n\n2026-10-28 · 时间按北京时间显示\n\n开始时间（北京时间）\n2026-10-28\n结束时间（北京时间）\n2026-10-28\n活动内容\n地点\n想对她说\n场景与精确地点\n提交后会显示待处理建议，当前日程保持原样，直到建议被实际采纳。\n服务暂时无法连接，请稍后重新读取。\n\n原提交身份已保留，关闭此处可继续核对原建议。\n\n取消修改\n提交调整建议\n关闭"
+  },
+  {
+    "name": "plan-generate",
+    "size": "desktop",
+    "fid": "schedule-pass37-plan-generate-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-desktop/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-plan-generate-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '空白的一页', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n日\n正在相处\n日程核验样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日程\n快速前往\n⌘ K\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-29\n今天\n10月29日 · 未来的安排\n\n0 项安排 · Asia/Shanghai\n\n刷新\n这一天，还是空白的一页\n\n可以请求为这一天安排生活，已经确认的日程会被保留。\n\n规划这一天\n日程小记\n已确认安排\n0 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源"
+  },
+  {
+    "name": "plan-unknown",
+    "size": "desktop",
+    "fid": "schedule-pass37-plan-unknown-desktop",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-desktop/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-plan-unknown-desktop-failure.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '空白的一页', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n日\n正在相处\n日程核验样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日程\n快速前往\n⌘ K\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-29\n今天\n10月29日 · 未来的安排\n\n0 项安排 · Asia/Shanghai\n\n刷新\n这一天，还是空白的一页\n\n可以请求为这一天安排生活，已经确认的日程会被保留。\n\n规划这一天\n日程小记\n已确认安排\n0 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源"
+  },
+  {
+    "name": "cancel-rejected",
+    "size": "desktop",
+    "fid": "schedule-pass37-cancel-rejected-desktop",
+    "origin": "http://127.0.0.1:4393",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "rejected cancellation leaves original arrangement",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "DELETE",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "idempotencyKey": "1f611312-4719-4996-8961-daceaa70899c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-cancel-rejected-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-cancel-rejected-desktop-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-cancel-rejected-desktop-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-conflict",
+    "size": "desktop",
+    "fid": "schedule-pass37-item-conflict-desktop",
+    "origin": "http://127.0.0.1:4394",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-desktop/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-desktop/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-desktop/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 desktop pass37",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "7deb994c-7218-480a-8fd8-6257fe460ded"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-conflict-desktop-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-conflict-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '继续上次日程建议', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n日\n正在相处\n日程核验样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日程\n快速前往\n⌘ K\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-28\n今天\n继续上次日程建议\n\n原建议因版本变化未被接受。请核对新版本，内容与原因保持。\n\n留一段安静的阅读时间 desktop pass37 · 2026-10-28 00:00 (北京时间)\n\n保留原建议，核对最新日程\n放弃这条未接受的建议\n10月28日 · 今天\n\n13 项安排 · Asia/Shanghai\n\n刷新\n00:00\n自由安排\n计划中\n\n00:00—02:00\n\n02:00\n自由安排\n计划中\n\n02:00—04:00\n\n04:00\n自由安排\n计划中\n\n04:00—06:00\n\n06:00\n自由安排\n计划中\n\n06:00—08:00\n\n08:00\n自由安排\n计划中\n\n08:00—10:00\n\n10:00\n自由安排\n计划中\n\n10:00—12:00\n\n12:00\n自由安排\n计划中\n\n12:00—14:00\n\n14:00\n自由安排\n计划中\n\n14:00—16:00\n\n16:00\n自由安排\n计划中\n\n16:00—18:00\n\n18:00\n自由安排\n计划中\n\n18:00—20:00\n\n20:00\n自由安排\n计划中\n\n20:00—22:00\n\n22:00\n海边散步\n计划中\n\n22:00—23:00　·　家\n\n23:00\n睡眠\n计划中\n\n23:00—00:00\n\n日程小记\n已确认安排\n13 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源\n提出日程调整\n\n2026-10-28 · 时间按北京时间显示\n\n开始时间（北京时间）\n2026-10-28\n结束时间（北京时间）\n2026-10-28\n活动内容\n地点\n想对她说\n场景与精确地点\n提交后会显示待处理建议，当前日程保持原样，直到建议被实际采纳。\n资料版本已变化，草稿已保留，请重新读取后核对。\n\n原提交身份已保留，关闭此处可继续核对原建议。\n\n取消修改\n提交调整建议\n关闭"
+  },
+  {
+    "name": "item-update",
+    "size": "mobile",
+    "fid": "schedule-pass37-item-update-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "empty reason leaves draft and sends no suggestion",
+      "cancel keeps the confirmed arrangement",
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "actual schedule updates only after completed request",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass37",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "651642d7-6d52-4ea6-bb64-9a108fe3235c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-update-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-update-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-update-mobile-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-update-mobile-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-unknown",
+    "size": "mobile",
+    "fid": "schedule-pass37-item-unknown-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-unknown-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass37",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "0a68824b-de58-4491-a259-768001f4015c"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-unknown-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-unknown-mobile-failure.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "lostReceiptStatus": 202,
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '继续上次日程建议', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n日程\n快速前往\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-28\n今天\n继续上次日程建议\n\n原提交的受理结果尚未确认。保留原输入与身份，先核对它。\n\n留一段安静的阅读时间 mobile pass37 · 2026-10-28 00:00 (北京时间)\n\n查询或重试原提交\n10月28日 · 今天\n\n13 项安排 · Asia/Shanghai\n\n刷新\n00:00\n自由安排\n计划中\n\n00:00—02:00\n\n02:00\n自由安排\n计划中\n\n02:00—04:00\n\n04:00\n自由安排\n计划中\n\n04:00—06:00\n\n06:00\n自由安排\n计划中\n\n06:00—08:00\n\n08:00\n自由安排\n计划中\n\n08:00—10:00\n\n10:00\n自由安排\n计划中\n\n10:00—12:00\n\n12:00\n自由安排\n计划中\n\n12:00—14:00\n\n14:00\n自由安排\n计划中\n\n14:00—16:00\n\n16:00\n自由安排\n计划中\n\n16:00—18:00\n\n18:00\n自由安排\n计划中\n\n18:00—20:00\n\n20:00\n自由安排\n计划中\n\n20:00—22:00\n\n22:00\n海边散步\n计划中\n\n22:00—23:00　·　家\n\n23:00\n睡眠\n计划中\n\n23:00—00:00\n\n日程小记\n已确认安排\n13 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源\n提出日程调整\n\n2026-10-28 · 时间按北京时间显示\n\n开始时间（北京时间）\n2026-10-28\n结束时间（北京时间）\n2026-10-28\n活动内容\n地点\n想对她说\n场景与精确地点\n提交后会显示待处理建议，当前日程保持原样，直到建议被实际采纳。\n服务暂时无法连接，请稍后重新读取。\n\n原提交身份已保留，关闭此处可继续核对原建议。\n\n取消修改\n提交调整建议\n关闭"
+  },
+  {
+    "name": "plan-generate",
+    "size": "mobile",
+    "fid": "schedule-pass37-plan-generate-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-generate-mobile/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-plan-generate-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '空白的一页', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n日程\n快速前往\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-29\n今天\n10月29日 · 未来的安排\n\n0 项安排 · Asia/Shanghai\n\n刷新\n这一天，还是空白的一页\n\n可以请求为这一天安排生活，已经确认的日程会被保留。\n\n规划这一天\n日程小记\n已确认安排\n0 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源"
+  },
+  {
+    "name": "plan-unknown",
+    "size": "mobile",
+    "fid": "schedule-pass37-plan-unknown-mobile",
+    "origin": "http://127.0.0.1:4392",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-plan-unknown-mobile/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-plan-unknown-mobile-failure.png"
+    ],
+    "injectedFault": "replace first accepted mutation response with503; preserve executed server record",
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '空白的一页', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n日程\n快速前往\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-29\n今天\n10月29日 · 未来的安排\n\n0 项安排 · Asia/Shanghai\n\n刷新\n这一天，还是空白的一页\n\n可以请求为这一天安排生活，已经确认的日程会被保留。\n\n规划这一天\n日程小记\n已确认安排\n0 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源"
+  },
+  {
+    "name": "cancel-rejected",
+    "size": "mobile",
+    "fid": "schedule-pass37-cancel-rejected-mobile",
+    "origin": "http://127.0.0.1:4393",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "decision: no horizontal overflow",
+      "decision: dialog fits viewport",
+      "rejected cancellation leaves original arrangement",
+      "one explicit suggestion command",
+      "suggestions-history: no horizontal overflow",
+      "original suggestion remains independently readable",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "DELETE",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "idempotencyKey": "8ec16cdf-7559-448a-b2a7-f98d1177dcb1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/schedule-owner-request-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-cancel-rejected-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-cancel-rejected-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-cancel-rejected-mobile-decision.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-cancel-rejected-mobile-suggestions-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item-conflict",
+    "size": "mobile",
+    "fid": "schedule-pass37-item-conflict-mobile",
+    "origin": "http://127.0.0.1:4395",
+    "kind": "production dist / controlled schedule requests; decisions and plan output are fixtures",
+    "checks": [
+      "suggestion-edit: no horizontal overflow",
+      "suggestion-edit: dialog fits viewport",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-mobile/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-mobile/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/schedule-pass37-item-conflict-mobile/schedules/schedule-nas-fixture/items/slot-0",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "expectedLifeContextRevision": "life-fixture-1",
+          "reason": "想按实际情况调整，等你确认后再更新。",
+          "activity": "留一段安静的阅读时间 mobile pass37",
+          "scene": "日常",
+          "location": "窗边",
+          "startAt": "2026-10-28T00:00:00+08:00",
+          "endAt": "2026-10-28T02:00:00+08:00",
+          "evidenceRefs": [
+            "owner:human-fixture-owner"
+          ],
+          "idempotencyKey": "3fcef0b9-528d-4d6e-a331-7fb2676c12cb"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-conflict-mobile-suggestion-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/schedule-deep/pass37-item-conflict-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '继续上次日程建议', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n日程\n快速前往\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-28\n今天\n继续上次日程建议\n\n原建议因版本变化未被接受。请核对新版本，内容与原因保持。\n\n留一段安静的阅读时间 mobile pass37 · 2026-10-28 00:00 (北京时间)\n\n保留原建议，核对最新日程\n放弃这条未接受的建议\n10月28日 · 今天\n\n13 项安排 · Asia/Shanghai\n\n刷新\n00:00\n自由安排\n计划中\n\n00:00—02:00\n\n02:00\n自由安排\n计划中\n\n02:00—04:00\n\n04:00\n自由安排\n计划中\n\n04:00—06:00\n\n06:00\n自由安排\n计划中\n\n06:00—08:00\n\n08:00\n自由安排\n计划中\n\n08:00—10:00\n\n10:00\n自由安排\n计划中\n\n10:00—12:00\n\n12:00\n自由安排\n计划中\n\n12:00—14:00\n\n14:00\n自由安排\n计划中\n\n14:00—16:00\n\n16:00\n自由安排\n计划中\n\n16:00—18:00\n\n18:00\n自由安排\n计划中\n\n18:00—20:00\n\n20:00\n自由安排\n计划中\n\n20:00—22:00\n\n22:00\n海边散步\n计划中\n\n22:00—23:00　·　家\n\n23:00\n睡眠\n计划中\n\n23:00—00:00\n\n日程小记\n已确认安排\n13 项\n已读取待处理建议\n0 条\n修改会先成为建议，等日程核验样本确认后，再更新已接受的安排。\n约定、意向与日程来源\n提出日程调整\n\n2026-10-28 · 时间按北京时间显示\n\n开始时间（北京时间）\n2026-10-28\n结束时间（北京时间）\n2026-10-28\n活动内容\n地点\n想对她说\n场景与精确地点\n提交后会显示待处理建议，当前日程保持原样，直到建议被实际采纳。\n资料版本已变化，草稿已保留，请重新读取后核对。\n\n原提交身份已保留，关闭此处可继续核对原建议。\n\n取消修改\n提交调整建议\n关闭"
+  }
+]

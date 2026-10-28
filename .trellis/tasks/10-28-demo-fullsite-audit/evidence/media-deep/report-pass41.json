@@ -1,0 +1,192 @@
+[
+  {
+    "name": "generation-failure",
+    "size": "desktop",
+    "fid": "media-pass41-generation-failure-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "accepted-request: no horizontal overflow",
+      "failed request has no fabricated result image",
+      "provider-failure: no horizontal overflow",
+      "generation uses one identity and never silently resubmits",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "c8d6d28a-7086-48d1-9ecd-15ac810da136"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/media-generations/media-request-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/media-generations/media-request-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/media-generations/media-request-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-desktop/media-generations/media-request-14",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass41-generation-failure-desktop-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass41-generation-failure-desktop-provider-failure.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "generation-failure",
+    "size": "mobile",
+    "fid": "media-pass41-generation-failure-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "accepted-request: no horizontal overflow",
+      "failed request has no fabricated result image",
+      "provider-failure: no horizontal overflow",
+      "generation uses one identity and never silently resubmits",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "46bd3ddf-86da-4be6-9ddc-4f146d1de4d3"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/media-generations/media-request-15",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/media-generations/media-request-15",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/media-generations/media-request-15",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass41-generation-failure-mobile/media-generations/media-request-15",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass41-generation-failure-mobile-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass41-generation-failure-mobile-provider-failure.png"
+    ],
+    "status": "passed"
+  }
+]

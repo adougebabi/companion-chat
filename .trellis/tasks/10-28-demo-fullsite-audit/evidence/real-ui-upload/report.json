@@ -1,0 +1,212 @@
+[
+  {
+    "size": "desktop",
+    "origin": "http://127.0.0.1:18480",
+    "kind": "actual production React upload UI / existing isolated Owner / actual original bytes and asset GET; no model or visual generation",
+    "checks": [
+      "empty file selection disables upload",
+      "file-selected: no horizontal overflow",
+      "actual receipt matches original file identity",
+      "saved metadata readback matches original filename/bytes/hash",
+      "saved: no horizontal overflow",
+      "original image is readable in real asset detail",
+      "actual-detail: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "responses": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-uploads/by-key",
+        "method": "GET",
+        "status": 404
+      },
+      {
+        "path": "/api/media",
+        "method": "POST",
+        "status": 201
+      },
+      {
+        "path": "/api/media-assets/upload_asset_582b3861ff070b2250603d0f9067261e",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_582b3861ff070b2250603d0f9067261e",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-assets/upload_asset_582b3861ff070b2250603d0f9067261e",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_582b3861ff070b2250603d0f9067261e",
+        "method": "GET",
+        "status": 200
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/desktop-file-selected.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/desktop-saved.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/desktop-actual-detail.png"
+    ],
+    "filename": "fullsite-ui-desktop-1793195985556.png",
+    "assetId": "upload_asset_582b3861ff070b2250603d0f9067261e",
+    "status": "passed",
+    "name": "upload-desktop"
+  },
+  {
+    "size": "mobile",
+    "origin": "http://127.0.0.1:18480",
+    "kind": "actual production React upload UI / existing isolated Owner / actual original bytes and asset GET; no model or visual generation",
+    "checks": [
+      "empty file selection disables upload",
+      "file-selected: no horizontal overflow",
+      "receipt-unknown: no horizontal overflow",
+      "recovery-after-refresh: no horizontal overflow",
+      "actual receipt matches original file identity",
+      "saved metadata readback matches original filename/bytes/hash",
+      "saved: no horizontal overflow",
+      "original image is readable in real asset detail",
+      "actual-detail: no horizontal overflow",
+      "lost receipt recovery never reuploads original bytes",
+      "no uncaught browser exception"
+    ],
+    "responses": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_582b3861ff070b2250603d0f9067261e",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-uploads/by-key",
+        "method": "GET",
+        "status": 404
+      },
+      {
+        "path": "/api/media",
+        "method": "POST",
+        "status": 503
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_bf0bcca4d9c50a2ebb74478cf522c139",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_582b3861ff070b2250603d0f9067261e",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_8638495a2ca1a354b73011acc9f29bcb",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-uploads/by-key",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-assets/upload_asset_bf0bcca4d9c50a2ebb74478cf522c139",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "status": 200
+      },
+      {
+        "path": "/api/media/upload_asset_bf0bcca4d9c50a2ebb74478cf522c139",
+        "method": "GET",
+        "status": 200
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/mobile-file-selected.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/mobile-receipt-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/mobile-recovery-after-refresh.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/mobile-saved.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-ui-upload/mobile-actual-detail.png"
+    ],
+    "filename": "fullsite-ui-mobile-1793195987410.png",
+    "actualUploadStatus": 201,
+    "assetId": "upload_asset_bf0bcca4d9c50a2ebb74478cf522c139",
+    "status": "passed",
+    "name": "upload-mobile"
+  }
+]

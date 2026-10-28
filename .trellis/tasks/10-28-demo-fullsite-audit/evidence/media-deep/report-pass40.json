@@ -1,0 +1,2746 @@
+[
+  {
+    "name": "brief-save",
+    "size": "desktop",
+    "fid": "media-pass40-brief-save-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "brief advances its own revision and preserves canonical",
+      "saved definition reopens from readback",
+      "one explicit brief write",
+      "saved: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-desktop/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-brief-save-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-brief-save-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-brief-save-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-brief-save-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-desktop/visual-brief",
+        "method": "PUT",
+        "body": {
+          "appearance": "保留自然的深色短发与已确认五官，补充清晰轮廓。",
+          "clothing": "低饱和日常衣物，以实际穿着为准。",
+          "constraints": "保持面部特征和身体比例。",
+          "references": "柔和自然光。",
+          "expectedRevision": 2,
+          "reason": "核对字段完整保存，规范图另行生成",
+          "idempotencyKey": "d45dd857-0e4a-49cf-b924-5f2ada825675"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-desktop/visual-brief",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-brief-save-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-brief-save-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "review-accept",
+    "size": "desktop",
+    "fid": "media-pass40-review-accept-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "review: no horizontal overflow",
+      "review: dialog fits viewport",
+      "review pins actual attempt and revision with normalized explicit scores",
+      "accepted candidate becomes canonical independently of sheet",
+      "accepted: no horizontal overflow",
+      "character sheet is confirmed through subsequent reads",
+      "sheet-readback: no horizontal overflow",
+      "one explicit review command",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-sessions/media-pass40-review-accept-desktop-visual-session/review",
+        "method": "POST",
+        "body": {
+          "decision": "accepted",
+          "identityMatch": 1,
+          "confidence": 1,
+          "observations": [
+            "隔离样本：仅验证人工评审字段与状态，不证明真实图像身份判断"
+          ],
+          "missingSections": [],
+          "summary": "核对本次候选的记录状态",
+          "feedback": "",
+          "reason": "UI受控验收，保留原尝试和规范图来源",
+          "expectedAttempt": 2,
+          "expectedVisualRevision": 1,
+          "idempotencyKey": "13cd8cad-3b06-4d86-a007-fed5b0fc4fd6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-desktop-replica-sheet",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-desktop-replica-sheet",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-accept-desktop-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-accept-desktop-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-accept-desktop-sheet-readback.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "review-regenerate",
+    "size": "desktop",
+    "fid": "media-pass40-review-regenerate-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "review: no horizontal overflow",
+      "review: dialog fits viewport",
+      "review pins actual attempt and revision with normalized explicit scores",
+      "regeneration retains previous canonical and advances attempt",
+      "next attempt candidate is independently readable",
+      "next-candidate: no horizontal overflow",
+      "one explicit review command",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-desktop-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-sessions/media-pass40-review-regenerate-desktop-visual-session/review",
+        "method": "POST",
+        "body": {
+          "decision": "regenerate",
+          "identityMatch": 1,
+          "confidence": 1,
+          "observations": [
+            "隔离样本：仅验证人工评审字段与状态，不证明真实图像身份判断"
+          ],
+          "missingSections": [
+            "测试样本的分区说明"
+          ],
+          "summary": "核对本次候选的记录状态",
+          "feedback": "继续下一次尝试并保留原规范图",
+          "reason": "UI受控验收，保留原尝试和规范图来源",
+          "expectedAttempt": 2,
+          "expectedVisualRevision": 1,
+          "idempotencyKey": "95fe204b-c419-4ef6-be1c-841a9aa430be"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-desktop/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-desktop-replica-candidate-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-desktop-replica-candidate-3",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-regenerate-desktop-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-regenerate-desktop-next-candidate.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-save",
+    "size": "desktop",
+    "fid": "media-pass40-avatar-save-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-avatar-save-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-desktop/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "93ce3fed-5640-43b1-9f29-d30e172cf659"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-avatar-save-desktop-saved-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-unknown",
+    "size": "desktop",
+    "fid": "media-pass40-avatar-unknown-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "unknown-original: no horizontal overflow",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-avatar-unknown-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "af1939e0-5766-429f-b362-f150ca1cb97b"
+        }
+      },
+      {
+        "path": "/api/media/media-pass40-avatar-unknown-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "af1939e0-5766-429f-b362-f150ca1cb97b"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-avatar-unknown-desktop-unknown-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-avatar-unknown-desktop-saved-history.png"
+    ],
+    "injectedFault": "replace accepted first response with503; server keeps original idempotent record",
+    "acceptedStatus": 200,
+    "status": "passed"
+  },
+  {
+    "name": "generation-normal",
+    "size": "desktop",
+    "fid": "media-pass40-generation-normal-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "accepted-request: no horizontal overflow",
+      "completed request opens actual readable asset",
+      "readable-result: no horizontal overflow",
+      "readable-result: dialog fits viewport",
+      "generation uses one identity and never silently resubmits",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "b675b86c-12ad-43ea-b341-758d0c068c13"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/media-generations/media-request-18",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/media-generations/media-request-18",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/media-generations/media-request-18",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-18",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-desktop/media-generations/media-request-18",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-generated-media-request-18",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-18",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-normal-desktop-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-normal-desktop-readable-result.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "generation-failure",
+    "size": "desktop",
+    "fid": "media-pass40-generation-failure-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "accepted-request: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "50f6fa38-8a53-4ed7-b4ed-2eed4932c663"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/media-generations/media-request-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/media-generations/media-request-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/media-generations/media-request-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-desktop/media-generations/media-request-12",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-failure-desktop-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-failure-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('图片服务暂时不可用。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n媒\n正在相处\n媒体核验样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n媒体\n快速前往\n⌘ K\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n媒体核验样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n想留下一幅怎样的画面？\n\n描述你的想法，再交给角色决定如何表达。\n\n图片请求已受理。角色判断、生成任务和实际图片分别显示。\n画面描述\n窗边阅读的午后\n河岸边的秋日散步\n当前真实穿搭的全身插画\n画面地点\n不指定地点\n不指定地点\n窗边\n关联登记物品 · 不关联物品\n参考图片 · 不使用参考图片\n请求原因\n生成图·非事实。角色可以拒绝或暂缓；画面不会移动角色、取得物品或改变实际穿着。\n读取最新版本并保留输入\n重置当前草稿\n提交图片请求\n图片请求记录\n窗边的午后，一段安静的阅读时光。\n2026-10-28 11:00 (北京时间)\n执行失败\n画面正在发生\n1\n角色处理\n2\n生成画面\n3\n收进媒体库\n\n执行失败 · 执行失败\n\n服务暂时无法连接，请稍后重新读取。\n\n查看原请求与判断\n继续查询实际结果\n冻结来源、实际任务与图片结果"
+  },
+  {
+    "name": "generation-unknown",
+    "size": "desktop",
+    "fid": "media-pass40-generation-unknown-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "unknown-original: no horizontal overflow",
+      "accepted-request: no horizontal overflow",
+      "completed request opens actual readable asset",
+      "readable-result: no horizontal overflow",
+      "readable-result: dialog fits viewport",
+      "generation uses one identity and never silently resubmits",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "06e967f8-1d23-46a9-802e-4893b5691f5e"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "06e967f8-1d23-46a9-802e-4893b5691f5e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations/media-request-19",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations/media-request-19",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations/media-request-19",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-19",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-desktop/media-generations/media-request-19",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-generated-media-request-19",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-19",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-unknown-desktop-unknown-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-unknown-desktop-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-unknown-desktop-readable-result.png"
+    ],
+    "injectedFault": "replace accepted first response with503; server keeps original idempotent record",
+    "acceptedStatus": 200,
+    "status": "passed"
+  },
+  {
+    "name": "brief-save",
+    "size": "mobile",
+    "fid": "media-pass40-brief-save-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "brief advances its own revision and preserves canonical",
+      "saved definition reopens from readback",
+      "one explicit brief write",
+      "saved: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-mobile/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-brief-save-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-brief-save-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-brief-save-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-brief-save-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-mobile/visual-brief",
+        "method": "PUT",
+        "body": {
+          "appearance": "保留自然的深色短发与已确认五官，补充清晰轮廓。",
+          "clothing": "低饱和日常衣物，以实际穿着为准。",
+          "constraints": "保持面部特征和身体比例。",
+          "references": "柔和自然光。",
+          "expectedRevision": 2,
+          "reason": "核对字段完整保存，规范图另行生成",
+          "idempotencyKey": "fa3c05c3-0e72-4268-940b-dde2a5f984d1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-brief-save-mobile/visual-brief",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-brief-save-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-brief-save-mobile-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "review-accept",
+    "size": "mobile",
+    "fid": "media-pass40-review-accept-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "review: no horizontal overflow",
+      "review: dialog fits viewport",
+      "review pins actual attempt and revision with normalized explicit scores",
+      "accepted candidate becomes canonical independently of sheet",
+      "accepted: no horizontal overflow",
+      "character sheet is confirmed through subsequent reads",
+      "sheet-readback: no horizontal overflow",
+      "one explicit review command",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-sessions/media-pass40-review-accept-mobile-visual-session/review",
+        "method": "POST",
+        "body": {
+          "decision": "accepted",
+          "identityMatch": 1,
+          "confidence": 1,
+          "observations": [
+            "隔离样本：仅验证人工评审字段与状态，不证明真实图像身份判断"
+          ],
+          "missingSections": [],
+          "summary": "核对本次候选的记录状态",
+          "feedback": "",
+          "reason": "UI受控验收，保留原尝试和规范图来源",
+          "expectedAttempt": 2,
+          "expectedVisualRevision": 1,
+          "idempotencyKey": "f8fb1fe1-5749-4439-a569-d483bf9a4c1f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-accept-mobile-replica-sheet",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-accept-mobile-replica-sheet",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-accept-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-accept-mobile-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-accept-mobile-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-accept-mobile-sheet-readback.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "review-regenerate",
+    "size": "mobile",
+    "fid": "media-pass40-review-regenerate-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "review: no horizontal overflow",
+      "review: dialog fits viewport",
+      "review pins actual attempt and revision with normalized explicit scores",
+      "regeneration retains previous canonical and advances attempt",
+      "next attempt candidate is independently readable",
+      "next-candidate: no horizontal overflow",
+      "one explicit review command",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-mobile-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-sessions/media-pass40-review-regenerate-mobile-visual-session/review",
+        "method": "POST",
+        "body": {
+          "decision": "regenerate",
+          "identityMatch": 1,
+          "confidence": 1,
+          "observations": [
+            "隔离样本：仅验证人工评审字段与状态，不证明真实图像身份判断"
+          ],
+          "missingSections": [
+            "测试样本的分区说明"
+          ],
+          "summary": "核对本次候选的记录状态",
+          "feedback": "继续下一次尝试并保留原规范图",
+          "reason": "UI受控验收，保留原尝试和规范图来源",
+          "expectedAttempt": 2,
+          "expectedVisualRevision": 1,
+          "idempotencyKey": "22052416-f7ca-4435-8810-6fc37a2117bc"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-brief",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-review-regenerate-mobile/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/media-pass40-review-regenerate-mobile-replica-candidate-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-review-regenerate-mobile-replica-candidate-3",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-regenerate-mobile-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-review-regenerate-mobile-next-candidate.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-save",
+    "size": "mobile",
+    "fid": "media-pass40-avatar-save-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-avatar-save-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-mobile/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "c7184d88-401d-4bd8-9f52-3252a09a85c2"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-save-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-avatar-save-mobile-saved-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-unknown",
+    "size": "mobile",
+    "fid": "media-pass40-avatar-unknown-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "unknown-original: no horizontal overflow",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-pass40-avatar-unknown-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "ed5ad4fa-bb38-4d3e-9704-22db1ef11b8d"
+        }
+      },
+      {
+        "path": "/api/media/media-pass40-avatar-unknown-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "ed5ad4fa-bb38-4d3e-9704-22db1ef11b8d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-avatar-unknown-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-avatar-unknown-mobile-unknown-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-avatar-unknown-mobile-saved-history.png"
+    ],
+    "injectedFault": "replace accepted first response with503; server keeps original idempotent record",
+    "acceptedStatus": 200,
+    "status": "passed"
+  },
+  {
+    "name": "generation-normal",
+    "size": "mobile",
+    "fid": "media-pass40-generation-normal-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "accepted-request: no horizontal overflow",
+      "completed request opens actual readable asset",
+      "readable-result: no horizontal overflow",
+      "readable-result: dialog fits viewport",
+      "generation uses one identity and never silently resubmits",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "a0f83688-6b42-4a4e-9dc6-18788d65bcd6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/media-generations/media-request-26",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/media-generations/media-request-26",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/media-generations/media-request-26",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-26",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-normal-mobile/media-generations/media-request-26",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-generated-media-request-26",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-26",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-normal-mobile-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-normal-mobile-readable-result.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "generation-failure",
+    "size": "mobile",
+    "fid": "media-pass40-generation-failure-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "accepted-request: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "10f57fa2-adeb-435f-9200-ffc72d31194e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/media-generations/media-request-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/media-generations/media-request-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/media-generations/media-request-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-failure-mobile/media-generations/media-request-13",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-failure-mobile-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-failure-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('图片服务暂时不可用。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n媒体\n快速前往\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n媒体核验样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n想留下一幅怎样的画面？\n\n描述你的想法，再交给角色决定如何表达。\n\n图片请求已受理。角色判断、生成任务和实际图片分别显示。\n画面描述\n窗边阅读的午后\n河岸边的秋日散步\n当前真实穿搭的全身插画\n画面地点\n不指定地点\n不指定地点\n窗边\n关联登记物品 · 不关联物品\n参考图片 · 不使用参考图片\n请求原因\n生成图·非事实。角色可以拒绝或暂缓；画面不会移动角色、取得物品或改变实际穿着。\n读取最新版本并保留输入\n重置当前草稿\n提交图片请求\n图片请求记录\n窗边的午后，一段安静的阅读时光。\n2026-10-28 11:00 (北京时间)\n执行失败\n画面正在发生\n1\n角色处理\n2\n生成画面\n3\n收进媒体库\n\n执行失败 · 执行失败\n\n服务暂时无法连接，请稍后重新读取。\n\n查看原请求与判断\n继续查询实际结果\n冻结来源、实际任务与图片结果"
+  },
+  {
+    "name": "generation-unknown",
+    "size": "mobile",
+    "fid": "media-pass40-generation-unknown-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "unknown-original: no horizontal overflow",
+      "accepted-request: no horizontal overflow",
+      "completed request opens actual readable asset",
+      "readable-result: no horizontal overflow",
+      "readable-result: dialog fits viewport",
+      "generation uses one identity and never silently resubmits",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "554b30b6-6837-41d7-ae91-8e0fb92390f9"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations",
+        "method": "POST",
+        "body": {
+          "prompt": "窗边的午后，一段安静的阅读时光。",
+          "reason": "隔离UI验收，仅验证请求与资产读回",
+          "idempotencyKey": "554b30b6-6837-41d7-ae91-8e0fb92390f9"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations/media-request-27",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations/media-request-27",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations/media-request-27",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-27",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-pass40-generation-unknown-mobile/media-generations/media-request-27",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-generated-media-request-27",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-generated-media-request-27",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-unknown-mobile-unknown-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-unknown-mobile-accepted-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/pass40-generation-unknown-mobile-readable-result.png"
+    ],
+    "injectedFault": "replace accepted first response with503; server keeps original idempotent record",
+    "acceptedStatus": 200,
+    "status": "passed"
+  }
+]

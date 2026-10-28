@@ -1,0 +1,406 @@
+[
+  {
+    "name": "reply-request",
+    "size": "desktop",
+    "fid": "diary-pass38-reply-request-desktop",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "blank reply does not submit",
+      "accepted: no horizontal overflow",
+      "request-completed: no horizontal overflow",
+      "one durable reply request and one write",
+      "request completion does not submit a chat send",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "POST",
+        "body": {
+          "text": "看到你认真记录日常，我也想慢慢分享今天。",
+          "expectedRevision": 1,
+          "idempotencyKey": "b52bc252-35c3-4aec-9a09-a81878dcd8b5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-reply-request-desktop-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-reply-request-desktop-request-completed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "past-generation",
+    "size": "desktop",
+    "fid": "diary-pass38-past-generation-desktop",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "future date does not generate",
+      "generation receipt records pending instead of invented prose",
+      "pending: no horizontal overflow",
+      "ready: no horizontal overflow",
+      "ready body belongs to original date/id",
+      "generation made one explicit POST",
+      "refresh follows the original generated record",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/generate",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-27",
+          "timezone": "Asia/Shanghai",
+          "reason": "回顾所选已结束日期的真实经历",
+          "idempotencyKey": "8eaf1636-bd6b-41f4-b3a1-05ef121f8f41"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-generated-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-generated-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-generated-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-generated-2/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-generated-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-generated-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-desktop/diary/diary-generated-2/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-past-generation-desktop-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-past-generation-desktop-ready.png"
+    ],
+    "transportNote": "Hold completed generated-record GET until pending UI is captured; do not change server output.",
+    "diaryId": "diary-generated-2",
+    "status": "passed"
+  },
+  {
+    "name": "reply-request",
+    "size": "mobile",
+    "fid": "diary-pass38-reply-request-mobile",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "blank reply does not submit",
+      "accepted: no horizontal overflow",
+      "request-completed: no horizontal overflow",
+      "one durable reply request and one write",
+      "request completion does not submit a chat send",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "POST",
+        "body": {
+          "text": "看到你认真记录日常，我也想慢慢分享今天。",
+          "expectedRevision": 1,
+          "idempotencyKey": "3e528176-a995-4843-855e-4045fad8592a"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-reply-request-mobile-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-reply-request-mobile-request-completed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "past-generation",
+    "size": "mobile",
+    "fid": "diary-pass38-past-generation-mobile",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "future date does not generate",
+      "generation receipt records pending instead of invented prose",
+      "pending: no horizontal overflow",
+      "ready: no horizontal overflow",
+      "ready body belongs to original date/id",
+      "generation made one explicit POST",
+      "refresh follows the original generated record",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/generate",
+        "method": "POST",
+        "body": {
+          "localDate": "2026-10-27",
+          "timezone": "Asia/Shanghai",
+          "reason": "回顾所选已结束日期的真实经历",
+          "idempotencyKey": "1d9ae5b6-a4ee-4e07-9e33-2bea275db797"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-generated-4",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-generated-4",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-generated-4",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-generated-4/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-generated-4",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-generated-4",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass38-past-generation-mobile/diary/diary-generated-4/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-past-generation-mobile-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass38-past-generation-mobile-ready.png"
+    ],
+    "transportNote": "Hold completed generated-record GET until pending UI is captured; do not change server output.",
+    "diaryId": "diary-generated-4",
+    "status": "passed"
+  }
+]

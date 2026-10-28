@@ -1,0 +1,1530 @@
+[
+  {
+    "name": "task-source",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "directory: no horizontal overflow",
+      "directory: single current shell",
+      "task shows actual completed and failed source stages",
+      "recorded-stages: no horizontal overflow",
+      "recorded-stages: single current shell",
+      "return restores source task directory",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-source-desktop-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-source-desktop-recorded-stages.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "directory",
+        "portals": []
+      },
+      {
+        "state": "recorded-stages",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-recovery-cancel",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "reset requires recorded checkpoint",
+      "recorded checkpoint enables explicit reset review",
+      "blank restart reason cannot submit",
+      "edited field retains visible focus",
+      "reason-review: no horizontal overflow",
+      "reason-review: single current shell",
+      "reason-review: portal uses14px theme",
+      "reason-review: input has13px/400 typography",
+      "cancel does not submit workflow control",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-recovery-cancel-desktop-reason-review.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "reason-review",
+        "portals": [
+          {
+            "width": 590,
+            "fontSize": "14px",
+            "slot": "dialog-content",
+            "fields": [
+              {
+                "size": "13px",
+                "weight": "400"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-control-submit",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "form footer submits the original workflow command",
+      "workflow command retains run/revision/reason/key",
+      "accepted receipt does not pretend task completion",
+      "accepted-original-task: no horizontal overflow",
+      "accepted-original-task: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "受控UI核对原任务输入，不宣称执行完成",
+          "idempotencyKey": "d75a5f0f-bcb4-45aa-9cbb-6fe95dd54883"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-control-submit-desktop-accepted-original-task.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "accepted-original-task",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "calls-and-health",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "call-detail: no horizontal overflow",
+      "call-detail: single current shell",
+      "media-empty: no horizontal overflow",
+      "media-empty: single current shell",
+      "readiness displays actual returned status",
+      "calls drawer does not leak into another diagnostic mode",
+      "readiness: no horizontal overflow",
+      "readiness: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-calls-and-health-desktop-call-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-calls-and-health-desktop-media-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-calls-and-health-desktop-readiness.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "call-detail",
+        "portals": []
+      },
+      {
+        "state": "media-empty",
+        "portals": []
+      },
+      {
+        "state": "readiness",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "data-validation-cancel",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "invalid JSON stays in editable draft",
+      "invalid JSON does not call validate/import",
+      "validated-draft: no horizontal overflow",
+      "validated-draft: single current shell",
+      "independent import uses ordinary primary confirmation",
+      "import-review: no horizontal overflow",
+      "import-review: single current shell",
+      "import-review: portal uses14px theme",
+      "import-review: input has13px/400 typography",
+      "review cancellation never imports definitions",
+      "explicit validation cancellation removes import confirmation",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "name": "窗边书签",
+                  "description": "隔离UI定义包"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-data-validation-cancel-desktop-validated-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-data-validation-cancel-desktop-import-review.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "validated-draft",
+        "portals": []
+      },
+      {
+        "state": "import-review",
+        "portals": [
+          {
+            "width": 540,
+            "fontSize": "14px",
+            "slot": "sheet-content",
+            "fields": [
+              {
+                "size": "13px",
+                "weight": "400"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "backup-details-cancel",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "completed-detail: no horizontal overflow",
+      "completed-detail: single current shell",
+      "restore-review: no horizontal overflow",
+      "restore-review: single current shell",
+      "restore-review: portal uses14px theme",
+      "restore-review: input has13px/400 typography",
+      "restore-review: input has13px/400 typography",
+      "cancel does not create restore job",
+      "failed-detail: no horizontal overflow",
+      "failed-detail: single current shell",
+      "queued-detail: no horizontal overflow",
+      "queued-detail: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-completed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-failed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-desktop-completed-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-desktop-restore-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-desktop-failed-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-desktop-queued-detail.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "completed-detail",
+        "portals": []
+      },
+      {
+        "state": "restore-review",
+        "portals": [
+          {
+            "width": 540,
+            "fontSize": "14px",
+            "slot": "sheet-content",
+            "fields": [
+              {
+                "size": "13px",
+                "weight": "400"
+              },
+              {
+                "size": "13px",
+                "weight": "400"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "failed-detail",
+        "portals": []
+      },
+      {
+        "state": "queued-detail",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "object-revision-boundary",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "revision-empty: no horizontal overflow",
+      "revision-empty: single current shell",
+      "rollback boundary has no mutation submit button",
+      "rollback-boundary: no horizontal overflow",
+      "rollback-boundary: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/data/revisions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-object-revision-boundary-desktop-revision-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-object-revision-boundary-desktop-rollback-boundary.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "revision-empty",
+        "portals": []
+      },
+      {
+        "state": "rollback-boundary",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-loading",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "loading: no horizontal overflow",
+      "loading: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-read-loading-desktop-loading.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "loading",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-failure",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "failed initial read is not confirmed empty history",
+      "read-failed: no horizontal overflow",
+      "read-failed: single current shell",
+      "original task read recovers",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-read-failure-desktop-read-failed.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "read-failed",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-empty",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "empty returned steps remain honest empty",
+      "empty-stages: no horizontal overflow",
+      "empty-stages: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-read-empty-desktop-empty-stages.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "empty-stages",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-source",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "directory: no horizontal overflow",
+      "directory: single current shell",
+      "task shows actual completed and failed source stages",
+      "recorded-stages: no horizontal overflow",
+      "recorded-stages: single current shell",
+      "return restores source task directory",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-source-mobile-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-source-mobile-recorded-stages.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "directory",
+        "portals": []
+      },
+      {
+        "state": "recorded-stages",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-recovery-cancel",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "reset requires recorded checkpoint",
+      "recorded checkpoint enables explicit reset review",
+      "blank restart reason cannot submit",
+      "edited field retains visible focus",
+      "reason-review: no horizontal overflow",
+      "reason-review: single current shell",
+      "reason-review: portal uses14px theme",
+      "reason-review: input has13px/400 typography",
+      "cancel does not submit workflow control",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-recovery-cancel-mobile-reason-review.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "reason-review",
+        "portals": [
+          {
+            "width": 356,
+            "fontSize": "14px",
+            "slot": "dialog-content",
+            "fields": [
+              {
+                "size": "13px",
+                "weight": "400"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-control-submit",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "form footer submits the original workflow command",
+      "workflow command retains run/revision/reason/key",
+      "accepted receipt does not pretend task completion",
+      "accepted-original-task: no horizontal overflow",
+      "accepted-original-task: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "受控UI核对原任务输入，不宣称执行完成",
+          "idempotencyKey": "ccd8aea0-212a-4a22-aac3-d327a48e3ca0"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-control-submit-mobile-accepted-original-task.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "accepted-original-task",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "calls-and-health",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "call-detail: no horizontal overflow",
+      "call-detail: single current shell",
+      "media-empty: no horizontal overflow",
+      "media-empty: single current shell",
+      "readiness displays actual returned status",
+      "calls drawer does not leak into another diagnostic mode",
+      "readiness: no horizontal overflow",
+      "readiness: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-calls-and-health-mobile-call-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-calls-and-health-mobile-media-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-calls-and-health-mobile-readiness.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "call-detail",
+        "portals": []
+      },
+      {
+        "state": "media-empty",
+        "portals": []
+      },
+      {
+        "state": "readiness",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "data-validation-cancel",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "invalid JSON stays in editable draft",
+      "invalid JSON does not call validate/import",
+      "validated-draft: no horizontal overflow",
+      "validated-draft: single current shell",
+      "independent import uses ordinary primary confirmation",
+      "import-review: no horizontal overflow",
+      "import-review: single current shell",
+      "import-review: portal uses14px theme",
+      "import-review: mobile sheet uses available width",
+      "import-review: input has13px/400 typography",
+      "review cancellation never imports definitions",
+      "explicit validation cancellation removes import confirmation",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "name": "窗边书签",
+                  "description": "隔离UI定义包"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-data-validation-cancel-mobile-validated-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-data-validation-cancel-mobile-import-review.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "validated-draft",
+        "portals": []
+      },
+      {
+        "state": "import-review",
+        "portals": [
+          {
+            "width": 374,
+            "fontSize": "14px",
+            "slot": "sheet-content",
+            "fields": [
+              {
+                "size": "13px",
+                "weight": "400"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "backup-details-cancel",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "completed-detail: no horizontal overflow",
+      "completed-detail: single current shell",
+      "restore-review: no horizontal overflow",
+      "restore-review: single current shell",
+      "restore-review: portal uses14px theme",
+      "restore-review: mobile sheet uses available width",
+      "restore-review: input has13px/400 typography",
+      "restore-review: input has13px/400 typography",
+      "cancel does not create restore job",
+      "failed-detail: no horizontal overflow",
+      "failed-detail: single current shell",
+      "queued-detail: no horizontal overflow",
+      "queued-detail: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-completed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-failed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-mobile-completed-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-mobile-restore-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-mobile-failed-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-backup-details-cancel-mobile-queued-detail.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "completed-detail",
+        "portals": []
+      },
+      {
+        "state": "restore-review",
+        "portals": [
+          {
+            "width": 374,
+            "fontSize": "14px",
+            "slot": "sheet-content",
+            "fields": [
+              {
+                "size": "13px",
+                "weight": "400"
+              },
+              {
+                "size": "13px",
+                "weight": "400"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "failed-detail",
+        "portals": []
+      },
+      {
+        "state": "queued-detail",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "object-revision-boundary",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "revision-empty: no horizontal overflow",
+      "revision-empty: single current shell",
+      "rollback boundary has no mutation submit button",
+      "rollback-boundary: no horizontal overflow",
+      "rollback-boundary: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/data/revisions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-object-revision-boundary-mobile-revision-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-object-revision-boundary-mobile-rollback-boundary.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "revision-empty",
+        "portals": []
+      },
+      {
+        "state": "rollback-boundary",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-loading",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "loading: no horizontal overflow",
+      "loading: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-read-loading-mobile-loading.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "loading",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-failure",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "failed initial read is not confirmed empty history",
+      "read-failed: no horizontal overflow",
+      "read-failed: single current shell",
+      "original task read recovers",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-read-failure-mobile-read-failed.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "read-failed",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-empty",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "empty returned steps remain honest empty",
+      "empty-stages: no horizontal overflow",
+      "empty-stages: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass51-task-read-empty-mobile-empty-stages.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "empty-stages",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-rejected-review-focus",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "rejected-review: no horizontal overflow",
+      "rejected-review: single current shell",
+      "rejected-review: portal uses14px theme",
+      "rejected review Escape returns to its actual opening button",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "核对明确被拒绝的原操作",
+          "idempotencyKey": "deac4b32-5b54-46ee-b31a-e20b42107736"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass52-task-rejected-review-focus-desktop-rejected-review.png"
+    ],
+    "injectedFault": "409 before forwarding workflow restart; no server control mutation",
+    "portalGeometry": [
+      {
+        "state": "rejected-review",
+        "portals": [
+          {
+            "width": 590,
+            "fontSize": "14px",
+            "slot": "dialog-content",
+            "fields": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-rejected-review-focus",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "rejected-review: no horizontal overflow",
+      "rejected-review: single current shell",
+      "rejected-review: portal uses14px theme",
+      "rejected review Escape returns to its actual opening button",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "核对明确被拒绝的原操作",
+          "idempotencyKey": "ad7bebc3-27dc-4756-a772-05a61422f29e"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/pass52-task-rejected-review-focus-mobile-rejected-review.png"
+    ],
+    "injectedFault": "409 before forwarding workflow restart; no server control mutation",
+    "portalGeometry": [
+      {
+        "state": "rejected-review",
+        "portals": [
+          {
+            "width": 356,
+            "fontSize": "14px",
+            "slot": "dialog-content",
+            "fields": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  }
+]

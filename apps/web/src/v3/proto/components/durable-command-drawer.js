@@ -8,7 +8,7 @@ import {studioDraftStorage} from './studio-draft-storage.js';
 // Shared UI for commands whose unknown outcome must survive a reload. This
 // retains the frozen input and its receipt until readback; neither is a
 // second authoritative business snapshot.
-export function durableCommandDrawer({slot,title,body,read,execute,onSaved=()=>{},button='确认提交',originalOnly=false,onPendingChange=()=>{},preAdmissionConflicts=['revision_conflict']}){
+export function durableCommandDrawer({slot,title,body,read,execute,onSaved=()=>{},button='确认提交',destructive=true,originalOnly=false,onPendingChange=()=>{},preAdmissionConflicts=['revision_conflict']}){
  const owner=get('session')?.actorId,key=`fluctlight-studio:${owner}:${slot}:command`,acceptedKey=key+':accepted';
  let active=true,busy=false,sessionValid=true,submittedInputs=null;
  // A logout followed by re-entry into the same Owner is a new session. An old
@@ -23,7 +23,7 @@ export function durableCommandDrawer({slot,title,body,read,execute,onSaved=()=>{
   if(current()&&original?.idempotencyKey===idempotencyKey)storage().setItem(acceptedKey,JSON.stringify({version:1,idempotencyKey,value,result,inputSnapshot:submittedInputs}));
   return result;
  }});
- const d=drawer({title,body:`${body}<div data-original></div><p data-domain-ui="alert" role="alert" data-command-error></p>`,footer:`<button data-domain-ui="button" class="btn" data-command-close>关闭</button><button data-domain-ui="button" class="btn" data-command-retry>核对或重试原提交</button><button data-domain-ui="button" class="btn" data-command-release hidden>核对新状态后解除已拒绝的原提交</button><button data-domain-ui="button" class="btn danger" data-command-send>${esc(button)}</button>`,onClose:()=>{active=false;if(!busy)unsubscribe();}});
+ const d=drawer({title,body:`${body}<div data-original></div><p data-domain-ui="alert" role="alert" data-command-error></p>`,footer:`<button data-domain-ui="button" class="btn" data-command-close>关闭</button><button data-domain-ui="button" class="btn" data-command-retry>核对或重试原提交</button><button data-domain-ui="button" class="btn" data-command-release hidden>核对新状态后解除已拒绝的原提交</button><button data-domain-ui="button" class="btn ${destructive?'danger':'primary'}" data-command-send>${esc(button)}</button>`,onClose:()=>{active=false;if(!busy)unsubscribe();}});
  const alive=()=>active&&d.el.isConnected&&current();
  function accepted(){const raw=storage().getItem(acceptedKey);if(!raw)return null;const result=JSON.parse(raw);if(result?.version!==1||!result.idempotencyKey||!result.value||!Object.hasOwn(result,'result'))throw Error('原回执记录无法读取，请先核对原记录；没有发起新提交。');return {raw,...result};}
  function paint(){if(!alive())return;const receipt=accepted(),pending=command.pending();onPendingChange(!!receipt||!!pending);d.el.querySelector('[data-original]').innerHTML=receipt?`<p>提交已有回执；只重新读取原结果，不再提交修改。</p>${JsonDetails(receipt.value,'原提交')}`:pending?`<p>原提交身份和输入已保留，先核对它的结果再发起新提交。</p>${JsonDetails(pending.value,'原提交')}`:originalOnly?'<p data-domain-ui="alert" class="banner info">没有待核对的原提交。请关闭后先校验配置包，再创建导入。</p>':'';d.el.querySelector('[data-command-send]').disabled=busy||!!receipt||!!pending||originalOnly;d.el.querySelector('[data-command-send]').hidden=originalOnly;const retry=d.el.querySelector('[data-command-retry]');retry.textContent=receipt?'重新读取原结果':'核对或重试原提交';retry.hidden=!receipt&&!pending;retry.disabled=busy||!receipt&&(!pending||!!pending.rejection);d.el.querySelector('[data-command-release]').hidden=!!receipt||!pending?.rejection;d.el.querySelector('[data-command-release]').disabled=busy;}

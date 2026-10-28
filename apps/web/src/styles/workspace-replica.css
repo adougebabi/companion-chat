@@ -1,18 +1,18 @@
 /* 2026-10-27 supplied Demo: layout ownership for shell and migrated pages. */
-.replica-workspace,.replica-dialog,.replica-quick-dialog { --ink:var(--foreground);--border:#e2e7de;--teal:var(--primary);--page:var(--background);font-size:14px;line-height:1.5;color:#2e3931; }
+.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay { --ink:var(--foreground);--border:#e2e7de;--teal:var(--primary);--page:var(--background);font-size:14px;line-height:1.5;color:#2e3931; }
 /* The Demo's shared control rules also apply to portaled workspace dialogs. */
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) :is(button,input,textarea,select) { font-family:inherit;line-height:1.5; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) :is(input,textarea,select,[data-slot="select-trigger"]) { font-weight:400; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) ::selection { background:#dce8da; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="button"] { font-size:12px;font-weight:500;border-radius:7px;gap:7px; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="button"] svg { width:15px;height:15px; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="badge"] { font-size:10px;font-weight:500;border-radius:5px; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="button"][data-variant="outline"] { border-color:#dce4d4;background:white;box-shadow:none;color:#697d5c; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="button"][data-variant="outline"]:hover { background:#f0f5e9;border-color:#b6c9a6; }
-.replica-workspace :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]) { font-size:13px;background:white;border-color:#dfe5db;border-radius:7px;box-shadow:none; }
-.replica-workspace :is([data-slot="input"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="select-trigger"]) { min-height:39px; }
-:where(.replica-workspace,.replica-dialog) [data-slot="card"] { border:1px solid #e2e7de;border-radius:12px;box-shadow:none;line-height:1.5; }
-:where(.replica-workspace,.replica-dialog) .replica-info { padding:13px 15px;border:1px solid #e3ebd9;border-radius:8px;background:#f1f5ec;color:#748768;font-size:11px;line-height:1.85; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :is(button,input,textarea,select) { font-family:inherit;line-height:1.5; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :is(input,textarea,select,[data-slot="select-trigger"]) { font-weight:400; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) ::selection { background:#dce8da; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"] { font-size:12px;font-weight:500;border-radius:7px;gap:7px; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"] svg { width:15px;height:15px; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="badge"] { font-size:10px;font-weight:500;border-radius:5px; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"][data-variant="outline"] { border-color:#dce4d4;background:white;box-shadow:none;color:#697d5c; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"][data-variant="outline"]:hover { background:#f0f5e9;border-color:#b6c9a6; }
+.replica-workspace :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]),.replica-overlay :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]) { font-size:13px;background:white;border-color:#dfe5db;border-radius:7px;box-shadow:none; }
+.replica-workspace :is([data-slot="input"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="select-trigger"]),.replica-overlay :is([data-slot="input"],[data-slot="select-trigger"]) { min-height:39px; }
+:where(.replica-workspace,.replica-dialog,.replica-overlay) [data-slot="card"] { border:1px solid #e2e7de;border-radius:12px;box-shadow:none;line-height:1.5; }
+:where(.replica-workspace,.replica-dialog,.replica-overlay) .replica-info { padding:13px 15px;border:1px solid #e3ebd9;border-radius:8px;background:#f1f5ec;color:#748768;font-size:11px;line-height:1.85; }
 .replica-shell { --workspace-sidebar-width:218px; --sidebar-width-icon:51px; }
 .replica-shell > [data-slot="sidebar"] > [data-slot="sidebar-container"] { padding:0; border-right:1px solid #e2e7de; }
 .replica-shell > [data-slot="sidebar"] > [data-slot="sidebar-container"] > [data-slot="sidebar-inner"] { background:#fbfcf8; }
@@ -371,3 +371,12 @@
 [data-slot="sidebar"][data-mobile="true"] .replica-nav-item{min-height:44px}
 
 .replica-shell > [data-collapsible="icon"] > [data-slot="sidebar-gap"],.replica-shell > [data-collapsible="icon"] > [data-slot="sidebar-container"]{width:67px}
+
+/* Portal theme is independent of whether the primitive is a Dialog or Sheet. */
+.replica-overlay :is([data-slot="dialog-title"],[data-slot="sheet-title"],[data-slot="alert-dialog-title"]){font-size:20px;line-height:1.5;font-weight:600}
+.replica-overlay :is([data-slot="dialog-description"],[data-slot="sheet-description"],[data-slot="alert-dialog-description"]){font-size:12px;line-height:1.8;color:#778172}
+.replica-overlay [data-slot="label"]{font-size:12px;line-height:1.5}
+.replica-overlay :is(button,a,input,textarea,[role="combobox"]):focus-visible{outline:2px solid #96ad80;outline-offset:3px}
+.replica-overlay[data-slot="dialog-content"]{width:calc(100vw - 34px);max-width:590px;max-height:89dvh;padding:26px;overflow-y:auto;border-radius:15px;border-color:#dfe6da;box-shadow:0 25px 100px #1c33292b}
+.replica-overlay.product-sheet.replica-overlay-wide{width:min(860px,calc(100vw - 16px))}
+@media(max-width:700px){.replica-overlay[data-slot="dialog-content"]{max-height:92dvh;padding:22px}.replica-overlay[data-slot="sheet-content"]{padding:22px}}

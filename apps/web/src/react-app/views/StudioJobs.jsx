@@ -27,6 +27,7 @@ import {
 } from "@/v3/proto/components/media-reference-grants.js";
 import { stateLabel, errorMessage } from "@/v3/domain-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+const jobStatusLabel = (status) => status === "discarded" ? "已丢弃" : stateLabel(status);
 export default function StudioJobsView({ model: m }) {
   const {
     ui,
@@ -242,7 +243,7 @@ export default function StudioJobsView({ model: m }) {
               <Badge variant="outline" data-status={entry.status}>
                 {entry.result?.disposition === "needs_input"
                   ? "需要补充输入"
-                  : stateLabel(entry.status)}
+                  : jobStatusLabel(entry.status)}
               </Badge>
             </button>
           ))}
@@ -260,7 +261,7 @@ export default function StudioJobsView({ model: m }) {
               <Badge variant="outline" data-status={job.status}>
                 {out.disposition === "needs_input"
                   ? "需要补充输入"
-                  : stateLabel(job.status)}
+                  : jobStatusLabel(job.status)}
               </Badge>
             )}
             <Button

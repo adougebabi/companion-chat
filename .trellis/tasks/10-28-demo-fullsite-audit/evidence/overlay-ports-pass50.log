@@ -1,0 +1,21 @@
+✔ profile text controls stay mounted and focused crossing 80 characters in either direction (213.658667ms)
+✔ controller inputs preserve the immediate native value and composition across background notifications (282.076042ms)
+✔ select normalization removes duplicate empty choices while preserving exact domain value types (163.455333ms)
+✔ diagnostic records use real table cells with separate actions rather than a button owning the row (144.309333ms)
+✔ malformed Studio world structure stays editable as complete JSON instead of crashing or overwriting its data (143.403667ms)
+✔ one application tree ports exact native form values, original listeners and submission while preserving a long focused draft (330.834125ms)
+✔ Collapsible keeps original nested controls and callbacks, reflects controller open state and removes ports on page replacement (176.37525ms)
+✔ radio selection keeps the original group checked state, change listener and single FormData value (119.00575ms)
+✔ controller redraw resolves the focused carrier and restores the same selection to the new React control (118.555417ms)
+✔ rich disclosure summaries retain structured labels and settings Sheets reopen the same form after Escape (194.757084ms)
+✔ datetime fields use one original form value while date and time edits keep the local datetime contract (91.978583ms)
+✔ shared confirmation uses one Radix AlertDialog, Escape cancels once and restores its connected trigger (208.183083ms)
+✔ domain drawer retains its original content node and handlers in the application Sheet, including nested confirmation (216.876625ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3136.543

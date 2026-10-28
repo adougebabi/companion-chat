@@ -138,7 +138,7 @@ export function diaryFixture({ owner, scenario }) {
         return reply({
           items: [...requests.values()]
             .map((v) => v.value)
-            .filter((v) => v.payload.diary_id === id),
+            .filter((v) => v.fluctlight_id === fid && v.payload.diary_id === id),
           next_cursor: "",
         });
       if (["pending", "running"].includes(entry.status)) {

@@ -1,0 +1,742 @@
+[
+  {
+    "name": "garment-save",
+    "size": "desktop",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "cancel preserves actual clothing name",
+      "ownership and availability reopen from actual readback",
+      "create plus two explicit corrections",
+      "saved: no horizontal overflow",
+      "clothing registration never implies wearing",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-save desktop",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "cbaee220-f873-43bd-a7ec-41a76bc2fd9b"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 1,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-save desktop",
+            "ownership": "borrowed",
+            "availability": "unavailable",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "3ad7fe10-f561-4638-907c-8126f018a317"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 2,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-save desktop",
+            "ownership": "borrowed",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "4c948102-800c-4439-b57b-f78dc1e07e54"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-save-desktop-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-save-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "outfit-wear",
+    "size": "desktop",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "composing: no horizontal overflow",
+      "saving plan does not change confirmed wearing",
+      "cancelled edit does not PUT plan",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "穿搭核验 pass47 desktop",
+          "tags": [
+            "外出"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 6,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "bd43497a-926f-4dda-8115-0fb16f0f1bd1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits/plan-2/revisions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-outfit-wear-desktop-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-outfit-wear-desktop-failure.png"
+    ],
+    "planId": "plan-2",
+    "status": "failed",
+    "error": "locator.click: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '穿搭核验 pass47 desktop', exact: true }) }).getByRole('button', { name: '请换上这套', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n10\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n外出\n穿搭核验 pass47 desktop\n\n3 件服装 · v1\n\n预览\n请换上这套"
+  },
+  {
+    "name": "garment-unknown",
+    "size": "desktop",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-unknown desktop",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "1b6aff39-45a6-433e-b164-36b02279fb1f"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-unknown-desktop-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-unknown-desktop-failure.png"
+    ],
+    "acceptedStatus": 200,
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByRole('button', { name: '重试原提交', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n10\n穿搭方案\n1\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n上衣\n青绿棉质上衣\n春\n秋\n正在穿\n下衣\n宽松长裤\n春\n秋\n正在穿\n内衣\n柔软内衣\n春\n秋\n正在穿\n内裤\n棉质内裤\n春\n秋\n正在穿\n袜子\n短袜\n春\n秋\n正在穿\n鞋子\n平底鞋\n春\n秋\n配饰\n银色项链\n春\n秋\n配饰\n简约手链\n春\n秋\n外套\n薄外套\n春\n秋\n上衣\n新增服装 pass47 garment-save desktop\n添加衣服\n\n补录或修正已经知道的衣物信息。\n\n服务暂时无法连接，请稍后重新读取。 重试\n衣服名称 / 描述\n\n填写便于辨认的衣服名称。\n\n服装类型\n上衣\n外套\n上衣\n内衣\n内裤\n下衣\n袜子\n鞋子\n配饰\n适合季节\n春季\n夏季\n秋季\n冬季\n拥有关系\n尚未确认\n已拥有\n借用\n尚未确认\n可用状态\n可穿着\n可穿着\n暂不可用\n已遗失\n取消\n保存衣服\n关闭"
+  },
+  {
+    "name": "garment-save",
+    "size": "mobile",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "cancel preserves actual clothing name",
+      "ownership and availability reopen from actual readback",
+      "create plus two explicit corrections",
+      "saved: no horizontal overflow",
+      "clothing registration never implies wearing",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-save mobile",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "f407d235-f186-4e4d-bdb7-2cede3bfe562"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 1,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-save mobile",
+            "ownership": "borrowed",
+            "availability": "unavailable",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "5f399322-af92-4435-9146-26870086d6c1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 2,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-save mobile",
+            "ownership": "borrowed",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "e1bce978-6bf2-48ba-a0e1-8eec4d99fefd"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-save-mobile-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-save-mobile-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "outfit-wear",
+    "size": "mobile",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "composing: no horizontal overflow",
+      "saving plan does not change confirmed wearing",
+      "cancelled edit does not PUT plan",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "穿搭核验 pass47 mobile",
+          "tags": [
+            "外出"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 6,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "840a6f23-cf60-4689-bd07-1a04fb471e64"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits/plan-2/revisions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-outfit-wear-mobile-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-outfit-wear-mobile-failure.png"
+    ],
+    "planId": "plan-2",
+    "status": "failed",
+    "error": "locator.click: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '穿搭核验 pass47 mobile', exact: true }) }).getByRole('button', { name: '请换上这套', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n10\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n外出\n穿搭核验 pass47 mobile\n\n3 件服装 · v1\n\n预览\n请换上这套"
+  },
+  {
+    "name": "garment-unknown",
+    "size": "mobile",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 pass47 garment-unknown mobile",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "25838e3b-4264-4f58-af49-34762af6f741"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-unknown-mobile-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/pass47-garment-unknown-mobile-failure.png"
+    ],
+    "acceptedStatus": 200,
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByRole('button', { name: '重试原提交', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n10\n穿搭方案\n1\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n上衣\n青绿棉质上衣\n春\n秋\n正在穿\n下衣\n宽松长裤\n春\n秋\n正在穿\n内衣\n柔软内衣\n春\n秋\n正在穿\n内裤\n棉质内裤\n春\n秋\n正在穿\n袜子\n短袜\n春\n秋\n正在穿\n鞋子\n平底鞋\n春\n秋\n配饰\n银色项链\n春\n秋\n配饰\n简约手链\n春\n秋\n外套\n薄外套\n春\n秋\n上衣\n新增服装 pass47 garment-save mobile\n添加衣服\n\n补录或修正已经知道的衣物信息。\n\n服务暂时无法连接，请稍后重新读取。 重试\n衣服名称 / 描述\n\n填写便于辨认的衣服名称。\n\n服装类型\n上衣\n外套\n上衣\n内衣\n内裤\n下衣\n袜子\n鞋子\n配饰\n适合季节\n春季\n夏季\n秋季\n冬季\n拥有关系\n尚未确认\n已拥有\n借用\n尚未确认\n可用状态\n可穿着\n可穿着\n暂不可用\n已遗失\n取消\n保存衣服\n关闭"
+  }
+]

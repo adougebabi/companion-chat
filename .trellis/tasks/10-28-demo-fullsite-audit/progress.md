@@ -74,3 +74,41 @@ coverage.json的state_verification记录具体执行，行级状态未因单一�
 5. 每批更新覆盖、修复和视觉证据。保留受控/真实数据证据边界，不扩大后端回归，不配置Comfy。
 
 当前额外服务：4387 mutable growth正常（session88364），4388 unknown（session29616，当前未用于新验收）；4389 mutable studio（session22003，带私有audit路径）；4390 mutable world（session50742）。4381同内容parity已重启为session13730，含记忆经历/知识正确映射。每次改fixture要重启对应任务进程；改生产代码先build。
+
+
+## 第三个继续批次（第二检查点之后）
+
+- 第二本地检查点23becf23已保存F23–F36，未推送。当前新增F37（沙盒discarded文案）和F38（日程冲突复核可读摘要），尚未提交。
+- studio-sandbox/report-pass35.json4/4通过；Diary report-consolidated.json12/12通过；Schedule report-pass39.json12/12通过，F38后item-conflict另在report-pass43.json2/2通过（可读原建议、完整协议折叠、明确重提保留原key）。Media report-consolidated.json16/16通过，覆盖定义保存、候选接受/重生成与设定图读取、头像保存/历史/未知、图片请求完成/失败/未知；均受控HTTP，无模型身份判断或Comfy证明。
+- 真实上传UI evidence/real-ui-upload/report.json2/2通过：既有隔离Owner，桌面正常上传并读原PNG，手机实际POST保存后丢回执→刷新→by-key查询恢复，不重发bytes；实际filename/sha256/size/origin/readable一致，详情图片可读。没有新增后台审计/配置/重启，仅实际上传UI操作。
+- 新测试工具问题已区分：Diary留言fixture补fid过滤（旧样本ID相同），过快ready由完成GET传输门控观察pending且不改服务结果，重复正文定位器已限定正文；Schedule初始失败为对隐藏背景标题/空态词定位失配。失败证据保留，不当产品修复。
+- Web全量pass42为642/642、0skip；F38新增一项Schedule测试，14项Schedule定向pass43通过，当前总数应643，待最后全量。typecheck/build43通过及两项生产守卫。Studio16项pass35通过。
+- coverage现101行有具体浏览器证据；新state不等于177行全部验完。还未以此归档或报告全站完成。
+- 当前在新4398 creation=normal（session96831）测试初始化独立GET未知/待审阅/图片失败。verification/verify-preparation-read-ui.mjs，初次before44只跑awaiting-review（执行session见工具），目标是先确认已知状态是否有可执行的人类评审说明。不要改Demo或配置图片服务。
+- 新服务：4391 diary normal重载session42429；4392 schedule normal88075；4393 rejected23075；4394 conflict最新67217；4395 conflict最新79491（F38已用过一次冲突，重测该场景需重启）；4396 media normal44773；4397 generation-failure71463。旧其它服务保持。全部只读探子已终态。
+- 真实18480 Web最近同步为shared-pass31构建，F37/F38之后还未同步；若给用户查看最新，先仅docker cp前端dist并恢复私有runtime-config，不重启Core/PG/Worker。
+
+
+## 本轮最新状态（至pass52，接着这里继续）
+
+- F37–F40已经实施，尚未第三次提交；第二检查点仍23becf23。F38日程原建议可读摘要、F39待审阅说明/入口、F40共用portal主题/窄屏Sheet/普通导入主色/WorkflowRecovery共用Dialog与focus均已复验。
+- Admin合并report-consolidated.json为22/22通过：来源/阶段/记录/信息、检查点与取消、实际控制表单POST参数及accepted不冒称完成、calls/readiness隔离、定义包校验/导入取消、备份只读与恢复取消、修订/回档边界、空/加载/失败重读，以及被拒绝复核Esc返回真正入口。全部受控HTTP，无真实维护操作。
+- preparation-read合并20/20通过：8类独立GET未知、awaiting_review和image-failure×2。世界初次读取失败会中断绑定，重读后仍需要原world行恢复；已实测继续原准备且activate仅1次。旧pass45 world失败是测试误期望仅GET能完成未绑定世界，未当产品缺陷。F39只说明已知状态，不造图片，不降级已确认可读图。
+- Wardrobe report-pass48.json6/6通过：新增/取消/借用和可用状态保存；存方案不穿着、取消方案编辑；显式换装pending→确认，Now和Chat同三件；未知服装原payload/key重试、新草稿保持。desktop4399和mobile4401独立首次换装样本，避免fixture计数混淆。
+- Web全量pass51为644/644、0skip；类型/构建pass52成功，生产fixture排除和React-only374模块守卫通过。Creation22、Schedule14、Studio16、Portal11、旧端口/controls13定向均通过。最后仅静态复核指出的一行review入口ref已修，浏览器pass52两视口焦点通过。
+- 独立静态review_portal_theme_batch未发现Owner/原body-key/accepted回读/忙时保护/Sheet几何明确回归；其轻微焦点意见已修。所有子代理已终态。
+- 已亲看本批关键手机截图：沙盒确认/丢弃保留素材、日记pending、日程复核、媒体评审、真实上传回执恢复、初始化评审入口、衣柜确认、管理导入与任务恢复修前/修后。生成截图不等于全站视觉验收。
+- 覆盖矩阵补上Admin与实际已执行但旧映射漏掉的JSON导入/日常世界/收藏/自我治理；3条纯Demo说明/模拟/重置入口明确不适用。全部其它行继续按具体state记录，未把有一次证据就整行改通过。
+- Demo48文件、旧10-22的108文件再次hash未变。只有本任务、Web、对应前端spec发生修改。
+- 真实18480 Web仍旧同步版本，下一步可仅docker cp最新dist及恢复私有runtime-config，保持Core/PG/Worker不动；真实5页read和真实上传均已有证据。勿把4381/439x/440x样本当实时后端。
+
+新服务：4398 creation normal96831；4399 wardrobe desktop40394；4400 management normal43791；4401 wardrobe mobile81372。旧4391 diary42429、4392 schedule88075、4393 rejected23075、4394 conflict67217/4395 conflict79491（已用一次）、4396 media44773、4397失败71463仍可用。
+
+下一批依完整矩阵继续，不新建任务：优先shell角色切换/空目录/账户、Profile人格/生活/来源/四类编辑/治理、People关于你保存/认识/依据/关系、Feed互动隐藏/发布/建议、Goal详情保存/状态。还有衣柜标签管理、世界设定/分类、Studio其它7类保存和跨初始化、媒体metadata/grant/lifecycle、初始化复杂编辑/来源冲突/终态导航/快照、正式额外工具等尚未逐项完整验收。先做第三个本地检查点再继续，任务in_progress，不能归档或声称全站完成。
+
+
+### pass52收拢与第三检查点
+- Admin22/22合并通过，最新overlay输入13px/400、根14px、窄屏Sheet可用宽度、普通导入primary、可见焦点、原表单关联、accepted不冒称完成均有实际断言。
+- F40独立复核无协议/Owner/Sheet几何明确回归；唯一焦点小缺口已修并实际两视口通过。完整Web644/644、0skip，typecheck/build52及生产守卫通过。
+- 122/177行具有具体浏览器证据，3条纯Demo模拟/种子重置NA；这不是完成率，行级仍有未验状态。视觉索引已指向shared-pass31、memory-mapped-pass32、diary-pass33最新配对，保留发现问题/待逐张完验，不制造全通过。
+- 最新dist已经静态热同步隔离18480并恢复原runtime-config，最新五页只读通过、记录API均200、无发送/生成/新激活。第三个本地检查点准确hash见git log，不推送、不归档，继续上述剩余矩阵。

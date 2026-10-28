@@ -57,3 +57,12 @@
 |F36|手机日记目录摘要从网格子项溢出，原有ellipsis因justify-items:start下子项未被约束而失效|仅为目录摘要span恢复100%宽度与min-width:0，继续保留完整正文，不截断业务数据|shared-pass29/31实际截图定位；待最终窄屏宽度断言/复拍|
 
 最新核验：F23的畸形记录回归、F29的12项Profile检查、F32的12项Memory检查、F34的16项Studio检查均通过；Web全量pass30为642/642、0skip，随后仅F35布局/操作区搬移再跑Goal11项。F24–F26八个完整表单双视口几何通过；F27/F28正常穿着同内容、色词示意图已复拍。最终几何after-pass31中档案hero桌面/手机宽高与Y、手机此刻timeline卡片尺寸/Y相同；桌面Now仍2px内栏宽差、手机档案下方正式披露/字段内容增加、衣柜行高等差异继续记录，不宣称全站视觉通过。
+
+|F37|沙盒任务已明确discarded，但任务记录和结果头部经通用stateLabel显示状态待确认|StudioJobs仅为合法discarded状态补已丢弃标签，保留其它状态和全部操作|实际沙盒桌面/手机截图定位；16项Studio测试通过，studio-sandbox/report-pass35.json四场景通过，采用/保存/发布/应用仍独立|
+|F38|日程条目版本冲突复核以整段内部请求JSON为主体，手机难以核对将要重提的建议|SchedulePage按原冻结request显示活动、时间、地点、原因；完整请求与版本保留折叠，所有CAS/原key/命令保持|schedule-deep/pass39-item-conflict-mobile-conflict-review.png定位；新增实际React复核层级/原key断言，待本批运行和手机复拍|
+
+验收工具校正：Diary fixture的replies原只按diary_id过滤，相同样本ID跨角色时混入其它fid留言，正式UI正确拒绝；fixture补fid过滤后reply/request与generation双视口复验通过。日记/媒体生成的部分旧失败是重复正文选择器或过快ready观察窗口，不是产品故障；合并后的report-consolidated保留最新逐案结果及原失败证据。
+
+|F39|初始化服务已知awaiting_review时，参考图/设定图只显示等待任务与产物，入口仍为查看技术详情|creation-progress按已知session状态明确等待人工评审；仅未确认图片的对应行用前往审阅候选链接；PreparationSteps支持该行label，保留原href/returnTo与其它来源未知状态|preparation-read/report-before44.json桌面/手机复现；新增等待不计完成、已有可读图不回退的回归，待pass45实际复验|
+
+|F40|保留工具Sheet/Dialog没有复刻theme，手机Sheet默认75%宽、输入16px/500；导入普通独立草稿固定红色确认；任务恢复自有Dialog层级/取消/焦点与其它页不同|OverlayHost/DisclosurePort真实portal根加纯replica-overlay主题，Sheet复用product-sheet并独立wide宽度，Dialog几何仅Dialog选择器；统一13px/400输入与可见焦点；WorkflowRecovery共用WorkspaceDialog保留form/footer关联及busy保护；durableCommandDrawer默认危险色不变，import仅显式false|admin-deep/report-pass49为修前；pass50/51实际18/20场景通过并测字体/宽度/焦点/主色；独立静态复核后补记录被拒绝审阅窗的实际入口，pass52两视口返回焦点通过。Web644全量、类型/构建52、相关DOM回归通过，无协议/Owner/原key变化|

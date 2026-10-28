@@ -983,3 +983,34 @@ labelled buttons with reserved input space. Explanatory `.replica-info` directly
 inside `.lp-form` spans both columns. Diary index excerpts have a bounded width
 and min-width0 so ellipsis works under the grid's start alignment; the full diary
 body is unchanged. Production-build desktop/narrow geometry remains the gate.
+
+### Retained tool portal themes and decision summaries
+
+OverlayHost and the disclosure Sheet port put `replica-overlay` on the actual
+portaled content root. This is a typography/control theme, independent of Dialog
+or Sheet positioning. Sheet uses the existing `product-sheet` width and a
+separate wide width; only `[data-slot="dialog-content"]` receives centered
+Dialog dimensions. Keep the retained original node, one primitive host, Owner
+cleanup, focus bridge and command recovery intact. Theme rules retain a visible
+focus outline and normal13px/400 input text.
+
+WorkflowRecovery composes WorkspaceDialog with a real labelled form and stable
+form ID for the footer submit button. Busy guards still prevent dismissal;
+returnFocus records the actual opening button for both action and rejected
+command review. A control receipt means accepted submission, not task completion.
+Schedule's conflict review emphasizes the frozen proposal's activity, interval,
+place and reason; its full original protocol remains in an explicit disclosure.
+Neither presentation changes the original key, CAS baseline or explicit rebase.
+
+`durableCommandDrawer({destructive=true,...})` preserves its existing visual
+default; independent resource-pack import explicitly uses false. This option
+affects only the displayed button variant, never execute/read/accepted receipts.
+Admin browser evidence checks actual portaled widths, typography, variants,
+focus, cancellation and controlled original-command submission.
+
+Creation's known `session.status=awaiting_review` explains the human decision and
+labels unread reference/sheet links `前往审阅候选`. It does not count them ready,
+does not hide independent source read failures and does not demote already
+confirmed readable images. Source reread is independent; a failed initial world
+binding can still require the explicit original world preparation entry, without
+a second activation. A discarded Studio job is explicitly `已丢弃`, not unknown.
