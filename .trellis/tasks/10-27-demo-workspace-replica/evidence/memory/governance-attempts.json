@@ -1,0 +1,68 @@
+[
+  {
+    "method": "PUT",
+    "path": "/api/memories/fluctlight-fixture-one-memory-one",
+    "query": {},
+    "body": {
+      "expectedRevision": 2,
+      "evidenceRefs": [
+        "owner:human-fixture-owner:更正这段记忆的具体情境"
+      ],
+      "content": "你喜欢在雨天坐在窗边，慢慢读一本书。"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/fluctlights/fluctlight-fixture-one/reflections/fluctlight-fixture-one-reflection-one/feedback",
+    "query": {},
+    "body": {
+      "text": "我也希望把彼此的话慢慢听完。",
+      "stance": "agree",
+      "idempotencyKey": "0617414b-2ec7-4bb9-8d4e-79077815ae46"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/review",
+    "query": {},
+    "body": {
+      "expectedRevision": 2,
+      "reason": "已阅读当前认识及其依据",
+      "idempotencyKey": "243f4944-78c6-4761-9e1c-d817a1e2ea96"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/memories/fluctlight-fixture-one-memory-one/rollback",
+    "query": {},
+    "body": {
+      "expectedRevision": 3,
+      "evidenceRefs": [
+        "owner:human-fixture-owner:恢复第2版文字并保留后续修订"
+      ],
+      "targetRevision": 2
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/memories/fluctlight-fixture-one-memory-one/forget",
+    "query": {},
+    "body": {
+      "expectedRevision": 4,
+      "evidenceRefs": [
+        "owner:human-fixture-owner:明确保留历史但不再作为当前认识"
+      ]
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/restore",
+    "query": {},
+    "body": {
+      "expectedRevision": 2,
+      "reason": "恢复已有历史认识，保留当前治理记录",
+      "targetRevision": 1,
+      "idempotencyKey": "d39f594e-c4a7-4f54-94fc-8b6a6d54b3aa"
+    }
+  }
+]

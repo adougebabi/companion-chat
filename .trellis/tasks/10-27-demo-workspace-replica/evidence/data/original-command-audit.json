@@ -1,0 +1,147 @@
+{
+  "scenario": "normal",
+  "calls": [
+    {
+      "path": "/auth/login",
+      "method": "POST",
+      "credential_fields": [
+        "password"
+      ]
+    },
+    {
+      "path": "/auth/setup",
+      "method": "POST",
+      "credential_fields": [
+        "setupToken",
+        "password"
+      ]
+    },
+    {
+      "path": "/api/notifications",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/notifications/unread-count",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/pending",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/pending/count",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/auth/login",
+      "method": "POST",
+      "credential_fields": [
+        "password"
+      ]
+    },
+    {
+      "path": "/api/notifications",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/notifications/unread-count",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/pending",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/pending/count",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/studio/packs",
+      "method": "POST",
+      "body": {
+        "pack": {
+          "schema": "fluctlight.resource-pack.v1",
+          "resources": [],
+          "groups": [],
+          "preferences": {
+            "sample": false
+          },
+          "checksum": "fixture-checksum",
+          "created_at": "2026-10-27T00:00:00Z"
+        },
+        "expectedDigest": "fixture-exact-digest",
+        "reason": "隔离验收未知导入后恢复原身份",
+        "idempotencyKey": "6b47fcd7-2261-40a6-b502-e72038118603"
+      }
+    },
+    {
+      "path": "/api/studio/packs",
+      "method": "POST",
+      "body": {
+        "pack": {
+          "schema": "fluctlight.resource-pack.v1",
+          "resources": [],
+          "groups": [],
+          "preferences": {
+            "sample": false
+          },
+          "checksum": "fixture-checksum",
+          "created_at": "2026-10-27T00:00:00Z"
+        },
+        "expectedDigest": "fixture-exact-digest",
+        "reason": "隔离验收未知导入后恢复原身份",
+        "idempotencyKey": "6b47fcd7-2261-40a6-b502-e72038118603"
+      }
+    },
+    {
+      "path": "/api/studio/packs/pack-fixture/groups/0/adopt",
+      "method": "POST",
+      "body": {
+        "name": "导入建议分组",
+        "expectedRevision": 1,
+        "reason": "隔离核对后采用分组名称",
+        "idempotencyKey": "9a5c0c5c-be00-4439-a35b-ba4816ed15af"
+      }
+    },
+    {
+      "path": "/api/notifications",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/notifications/unread-count",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/pending",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/pending/count",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    }
+  ]
+}

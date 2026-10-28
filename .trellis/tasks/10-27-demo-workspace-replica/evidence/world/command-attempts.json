@@ -1,0 +1,84 @@
+{
+  "source": "isolated API fixture; not live Core",
+  "requests": [
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room",
+      "query": {},
+      "body": {
+        "worldId": "fixture-world",
+        "expectedRevision": 1,
+        "name": "卧室",
+        "description": "安静的木质房间",
+        "alias": "窗边房间",
+        "group": "",
+        "floor": "二层",
+        "scene": "",
+        "atmosphere": "温暖",
+        "layout": "床靠西墙，窗朝东",
+        "status": "active",
+        "reason": "所有者保存世界中的具体地点",
+        "venueCategoryId": "home",
+        "idempotencyKey": "561b6764-c3fe-49ea-9b55-155bd5127629"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults",
+      "query": {},
+      "body": {
+        "worldId": "fixture-world",
+        "expectedRevision": 2,
+        "expectedDefaultRevision": 1,
+        "operation": "restore",
+        "source": "recorded",
+        "reason": "核对初始字段后恢复，保留空间关系",
+        "idempotencyKey": "c37fdffc-4581-484f-93cb-8312217c4743"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+      "query": {},
+      "body": {
+        "expectedRevision": 3,
+        "available": false,
+        "placeId": "fluctlight-fixture-one-shop",
+        "reason": "所有者配置世界物品的取得范围",
+        "idempotencyKey": "603a4673-eb0a-4cae-a63d-3129c3ef96eb"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+      "query": {},
+      "body": {
+        "expectedRevision": 6,
+        "reason": "核对一次真实夜读执行的受理与结果",
+        "idempotencyKey": "37447aaf-721e-4fe0-80bb-021e5e521ddc"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/active",
+      "query": {},
+      "body": {
+        "worldId": "fixture-world-other",
+        "expectedRevision": 4,
+        "reason": "所有者显式切换世界",
+        "idempotencyKey": "0b6f777c-e267-4038-aa9a-28e1a54a6ff6"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/active",
+      "query": {},
+      "body": {
+        "worldId": "fixture-world",
+        "expectedRevision": 5,
+        "reason": "所有者显式切换世界",
+        "idempotencyKey": "0adcb460-1f97-4494-b134-01dbf706289c"
+      }
+    }
+  ]
+}

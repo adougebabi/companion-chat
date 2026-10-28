@@ -1,0 +1,42 @@
+✔ history browsing discards late session reads and closing never selects a conversation (235.963042ms)
+✔ history retries the exact failed search cursor while retaining previous rows and newer unsubmitted query (194.362334ms)
+✔ history directory failure recovers the directory and only explicit resume switches a real session (98.930584ms)
+✔ history cannot search before the initial directory completes and cannot dismiss an in-flight selection (150.555709ms)
+✔ a confirmed selection still reconciles the active Owner and role after its history view unmounts (68.970458ms)
+✔ source messages read the exact original anchor, retry the same read and never resume another conversation (101.573167ms)
+✔ a source outside the first directory page waits for its own role membership and rejects a foreign anchor (67.589833ms)
+ReferenceError: document is not defined
+    at onCloseAutoFocus (/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkspaceDialog.tsx:32:110)
+    at Object.handleEvent [as current] (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/node_modules/.pnpm/@radix-ui+primitive@1.2.0/node_modules/@radix-ui/primitive/dist/index.mjs:8:27)
+    at HTMLDivElement.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/node_modules/.pnpm/@radix-ui+react-use-callback-ref@1.1.5_@types+react@19.3.0_react@19.3.1/node_modules/@radix-ui/react-use-callback-ref/dist/index.mjs:19:65)
+    at HTMLDivElement.callTheUserObjectsOperation (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/jsdom@30.1.3/node_modules/jsdom/lib/generated/idl/EventListener.js:26:30)
+    at innerInvokeEventListeners (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/jsdom@30.1.3/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:378:16)
+    at invokeEventListeners (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/jsdom@30.1.3/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:320:3)
+    at HTMLDivElementImpl._dispatch (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/jsdom@30.1.3/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:269:9)
+    at HTMLDivElementImpl.dispatchEvent (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/jsdom@30.1.3/node_modules/jsdom/lib/jsdom/living/events/EventTarget-impl.js:137:17)
+    at HTMLDivElement.dispatchEvent (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/jsdom@30.1.3/node_modules/jsdom/lib/generated/idl/EventTarget.js:226:20)
+    at Timeout._onTimeout (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/node_modules/.pnpm/@radix-ui+react-focus-scope@1.3.1_@types+react-dom@19.3.0_@types+react@19.3.0__@types+r_6d7db95e6b4b16578fd42789685673fa/node_modules/@radix-ui/react-focus-scope/dist/index.mjs:112:23)
+✔ configuration categories preserve a newer draft while the actual services and four roles remain independently reachable (1756.311083ms)
+✔ task records use source actions and never turn a status into numeric progress (82.237625ms)
+✔ data validation refuses a changed input after the read and failed export preserves the exact raw draft (27.443083ms)
+✔ domain field blur records carrier selection without stealing pointer or Tab focus; explicit restoration still forwards (62.67025ms)
+✔ a received durable command recovers failed readback after reopening without a second mutation (197.468625ms)
+✔ a durable command checkpoints a late receipt after close, but never after logout and same-Owner re-entry (222.196958ms)
+✔ a durable receipt readback retains input edited while submission is waiting (95.939958ms)
+✔ logout clears configuration recovery and inactive management preferences for exactly the original Owner (0.2725ms)
+✔ the native history deep route waits for its role directory, retries the original cursor and returns without losing the chat draft (456.398167ms)
+✔ wardrobe reads confirmed wearing only, search emptiness clears without changing the catalogue (198.7465ms)
+✔ garment cancel preserves original; save sends real ownership/availability and exact revision then reads back (502.160125ms)
+✔ composition saves actual membership without wearing; cancellation and missing member protection retain original plans (297.93075ms)
+✔ archived pagination failure retries its frozen cursor while filter edits remain local (282.174875ms)
+✔ an archive failure stays in the confirmation; loading/retired scopes cannot admit writes (282.368584ms)
+✔ a changed clothing slot cannot silently drop a selected item, and retirement fences an already open archive confirmation (368.227167ms)
+✔ retained wardrobe return queries restore the native search and stable plan tabs (113.344375ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3771.868875

@@ -1,0 +1,47 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/fluctlight-creations/activate",
+    "query": {},
+    "body": {
+      "requestId": "4d7c9b56-f1fd-41ec-9d58-3ad5ecd3f228",
+      "initializationMode": "blank_slate",
+      "name": "原衣柜恢复验收",
+      "initializationTimezone": "Asia/Shanghai"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/fluctlights/creation-character-1/world/catalog",
+    "query": {},
+    "body": {
+      "name": "已有角色的小镇",
+      "sourceFluctlightId": "fluctlight-fixture-one",
+      "sourceWorldId": "creation-source-world",
+      "expectedSourceRevision": 3,
+      "reason": "复用已有世界与地点配置，保留独立生活记录",
+      "idempotencyKey": "2ba75cad-ed96-47ac-9401-693ff52151ad"
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/api/fluctlights/creation-character-1/world/active",
+    "query": {},
+    "body": {
+      "worldId": "creation-runtime-world-creation-character-1",
+      "expectedRevision": 0,
+      "reason": "选用已复用的独立世界配置",
+      "idempotencyKey": "feb9bbcf-f400-4d36-bc83-6682df90226b"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+    "query": {},
+    "body": {
+      "expectedRevision": 7,
+      "reason": "恢复原角色的初始穿搭准备",
+      "idempotencyKey": "24daa400-cb02-4dd5-87ee-d1dc16b0bee0"
+    }
+  }
+]

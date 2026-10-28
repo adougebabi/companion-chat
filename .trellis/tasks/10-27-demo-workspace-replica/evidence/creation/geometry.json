@@ -1,0 +1,724 @@
+{
+  "productionPreviewDesktop": {
+    "document": 1348,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 653.03125,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": {
+        "height": 80,
+        "width": 1047,
+        "x": 252,
+        "y": 830
+      },
+      ".creation-layout": {
+        "height": 1213.6875,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": {
+        "height": 1213.6875,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-preparation": null,
+      ".creation-review": {
+        "height": 1213.6875,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "productionJsonMobile": {
+    "document": 390,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": {
+        "height": 72.03125,
+        "width": 341,
+        "x": 17,
+        "y": 728.96875
+      },
+      ".creation-layout": {
+        "height": 2447.375,
+        "width": 341,
+        "x": 17,
+        "y": 368.984375
+      },
+      ".creation-main": {
+        "height": 2447.375,
+        "width": 341,
+        "x": 17,
+        "y": 368.984375
+      },
+      ".creation-preparation": null,
+      ".creation-review": {
+        "height": 2447.375,
+        "width": 341,
+        "x": 17,
+        "y": 368.984375
+      },
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 265.984375
+      }
+    },
+    "width": 390
+  },
+  "mobileDialog": {
+    "bodyOverflow": [
+      {
+        "height": 71,
+        "scrollHeight": 71
+      },
+      {
+        "height": 62,
+        "scrollHeight": 62
+      }
+    ],
+    "document": 390,
+    "height": 316.59375,
+    "width": 356,
+    "x": 17,
+    "y": 263.703125
+  },
+  "productionCompleteMobile": {
+    "document": 390,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": null,
+      ".creation-layout": {
+        "height": 1091.703125,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-main": {
+        "height": 1091.703125,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-preparation": {
+        "height": 998.703125,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 245.640625
+      }
+    },
+    "width": 390
+  },
+  "productionCompleteDesktop": {
+    "document": 1348,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 653.03125,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": null,
+      ".creation-layout": {
+        "height": 1004,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": {
+        "height": 1004,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-preparation": {
+        "height": 953,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "demoWorldDesktop": {
+    "document": 1333,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 499,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": {
+        "height": 80,
+        "width": 1047,
+        "x": 252,
+        "y": 830
+      },
+      ".creation-layout": {
+        "height": 710.34375,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": {
+        "height": 710.34375,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "demoPersonDesktop": {
+    "document": 1333,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 538,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": {
+        "height": 80,
+        "width": 1047,
+        "x": 252,
+        "y": 830
+      },
+      ".creation-layout": {
+        "height": 587.09375,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": {
+        "height": 587.09375,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": {
+        "height": 115.296875,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "demoPreviewDesktop": {
+    "document": 1333,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 662,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": {
+        "height": 80,
+        "width": 1047,
+        "x": 252,
+        "y": 830
+      },
+      ".creation-layout": {
+        "height": 1135,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": {
+        "height": 1135,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-preparation": null,
+      ".creation-review": {
+        "height": 1059,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "demoPreviewMobile": {
+    "document": 375,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": {
+        "height": 72,
+        "width": 341,
+        "x": 17,
+        "y": 764
+      },
+      ".creation-layout": {
+        "height": 1171,
+        "width": 341,
+        "x": 17,
+        "y": -130.015625
+      },
+      ".creation-main": {
+        "height": 1171,
+        "width": 341,
+        "x": 17,
+        "y": -130.015625
+      },
+      ".creation-preparation": null,
+      ".creation-review": {
+        "height": 1095,
+        "width": 341,
+        "x": 17,
+        "y": -130.015625
+      },
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": -233.015625
+      }
+    },
+    "width": 390
+  },
+  "demoPersonMobile": {
+    "document": 375,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": {
+        "height": 72,
+        "width": 341,
+        "x": 17,
+        "y": 764
+      },
+      ".creation-layout": {
+        "height": 796.796875,
+        "width": 341,
+        "x": 17,
+        "y": 340.640625
+      },
+      ".creation-main": {
+        "height": 796.796875,
+        "width": 341,
+        "x": 17,
+        "y": 340.640625
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": {
+        "height": 236,
+        "width": 341,
+        "x": 17,
+        "y": 340.640625
+      },
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 237.640625
+      }
+    },
+    "width": 390
+  },
+  "demoWorldMobile": {
+    "document": 375,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": {
+        "height": 72,
+        "width": 341,
+        "x": 17,
+        "y": 764
+      },
+      ".creation-layout": {
+        "height": 647.84375,
+        "width": 341,
+        "x": 17,
+        "y": 340.640625
+      },
+      ".creation-main": {
+        "height": 647.84375,
+        "width": 341,
+        "x": 17,
+        "y": 340.640625
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 237.640625
+      }
+    },
+    "width": 390
+  },
+  "productionPersonMobile": {
+    "document": 390,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": {
+        "height": 74,
+        "width": 341,
+        "x": 17,
+        "y": 762
+      },
+      ".creation-layout": {
+        "height": 836.15625,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-main": {
+        "height": 836.15625,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": {
+        "height": 236,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 245.640625
+      }
+    },
+    "width": 390
+  },
+  "productionWorldMobile": {
+    "document": 390,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": {
+        "height": 74,
+        "width": 341,
+        "x": 17,
+        "y": 762
+      },
+      ".creation-layout": {
+        "height": 673.28125,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-main": {
+        "height": 673.28125,
+        "width": 341,
+        "x": 17,
+        "y": 348.640625
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 245.640625
+      }
+    },
+    "width": 390
+  },
+  "productionWorldDesktop": {
+    "document": 1348,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 497.46875,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": {
+        "height": 80,
+        "width": 1047,
+        "x": 252,
+        "y": 830
+      },
+      ".creation-layout": {
+        "height": 711.203125,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": {
+        "height": 711.203125,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "productionPersonDesktop": {
+    "document": 1348,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 532.75,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": {
+        "height": 80,
+        "width": 1047,
+        "x": 252,
+        "y": 830
+      },
+      ".creation-layout": {
+        "height": 602.578125,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": {
+        "height": 602.578125,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": {
+        "height": 115.296875,
+        "width": 774,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "demoCompleteDesktop": {
+    "document": 1333,
+    "height": 925,
+    "items": {
+      ".creation-aside": {
+        "height": 662,
+        "width": 248,
+        "x": 1051,
+        "y": 319.328125
+      },
+      ".creation-footer": null,
+      ".creation-layout": {
+        "height": 905.5,
+        "width": 1047,
+        "x": 252,
+        "y": 319.328125
+      },
+      ".creation-main": null,
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 76.5,
+        "width": 1047,
+        "x": 252,
+        "y": 212.828125
+      }
+    },
+    "width": 1348
+  },
+  "demoCompleteMobile": {
+    "document": 375,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": null,
+      ".creation-layout": {
+        "height": 977.3125,
+        "width": 341,
+        "x": 17,
+        "y": 344.640625
+      },
+      ".creation-main": null,
+      ".creation-preparation": null,
+      ".creation-review": null,
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 241.640625
+      }
+    },
+    "width": 390
+  },
+  "productionPreviewMobile": {
+    "document": 390,
+    "height": 844,
+    "items": {
+      ".creation-aside": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      ".creation-footer": {
+        "height": 74,
+        "width": 341,
+        "x": 17,
+        "y": 762
+      },
+      ".creation-layout": {
+        "height": 1779.515625,
+        "width": 341,
+        "x": 17,
+        "y": 368.984375
+      },
+      ".creation-main": {
+        "height": 1779.515625,
+        "width": 341,
+        "x": 17,
+        "y": 368.984375
+      },
+      ".creation-preparation": null,
+      ".creation-review": {
+        "height": 1779.515625,
+        "width": 341,
+        "x": 17,
+        "y": 368.984375
+      },
+      ".creation-source-grid": null,
+      ".creation-steps": {
+        "height": 81,
+        "width": 341,
+        "x": 17,
+        "y": 265.984375
+      }
+    },
+    "width": 390
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "scenario": "isolated unknown wardrobe update after reload",
+  "attempts": [
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/clothing-0",
+      "query": {},
+      "body": {
+        "expectedRevision": 3,
+        "reason": "更正服装登记",
+        "expectedItemRevision": 1,
+        "item": {
+          "itemKind": "wearable",
+          "category": "upper_body",
+          "slot": "upper_body",
+          "description": "青绿棉质上衣 · 已校对",
+          "ownership": "owned",
+          "availability": "available",
+          "clothingType": "upper_body",
+          "seasons": [
+            "spring",
+            "autumn"
+          ]
+        },
+        "idempotencyKey": "d446d69a-12f4-4461-b6c6-e1863437c258"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/clothing-0",
+      "query": {},
+      "body": {
+        "expectedRevision": 3,
+        "reason": "更正服装登记",
+        "expectedItemRevision": 1,
+        "item": {
+          "itemKind": "wearable",
+          "category": "upper_body",
+          "slot": "upper_body",
+          "description": "青绿棉质上衣 · 已校对",
+          "ownership": "owned",
+          "availability": "available",
+          "clothingType": "upper_body",
+          "seasons": [
+            "spring",
+            "autumn"
+          ]
+        },
+        "idempotencyKey": "d446d69a-12f4-4461-b6c6-e1863437c258"
+      }
+    }
+  ],
+  "same_body": true,
+  "unique_keys": 1
+}

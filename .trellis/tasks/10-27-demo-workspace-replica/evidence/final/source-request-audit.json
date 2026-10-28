@@ -1,0 +1,844 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/fluctlights",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+    "query": {
+      "kind": "wearable",
+      "state": "current",
+      "limit": "100",
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+    "query": {
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/conversations",
+    "query": {
+      "limit": "30"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/conversation-fixture/messages/shared-fixture-message",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/conversation-fixture/messages",
+    "query": {
+      "limit": "50",
+      "beforeSequence": "4"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/conversation-fixture/messages",
+    "query": {
+      "limit": "50"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+    "query": {
+      "kind": "wearable",
+      "state": "current",
+      "limit": "100",
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+    "query": {
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/actor-groups",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications/unread-count",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/pending",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/pending/count",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/studio/resources",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/studio/previews",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/settings",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/ops/backups",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/actor-groups",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications/unread-count",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/pending",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/pending/count",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/studio/resources",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/studio/previews",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/ops/backups",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/settings",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/media",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/world",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+    "query": {
+      "history": "false",
+      "limit": "20"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/media",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/world",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+    "query": {
+      "history": "false",
+      "limit": "20"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/moment-feed",
+    "query": {
+      "limit": "30"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/media",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/world",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+    "query": {
+      "history": "false",
+      "limit": "20"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/media",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/world",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+    "query": {
+      "history": "false",
+      "limit": "20"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/moment-feed",
+    "query": {
+      "limit": "30"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/clothing-0",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+    "query": {
+      "limit": "1"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/clothing-0/history",
+    "query": {
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+    "query": {
+      "kind": "wearable",
+      "state": "current",
+      "limit": "100",
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+    "query": {
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/conversations",
+    "query": {
+      "limit": "30"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/conversation-fixture/messages/shared-fixture-message",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+    "query": {
+      "kind": "wearable",
+      "state": "current",
+      "limit": "100",
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+    "query": {
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/conversation-fixture/messages",
+    "query": {
+      "limit": "50",
+      "beforeSequence": "4"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/conversation-fixture/messages",
+    "query": {
+      "limit": "50"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+    "query": {
+      "kind": "wearable",
+      "state": "current",
+      "limit": "100",
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+    "query": {
+      "cursor": ""
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/actor-groups",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/notifications/unread-count",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/pending",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/pending/count",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/studio/resources",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/studio/previews",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/ops/backups",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/settings",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/media",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/world",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+    "query": {
+      "history": "false",
+      "limit": "20"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/media",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/world",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+    "query": {}
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+    "query": {
+      "history": "false",
+      "limit": "20"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/moment-feed",
+    "query": {
+      "limit": "30"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/fluctlights/fluctlight-fixture-one/shared-experiences",
+    "query": {}
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "fixture_port": 4194,
+    "attempts": 2,
+    "distinct_keys": 1,
+    "paths": [
+      "/api/fluctlights/fluctlight-fixture-one/schedules/schedule-nas-fixture/items/slot-11",
+      "/api/fluctlights/fluctlight-fixture-one/schedules/schedule-nas-fixture/items/slot-11"
+    ],
+    "body_digests": [
+      "f673ddbfe5ce7b21e2ac0591c873924f12b4ed748ec98fe90d35b8bff0709ac6",
+      "f673ddbfe5ce7b21e2ac0591c873924f12b4ed748ec98fe90d35b8bff0709ac6"
+    ],
+    "same_body": true,
+    "same_date_and_reason": true,
+    "life_revision_changed": false
+  },
+  {
+    "fixture_port": 4196,
+    "attempts": 2,
+    "distinct_keys": 2,
+    "paths": [
+      "/api/fluctlights/fluctlight-fixture-one/schedules/requests",
+      "/api/fluctlights/fluctlight-fixture-one/schedules/requests"
+    ],
+    "body_digests": [
+      "1080ab4a85f59ff3a67cdf8e8cdf272c600408f6e33be5bafbcc3686537521b5",
+      "369ec97e81670c00b2035516c526a50db0401f679b54d3d2c617a58dd0eca9d3"
+    ],
+    "same_body": false,
+    "same_date_and_reason": true,
+    "life_revision_changed": true
+  }
+]

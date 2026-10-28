@@ -1,0 +1,29 @@
+{
+  "scenario": "isolated unknown diary annotation after reload",
+  "attempts": [
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/diary/diary-fixture-one/annotation",
+      "query": {},
+      "body": {
+        "note": "回执未知时，也保留这条原批注。",
+        "favorite": false,
+        "expectedRevision": 0,
+        "idempotencyKey": "2b69a934-a45d-48ac-a024-2ba50e3fa6e8"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/diary/diary-fixture-one/annotation",
+      "query": {},
+      "body": {
+        "note": "回执未知时，也保留这条原批注。",
+        "favorite": false,
+        "expectedRevision": 0,
+        "idempotencyKey": "2b69a934-a45d-48ac-a024-2ba50e3fa6e8"
+      }
+    }
+  ],
+  "same_body": true,
+  "unique_keys": 1
+}

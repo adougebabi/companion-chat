@@ -1,0 +1,110 @@
+{
+  "environment": "isolated API fixture",
+  "visual": {
+    "schema_version": "visual-identity.v1",
+    "fluctlight_id": "fluctlight-fixture-one",
+    "status": "ready",
+    "current_revision": 2,
+    "identity_snapshot": {
+      "name": "林青",
+      "frozen": true
+    },
+    "renderer_constraints": {
+      "keep_unknown": {
+        "enabled": true
+      }
+    },
+    "canonical_asset_id": "fluctlight-fixture-one-replica-candidate",
+    "character_sheet_asset_id": "fluctlight-fixture-one-replica-sheet",
+    "session": {
+      "id": "fluctlight-fixture-one-visual-session",
+      "status": "completed",
+      "last_error": null,
+      "current_attempt": 2,
+      "created_at": "2026-10-28T03:00:00.000Z",
+      "task_id": "task-fluctlight-fixture-one-visual",
+      "attempts": [
+        {
+          "id": "fluctlight-fixture-one-attempt-one",
+          "attempt_number": 1,
+          "status": "accepted",
+          "candidate_asset_id": "fluctlight-fixture-one-replica-canonical",
+          "decision": "accepted",
+          "brief_revision": 1,
+          "created_at": "2026-10-28T03:00:00.000Z",
+          "review": {
+            "source": "owner_manual",
+            "summary": "原规范已接受。"
+          }
+        },
+        {
+          "id": "fluctlight-fixture-one-attempt-two",
+          "attempt_number": 2,
+          "status": "awaiting_review",
+          "candidate_asset_id": "fluctlight-fixture-one-replica-candidate",
+          "decision": "accepted",
+          "brief_revision": 2,
+          "created_at": "2026-10-28T03:00:00.000Z",
+          "review": {
+            "source": "owner_manual",
+            "decision": "accepted",
+            "identityMatch": 1,
+            "confidence": 1,
+            "observations": [
+              "隔离样本：候选与原参考的轮廓和比例一致。"
+            ],
+            "missingSections": [],
+            "summary": "隔离验收：记录人工评审并接受当前候选。",
+            "feedback": "",
+            "reason": "核对候选、规范参考与后续设定图的独立状态。",
+            "expectedAttempt": 2,
+            "expectedVisualRevision": 1,
+            "idempotencyKey": "3ea90bac-2af7-44af-9ddb-34bb322152ae"
+          }
+        }
+      ]
+    }
+  },
+  "displayAvatar": {
+    "fluctlight_id": "fluctlight-fixture-one",
+    "mode": "asset",
+    "revision": 2,
+    "selection": {
+      "asset_id": "replica-unused",
+      "asset_revision": 3,
+      "version": "version-replica-unused",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "avatar": {
+      "asset_id": "replica-unused",
+      "url": "/api/media/replica-unused"
+    },
+    "read_state": "readable"
+  },
+  "metadataAsset": {
+    "id": "replica-landscape",
+    "title": "窗边的午后 · 已核对",
+    "source_filename": "午后的窗边.png",
+    "kind": "image",
+    "origin": "owner_upload",
+    "fluctlight_id": null,
+    "byte_size": 10240,
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "version": "version-replica-landscape",
+    "asset_revision": 3,
+    "metadata_revision": 2,
+    "hidden": false,
+    "status": "ready",
+    "readable": true,
+    "read_state": "readable",
+    "url": "/api/media/replica-landscape",
+    "created_at": "2026-10-28T03:00:00.000Z",
+    "factual": false,
+    "label": "隔离样本·非事实",
+    "source_state": "owner_original",
+    "source_snapshot": {
+      "origin": "owner_upload",
+      "description": "隔离API样本，不是实际生成或生活事实。"
+    }
+  }
+}

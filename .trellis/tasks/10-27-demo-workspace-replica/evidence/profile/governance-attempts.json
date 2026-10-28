@@ -1,0 +1,50 @@
+{
+  "source": "isolated API fixture, not live Core",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/persona-switch",
+      "query": {},
+      "body": {
+        "targetPersonaId": "focused",
+        "expectedRevision": 4,
+        "expectedRuntimeRevision": 2,
+        "reason": "先以专注的方式讨论阅读计划",
+        "confirm": true,
+        "idempotencyKey": "25426655-d645-4e9f-9ae5-8dee52742e16"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-foundation-proposed/accept",
+      "query": {},
+      "body": {
+        "expectedRevision": 4,
+        "reason": "已核对实际生活习惯与身份提议"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/capability-requests/fluctlight-fixture-one-capability-one/review",
+      "query": {},
+      "body": {
+        "status": "accepted",
+        "note": "阅读记录用途明确，接受需求",
+        "expectedRevision": 1,
+        "idempotencyKey": "93d8b759-2500-4967-b690-d13fa64c8c91"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/capability-requests/fluctlight-fixture-one-capability-one/review",
+      "query": {},
+      "body": {
+        "status": "fulfilled",
+        "note": "已核对隔离环境注册版本 1.0-fixture",
+        "expectedRevision": 2,
+        "capabilityVersion": "1.0-fixture",
+        "idempotencyKey": "e331516d-e8a8-434d-93ef-0f28e2d3fe31"
+      }
+    }
+  ]
+}

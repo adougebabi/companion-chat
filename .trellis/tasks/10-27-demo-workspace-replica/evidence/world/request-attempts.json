@@ -1,0 +1,35 @@
+{
+  "source": "isolated API fixture; not live Core",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "query": {},
+      "body": {
+        "name": "海岸新世界",
+        "flavor": "",
+        "background": "保留原创建，回执未知后核对实际世界。",
+        "rules": "",
+        "description": "",
+        "reason": "所有者保存世界资料",
+        "itemPool": [],
+        "idempotencyKey": "3e3efd32-f010-4e46-86d0-db43a1f4b984"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "query": {},
+      "body": {
+        "name": "海岸新世界",
+        "flavor": "",
+        "background": "保留原创建，回执未知后核对实际世界。",
+        "rules": "",
+        "description": "",
+        "reason": "所有者保存世界资料",
+        "itemPool": [],
+        "idempotencyKey": "3e3efd32-f010-4e46-86d0-db43a1f4b984"
+      }
+    }
+  ]
+}

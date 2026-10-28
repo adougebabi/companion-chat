@@ -1,0 +1,85 @@
+{
+  "environment": "isolated API fixture; no live DB/model proof",
+  "normal": [
+    {
+      "method": "POST",
+      "path": "/api/moment-feed/post-one/comments",
+      "query": {},
+      "body": {
+        "text": "隔离验收：把这句温柔的话也记在这里。",
+        "expectedRevision": 3,
+        "reason": "所有者以自己的身份评论动态",
+        "idempotencyKey": "60a36841-2fb4-4a0b-b397-5e8afd435b98"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments",
+      "query": {},
+      "body": {
+        "text": "隔离验收：今天也有想留下来的普通片刻。",
+        "mediaIds": [],
+        "idempotencyKey": "8f24ac59-1ad3-4162-91b9-4bf94bbad8fa"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/moment-feed/post-12/hide",
+      "query": {},
+      "body": {
+        "expectedRevision": 3,
+        "reason": "所有者明确隐藏动态",
+        "idempotencyKey": "190d46e8-70a7-4ea8-80fe-87354b37285c"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/moment-feed/post-12/restore",
+      "query": {},
+      "body": {
+        "expectedRevision": 4,
+        "reason": "所有者明确恢复展示动态",
+        "idempotencyKey": "a05796c1-719e-4bde-8bc9-a6b238775a12"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+      "query": {},
+      "body": {
+        "text": "隔离验收：想不想分享最近读到的那句话？",
+        "mediaIds": [],
+        "idempotencyKey": "6e725207-6177-42ab-bce0-b2abdaa7cebe"
+      }
+    }
+  ],
+  "unknown": [
+    {
+      "method": "POST",
+      "path": "/api/moments",
+      "query": {},
+      "body": {
+        "text": "隔离验收：原发布回执刷新恢复。",
+        "mediaIds": [],
+        "idempotencyKey": "36f47c23-e240-493e-9c20-22c00030241c"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments",
+      "query": {},
+      "body": {
+        "text": "隔离验收：原发布回执刷新恢复。",
+        "mediaIds": [],
+        "idempotencyKey": "36f47c23-e240-493e-9c20-22c00030241c"
+      }
+    }
+  ],
+  "verification": {
+    "sameOriginalBodyAndKey": true,
+    "unknownPublishAttempts": 2,
+    "normalPublishCount": 1,
+    "normalSuggestionCount": 1,
+    "noAuthorSpoofing": true
+  }
+}

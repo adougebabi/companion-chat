@@ -1,0 +1,478 @@
+{
+  "calls": [
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "world",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "character_template",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlight-creations/activate",
+      "method": "POST",
+      "query": {},
+      "body": {
+        "requestId": "7dfd0d98-f555-401f-9f57-7a5be7a49134",
+        "initializationMode": "blank_slate",
+        "name": "世界冲突进度复验",
+        "initializationTimezone": "Asia/Shanghai"
+      }
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world/catalog",
+      "method": "POST",
+      "query": {},
+      "body": {
+        "name": "已有角色的小镇",
+        "sourceFluctlightId": "fluctlight-fixture-one",
+        "sourceWorldId": "creation-source-world",
+        "expectedSourceRevision": 3,
+        "reason": "复用已有世界与地点配置，保留独立生活记录",
+        "idempotencyKey": "219d19b5-4502-416b-b5d0-3f8ffb56d509"
+      }
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/visual-identity",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/display-avatar",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/schedules",
+      "method": "GET",
+      "query": {
+        "from": "2026-10-28",
+        "to": "2026-10-28"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/detail",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/diagnostics/lifecycle",
+      "method": "GET",
+      "query": {
+        "limit": "100",
+        "fluctlightId": "creation-character-1"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+      "method": "GET",
+      "query": {
+        "cursor": ""
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/media-assets/creation-reference",
+      "method": "GET",
+      "query": {
+        "fluctlightId": "creation-character-1"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/media-assets/creation-sheet",
+      "method": "GET",
+      "query": {
+        "fluctlightId": "creation-character-1"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/detail",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/wardrobe",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/sidebar",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/media",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/diary",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/nearby",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world/templates",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/desires",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/reflections",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/conversation",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/goals",
+      "method": "GET",
+      "query": {
+        "history": "false",
+        "limit": "20"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/detail",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/wardrobe",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/sidebar",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/media",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/diary",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/nearby",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world/templates",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/desires",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/reflections",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/conversation",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/goals",
+      "method": "GET",
+      "query": {
+        "history": "false",
+        "limit": "20"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/creation-source-world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world/catalog",
+      "method": "POST",
+      "query": {},
+      "body": {
+        "name": "已有角色的小镇",
+        "sourceFluctlightId": "fluctlight-fixture-one",
+        "sourceWorldId": "creation-source-world",
+        "expectedSourceRevision": 4,
+        "reason": "复用已有世界与地点配置，保留独立生活记录",
+        "idempotencyKey": "689d6463-cfa1-47ee-b51e-153fc7d09013"
+      }
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world/active",
+      "method": "PUT",
+      "query": {},
+      "body": {
+        "worldId": "creation-runtime-world-creation-character-1",
+        "expectedRevision": 0,
+        "reason": "选用已复用的独立世界配置",
+        "idempotencyKey": "f7553dbd-09cf-44e3-9f3f-b01cc19bbebf"
+      }
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/visual-identity",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/display-avatar",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/schedules",
+      "method": "GET",
+      "query": {
+        "from": "2026-10-28",
+        "to": "2026-10-28"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/diagnostics/lifecycle",
+      "method": "GET",
+      "query": {
+        "limit": "100",
+        "fluctlightId": "creation-character-1"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/world",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/detail",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+      "method": "GET",
+      "query": {
+        "cursor": ""
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/media-assets/creation-reference",
+      "method": "GET",
+      "query": {
+        "fluctlightId": "creation-character-1"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/media-assets/creation-sheet",
+      "method": "GET",
+      "query": {
+        "fluctlightId": "creation-character-1"
+      },
+      "body": {}
+    }
+  ],
+  "records": [
+    {
+      "id": "creation-character-1",
+      "body": {
+        "requestId": "7dfd0d98-f555-401f-9f57-7a5be7a49134",
+        "initializationMode": "blank_slate",
+        "name": "世界冲突进度复验",
+        "initializationTimezone": "Asia/Shanghai"
+      },
+      "identity": {
+        "name": "世界冲突进度复验",
+        "timezone": "Asia/Shanghai"
+      },
+      "ready": true,
+      "created_at": "2026-10-28T01:00:00Z",
+      "selectedWorld": "creation-runtime-world-creation-character-1"
+    }
+  ]
+}

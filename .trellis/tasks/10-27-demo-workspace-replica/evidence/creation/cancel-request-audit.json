@@ -1,0 +1,181 @@
+{
+  "calls": [
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "world",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "character_template",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlight-creations/analysis",
+      "method": "POST",
+      "query": {},
+      "body": {
+        "description": "取消与迟到结果验收：河畔书店编辑，保留这段输入。\n姓名：\n性格期望：\n世界与生活："
+      }
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "world",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "character_template",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "world",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "character_template",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "world",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "GET",
+      "query": {
+        "kind": "character_template",
+        "published": "true"
+      },
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    },
+    {
+      "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+      "method": "GET",
+      "query": {},
+      "body": {}
+    }
+  ],
+  "records": []
+}

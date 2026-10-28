@@ -1,0 +1,25 @@
+{
+  "scenario": "CAS-only unknown memory correction, reload, explicit current-object review",
+  "mutation_attempts": [
+    {
+      "method": "PUT",
+      "path": "/api/memories/fluctlight-fixture-one-memory-one",
+      "query": {},
+      "body": {
+        "expectedRevision": 2,
+        "evidenceRefs": [
+          "owner:human-fixture-owner:核对未知回执路径"
+        ],
+        "content": "回执未知时保留并核对这段记忆。"
+      }
+    }
+  ],
+  "write_count": 1,
+  "client_idempotency_key_sent": false,
+  "confirmed_current": {
+    "id": "fluctlight-fixture-one-memory-one",
+    "revision": 3,
+    "content": "回执未知时保留并核对这段记忆。",
+    "status": "active"
+  }
+}

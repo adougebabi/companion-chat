@@ -1,0 +1,36 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/fluctlight-creations/activate",
+    "query": {},
+    "body": {
+      "requestId": "70ddcc7c-cd15-4f35-99e8-1ee6fdc3ddb8",
+      "initializationMode": "blank_slate",
+      "name": "空白 · 原请求恢复验收",
+      "initializationTimezone": "Asia/Shanghai"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/fluctlight-creations/activate",
+    "query": {},
+    "body": {
+      "requestId": "70ddcc7c-cd15-4f35-99e8-1ee6fdc3ddb8",
+      "initializationMode": "blank_slate",
+      "name": "空白 · 原请求恢复验收",
+      "initializationTimezone": "Asia/Shanghai"
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/api/fluctlights/creation-character-1/world",
+    "query": {},
+    "body": {
+      "expectedRevision": 0,
+      "name": "日常世界",
+      "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+      "reason": "为新角色建立默认生活世界",
+      "idempotencyKey": "da337d27-60cf-4789-b332-501a0eec5a8e"
+    }
+  }
+]

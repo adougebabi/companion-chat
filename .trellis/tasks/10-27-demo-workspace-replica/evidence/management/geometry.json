@@ -1,0 +1,52 @@
+{
+  "desktop": {
+    "height": 925,
+    "main": {
+      "bottom": 1111.609375,
+      "height": 870.78125,
+      "left": 460,
+      "right": 1299,
+      "top": 240.828125,
+      "width": 839,
+      "x": 460,
+      "y": 240.828125
+    },
+    "nav": {
+      "bottom": 627.828125,
+      "height": 387,
+      "left": 252,
+      "right": 432,
+      "top": 240.828125,
+      "width": 180,
+      "x": 252,
+      "y": 240.828125
+    },
+    "overflow": false,
+    "width": 1348
+  },
+  "mobile": {
+    "height": 844,
+    "main": {
+      "bottom": 1206.484375,
+      "height": 1053.84375,
+      "left": 17,
+      "right": 358,
+      "top": 152.640625,
+      "width": 341,
+      "x": 17,
+      "y": 152.640625
+    },
+    "nav": {
+      "bottom": 130.640625,
+      "height": 191,
+      "left": 17,
+      "right": 358,
+      "top": -60.359375,
+      "width": 341,
+      "x": 17,
+      "y": -60.359375
+    },
+    "scrollWidth": 390,
+    "width": 390
+  }
+}

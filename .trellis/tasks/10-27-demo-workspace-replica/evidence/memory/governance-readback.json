@@ -1,0 +1,146 @@
+{
+  "memory_current": {
+    "id": "fluctlight-fixture-one-memory-one",
+    "owner_fluctlight_id": "fluctlight-fixture-one",
+    "type": "relationship",
+    "content": "你喜欢下雨天，也喜欢坐在窗边读书。",
+    "actor_refs": [
+      "human-fixture-owner"
+    ],
+    "conversation_id": "conversation-fixture",
+    "event_refs": [],
+    "evidence_refs": [
+      "message:source-fixture",
+      "owner:human-fixture-owner:恢复第2版文字并保留后续修订",
+      "owner:human-fixture-owner:明确保留历史但不再作为当前认识"
+    ],
+    "personality_perspectives": [],
+    "confidence": 0.8,
+    "importance": 0.8,
+    "emotional_significance": 0.5,
+    "visibility": "owner",
+    "status": "forgotten",
+    "revision": 5,
+    "provenance_status": "valid",
+    "occurred_at": "2026-10-26T12:00:00Z",
+    "created_at": "2026-10-26T12:00:00Z",
+    "last_confirmed_at": "2026-10-26T12:00:00Z",
+    "superseded_by_memory_id": null,
+    "supersedes_memory_id": null,
+    "revision_count": 5,
+    "source_count": 3
+  },
+  "memory_revisions": {
+    "items": [
+      {
+        "revision": 5,
+        "base_revision": 4,
+        "operation": "forget",
+        "content": "你喜欢下雨天，也喜欢坐在窗边读书。",
+        "status": "forgotten",
+        "actor_id": "human-fixture-owner",
+        "evidence_refs": [
+          "message:source-fixture",
+          "owner:human-fixture-owner:恢复第2版文字并保留后续修订",
+          "owner:human-fixture-owner:明确保留历史但不再作为当前认识"
+        ],
+        "semantic_reason": "owner:human-fixture-owner:明确保留历史但不再作为当前认识",
+        "created_at": "2026-10-26T12:00:00Z"
+      },
+      {
+        "revision": 4,
+        "base_revision": 3,
+        "operation": "rollback",
+        "content": "你喜欢下雨天，也喜欢坐在窗边读书。",
+        "status": "active",
+        "actor_id": "human-fixture-owner",
+        "evidence_refs": [
+          "message:source-fixture",
+          "owner:human-fixture-owner:恢复第2版文字并保留后续修订"
+        ],
+        "semantic_reason": "owner:human-fixture-owner:恢复第2版文字并保留后续修订",
+        "created_at": "2026-10-26T12:00:00Z"
+      },
+      {
+        "revision": 3,
+        "base_revision": 2,
+        "operation": "revise",
+        "content": "你喜欢在雨天坐在窗边，慢慢读一本书。",
+        "status": "active",
+        "actor_id": "human-fixture-owner",
+        "evidence_refs": [
+          "owner:human-fixture-owner:更正这段记忆的具体情境"
+        ],
+        "semantic_reason": "owner:human-fixture-owner:更正这段记忆的具体情境",
+        "created_at": "2026-10-26T12:00:00Z"
+      },
+      {
+        "revision": 2,
+        "base_revision": 1,
+        "operation": "revise",
+        "content": "你喜欢下雨天，也喜欢坐在窗边读书。",
+        "status": "active",
+        "actor_id": "human-fixture-owner",
+        "evidence_refs": [
+          "message:source-fixture"
+        ],
+        "semantic_reason": "隔离样本当前版本",
+        "created_at": "2026-10-26T12:00:00Z"
+      },
+      {
+        "revision": 0,
+        "base_revision": null,
+        "operation": "create",
+        "content": "你喜欢在安静的地方读书。",
+        "status": "active",
+        "actor_id": "human-fixture-owner",
+        "evidence_refs": [
+          "message:source-fixture"
+        ],
+        "semantic_reason": "隔离样本初始版本",
+        "created_at": "2026-10-26T12:00:00Z"
+      }
+    ],
+    "next_cursor": ""
+  },
+  "claim_current": {
+    "id": "fluctlight-fixture-one-claim-one",
+    "fluctlight_id": "fluctlight-fixture-one",
+    "category": "self_perception",
+    "claim": "我想给彼此留一点倾听的空间。",
+    "value": {},
+    "confidence": 0.72,
+    "evidence_refs": [
+      "message:source-fixture"
+    ],
+    "provenance": {
+      "kind": "reflection",
+      "fixture": true
+    },
+    "status": "active",
+    "expires_at": null,
+    "revision": 3,
+    "superseded_by": null,
+    "created_at": "2026-10-26T12:00:00Z",
+    "updated_at": "2026-10-26T12:00:00Z",
+    "source_valid": true,
+    "expired": false,
+    "owner_review": null
+  },
+  "claim_review_history": {
+    "items": [
+      {
+        "id": "self-review-2",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "claim_id": "fluctlight-fixture-one-claim-one",
+        "claim_revision": 2,
+        "owner_actor_id": "human-fixture-owner",
+        "reason": "已阅读当前认识及其依据",
+        "disposition": "acknowledged",
+        "created_at": "2026-10-26T12:00:00Z"
+      }
+    ],
+    "next_cursor": ""
+  },
+  "boundary": "isolated fixture API readback, not live Provider acceptance"
+}

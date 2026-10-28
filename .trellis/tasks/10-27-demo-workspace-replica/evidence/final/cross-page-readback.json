@@ -1,0 +1,2236 @@
+{
+  "environment": "production dist + isolated loopback API, not live Core",
+  "origin": "http://127.0.0.1:4375",
+  "directory": [
+    {
+      "id": "fluctlight-fixture-one",
+      "status": "active",
+      "identity": {
+        "name": "林岚 · 验收样本",
+        "age": 26,
+        "timezone": "Asia/Shanghai"
+      },
+      "unread_count": 2,
+      "last_conversation_at": "2026-10-13T01:00:00.123Z",
+      "avatar": {
+        "asset_id": "replica-unused",
+        "url": "/api/media/replica-unused"
+      }
+    },
+    {
+      "id": "fluctlight-fixture-two",
+      "status": "paused",
+      "identity": {
+        "name": "季川 · 验收样本",
+        "timezone": "Asia/Shanghai"
+      },
+      "unread_count": 0,
+      "last_conversation_at": "2026-10-13T01:00:00.123Z"
+    }
+  ],
+  "avatarA": {
+    "fluctlight_id": "fluctlight-fixture-one",
+    "mode": "asset",
+    "revision": 2,
+    "selection": {
+      "asset_id": "replica-unused",
+      "asset_revision": 3,
+      "version": "version-replica-unused",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "avatar": {
+      "asset_id": "replica-unused",
+      "url": "/api/media/replica-unused"
+    },
+    "read_state": "readable"
+  },
+  "avatarB": {
+    "fluctlight_id": "fluctlight-fixture-two",
+    "revision": 1,
+    "mode": "canonical",
+    "selection": null,
+    "avatar": {
+      "asset_id": "fluctlight-fixture-two-replica-canonical",
+      "url": "/api/media/fluctlight-fixture-two-replica-canonical"
+    },
+    "read_state": "readable"
+  },
+  "wardrobeA": {
+    "revision": 4,
+    "items": [
+      {
+        "id": "clothing-0",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "upper_body",
+        "slot": "upper_body",
+        "clothing_type": "upper_body",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "青绿棉质上衣",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-0",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-1",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "lower_body",
+        "slot": "lower_body",
+        "clothing_type": "lower_body",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "宽松长裤",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-1",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-2",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "underwear",
+        "slot": "underwear",
+        "clothing_type": "underwear",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "柔软内衣",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-2",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-3",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "panties",
+        "slot": "panties",
+        "clothing_type": "panties",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "棉质内裤",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-3",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-4",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "socks",
+        "slot": "socks",
+        "clothing_type": "socks",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "短袜",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-4",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-5",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "shoes",
+        "slot": "shoes",
+        "clothing_type": "shoes",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "平底鞋",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-5",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-6",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "accessory",
+        "slot": "accessory",
+        "clothing_type": "accessory",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "银色项链",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-6",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-7",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "accessory",
+        "slot": "accessory",
+        "clothing_type": "accessory",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "简约手链",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-7",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-8",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "outer",
+        "slot": "outer",
+        "clothing_type": "outer",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "薄外套",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-8",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      }
+    ],
+    "worn_items": [
+      {
+        "id": "clothing-0",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "upper_body",
+        "slot": "upper_body",
+        "clothing_type": "upper_body",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "青绿棉质上衣",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-0",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      },
+      {
+        "id": "clothing-1",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "item_kind": "wearable",
+        "category": "lower_body",
+        "slot": "lower_body",
+        "clothing_type": "lower_body",
+        "seasons": [
+          "spring",
+          "autumn"
+        ],
+        "description": "宽松长裤",
+        "ownership": "owned",
+        "availability": "available",
+        "source_kind": "owner_correction",
+        "source_ref": "fixture-known",
+        "source_item_key": "fixture-1",
+        "source_verified": true,
+        "revision": 1,
+        "acquired_at": "2026-10-13T01:00:00.123Z",
+        "updated_at": "2026-10-13T01:00:00.123Z",
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      }
+    ],
+    "used_items": [],
+    "inventory_complete": false,
+    "next_cursor": "",
+    "has_more": false
+  },
+  "wardrobeB": {
+    "revision": 7,
+    "items": [
+      {
+        "id": "profile-shirt",
+        "fluctlight_id": "fluctlight-fixture-two",
+        "item_kind": "wearable",
+        "category": "upper_body",
+        "slot": "upper_body",
+        "clothing_type": "upper_body",
+        "description": "正式登记的白色衬衫",
+        "ownership": "owned",
+        "availability": "available",
+        "revision": 1,
+        "seasons": [
+          "autumn"
+        ],
+        "source_kind": "owner",
+        "source_ref": "fixture",
+        "source_item_key": "fixture-shirt",
+        "source_verified": true,
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      }
+    ],
+    "worn_items": [
+      {
+        "id": "profile-shirt",
+        "fluctlight_id": "fluctlight-fixture-two",
+        "item_kind": "wearable",
+        "category": "upper_body",
+        "slot": "upper_body",
+        "clothing_type": "upper_body",
+        "description": "正式登记的白色衬衫",
+        "ownership": "owned",
+        "availability": "available",
+        "revision": 1,
+        "seasons": [
+          "autumn"
+        ],
+        "source_kind": "owner",
+        "source_ref": "fixture",
+        "source_item_key": "fixture-shirt",
+        "source_verified": true,
+        "archived_at": null,
+        "media": [],
+        "worn": null,
+        "use": null
+      }
+    ],
+    "used_items": [],
+    "inventory_complete": true,
+    "next_cursor": "",
+    "has_more": false
+  },
+  "detailA": {
+    "id": "fluctlight-fixture-one",
+    "status": "active",
+    "identity": {
+      "name": "林岚 · 验收样本",
+      "age": 26,
+      "timezone": "Asia/Shanghai",
+      "background_story": "这是用于资料分层验收的角色背景。",
+      "occupation": "书籍编辑",
+      "core_values": [
+        "诚实",
+        "尊重"
+      ],
+      "height": null,
+      "height_cm": null,
+      "custom_field": "扩展字段仍可查看",
+      "nickname": "小青",
+      "residence": "青岚",
+      "birthplace": "南方小城"
+    },
+    "personality": {
+      "openness": 0.82,
+      "conscientiousness": 0.72,
+      "agreeableness": 0.74,
+      "update_policy": {
+        "cooldown_seconds": 86400
+      }
+    },
+    "behavioral_policy": {
+      "response_style": "自然随和",
+      "message_length": "medium",
+      "directness": 0.7,
+      "initiative": 0.4,
+      "conflict_style": "温和协商",
+      "refusal_style": "温和而坚定"
+    },
+    "life_profile": {
+      "life_habits": "睡前阅读。",
+      "preferences": {
+        "likes": [
+          "小说",
+          "绘画"
+        ],
+        "stable_preferences": [
+          "留出独处时间"
+        ]
+      },
+      "character_constraints": "尊重彼此的选择。",
+      "appearance": {
+        "description": "齐肩长发，偏好简单舒适的穿搭。",
+        "physical_features": {
+          "hair_color": "black"
+        }
+      },
+      "extension": {
+        "schema_id": "keep-extension",
+        "numeric_values": [
+          1,
+          2
+        ]
+      }
+    },
+    "core_persona": {
+      "identity": {
+        "name": "林岚 · 验收样本",
+        "age": 26,
+        "timezone": "Asia/Shanghai",
+        "background_story": "这是用于资料分层验收的角色背景。",
+        "occupation": "书籍编辑",
+        "core_values": [
+          "诚实",
+          "尊重"
+        ],
+        "height": null,
+        "height_cm": null,
+        "custom_field": "扩展字段仍可查看",
+        "nickname": "小青",
+        "residence": "青岚",
+        "birthplace": "南方小城"
+      },
+      "personality": {
+        "openness": 0.82,
+        "conscientiousness": 0.72,
+        "agreeableness": 0.74,
+        "update_policy": {
+          "cooldown_seconds": 86400
+        }
+      },
+      "behavioral_policy": {
+        "response_style": "自然随和",
+        "message_length": "medium",
+        "directness": 0.7,
+        "initiative": 0.4,
+        "conflict_style": "温和协商",
+        "refusal_style": "温和而坚定"
+      },
+      "life_profile": {
+        "life_habits": "睡前阅读。",
+        "preferences": {
+          "likes": [
+            "小说",
+            "绘画"
+          ],
+          "stable_preferences": [
+            "留出独处时间"
+          ]
+        },
+        "character_constraints": "尊重彼此的选择。",
+        "appearance": {
+          "description": "齐肩长发，偏好简单舒适的穿搭。",
+          "physical_features": {
+            "hair_color": "black"
+          }
+        },
+        "extension": {
+          "schema_id": "keep-extension",
+          "numeric_values": [
+            1,
+            2
+          ]
+        }
+      },
+      "personality_system": {
+        "profiles": [
+          {
+            "id": "sunny",
+            "name": "日常人格",
+            "description": "日常的交流方式。",
+            "behavioral_policy": {
+              "response_style": "自然随和"
+            }
+          },
+          {
+            "id": "focused",
+            "name": "专注人格",
+            "description": "认真讨论时保留清晰的表达。",
+            "behavioral_policy": {
+              "response_style": "简洁直接"
+            }
+          }
+        ],
+        "persistent_switch_rules": [
+          {
+            "id": "rule-fixture",
+            "from_profile_id": "sunny",
+            "target_profile_id": "focused"
+          }
+        ]
+      }
+    },
+    "developing_self": {
+      "claims": []
+    },
+    "current_state": {
+      "appearance": null
+    },
+    "inner_state": {
+      "mood": {
+        "label": "平静",
+        "intensity": 0.5
+      },
+      "pad": {
+        "pleasure": 0.6,
+        "arousal": 0.4,
+        "dominance": 0.5
+      },
+      "momentum": {
+        "value": 0.5,
+        "trend": "stable"
+      },
+      "regulation": {
+        "stability": 0.7,
+        "stress": 0.2
+      }
+    },
+    "context": {
+      "scene": "书桌前",
+      "activity": "阅读",
+      "location": "家中",
+      "source": "event",
+      "context_revision": "life-fixture-1"
+    },
+    "actor_user": {
+      "background": {
+        "name": "验收用户",
+        "occupation": "编辑",
+        "background": "这是隔离验收环境中的样本资料。",
+        "interests": "阅读、绘画",
+        "preferences": "安静的交流",
+        "location_scope": "同城",
+        "location": "上海",
+        "timezone": "Asia/Shanghai",
+        "relationship_distance": "线上交流",
+        "meeting_confirmed": null
+      },
+      "facts": []
+    },
+    "current_facts_revision": "facts-fixture-1",
+    "life_context_revision": "life-fixture-1",
+    "editable_actor_ids": [
+      "human-fixture-owner"
+    ],
+    "relationships": [
+      {
+        "id": "relationship-fixture",
+        "target_actor_id": "human-fixture-owner",
+        "target_actor_type": "human",
+        "is_current_user": true,
+        "role": {
+          "label": "朋友"
+        },
+        "trend": "stable",
+        "summary": "样本关系",
+        "revision": 1
+      }
+    ],
+    "memories": [
+      {
+        "id": "memory-fixture",
+        "content": "这是一条用于只读列表验收的样本记忆。",
+        "type": "episodic",
+        "status": "active",
+        "revision": 1
+      }
+    ],
+    "goals": [
+      {
+        "id": "goal-fixture-one",
+        "desired_outcome": "完成一幅新的水彩作品",
+        "description": "完成一幅新的水彩作品",
+        "motivation": "把观察到的街景画下来。",
+        "status": "active",
+        "criteria_version": 1,
+        "revision": 1,
+        "scope": "general",
+        "success_criteria": [
+          "完成并保存画作"
+        ],
+        "criterion_ids": [
+          "criterion-fixture"
+        ],
+        "deadline_policy": "soft",
+        "execution": {
+          "next_step": "选择构图",
+          "wait_condition": "有一段安静的时间",
+          "blocker": "",
+          "evaluation_request": {
+            "status": "pending"
+          }
+        },
+        "stages": [],
+        "commitments": [],
+        "evaluations": [],
+        "evidence": [],
+        "reviews": [],
+        "resolutions": []
+      },
+      {
+        "id": "goal-fixture-two",
+        "desired_outcome": "根据真实偏好推荐一本小说",
+        "description": "根据真实偏好推荐一本小说",
+        "motivation": "分享有趣的阅读体验。",
+        "status": "active",
+        "criteria_version": 1,
+        "revision": 1,
+        "scope": "general",
+        "success_criteria": [
+          "完成推荐"
+        ],
+        "criterion_ids": [
+          "criterion-fixture-two"
+        ],
+        "deadline_policy": "soft",
+        "execution": {},
+        "stages": [],
+        "commitments": [],
+        "evaluations": [],
+        "evidence": [],
+        "reviews": [],
+        "resolutions": []
+      }
+    ],
+    "intentions": [],
+    "events": [],
+    "wake_ups": [],
+    "cognition_history": [],
+    "foundation_revisions": [
+      {
+        "id": "fluctlight-fixture-one-foundation-proposed",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "revision": 5,
+        "base_revision": 4,
+        "source": "reflection",
+        "status": "proposed",
+        "actor_id": "human-fixture-owner",
+        "reason": "把已有的生活偏好带入设定审阅。",
+        "created_at": "2026-10-26T12:00:00Z",
+        "accepted_at": null,
+        "changes": {
+          "life_profile": {
+            "life_habits": "睡前阅读，给自己留一点安静的时间。"
+          }
+        },
+        "identity": {
+          "name": "林岚 · 验收样本",
+          "age": 26,
+          "timezone": "Asia/Shanghai",
+          "background_story": "这是用于资料分层验收的角色背景。",
+          "occupation": "书籍编辑",
+          "core_values": [
+            "诚实",
+            "尊重"
+          ],
+          "height": null,
+          "height_cm": null,
+          "custom_field": "扩展字段仍可查看",
+          "nickname": "小青",
+          "residence": "青岚",
+          "birthplace": "南方小城"
+        },
+        "core_persona": {
+          "identity": {
+            "name": "林岚 · 验收样本",
+            "age": 26,
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          },
+          "personality": {
+            "openness": 0.82,
+            "conscientiousness": 0.72,
+            "agreeableness": 0.74,
+            "update_policy": {
+              "cooldown_seconds": 86400
+            }
+          },
+          "behavioral_policy": {
+            "response_style": "自然随和",
+            "message_length": "medium",
+            "directness": 0.7,
+            "initiative": 0.4,
+            "conflict_style": "温和协商",
+            "refusal_style": "温和而坚定"
+          },
+          "life_profile": {
+            "life_habits": "睡前阅读。",
+            "preferences": {
+              "likes": [
+                "小说",
+                "绘画"
+              ],
+              "stable_preferences": [
+                "留出独处时间"
+              ]
+            },
+            "character_constraints": "尊重彼此的选择。",
+            "appearance": {
+              "description": "齐肩长发，偏好简单舒适的穿搭。",
+              "physical_features": {
+                "hair_color": "black"
+              }
+            },
+            "extension": {
+              "schema_id": "keep-extension",
+              "numeric_values": [
+                1,
+                2
+              ]
+            }
+          },
+          "personality_system": {
+            "profiles": [
+              {
+                "id": "sunny",
+                "name": "日常人格",
+                "description": "日常的交流方式。",
+                "behavioral_policy": {
+                  "response_style": "自然随和"
+                }
+              },
+              {
+                "id": "focused",
+                "name": "专注人格",
+                "description": "认真讨论时保留清晰的表达。",
+                "behavioral_policy": {
+                  "response_style": "简洁直接"
+                }
+              }
+            ],
+            "persistent_switch_rules": [
+              {
+                "id": "rule-fixture",
+                "from_profile_id": "sunny",
+                "target_profile_id": "focused"
+              }
+            ]
+          }
+        },
+        "personality": {
+          "openness": 0.82,
+          "conscientiousness": 0.72,
+          "agreeableness": 0.74,
+          "update_policy": {
+            "cooldown_seconds": 86400
+          }
+        },
+        "behavioral_policy": {
+          "response_style": "自然随和",
+          "message_length": "medium",
+          "directness": 0.7,
+          "initiative": 0.4,
+          "conflict_style": "温和协商",
+          "refusal_style": "温和而坚定"
+        },
+        "life_profile": {
+          "life_habits": "睡前阅读。",
+          "preferences": {
+            "likes": [
+              "小说",
+              "绘画"
+            ],
+            "stable_preferences": [
+              "留出独处时间"
+            ]
+          },
+          "character_constraints": "尊重彼此的选择。",
+          "appearance": {
+            "description": "齐肩长发，偏好简单舒适的穿搭。",
+            "physical_features": {
+              "hair_color": "black"
+            }
+          },
+          "extension": {
+            "schema_id": "keep-extension",
+            "numeric_values": [
+              1,
+              2
+            ]
+          }
+        },
+        "base_snapshot": {
+          "identity": {
+            "name": "林岚 · 验收样本",
+            "age": 26,
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          },
+          "personality": {
+            "openness": 0.82,
+            "conscientiousness": 0.72,
+            "agreeableness": 0.74,
+            "update_policy": {
+              "cooldown_seconds": 86400
+            }
+          },
+          "behavioral_policy": {
+            "response_style": "自然随和",
+            "message_length": "medium",
+            "directness": 0.7,
+            "initiative": 0.4,
+            "conflict_style": "温和协商",
+            "refusal_style": "温和而坚定"
+          },
+          "life_profile": {
+            "life_habits": "睡前阅读。",
+            "preferences": {
+              "likes": [
+                "小说",
+                "绘画"
+              ],
+              "stable_preferences": [
+                "留出独处时间"
+              ]
+            },
+            "character_constraints": "尊重彼此的选择。",
+            "appearance": {
+              "description": "齐肩长发，偏好简单舒适的穿搭。",
+              "physical_features": {
+                "hair_color": "black"
+              }
+            },
+            "extension": {
+              "schema_id": "keep-extension",
+              "numeric_values": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "fluctlight-fixture-one-foundation-initial",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "revision": 4,
+        "base_revision": 4,
+        "source": "initialization",
+        "status": "accepted",
+        "actor_id": "human-fixture-owner",
+        "reason": "创建时确认的隔离样本",
+        "created_at": "2026-10-26T12:00:00Z",
+        "accepted_at": "2026-10-26T12:00:00Z",
+        "changes": {
+          "identity": {
+            "name": "林岚 · 验收样本",
+            "age": 26,
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          }
+        },
+        "identity": {
+          "name": "林岚 · 验收样本",
+          "age": 26,
+          "timezone": "Asia/Shanghai",
+          "background_story": "这是用于资料分层验收的角色背景。",
+          "occupation": "书籍编辑",
+          "core_values": [
+            "诚实",
+            "尊重"
+          ],
+          "height": null,
+          "height_cm": null,
+          "custom_field": "扩展字段仍可查看",
+          "nickname": "小青",
+          "residence": "青岚",
+          "birthplace": "南方小城"
+        },
+        "core_persona": {
+          "identity": {
+            "name": "林岚 · 验收样本",
+            "age": 26,
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          },
+          "personality": {
+            "openness": 0.82,
+            "conscientiousness": 0.72,
+            "agreeableness": 0.74,
+            "update_policy": {
+              "cooldown_seconds": 86400
+            }
+          },
+          "behavioral_policy": {
+            "response_style": "自然随和",
+            "message_length": "medium",
+            "directness": 0.7,
+            "initiative": 0.4,
+            "conflict_style": "温和协商",
+            "refusal_style": "温和而坚定"
+          },
+          "life_profile": {
+            "life_habits": "睡前阅读。",
+            "preferences": {
+              "likes": [
+                "小说",
+                "绘画"
+              ],
+              "stable_preferences": [
+                "留出独处时间"
+              ]
+            },
+            "character_constraints": "尊重彼此的选择。",
+            "appearance": {
+              "description": "齐肩长发，偏好简单舒适的穿搭。",
+              "physical_features": {
+                "hair_color": "black"
+              }
+            },
+            "extension": {
+              "schema_id": "keep-extension",
+              "numeric_values": [
+                1,
+                2
+              ]
+            }
+          },
+          "personality_system": {
+            "profiles": [
+              {
+                "id": "sunny",
+                "name": "日常人格",
+                "description": "日常的交流方式。",
+                "behavioral_policy": {
+                  "response_style": "自然随和"
+                }
+              },
+              {
+                "id": "focused",
+                "name": "专注人格",
+                "description": "认真讨论时保留清晰的表达。",
+                "behavioral_policy": {
+                  "response_style": "简洁直接"
+                }
+              }
+            ],
+            "persistent_switch_rules": [
+              {
+                "id": "rule-fixture",
+                "from_profile_id": "sunny",
+                "target_profile_id": "focused"
+              }
+            ]
+          }
+        },
+        "personality": {
+          "openness": 0.82,
+          "conscientiousness": 0.72,
+          "agreeableness": 0.74,
+          "update_policy": {
+            "cooldown_seconds": 86400
+          }
+        },
+        "behavioral_policy": {
+          "response_style": "自然随和",
+          "message_length": "medium",
+          "directness": 0.7,
+          "initiative": 0.4,
+          "conflict_style": "温和协商",
+          "refusal_style": "温和而坚定"
+        },
+        "life_profile": {
+          "life_habits": "睡前阅读。",
+          "preferences": {
+            "likes": [
+              "小说",
+              "绘画"
+            ],
+            "stable_preferences": [
+              "留出独处时间"
+            ]
+          },
+          "character_constraints": "尊重彼此的选择。",
+          "appearance": {
+            "description": "齐肩长发，偏好简单舒适的穿搭。",
+            "physical_features": {
+              "hair_color": "black"
+            }
+          },
+          "extension": {
+            "schema_id": "keep-extension",
+            "numeric_values": [
+              1,
+              2
+            ]
+          }
+        },
+        "base_snapshot": null
+      }
+    ],
+    "visual_identity": {
+      "status": "missing",
+      "current_revision": 0,
+      "timeline": [],
+      "renderer_constraints": {
+        "chest_cup": null
+      }
+    },
+    "schedule": {
+      "status": "accepted",
+      "reschedule_policy": null,
+      "id": "schedule-nas-fixture",
+      "revision": 1,
+      "local_date": "2026-10-28",
+      "timezone": "Asia/Shanghai",
+      "items": [
+        {
+          "id": "slot-0",
+          "start_at": "2026-10-28T00:00:00+08:00",
+          "end_at": "2026-10-28T02:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-1",
+          "start_at": "2026-10-28T02:00:00+08:00",
+          "end_at": "2026-10-28T04:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-2",
+          "start_at": "2026-10-28T04:00:00+08:00",
+          "end_at": "2026-10-28T06:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-3",
+          "start_at": "2026-10-28T06:00:00+08:00",
+          "end_at": "2026-10-28T08:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-4",
+          "start_at": "2026-10-28T08:00:00+08:00",
+          "end_at": "2026-10-28T10:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-5",
+          "start_at": "2026-10-28T10:00:00+08:00",
+          "end_at": "2026-10-28T12:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-6",
+          "start_at": "2026-10-28T12:00:00+08:00",
+          "end_at": "2026-10-28T14:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-7",
+          "start_at": "2026-10-28T14:00:00+08:00",
+          "end_at": "2026-10-28T16:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-8",
+          "start_at": "2026-10-28T16:00:00+08:00",
+          "end_at": "2026-10-28T18:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-9",
+          "start_at": "2026-10-28T18:00:00+08:00",
+          "end_at": "2026-10-28T20:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-10",
+          "start_at": "2026-10-28T20:00:00+08:00",
+          "end_at": "2026-10-28T22:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-11",
+          "start_at": "2026-10-28T22:00:00+08:00",
+          "end_at": "2026-10-28T23:00:00+08:00",
+          "activity": "海边散步",
+          "scene": "海边",
+          "location": "家",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-12",
+          "start_at": "2026-10-28T23:00:00+08:00",
+          "end_at": "2026-10-29T00:00:00+08:00",
+          "activity": "睡眠",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        }
+      ]
+    },
+    "world": {
+      "id": "fixture-world",
+      "name": "温和魔法世界"
+    },
+    "current_revision": 4,
+    "personality_runtime": {
+      "active_profile_id": "sunny",
+      "revision": 2
+    },
+    "persona_compilation": {
+      "owner_switch_targets": [
+        {
+          "target_profile_id": "focused"
+        }
+      ],
+      "owner_switch_status": "assessment_required",
+      "working_persona": {
+        "portrait_text": "openness: 0.82\n愿意听完日常里的细节。"
+      }
+    },
+    "persona_preparation": {
+      "status": "ready",
+      "can_recover": false
+    },
+    "persona_switch_history": [],
+    "persona_switch_history_has_more": false,
+    "initialization_mode": "structured",
+    "initialization_source": {
+      "mode": "structured",
+      "source_kind": "owner"
+    },
+    "provenance": {
+      "fixture": true
+    },
+    "avatar": {
+      "asset_id": "replica-unused",
+      "url": "/api/media/replica-unused"
+    }
+  },
+  "detailB": {
+    "id": "fluctlight-fixture-two",
+    "status": "paused",
+    "identity": {
+      "name": "季川 · 验收样本",
+      "timezone": "Asia/Shanghai",
+      "background_story": "这是用于资料分层验收的角色背景。",
+      "occupation": "书籍编辑",
+      "core_values": [
+        "诚实",
+        "尊重"
+      ],
+      "height": null,
+      "height_cm": null,
+      "custom_field": "扩展字段仍可查看",
+      "nickname": "小青",
+      "residence": "青岚",
+      "birthplace": "南方小城"
+    },
+    "personality": {
+      "openness": 0.82,
+      "conscientiousness": 0.72,
+      "agreeableness": 0.74,
+      "update_policy": {
+        "cooldown_seconds": 86400
+      }
+    },
+    "behavioral_policy": {
+      "response_style": "自然随和",
+      "message_length": "medium",
+      "directness": 0.7,
+      "initiative": 0.4,
+      "conflict_style": "温和协商",
+      "refusal_style": "温和而坚定"
+    },
+    "life_profile": {
+      "life_habits": "睡前阅读。",
+      "preferences": {
+        "likes": [
+          "小说",
+          "绘画"
+        ],
+        "stable_preferences": [
+          "留出独处时间"
+        ]
+      },
+      "character_constraints": "尊重彼此的选择。",
+      "appearance": {
+        "description": "齐肩长发，偏好简单舒适的穿搭。",
+        "physical_features": {
+          "hair_color": "black"
+        }
+      },
+      "extension": {
+        "schema_id": "keep-extension",
+        "numeric_values": [
+          1,
+          2
+        ]
+      }
+    },
+    "core_persona": {
+      "identity": {
+        "name": "季川 · 验收样本",
+        "timezone": "Asia/Shanghai",
+        "background_story": "这是用于资料分层验收的角色背景。",
+        "occupation": "书籍编辑",
+        "core_values": [
+          "诚实",
+          "尊重"
+        ],
+        "height": null,
+        "height_cm": null,
+        "custom_field": "扩展字段仍可查看",
+        "nickname": "小青",
+        "residence": "青岚",
+        "birthplace": "南方小城"
+      },
+      "personality": {
+        "openness": 0.82,
+        "conscientiousness": 0.72,
+        "agreeableness": 0.74,
+        "update_policy": {
+          "cooldown_seconds": 86400
+        }
+      },
+      "behavioral_policy": {
+        "response_style": "自然随和",
+        "message_length": "medium",
+        "directness": 0.7,
+        "initiative": 0.4,
+        "conflict_style": "温和协商",
+        "refusal_style": "温和而坚定"
+      },
+      "life_profile": {
+        "life_habits": "睡前阅读。",
+        "preferences": {
+          "likes": [
+            "小说",
+            "绘画"
+          ],
+          "stable_preferences": [
+            "留出独处时间"
+          ]
+        },
+        "character_constraints": "尊重彼此的选择。",
+        "appearance": {
+          "description": "齐肩长发，偏好简单舒适的穿搭。",
+          "physical_features": {
+            "hair_color": "black"
+          }
+        },
+        "extension": {
+          "schema_id": "keep-extension",
+          "numeric_values": [
+            1,
+            2
+          ]
+        }
+      },
+      "personality_system": {
+        "profiles": [
+          {
+            "id": "sunny",
+            "name": "日常人格",
+            "description": "日常的交流方式。",
+            "behavioral_policy": {
+              "response_style": "自然随和"
+            }
+          },
+          {
+            "id": "focused",
+            "name": "专注人格",
+            "description": "认真讨论时保留清晰的表达。",
+            "behavioral_policy": {
+              "response_style": "简洁直接"
+            }
+          }
+        ],
+        "persistent_switch_rules": [
+          {
+            "id": "rule-fixture",
+            "from_profile_id": "sunny",
+            "target_profile_id": "focused"
+          }
+        ]
+      }
+    },
+    "developing_self": {
+      "claims": []
+    },
+    "current_state": {
+      "appearance": null
+    },
+    "inner_state": {
+      "mood": {
+        "label": "平静",
+        "intensity": 0.5
+      },
+      "pad": {
+        "pleasure": 0.6,
+        "arousal": 0.4,
+        "dominance": 0.5
+      },
+      "momentum": {
+        "value": 0.5,
+        "trend": "stable"
+      },
+      "regulation": {
+        "stability": 0.7,
+        "stress": 0.2
+      }
+    },
+    "context": {
+      "scene": "书桌前",
+      "activity": "阅读",
+      "location": "家中",
+      "source": "event",
+      "context_revision": "life-fixture-1"
+    },
+    "actor_user": {
+      "background": {
+        "name": "验收用户",
+        "occupation": "编辑",
+        "background": "这是隔离验收环境中的样本资料。",
+        "interests": "阅读、绘画",
+        "preferences": "安静的交流",
+        "location_scope": "同城",
+        "location": "上海",
+        "timezone": "Asia/Shanghai",
+        "relationship_distance": "线上交流",
+        "meeting_confirmed": null
+      },
+      "facts": []
+    },
+    "current_facts_revision": "facts-fixture-1",
+    "life_context_revision": "life-fixture-1",
+    "editable_actor_ids": [
+      "human-fixture-owner"
+    ],
+    "relationships": [
+      {
+        "id": "relationship-fixture",
+        "target_actor_id": "human-fixture-owner",
+        "target_actor_type": "human",
+        "is_current_user": true,
+        "role": {
+          "label": "朋友"
+        },
+        "trend": "stable",
+        "summary": "样本关系",
+        "revision": 1
+      }
+    ],
+    "memories": [
+      {
+        "id": "memory-fixture",
+        "content": "这是一条用于只读列表验收的样本记忆。",
+        "type": "episodic",
+        "status": "active",
+        "revision": 1
+      }
+    ],
+    "goals": [
+      {
+        "id": "goal-fixture-one",
+        "desired_outcome": "完成一幅新的水彩作品",
+        "description": "完成一幅新的水彩作品",
+        "motivation": "把观察到的街景画下来。",
+        "status": "active",
+        "criteria_version": 1,
+        "revision": 1,
+        "scope": "general",
+        "success_criteria": [
+          "完成并保存画作"
+        ],
+        "criterion_ids": [
+          "criterion-fixture"
+        ],
+        "deadline_policy": "soft",
+        "execution": {
+          "next_step": "选择构图",
+          "wait_condition": "有一段安静的时间",
+          "blocker": "",
+          "evaluation_request": {
+            "status": "pending"
+          }
+        },
+        "stages": [],
+        "commitments": [],
+        "evaluations": [],
+        "evidence": [],
+        "reviews": [],
+        "resolutions": []
+      },
+      {
+        "id": "goal-fixture-two",
+        "desired_outcome": "根据真实偏好推荐一本小说",
+        "description": "根据真实偏好推荐一本小说",
+        "motivation": "分享有趣的阅读体验。",
+        "status": "active",
+        "criteria_version": 1,
+        "revision": 1,
+        "scope": "general",
+        "success_criteria": [
+          "完成推荐"
+        ],
+        "criterion_ids": [
+          "criterion-fixture-two"
+        ],
+        "deadline_policy": "soft",
+        "execution": {},
+        "stages": [],
+        "commitments": [],
+        "evaluations": [],
+        "evidence": [],
+        "reviews": [],
+        "resolutions": []
+      }
+    ],
+    "intentions": [],
+    "events": [],
+    "wake_ups": [],
+    "cognition_history": [],
+    "foundation_revisions": [
+      {
+        "id": "fluctlight-fixture-two-foundation-proposed",
+        "fluctlight_id": "fluctlight-fixture-two",
+        "revision": 5,
+        "base_revision": 4,
+        "source": "reflection",
+        "status": "proposed",
+        "actor_id": "human-fixture-owner",
+        "reason": "把已有的生活偏好带入设定审阅。",
+        "created_at": "2026-10-26T12:00:00Z",
+        "accepted_at": null,
+        "changes": {
+          "life_profile": {
+            "life_habits": "睡前阅读，给自己留一点安静的时间。"
+          }
+        },
+        "identity": {
+          "name": "季川 · 验收样本",
+          "timezone": "Asia/Shanghai",
+          "background_story": "这是用于资料分层验收的角色背景。",
+          "occupation": "书籍编辑",
+          "core_values": [
+            "诚实",
+            "尊重"
+          ],
+          "height": null,
+          "height_cm": null,
+          "custom_field": "扩展字段仍可查看",
+          "nickname": "小青",
+          "residence": "青岚",
+          "birthplace": "南方小城"
+        },
+        "core_persona": {
+          "identity": {
+            "name": "季川 · 验收样本",
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          },
+          "personality": {
+            "openness": 0.82,
+            "conscientiousness": 0.72,
+            "agreeableness": 0.74,
+            "update_policy": {
+              "cooldown_seconds": 86400
+            }
+          },
+          "behavioral_policy": {
+            "response_style": "自然随和",
+            "message_length": "medium",
+            "directness": 0.7,
+            "initiative": 0.4,
+            "conflict_style": "温和协商",
+            "refusal_style": "温和而坚定"
+          },
+          "life_profile": {
+            "life_habits": "睡前阅读。",
+            "preferences": {
+              "likes": [
+                "小说",
+                "绘画"
+              ],
+              "stable_preferences": [
+                "留出独处时间"
+              ]
+            },
+            "character_constraints": "尊重彼此的选择。",
+            "appearance": {
+              "description": "齐肩长发，偏好简单舒适的穿搭。",
+              "physical_features": {
+                "hair_color": "black"
+              }
+            },
+            "extension": {
+              "schema_id": "keep-extension",
+              "numeric_values": [
+                1,
+                2
+              ]
+            }
+          },
+          "personality_system": {
+            "profiles": [
+              {
+                "id": "sunny",
+                "name": "日常人格",
+                "description": "日常的交流方式。",
+                "behavioral_policy": {
+                  "response_style": "自然随和"
+                }
+              },
+              {
+                "id": "focused",
+                "name": "专注人格",
+                "description": "认真讨论时保留清晰的表达。",
+                "behavioral_policy": {
+                  "response_style": "简洁直接"
+                }
+              }
+            ],
+            "persistent_switch_rules": [
+              {
+                "id": "rule-fixture",
+                "from_profile_id": "sunny",
+                "target_profile_id": "focused"
+              }
+            ]
+          }
+        },
+        "personality": {
+          "openness": 0.82,
+          "conscientiousness": 0.72,
+          "agreeableness": 0.74,
+          "update_policy": {
+            "cooldown_seconds": 86400
+          }
+        },
+        "behavioral_policy": {
+          "response_style": "自然随和",
+          "message_length": "medium",
+          "directness": 0.7,
+          "initiative": 0.4,
+          "conflict_style": "温和协商",
+          "refusal_style": "温和而坚定"
+        },
+        "life_profile": {
+          "life_habits": "睡前阅读。",
+          "preferences": {
+            "likes": [
+              "小说",
+              "绘画"
+            ],
+            "stable_preferences": [
+              "留出独处时间"
+            ]
+          },
+          "character_constraints": "尊重彼此的选择。",
+          "appearance": {
+            "description": "齐肩长发，偏好简单舒适的穿搭。",
+            "physical_features": {
+              "hair_color": "black"
+            }
+          },
+          "extension": {
+            "schema_id": "keep-extension",
+            "numeric_values": [
+              1,
+              2
+            ]
+          }
+        },
+        "base_snapshot": {
+          "identity": {
+            "name": "季川 · 验收样本",
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          },
+          "personality": {
+            "openness": 0.82,
+            "conscientiousness": 0.72,
+            "agreeableness": 0.74,
+            "update_policy": {
+              "cooldown_seconds": 86400
+            }
+          },
+          "behavioral_policy": {
+            "response_style": "自然随和",
+            "message_length": "medium",
+            "directness": 0.7,
+            "initiative": 0.4,
+            "conflict_style": "温和协商",
+            "refusal_style": "温和而坚定"
+          },
+          "life_profile": {
+            "life_habits": "睡前阅读。",
+            "preferences": {
+              "likes": [
+                "小说",
+                "绘画"
+              ],
+              "stable_preferences": [
+                "留出独处时间"
+              ]
+            },
+            "character_constraints": "尊重彼此的选择。",
+            "appearance": {
+              "description": "齐肩长发，偏好简单舒适的穿搭。",
+              "physical_features": {
+                "hair_color": "black"
+              }
+            },
+            "extension": {
+              "schema_id": "keep-extension",
+              "numeric_values": [
+                1,
+                2
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "fluctlight-fixture-two-foundation-initial",
+        "fluctlight_id": "fluctlight-fixture-two",
+        "revision": 4,
+        "base_revision": 4,
+        "source": "initialization",
+        "status": "accepted",
+        "actor_id": "human-fixture-owner",
+        "reason": "创建时确认的隔离样本",
+        "created_at": "2026-10-26T12:00:00Z",
+        "accepted_at": "2026-10-26T12:00:00Z",
+        "changes": {
+          "identity": {
+            "name": "季川 · 验收样本",
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          }
+        },
+        "identity": {
+          "name": "季川 · 验收样本",
+          "timezone": "Asia/Shanghai",
+          "background_story": "这是用于资料分层验收的角色背景。",
+          "occupation": "书籍编辑",
+          "core_values": [
+            "诚实",
+            "尊重"
+          ],
+          "height": null,
+          "height_cm": null,
+          "custom_field": "扩展字段仍可查看",
+          "nickname": "小青",
+          "residence": "青岚",
+          "birthplace": "南方小城"
+        },
+        "core_persona": {
+          "identity": {
+            "name": "季川 · 验收样本",
+            "timezone": "Asia/Shanghai",
+            "background_story": "这是用于资料分层验收的角色背景。",
+            "occupation": "书籍编辑",
+            "core_values": [
+              "诚实",
+              "尊重"
+            ],
+            "height": null,
+            "height_cm": null,
+            "custom_field": "扩展字段仍可查看",
+            "nickname": "小青",
+            "residence": "青岚",
+            "birthplace": "南方小城"
+          },
+          "personality": {
+            "openness": 0.82,
+            "conscientiousness": 0.72,
+            "agreeableness": 0.74,
+            "update_policy": {
+              "cooldown_seconds": 86400
+            }
+          },
+          "behavioral_policy": {
+            "response_style": "自然随和",
+            "message_length": "medium",
+            "directness": 0.7,
+            "initiative": 0.4,
+            "conflict_style": "温和协商",
+            "refusal_style": "温和而坚定"
+          },
+          "life_profile": {
+            "life_habits": "睡前阅读。",
+            "preferences": {
+              "likes": [
+                "小说",
+                "绘画"
+              ],
+              "stable_preferences": [
+                "留出独处时间"
+              ]
+            },
+            "character_constraints": "尊重彼此的选择。",
+            "appearance": {
+              "description": "齐肩长发，偏好简单舒适的穿搭。",
+              "physical_features": {
+                "hair_color": "black"
+              }
+            },
+            "extension": {
+              "schema_id": "keep-extension",
+              "numeric_values": [
+                1,
+                2
+              ]
+            }
+          },
+          "personality_system": {
+            "profiles": [
+              {
+                "id": "sunny",
+                "name": "日常人格",
+                "description": "日常的交流方式。",
+                "behavioral_policy": {
+                  "response_style": "自然随和"
+                }
+              },
+              {
+                "id": "focused",
+                "name": "专注人格",
+                "description": "认真讨论时保留清晰的表达。",
+                "behavioral_policy": {
+                  "response_style": "简洁直接"
+                }
+              }
+            ],
+            "persistent_switch_rules": [
+              {
+                "id": "rule-fixture",
+                "from_profile_id": "sunny",
+                "target_profile_id": "focused"
+              }
+            ]
+          }
+        },
+        "personality": {
+          "openness": 0.82,
+          "conscientiousness": 0.72,
+          "agreeableness": 0.74,
+          "update_policy": {
+            "cooldown_seconds": 86400
+          }
+        },
+        "behavioral_policy": {
+          "response_style": "自然随和",
+          "message_length": "medium",
+          "directness": 0.7,
+          "initiative": 0.4,
+          "conflict_style": "温和协商",
+          "refusal_style": "温和而坚定"
+        },
+        "life_profile": {
+          "life_habits": "睡前阅读。",
+          "preferences": {
+            "likes": [
+              "小说",
+              "绘画"
+            ],
+            "stable_preferences": [
+              "留出独处时间"
+            ]
+          },
+          "character_constraints": "尊重彼此的选择。",
+          "appearance": {
+            "description": "齐肩长发，偏好简单舒适的穿搭。",
+            "physical_features": {
+              "hair_color": "black"
+            }
+          },
+          "extension": {
+            "schema_id": "keep-extension",
+            "numeric_values": [
+              1,
+              2
+            ]
+          }
+        },
+        "base_snapshot": null
+      }
+    ],
+    "visual_identity": {
+      "status": "missing",
+      "current_revision": 0,
+      "timeline": [],
+      "renderer_constraints": {
+        "chest_cup": null
+      }
+    },
+    "schedule": {
+      "status": "accepted",
+      "reschedule_policy": null,
+      "id": "schedule-nas-fixture",
+      "revision": 1,
+      "local_date": "2026-10-28",
+      "timezone": "Asia/Shanghai",
+      "items": [
+        {
+          "id": "slot-0",
+          "start_at": "2026-10-28T00:00:00+08:00",
+          "end_at": "2026-10-28T02:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-1",
+          "start_at": "2026-10-28T02:00:00+08:00",
+          "end_at": "2026-10-28T04:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-2",
+          "start_at": "2026-10-28T04:00:00+08:00",
+          "end_at": "2026-10-28T06:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-3",
+          "start_at": "2026-10-28T06:00:00+08:00",
+          "end_at": "2026-10-28T08:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-4",
+          "start_at": "2026-10-28T08:00:00+08:00",
+          "end_at": "2026-10-28T10:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-5",
+          "start_at": "2026-10-28T10:00:00+08:00",
+          "end_at": "2026-10-28T12:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-6",
+          "start_at": "2026-10-28T12:00:00+08:00",
+          "end_at": "2026-10-28T14:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-7",
+          "start_at": "2026-10-28T14:00:00+08:00",
+          "end_at": "2026-10-28T16:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-8",
+          "start_at": "2026-10-28T16:00:00+08:00",
+          "end_at": "2026-10-28T18:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-9",
+          "start_at": "2026-10-28T18:00:00+08:00",
+          "end_at": "2026-10-28T20:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-10",
+          "start_at": "2026-10-28T20:00:00+08:00",
+          "end_at": "2026-10-28T22:00:00+08:00",
+          "activity": "自由安排",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-11",
+          "start_at": "2026-10-28T22:00:00+08:00",
+          "end_at": "2026-10-28T23:00:00+08:00",
+          "activity": "海边散步",
+          "scene": "海边",
+          "location": "家",
+          "status": "scheduled",
+          "action_status": null
+        },
+        {
+          "id": "slot-12",
+          "start_at": "2026-10-28T23:00:00+08:00",
+          "end_at": "2026-10-29T00:00:00+08:00",
+          "activity": "睡眠",
+          "scene": "日常",
+          "location": "",
+          "status": "scheduled",
+          "action_status": null
+        }
+      ]
+    },
+    "world": {
+      "id": "fixture-world",
+      "name": "温和魔法世界"
+    },
+    "current_revision": 4,
+    "personality_runtime": {
+      "active_profile_id": "sunny",
+      "revision": 2
+    },
+    "persona_compilation": {
+      "owner_switch_targets": [
+        {
+          "target_profile_id": "focused"
+        }
+      ],
+      "owner_switch_status": "assessment_required",
+      "working_persona": {
+        "portrait_text": "openness: 0.82\n愿意听完日常里的细节。"
+      }
+    },
+    "persona_preparation": {
+      "status": "ready",
+      "can_recover": false
+    },
+    "persona_switch_history": [],
+    "persona_switch_history_has_more": false,
+    "initialization_mode": "structured",
+    "initialization_source": {
+      "mode": "structured",
+      "source_kind": "owner"
+    },
+    "provenance": {
+      "fixture": true
+    }
+  },
+  "request": {
+    "id": "request-wardrobe-fixture",
+    "fluctlight_id": "fluctlight-fixture-one",
+    "kind": "inventory_action",
+    "status": "completed",
+    "revision": 4,
+    "created_at": "2026-10-13T01:00:00.123Z",
+    "payload": {
+      "outfitId": "plan-1",
+      "expectedOutfitRevision": 1,
+      "profileId": "sunny",
+      "expectedRevision": 4,
+      "kind": "outfit",
+      "reason": "想请你试试这套搭配",
+      "idempotencyKey": "16bc407a-e771-4d53-aca7-b98185ce3c03"
+    },
+    "result": {},
+    "result_refs": []
+  },
+  "audit": [
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+      "query": {},
+      "body": {
+        "mode": "asset",
+        "expectedRevision": 1,
+        "reason": "最终跨页验收：采用独立显示头像",
+        "assetId": "replica-unused",
+        "expectedAssetRevision": 3,
+        "idempotencyKey": "b8802dd8-63dc-4991-ac9c-11049b1ae4dc"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+      "query": {},
+      "body": {
+        "name": "最终跨页验收搭配",
+        "tags": [
+          "在家"
+        ],
+        "itemIds": [
+          "clothing-0",
+          "clothing-1"
+        ],
+        "profileId": "sunny",
+        "expectedRevision": 3,
+        "expectedOutfitRevision": 0,
+        "reason": "保存穿搭方案",
+        "idempotencyKey": "3d52b8ae-5bd6-41e6-965d-c92aaae06446"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+      "query": {},
+      "body": {
+        "outfitId": "plan-1",
+        "expectedOutfitRevision": 1,
+        "profileId": "sunny",
+        "expectedRevision": 4,
+        "kind": "outfit",
+        "reason": "想请你试试这套搭配",
+        "idempotencyKey": "16bc407a-e771-4d53-aca7-b98185ce3c03"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/reflections/fluctlight-fixture-one-reflection-one/feedback",
+      "query": {},
+      "body": {
+        "text": "最终验收：认同认真倾听的想法",
+        "stance": "agree",
+        "idempotencyKey": "c2816bdb-bf62-40a6-a0c6-75abb021b44f"
+      }
+    }
+  ]
+}

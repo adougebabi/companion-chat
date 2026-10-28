@@ -1,0 +1,179 @@
+{
+  "environment": "isolated API fixture; no live DB/model proof",
+  "normal": [
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+      "query": {},
+      "body": {
+        "background": {
+          "name": "验收用户 · 已核对"
+        },
+        "operation": "change",
+        "reason": "核对自己的称呼，保留其他资料",
+        "idempotencyKey": "e9f50b88-6ca2-4882-8968-d3b6caf9b3f4",
+        "expectedCurrentFactsRevision": "facts_gen_5"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-1",
+      "query": {},
+      "body": {
+        "name": "陈渡",
+        "role": "常来书店的读者",
+        "background": "喜欢旅行和旧书，偶尔来借一本诗集；表达时习惯先想清楚。",
+        "homePlaceId": "fluctlight-fixture-one-shop",
+        "routine": [
+          {
+            "day": "daily",
+            "start": "09:00",
+            "end": "17:00",
+            "place_id": "fluctlight-fixture-one-room",
+            "activity": "经营自己的小店"
+          }
+        ],
+        "status": "active",
+        "enabled": true,
+        "positionMode": "routine",
+        "expectedRevision": 3,
+        "reason": "所有者编辑运行人物资料",
+        "idempotencyKey": "2c5e6ab5-187d-4fc8-8c6b-aa5990be8938"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-1/opportunities/fluctlight-fixture-one-npc-1-opportunity/retry",
+      "query": {},
+      "body": {
+        "expectedRevision": 4,
+        "reason": "核对原在场窗口与相遇条件",
+        "idempotencyKey": "d8d5118f-7c50-42be-943b-65e487448c92"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-1/encounters",
+      "query": {},
+      "body": {
+        "confirmed": true,
+        "summary": "隔离验收场景：角色与陈渡在书店讨论了最近读过的故事。",
+        "startAt": "2026-10-27T20:28:33.216Z",
+        "endAt": "2026-10-27T20:58:33.218Z",
+        "placeId": "fluctlight-fixture-one-shop",
+        "evidenceRefs": [
+          "owner_confirmation"
+        ],
+        "expectedLifeContextRevision": "life-people-1",
+        "reason": "所有者确认记录角色生活中实际发生的接触",
+        "idempotencyKey": "3b8daa29-b176-4736-b7ea-cb29997337c0"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/studio/resources",
+      "query": {},
+      "body": {
+        "kind": "npc",
+        "name": "许舟 · 新人物样本",
+        "body": {
+          "role": "独立装帧设计师",
+          "background": "在小城设计书的封面，喜欢认真听完别人的想法。"
+        },
+        "reason": "所有者保存世界人物定义",
+        "idempotencyKey": "b1f03c94-7f94-42a5-bca8-11681bbf58fa"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/studio/resources/person-resource-4/publish",
+      "query": {},
+      "body": {
+        "expectedRevision": 1,
+        "reason": "所有者发布人物定义保存版本",
+        "idempotencyKey": "5fde0cfd-a1fb-4cc0-8b10-ea902c7357be"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/studio/resources/person-resource-4/apply-preview",
+      "query": {},
+      "body": {
+        "fluctlightId": "fluctlight-fixture-one",
+        "resourceVersion": "v1"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/studio/resources/person-resource-4/apply-preview",
+      "query": {},
+      "body": {
+        "fluctlightId": "fluctlight-fixture-one",
+        "resourceVersion": "v1"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/studio/resources/person-resource-4/apply",
+      "query": {},
+      "body": {
+        "fluctlightId": "fluctlight-fixture-one",
+        "resourceVersion": "v1",
+        "expectedInstanceRevision": 4,
+        "expectedRuntimeRevision": 0,
+        "homePlaceId": null,
+        "choices": [
+          {
+            "field": "name",
+            "decision": "override"
+          },
+          {
+            "field": "role",
+            "decision": "override"
+          },
+          {
+            "field": "background",
+            "decision": "override"
+          }
+        ],
+        "reason": "所有者明确应用已发布人物定义",
+        "idempotencyKey": "87f0365f-5aa9-4bcd-b7e0-61884b8187a0"
+      }
+    }
+  ],
+  "unknown": [
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+      "query": {},
+      "body": {
+        "background": {
+          "full_name": "若雨 · 原提交恢复"
+        },
+        "operation": "change",
+        "reason": "隔离验收：核对原提交且保留其他资料",
+        "idempotencyKey": "25cf4d9c-3ba0-4924-8715-5ea8ad76673c",
+        "expectedCurrentFactsRevision": "facts_gen_5"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+      "query": {},
+      "body": {
+        "background": {
+          "full_name": "若雨 · 原提交恢复"
+        },
+        "operation": "change",
+        "reason": "隔离验收：核对原提交且保留其他资料",
+        "idempotencyKey": "25cf4d9c-3ba0-4924-8715-5ea8ad76673c",
+        "expectedCurrentFactsRevision": "facts_gen_5"
+      }
+    }
+  ],
+  "verification": {
+    "unknownAttemptCount": 2,
+    "sameBodyAndKey": true,
+    "partialBackgroundOnly": true
+  }
+}

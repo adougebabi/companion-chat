@@ -1,0 +1,272 @@
+{
+  "calls": [
+    {
+      "path": "/api/studio/resources",
+      "method": "POST",
+      "body": {
+        "kind": "npc",
+        "name": "原请求创建的花匠",
+        "body": {
+          "role": "花园管理者",
+          "background": ""
+        },
+        "reason": "核对未知创建恢复",
+        "idempotencyKey": "d3197d1d-1b3e-43a2-88ca-9b95410eccb0"
+      },
+      "query": {}
+    },
+    {
+      "path": "/api/studio/resources",
+      "method": "POST",
+      "body": {
+        "kind": "npc",
+        "name": "原请求创建的花匠",
+        "body": {
+          "role": "花园管理者",
+          "background": ""
+        },
+        "reason": "核对未知创建恢复",
+        "idempotencyKey": "d3197d1d-1b3e-43a2-88ca-9b95410eccb0"
+      },
+      "query": {}
+    },
+    {
+      "path": "/api/studio/resources/studio-created-1",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/studio/resources/studio-created-1/versions",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/studio/resources/studio-created-1",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    },
+    {
+      "path": "/api/studio/resources/studio-created-1/versions",
+      "method": "GET",
+      "body": {},
+      "query": {}
+    }
+  ],
+  "resources": [
+    {
+      "id": "studio-world",
+      "kind": "world",
+      "name": "晨雾小镇",
+      "body": {
+        "schema": "world-definition.v1",
+        "background": "沿着河流生活的小镇，书店与花园在清晨醒来。",
+        "rules": "普通日常，尊重各自的生活。",
+        "framework": {
+          "schema": "world-framework.v1",
+          "venues": [
+            {
+              "key": "home",
+              "name": "住处",
+              "places": [
+                {
+                  "key": "study",
+                  "name": "书房",
+                  "description": "靠窗的书桌",
+                  "layout": "书架与窗台"
+                }
+              ]
+            }
+          ]
+        },
+        "custom_preserved": {
+          "value": false
+        }
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-character_template",
+      "kind": "character_template",
+      "name": "旅行中的编辑",
+      "body": {
+        "schema": "character-template.v1",
+        "description": "一位喜欢记录沿途故事的编辑。"
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-place",
+      "kind": "place",
+      "name": "河畔书店",
+      "body": {
+        "schema": "place-definition.v1",
+        "description": "窗外能看到缓慢的河水。",
+        "atmosphere": "安静",
+        "layout": "书架与阅读桌"
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": null,
+      "status": "draft",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-item",
+      "kind": "item",
+      "name": "亚麻衬衫",
+      "body": {
+        "schema": "item-definition.v1",
+        "item_kind": "wearable",
+        "category": "long_sleeve_top",
+        "slot": "top",
+        "description": "适合初秋的浅色亚麻衬衫。"
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-outfit",
+      "kind": "outfit",
+      "name": "秋日散步",
+      "body": {
+        "schema": "outfit-definition.v1",
+        "description": "轻松的日常搭配。",
+        "members": []
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-npc",
+      "kind": "npc",
+      "name": "花店店主",
+      "body": {
+        "role": "花店经营者",
+        "background": "喜欢与附近的人交流植物。"
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-event_template",
+      "kind": "event_template",
+      "name": "周末读书会",
+      "body": {
+        "schema": "event-definition.v1",
+        "description": "在书店分享阅读。",
+        "trigger": {
+          "type": "manual"
+        },
+        "effects": []
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-persona_fragment",
+      "kind": "persona_fragment",
+      "name": "阅读时的习惯",
+      "body": {
+        "schema": "persona-fragment.v1",
+        "changes": {
+          "identity": {
+            "interests": [
+              "阅读"
+            ]
+          }
+        }
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-visual_style",
+      "kind": "visual_style",
+      "name": "柔和水彩",
+      "body": {
+        "schema": "visual-style.v1",
+        "appearance": "自然的神情",
+        "clothing": "日常衣着",
+        "constraints": "保持人物一致",
+        "references": "水彩纸感"
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": "draft:1",
+      "status": "published",
+      "owner_actor_id": "human-fixture-owner",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    },
+    {
+      "id": "studio-created-1",
+      "owner_actor_id": "human-fixture-owner",
+      "kind": "npc",
+      "name": "原请求创建的花匠",
+      "body": {
+        "role": "花园管理者",
+        "background": ""
+      },
+      "revision": 1,
+      "draft_version": "draft:1",
+      "published_version": null,
+      "status": "draft",
+      "created_at": "2026-10-27T08:00:00Z",
+      "updated_at": "2026-10-27T08:00:00Z",
+      "referenced_by": []
+    }
+  ],
+  "jobs": [],
+  "materials": []
+}

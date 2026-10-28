@@ -1,0 +1,49 @@
+{
+  "scenario": "isolated unknown-create receipt recovery",
+  "attempts": [
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+      "query": {},
+      "body": {
+        "expectedRevision": 0,
+        "desiredOutcome": "保存一份街景观察",
+        "motivation": "把看到的生活认真记下来",
+        "successCriteria": [
+          "保存草图",
+          "完成记录"
+        ],
+        "deadlinePolicy": "soft",
+        "ownerProtected": false,
+        "reason": "写下新的期待",
+        "clearDeadline": true,
+        "scope": "general",
+        "candidateOnly": false,
+        "idempotencyKey": "316e337c-2b36-4dec-b273-07fc6a1b3916"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+      "query": {},
+      "body": {
+        "expectedRevision": 0,
+        "desiredOutcome": "保存一份街景观察",
+        "motivation": "把看到的生活认真记下来",
+        "successCriteria": [
+          "保存草图",
+          "完成记录"
+        ],
+        "deadlinePolicy": "soft",
+        "ownerProtected": false,
+        "reason": "写下新的期待",
+        "clearDeadline": true,
+        "scope": "general",
+        "candidateOnly": false,
+        "idempotencyKey": "316e337c-2b36-4dec-b273-07fc6a1b3916"
+      }
+    }
+  ],
+  "same_body": true,
+  "unique_keys": 1
+}

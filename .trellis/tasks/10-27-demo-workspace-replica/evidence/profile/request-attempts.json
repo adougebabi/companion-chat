@@ -1,0 +1,66 @@
+{
+  "source": "isolated API fixture, not live Core",
+  "requests": [
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+      "query": {},
+      "body": {
+        "changes": {
+          "identity": {
+            "name": "林岚 · 已核对档案"
+          }
+        },
+        "expectedRevision": 4,
+        "reason": "所有者编辑角色设定资料",
+        "idempotencyKey": "189df5bb-068e-41fe-9289-ef12d6b2dec0"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+      "query": {},
+      "body": {
+        "expectedRevision": 4,
+        "reason": "所有者编辑角色设定资料"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+      "query": {},
+      "body": {
+        "changes": {
+          "identity": {
+            "name": "林岚 · 已核对档案"
+          }
+        },
+        "expectedRevision": 4,
+        "reason": "所有者编辑角色设定资料",
+        "idempotencyKey": "189df5bb-068e-41fe-9289-ef12d6b2dec0"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+      "query": {},
+      "body": {
+        "expectedRevision": 4,
+        "reason": "所有者编辑角色设定资料"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/persona-switch",
+      "query": {},
+      "body": {
+        "targetPersonaId": "focused",
+        "expectedRevision": 5,
+        "expectedRuntimeRevision": 2,
+        "reason": "核对专注人格的实际处理结果",
+        "confirm": true,
+        "idempotencyKey": "09507996-5c35-489b-b0ee-badf9b91da28"
+      }
+    }
+  ]
+}

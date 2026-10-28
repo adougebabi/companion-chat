@@ -1,0 +1,134 @@
+{
+  "environment": "isolated API fixture; no live Core/DB/model proof",
+  "normal": [
+    {
+      "method": "PUT",
+      "path": "/api/media-assets/replica-landscape",
+      "query": {},
+      "body": {
+        "title": "窗边的午后 · 已核对",
+        "hidden": false,
+        "reason": "隔离验收：整理素材名称，保留原图片和来源。",
+        "expectedAssetRevision": 3,
+        "expectedMetadataRevision": 1,
+        "idempotencyKey": "b12dd4ca-074a-45a8-8faf-6ad2737c92f1"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/visual-brief",
+      "query": {},
+      "body": {
+        "appearance": "深色短发，自然清晰的轮廓，保持同一角色的面部比例。",
+        "clothing": "低饱和日常衣物，以实际穿着为准。",
+        "constraints": "保持面部特征和身体比例。",
+        "references": "柔和自然光。",
+        "expectedRevision": 2,
+        "reason": "隔离验收：细化外貌参考，保留其他定义与规范图。",
+        "idempotencyKey": "a5de62b0-3a7d-4d86-9d6e-1baea0c86083"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/visual-identity/generate",
+      "query": {},
+      "body": {
+        "expectedVisualRevision": 1,
+        "expectedBriefRevision": 3,
+        "reason": "隔离验收：按当前已保存定义准备后续候选。",
+        "idempotencyKey": "dac1b884-c226-4e96-9fc4-7d7fd29e6351"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/visual-sessions/fluctlight-fixture-one-visual-session/review",
+      "query": {},
+      "body": {
+        "decision": "accepted",
+        "identityMatch": 1,
+        "confidence": 1,
+        "observations": [
+          "隔离样本：候选与原参考的轮廓和比例一致。"
+        ],
+        "missingSections": [],
+        "summary": "隔离验收：记录人工评审并接受当前候选。",
+        "feedback": "",
+        "reason": "核对候选、规范参考与后续设定图的独立状态。",
+        "expectedAttempt": 2,
+        "expectedVisualRevision": 1,
+        "idempotencyKey": "3ea90bac-2af7-44af-9ddb-34bb322152ae"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/media-generations",
+      "query": {},
+      "body": {
+        "prompt": "隔离验收：窗边阅读的午后，自然光落在书页上。",
+        "reason": "核对受理、实际生成任务和图片读回的独立状态。",
+        "idempotencyKey": "ed44e712-ab85-4798-a9db-0a83b5552b3d"
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+      "query": {},
+      "body": {
+        "mode": "asset",
+        "expectedRevision": 1,
+        "reason": "隔离验收：明确选择已有媒体图片作为显示头像。",
+        "assetId": "replica-unused",
+        "expectedAssetRevision": 3,
+        "idempotencyKey": "b3668f8e-f57f-4d15-862a-a4fbf0f61408"
+      }
+    }
+  ],
+  "unknownReview": [
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/visual-sessions/fluctlight-fixture-one-visual-session/review",
+      "query": {},
+      "body": {
+        "decision": "accepted",
+        "identityMatch": 1,
+        "confidence": 1,
+        "observations": [
+          "隔离样本：检查原候选轮廓与比例。"
+        ],
+        "missingSections": [],
+        "summary": "隔离验收：原评审回执丢失后的恢复。",
+        "feedback": "",
+        "reason": "保留原会话、尝试次数和幂等身份。",
+        "expectedAttempt": 2,
+        "expectedVisualRevision": 1,
+        "idempotencyKey": "c4cb3f0d-2ce1-4c55-b777-6deb5c78c353"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/fluctlights/fluctlight-fixture-one/visual-sessions/fluctlight-fixture-one-visual-session/review",
+      "query": {},
+      "body": {
+        "decision": "accepted",
+        "identityMatch": 1,
+        "confidence": 1,
+        "observations": [
+          "隔离样本：检查原候选轮廓与比例。"
+        ],
+        "missingSections": [],
+        "summary": "隔离验收：原评审回执丢失后的恢复。",
+        "feedback": "",
+        "reason": "保留原会话、尝试次数和幂等身份。",
+        "expectedAttempt": 2,
+        "expectedVisualRevision": 1,
+        "idempotencyKey": "c4cb3f0d-2ce1-4c55-b777-6deb5c78c353"
+      }
+    }
+  ],
+  "verification": {
+    "sameBodyKeySessionAndAttempt": true,
+    "singleNormalImageRequest": true,
+    "avatarIndependentFromCanonical": true,
+    "assetAndMetadataVersionsSeparate": true
+  }
+}

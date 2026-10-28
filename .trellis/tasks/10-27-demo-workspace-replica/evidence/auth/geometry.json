@@ -1,0 +1,34 @@
+{
+  "desktop": {
+    "frame": {
+      "bottom": 798.5,
+      "height": 602,
+      "left": 149,
+      "right": 1199,
+      "top": 196.5,
+      "width": 1050,
+      "x": 149,
+      "y": 196.5
+    },
+    "height": 925,
+    "scrollWidth": 1348,
+    "story": "block",
+    "width": 1348
+  },
+  "mobile": {
+    "frame": {
+      "bottom": 757,
+      "height": 600,
+      "left": 18,
+      "right": 372,
+      "top": 157,
+      "width": 354,
+      "x": 18,
+      "y": 157
+    },
+    "height": 844,
+    "scrollWidth": 390,
+    "story": "none",
+    "width": 390
+  }
+}

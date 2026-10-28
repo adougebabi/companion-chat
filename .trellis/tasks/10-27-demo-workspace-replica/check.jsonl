@@ -1,0 +1,13 @@
+{"file": ".trellis/spec/frontend/react-shadcn-contract.md", "reason": "生产 React/Radix 与领域状态边界"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "组件、键盘和样式规范"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/research/entry-map.md", "reason": "已核实数据与 QA 入口"}
+{"file": ".trellis/spec/frontend/workspace-replica-contract.md", "reason": "最新Demo基准、聊天与此刻的真实数据/读取/恢复契约"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/research/schedule-contracts.md", "reason": "日程日期、建议、规划与原请求恢复的正式服务契约"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Owner/epoch、草稿、冻结命令与读回边界"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "正式构建、五态和窄屏验收"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/progress.md", "reason": "第15组初始化实施与当前样本/日志/未完成验收，以最后一节为准"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/research/creation-implementation.md", "reason": "第15组最终实施、五态/390px截图、几何、609项检查与新增修复"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/research/management-scope-map.md", "reason": "第16组现有正式所有者/命令/来源定位，需亲读代码核实"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/research/creation-check.md", "reason": "第15组独立门禁已通过610/610，禁止回退本组修复"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/research/management-implementation.md", "reason": "第16组实际实现/五态/几何/协议证据与617项基线"}
+{"file": ".trellis/tasks/10-27-demo-workspace-replica/research/completion-audit-requirements.md", "reason": "全范围最终完成审计要求，不能按页数/绿测替代"}

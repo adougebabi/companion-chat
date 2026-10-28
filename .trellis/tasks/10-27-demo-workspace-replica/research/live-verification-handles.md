@@ -1,0 +1,13 @@
+# 当前隔离验收进程（使用前重新核实）
+- Demo 4178 HTTP: exec session77813，目录 /private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo。
+- 4190 normal+wardrobe-world+schedule replay：session15438。
+- 4191 LIFE=empty：session28257。
+- 4192 LIFE=loading：session58835（首次延迟已消耗）。
+- 4193 LIFE=failure：session63385（首次失败已消耗，最终失败截图需要新状态时可明确重置）。
+- 4194 SCHEDULE=unknown-item：session74843（已验证两次同body/key）。
+- 4195 SCHEDULE=conflict：session69614（尚未使用）。
+- 4196 SCHEDULE=plan-conflict：session48514（已验证人工CAS恢复）。
+- 4197 SCHEDULE=protected-empty：session17774（已验证accepted空record保护）。
+- CUA persistent: browser/prod(tab2)/vp/fs，当前1348×925正式日程；收尾vp.reset。
+- 最新日志 /private/tmp/demo-replica-web-tests.log（449通过）、demo-replica-build.log。
+- 重启只因需要加载改动夹具或明确重置已消耗场景；观察超时不是重启理由。

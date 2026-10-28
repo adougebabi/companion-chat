@@ -1,0 +1,166 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/fluctlight-creations/analysis",
+    "query": {},
+    "body": {
+      "description": "图书编辑，喜欢记录河畔小镇的日常，也喜欢安静地阅读和画水彩。\n姓名：林青 · 完整流程验收\n性格期望：\n世界与生活：\n所选世界设定：{\"name\":\"河畔小镇\",\"body\":{\"schema\":\"world-definition.v1\",\"background\":\"沿着河流展开的小镇日常。\",\"rules\":\"各自生活，真实相处。\",\"framework\":{\"schema\":\"world-framework.v1\",\"venues\":[{\"key\":\"home\",\"name\":\"住处\",\"places\":[{\"key\":\"study\",\"name\":\"书房\",\"description\":\"有窗与阅读桌\"}]}]}}}"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/fluctlight-creations/activate",
+    "query": {},
+    "body": {
+      "requestId": "495b6194-a0c3-4f64-bc0c-56f3566821f0",
+      "initializationMode": "llm_defined",
+      "initializationTimezone": "Asia/Shanghai",
+      "analysisId": "initialization_source_cccccccccccccccccccccccccccccccc",
+      "schemaVersion": 2,
+      "name": "林青 · 完整流程验收",
+      "corePersona": {
+        "identity": {
+          "name": "林青 · 完整流程验收",
+          "nickname": "小青",
+          "age": 27,
+          "gender": "female",
+          "occupation": "图书编辑",
+          "timezone": "Asia/Shanghai",
+          "background_story": "在河畔书店工作，喜欢记录沿途见闻。",
+          "core_values": [
+            "真诚",
+            "尊重边界"
+          ]
+        },
+        "personality": {
+          "openness": 0.78,
+          "conscientiousness": 0.72,
+          "extraversion": 0.4,
+          "agreeableness": 0.76,
+          "neuroticism": 0.3,
+          "custom_dimension": 0
+        },
+        "behavioral_policy": {
+          "response_style": "自然随和",
+          "directness": 0.6,
+          "initiative": 0.4
+        },
+        "life_profile": {
+          "life_habits": "空闲时阅读与绘画。",
+          "preferences": {
+            "likes": [
+              "水彩",
+              "旧书"
+            ],
+            "dislikes": [],
+            "custom": false
+          },
+          "appearance": {
+            "description": "外貌留待明确的视觉定义。"
+          },
+          "recurring_commitments": [],
+          "wardrobe_items": [
+            {
+              "description": "亚麻衬衫",
+              "category": "top",
+              "slot": "upper_body",
+              "ownership": "owned",
+              "currently_worn": false,
+              "custom": {
+                "keep": true
+              }
+            }
+          ]
+        },
+        "personality_system": {
+          "mode": "single",
+          "profiles": []
+        }
+      },
+      "developingSelf": {},
+      "extensions": {
+        "future": {
+          "enabled": false,
+          "score": 0,
+          "empty": null
+        }
+      },
+      "initialGoals": [
+        {
+          "description": "完成一幅水彩作品",
+          "importance": 0.6,
+          "urgency": 0.3,
+          "scope": "general"
+        }
+      ],
+      "initialIntentions": [
+        {
+          "description": "整理阅读桌",
+          "scope": "general",
+          "importance": 0.3,
+          "urgency": 0.2
+        }
+      ],
+      "initialRelationships": [
+        {
+          "target_actor_id": "human-fixture-owner",
+          "role": "朋友",
+          "metrics": {
+            "trust": 0.3
+          },
+          "summary": "初次相识",
+          "custom": {
+            "keep": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/actor-groups/group-fixture/members",
+    "query": {},
+    "body": {
+      "actorId": "creation-character-1"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/studio/resources/creation-world/apply-preview",
+    "query": {},
+    "body": {
+      "fluctlightId": "creation-character-1",
+      "resourceVersion": "published:world:1"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/studio/resources/creation-world/apply",
+    "query": {},
+    "body": {
+      "fluctlightId": "creation-character-1",
+      "resourceVersion": "published:world:1",
+      "expectedInstanceRevision": 0,
+      "expectedRuntimeRevision": 0,
+      "choices": [
+        {
+          "field": "background",
+          "decision": "keep"
+        }
+      ],
+      "reason": "初始化人物的独立运行世界",
+      "idempotencyKey": "ca9466a2-c03a-47c5-a628-22d30e831eaf"
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/api/fluctlights/creation-character-1/world/active",
+    "query": {},
+    "body": {
+      "worldId": "creation-runtime-world-creation-character-1",
+      "expectedRevision": 0,
+      "reason": "初始化后明确选用人物的独立世界",
+      "idempotencyKey": "f4094121-0f3b-440b-9c38-4423364dbe93"
+    }
+  }
+]
