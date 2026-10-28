@@ -1,0 +1,190 @@
+[
+  {
+    "name": "diagnostic-export-clear",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "export downloads only complete terminal stream",
+      "complete-export: no document overflow",
+      "incomplete export never offers a partial download",
+      "blank clear reason disables submit",
+      "secondary cancellation never clears records",
+      "clear-review-cancel: no document overflow",
+      "clear-review-cancel: dialog fits viewport",
+      "retry preserves exact original frozen clear command",
+      "original-clear-retried: no document overflow",
+      "original-clear-retried: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/clear",
+        "method": "POST",
+        "body": {
+          "datasets": [
+            "events",
+            "model-runs"
+          ],
+          "before": "2026-10-29T00:00:00Z",
+          "snapshot": "snapshot-ui-frozen",
+          "filters": {
+            "severity": "warn"
+          },
+          "confirm": true,
+          "reason": "仅核对原快照范围与二次确认",
+          "idempotencyKey": "a00b0ee4-41d0-427b-82fd-55d11e84c3f9"
+        }
+      },
+      {
+        "path": "/api/diagnostic-records/clear",
+        "method": "POST",
+        "body": {
+          "datasets": [
+            "events",
+            "model-runs"
+          ],
+          "before": "2026-10-29T00:00:00Z",
+          "snapshot": "snapshot-ui-frozen",
+          "filters": {
+            "severity": "warn"
+          },
+          "confirm": true,
+          "reason": "仅核对原快照范围与二次确认",
+          "idempotencyKey": "a00b0ee4-41d0-427b-82fd-55d11e84c3f9"
+        }
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass78-diagnostic-export-clear-desktop-complete-export.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass78-diagnostic-export-clear-desktop-clear-review-cancel.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass78-diagnostic-export-clear-desktop-original-clear-retried.png"
+    ],
+    "exportFailureText": "服务端没有确认导出完整。",
+    "status": "passed"
+  },
+  {
+    "name": "diagnostic-export-clear",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "export downloads only complete terminal stream",
+      "complete-export: no document overflow",
+      "incomplete export never offers a partial download",
+      "blank clear reason disables submit",
+      "secondary cancellation never clears records",
+      "clear-review-cancel: no document overflow",
+      "clear-review-cancel: dialog fits viewport",
+      "retry preserves exact original frozen clear command",
+      "original-clear-retried: no document overflow",
+      "original-clear-retried: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/clear",
+        "method": "POST",
+        "body": {
+          "datasets": [
+            "events",
+            "model-runs"
+          ],
+          "before": "2026-10-29T00:00:00Z",
+          "snapshot": "snapshot-ui-frozen",
+          "filters": {
+            "severity": "warn"
+          },
+          "confirm": true,
+          "reason": "仅核对原快照范围与二次确认",
+          "idempotencyKey": "06b1d511-c05f-4006-88ad-00bfd8c6e22c"
+        }
+      },
+      {
+        "path": "/api/diagnostic-records/clear",
+        "method": "POST",
+        "body": {
+          "datasets": [
+            "events",
+            "model-runs"
+          ],
+          "before": "2026-10-29T00:00:00Z",
+          "snapshot": "snapshot-ui-frozen",
+          "filters": {
+            "severity": "warn"
+          },
+          "confirm": true,
+          "reason": "仅核对原快照范围与二次确认",
+          "idempotencyKey": "06b1d511-c05f-4006-88ad-00bfd8c6e22c"
+        }
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass78-diagnostic-export-clear-mobile-complete-export.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass78-diagnostic-export-clear-mobile-clear-review-cancel.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass78-diagnostic-export-clear-mobile-original-clear-retried.png"
+    ],
+    "exportFailureText": "服务端没有确认导出完整。",
+    "status": "passed"
+  }
+]

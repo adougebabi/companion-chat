@@ -2,7 +2,7 @@
   {
     "name": "annotation-search",
     "size": "desktop",
-    "fid": "diary-pass36-annotation-search-desktop",
+    "fid": "diary-pass85-annotation-search-desktop",
     "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
     "checks": [
       "search retains already confirmed diary prose",
@@ -28,42 +28,42 @@
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary/diary-fixture-one",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary/diary-fixture-one/replies",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one/replies",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary/diary-fixture-one/annotation",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one/annotation",
         "method": "PUT",
         "body": {
           "note": "读完这一天，想把安静的片刻留下。",
           "favorite": true,
           "expectedRevision": 0,
-          "idempotencyKey": "a0ac0fc2-7c33-4733-87c0-1bac99eb8a62"
+          "idempotencyKey": "28a1d2a1-20aa-43d1-b499-232787deca77"
         }
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary/diary-fixture-one",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
         "method": "GET",
         "body": null
       },
@@ -78,30 +78,30 @@
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary/diary-fixture-one",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary/diary-fixture-one/replies",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one/replies",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-desktop/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
         "method": "GET",
         "body": null
       }
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass36-annotation-search-desktop-editing.png",
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass36-annotation-search-desktop-saved-favorite.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-desktop-saved-favorite.png"
     ],
     "status": "passed"
   },
@@ -575,7 +575,7 @@
   {
     "name": "annotation-search",
     "size": "mobile",
-    "fid": "diary-pass36-annotation-search-mobile",
+    "fid": "diary-pass85-annotation-search-mobile",
     "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
     "checks": [
       "search retains already confirmed diary prose",
@@ -601,42 +601,42 @@
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary/diary-fixture-one",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary/diary-fixture-one/replies",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one/replies",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary/diary-fixture-one/annotation",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one/annotation",
         "method": "PUT",
         "body": {
           "note": "读完这一天，想把安静的片刻留下。",
           "favorite": true,
           "expectedRevision": 0,
-          "idempotencyKey": "e25f69f1-891a-48bb-9b3a-27756d2f9735"
+          "idempotencyKey": "6ed956b1-33a6-4ab4-931c-55845133cebf"
         }
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary/diary-fixture-one",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
         "method": "GET",
         "body": null
       },
@@ -651,30 +651,30 @@
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary/diary-fixture-one",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary/diary-fixture-one/replies",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one/replies",
         "method": "GET",
         "body": null
       },
       {
-        "path": "/api/fluctlights/diary-pass36-annotation-search-mobile/diary",
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
         "method": "GET",
         "body": null
       }
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass36-annotation-search-mobile-editing.png",
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass36-annotation-search-mobile-saved-favorite.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-mobile-saved-favorite.png"
     ],
     "status": "passed"
   },

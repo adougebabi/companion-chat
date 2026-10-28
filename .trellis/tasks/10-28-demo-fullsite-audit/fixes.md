@@ -74,3 +74,25 @@
 跨日验收工具修正：2026-10-29零点后，Now测试用now-1h且未带local_date，样本落在前一天而被正确过滤。只把fixture改为当前本地日的明确全天计划，保留action_status=null的“不从时钟推断执行”断言；生产日期规则未变。pass62全量曾因该两测试失败，修正后pass63为646/646。Goal历史原因现按case唯一命名，避免其它场景的同名旧记录产生假通过。
 
 |F43|创建页内从新草稿跳转resume历史参数时，URL变更但组件无key、长存控制器未重建，仍呈现新草稿，尽管原历史完整保留|App创建页使用path+query作为key，与现有Studio/Media路由身份约定一致；既有Owner隔离和creationRecovery保持|creation-supplement/report-pass65.json桌面同页恢复失败且history里保留精确createdId；pass66双视口同页resume与原激活只一次断言通过；14场景均通过，另pass64世界冲突两视口通过；类型/构建及Web646通过|
+
+|F44|停止本次生成的POST失败后controller保留取消结果未知错误及running原消息，但ChatPage以!busy隐藏错误，通用映射还将明确说明变成泛化失败|ChatPage等待期间仍显示当前真实错误；chatFailureText保留控制器已知的取消结果未知说明；不改取消权限/请求/消息状态|chat-inbox-avatar/report-pass67.json两视口复现且仅1次原turn取消POST；新增实际React等待中取消失败→只读核对回归，浏览器复验待运行|
+
+|F45|聊天头部角色选择框固定115×30，而Demo同样内容为90×39；局部覆盖误删了全局min-height并强制最大宽度|replica-chat既有局部规则恢复auto宽度与39px最小高度，保留90–115px范围、字号和原Select交互|shared-pass31同内容桌面配对定位；待最新双视口computed与配对图复验|
+
+|F46|目标规划的恢复策略JSON无效时，仅显示通用“操作未完成，请稍后重试”，无法区分本地格式问题和服务失败|goal-planning的策略表单仅为本地SyntaxError给出明确JSON修正提示，保留其它错误映射、草稿和原change调用|retained-tools/pass71两视口定位；受控浏览器验证格式错误不再发送PUT且保留原输入，待最新构建复验|
+
+|F47|诊断页嵌套“查询说明与维护”展开后为空，清理入口丢失；scanner仍处理父Disclosure移动后已脱离root的候选，随后移除这些临时port丢内容|DomainPrimitives扫描候选前重新核对root.contains，等原子树挂回再处理嵌套控件；保留原form/事件和通用组件|formal-edges/report-pass77两视口定位；浏览器DOM读到inner content为空，JSDOM无法复现但新增原表单/嵌套回调契约7项通过；实际修后待验|
+
+|F48|侧栏角色切换使用Button默认500字重，而Demo Select400，126px同宽下角色职业提前省略；媒体导航误用Images多图标|workspace-replica原角色切换规则明确400；WorkspaceNavigation使用原Demo的Image单图标，保持Dropdown/键盘与切换操作|chat-pass71 computed确认同宽126px、400/500差异；待最终配对与导航复验|
+|F49|聊天和此刻的装饰杯子/绿植受lucide版本影响，路径与原Demo不同，图片附件同样漂移|WorkspaceMomentArt固定原Demo实际SVG路径作为装饰资源；不更换普通操作图标库，不修改角色事实/图片URL|只读浏览器提取原Demo插画内两SVG，原参考不变；待同内容聊天/此刻配对复验|
+
+|F50|日程日期Popover的Button被Radix改写data-slot后，未命中共享outline背景/边框/文字规则，正常状态出现黑色边框；同类组合按钮也遗漏主题|共享主题按Button原slot或明确size+variant标记匹配真实button/a，使用where保持低优先级，保留各业务类；不改交互和移动触控下限|shared-pass79配对中日程日期可见；待Calendar原交互与跨页几何复验|
+
+|F51|人物卡较晚的语义Button规则将padding固定22覆盖700px下15，Badge固定10px也覆盖原8px；目标卡同样没有采用小屏Surface18px|移除人物Button冗余padding，按原断点恢复Badge8/3×5并把基础规则放在断点前；目标仅600px下18px|shared-pass79逐张配对定位，窄屏人物卡正文被额外挤窄换行，目标卡每行多8px；待双视口复拍|
+|F52|管理二级导航窄屏flex-wrap形成三行、通知刷新独占一行，主体比Demo下移|管理900px下恢复单行横向滚动、按钮不收缩；通知700px下三列布局保留筛选与刷新，可用宽度内显示|shared-pass79两页窄屏对照定位；待滚动可达、筛选/刷新与几何复验|
+
+|F53|日记手机收藏/搜索被强制新开整行；Studio刷新将新建动作挤到标题下，独立查询又新增一行，首张资源下移|日记保留桌面收藏checkbox，窄屏同一受控状态放入原搜索框内筛选菜单，双列对齐tabs/search；Studio原刷新与提交移入搜索框，原form和load仍保持，手机搜索跨全行|shared-pass79逐张复核定位，查询/收藏及原草稿未删除；待DOM和双视口交互/配对验证|
+
+测试素材校正：媒体页Demo走MediaImage→Art→CharacterArt/GarmentArt（outfit固定outer/#b4b799），旧提取器只输出raw SVG，且outfit误取衣柜g-cardigan。新增媒体专用SVG/foreignObject由原MediaImage和原resources.css渲染，仅修测试资产与DTO URL；保留原头像/衣柜/通用portrait资源。人物裁切需实际修后截图确认，未改生产媒体图片或Demo参考。
+
+2026-10-29本批验证结果：F44聊天取消结果未知两视口可见且只读核对；F45聊天选择框两视口90×39与Demo一致；F46非法规划JSON阻止额外PUT；F47诊断嵌套维护两视口恢复，完整导出/不完整流保护/原快照清理重试通过，另Admin18场景复验通过。F48字重400和媒体单图标已在final-pass85配对；F49装饰路径固定并复拍，媒体专用测试素材包装已记录；F50日期组合控件两视口白底/边框rgb(220,228,212)，Calendar关闭返回焦点与日期切换通过。F51人物15px/8px标签和目标18px移动padding实测；F52管理单行滚动末项可达、通知刷新同行通过；F53日记收藏菜单保持搜索草稿、原批注/收藏读回，Studio新建同行、9类型菜单、查询刷新不提交新草稿通过。responsive-layout/report-consolidated共14场景通过；56项相关DOM检查通过；最新全量Web649、类型87、构建86及生产守卫通过。

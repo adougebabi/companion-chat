@@ -449,6 +449,7 @@
 .replica-goals .lp-notice{padding:14px 16px;border:1px solid #deead5;border-radius:8px;background:#f1f6ec;color:#6b845c;font-size:12px}
 .replica-goals .lp-title,.replica-goals .lp-small,.replica-goals .lp-goal-card h3{overflow-wrap:anywhere}
 @media(max-width:700px){.replica-goals .replica-search{width:100%;max-width:none}.replica-goals .replica-goal-open{min-height:44px}}
+@media(max-width:600px){.replica-goals [data-slot="card"].lp-goal-card{padding:18px}}
 
 /* Supplied Demo diary reading layout. */
 .lp-diary-layout {
@@ -537,9 +538,10 @@
 .replica-diary .lp-paper-footer .lp-source-card{margin-top:14px}
 .replica-diary .lp-paper-footer .lp-action-row{flex-wrap:wrap}
 @media(max-width:950px){.replica-diary .lp-diary-layout{grid-template-columns:170px minmax(0,1fr)}.replica-diary .lp-paper{padding:28px}}
-@media(max-width:600px){.replica-diary .lp-diary-layout{grid-template-columns:1fr}.replica-diary .lp-diary-index{display:flex;overflow:auto}.replica-diary .lp-diary-date{flex-shrink:0;width:145px}.replica-diary .lp-paper{padding:24px}.replica-diary .lp-paper-body{font-size:14px}.replica-diary .replica-diary-search{max-width:none;flex-basis:100%}}
+@media(max-width:600px){.replica-diary .lp-diary-layout{grid-template-columns:1fr}.replica-diary .lp-diary-index{display:flex;overflow:auto}.replica-diary .lp-diary-date{flex-shrink:0;width:145px}.replica-diary .lp-paper{padding:24px}.replica-diary .lp-paper-body{font-size:14px}.replica-diary .replica-diary-search{max-width:none;flex-basis:auto}}
 
-@media(max-width:600px){.replica-diary-controls{width:100%;flex-wrap:wrap}.replica-diary-controls .replica-diary-search{width:auto;flex:1;min-width:190px}}
+.replica-diary-filter-menu{display:none}
+@media(max-width:600px){.replica-diary .lp-toolbar{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:14px;align-items:start}.replica-diary-controls{width:auto;min-width:0;flex-wrap:nowrap}.replica-diary-options{display:none}.replica-diary-controls .replica-diary-search{width:100%;flex:1;min-width:0}.replica-diary .replica-diary-search input{padding-right:70px}.replica-diary .replica-diary-filter-menu{position:absolute;display:inline-flex;right:34px;top:4px;width:28px;height:32px;min-height:32px;padding:0}}
 
 .replica-diary .lp-paper h2{font-size:25px;font-weight:500;line-height:1.65}.replica-diary .replica-inline-command .lp-form{display:flex;flex-direction:column;gap:16px}
 

@@ -9,6 +9,7 @@ export function chatFailureText(value, delivered = false) {
   if(delivered)return '回复已经保存，后续处理尚未完成。可以查看本次运行。';
   const text=String(value || '');
   if(!text)return '';
+  if(text==='取消请求结果尚未确认，请刷新进度核对。原消息已保留。')return text;
   if(/reply_media_no_progress/.test(text))return '图片准备尚未推进，原消息和草稿已保留。请查看本次运行后恢复。';
   if(/media_subject_not_authorized/.test(text))return '图片中的人物范围尚未确认，生成没有开始。原消息已保留，请查看本次运行后核对人物。';
   if(/capability_prepare_failed/.test(text))return '本次工具准备没有完成，原消息已保留。请查看本次运行中的失败原因后重试。';

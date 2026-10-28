@@ -322,7 +322,7 @@ export default function ChatPage({
               )}
             </MessageContent></Message></MessageScrollerItem>
           )}
-          {error && !busy && !messages.some(message=>message.kind==='user'&&['failed','cancelled'].includes(message.turnStatus||'')) && (
+          {error && (busy || !messages.some(message=>message.kind==='user'&&['failed','cancelled'].includes(message.turnStatus||''))) && (
             <MessageScrollerItem messageId="error"><InlineFeedback role="alert">
               {error}<Button variant="outline" disabled={snapshot.loading||readLoading} onClick={()=>void reread()}>重新读取对话</Button>
               <Button variant="link" asChild>

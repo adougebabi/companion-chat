@@ -1,0 +1,294 @@
+[
+  {
+    "name": "profile-readback",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "accepted profile readback keeps one proposal and decision",
+      "accepted-read-failure: no document overflow",
+      "accepted-read-failure: dialog fits viewport",
+      "readback recovery performs no second proposal or accept",
+      "recovered profile is actually saved",
+      "readback-recovered: no document overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "原资料读回恢复 pass77 desktop"
+            }
+          },
+          "expectedRevision": 10,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "52f034e5-4a2e-481a-94d5-47d435c36c6f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-14/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 10,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-profile-readback-desktop-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-profile-readback-desktop-readback-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diagnostic-export-clear",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "export downloads only complete terminal stream",
+      "complete-export: no document overflow",
+      "incomplete export never offers a partial download",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-diagnostic-export-clear-desktop-complete-export.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-diagnostic-export-clear-desktop-failure.png"
+    ],
+    "exportFailureText": "服务端没有确认导出完整。",
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '按快照清理诊断表', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n运行诊断\n快速前往\n⌘ K\n运行诊断\n返回诊断\n筛选记录 · 全部记录\n角色范围\n全部记录\n全部记录\n林岚 · 验收样本\n季川 · 验收样本\n记录内容搜索\n实际状态\n全部状态\n全部状态\n等待处理\n排队中\n已开始\n执行中\n已完成\n执行失败\n等待重试\n重试已用尽，需要处理\n已取消\n已暂停\n更多筛选条件 · 运行、工作流与时间范围\n查询\n刷新\n跟随新记录（仅第一页）\n导出当前筛选\n查询说明与维护\n\n服务端没有确认导出完整。\n\n当前筛选没有真实记录。可检查角色、关联 ID 和时间范围；业务执行产生的记录会在这里出现。"
+  },
+  {
+    "name": "profile-readback",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "accepted profile readback keeps one proposal and decision",
+      "accepted-read-failure: no document overflow",
+      "accepted-read-failure: dialog fits viewport",
+      "readback recovery performs no second proposal or accept",
+      "recovered profile is actually saved",
+      "readback-recovered: no document overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "原资料读回恢复 pass77 mobile"
+            }
+          },
+          "expectedRevision": 10,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "31369534-41de-49cd-96ba-758db4581ea6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-14/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 10,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-profile-readback-mobile-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-profile-readback-mobile-readback-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diagnostic-export-clear",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "export downloads only complete terminal stream",
+      "complete-export: no document overflow",
+      "incomplete export never offers a partial download",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-diagnostic-export-clear-mobile-complete-export.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass77-diagnostic-export-clear-mobile-failure.png"
+    ],
+    "exportFailureText": "服务端没有确认导出完整。",
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '按快照清理诊断表', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n创作与管理\n运行诊断\n快速前往\n运行诊断\n返回诊断\n筛选记录 · 全部记录\n角色范围\n全部记录\n全部记录\n林岚 · 验收样本\n季川 · 验收样本\n记录内容搜索\n实际状态\n全部状态\n全部状态\n等待处理\n排队中\n已开始\n执行中\n已完成\n执行失败\n等待重试\n重试已用尽，需要处理\n已取消\n已暂停\n更多筛选条件 · 运行、工作流与时间范围\n查询\n刷新\n跟随新记录（仅第一页）\n导出当前筛选\n查询说明与维护\n\n服务端没有确认导出完整。\n\n当前筛选没有真实记录。可检查角色、关联 ID 和时间范围；业务执行产生的记录会在这里出现。"
+  }
+]

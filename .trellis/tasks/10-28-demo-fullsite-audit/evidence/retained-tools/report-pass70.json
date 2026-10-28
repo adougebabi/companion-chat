@@ -1,0 +1,1682 @@
+[
+  {
+    "name": "management-vision",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-vision-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('checkbox', { name: '启用视觉理解', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n退出登录\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n聊天与视觉\n\n修改正式配置；保存后读取实际回执。\n\n回复行为\n回复模式\n独立回复模型\n兼容模式\n独立回复模型\n表达协议\n请选择\n自然交流 · 当前协议\n自然交流 · 兼容协议\n温度\n\n最小 0 · 最大 2\n\n采样范围（Top P）\n\n最小 0.01 · 最大 1\n\n总超时（秒，含排队）\n\n最小 1 · 最大 3600\n\n回复并发\n\n最小 1 · 最大 8\n\n可恢复错误重试次数\n\n最小 0 · 最大 2\n\n媒体动作回交上限\n\n最小 1 · 最大 2\n\n回复失败策略\n请选择\n明确返回失败\n显式由认知模型独立表达\n图片理解设置\n启用视觉理解\n测试看图（使用已保存配置）\n\n设置已同步\n\n放弃未保存修改\n保存设置"
+  },
+  {
+    "name": "management-notifications",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-notifications-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('checkbox', { name: '新消息通知', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n退出登录\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n通知与后台\n\n修改正式配置；保存后读取实际回执。\n\n作息与后台节奏\n启用定时唤醒\n唤醒间隔（秒）\n\n最小 1\n\n摘要维护间隔（秒）\n\n最小 300 · 最大 600\n\n摘要字符预算\n\n最小 512 · 最大 4096\n\n意向重试上限\n\n最小 1 · 最大 20\n\n首次重试等待（秒）\n\n最小 30 · 最大 3600\n\n重试间隔上限（秒）\n\n最小 30 · 最大 86400\n\n资源与预算\n生成模型并发\n\n最小 1 · 最大 8\n\nEmbedding 并发\n\n最小 1 · 最大 8\n\n通知\n新消息通知\n目标与请求结果提醒\n媒体结果通知\n\n设置已同步\n\n放弃未保存修改\n保存设置"
+  },
+  {
+    "name": "management-extra",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "invalid workflow JSON cannot submit settings",
+      "invalid-workflow: no document overflow",
+      "discard restores whole saved workflow field",
+      "kev-test: no document overflow",
+      "connection test keeps separate test endpoint",
+      "testing never saves configuration",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/kev/test-connection",
+        "method": "POST",
+        "body": {}
+      },
+      {
+        "path": "/api/settings/kev/test-connection",
+        "method": "POST",
+        "body": {}
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-extra-desktop-invalid-workflow.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-extra-desktop-kev-test.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "habits-read",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "habits: no document overflow",
+      "habits tab remains independently readable",
+      "habit sources link to formal life timeline",
+      "reading habits never writes a schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-habits-read-desktop-habits.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "habits-empty",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "habits: no document overflow",
+      "habits tab remains independently readable",
+      "habit sources link to formal life timeline",
+      "reading habits never writes a schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-habits-empty-desktop-habits.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "life-timeline",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-life-timeline-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('group', { name: '生活内容', exact: true }).getByRole('button', { name: '日记', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n生活时间线\n快速前往\n⌘ K\n她的生活\n\n她的日常、心事和分享，都在这里。\n\n日历\n日记\n动态与分享\n相册\n她想做的事\n全部\n日记\n动态\n图片\n安排\n\n日程安排 · 2026-10-29 23:00 (北京时间)\n\n睡眠\n\n日程安排 · 2026-10-29 22:00 (北京时间)\n\n海边散步\n\n家\n\n日程安排 · 2026-10-29 20:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 18:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 16:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 14:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 12:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 10:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 08:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 06:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 04:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 02:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 00:00 (北京时间)\n\n自由安排\n\n图片 · 2026-10-28 11:00 (北京时间)\n\n当前视觉候选\n\n图片 · 2026-10-28 11:00 (北京时间)\n\n已接受的规范参考\n\n动态 · 2026-10-28 11:00 (北京时间)\n\n今天在窗边读到一句很喜欢的话\n\n今天在窗边读到一句很喜欢的话。 停下来看看普通的一刻。\n\n日记 · 2026-10-26\n\n她写下的这一天\n\n这是一篇隔离验收日记。 今天读到一段平常的故事，也把手边的画作慢慢整理好。 日子里有许多小事，认真记下来，之后还可以回来看看。\n\n日记 · 2026-10-25\n\n她写下的这一天\n\n这是一篇隔离验收日记。 今天读到一段平常的故事，也把手边的画作慢慢整理好。 日子里有许多小事，认真记下来，之后还可以回来看看。\n\n目标\n\n她最近在努力的事\n\n完成一幅新的水彩作品\n\n目标\n\n她最近在努力的事\n\n根据真实偏好推荐一本小说\n\n阅读选项"
+  },
+  {
+    "name": "goal-planning",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-goal-planning-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('h1').first() to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n生活\n目标规划\n快速前往\n⌘ K\n目标列表\n重新读取\n独立规划\n\n规划可产生候选、保留现有目标或无须新增；不会强制每次凑足固定数量。已受理不代表规划完成。\n\n 自动规划\n排序方式\n自动排序\n自动排序\n手动排序\n活跃目标上限*\n目标顺序与前置条件\n\n选择一个目标，再调整顺序或前置条件。完成并确认有效后，才能推进依赖它的目标。\n\n1\n完成一幅新的水彩作品\n↑\n↓\n2\n根据真实偏好推荐一本小说\n\n当前由系统排序。选择“手动排序”后可上移、下移目标。\n\n完成一幅新的水彩作品的前置条件\n根据真实偏好推荐一本小说\n依赖与恢复策略\n修改原因*\n保存策略\n\n目标集 v1 · 当前活跃 2\n\n立即规划\n规划任务与历史\n目标记录\n已完成\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n候选与来源审查\n\n当前规划窗口暂无候选，可查看历史中的判断结果。\n\n初始化来源\n\n尚无记录\n\n来源审查与候选生命周期分别记录，不能通过删除目标消除来源。\n\n审查命令"
+  },
+  {
+    "name": "world-settings",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "world cancellation does not mutate",
+      "cancel restores original background",
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-world-settings-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByRole('alert') to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n世界\n快速前往\n⌘ K\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n世界背景\n编辑\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n基础规则\n\n尊重居民的日常生活。\n\n完整世界资料与来源\n移除无引用世界\n完整世界工具\n在这里生活\n本\n林岚 · 验收样本\n浏览和编辑世界，不会移动角色的当前位置。\n扩写已有场地与地点\n编辑世界资料\n\n让名字、背景和规则，成为这个世界的起点。\n\n世界名称\n世界类型\n世界背景\n基础规则\n其他已有世界字段\n读取最新版本并保留输入\n取消\n保存世界\n关闭"
+  },
+  {
+    "name": "wardrobe-tags",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-wardrobe-tags-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '整套搭配', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n上衣\n青绿棉质上衣\n春\n秋\n正在穿\n下衣\n宽松长裤\n春\n秋\n正在穿\n内衣\n柔软内衣\n春\n秋\n正在穿\n内裤\n棉质内裤\n春\n秋\n正在穿\n袜子\n短袜\n春\n秋\n正在穿\n鞋子\n平底鞋\n春\n秋\n配饰\n银色项链\n春\n秋\n配饰\n简约手链\n春\n秋\n外套\n薄外套\n春\n秋"
+  },
+  {
+    "name": "management-vision",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-vision-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('checkbox', { name: '启用视觉理解', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n创作与管理\n管理中心\n快速前往\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n退出登录\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n聊天与视觉\n\n修改正式配置；保存后读取实际回执。\n\n回复行为\n回复模式\n独立回复模型\n兼容模式\n独立回复模型\n表达协议\n请选择\n自然交流 · 当前协议\n自然交流 · 兼容协议\n温度\n\n最小 0 · 最大 2\n\n采样范围（Top P）\n\n最小 0.01 · 最大 1\n\n总超时（秒，含排队）\n\n最小 1 · 最大 3600\n\n回复并发\n\n最小 1 · 最大 8\n\n可恢复错误重试次数\n\n最小 0 · 最大 2\n\n媒体动作回交上限\n\n最小 1 · 最大 2\n\n回复失败策略\n请选择\n明确返回失败\n显式由认知模型独立表达\n图片理解设置\n启用视觉理解\n测试看图（使用已保存配置）\n\n设置已同步\n\n放弃未保存修改\n保存设置"
+  },
+  {
+    "name": "management-notifications",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-notifications-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('checkbox', { name: '新消息通知', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n创作与管理\n管理中心\n快速前往\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n退出登录\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n通知与后台\n\n修改正式配置；保存后读取实际回执。\n\n作息与后台节奏\n启用定时唤醒\n唤醒间隔（秒）\n\n最小 1\n\n摘要维护间隔（秒）\n\n最小 300 · 最大 600\n\n摘要字符预算\n\n最小 512 · 最大 4096\n\n意向重试上限\n\n最小 1 · 最大 20\n\n首次重试等待（秒）\n\n最小 30 · 最大 3600\n\n重试间隔上限（秒）\n\n最小 30 · 最大 86400\n\n资源与预算\n生成模型并发\n\n最小 1 · 最大 8\n\nEmbedding 并发\n\n最小 1 · 最大 8\n\n通知\n新消息通知\n目标与请求结果提醒\n媒体结果通知\n\n设置已同步\n\n放弃未保存修改\n保存设置"
+  },
+  {
+    "name": "management-extra",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "invalid workflow JSON cannot submit settings",
+      "invalid-workflow: no document overflow",
+      "discard restores whole saved workflow field",
+      "kev-test: no document overflow",
+      "connection test keeps separate test endpoint",
+      "testing never saves configuration",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/kev/test-connection",
+        "method": "POST",
+        "body": {}
+      },
+      {
+        "path": "/api/settings/kev/test-connection",
+        "method": "POST",
+        "body": {}
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-extra-mobile-invalid-workflow.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-management-extra-mobile-kev-test.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "habits-read",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "habits: no document overflow",
+      "habits tab remains independently readable",
+      "habit sources link to formal life timeline",
+      "reading habits never writes a schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-habits-read-mobile-habits.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "habits-empty",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "habits: no document overflow",
+      "habits tab remains independently readable",
+      "habit sources link to formal life timeline",
+      "reading habits never writes a schedule",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-habits-empty-mobile-habits.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "life-timeline",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-life-timeline-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('group', { name: '生活内容', exact: true }).getByRole('button', { name: '日记', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n生活时间线\n快速前往\n她的生活\n\n她的日常、心事和分享，都在这里。\n\n日历\n日记\n动态与分享\n相册\n她想做的事\n全部\n日记\n动态\n图片\n安排\n\n日程安排 · 2026-10-29 23:00 (北京时间)\n\n睡眠\n\n日程安排 · 2026-10-29 22:00 (北京时间)\n\n海边散步\n\n家\n\n日程安排 · 2026-10-29 20:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 18:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 16:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 14:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 12:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 10:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 08:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 06:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 04:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 02:00 (北京时间)\n\n自由安排\n\n日程安排 · 2026-10-29 00:00 (北京时间)\n\n自由安排\n\n图片 · 2026-10-28 11:00 (北京时间)\n\n当前视觉候选\n\n图片 · 2026-10-28 11:00 (北京时间)\n\n已接受的规范参考\n\n动态 · 2026-10-28 11:00 (北京时间)\n\n今天在窗边读到一句很喜欢的话\n\n今天在窗边读到一句很喜欢的话。 停下来看看普通的一刻。\n\n日记 · 2026-10-26\n\n她写下的这一天\n\n这是一篇隔离验收日记。 今天读到一段平常的故事，也把手边的画作慢慢整理好。 日子里有许多小事，认真记下来，之后还可以回来看看。\n\n日记 · 2026-10-25\n\n她写下的这一天\n\n这是一篇隔离验收日记。 今天读到一段平常的故事，也把手边的画作慢慢整理好。 日子里有许多小事，认真记下来，之后还可以回来看看。\n\n目标\n\n她最近在努力的事\n\n完成一幅新的水彩作品\n\n目标\n\n她最近在努力的事\n\n根据真实偏好推荐一本小说\n\n阅读选项"
+  },
+  {
+    "name": "goal-planning",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-goal-planning-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('h1').first() to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n生活\n目标规划\n快速前往\n目标列表\n重新读取\n独立规划\n\n规划可产生候选、保留现有目标或无须新增；不会强制每次凑足固定数量。已受理不代表规划完成。\n\n 自动规划\n排序方式\n自动排序\n自动排序\n手动排序\n活跃目标上限*\n目标顺序与前置条件\n\n选择一个目标，再调整顺序或前置条件。完成并确认有效后，才能推进依赖它的目标。\n\n1\n完成一幅新的水彩作品\n↑\n↓\n2\n根据真实偏好推荐一本小说\n\n当前由系统排序。选择“手动排序”后可上移、下移目标。\n\n完成一幅新的水彩作品的前置条件\n根据真实偏好推荐一本小说\n依赖与恢复策略\n修改原因*\n保存策略\n\n目标集 v1 · 当前活跃 2\n\n立即规划\n规划任务与历史\n目标记录\n已完成\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n候选与来源审查\n\n当前规划窗口暂无候选，可查看历史中的判断结果。\n\n初始化来源\n\n尚无记录\n\n来源审查与候选生命周期分别记录，不能通过删除目标消除来源。\n\n审查命令"
+  },
+  {
+    "name": "world-settings",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "world cancellation does not mutate",
+      "cancel restores original background",
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-world-settings-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByRole('alert') to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n世界\n快速前往\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n世界背景\n编辑\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n基础规则\n\n尊重居民的日常生活。\n\n完整世界资料与来源\n移除无引用世界\n完整世界工具\n在这里生活\n本\n林岚 · 验收样本\n浏览和编辑世界，不会移动角色的当前位置。\n扩写已有场地与地点\n编辑世界资料\n\n让名字、背景和规则，成为这个世界的起点。\n\n世界名称\n世界类型\n世界背景\n基础规则\n其他已有世界字段\n读取最新版本并保留输入\n取消\n保存世界\n关闭"
+  },
+  {
+    "name": "wardrobe-tags",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; retained formal capabilities, no live backend mutation proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/retained-tools/pass70-wardrobe-tags-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '整套搭配', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n上衣\n青绿棉质上衣\n春\n秋\n正在穿\n下衣\n宽松长裤\n春\n秋\n正在穿\n内衣\n柔软内衣\n春\n秋\n正在穿\n内裤\n棉质内裤\n春\n秋\n正在穿\n袜子\n短袜\n春\n秋\n正在穿\n鞋子\n平底鞋\n春\n秋\n配饰\n银色项链\n春\n秋\n配饰\n简约手链\n春\n秋\n外套\n薄外套\n春\n秋"
+  }
+]

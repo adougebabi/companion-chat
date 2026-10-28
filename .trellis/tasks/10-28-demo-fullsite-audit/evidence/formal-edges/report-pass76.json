@@ -1,0 +1,714 @@
+[
+  {
+    "name": "profile-self",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "independent-live-claim: no document overflow",
+      "claim source failure is not confirmed empty",
+      "claim-failure: no document overflow",
+      "explicit retry can confirm empty claim source",
+      "profile claim reading never mutates",
+      "confirmed-empty: no document overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-self-desktop-independent-live-claim.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-self-desktop-claim-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-self-desktop-confirmed-empty.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "profile-readback",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "accepted profile readback keeps one proposal and decision",
+      "accepted-read-failure: no document overflow",
+      "accepted-read-failure: dialog fits viewport",
+      "readback recovery performs no second proposal or accept",
+      "recovered profile is actually saved",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "原资料读回恢复 pass76 desktop"
+            }
+          },
+          "expectedRevision": 9,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "923eb7db-681b-458d-9cc8-9c71a8e70b36"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-12/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 9,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-readback-desktop-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-readback-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '原资料读回恢复 pass76 desktop', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n原\n正在相处\n原资料读回恢复 pass76 desktop · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n角色档案\n快速前往\n⌘ K\nLIFE / A PERSON WITH A STORY\n认识更完整的原资料读回恢复 pass76 desktop。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n原\nA PERSON, NOT JUST A PROFILE\n原资料读回恢复 pass76 desktop小青\n\n26 岁 · 书籍编辑 · 运行中\n\n温和魔法世界\n\n这是用于资料分层验收的角色背景。\n\n专注人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n7\n身份与背景\n编辑\n称呼\n小青\n年龄\n26\n职业\n书籍编辑\n居住地\n青岚\n生活时区\nAsia/Shanghai\n出生地\n南方小城 pass54 desktop\n简介与经历\n这是用于资料分层验收的角色背景。\n表达与相处\n调整表达\n回复风格\n温和细腻\n消息长短\n适中\n分歧处理\n温和协商\n拒绝方式\n温和而坚定\n核心价值观\n诚实\n尊重\n完整表达与相处设定\n共同性格\n\n这些倾向构成了相处时的底色。\n\n开放性\n82%\n尽责性\n72%\n亲和性\n74%\n完整性格与来源\nWORKING PERSONA\n当前表达画像\n\n开放性：愿意探索新事物\n\n愿意听完日常里的细节。\n\n表达画像完整记录与来源\n人格设定与最近生活共同影响此刻的表达\n完整能力申请与历史\n发展中的自我"
+  },
+  {
+    "name": "feed-npc",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "remote interaction keeps actual encounter without implying copresence",
+      "recorded-source: no document overflow",
+      "recorded-source: dialog fits viewport",
+      "cancelled interaction review does not retry",
+      "retry remains pending and retains encounter source",
+      "one retry uses original interaction URL",
+      "same-interaction-pending: no document overflow",
+      "same-interaction-pending: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions/npc-interaction/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者重新核对原人物动态互动",
+          "idempotencyKey": "05486410-42af-4ef5-a75d-e49c4cc99e1b"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions/npc-interaction",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-feed-npc-desktop-recorded-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-feed-npc-desktop-same-interaction-pending.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diagnostic-export-clear",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "export downloads only complete terminal stream",
+      "complete-export: no document overflow",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-diagnostic-export-clear-desktop-complete-export.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-diagnostic-export-clear-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('操作未完成，请稍后重试。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n运行诊断\n快速前往\n⌘ K\n运行诊断\n返回诊断\n筛选记录 · 全部记录\n角色范围\n全部记录\n全部记录\n林岚 · 验收样本\n季川 · 验收样本\n记录内容搜索\n实际状态\n全部状态\n全部状态\n等待处理\n排队中\n已开始\n执行中\n已完成\n执行失败\n等待重试\n重试已用尽，需要处理\n已取消\n已暂停\n更多筛选条件 · 运行、工作流与时间范围\n查询\n刷新\n跟随新记录（仅第一页）\n导出当前筛选\n查询说明与维护\n\n服务端没有确认导出完整。\n\n当前筛选没有真实记录。可检查角色、关联 ID 和时间范围；业务执行产生的记录会在这里出现。\n\n完整导出当前分区与已应用的筛选"
+  },
+  {
+    "name": "profile-self",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "independent-live-claim: no document overflow",
+      "claim source failure is not confirmed empty",
+      "claim-failure: no document overflow",
+      "explicit retry can confirm empty claim source",
+      "profile claim reading never mutates",
+      "confirmed-empty: no document overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-self-mobile-independent-live-claim.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-self-mobile-claim-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-self-mobile-confirmed-empty.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "profile-readback",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "accepted profile readback keeps one proposal and decision",
+      "accepted-read-failure: no document overflow",
+      "accepted-read-failure: dialog fits viewport",
+      "readback recovery performs no second proposal or accept",
+      "recovered profile is actually saved",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "原资料读回恢复 pass76 mobile"
+            }
+          },
+          "expectedRevision": 9,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "437aa635-e6ee-4c22-bbe0-fe16a6535a4e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-12/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 9,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-readback-mobile-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-profile-readback-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '原资料读回恢复 pass76 mobile', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n角色档案\n快速前往\nLIFE / A PERSON WITH A STORY\n认识更完整的原资料读回恢复 pass76 mobile。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n原\nA PERSON, NOT JUST A PROFILE\n原资料读回恢复 pass76 mobile小青\n\n26 岁 · 书籍编辑 · 运行中\n\n温和魔法世界\n\n这是用于资料分层验收的角色背景。\n\n专注人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n7\n身份与背景\n编辑\n称呼\n小青\n年龄\n26\n职业\n书籍编辑\n居住地\n青岚\n生活时区\nAsia/Shanghai\n出生地\n南方小城 pass54 mobile\n简介与经历\n这是用于资料分层验收的角色背景。\n表达与相处\n调整表达\n回复风格\n温和细腻\n消息长短\n适中\n分歧处理\n温和协商\n拒绝方式\n温和而坚定\n核心价值观\n诚实\n尊重\n完整表达与相处设定\n共同性格\n\n这些倾向构成了相处时的底色。\n\n开放性\n82%\n尽责性\n72%\n亲和性\n74%\n完整性格与来源\nWORKING PERSONA\n当前表达画像\n\n开放性：愿意探索新事物\n\n愿意听完日常里的细节。\n\n表达画像完整记录与来源\n人格设定与最近生活共同影响此刻的表达\n完整能力申请与历史\n发展中的自我"
+  },
+  {
+    "name": "feed-npc",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "remote interaction keeps actual encounter without implying copresence",
+      "recorded-source: no document overflow",
+      "recorded-source: dialog fits viewport",
+      "cancelled interaction review does not retry",
+      "retry remains pending and retains encounter source",
+      "one retry uses original interaction URL",
+      "same-interaction-pending: no document overflow",
+      "same-interaction-pending: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions/npc-interaction/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者重新核对原人物动态互动",
+          "idempotencyKey": "11fbc09c-8c0e-457d-9e06-20acc467cd83"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions/npc-interaction",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-feed-npc-mobile-recorded-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-feed-npc-mobile-same-interaction-pending.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diagnostic-export-clear",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; formal retained capabilities, no live business or database mutation claim",
+    "checks": [
+      "export downloads only complete terminal stream",
+      "complete-export: no document overflow",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-export",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-diagnostic-export-clear-mobile-complete-export.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/formal-edges/pass76-diagnostic-export-clear-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('操作未完成，请稍后重试。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n创作与管理\n运行诊断\n快速前往\n运行诊断\n返回诊断\n筛选记录 · 全部记录\n角色范围\n全部记录\n全部记录\n林岚 · 验收样本\n季川 · 验收样本\n记录内容搜索\n实际状态\n全部状态\n全部状态\n等待处理\n排队中\n已开始\n执行中\n已完成\n执行失败\n等待重试\n重试已用尽，需要处理\n已取消\n已暂停\n更多筛选条件 · 运行、工作流与时间范围\n查询\n刷新\n跟随新记录（仅第一页）\n导出当前筛选\n查询说明与维护\n\n服务端没有确认导出完整。\n\n当前筛选没有真实记录。可检查角色、关联 ID 和时间范围；业务执行产生的记录会在这里出现。"
+  }
+]

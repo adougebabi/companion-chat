@@ -449,7 +449,11 @@
           "evidence/visual/library/shared-pass31/reference-desktop.png",
           "evidence/visual/library/shared-pass31/actual-desktop.png",
           "evidence/visual/library/shared-pass31/reference-mobile.png",
-          "evidence/visual/library/shared-pass31/actual-mobile.png"
+          "evidence/visual/library/shared-pass31/actual-mobile.png",
+          "evidence/visual/library/final-pass85/reference-desktop.png",
+          "evidence/visual/library/final-pass85/actual-desktop.png",
+          "evidence/visual/library/final-pass85/reference-mobile.png",
+          "evidence/visual/library/final-pass85/actual-mobile.png"
         ],
         "interaction": [],
         "business": []
@@ -461,16 +465,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/library/shared-pass31/reference-desktop.png",
-              "evidence/visual/library/shared-pass31/actual-desktop.png"
+              "evidence/visual/library/final-pass85/reference-desktop.png",
+              "evidence/visual/library/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/library/shared-pass31/reference-mobile.png",
-              "evidence/visual/library/shared-pass31/actual-mobile.png"
+              "evidence/visual/library/final-pass85/reference-mobile.png",
+              "evidence/visual/library/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           }
@@ -517,7 +521,11 @@
           "evidence/visual/library/shared-pass31/reference-desktop.png",
           "evidence/visual/library/shared-pass31/actual-desktop.png",
           "evidence/visual/library/shared-pass31/reference-mobile.png",
-          "evidence/visual/library/shared-pass31/actual-mobile.png"
+          "evidence/visual/library/shared-pass31/actual-mobile.png",
+          "evidence/visual/library/final-pass85/reference-desktop.png",
+          "evidence/visual/library/final-pass85/actual-desktop.png",
+          "evidence/visual/library/final-pass85/reference-mobile.png",
+          "evidence/visual/library/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/workspace-ui.json"
@@ -531,16 +539,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/library/shared-pass31/reference-desktop.png",
-              "evidence/visual/library/shared-pass31/actual-desktop.png"
+              "evidence/visual/library/final-pass85/reference-desktop.png",
+              "evidence/visual/library/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/library/shared-pass31/reference-mobile.png",
-              "evidence/visual/library/shared-pass31/actual-mobile.png"
+              "evidence/visual/library/final-pass85/reference-mobile.png",
+              "evidence/visual/library/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           }
@@ -601,7 +609,11 @@
           "evidence/visual/library/shared-pass31/reference-desktop.png",
           "evidence/visual/library/shared-pass31/actual-desktop.png",
           "evidence/visual/library/shared-pass31/reference-mobile.png",
-          "evidence/visual/library/shared-pass31/actual-mobile.png"
+          "evidence/visual/library/shared-pass31/actual-mobile.png",
+          "evidence/visual/library/final-pass85/reference-desktop.png",
+          "evidence/visual/library/final-pass85/actual-desktop.png",
+          "evidence/visual/library/final-pass85/reference-mobile.png",
+          "evidence/visual/library/final-pass85/actual-mobile.png"
         ],
         "interaction": [],
         "business": [
@@ -615,16 +627,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/library/shared-pass31/reference-desktop.png",
-              "evidence/visual/library/shared-pass31/actual-desktop.png"
+              "evidence/visual/library/final-pass85/reference-desktop.png",
+              "evidence/visual/library/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/library/shared-pass31/reference-mobile.png",
-              "evidence/visual/library/shared-pass31/actual-mobile.png"
+              "evidence/visual/library/final-pass85/reference-mobile.png",
+              "evidence/visual/library/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           }
@@ -861,7 +873,11 @@
           "evidence/visual/chat/shared-pass31/reference-desktop.png",
           "evidence/visual/chat/shared-pass31/actual-desktop.png",
           "evidence/visual/chat/shared-pass31/reference-mobile.png",
-          "evidence/visual/chat/shared-pass31/actual-mobile.png"
+          "evidence/visual/chat/shared-pass31/actual-mobile.png",
+          "evidence/visual/chat/final-pass85/reference-desktop.png",
+          "evidence/visual/chat/final-pass85/actual-desktop.png",
+          "evidence/visual/chat/final-pass85/reference-mobile.png",
+          "evidence/visual/chat/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states-chat.json"
@@ -882,16 +898,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-desktop.png",
-              "evidence/visual/chat/shared-pass31/actual-desktop.png"
+              "evidence/visual/chat/final-pass85/reference-desktop.png",
+              "evidence/visual/chat/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-mobile.png",
-              "evidence/visual/chat/shared-pass31/actual-mobile.png"
+              "evidence/visual/chat/final-pass85/reference-mobile.png",
+              "evidence/visual/chat/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -990,7 +1006,11 @@
           "evidence/visual/chat/shared-pass31/reference-desktop.png",
           "evidence/visual/chat/shared-pass31/actual-desktop.png",
           "evidence/visual/chat/shared-pass31/reference-mobile.png",
-          "evidence/visual/chat/shared-pass31/actual-mobile.png"
+          "evidence/visual/chat/shared-pass31/actual-mobile.png",
+          "evidence/visual/chat/final-pass85/reference-desktop.png",
+          "evidence/visual/chat/final-pass85/actual-desktop.png",
+          "evidence/visual/chat/final-pass85/reference-mobile.png",
+          "evidence/visual/chat/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/workspace-ui.json",
@@ -1011,16 +1031,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-desktop.png",
-              "evidence/visual/chat/shared-pass31/actual-desktop.png"
+              "evidence/visual/chat/final-pass85/reference-desktop.png",
+              "evidence/visual/chat/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-mobile.png",
-              "evidence/visual/chat/shared-pass31/actual-mobile.png"
+              "evidence/visual/chat/final-pass85/reference-mobile.png",
+              "evidence/visual/chat/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           }
@@ -1095,7 +1115,11 @@
           "evidence/visual/chat/shared-pass31/reference-desktop.png",
           "evidence/visual/chat/shared-pass31/actual-desktop.png",
           "evidence/visual/chat/shared-pass31/reference-mobile.png",
-          "evidence/visual/chat/shared-pass31/actual-mobile.png"
+          "evidence/visual/chat/shared-pass31/actual-mobile.png",
+          "evidence/visual/chat/final-pass85/reference-desktop.png",
+          "evidence/visual/chat/final-pass85/actual-desktop.png",
+          "evidence/visual/chat/final-pass85/reference-mobile.png",
+          "evidence/visual/chat/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           {
@@ -1116,16 +1140,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-desktop.png",
-              "evidence/visual/chat/shared-pass31/actual-desktop.png"
+              "evidence/visual/chat/final-pass85/reference-desktop.png",
+              "evidence/visual/chat/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-mobile.png",
-              "evidence/visual/chat/shared-pass31/actual-mobile.png"
+              "evidence/visual/chat/final-pass85/reference-mobile.png",
+              "evidence/visual/chat/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -1214,11 +1238,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/chat-inbox-avatar/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "retry-original-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "failed-original: no document overflow; retry preserves original turn, idempotency key and user text; retry does not duplicate original user message; reloaded conversation contains one original user message; retried-readback: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "stop-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "stop uses the current original turn URL; stop failure preserves original user message; unconfirmed stop does not send another turn; unconfirmed-stop: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "retry-original-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "failed-original: no document overflow; retry preserves original turn, idempotency key and user text; retry does not duplicate original user message; reloaded conversation contains one original user message; retried-readback: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "stop-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "stop uses the current original turn URL; stop failure preserves original user message; unconfirmed stop does not send another turn; unconfirmed-stop: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "chat-say-prefill",
@@ -1327,7 +1385,11 @@
           "evidence/visual/chat/shared-pass31/reference-desktop.png",
           "evidence/visual/chat/shared-pass31/actual-desktop.png",
           "evidence/visual/chat/shared-pass31/reference-mobile.png",
-          "evidence/visual/chat/shared-pass31/actual-mobile.png"
+          "evidence/visual/chat/shared-pass31/actual-mobile.png",
+          "evidence/visual/chat/final-pass85/reference-desktop.png",
+          "evidence/visual/chat/final-pass85/actual-desktop.png",
+          "evidence/visual/chat/final-pass85/reference-mobile.png",
+          "evidence/visual/chat/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/workspace-ui.json"
@@ -1341,16 +1403,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-desktop.png",
-              "evidence/visual/chat/shared-pass31/actual-desktop.png"
+              "evidence/visual/chat/final-pass85/reference-desktop.png",
+              "evidence/visual/chat/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/chat/shared-pass31/reference-mobile.png",
-              "evidence/visual/chat/shared-pass31/actual-mobile.png"
+              "evidence/visual/chat/final-pass85/reference-mobile.png",
+              "evidence/visual/chat/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           }
@@ -1399,7 +1461,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/workspace-ui.json"
+          "evidence/interaction/workspace-ui.json",
+          "evidence/chat-inbox-avatar/report-consolidated.json"
         ],
         "business": []
       },
@@ -1413,6 +1476,20 @@
               "evidence/interaction/workspace-ui.json"
             ],
             "notes": "empty draft disables send; whitespace disables send; text enables send; Shift Enter adds newline; attachment detail uses actual media URL; attachment dismissal restores source focus; history dismissal restores source focus; draft survived details; preview folds; preview unfolds; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "history-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "history-failed: no document overflow; history-failed: dialog within viewport; reading history does not select or send; history-no-match: no document overflow; history-no-match: dialog within viewport; only explicit continue selects one original conversation; continuing history preserves current draft; continued: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "history-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "history-failed: no document overflow; history-failed: dialog within viewport; reading history does not select or send; history-no-match: no document overflow; history-no-match: dialog within viewport; only explicit continue selects one original conversation; continuing history preserves current draft; continued: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -1451,11 +1528,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/chat-inbox-avatar/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "history-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "history-failed: no document overflow; history-failed: dialog within viewport; reading history does not select or send; history-no-match: no document overflow; history-no-match: dialog within viewport; only explicit continue selects one original conversation; continuing history preserves current draft; continued: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "history-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "history-failed: no document overflow; history-failed: dialog within viewport; reading history does not select or send; history-no-match: no document overflow; history-no-match: dialog within viewport; only explicit continue selects one original conversation; continuing history preserves current draft; continued: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "chat-attachment",
@@ -1562,7 +1659,11 @@
           "evidence/visual/profile/shared-pass31/reference-desktop.png",
           "evidence/visual/profile/shared-pass31/actual-desktop.png",
           "evidence/visual/profile/shared-pass31/reference-mobile.png",
-          "evidence/visual/profile/shared-pass31/actual-mobile.png"
+          "evidence/visual/profile/shared-pass31/actual-mobile.png",
+          "evidence/visual/profile/final-pass85/reference-desktop.png",
+          "evidence/visual/profile/final-pass85/actual-desktop.png",
+          "evidence/visual/profile/final-pass85/reference-mobile.png",
+          "evidence/visual/profile/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json"
@@ -1576,16 +1677,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/profile/shared-pass31/reference-desktop.png",
-              "evidence/visual/profile/shared-pass31/actual-desktop.png"
+              "evidence/visual/profile/final-pass85/reference-desktop.png",
+              "evidence/visual/profile/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/profile/shared-pass31/reference-mobile.png",
-              "evidence/visual/profile/shared-pass31/actual-mobile.png"
+              "evidence/visual/profile/final-pass85/reference-mobile.png",
+              "evidence/visual/profile/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -1676,7 +1777,11 @@
           "evidence/visual/profile/shared-pass31/reference-desktop.png",
           "evidence/visual/profile/shared-pass31/actual-desktop.png",
           "evidence/visual/profile/shared-pass31/reference-mobile.png",
-          "evidence/visual/profile/shared-pass31/actual-mobile.png"
+          "evidence/visual/profile/shared-pass31/actual-mobile.png",
+          "evidence/visual/profile/final-pass85/reference-desktop.png",
+          "evidence/visual/profile/final-pass85/actual-desktop.png",
+          "evidence/visual/profile/final-pass85/reference-mobile.png",
+          "evidence/visual/profile/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json"
@@ -1690,16 +1795,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/profile/shared-pass31/reference-desktop.png",
-              "evidence/visual/profile/shared-pass31/actual-desktop.png"
+              "evidence/visual/profile/final-pass85/reference-desktop.png",
+              "evidence/visual/profile/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/profile/shared-pass31/reference-mobile.png",
-              "evidence/visual/profile/shared-pass31/actual-mobile.png"
+              "evidence/visual/profile/final-pass85/reference-mobile.png",
+              "evidence/visual/profile/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -2448,11 +2553,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/formal-edges/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "profile-self-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "independent-live-claim: no document overflow; claim source failure is not confirmed empty; claim-failure: no document overflow; explicit retry can confirm empty claim source; profile claim reading never mutates; confirmed-empty: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "profile-self-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "independent-live-claim: no document overflow; claim source failure is not confirmed empty; claim-failure: no document overflow; explicit retry can confirm empty claim source; profile claim reading never mutates; confirmed-empty: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-formal-recovery",
@@ -2490,11 +2615,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/formal-edges/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "profile-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "accepted profile readback keeps one proposal and decision; accepted-read-failure: no document overflow; accepted-read-failure: dialog fits viewport; readback recovery performs no second proposal or accept; recovered profile is actually saved; readback-recovered: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "profile-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "accepted profile readback keeps one proposal and decision; accepted-read-failure: no document overflow; accepted-read-failure: dialog fits viewport; readback recovery performs no second proposal or accept; recovered profile is actually saved; readback-recovered: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "people-directory",
@@ -2541,11 +2686,16 @@
           "evidence/visual/people/shared-pass31/reference-desktop.png",
           "evidence/visual/people/shared-pass31/actual-desktop.png",
           "evidence/visual/people/shared-pass31/reference-mobile.png",
-          "evidence/visual/people/shared-pass31/actual-mobile.png"
+          "evidence/visual/people/shared-pass31/actual-mobile.png",
+          "evidence/visual/people/final-pass85/reference-desktop.png",
+          "evidence/visual/people/final-pass85/actual-desktop.png",
+          "evidence/visual/people/final-pass85/reference-mobile.png",
+          "evidence/visual/people/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui.json",
-          "evidence/states/read-states.json"
+          "evidence/states/read-states.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -2556,16 +2706,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/people/shared-pass31/reference-desktop.png",
-              "evidence/visual/people/shared-pass31/actual-desktop.png"
+              "evidence/visual/people/final-pass85/reference-desktop.png",
+              "evidence/visual/people/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/people/shared-pass31/reference-mobile.png",
-              "evidence/visual/people/shared-pass31/actual-mobile.png"
+              "evidence/visual/people/final-pass85/reference-mobile.png",
+              "evidence/visual/people/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -2619,6 +2769,20 @@
               "evidence/states/read-states.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          },
+          "people-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "person card uses original responsive padding; person-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "person card uses original responsive padding; person card uses original compact badge size; person-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -2661,7 +2825,8 @@
         "visual": [],
         "interaction": [
           "evidence/interaction/domain-ui.json",
-          "evidence/form-groups/report-after.json"
+          "evidence/form-groups/report-after.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -2689,6 +2854,20 @@
               "evidence/form-groups/report-after.json"
             ],
             "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "person card uses original responsive padding; person-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "person card uses original responsive padding; person card uses original compact badge size; person-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -3235,7 +3414,11 @@
           "evidence/visual/feed/shared-pass31/reference-desktop.png",
           "evidence/visual/feed/shared-pass31/actual-desktop.png",
           "evidence/visual/feed/shared-pass31/reference-mobile.png",
-          "evidence/visual/feed/shared-pass31/actual-mobile.png"
+          "evidence/visual/feed/shared-pass31/actual-mobile.png",
+          "evidence/visual/feed/final-pass85/reference-desktop.png",
+          "evidence/visual/feed/final-pass85/actual-desktop.png",
+          "evidence/visual/feed/final-pass85/reference-mobile.png",
+          "evidence/visual/feed/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states.json"
@@ -3249,16 +3432,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/feed/shared-pass31/reference-desktop.png",
-              "evidence/visual/feed/shared-pass31/actual-desktop.png"
+              "evidence/visual/feed/final-pass85/reference-desktop.png",
+              "evidence/visual/feed/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/feed/shared-pass31/reference-mobile.png",
-              "evidence/visual/feed/shared-pass31/actual-mobile.png"
+              "evidence/visual/feed/final-pass85/reference-mobile.png",
+              "evidence/visual/feed/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -3679,11 +3862,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/formal-edges/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "feed-npc-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "remote interaction keeps actual encounter without implying copresence; recorded-source: no document overflow; recorded-source: dialog fits viewport; cancelled interaction review does not retry; retry remains pending and retains encounter source; one retry uses original interaction URL; same-interaction-pending: no document overflow; same-interaction-pending: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-npc-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "remote interaction keeps actual encounter without implying copresence; recorded-source: no document overflow; recorded-source: dialog fits viewport; cancelled interaction review does not retry; retry remains pending and retains encounter source; one retry uses original interaction URL; same-interaction-pending: no document overflow; same-interaction-pending: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "inbox-list-read",
@@ -3735,11 +3938,16 @@
           "evidence/visual/inbox/shared-pass31/reference-desktop.png",
           "evidence/visual/inbox/shared-pass31/actual-desktop.png",
           "evidence/visual/inbox/shared-pass31/reference-mobile.png",
-          "evidence/visual/inbox/shared-pass31/actual-mobile.png"
+          "evidence/visual/inbox/shared-pass31/actual-mobile.png",
+          "evidence/visual/inbox/final-pass85/reference-desktop.png",
+          "evidence/visual/inbox/final-pass85/actual-desktop.png",
+          "evidence/visual/inbox/final-pass85/reference-mobile.png",
+          "evidence/visual/inbox/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui.json",
-          "evidence/states/read-states.json"
+          "evidence/states/read-states.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": [
           "evidence/real-browser/report.json"
@@ -3752,16 +3960,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/shared-pass31/reference-desktop.png",
-              "evidence/visual/inbox/shared-pass31/actual-desktop.png"
+              "evidence/visual/inbox/final-pass85/reference-desktop.png",
+              "evidence/visual/inbox/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/shared-pass31/reference-mobile.png",
-              "evidence/visual/inbox/shared-pass31/actual-mobile.png"
+              "evidence/visual/inbox/final-pass85/reference-mobile.png",
+              "evidence/visual/inbox/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -3815,6 +4023,20 @@
               "evidence/states/read-states.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          },
+          "inbox-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         },
         "business": {
@@ -3862,11 +4084,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/chat-inbox-avatar/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "inbox-source-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "notification-detail: no document overflow; notification-detail: dialog within viewport; original-task-review: no document overflow; original-task-review: dialog within viewport; notification source and task return preserve original context; reviewing original failed task never restarts it; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-source-errors-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "invalid source leaves user in notification dialog; failed mark retains unread marker; invalid-source-and-read-failure: no document overflow; invalid-source-and-read-failure: dialog within viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-source-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "notification-detail: no document overflow; notification-detail: dialog within viewport; original-task-review: no document overflow; original-task-review: dialog within viewport; notification source and task return preserve original context; reviewing original failed task never restarts it; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-source-errors-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "invalid source leaves user in notification dialog; failed mark retains unread marker; invalid-source-and-read-failure: no document overflow; invalid-source-and-read-failure: dialog within viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "inbox-pending",
@@ -3910,10 +4166,15 @@
           "evidence/visual/inbox/shared-pass31/reference-desktop.png",
           "evidence/visual/inbox/shared-pass31/actual-desktop.png",
           "evidence/visual/inbox/shared-pass31/reference-mobile.png",
-          "evidence/visual/inbox/shared-pass31/actual-mobile.png"
+          "evidence/visual/inbox/shared-pass31/actual-mobile.png",
+          "evidence/visual/inbox/final-pass85/reference-desktop.png",
+          "evidence/visual/inbox/final-pass85/actual-desktop.png",
+          "evidence/visual/inbox/final-pass85/reference-mobile.png",
+          "evidence/visual/inbox/final-pass85/actual-mobile.png"
         ],
         "interaction": [
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -3924,16 +4185,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/shared-pass31/reference-desktop.png",
-              "evidence/visual/inbox/shared-pass31/actual-desktop.png"
+              "evidence/visual/inbox/final-pass85/reference-desktop.png",
+              "evidence/visual/inbox/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/shared-pass31/reference-mobile.png",
-              "evidence/visual/inbox/shared-pass31/actual-mobile.png"
+              "evidence/visual/inbox/final-pass85/reference-mobile.png",
+              "evidence/visual/inbox/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           }
@@ -3945,6 +4206,20 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "sidebar authoritative unread count cleared; unread filter reflects confirmed writes; reading does not finish pending task; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "inbox-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -3983,11 +4258,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/chat-inbox-avatar/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "inbox-source-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "notification-detail: no document overflow; notification-detail: dialog within viewport; original-task-review: no document overflow; original-task-review: dialog within viewport; notification source and task return preserve original context; reviewing original failed task never restarts it; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-source-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "notification-detail: no document overflow; notification-detail: dialog within viewport; original-task-review: no document overflow; original-task-review: dialog within viewport; notification source and task return preserve original context; reviewing original failed task never restarts it; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "inbox-back-chat",
@@ -4017,11 +4312,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/chat-inbox-avatar/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "inbox-back-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "return to daily chat targets current character; return link never sends a chat turn; back-to-chat: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-back-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "return to daily chat targets current character; return link never sends a chat turn; back-to-chat: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "inbox-formal-groups",
@@ -4059,11 +4374,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/chat-inbox-avatar/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "inbox-groups-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "source failure is labelled unread, not zero; running request stays separate from decisions; separate-source-categories: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-groups-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "source failure is labelled unread, not zero; running request stays separate from decisions; separate-source-categories: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "avatar-source-all",
@@ -4109,7 +4444,8 @@
             "layer": "React DOM controlled regression",
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
-          }
+          },
+          "evidence/chat-inbox-avatar/report-consolidated.json"
         ],
         "business": []
       },
@@ -4117,7 +4453,25 @@
         "F01",
         "F02"
       ],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "avatar-all-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "saved avatar is loaded in /library; surface--library: no document overflow; saved avatar is loaded in /c/fluctlight-fixture-one/chat; assistant messages use same avatar as chat header; surface--c-fluctlight-fixture-one-chat: no document overflow; saved avatar is loaded in /c/fluctlight-fixture-one/profile; surface--c-fluctlight-fixture-one-profile: no document overflow; saved avatar is loaded in /c/fluctlight-fixture-one/people?tab=relationship; surface--c-fluctlight-fixture-one-people-tab-relationship: no document overflow; saved avatar is loaded in /feed?fid=fluctlight-fixture-one; surface--feed-fid-fluctlight-fixture-one: no document overflow; sidebar uses same saved directory avatar; broken avatar has original first-character fallback; failed image never hides current character name; image-failure-fallback: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "avatar-all-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/chat-inbox-avatar/report-consolidated.json"
+            ],
+            "notes": "saved avatar is loaded in /library; surface--library: no document overflow; saved avatar is loaded in /c/fluctlight-fixture-one/chat; assistant messages use same avatar as chat header; surface--c-fluctlight-fixture-one-chat: no document overflow; saved avatar is loaded in /c/fluctlight-fixture-one/profile; surface--c-fluctlight-fixture-one-profile: no document overflow; saved avatar is loaded in /c/fluctlight-fixture-one/people?tab=relationship; surface--c-fluctlight-fixture-one-people-tab-relationship: no document overflow; saved avatar is loaded in /feed?fid=fluctlight-fixture-one; surface--feed-fid-fluctlight-fixture-one: no document overflow; sidebar uses same saved directory avatar; broken avatar has original first-character fallback; failed image never hides current character name; image-failure-fallback: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "shell-formal-routing",
@@ -4229,7 +4583,11 @@
           "evidence/visual/now/shared-pass31/reference-desktop.png",
           "evidence/visual/now/shared-pass31/actual-desktop.png",
           "evidence/visual/now/shared-pass31/reference-mobile.png",
-          "evidence/visual/now/shared-pass31/actual-mobile.png"
+          "evidence/visual/now/shared-pass31/actual-mobile.png",
+          "evidence/visual/now/final-pass85/reference-desktop.png",
+          "evidence/visual/now/final-pass85/actual-desktop.png",
+          "evidence/visual/now/final-pass85/reference-mobile.png",
+          "evidence/visual/now/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json"
@@ -4245,16 +4603,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/now/shared-pass31/reference-desktop.png",
-              "evidence/visual/now/shared-pass31/actual-desktop.png"
+              "evidence/visual/now/final-pass85/reference-desktop.png",
+              "evidence/visual/now/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/now/shared-pass31/reference-mobile.png",
-              "evidence/visual/now/shared-pass31/actual-mobile.png"
+              "evidence/visual/now/final-pass85/reference-mobile.png",
+              "evidence/visual/now/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -4354,7 +4712,11 @@
           "evidence/visual/now/shared-pass31/reference-desktop.png",
           "evidence/visual/now/shared-pass31/actual-desktop.png",
           "evidence/visual/now/shared-pass31/reference-mobile.png",
-          "evidence/visual/now/shared-pass31/actual-mobile.png"
+          "evidence/visual/now/shared-pass31/actual-mobile.png",
+          "evidence/visual/now/final-pass85/reference-desktop.png",
+          "evidence/visual/now/final-pass85/actual-desktop.png",
+          "evidence/visual/now/final-pass85/reference-mobile.png",
+          "evidence/visual/now/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json"
@@ -4368,16 +4730,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/now/shared-pass31/reference-desktop.png",
-              "evidence/visual/now/shared-pass31/actual-desktop.png"
+              "evidence/visual/now/final-pass85/reference-desktop.png",
+              "evidence/visual/now/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/now/shared-pass31/reference-mobile.png",
-              "evidence/visual/now/shared-pass31/actual-mobile.png"
+              "evidence/visual/now/final-pass85/reference-mobile.png",
+              "evidence/visual/now/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -4470,13 +4832,18 @@
           "evidence/visual/schedule/shared-pass31/reference-desktop.png",
           "evidence/visual/schedule/shared-pass31/actual-desktop.png",
           "evidence/visual/schedule/shared-pass31/reference-mobile.png",
-          "evidence/visual/schedule/shared-pass31/actual-mobile.png"
+          "evidence/visual/schedule/shared-pass31/actual-mobile.png",
+          "evidence/visual/schedule/final-pass85/reference-desktop.png",
+          "evidence/visual/schedule/final-pass85/actual-desktop.png",
+          "evidence/visual/schedule/final-pass85/reference-mobile.png",
+          "evidence/visual/schedule/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json",
           "evidence/states/read-states.json",
           "evidence/schedule-deep/report-pass39.json",
-          "evidence/schedule-deep/report-consolidated.json"
+          "evidence/schedule-deep/report-consolidated.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -4487,16 +4854,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/schedule/shared-pass31/reference-desktop.png",
-              "evidence/visual/schedule/shared-pass31/actual-desktop.png"
+              "evidence/visual/schedule/final-pass85/reference-desktop.png",
+              "evidence/visual/schedule/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/schedule/shared-pass31/reference-mobile.png",
-              "evidence/visual/schedule/shared-pass31/actual-mobile.png"
+              "evidence/visual/schedule/final-pass85/reference-mobile.png",
+              "evidence/visual/schedule/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -4634,6 +5001,20 @@
               "evidence/schedule-deep/report-consolidated.json"
             ],
             "notes": "suggestion-edit: no horizontal overflow; suggestion-edit: dialog fits viewport; 409 does not automatically resubmit; original proposal is readable before protocol disclosure; conflict-review: no horizontal overflow; conflict-review: dialog fits viewport; full frozen protocol remains explicitly readable; decision: no horizontal overflow; decision: dialog fits viewport; actual schedule updates only after completed request; explicit rebase keeps content and advances actual CAS baseline; suggestions-history: no horizontal overflow; original suggestion remains independently readable; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "calendar-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "composed date button retains shared outline theme; calendar-open: no document overflow; calendar returns focus to its original control; date navigation still reads exact selected day; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "calendar-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "composed date button retains shared outline theme; date control retains narrow touch size; calendar-open: no document overflow; calendar returns focus to its original control; date navigation still reads exact selected day; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4677,7 +5058,8 @@
         "interaction": [
           "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json",
           "evidence/schedule-deep/report-pass39.json",
-          "evidence/schedule-deep/report-consolidated.json"
+          "evidence/schedule-deep/report-consolidated.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -4747,6 +5129,20 @@
               "evidence/schedule-deep/report-consolidated.json"
             ],
             "notes": "suggestion-edit: no horizontal overflow; suggestion-edit: dialog fits viewport; 409 does not automatically resubmit; original proposal is readable before protocol disclosure; conflict-review: no horizontal overflow; conflict-review: dialog fits viewport; full frozen protocol remains explicitly readable; decision: no horizontal overflow; decision: dialog fits viewport; actual schedule updates only after completed request; explicit rebase keeps content and advances actual CAS baseline; suggestions-history: no horizontal overflow; original suggestion remains independently readable; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "calendar-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "composed date button retains shared outline theme; calendar-open: no document overflow; calendar returns focus to its original control; date navigation still reads exact selected day; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "calendar-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "composed date button retains shared outline theme; date control retains narrow touch size; calendar-open: no document overflow; calendar returns focus to its original control; date navigation still reads exact selected day; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4961,11 +5357,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "habits-read-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "habits: no document overflow; habits tab remains independently readable; habit sources link to formal life timeline; reading habits never writes a schedule; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "habits-empty-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "habits: no document overflow; habits tab remains independently readable; habit sources link to formal life timeline; reading habits never writes a schedule; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "habits-read-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "habits: no document overflow; habits tab remains independently readable; habit sources link to formal life timeline; reading habits never writes a schedule; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "habits-empty-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "habits: no document overflow; habits tab remains independently readable; habit sources link to formal life timeline; reading habits never writes a schedule; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-goals-list",
@@ -5010,11 +5440,16 @@
           "evidence/visual/goals/shared-pass31/reference-desktop.png",
           "evidence/visual/goals/shared-pass31/actual-desktop.png",
           "evidence/visual/goals/shared-pass31/reference-mobile.png",
-          "evidence/visual/goals/shared-pass31/actual-mobile.png"
+          "evidence/visual/goals/shared-pass31/actual-mobile.png",
+          "evidence/visual/goals/final-pass85/reference-desktop.png",
+          "evidence/visual/goals/final-pass85/actual-desktop.png",
+          "evidence/visual/goals/final-pass85/reference-mobile.png",
+          "evidence/visual/goals/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui.json",
-          "evidence/states/read-states.json"
+          "evidence/states/read-states.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -5025,16 +5460,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/goals/shared-pass31/reference-desktop.png",
-              "evidence/visual/goals/shared-pass31/actual-desktop.png"
+              "evidence/visual/goals/final-pass85/reference-desktop.png",
+              "evidence/visual/goals/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/goals/shared-pass31/reference-mobile.png",
-              "evidence/visual/goals/shared-pass31/actual-mobile.png"
+              "evidence/visual/goals/final-pass85/reference-mobile.png",
+              "evidence/visual/goals/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -5088,6 +5523,20 @@
               "evidence/states/read-states.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          },
+          "goals-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "goal card uses original responsive padding; goal-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goals-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "goal card uses original responsive padding; goal-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -5127,7 +5576,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/feed-goals/report-consolidated.json"
+          "evidence/feed-goals/report-consolidated.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -5218,6 +5668,20 @@
               "evidence/feed-goals/report-consolidated.json"
             ],
             "notes": "older-snapshot-readback: no horizontal overflow; older-snapshot-readback: dialog fits viewport; stale goal readback keeps exactly one pause command; goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goals-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "goal card uses original responsive padding; goal-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goals-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "goal card uses original responsive padding; goal-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -5442,12 +5906,17 @@
           "evidence/visual/diary/diary-pass33/reference-desktop.png",
           "evidence/visual/diary/diary-pass33/actual-desktop.png",
           "evidence/visual/diary/diary-pass33/reference-mobile.png",
-          "evidence/visual/diary/diary-pass33/actual-mobile.png"
+          "evidence/visual/diary/diary-pass33/actual-mobile.png",
+          "evidence/visual/diary/final-pass85/reference-desktop.png",
+          "evidence/visual/diary/final-pass85/actual-desktop.png",
+          "evidence/visual/diary/final-pass85/reference-mobile.png",
+          "evidence/visual/diary/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui.json",
           "evidence/states/read-states.json",
-          "evidence/diary-deep/report-consolidated.json"
+          "evidence/diary-deep/report-consolidated.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -5458,16 +5927,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/diary/diary-pass33/reference-desktop.png",
-              "evidence/visual/diary/diary-pass33/actual-desktop.png"
+              "evidence/visual/diary/final-pass85/reference-desktop.png",
+              "evidence/visual/diary/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/diary/diary-pass33/reference-mobile.png",
-              "evidence/visual/diary/diary-pass33/actual-mobile.png"
+              "evidence/visual/diary/final-pass85/reference-mobile.png",
+              "evidence/visual/diary/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -5591,6 +6060,20 @@
               "evidence/diary-deep/report-consolidated.json"
             ],
             "notes": "recoverable: no horizontal overflow; newer draft survives original receipt/readback recovery; server annotation reflects only accepted original text; accepted result recovery performs no second write; recovered-new-draft: no horizontal overflow; closing newer draft retains actual saved annotation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "diary-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "favorite selection preserves search input; compact-filter: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "diary-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "diary search and reading tabs share one row; compact menu reflects actual favorite state; favorite selection preserves search input; compact-filter: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -5914,7 +6397,11 @@
           "evidence/visual/memory/memory-mapped-pass32/reference-desktop.png",
           "evidence/visual/memory/memory-mapped-pass32/actual-desktop.png",
           "evidence/visual/memory/memory-mapped-pass32/reference-mobile.png",
-          "evidence/visual/memory/memory-mapped-pass32/actual-mobile.png"
+          "evidence/visual/memory/memory-mapped-pass32/actual-mobile.png",
+          "evidence/visual/memory/final-pass85/reference-desktop.png",
+          "evidence/visual/memory/final-pass85/actual-desktop.png",
+          "evidence/visual/memory/final-pass85/reference-mobile.png",
+          "evidence/visual/memory/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states.json",
@@ -5929,16 +6416,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/memory/memory-mapped-pass32/reference-desktop.png",
-              "evidence/visual/memory/memory-mapped-pass32/actual-desktop.png"
+              "evidence/visual/memory/final-pass85/reference-desktop.png",
+              "evidence/visual/memory/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/memory/memory-mapped-pass32/reference-mobile.png",
-              "evidence/visual/memory/memory-mapped-pass32/actual-mobile.png"
+              "evidence/visual/memory/final-pass85/reference-mobile.png",
+              "evidence/visual/memory/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -6603,11 +7090,16 @@
           "evidence/visual/settings/shared-pass31/reference-desktop.png",
           "evidence/visual/settings/shared-pass31/actual-desktop.png",
           "evidence/visual/settings/shared-pass31/reference-mobile.png",
-          "evidence/visual/settings/shared-pass31/actual-mobile.png"
+          "evidence/visual/settings/shared-pass31/actual-mobile.png",
+          "evidence/visual/settings/final-pass85/reference-desktop.png",
+          "evidence/visual/settings/final-pass85/actual-desktop.png",
+          "evidence/visual/settings/final-pass85/reference-mobile.png",
+          "evidence/visual/settings/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json",
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -6618,16 +7110,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/settings/shared-pass31/reference-desktop.png",
-              "evidence/visual/settings/shared-pass31/actual-desktop.png"
+              "evidence/visual/settings/final-pass85/reference-desktop.png",
+              "evidence/visual/settings/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/settings/shared-pass31/reference-mobile.png",
-              "evidence/visual/settings/shared-pass31/actual-mobile.png"
+              "evidence/visual/settings/final-pass85/reference-mobile.png",
+              "evidence/visual/settings/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -6688,6 +7180,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "聊天与视觉 exposes only its own sections; 图片生成 exposes only its own sections; 自主性与安静时段 exposes only its own sections; 通知与后台 exposes only its own sections; 高级设置 exposes only its own sections; connection draft survives section changes; four real purpose slots render; discard returns to confirmed connection; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "management-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "last horizontal navigation section remains reachable; last-section: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "management-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "mobile secondary navigation stays on one scrollable row; last horizontal navigation section remains reachable; last-section: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -6735,7 +7241,11 @@
           "evidence/visual/settings/shared-pass31/reference-desktop.png",
           "evidence/visual/settings/shared-pass31/actual-desktop.png",
           "evidence/visual/settings/shared-pass31/reference-mobile.png",
-          "evidence/visual/settings/shared-pass31/actual-mobile.png"
+          "evidence/visual/settings/shared-pass31/actual-mobile.png",
+          "evidence/visual/settings/final-pass85/reference-desktop.png",
+          "evidence/visual/settings/final-pass85/actual-desktop.png",
+          "evidence/visual/settings/final-pass85/reference-mobile.png",
+          "evidence/visual/settings/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json",
@@ -6756,16 +7266,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/settings/shared-pass31/reference-desktop.png",
-              "evidence/visual/settings/shared-pass31/actual-desktop.png"
+              "evidence/visual/settings/final-pass85/reference-desktop.png",
+              "evidence/visual/settings/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/settings/shared-pass31/reference-mobile.png",
-              "evidence/visual/settings/shared-pass31/actual-mobile.png"
+              "evidence/visual/settings/final-pass85/reference-mobile.png",
+              "evidence/visual/settings/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -6981,11 +7491,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "management-vision-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "discard restores confirmed settings; discard has no mutation; editing: no document overflow; settings readback contains explicit choice; setting persists through reload; vision test calls saved-config endpoint; saved-and-test: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "management-vision-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "discard restores confirmed settings; discard has no mutation; editing: no document overflow; settings readback contains explicit choice; setting persists through reload; vision test calls saved-config endpoint; saved-and-test: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "management-media",
@@ -7188,11 +7718,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "management-notifications-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "discard restores confirmed settings; discard has no mutation; editing: no document overflow; settings readback contains explicit choice; setting persists through reload; saved-and-test: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "management-notifications-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "discard restores confirmed settings; discard has no mutation; editing: no document overflow; settings readback contains explicit choice; setting persists through reload; saved-and-test: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "management-runtime",
@@ -7282,7 +7832,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -7303,6 +7854,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "聊天与视觉 exposes only its own sections; 图片生成 exposes only its own sections; 自主性与安静时段 exposes only its own sections; 通知与后台 exposes only its own sections; 高级设置 exposes only its own sections; connection draft survives section changes; four real purpose slots render; discard returns to confirmed connection; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "management-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "last horizontal navigation section remains reachable; last-section: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "management-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "mobile secondary navigation stays on one scrollable row; last horizontal navigation section remains reachable; last-section: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -8364,11 +8929,73 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation/creation-ui.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "source-blank-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "blank source skips analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "source-blank-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "blank source skips analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "source-description-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "analysis used the selected source; full nested identity retained; full life settings retained; reload restores preview without another analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "source-description-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "analysis used the selected source; full nested identity retained; full life settings retained; reload restores preview without another analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "source-json-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "analysis used the selected source; full nested identity retained; full life settings retained; reload restores preview without another analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "source-json-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "analysis used the selected source; full nested identity retained; full life settings retained; reload restores preview without another analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "source-template-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "analysis used the selected source; full nested identity retained; full life settings retained; reload restores preview without another analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "source-template-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation/creation-ui.json"
+            ],
+            "notes": "analysis used the selected source; full nested identity retained; full life settings retained; reload restores preview without another analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "creation-blank",
@@ -10149,11 +10776,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "life-timeline-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "timeline filter selects 日记; filter-日记: no document overflow; timeline filter selects 动态; filter-动态: no document overflow; timeline filter selects 图片; filter-图片: no document overflow; timeline filter selects 安排; filter-安排: no document overflow; timeline filter selects 全部; filter-全部: no document overflow; timeline refresh reads actual aggregate sources; timeline retains its return to current life; timeline reading never sends mutations; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "life-timeline-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "timeline filter selects 日记; filter-日记: no document overflow; timeline filter selects 动态; filter-动态: no document overflow; timeline filter selects 图片; filter-图片: no document overflow; timeline filter selects 安排; filter-安排: no document overflow; timeline filter selects 全部; filter-全部: no document overflow; timeline refresh reads actual aggregate sources; timeline retains its return to current life; timeline reading never sends mutations; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "formal-goal-planning",
@@ -10184,11 +10831,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "goal-planning-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "policy save reads confirmed auto planning; policy setting survives reload; invalid policy does not replay prior save; policy-json-invalid: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-planning-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "policy save reads confirmed auto planning; policy setting survives reload; invalid policy does not replay prior save; policy-json-invalid: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "formal-diary-favorite",
@@ -10217,7 +10884,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/diary-deep/report-consolidated.json"
+          "evidence/diary-deep/report-consolidated.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -10238,6 +10906,20 @@
               "evidence/diary-deep/report-consolidated.json"
             ],
             "notes": "search retains already confirmed diary prose; cancel sends no annotation; cancelled note does not reappear; editing: no horizontal overflow; annotation saved independently from diary original; refresh retains saved note; favorite list reads both actual saved favorites; saved-favorite: no horizontal overflow; one explicit annotation write only; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "diary-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "favorite selection preserves search input; compact-filter: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "diary-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "diary search and reading tabs share one row; compact menu reflects actual favorite state; favorite selection preserves search input; compact-filter: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -10323,11 +11005,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "management-extra-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "invalid workflow JSON cannot submit settings; invalid-workflow: no document overflow; discard restores whole saved workflow field; kev-test: no document overflow; connection test keeps separate test endpoint; testing never saves configuration; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "management-extra-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "invalid workflow JSON cannot submit settings; invalid-workflow: no document overflow; discard restores whole saved workflow field; kev-test: no document overflow; connection test keeps separate test endpoint; testing never saves configuration; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "formal-diagnostic-export-clear",
@@ -10357,11 +11059,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/formal-edges/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "diagnostic-export-clear-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "export downloads only complete terminal stream; complete-export: no document overflow; incomplete export never offers a partial download; blank clear reason disables submit; secondary cancellation never clears records; clear-review-cancel: no document overflow; clear-review-cancel: dialog fits viewport; retry preserves exact original frozen clear command; original-clear-retried: no document overflow; original-clear-retried: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "diagnostic-export-clear-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/formal-edges/report-consolidated.json"
+            ],
+            "notes": "export downloads only complete terminal stream; complete-export: no document overflow; incomplete export never offers a partial download; blank clear reason disables submit; secondary cancellation never clears records; clear-review-cancel: no document overflow; clear-review-cancel: dialog fits viewport; retry preserves exact original frozen clear command; original-clear-retried: no document overflow; original-clear-retried: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "formal-data-import-pack",
@@ -10688,7 +11410,11 @@
           "evidence/visual/world/shared-pass31/reference-desktop.png",
           "evidence/visual/world/shared-pass31/actual-desktop.png",
           "evidence/visual/world/shared-pass31/reference-mobile.png",
-          "evidence/visual/world/shared-pass31/actual-mobile.png"
+          "evidence/visual/world/shared-pass31/actual-mobile.png",
+          "evidence/visual/world/final-pass85/reference-desktop.png",
+          "evidence/visual/world/final-pass85/actual-desktop.png",
+          "evidence/visual/world/final-pass85/reference-mobile.png",
+          "evidence/visual/world/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json",
@@ -10703,16 +11429,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/world/shared-pass31/reference-desktop.png",
-              "evidence/visual/world/shared-pass31/actual-desktop.png"
+              "evidence/visual/world/final-pass85/reference-desktop.png",
+              "evidence/visual/world/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/world/shared-pass31/reference-mobile.png",
-              "evidence/visual/world/shared-pass31/actual-mobile.png"
+              "evidence/visual/world/final-pass85/reference-mobile.png",
+              "evidence/visual/world/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -10811,11 +11537,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "world-settings-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "world cancellation does not mutate; cancel restores original background; empty name keeps native required validation; empty world name does not write; editing: no document overflow; editing: dialog fits viewport; world settings save preserves world and advances revision; saved: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "world-settings-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "world cancellation does not mutate; cancel restores original background; empty name keeps native required validation; empty world name does not write; editing: no document overflow; editing: dialog fits viewport; world settings save preserves world and advances revision; saved: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.world.venues",
@@ -11237,7 +11983,11 @@
           "evidence/visual/wardrobe/shared-pass31/reference-desktop.png",
           "evidence/visual/wardrobe/shared-pass31/actual-desktop.png",
           "evidence/visual/wardrobe/shared-pass31/reference-mobile.png",
-          "evidence/visual/wardrobe/shared-pass31/actual-mobile.png"
+          "evidence/visual/wardrobe/shared-pass31/actual-mobile.png",
+          "evidence/visual/wardrobe/final-pass85/reference-desktop.png",
+          "evidence/visual/wardrobe/final-pass85/actual-desktop.png",
+          "evidence/visual/wardrobe/final-pass85/reference-mobile.png",
+          "evidence/visual/wardrobe/final-pass85/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui-wardrobe-search-detail.json",
@@ -11253,16 +12003,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/wardrobe/shared-pass31/reference-desktop.png",
-              "evidence/visual/wardrobe/shared-pass31/actual-desktop.png"
+              "evidence/visual/wardrobe/final-pass85/reference-desktop.png",
+              "evidence/visual/wardrobe/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/wardrobe/shared-pass31/reference-mobile.png",
-              "evidence/visual/wardrobe/shared-pass31/actual-mobile.png"
+              "evidence/visual/wardrobe/final-pass85/reference-mobile.png",
+              "evidence/visual/wardrobe/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -11631,11 +12381,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/retained-tools/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "wardrobe-tags-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "empty tag cannot submit; cancel rename leaves saved tag unchanged; renamed tag readback uses new name; renamed: no document overflow; renamed: dialog fits viewport; delete cancellation retains tag; explicit tag deletion reads back absence; deleted: no document overflow; deleted: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "wardrobe-tags-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/retained-tools/report-consolidated.json"
+            ],
+            "notes": "empty tag cannot submit; cancel rename leaves saved tag unchanged; renamed tag readback uses new name; renamed: no document overflow; renamed: dialog fits viewport; delete cancellation retains tag; explicit tag deletion reads back absence; deleted: no document overflow; deleted: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.wardrobe.wear",
@@ -11765,10 +12535,15 @@
           "evidence/visual/studio/shared-pass31/reference-desktop.png",
           "evidence/visual/studio/shared-pass31/actual-desktop.png",
           "evidence/visual/studio/shared-pass31/reference-mobile.png",
-          "evidence/visual/studio/shared-pass31/actual-mobile.png"
+          "evidence/visual/studio/shared-pass31/actual-mobile.png",
+          "evidence/visual/studio/final-pass85/reference-desktop.png",
+          "evidence/visual/studio/final-pass85/actual-desktop.png",
+          "evidence/visual/studio/final-pass85/reference-mobile.png",
+          "evidence/visual/studio/final-pass85/actual-mobile.png"
         ],
         "interaction": [
-          "evidence/states/read-states.json"
+          "evidence/states/read-states.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": [
           "evidence/real-browser/report.json"
@@ -11781,16 +12556,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/studio/shared-pass31/reference-desktop.png",
-              "evidence/visual/studio/shared-pass31/actual-desktop.png"
+              "evidence/visual/studio/final-pass85/reference-desktop.png",
+              "evidence/visual/studio/final-pass85/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/studio/shared-pass31/reference-mobile.png",
-              "evidence/visual/studio/shared-pass31/actual-mobile.png"
+              "evidence/visual/studio/final-pass85/reference-mobile.png",
+              "evidence/visual/studio/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -11837,6 +12612,20 @@
               "evidence/states/read-states.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          },
+          "studio-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "new resource remains alongside heading; refresh preserves draft without applying a new search; original create menu retains all resource types; search-and-create-menu: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "new resource remains alongside heading; refresh preserves draft without applying a new search; original create menu retains all resource types; search-and-create-menu: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         },
         "business": {
@@ -13030,7 +13819,11 @@
           "evidence/visual/media/shared-pass31/reference-desktop.png",
           "evidence/visual/media/shared-pass31/actual-desktop.png",
           "evidence/visual/media/shared-pass31/reference-mobile.png",
-          "evidence/visual/media/shared-pass31/actual-mobile.png"
+          "evidence/visual/media/shared-pass31/actual-mobile.png",
+          "evidence/visual/media/media-pass87/reference-desktop.png",
+          "evidence/visual/media/media-pass87/actual-desktop.png",
+          "evidence/visual/media/media-pass87/reference-mobile.png",
+          "evidence/visual/media/media-pass87/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states.json",
@@ -13045,16 +13838,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/media/shared-pass31/reference-desktop.png",
-              "evidence/visual/media/shared-pass31/actual-desktop.png"
+              "evidence/visual/media/media-pass87/reference-desktop.png",
+              "evidence/visual/media/media-pass87/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/media/shared-pass31/reference-mobile.png",
-              "evidence/visual/media/shared-pass31/actual-mobile.png"
+              "evidence/visual/media/media-pass87/reference-mobile.png",
+              "evidence/visual/media/media-pass87/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -13993,11 +14786,59 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/media-lifecycle/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "grants-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/media-lifecycle/report-consolidated.json"
+            ],
+            "notes": "missing confirmation and purpose cannot grant; grant-review: no document overflow; grant-review: dialog fits viewport; cancel leaves original grants intact; grant pins asset version, target and explicit purpose; new grant is independently readable; grant-records: no document overflow; grant-records: dialog fits viewport; revoked grant remains visible in its own history; revoked: no document overflow; revoked: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "deletion-normal-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/media-lifecycle/report-consolidated.json"
+            ],
+            "notes": "referenced media cannot send deletion; protected-reference: no document overflow; protected-reference: dialog fits viewport; unconfirmed media deletion cannot submit; cancel leaves asset readable; accepted deletion prevents asset reads; accepted: no document overflow; accepted: dialog fits viewport; completion only appears after deleted asset readback; one explicit original version delete; deleted-readback: no document overflow; deleted-readback: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "deletion-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/media-lifecycle/report-consolidated.json"
+            ],
+            "notes": "referenced media cannot send deletion; protected-reference: no document overflow; protected-reference: dialog fits viewport; unconfirmed media deletion cannot submit; cancel leaves asset readable; accepted deletion prevents asset reads; accepted: no document overflow; accepted: dialog fits viewport; retry follows original deletion id; completion only appears after deleted asset readback; one explicit original version delete; deleted-readback: no document overflow; deleted-readback: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "grants-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/media-lifecycle/report-consolidated.json"
+            ],
+            "notes": "missing confirmation and purpose cannot grant; grant-review: no document overflow; grant-review: dialog fits viewport; cancel leaves original grants intact; grant pins asset version, target and explicit purpose; new grant is independently readable; grant-records: no document overflow; grant-records: dialog fits viewport; revoked grant remains visible in its own history; revoked: no document overflow; revoked: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "deletion-normal-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/media-lifecycle/report-consolidated.json"
+            ],
+            "notes": "referenced media cannot send deletion; protected-reference: no document overflow; protected-reference: dialog fits viewport; unconfirmed media deletion cannot submit; cancel leaves asset readable; accepted deletion prevents asset reads; accepted: no document overflow; accepted: dialog fits viewport; completion only appears after deleted asset readback; one explicit original version delete; deleted-readback: no document overflow; deleted-readback: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "deletion-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/media-lifecycle/report-consolidated.json"
+            ],
+            "notes": "referenced media cannot send deletion; protected-reference: no document overflow; protected-reference: dialog fits viewport; unconfirmed media deletion cannot submit; cancel leaves asset readable; accepted deletion prevents asset reads; accepted: no document overflow; accepted: dialog fits viewport; retry follows original deletion id; completion only appears after deleted asset readback; one explicit original version delete; deleted-readback: no document overflow; deleted-readback: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.formal.studio.packs",

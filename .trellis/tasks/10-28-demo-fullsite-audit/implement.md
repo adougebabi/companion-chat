@@ -35,3 +35,24 @@
 
 ## 继续批次：同页创建入口身份
 实际snapshot-completion双视口验证发现，开启新草稿后通过同页resume参数访问原历史，地址已变但CharacterWizardPage未卸载，控制器仍持有新草稿。修改仅限App创建页的React key，按现有path/query绑定入口身份；已有creationRecovery读取独立历史，保留原快照/请求，旧控制器dispose后新入口读取。以生产构建同页resume、原激活只一次和精确世界版本带入验证。不修改创建后端或历史协议。
+
+## 继续批次：取消回执未知的聊天反馈
+stop-failure双视口实测取消POST失败后原消息仍running，但ChatPage用!busy隐藏所有全局错误，chatFailureText同时把明确未知说明泛化为回复失败。仅让等待中的实际错误可见，保留当前控制器给出的取消结果未知原文；不改变canCancel、cancel/send/retry或消息状态。生产改动限ChatPage与chat-feedback，回归r10-active-chat-protocol验证仍保留原turn和只读核对。
+
+## 继续批次：选择框几何与规划JSON校验
+聊天配对图确认局部强制115×30偏离原Demo全局min-height39及自然宽度，修改原replica-chat规则为auto/39后两视口实测90×39。目标规划的本地JSON.parse语法错误被通用errorMessage隐藏为不可操作的重试文案，仅在该表单SyntaxError显示明确格式提示，不改后端/CAS/命令。浏览器验证保留输入、无额外PUT及原策略正常保存读回。
+
+## 继续批次：嵌套折叠容器的控件丢失
+真实浏览器诊断页的嵌套维护Disclosure打开后空白，原内容在portal扫描中丢失。querySelectorAll返回初始候选快照，父Disclosure将子树暂存到detached content后，后续候选已不在root内。仅在DomainPrimitives扫描每个候选前重新确认root.contains，延迟到祖先内容挂回再接入子控件；不改变业务DOM/listener、FormData、确认和权限。新增嵌套原表单/回调/开关保留DOM契约测试，并用实际诊断页及其它保留工具双视口核验。JSDOM旧代码也通过新契约测试，回归复现证据以pass77实际浏览器空内容为准。
+
+## 继续批次：侧栏与装饰插画精确来源
+正常聊天配对确认侧栏角色切换同宽126px但Button500与原Demo Select400字重不同，媒体导航误用Images；修改既有规则及显式图标映射。Scene装饰的杯子/植物受lucide版本路径变化影响，固定原Demo实际SVG为代码内装饰资源（仅WorkspaceMomentArt），普通UI图标仍用正式库；不引入Demo运行数据或更改参考。复拍聊天/此刻与shell角色切换检查。
+
+## 继续批次：组合按钮的共享主题身份
+日程日期原PopoverTrigger使用Button，但data-slot改写为popover-trigger使共享outline主题遗漏，黑框来自真实未覆盖规则。修改workspace-replica主题原4条规则，用低优先级where匹配slot或Button稳定data-size/data-variant的真实button/a；不修改Calendar、事件、输入、状态或触控尺寸。复拍全部正常页与日期/导航原交互。
+
+## 继续批次：窄屏卡片与工具条断点
+shared-pass79人工逐张复核确认人物卡Button冗余22px覆盖原15px，Badge基础10px覆盖移动8px；目标卡缺少Surface18px移动内边距。只改原CSS规则与断点。管理导航900px下改回原单行横向滚动、按钮不缩；通知700px下使用明确三列保留全部筛选/刷新，消除孤立按钮行。验证全部入口仍可滚动点击、桌面不改变、窄屏无裁切，不改读取/写入/业务。
+
+## 继续批次：日记与创作中心窄屏工具条
+日记现有正式收藏过滤挤出独立工具行，Studio刷新/独立查询使标题和目录各下移一行。日记桌面原checkbox保留，小屏通过共享DropdownMenuCheckboxItem操作同一favorite状态，搜索与tabs双列；Studio原refresh和form提交收进同一搜索区，新建仍原dropdown，查询按钮保留“查询”可访问名与原onSubmit。修改DiaryPage/StudioDirectory和局部CSS及具体控件风险回归，不改API和读回。

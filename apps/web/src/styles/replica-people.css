@@ -154,6 +154,10 @@
 .replica-people .companion-relationship-card .info-box {
   text-align: left;
 }
+.replica-people .companion-person-card [data-slot="badge"] {
+  font-size: 10px;
+  font-weight: 400;
+}
 @media (max-width: 1200px) {
   .replica-people .companion-people-grid {
     gap: 14px;
@@ -177,6 +181,10 @@
   }
   .replica-people .companion-person-card h3 {
     font-size: 16px;
+  }
+  .replica-people .companion-person-card [data-slot="badge"] {
+    font-size:8px;
+    padding:3px 5px;
   }
   .replica-people .companion-person-card > p {
     font-size: 10px;
@@ -229,17 +237,13 @@
   gap: 0;
   height: auto;
   white-space: normal;
-  padding: 22px;
   font-weight: 400;
 }
 .replica-people .companion-person-avatar {
   background: #e3e9db;
   flex: none;
 }
-.replica-people .companion-person-card [data-slot="badge"] {
-  font-size: 10px;
-  font-weight: 400;
-}
+
 .replica-people .companion-person-card [data-known="true"] {
   background: #edf4e9;
   color: #62804e;

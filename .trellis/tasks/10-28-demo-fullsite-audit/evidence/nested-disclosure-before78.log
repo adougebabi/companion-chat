@@ -1,0 +1,15 @@
+✔ one application tree ports exact native form values, original listeners and submission while preserving a long focused draft (288.212375ms)
+✔ Collapsible keeps original nested controls and callbacks, reflects controller open state and removes ports on page replacement (173.176917ms)
+✔ nested disclosures retain original form controls when ancestor contents move into a portal (220.267708ms)
+✔ radio selection keeps the original group checked state, change listener and single FormData value (133.63075ms)
+✔ controller redraw resolves the focused carrier and restores the same selection to the new React control (135.018833ms)
+✔ rich disclosure summaries retain structured labels and settings Sheets reopen the same form after Escape (219.032ms)
+✔ datetime fields use one original form value while date and time edits keep the local datetime contract (95.276084ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2875.603208

@@ -1,0 +1,20 @@
+✔ history browsing discards late session reads and closing never selects a conversation (288.111208ms)
+✔ history retries the exact failed search cursor while retaining previous rows and newer unsubmitted query (225.49575ms)
+✔ history directory failure recovers the directory and only explicit resume switches a real session (129.2545ms)
+✔ history cannot search before the initial directory completes and cannot dismiss an in-flight selection (181.096459ms)
+✔ a confirmed selection still reconciles the active Owner and role after its history view unmounts (98.513834ms)
+✔ source messages read the exact original anchor, retry the same read and never resume another conversation (130.343584ms)
+✔ a source outside the first directory page waits for its own role membership and rejects a foreign anchor (96.781917ms)
+✔ React chat opens the selected conversation and retains drafts while rendering original attachments (1936.0515ms)
+✔ React stop button follows cancellation authority and delegates to the original controller (532.514958ms)
+✔ React failed-message retry and status reading preserve the original record identity (468.12275ms)
+✔ an unconfirmed cancellation stays visible while the original turn is still running (459.642958ms)
+✔ React chat renders streaming deltas and replaces them with the committed reply without disturbing the draft (438.675ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4415.363416

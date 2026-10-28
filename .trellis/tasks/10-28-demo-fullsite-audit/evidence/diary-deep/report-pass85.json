@@ -1,0 +1,214 @@
+[
+  {
+    "name": "annotation-search",
+    "size": "desktop",
+    "fid": "diary-pass85-annotation-search-desktop",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "search retains already confirmed diary prose",
+      "cancel sends no annotation",
+      "cancelled note does not reappear",
+      "editing: no horizontal overflow",
+      "annotation saved independently from diary original",
+      "refresh retains saved note",
+      "favorite list reads both actual saved favorites",
+      "saved-favorite: no horizontal overflow",
+      "one explicit annotation write only",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one/annotation",
+        "method": "PUT",
+        "body": {
+          "note": "读完这一天，想把安静的片刻留下。",
+          "favorite": true,
+          "expectedRevision": 0,
+          "idempotencyKey": "28a1d2a1-20aa-43d1-b499-232787deca77"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-desktop-saved-favorite.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "annotation-search",
+    "size": "mobile",
+    "fid": "diary-pass85-annotation-search-mobile",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "search retains already confirmed diary prose",
+      "cancel sends no annotation",
+      "cancelled note does not reappear",
+      "editing: no horizontal overflow",
+      "annotation saved independently from diary original",
+      "refresh retains saved note",
+      "favorite list reads both actual saved favorites",
+      "saved-favorite: no horizontal overflow",
+      "one explicit annotation write only",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one/annotation",
+        "method": "PUT",
+        "body": {
+          "note": "读完这一天，想把安静的片刻留下。",
+          "favorite": true,
+          "expectedRevision": 0,
+          "idempotencyKey": "6ed956b1-33a6-4ab4-931c-55845133cebf"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-pass85-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/pass85-annotation-search-mobile-saved-favorite.png"
+    ],
+    "status": "passed"
+  }
+]

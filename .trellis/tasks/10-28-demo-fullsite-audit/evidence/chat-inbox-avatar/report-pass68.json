@@ -1,0 +1,1370 @@
+[
+  {
+    "name": "history-recovery",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "history-failed: no document overflow",
+      "history-failed: dialog within viewport",
+      "reading history does not select or send",
+      "history-no-match: no document overflow",
+      "history-no-match: dialog within viewport",
+      "only explicit continue selects one original conversation",
+      "continuing history preserves current draft",
+      "continued: no document overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/messages/search",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversations/conversation-fixture/select",
+        "method": "POST",
+        "body": {}
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-history-recovery-desktop-history-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-history-recovery-desktop-history-no-match.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-history-recovery-desktop-continued.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "stop-failure",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/turn/turn-fixture-failed/cancel",
+        "method": "POST",
+        "body": {}
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-stop-failure-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('取消请求结果尚未确认，请刷新进度核对。原消息已保留。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林岚 · 验收样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n1\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n聊天\n快速前往\n⌘ K\nDAILY / A LITTLE CONVERSATION\n从一句话，慢慢走近。\n\n分享今天的小事，也留一点安静相处的时间。\n\n会话历史\n收起此刻\n林岚 · 验收样本\n生活进行中\n· 书籍编辑\n林岚 · 验收样本\n只属于你们的对话\n2026年10月13日\n林岚 · 验收样本\n09:00\n这是一条用于版式验收的示例消息。所有内容均为隔离样本。\n我\n我\n09:00\n请查看回复失败时的反馈。\n林岚 · 验收样本 正在输入\n林岚 · 验收样本还在想…\n查看本次运行\n停止本次生成\nScroll to end\nEnter 发送\nShift + Enter 换行\n回应中\n林岚 · 验收样本的此刻\n实时预览\nA LITTLE MOMENT\n把时间，留给喜欢的事。\n家中\n阅读\n\n平静\n\n今天的穿着\n\n穿着读取未完成，保留上次确认的记录。\n\n实际穿着尚未读到。\n\n去衣柜看看\n接下来的安排\n查看全部\n02:00\n\n自由安排\n\n日程安排\n\n生活在继续，故事也在慢慢生长。\n这里是 林岚 · 验收样本 的小小世界。"
+  },
+  {
+    "name": "avatar-all",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "saved avatar is loaded in /library",
+      "surface--library: no document overflow",
+      "saved avatar is loaded in /c/fluctlight-fixture-one/chat",
+      "assistant messages use same avatar as chat header",
+      "surface--c-fluctlight-fixture-one-chat: no document overflow",
+      "saved avatar is loaded in /c/fluctlight-fixture-one/profile",
+      "surface--c-fluctlight-fixture-one-profile: no document overflow",
+      "saved avatar is loaded in /c/fluctlight-fixture-one/people?tab=relationship",
+      "surface--c-fluctlight-fixture-one-people-tab-relationship: no document overflow",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 2,
+          "reason": "核对同一真实目录头像在各展示位置的来源",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "268c0f16-ae2c-4c79-bed5-566cc325a2be"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-desktop-surface--library.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-desktop-surface--c-fluctlight-fixture-one-chat.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-desktop-surface--c-fluctlight-fixture-one-profile.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-desktop-surface--c-fluctlight-fixture-one-people-tab-relationship.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.feed-author-avatar img[src=\"/api/media/replica-landscape\"]').first() to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林岚 · 验收样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n1\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n页面暂不可用\n快速前往\n⌘ K\n页面暂不可用\n这个页面暂时无法访问\n\n可以返回刚才的页面，或从导航继续浏览。\n\n返回上一页\n打开角色库"
+  },
+  {
+    "name": "history-recovery",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "history-failed: no document overflow",
+      "history-failed: dialog within viewport",
+      "reading history does not select or send",
+      "history-no-match: no document overflow",
+      "history-no-match: dialog within viewport",
+      "only explicit continue selects one original conversation",
+      "continuing history preserves current draft",
+      "continued: no document overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/messages/search",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversations/conversation-fixture/select",
+        "method": "POST",
+        "body": {}
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-history-recovery-mobile-history-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-history-recovery-mobile-history-no-match.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-history-recovery-mobile-continued.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "stop-failure",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/turn/turn-fixture-failed/cancel",
+        "method": "POST",
+        "body": {}
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-stop-failure-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('取消请求结果尚未确认，请刷新进度核对。原消息已保留。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n聊天\n快速前往\nDAILY / A LITTLE CONVERSATION\n从一句话，慢慢走近。\n\n分享今天的小事，也留一点安静相处的时间。\n\n会话历史\n收起此刻\n林岚 · 验收样本\n生活进行中\n· 书籍编辑\n林岚 · 验收样本\n2026年10月13日\n林岚 · 验收样本\n09:00\n这是一条用于版式验收的示例消息。所有内容均为隔离样本。\n我\n我\n09:00\n请查看回复失败时的反馈。\n林岚 · 验收样本 正在输入\n林岚 · 验收样本还在想…\n查看本次运行\n停止本次生成\nScroll to end\nEnter 发送\nShift + Enter 换行\n回应中\n林岚 · 验收样本的此刻\n实时预览\nA LITTLE MOMENT\n把时间，留给喜欢的事。\n家中\n阅读\n\n平静\n\n今天的穿着\n\n穿着读取未完成，保留上次确认的记录。\n\n实际穿着尚未读到。\n\n去衣柜看看\n接下来的安排\n查看全部\n02:00\n\n自由安排\n\n日程安排"
+  },
+  {
+    "name": "avatar-all",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "saved avatar is loaded in /library",
+      "surface--library: no document overflow",
+      "saved avatar is loaded in /c/fluctlight-fixture-one/chat",
+      "assistant messages use same avatar as chat header",
+      "surface--c-fluctlight-fixture-one-chat: no document overflow",
+      "saved avatar is loaded in /c/fluctlight-fixture-one/profile",
+      "surface--c-fluctlight-fixture-one-profile: no document overflow",
+      "saved avatar is loaded in /c/fluctlight-fixture-one/people?tab=relationship",
+      "surface--c-fluctlight-fixture-one-people-tab-relationship: no document overflow",
+      "failure: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 2,
+          "reason": "核对同一真实目录头像在各展示位置的来源",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "d1912db3-5858-48e2-ad59-75ee4376a874"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-mobile-surface--library.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-mobile-surface--c-fluctlight-fixture-one-chat.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-mobile-surface--c-fluctlight-fixture-one-profile.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-mobile-surface--c-fluctlight-fixture-one-people-tab-relationship.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass68-avatar-all-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.feed-author-avatar img[src=\"/api/media/replica-landscape\"]').first() to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n角色库\n页面暂不可用\n快速前往\n页面暂不可用\n这个页面暂时无法访问\n\n可以返回刚才的页面，或从导航继续浏览。\n\n返回上一页\n打开角色库"
+  }
+]

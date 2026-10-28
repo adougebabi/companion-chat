@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   RefreshCw,
   Search,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,15 +65,6 @@ export default function StudioDirectoryView({ model: m }) {
         description="给想象一个落点，再让它进入生活。"
         actions={
           <>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="刷新创作资源"
-              disabled={m.list.busy}
-              onClick={m.list.load}
-            >
-              <RefreshCw size={15} />
-            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button>
@@ -129,6 +121,14 @@ export default function StudioDirectoryView({ model: m }) {
             value={m.search}
             onChange={(event) => m.setSearch(event.target.value)}
           />
+          <div className="r-search-actions">
+            <Button type="button" variant="ghost" size="icon" aria-label="刷新创作资源" disabled={m.list.busy} onClick={m.list.load}>
+              <RefreshCw size={14}/>
+            </Button>
+            <Button variant="ghost" size="icon" type="submit" title="查询创作资源" aria-label="查询">
+              <ChevronRight size={14}/><span className="sr-only">查询</span>
+            </Button>
+          </div>
         </div>
         {!m.fixedKind && (
           <ChoiceSelect
@@ -152,9 +152,6 @@ export default function StudioDirectoryView({ model: m }) {
           />
           已归档
         </label>
-        <Button variant="outline" type="submit">
-          查询
-        </Button>
       </form>
       {(m.legacy || m.legacyError) && (
         <WorkspaceInfo>

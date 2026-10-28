@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuCheckboxItem} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Surface, FieldInput, Textarea, Disclosure, Badge } from "../controls";
 import { useWorkspace } from "../page";
@@ -672,6 +673,18 @@ export default function DiaryPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />{" "}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="日记筛选" className="replica-diary-filter-menu">
+                      <StarIcon size={14} fill={favorite?'currentColor':'none'}/>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuCheckboxItem checked={favorite} onCheckedChange={value=>{pinned.current='';setFavorite(!!value);}}>
+                      只看收藏
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="ghost"
                   size="icon"

@@ -1,0 +1,320 @@
+[
+  {
+    "name": "grants",
+    "size": "desktop",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass73-grants-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '实际引用与删除', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n素材详情\n快速前往\n⌘ K\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n林岚 · 验收样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n全部画面\n全部画面\n图片\n视频\n音频\n查询\n保存的素材 · 画面不改变生活状态\n来源、角色与库中展示\n查看画面\n图片\n已接受的规范参考\n10/28 11:00\n角色生成\n查看画面\n图片\n当前视觉候选\n10/28 11:00\n角色生成\n午后的窗边\n\n保存的画面、实际来源与库中管理\n\n刷新素材\n来源\n我上传的素材\n创建时间\n2026-10-28 11:00 (北京时间)\n类型与大小\n图片 · 10.0 KB\n读取状态\n可读取\n这是保存的素材，不会据此改变角色的穿着、位置或拥有关系。来源快照只使用生成时的实际记录。\n生成时来源与资产校验信息\n编辑库信息\n引用授权与删除管理\n选择为显示头像\n关闭"
+  },
+  {
+    "name": "deletion-normal",
+    "size": "desktop",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass73-deletion-normal-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '实际引用与删除', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n素材详情\n快速前往\n⌘ K\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n林岚 · 验收样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n全部画面\n全部画面\n图片\n视频\n音频\n查询\n保存的素材 · 画面不改变生活状态\n来源、角色与库中展示\n查看画面\n图片\n已接受的规范参考\n10/28 11:00\n角色生成\n查看画面\n图片\n当前视觉候选\n10/28 11:00\n角色生成\n午后的窗边\n\n保存的画面、实际来源与库中管理\n\n刷新素材\n来源\n我上传的素材\n创建时间\n2026-10-28 11:00 (北京时间)\n类型与大小\n图片 · 10.0 KB\n读取状态\n可读取\n这是保存的素材，不会据此改变角色的穿着、位置或拥有关系。来源快照只使用生成时的实际记录。\n生成时来源与资产校验信息\n编辑库信息\n引用授权与删除管理\n选择为显示头像\n关闭"
+  },
+  {
+    "name": "deletion-failure",
+    "size": "desktop",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass73-deletion-failure-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '实际引用与删除', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n素材详情\n快速前往\n⌘ K\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n林岚 · 验收样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n全部画面\n全部画面\n图片\n视频\n音频\n查询\n保存的素材 · 画面不改变生活状态\n来源、角色与库中展示\n查看画面\n图片\n已接受的规范参考\n10/28 11:00\n角色生成\n查看画面\n图片\n当前视觉候选\n10/28 11:00\n角色生成\n午后的窗边\n\n保存的画面、实际来源与库中管理\n\n刷新素材\n来源\n我上传的素材\n创建时间\n2026-10-28 11:00 (北京时间)\n类型与大小\n图片 · 10.0 KB\n读取状态\n可读取\n这是保存的素材，不会据此改变角色的穿着、位置或拥有关系。来源快照只使用生成时的实际记录。\n生成时来源与资产校验信息\n编辑库信息\n引用授权与删除管理\n选择为显示头像\n关闭"
+  },
+  {
+    "name": "grants",
+    "size": "mobile",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass73-grants-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '实际引用与删除', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n素材详情\n快速前往\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n林岚 · 验收样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n全部画面\n全部画面\n图片\n视频\n音频\n查询\n保存的素材 · 画面不改变生活状态\n来源、角色与库中展示\n查看画面\n图片\n已接受的规范参考\n10/28 11:00\n角色生成\n查看画面\n图片\n当前视觉候选\n10/28 11:00\n角色生成\n午后的窗边\n\n保存的画面、实际来源与库中管理\n\n刷新素材\n来源\n我上传的素材\n创建时间\n2026-10-28 11:00 (北京时间)\n类型与大小\n图片 · 10.0 KB\n读取状态\n可读取\n这是保存的素材，不会据此改变角色的穿着、位置或拥有关系。来源快照只使用生成时的实际记录。\n生成时来源与资产校验信息\n编辑库信息\n引用授权与删除管理\n选择为显示头像\n关闭"
+  },
+  {
+    "name": "deletion-normal",
+    "size": "mobile",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass73-deletion-normal-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '实际引用与删除', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n素材详情\n快速前往\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n林岚 · 验收样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n全部画面\n全部画面\n图片\n视频\n音频\n查询\n保存的素材 · 画面不改变生活状态\n来源、角色与库中展示\n查看画面\n图片\n已接受的规范参考\n10/28 11:00\n角色生成\n查看画面\n图片\n当前视觉候选\n10/28 11:00\n角色生成\n午后的窗边\n\n保存的画面、实际来源与库中管理\n\n刷新素材\n来源\n我上传的素材\n创建时间\n2026-10-28 11:00 (北京时间)\n类型与大小\n图片 · 10.0 KB\n读取状态\n可读取\n这是保存的素材，不会据此改变角色的穿着、位置或拥有关系。来源快照只使用生成时的实际记录。\n生成时来源与资产校验信息\n编辑库信息\n引用授权与删除管理\n选择为显示头像\n关闭"
+  },
+  {
+    "name": "deletion-failure",
+    "size": "mobile",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "failure: no document overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass73-deletion-failure-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '实际引用与删除', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n素材详情\n快速前往\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n林岚 · 验收样本的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n2\n视觉身份\n生成画面\n显示头像\n全部画面\n全部画面\n图片\n视频\n音频\n查询\n保存的素材 · 画面不改变生活状态\n来源、角色与库中展示\n查看画面\n图片\n已接受的规范参考\n10/28 11:00\n角色生成\n查看画面\n图片\n当前视觉候选\n10/28 11:00\n角色生成\n午后的窗边\n\n保存的画面、实际来源与库中管理\n\n刷新素材\n来源\n我上传的素材\n创建时间\n2026-10-28 11:00 (北京时间)\n类型与大小\n图片 · 10.0 KB\n读取状态\n可读取\n这是保存的素材，不会据此改变角色的穿着、位置或拥有关系。来源快照只使用生成时的实际记录。\n生成时来源与资产校验信息\n编辑库信息\n引用授权与删除管理\n选择为显示头像\n关闭"
+  }
+]

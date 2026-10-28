@@ -1,0 +1,100 @@
+[
+  {
+    "name": "studio",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "new resource remains alongside heading",
+      "original create menu retains all resource types",
+      "search-and-create-menu: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass85-studio-desktop-search-and-create-menu.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "new resource remains alongside heading",
+      "original create menu retains all resource types",
+      "search-and-create-menu: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass85-studio-mobile-search-and-create-menu.png"
+    ],
+    "status": "passed"
+  }
+]

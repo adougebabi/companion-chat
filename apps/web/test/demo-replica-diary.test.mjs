@@ -247,6 +247,15 @@ test("changing favorite keeps both previously loaded directory caches consistent
     await v.dispose();
   }
 });
+test('compact diary filter uses the same favorite reader and preserves the search draft',async()=>{
+ const w=workspace(),v=await mount(w);try{
+  const field=v.host.querySelector('[aria-label="搜索日记"]');await v.input(field,'未提交的阅读条件');
+  await act(async()=>v.host.querySelector('[aria-label="日记筛选"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await v.flush();
+  const item=document.querySelector('[role=menuitemcheckbox]');assert.ok(item);assert.equal(item.getAttribute('aria-checked'),'false');await v.click(item);await v.flush();
+  assert.equal(v.host.querySelector('.replica-diary-options [role=checkbox]').getAttribute('aria-checked'),'true');assert.equal(field.value,'未提交的阅读条件');assert.ok(w.calls.some(c=>c[0]==='list'&&c[3]?.favorite===true));
+  await act(async()=>v.host.querySelector('[aria-label="日记筛选"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=menuitemcheckbox]').getAttribute('aria-checked'),'true');await v.click(document.querySelector('[role=menuitemcheckbox]'));assert.equal(v.host.querySelector('.replica-diary-options [role=checkbox]').getAttribute('aria-checked'),'false');
+ }finally{await v.dispose();}
+});
 test("annotation conflict requires explicit latest baseline review while preserving draft and a new reviewed key", async () => {
   const w = workspace(),
     write = w.client.annotateDiary;

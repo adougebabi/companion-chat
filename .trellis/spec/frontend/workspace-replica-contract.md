@@ -1032,3 +1032,28 @@ releases the prior controller and reads the correct archived creation. The exist
 Owner-scoped archive and original activation remain authoritative; changing the
 URL must never replay activation or erase the separate current draft.
 Browser regression: creation-supplement snapshot-completion desktop/mobile.
+
+## Retained nested controls and responsive tools
+
+DomainPrimitives checks root.contains(source) for each static scan candidate.
+An ancestor Disclosure temporarily moves original children out of root; admit
+its nested candidates only after the portal content is mounted back. This keeps
+the original form and listeners; JSDOM contract checks alone do not reproduce
+the browser scheduling defect, so verify the real diagnostic maintenance region.
+
+A failed cancellation can leave the turn running. Keep its explicit unknown
+result visible during waiting, and keep recovery a read of the original turn.
+Do not infer that a failed cancel or a reread has cancelled the server task.
+
+Button theme matching accepts actual button/a elements with the Button size and
+variant markers as well as its original data-slot. Radix composed triggers may
+overwrite that slot; keep theme specificity low so page geometry remains owned
+by its named classes. Preserve mobile card breakpoints after semantic primitive
+styles, secondary navigation as one horizontal scroll row and compact toolbars.
+Moved refresh buttons inside forms must explicitly type=button, retaining newer
+unsubmitted search input. The narrow diary filter operates the same favorite
+state and reader as the desktop checkbox; it does not create another cache.
+
+Demo test-art extraction keeps the original decorative paths and MediaImage/Art
+wrapper. Raw wardrobe SVG and the media outfit branch are different resources.
+Such fixture corrections do not alter reference images or production media.

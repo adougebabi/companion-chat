@@ -953,8 +953,13 @@
   pointer-events: none;
 }
 .replica-studio .r-search input {
-  padding-left: 34px;
+  padding-left:34px;
+  padding-right:66px;
 }
+.replica-studio .r-search-actions{position:absolute;right:3px;top:3px;display:flex;gap:0}
+.replica-studio .r-search-actions button{width:28px;height:32px;min-height:32px;padding:0}
+@media(max-width:700px){.replica-studio .r-toolbar>.r-search{width:100%;max-width:none;flex-basis:100%}.replica-studio .r-toolbar>[role=combobox]{flex:1;min-width:0}.replica-studio .r-search-actions{top:6px}}
+
 .replica-studio .r-toolbar {
   margin-bottom: 21px;
 }

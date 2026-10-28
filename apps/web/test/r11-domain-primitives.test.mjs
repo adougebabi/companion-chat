@@ -30,6 +30,15 @@ test('Collapsible keeps original nested controls and callbacks, reflects control
   await act(async()=>{root.innerHTML='<p>新页面</p>';});await view.flush();assert.equal(root.querySelectorAll('[data-domain-react-control]').length,0);assert.equal(root.textContent,'新页面');
  }finally{await view.dispose();}
 });
+test('nested disclosures retain original form controls when ancestor contents move into a portal',async()=>{
+ let form,inner,actions=0,submitted;const html='<details data-domain-ui="disclosure" open><summary>筛选记录</summary><form>'+Field({label:'搜索内容',name:'query',value:'保留的条件'})+'<details data-domain-ui="disclosure"><summary>查询说明与维护</summary><p>原维护说明</p>'+Field({label:'维护原因',name:'reason',value:'原原因'})+'<button data-domain-ui="button" type="submit" data-maintain>执行维护</button></details></form></details>';
+ const v=await mountReact(vite,Harness,{props:{html,prepare:root=>{form=root.querySelector('form');inner=root.querySelector('details details');root.querySelector('[data-maintain]').onclick=()=>actions++;form.onsubmit=e=>{e.preventDefault();submitted=[...new window.FormData(form)];};}}});
+ try{
+  const trigger=()=>visible(v.host,'button').find(node=>node.textContent==='查询说明与维护');assert.ok(trigger());await v.click(trigger());assert.equal(inner.open,true);assert.match(v.host.textContent,/原维护说明/);
+  const field=visible(v.host,'input').find(node=>node.getAttribute('aria-label')==='维护原因');assert.ok(field);await v.input(field,'新的维护原因');const action=visible(v.host,'button').find(node=>node.textContent==='执行维护');assert.ok(action);await v.click(action);assert.equal(actions,1);assert.deepEqual(submitted,[['query','保留的条件'],['reason','新的维护原因']]);
+  await v.click(trigger());await v.click(trigger());assert.equal(visible(v.host,'button').filter(node=>node.textContent==='执行维护').length,1);assert.equal(form.elements.reason.value,'新的维护原因');
+ }finally{await v.dispose();}
+});
 test('radio selection keeps the original group checked state, change listener and single FormData value',async()=>{
  let form,point;const html='<form><label><input data-domain-ui="field" name="point" value="1" type="radio">第一个检查点</label><label><input data-domain-ui="field" name="point" value="2" type="radio">第二个检查点</label></form>';
  const view=await mountReact(vite,Harness,{props:{html,prepare:node=>{form=node.querySelector('form');form.querySelectorAll('input').forEach(input=>input.onchange=()=>point=input.value);}}});

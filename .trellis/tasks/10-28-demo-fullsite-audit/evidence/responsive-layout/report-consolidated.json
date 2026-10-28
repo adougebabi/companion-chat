@@ -1,0 +1,903 @@
+[
+  {
+    "name": "management",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "last horizontal navigation section remains reachable",
+      "last-section: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-management-desktop-last-section.png"
+    ],
+    "geometry": {
+      "width": 180,
+      "scrollWidth": 180,
+      "rows": [
+        212.828125,
+        261.828125,
+        310.828125,
+        359.828125,
+        408.828125,
+        457.828125,
+        506.828125,
+        555.828125
+      ]
+    },
+    "status": "passed"
+  },
+  {
+    "name": "inbox",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "notification refresh stays on the selector row",
+      "filtered-and-refreshed: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-inbox-desktop-filtered-and-refreshed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diary",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "favorite selection preserves search input",
+      "compact-filter: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary/d1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary/d1/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary/d1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-diary-desktop-compact-filter.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "new resource remains alongside heading",
+      "refresh preserves draft without applying a new search",
+      "original create menu retains all resource types",
+      "search-and-create-menu: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass86-studio-desktop-search-and-create-menu.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "people",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "person card uses original responsive padding",
+      "person-detail: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/npcs/chen",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/npcs/chen/encounters",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-people-desktop-person-detail.png"
+    ],
+    "geometry": {
+      "padding": "22px",
+      "badge": "10px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "goals",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "goal card uses original responsive padding",
+      "goal-detail: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals/g1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals/g1/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals/g1/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-goals-desktop-goal-detail.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "calendar",
+    "size": "desktop",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "composed date button retains shared outline theme",
+      "calendar-open: no document overflow",
+      "calendar returns focus to its original control",
+      "date navigation still reads exact selected day",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-calendar-desktop-calendar-open.png"
+    ],
+    "geometry": {
+      "border": "rgb(220, 228, 212)",
+      "background": "rgb(255, 255, 255)",
+      "height": 36
+    },
+    "status": "passed"
+  },
+  {
+    "name": "management",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "mobile secondary navigation stays on one scrollable row",
+      "last horizontal navigation section remains reachable",
+      "last-section: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-management-mobile-last-section.png"
+    ],
+    "geometry": {
+      "width": 356,
+      "scrollWidth": 905,
+      "rows": [
+        189.640625,
+        189.640625,
+        189.640625,
+        189.640625,
+        189.640625,
+        189.640625,
+        189.640625,
+        189.640625
+      ]
+    },
+    "status": "passed"
+  },
+  {
+    "name": "inbox",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "notification refresh stays on the selector row",
+      "filtered-and-refreshed: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-inbox-mobile-filtered-and-refreshed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diary",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "diary search and reading tabs share one row",
+      "compact menu reflects actual favorite state",
+      "favorite selection preserves search input",
+      "compact-filter: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary/d1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary/d1/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary/d1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-diary-mobile-compact-filter.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "new resource remains alongside heading",
+      "refresh preserves draft without applying a new search",
+      "original create menu retains all resource types",
+      "search-and-create-menu: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass86-studio-mobile-search-and-create-menu.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "people",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "person card uses original responsive padding",
+      "person card uses original compact badge size",
+      "person-detail: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/npcs/chen",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/npcs/chen/encounters",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-people-mobile-person-detail.png"
+    ],
+    "geometry": {
+      "padding": "15px",
+      "badge": "8px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "goals",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "goal card uses original responsive padding",
+      "goal-detail: no document overflow",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals/g1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals/g1/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals/g1/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-goals-mobile-goal-detail.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "calendar",
+    "size": "mobile",
+    "kind": "production dist / same-content controlled HTTP, responsive geometry and original UI interactions only",
+    "checks": [
+      "composed date button retains shared outline theme",
+      "date control retains narrow touch size",
+      "calendar-open: no document overflow",
+      "calendar returns focus to its original control",
+      "date navigation still reads exact selected day",
+      "no business mutation during layout checks",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/owner-requests",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/responsive-layout/pass84-calendar-mobile-calendar-open.png"
+    ],
+    "geometry": {
+      "border": "rgb(220, 228, 212)",
+      "background": "rgb(255, 255, 255)",
+      "height": 44
+    },
+    "status": "passed"
+  }
+]

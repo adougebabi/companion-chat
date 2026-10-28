@@ -1,0 +1,1320 @@
+[
+  {
+    "name": "grants",
+    "size": "desktop",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "missing confirmation and purpose cannot grant",
+      "grant-review: no document overflow",
+      "grant-review: dialog fits viewport",
+      "cancel leaves original grants intact",
+      "grant pins asset version, target and explicit purpose",
+      "new grant is independently readable",
+      "grant-records: no document overflow",
+      "grant-records: dialog fits viewport",
+      "revoked grant remains visible in its own history",
+      "revoked: no document overflow",
+      "revoked: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "POST",
+        "body": {
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "targetScope": "fluctlight",
+          "targetId": "fluctlight-fixture-one",
+          "purpose": "object",
+          "confirm": true,
+          "reason": "明确只为当前角色授权物品画面参考，不声明身份",
+          "idempotencyKey": "4eb5d692-02a1-4342-a45d-8d8335c4bcd4"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13/uses",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "已完成本次受控授权核查",
+          "idempotencyKey": "9ff9e7b3-1bc4-4fbb-bf67-4d088bd19f10"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-grants-desktop-grant-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-grants-desktop-grant-records.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-grants-desktop-revoked.png"
+    ],
+    "initialAssetRevision": 3,
+    "status": "passed"
+  },
+  {
+    "name": "deletion-normal",
+    "size": "desktop",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "referenced media cannot send deletion",
+      "protected-reference: no document overflow",
+      "protected-reference: dialog fits viewport",
+      "unconfirmed media deletion cannot submit",
+      "cancel leaves asset readable",
+      "accepted deletion prevents asset reads",
+      "accepted: no document overflow",
+      "accepted: dialog fits viewport",
+      "completion only appears after deleted asset readback",
+      "one explicit original version delete",
+      "deleted-readback: no document overflow",
+      "deleted-readback: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "隔离UI验收：明确撤销这份原参考授权",
+          "idempotencyKey": "d1495918-c649-460c-a2e5-b3207e3cdc60"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-12/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "隔离UI验收：明确撤销这份原参考授权",
+          "idempotencyKey": "a999c3fd-2d8e-4f15-b006-49a262e4db65"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "DELETE",
+        "body": {
+          "expectedAssetRevision": 3,
+          "confirm": true,
+          "reason": "隔离样本：核对指定版本受理与实际状态分离",
+          "idempotencyKey": "663b9dc4-9864-49a1-92e2-2b4bb82f2863"
+        }
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-normal-desktop-protected-reference.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-normal-desktop-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-normal-desktop-deleted-readback.png"
+    ],
+    "initialAssetRevision": 3,
+    "status": "passed"
+  },
+  {
+    "name": "deletion-failure",
+    "size": "desktop",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "referenced media cannot send deletion",
+      "protected-reference: no document overflow",
+      "protected-reference: dialog fits viewport",
+      "unconfirmed media deletion cannot submit",
+      "cancel leaves asset readable",
+      "accepted deletion prevents asset reads",
+      "accepted: no document overflow",
+      "accepted: dialog fits viewport",
+      "retry follows original deletion id",
+      "completion only appears after deleted asset readback",
+      "one explicit original version delete",
+      "deleted-readback: no document overflow",
+      "deleted-readback: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "隔离UI验收：明确撤销这份原参考授权",
+          "idempotencyKey": "db514a30-d8a0-46b3-afc7-293c77c2d491"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "DELETE",
+        "body": {
+          "expectedAssetRevision": 3,
+          "confirm": true,
+          "reason": "隔离样本：核对指定版本受理与实际状态分离",
+          "idempotencyKey": "e4908146-ea95-430e-a498-e63e70358765"
+        }
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "明确重试失败的原删除，保留原对象版本",
+          "idempotencyKey": "270304da-c1e3-44ec-bf4b-8ca0be56b18d"
+        }
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-failure-desktop-protected-reference.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-failure-desktop-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-failure-desktop-deleted-readback.png"
+    ],
+    "initialAssetRevision": 3,
+    "status": "passed"
+  },
+  {
+    "name": "grants",
+    "size": "mobile",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "missing confirmation and purpose cannot grant",
+      "grant-review: no document overflow",
+      "grant-review: dialog fits viewport",
+      "cancel leaves original grants intact",
+      "grant pins asset version, target and explicit purpose",
+      "new grant is independently readable",
+      "grant-records: no document overflow",
+      "grant-records: dialog fits viewport",
+      "revoked grant remains visible in its own history",
+      "revoked: no document overflow",
+      "revoked: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "POST",
+        "body": {
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "targetScope": "fluctlight",
+          "targetId": "fluctlight-fixture-one",
+          "purpose": "object",
+          "confirm": true,
+          "reason": "明确只为当前角色授权物品画面参考，不声明身份",
+          "idempotencyKey": "4e347b78-bf57-4584-84e2-bc0cf4b6387f"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13/uses",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "已完成本次受控授权核查",
+          "idempotencyKey": "592782d8-252a-44d3-a1ec-2f225921893b"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-grants-mobile-grant-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-grants-mobile-grant-records.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-grants-mobile-revoked.png"
+    ],
+    "initialAssetRevision": 3,
+    "status": "passed"
+  },
+  {
+    "name": "deletion-normal",
+    "size": "mobile",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "referenced media cannot send deletion",
+      "protected-reference: no document overflow",
+      "protected-reference: dialog fits viewport",
+      "unconfirmed media deletion cannot submit",
+      "cancel leaves asset readable",
+      "accepted deletion prevents asset reads",
+      "accepted: no document overflow",
+      "accepted: dialog fits viewport",
+      "completion only appears after deleted asset readback",
+      "one explicit original version delete",
+      "deleted-readback: no document overflow",
+      "deleted-readback: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "隔离UI验收：明确撤销这份原参考授权",
+          "idempotencyKey": "1e228979-13d5-4f4d-b98f-2515cd1b6ab0"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-12/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "隔离UI验收：明确撤销这份原参考授权",
+          "idempotencyKey": "5eecc7e5-9c0e-4a63-9f04-c92211cc81d8"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "DELETE",
+        "body": {
+          "expectedAssetRevision": 3,
+          "confirm": true,
+          "reason": "隔离样本：核对指定版本受理与实际状态分离",
+          "idempotencyKey": "274bf344-df80-4789-b4c6-940e5dff773a"
+        }
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-normal-mobile-protected-reference.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-normal-mobile-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-normal-mobile-deleted-readback.png"
+    ],
+    "initialAssetRevision": 3,
+    "status": "passed"
+  },
+  {
+    "name": "deletion-failure",
+    "size": "mobile",
+    "kind": "production dist / isolated controlled media lifecycle; synthetic PNG metadata, no actual object storage deletion",
+    "checks": [
+      "referenced media cannot send deletion",
+      "protected-reference: no document overflow",
+      "protected-reference: dialog fits viewport",
+      "unconfirmed media deletion cannot submit",
+      "cancel leaves asset readable",
+      "accepted deletion prevents asset reads",
+      "accepted: no document overflow",
+      "accepted: dialog fits viewport",
+      "retry follows original deletion id",
+      "completion only appears after deleted asset readback",
+      "one explicit original version delete",
+      "deleted-readback: no document overflow",
+      "deleted-readback: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11/revoke",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "隔离UI验收：明确撤销这份原参考授权",
+          "idempotencyKey": "a0d9cc8c-3c02-4050-92d0-be54d493c080"
+        }
+      },
+      {
+        "path": "/api/media-reference-grants/grant-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "DELETE",
+        "body": {
+          "expectedAssetRevision": 3,
+          "confirm": true,
+          "reason": "隔离样本：核对指定版本受理与实际状态分离",
+          "idempotencyKey": "8629c522-d496-4799-a05f-07f56704a65a"
+        }
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "明确重试失败的原删除，保留原对象版本",
+          "idempotencyKey": "f29735ec-660b-4802-afa5-f8e2ddf24992"
+        }
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape/references",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-deletions/deletion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-failure-mobile-protected-reference.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-failure-mobile-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-lifecycle/pass75-deletion-failure-mobile-deleted-readback.png"
+    ],
+    "initialAssetRevision": 3,
+    "status": "passed"
+  }
+]

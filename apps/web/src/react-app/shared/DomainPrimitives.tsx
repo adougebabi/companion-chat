@@ -148,6 +148,9 @@ export default function DomainPrimitives({root}:{root:HTMLElement|null}){
    scheduled=false;if(!active)return;let changed=false;
    for(const [node,port] of known)if(!root!.contains(node)){port.dispose();known.delete(node);changed=true;}
    for(const source of root!.querySelectorAll<HTMLElement>('[data-domain-ui]')){
+    // Ancestor disclosures move their original children into detached content.
+    // Admit descendants only after that content has mounted back under root.
+    if(!root!.contains(source))continue;
     if(known.has(source)||source.matches('input[type="hidden"]')||source.parentElement?.closest('[data-domain-ui="tabs"],[data-domain-ui="calendar"],[data-domain-ui="toggle-group"],[data-domain-ui="pagination"]')||source.closest('[data-domain-react-control="field"],[data-domain-react-control="button"],[data-domain-react-control="badge"],[data-domain-react-control="tabs"],[data-domain-react-control="calendar"],[data-domain-react-control="toggle-group"],[data-domain-react-control="pagination"],[data-domain-react-control="avatar"]'))continue;
     const kind=source.dataset.domainUi!;
     if(!['field','button','disclosure','badge','tabs','calendar','progress','skeleton','avatar','toggle-group','pagination',...presentationKinds].includes(kind))continue;

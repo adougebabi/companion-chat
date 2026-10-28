@@ -129,6 +129,11 @@ test("Studio directory reads nine actual resource types, searches and keeps arch
     );
     await f.v.click(button(f.v.host, "查询"));
     assert.equal(f.v.host.querySelectorAll(".r-resource-card").length, 1);
+    await f.v.input(f.v.host.querySelector('[aria-label="搜索资源名称"]'), '尚未提交的新查询');
+    await f.v.click(f.v.host.querySelector('[aria-label="刷新创作资源"]'));
+    assert.equal(f.v.host.querySelector('[aria-label="搜索资源名称"]').value, '尚未提交的新查询');
+    assert.equal(f.v.host.querySelectorAll('.r-resource-card').length, 1);
+    assert.match(f.v.host.querySelector('.r-resource-card').textContent, /晨雾小镇/);
     await f.v.click(f.v.host.querySelector('[aria-label="打开资源 晨雾小镇"]'));
     assert.deepEqual(f.moves, ["/studio/edit/studio-world"]);
     assert.equal(f.writes().length, 0);

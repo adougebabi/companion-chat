@@ -127,3 +127,12 @@ coverage.json的state_verification记录具体执行，行级状态未因单一�
 - F43创建同页resume在URL改变后仍持有新草稿，pass65两视口复现；App按path/query重建控制器，pass66两视口恢复原历史且激活仅一次。
 - 创建补验report-consolidated共16场景通过：精确/错误世界版本、结构编辑类型校验和扩展保留、世界源冲突重审、创建快照导出与完成导航、拒绝副本再分析、Studio世界和人物模板精确发布版本带入。只证明受控HTTP UI，不证明真实模型/激活。
 - pass66 Web646/646、0skip，类型检查/构建及374模块生产守卫通过。没有改Demo或后端。任务仍in_progress；视觉逐张完验和剩余深层入口继续。
+
+## 2026-10-29 本地检查点前 F44–F53
+- 新前端修复：取消失败反馈、聊天选择框、规划JSON校验、嵌套Disclosure内容丢失、侧栏字重/媒体图标、原装饰路径、组合按钮主题、人物/目标移动padding、管理导航/通知工具条、日记收藏菜单与Studio搜索工具。无后端/LLM策略变更。
+- 新增实际浏览器：chat-inbox-avatar16、retained-tools18、media-lifecycle6、formal-edges8；随后responsive-layout14、Admin18复验、Diary批注收藏2复验全部通过。证据各目录report-consolidated。
+- 177行中174行现在有具体浏览器状态证据，3行纯Demo说明/模拟/重置明确不适用。这不是完成率；整行未验状态和视觉差异仍保留。
+- final-pass85拍了16页×双视口32组，全部标题坐标一致、无未捕获异常；media-pass87替代媒体图（测试素材补齐原MediaImage/Art，原Demo不变）。截图仍需按可见差异继续收敛，不以捕获数宣称完成。
+- 最新Web649/649、0skip，typecheck87、build86及374模块生产守卫通过。Demo48与旧10-22无关108文件hash保持。
+- 正在使用4381夹具session4785（原样重载，仅测试素材），真实后端18480保持，不重启Core/Worker/PG；前端即将同步dist86并只读核验。
+- 仍应继续的视觉细节：通知图标/来源状态、Studio已发布徽标色彩/自然高度、侧栏长角色职业的省略与完整可读、媒体/日记/记忆等正式DTO语义差异和额外入口的密度；需要逐项区分正式契约与可修展示。业务边界统一写入business-verification.md，不扩展后端回归。

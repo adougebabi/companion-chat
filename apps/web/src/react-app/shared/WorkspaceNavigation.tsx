@@ -1,6 +1,6 @@
 import type {LucideIcon} from 'lucide-react';
 import {useEffect,useRef,type ReactNode} from 'react';
-import {BellIcon,BookOpenIcon,BrainIcon,CalendarDaysIcon,ChevronDownIcon,EarthIcon,HeartIcon,ImagesIcon,LeafIcon,LibraryIcon,MessageCircleIcon,Settings2Icon,ShirtIcon,SproutIcon,TargetIcon,UsersIcon,WandSparklesIcon,XIcon} from 'lucide-react';
+import {BellIcon,BookOpenIcon,BrainIcon,CalendarDaysIcon,ChevronDownIcon,EarthIcon,HeartIcon,ImageIcon,LeafIcon,LibraryIcon,MessageCircleIcon,Settings2Icon,ShirtIcon,SproutIcon,TargetIcon,UsersIcon,WandSparklesIcon,XIcon} from 'lucide-react';
 import {SidebarHeader,SidebarContent,SidebarFooter,SidebarGroup,SidebarGroupLabel,SidebarGroupContent,SidebarMenu,SidebarMenuItem,SidebarMenuButton,useSidebar} from '@/components/ui/sidebar';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
 import {TooltipProvider} from '@/components/ui/tooltip';
@@ -10,7 +10,7 @@ import {StoryMark} from './WorkspaceArtwork';
 
 export const workspaceNavigationGroups:readonly {label:string;items:readonly (readonly [string,string,LucideIcon])[]}[]=[
  {label:'日常相处',items:[['聊天','聊天',MessageCircleIcon],['此刻','此刻',SproutIcon],['日程','日程',CalendarDaysIcon],['目标','目标',TargetIcon],['衣柜','衣柜',ShirtIcon],['日记','日记',BookOpenIcon],['记忆','记忆',BrainIcon],['角色详情','角色档案',HeartIcon]]},
- {label:'世界与联系',items:[['世界','世界',EarthIcon],['动态','动态',LeafIcon],['人物关系','人物关系',UsersIcon],['媒体','媒体',ImagesIcon]]},
+ {label:'世界与联系',items:[['世界','世界',EarthIcon],['动态','动态',LeafIcon],['人物关系','人物关系',UsersIcon],['媒体','媒体',ImageIcon]]},
  {label:'创作与管理',items:[['角色库','角色库',LibraryIcon],['创作中心','创作中心',WandSparklesIcon],['通知与待处理','通知与待处理',BellIcon],['管理中心','管理中心',Settings2Icon]]},
 ] as const;
 export const workspacePageLabel=(page:string)=>page==='角色详情'?'角色档案':page==='初始化角色'?'新的相识':page;

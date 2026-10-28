@@ -4,11 +4,11 @@
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :is(button,input,textarea,select) { font-family:inherit;line-height:1.5; }
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :is(input,textarea,select,[data-slot="select-trigger"]) { font-weight:400; }
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) ::selection { background:#dce8da; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"] { font-size:12px;font-weight:500;border-radius:7px;gap:7px; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"] svg { width:15px;height:15px; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :where([data-slot="button"],button[data-size][data-variant],a[data-size][data-variant]) { font-size:12px;font-weight:500;border-radius:7px;gap:7px; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :where([data-slot="button"],button[data-size][data-variant],a[data-size][data-variant]) svg { width:15px;height:15px; }
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="badge"] { font-size:10px;font-weight:500;border-radius:5px; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"][data-variant="outline"] { border-color:#dce4d4;background:white;box-shadow:none;color:#697d5c; }
-:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) [data-slot="button"][data-variant="outline"]:hover { background:#f0f5e9;border-color:#b6c9a6; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :where([data-slot="button"],button[data-size][data-variant],a[data-size][data-variant])[data-variant="outline"] { border-color:#dce4d4;background:white;box-shadow:none;color:#697d5c; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog,.replica-overlay) :where([data-slot="button"],button[data-size][data-variant],a[data-size][data-variant])[data-variant="outline"]:hover { background:#f0f5e9;border-color:#b6c9a6; }
 .replica-workspace :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]),.replica-overlay :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]) { font-size:13px;background:white;border-color:#dfe5db;border-radius:7px;box-shadow:none; }
 .replica-workspace :is([data-slot="input"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="select-trigger"]),.replica-overlay :is([data-slot="input"],[data-slot="select-trigger"]) { min-height:39px; }
 :where(.replica-workspace,.replica-dialog,.replica-overlay) [data-slot="card"] { border:1px solid #e2e7de;border-radius:12px;box-shadow:none;line-height:1.5; }
@@ -27,7 +27,7 @@
 .replica-workspace-switch > .avatar { width:34px;height:34px;flex-shrink:0;font-size:13px; }
 .replica-workspace-switch > div { flex:1; min-width:0; }
 .replica-workspace-switch small { display:block;font-size:9px;letter-spacing:.5px;color:#87917f;margin-bottom:1px; }
-.replica-character-switch { width:100%;min-height:24px;height:auto;font-size:12px;padding:0;justify-content:space-between;white-space:normal;text-align:left; }
+.replica-character-switch { width:100%;min-height:24px;height:auto;font-size:12px;font-weight:400;padding:0;justify-content:space-between;white-space:normal;text-align:left; }
 .replica-character-switch > span { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .replica-nav-content { gap:0;padding:0 12px 18px;scrollbar-width:thin;scrollbar-color:#dce3d3 transparent; }
 .replica-nav-section { padding:0;margin-bottom:19px; }
