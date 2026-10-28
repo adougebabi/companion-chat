@@ -60,7 +60,7 @@ test('actual wear survives incomplete reads, uses its own description and keeps 
   assert.equal(workspace.command('换装','wear-outfit:one',{outfitId:'one'},submit),uncertain);
   assert.equal(submissions,1);
   workspace.state.outfitTab='方案库';
-  html=await render(WardrobePage);assert.match(html,/<button[^>]*disabled[^>]*>请苏晚换上<\/button>/);assert.match(html,/恢复查询原请求/);
+  html=await render(WardrobePage);assert.match(html,/<button[^>]*aria-label="请苏晚换上「短靴搭配」"[^>]*disabled[^>]*>请换上这套<\/button>/);assert.match(html,/恢复查询原请求/);
 
   // Reload from an old checkpoint without operation, then discover it from the real request payload.
   workspace.dispose();
@@ -70,7 +70,7 @@ test('actual wear survives incomplete reads, uses its own description and keeps 
   workspace.state.outfitTab='方案库';await workspace.load('衣柜');
   const restored=workspace.state.operations.find(row=>row.requestId==='uncertain-request');
   assert.ok(restored?.requestUnresolved);
-  html=await render(WardrobePage);assert.match(html,/<button[^>]*disabled[^>]*>请苏晚换上<\/button>/);assert.match(html,/恢复查询原请求/);
+  html=await render(WardrobePage);assert.match(html,/<button[^>]*aria-label="请苏晚换上「短靴搭配」"[^>]*disabled[^>]*>请换上这套<\/button>/);assert.match(html,/恢复查询原请求/);
   requestReadError=false;
   receipt={id:'uncertain-request',kind:'inventory_outfit',payload:{outfit_id:'one'},status:'completed',result:{mutation_committed:true}};
   wearing={revision:5};

@@ -37,5 +37,5 @@ test('diagnostic records use real table cells with separate actions rather than 
 test('malformed Studio world structure stays editable as complete JSON instead of crashing or overwriting its data',async()=>{
  const {default:Definition}=await vite.ssrLoadModule('/src/react-app/shared/StudioDefinitionForm.tsx');const original={schema:'world-definition.v1',background:'原背景',framework:{venues:[null]}};let changed;
  const v=await mountReact(vite,Definition,{props:{kind:'world',value:original,onChange:value=>changed=value}});
- try{assert.match(v.host.querySelector('[role=alert]').textContent,/完整 JSON/);const add=[...v.host.querySelectorAll('button')].find(node=>node.textContent==='添加场地分类');assert.equal(add.disabled,true);assert.deepEqual(original.framework.venues,[null]);assert.equal(changed,undefined);}finally{await v.dispose();}
+ try{assert.match(v.host.querySelector('[role=alert]').textContent,/完整 JSON/);await v.click([...v.host.querySelectorAll('button')].find(node=>node.textContent.includes('场地与具体地点')));const add=[...v.host.querySelectorAll('button')].find(node=>node.textContent==='添加场地分类');assert.equal(add.disabled,true);assert.deepEqual(original.framework.venues,[null]);assert.equal(changed,undefined);}finally{await v.dispose();}
 });

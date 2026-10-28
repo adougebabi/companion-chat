@@ -1,0 +1,654 @@
+/* Supplied Demo wardrobe presentation. Category sketches are decorative. */
+.replica-wardrobe [data-slot="card"].r-wearing-strip {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  background: #f0f4e9;
+  margin-bottom: 27px;
+}
+.replica-wardrobe [data-slot="card"].r-wearing-strip > div:nth-child(2) {
+  flex: 1;
+}
+.replica-wardrobe [data-slot="card"].r-wearing-strip h3 {
+  font-size: 14px;
+  margin: 3px 0 7px;
+}
+.replica-wardrobe [data-slot="card"].r-wearing-strip p {
+  font-size: 11px;
+  color: #899c75;
+  line-height: 1.85;
+}
+.replica-wardrobe .r-wearing-icon {
+  width: 55px;
+  height: 61px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #839c6c;
+  background: #e4ecd8;
+}
+.replica-wardrobe .r-garment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+.replica-wardrobe [data-slot="card"].r-garment-card {
+  padding: 0;
+  overflow: hidden;
+  transition: 0.2s;
+}
+.replica-wardrobe [data-slot="card"].r-garment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 23px #28351f09;
+}
+.replica-wardrobe .r-garment-image {
+  display: block;
+  height: 185px;
+  width: 100%;
+  background: #f0f3e9;
+  position: relative;
+}
+.replica-wardrobe .r-garment-image .r-garment-svg {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+}
+.replica-wardrobe [data-slot="card"].r-garment-card .r-card-body {
+  padding: 14px 17px 17px;
+}
+.replica-wardrobe [data-slot="card"].r-garment-card .r-card-body h3 {
+  font-size: 12px;
+  line-height: 1.8;
+  min-height: 22px;
+  margin: 4px 0 9px;
+}
+.replica-wardrobe .r-season-tag {
+  font-size: 9px;
+  color: #a0ad8f;
+  padding: 3px 6px;
+  border: 1px solid #e6ecd9;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+.replica-wardrobe .r-garment-svg {
+  width: 170px;
+  max-width: 100%;
+  height: 160px;
+}
+.replica-wardrobe .r-filter-pills {
+  display: flex;
+  gap: 7px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.replica-wardrobe .r-filter-pills > button {
+  padding: 5px 11px;
+  border: 1px solid #e1e8d7;
+  border-radius: 6px;
+  font-size: 10px;
+  color: #9ba98a;
+  min-height: 29px;
+}
+.replica-wardrobe .r-filter-pills > button.active {
+  background: #e9efdf;
+  color: #728a5e;
+  border-color: #d4dfc4;
+}
+.replica-wardrobe .r-outfit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 21px;
+}
+.replica-wardrobe [data-slot="card"].r-outfit-card {
+  padding: 0;
+  overflow: hidden;
+}
+.replica-wardrobe .r-outfit-preview {
+  background: #eff3e8;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  padding: 20px 30px 10px;
+  min-height: 220px;
+}
+.replica-wardrobe .r-outfit-preview > .r-garment-svg {
+  width: 100%;
+  height: 110px;
+}
+.replica-wardrobe .r-request-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #edf4e8;
+  border: 1px solid #dce7d3;
+  border-radius: 9px;
+  color: #7b9569;
+  margin: 0 0 20px;
+}
+.replica-wardrobe .r-request-note.pending {
+  background: #f4f3e7;
+  border-color: #e6e4ce;
+  color: #a09565;
+}
+.replica-wardrobe .r-request-note > div {
+  flex: 1;
+}
+.replica-wardrobe .r-request-note b {
+  font-size: 11px;
+  font-weight: 500;
+}
+.replica-wardrobe .r-request-note small {
+  display: block;
+  font-size: 10px;
+  margin-top: 4px;
+  opacity: 0.75;
+}
+.replica-wardrobe .r-compose-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  margin-top: 22px;
+}
+.replica-wardrobe [data-slot="card"].r-compose-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: sticky;
+  top: 84px;
+  height: max-content;
+  padding: 22px;
+}
+.replica-wardrobe [data-slot="card"].r-compose-summary h2 {
+  font-size: 18px;
+  margin-top: -7px;
+}
+.replica-wardrobe .r-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.replica-wardrobe .r-slot-list h4 {
+  font-size: 11px;
+  color: #8e9c7b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.replica-wardrobe .r-slot-list h4 > span {
+  font-size: 9px;
+  color: #b0bba1;
+}
+.replica-wardrobe .r-compose-garments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.replica-wardrobe .r-compose-item {
+  position: relative;
+  width: calc(33.333% - 8px);
+  min-width: 120px;
+  max-width: 175px;
+  border: 1px solid #e4e9dc;
+  background: #f9faf6;
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 6px 10px 12px;
+  transition: 0.15s;
+}
+.replica-wardrobe .r-compose-item .r-garment-svg {
+  width: 100%;
+  height: 120px;
+}
+.replica-wardrobe .r-compose-item > span {
+  display: block;
+  font-size: 10px;
+  color: #8d9d7b;
+  line-height: 1.7;
+}
+.replica-wardrobe .r-compose-item.selected {
+  border-color: #9eb58b;
+  background: #eef4e4;
+  box-shadow: 0 0 0 1px #bacba8;
+}
+.replica-wardrobe .r-compose-item > i {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 17px;
+  height: 17px;
+  background: #819e65;
+  color: white;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.replica-wardrobe .r-selected-clothes {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.replica-wardrobe .r-selected-clothes > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f7f9f2;
+  border: 1px solid #edf0e5;
+  border-radius: 7px;
+  padding: 3px 10px 3px 0;
+}
+.replica-wardrobe .r-selected-clothes .r-garment-svg {
+  width: 60px;
+  height: 58px;
+  flex-shrink: 0;
+}
+.replica-wardrobe .r-selected-clothes > div > span {
+  flex: 1;
+  min-width: 0;
+}
+.replica-wardrobe .r-selected-clothes b {
+  font-size: 11px;
+  font-weight: 500;
+  display: block;
+  line-height: 1.6;
+}
+.replica-wardrobe .r-selected-clothes small {
+  display: block;
+  color: #9ca98e;
+  font-size: 9px;
+  margin-top: 4px;
+}
+.replica-wardrobe .r-selected-clothes > div > button {
+  color: #a9b49c;
+}
+.replica-wardrobe .r-garment-dialog-art {
+  height: 160px;
+  border-radius: 10px;
+  background: #f3f6ec;
+  display: flex;
+  justify-content: center;
+}
+.replica-wardrobe .r-garment-dialog-art > .r-garment-svg {
+  height: 160px;
+  width: 190px;
+}
+.replica-wardrobe {
+  min-width: 0;
+}
+.replica-wardrobe [data-slot="tabs"] {
+  gap: 0;
+}
+.replica-wardrobe .replica-segment-tabs {
+  margin-bottom: 0;
+}
+.replica-wardrobe h2 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+.replica-wardrobe h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.replica-wardrobe .r-muted {
+  color: #82907a;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.replica-wardrobe .r-warning {
+  color: #b78b4e;
+  font-size: 11px;
+}
+.replica-wardrobe .r-tiny-label {
+  display: inline-flex;
+  font-size: 9px;
+  color: #88977a;
+  letter-spacing: 1.15px;
+  line-height: 1.7;
+}
+.replica-wardrobe .r-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 21px 0;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.replica-wardrobe .r-toolbar > .relative {
+  width: 160px;
+}
+.replica-wardrobe .r-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 340px;
+  min-width: 150px;
+}
+.replica-wardrobe .r-search > svg {
+  position: absolute;
+  left: 12px;
+  color: #9aa590;
+  pointer-events: none;
+}
+.replica-wardrobe .r-search input {
+  padding-left: 34px;
+  height: 40px;
+  font-size: 12px;
+  background: white;
+  border-color: #dfe5d7;
+}
+.replica-wardrobe .r-inline-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #8a967d;
+  margin-left: auto;
+}
+.replica-wardrobe .r-card-body {
+  padding: 19px 21px;
+  min-width: 0;
+}
+.replica-wardrobe .r-card-body > h3 {
+  margin-top: 6px;
+  margin-bottom: 9px;
+  overflow-wrap: anywhere;
+}
+.replica-wardrobe .r-card-body > p {
+  font-size: 11px;
+  color: #8a967e;
+  line-height: 1.9;
+}
+.replica-wardrobe .r-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 19px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0e7;
+}
+.replica-wardrobe .r-card-footer [data-slot="button"] {
+  font-size: 11px;
+  height: 30px;
+  padding-inline: 9px;
+}
+.replica-wardrobe .r-inline-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.replica-wardrobe .r-inline-actions > [data-slot="dropdown-menu-trigger"] {
+  margin-left: auto;
+  min-width: 28px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.replica-wardrobe [data-slot="card"] {
+  border-radius: 12px;
+  border-color: #e2e7de;
+  box-shadow: none;
+  gap: 0;
+}
+.replica-wardrobe .r-garment-image[data-slot="button"] {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+.replica-wardrobe .r-garment-image .r-garment-svg {
+  width: 100%;
+  height: 100%;
+}
+.replica-wardrobe .r-floating-badge {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  background: #fffdf2ec;
+  border: 1px solid #e6e4ce;
+  color: #8c9479;
+  font-size: 9px;
+  padding: 5px 9px;
+  border-radius: 5px;
+}
+.replica-wardrobe [data-slot="card"].r-wearing-strip {
+  margin-bottom: 27px;
+}
+.replica-wardrobe .r-wearing-strip [data-slot="badge"] {
+  background: #e7efdc;
+  color: #7d9569;
+  border-color: #d9e5ca;
+  font-size: 10px;
+}
+.replica-wardrobe [data-slot="card"].r-padded {
+  padding: 24px;
+}
+.replica-wardrobe .r-padded > .r-muted {
+  margin: 8px 0 24px;
+}
+.replica-wardrobe .r-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.replica-wardrobe .r-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.replica-wardrobe .r-check-list {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.replica-wardrobe .r-check-list > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.replica-wardrobe .r-tag-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.replica-wardrobe .r-tag-edit [data-slot="input"] {
+  flex: 1;
+  min-width: 0;
+}
+.replica-wardrobe .r-tag-edit > [data-slot="badge"] {
+  margin-right: auto;
+}
+.replica-wardrobe .r-compose-item[data-slot="button"] {
+  display: block;
+  white-space: normal;
+  height: auto;
+  font-weight: 400;
+}
+.replica-wardrobe .r-compose-item .r-garment-svg {
+  width: 100%;
+  height: 120px;
+}
+.replica-wardrobe .r-compose-summary form > [data-slot="button"] {
+  width: 100%;
+  white-space: normal;
+}
+.replica-wardrobe .r-selected-clothes [data-slot="button"] {
+  flex-shrink: 0;
+}
+@media (max-width: 1200px) {
+  .replica-wardrobe .r-garment-image {
+    height: 185px;
+  }
+  .replica-wardrobe .r-compose-layout {
+    grid-template-columns: minmax(0, 1fr) 265px;
+    gap: 18px;
+  }
+}
+@media (max-width: 1000px) {
+  .replica-wardrobe .r-garment-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .replica-wardrobe .r-compose-layout {
+    grid-template-columns: 1fr;
+  }
+  .replica-wardrobe [data-slot="card"].r-compose-summary {
+    position: static;
+  }
+  .replica-wardrobe .r-outfit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .replica-wardrobe .r-toolbar {
+    gap: 10px;
+  }
+  .replica-wardrobe .r-search {
+    width: 100%;
+    max-width: none;
+    flex-basis: 100%;
+  }
+  .replica-wardrobe .r-toolbar > .relative {
+    flex: 1;
+    width: auto;
+    min-width: 120px;
+  }
+  .replica-wardrobe [data-slot="card"].r-wearing-strip {
+    padding: 18px;
+    gap: 13px;
+    flex-wrap: wrap;
+  }
+  .replica-wardrobe .r-wearing-icon {
+    width: 42px;
+    height: 49px;
+  }
+  .replica-wardrobe .r-wearing-strip > div:nth-child(2) {
+    min-width: 170px;
+  }
+  .replica-wardrobe .r-wearing-strip > [data-slot="badge"] {
+    margin-left: 55px;
+    margin-top: -3px;
+  }
+  .replica-wardrobe .r-garment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .replica-wardrobe .r-garment-image {
+    height: 170px;
+  }
+  .replica-wardrobe .r-outfit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .replica-wardrobe .r-outfit-preview {
+    padding: 20px 10px 7px;
+    min-height: 190px;
+  }
+  .replica-wardrobe .r-outfit-preview > .r-garment-svg {
+    height: 95px;
+  }
+  .replica-wardrobe .r-card-footer {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+  .replica-wardrobe [data-slot="card"].r-compose-summary {
+    padding: 19px;
+    gap: 15px;
+  }
+  .replica-wardrobe .r-compose-item {
+    min-width: 0;
+    width: calc(33.333% - 8px);
+  }
+  .replica-wardrobe .r-compose-item .r-garment-svg {
+    height: 105px;
+  }
+  .replica-wardrobe .r-compose-item > span {
+    font-size: 9px;
+  }
+  .replica-wardrobe .r-card-body {
+    padding: 16px;
+  }
+}
+@media (max-width: 430px) {
+  .replica-wardrobe .r-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .replica-wardrobe .r-garment-image {
+    height: 155px;
+  }
+  .replica-wardrobe .r-compose-item .r-garment-svg {
+    height: 90px;
+  }
+  .replica-wardrobe .r-compose-item {
+    padding: 3px 6px 10px;
+  }
+  .replica-wardrobe .r-outfit-grid {
+    grid-template-columns: 1fr;
+  }
+  .replica-wardrobe .r-outfit-preview {
+    min-height: 205px;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 33px 12px 18px;
+    align-items: center;
+  }
+  .replica-wardrobe .r-outfit-preview > .r-garment-svg {
+    height: 150px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .replica-wardrobe .r-garment-image {
+    height: 210px;
+  }
+}
+@media (max-width: 1200px) {
+  .replica-wardrobe .r-garment-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .replica-wardrobe .r-compose-layout {
+    gap: 19px;
+  }
+  .replica-wardrobe .r-compose-item {
+    min-width: 100px;
+  }
+  .replica-wardrobe .r-compose-item .r-garment-svg {
+    height: 100px;
+  }
+}
+@media (max-width: 1000px) {
+  .replica-wardrobe .r-compose-summary .r-form-stack,
+  .replica-wardrobe .r-compose-summary .r-selected-clothes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .replica-wardrobe .r-garment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .replica-wardrobe .r-compose-item {
+    min-width: 0;
+  }
+  .replica-wardrobe .r-compose-item .r-garment-svg {
+    height: 105px;
+  }
+}
+@media (max-width: 430px) {
+  .replica-wardrobe .r-compose-summary .r-form-stack,
+  .replica-wardrobe .r-compose-summary .r-selected-clothes {
+    display: flex;
+  }
+  .replica-wardrobe .r-compose-item .r-garment-svg {
+    height: 90px;
+  }
+}

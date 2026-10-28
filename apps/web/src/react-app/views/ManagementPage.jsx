@@ -1,3 +1,6 @@
+import DiagnosticsWorkspace from "@/react-app/shared/DiagnosticsWorkspace";
+import WorkspacePageHeader from "@/react-app/shared/WorkspacePageHeader";
+import {Server,MessageSquare,ImageIcon,Leaf,Bell,Activity,Database,SlidersHorizontal} from "lucide-react";
 import RecordView from '@/react-app/shared/RecordView';
 import CursorControls from '@/react-app/shared/CursorControls';
 import {Field,FieldLabel} from '@/components/ui/field';
@@ -30,48 +33,41 @@ import {
 } from "@/react-app/render-helpers";
 const Yi = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 export function ManagementPageView({ view: view }) {
+  const categories = [
+    {id:'models',label:'模型服务与用途',icon:Server,sections:['服务地址','模型用途']},
+    {id:'conversation',label:'聊天与视觉',icon:MessageSquare,sections:['聊天回复','看图理解']},
+    {id:'media',label:'图片生成',icon:ImageIcon,sections:['图片（ComfyUI）']},
+    {id:'autonomy',label:'自主性与安静时段',icon:Leaf,sections:['角色自主与主动联系','安静时段']},
+    {id:'runtime',label:'通知与后台',icon:Bell,sections:['作息与后台节奏','资源与预算','通知']},
+    {id:'diagnostics',label:'诊断与任务',icon:Activity,sections:[]},
+    {id:'data',label:'数据管理',icon:Database,sections:[]},
+    {id:'advanced',label:'高级设置',icon:SlidersHorizontal,sections:['高级']},
+  ];
+  const category=readValue(view.tab)==='运行诊断'?'diagnostics':categories.find(c=>c.sections.includes(view.currentSection.value))?.id||'models';
+  const show=title=>categories.find(c=>c.id===category)?.sections.includes(title)&&(category!=='models'||view.currentSection.value===title);
+  const choose=id=>{const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}view.tab.value=id==='diagnostics'?'运行诊断':'配置中心';if(item.sections.length)view.scrollTo(item.sections[0]);};
   return (
-    <Tabs
-      value={view.tab.value}
-      onValueChange={(value) => (view.tab.value = value)}
-    >
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3"><TabsList className="h-auto group-data-horizontal/tabs:h-auto max-w-full flex-wrap">
-        <Fragment>
-          {listValues(["配置中心", "运行诊断"]).map((h) => (
-            <TabsTrigger
-              key={h}
-              className={cn({
-                active: readValue(view.tab) === h,
-              })}
-              value={h}
-            >
-              {displayText(h)}
-            </TabsTrigger>
-          ))}
-        </Fragment>
-      </TabsList></div>
+    <Tabs className="replica-management" value={view.tab.value} onValueChange={value=>view.tab.value=value}>
+      <WorkspacePageHeader eyebrow="PREFERENCES / MAKE IT YOURS" title="管理中心" description="让每一次相处，按你喜欢的方式发生。" actions={view.accountActions()}/>
+      <div className="replica-management-layout">
+        <nav className="replica-management-nav" aria-label="管理中心设置目录" data-testid="config-section-nav">{categories.map(item=><ActionButton key={item.id} variant={category===item.id?'secondary':'ghost'} aria-current={category===item.id?'page':undefined} type="button" onClick={()=>choose(item.id)} data-testid={'config-anchor-'+item.sections[0]}><item.icon size={16}/>{item.label}</ActionButton>)}</nav>
+        <div className="replica-management-main">
       <TabsContent value={view.tab.value} className="min-w-0">
         {readValue(view.tab) === "配置中心" ? (
-          <div key={0} className="configuration-layout">
-            <nav
-              className="configuration-nav hidden min-[801px]:flex"
-              aria-label="配置章节"
-              data-testid="config-section-nav"
-            >
-              <Fragment>
-                {listValues(view.sections.value).map((h) => (
-                  <ActionButton variant={view.currentSection.value===h?"secondary":"ghost"} aria-current={view.currentSection.value===h?"location":undefined} type="button" key={h} className="justify-start text-left" data-testid={"config-anchor-"+h} onClick={()=>view.scrollTo(h)}>{view.sectionLabel(h)}</ActionButton>
-                ))}
-              </Fragment>
-            </nav>
-            <div className="configuration-mobile-nav min-[801px]:hidden"><label className="grid gap-2 text-sm">配置章节<ChoiceSelect aria-label="选择配置章节" value={view.currentSection.value} onChange={event=>view.scrollTo(event.target.value)}>{view.sections.value.map(section=><option key={section} value={section}>{view.sectionLabel(section)}</option>)}</ChoiceSelect></label></div>
+          <div key={0} className="replica-configuration-content">
             <form
               ref={elementRef(view.configForm)}
-              className="settings-form management-form"
+              className="settings-form management-form replica-settings-form"
+              onInvalidCapture={event=>{const section=event.target.closest(".settings-group");if(section?.dataset.section)view.scrollTo(section.dataset.section);}}
               onSubmit={eventModifiers(view.save, ["prevent"])}
             >
+              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small>{view.endpoints.value.length} 个服务 · {view.bindings.value.length} 个用途</small>}</div>
+              {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>view.scrollTo(value)}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
+              {view.catalogLoading.value&&<p role="status">正在读取正式配置…</p>}
+              {!view.catalogReady.value&&view.error.value&&<InlineFeedback role="alert">{view.error.value}<ActionButton type="button" variant="outline" onClick={view.retryCatalog}>重新读取配置</ActionButton></InlineFeedback>}
               <Surface
                 as="section"
+                hidden={!show('服务地址')||!view.catalogReady.value} data-section="服务地址"
                 id={view.sectionId("服务地址")}
                 className="settings-group"
               >
@@ -86,6 +82,7 @@ export function ManagementPageView({ view: view }) {
                     {"添加服务"}
                   </ActionButton>
                 </div>
+                {!view.endpoints.value.length&&<p className="muted">尚未配置模型服务。添加连接并保存后，可以读取真实模型目录。</p>}
                 <Fragment>
                   {listValues(view.endpoints.value).map((h, b) => (
                     <div key={h.id} className="management-block">
@@ -187,6 +184,7 @@ export function ManagementPageView({ view: view }) {
               </Surface>
               <Surface
                 as="section"
+                hidden={!show("模型用途")||!view.catalogReady.value} data-section="模型用途"
                 id={view.sectionId("模型用途")}
                 className="settings-group"
               >
@@ -207,11 +205,8 @@ export function ManagementPageView({ view: view }) {
                     return (
                       <Disclosure
                         key={h.name}
-                        className="management-block"
-                        open={
-                          !!h._source ||
-                          ["generic_llm", "conversation_reply"].includes(h.role)
-                        }
+                        className="management-block replica-model-role"
+                        open
                         title={<>{h.name}</>}
                       >
                         <div className="form-grid">
@@ -298,6 +293,7 @@ export function ManagementPageView({ view: view }) {
               </Surface>
               <Surface
                 as="section"
+                hidden={!show("安静时段")||!view.catalogReady.value} data-section="安静时段"
                 id={view.sectionId("安静时段")}
                 className="settings-group"
               >
@@ -389,10 +385,11 @@ export function ManagementPageView({ view: view }) {
                 {listValues(view.settings.value).map((h) => (
                   <Surface as="section"
                     key={h.title}
+                    hidden={!show(h.title)||!view.catalogReady.value} data-section={h.title}
                     id={view.sectionId(h.title)}
                     className="settings-group"
                   >
-                    <Disclosure title={h.title === "高级" ? "高级 · 辅助决策服务" : view.sectionLabel(h.title)}>
+                    <Disclosure open title={h.title === "高级" ? "高级 · 辅助决策服务" : view.sectionLabel(h.title)}>
                     {h.title === "图片（ComfyUI）" ? (
                       <p key={2} className="muted">
                         {"图片使用 ComfyUI；需要图片功能时再展开配置。"}
@@ -442,7 +439,7 @@ export function ManagementPageView({ view: view }) {
                 <ActionButton variant="outline" className="h-auto min-h-11 whitespace-normal" type="button" disabled={!view.dirty.value||!view.canDiscard.value} onClick={view.discard}>放弃未保存修改</ActionButton>
                 <ActionButton variant="default"
 
-                  disabled={view.saving.value}
+                  disabled={view.saving.value||!view.catalogReady.value}
                   className="h-auto min-h-11 whitespace-normal"
                   data-testid="config-save"
                 >
@@ -452,7 +449,7 @@ export function ManagementPageView({ view: view }) {
             </form>
           </div>
         ) : (
-          <Fragment key={1}>
+          <DiagnosticsWorkspace view={view}>
             <p className="muted">
               {"每次回应背后的记录。模型与媒体的运行情况，都在这里。"}
             </p>
@@ -478,7 +475,7 @@ export function ManagementPageView({ view: view }) {
               {displayText(view.rows.value.length) + " 条已读取记录 · 按记录顺序排列"}
             </small>
             <p className="muted">{view.kind.value === "媒体调用" ? "图片、音频和视频任务的实际生成记录。" : "模型处理请求的状态、用时和结果摘要。"}</p>
-            <DiagnosticRecords view={view}/><CursorControls label="调用" append={{loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
+            <>{view.diagnosticPages.value[view.kind.value].loading&&<p role="status">正在读取调用记录…</p>}{view.diagnosticPages.value[view.kind.value].error&&<InlineFeedback role="alert">{view.diagnosticPages.value[view.kind.value].error}<ActionButton variant="outline" onClick={view.loadMoreDiagnostics}>重新读取原调用页</ActionButton></InlineFeedback>}{view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={view}/>}</><CursorControls label="调用" append={{loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
             {view.selected.value ? (
               <view.DetailDrawer
                 key={0}
@@ -583,9 +580,11 @@ export function ManagementPageView({ view: view }) {
             ) : null}
             </Fragment>}
 
-          </Fragment>
+          </DiagnosticsWorkspace>
         )}
       </TabsContent>
+        </div>
+      </div>
     </Tabs>
   );
 }

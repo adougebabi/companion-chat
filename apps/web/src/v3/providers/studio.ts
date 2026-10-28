@@ -25,6 +25,8 @@ export function installStudioProvider(client:BrowserClient){
   restore:(id:string,body:StudioCatalogCommand)=>client.restoreStudioResource(id,body),
   publication:(id:string,version:string)=>client.studioPublication(id,version),
   resource:(id:string)=>client.studioResource(id),
+  world:(fid:string)=>client.world(fid),
+  npc:(fid:string,id:string)=>client.runtimeNPC(fid,id),
   save:(id:string|null,fields:{kind:StudioResource['kind'];name:string;body:Record<string,unknown>;expectedVersion?:string;reason:string;idempotencyKey:string})=>id?client.updateStudioResource(id,fields):client.createStudioResource(fields),
   async publish(id:string,revision:number,key:string){await client.publishStudioResource(id,{expectedRevision:revision,reason:'所有者发布保存的资源定义',idempotencyKey:key});return client.studioResource(id);},
   preview:(fid:string,id:string,version:string,runtimeWorldId?:string):Promise<ApplyPreviewResponse>=>client.previewStudioApply(id,{fluctlightId:fid,resourceVersion:version,...(runtimeWorldId?{runtimeWorldId}:{})}),

@@ -182,7 +182,7 @@ test("React library search, clear and character menu consume the actual director
     assert.match(view.host.textContent, /测试角色/);
     const search = view.host.querySelector('input[type="search"]');
     await view.input(search, "不存在");
-    assert.match(view.host.textContent, /暂无匹配角色/);
+    assert.match(view.host.textContent, /没有找到这位相识/);
     const clear = [...view.host.querySelectorAll("button")].find(
       (node) => node.textContent === "清除筛选",
     );

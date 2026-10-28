@@ -24,7 +24,7 @@ test('native task detail reads task authority and original workflow separately, 
  workspace.services.operationsClient={task:async id=>{reads.push(['task',id]);return task;}};
  workspace.services.diagnosticsClient={workflow:async id=>{reads.push(['workflow',id]);return inspection;},control:async(id,action,body)=>{writes.push({id,action,body:structuredClone(body)});if(writes.length===1)throw Error('network unavailable');return {status:'accepted'};}};
  const v=await mountReact(vite,Task,{workspace,props:{route:{feature:{params:{taskId:'persona-job'}},query:new URLSearchParams({returnTo:'#/library/create?resume=role'})}}});
- try{assert.deepEqual(reads.slice(0,2),[['task','persona-job'],['workflow','workflow-real']]);assert.match(v.host.textContent,/人格整理/);assert.match(v.host.textContent,/模型服务响应超时/);assert.ok(button(v.host,'重试任务'));assert.equal(v.host.querySelectorAll('ol')[1].querySelectorAll('li').length,3);
+ try{assert.deepEqual(reads.slice(0,2),[['task','persona-job'],['workflow','workflow-real']]);assert.match(v.host.textContent,/人格整理/);assert.match(v.host.textContent,/模型服务响应超时/);assert.ok(button(v.host,'重试任务'));assert.equal(v.host.querySelector('.replica-task-stages').querySelectorAll('li').length,5);assert.equal(v.host.querySelector('[role=progressbar]'),null);
   await v.click(button(v.host,'重试任务'));const dialog=document.querySelector('[role=dialog]');await v.input(dialog.querySelector('textarea'),'恢复原任务');await v.click(button(dialog,'确认重试任务'));assert.equal(writes.length,1);assert.equal(writes[0].body.sourceRunId,'run-real');assert.equal(writes[0].body.expectedRevision,7);assert.equal(button(document.querySelector('[role=dialog]'),'确认重试任务').disabled,true);await v.click(document.querySelector('[data-slot=dialog-close]'));await v.click(button(v.host,'核对或重试原提交'));assert.equal(writes.length,2);assert.deepEqual(writes[1],writes[0]);assert.match(v.host.textContent,/操作已提交/);
  }finally{await v.dispose();}
 });
@@ -40,7 +40,7 @@ test('wizard rereads worlds when the role directory arrives and a later successf
  const v=await mountReact(vite,Wizard,{workspace});
  try{act(()=>workspace.state.characters=[{id:'late',name:'后来角色'}]);await v.flush();assert.match(v.host.textContent,/1 个角色的世界暂未读到/);assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);fail=false;await v.click(button(v.host,'重新读取已有世界'));assert.match(v.host.textContent,/新世界/);assert.doesNotMatch(v.host.textContent,/暂未读到/);
   act(()=>workspace.state.characters=[{id:'slow',name:'旧目录'}]);await v.flush();act(()=>workspace.state.characters=[{id:'late',name:'后来角色'}]);await v.flush();await act(async()=>lateOld({items:[{id:'old',name:'迟到旧世界'}]}));await v.flush();assert.match(v.host.textContent,/新世界/);assert.doesNotMatch(v.host.textContent,/迟到旧世界/);
-  const source=v.host.querySelector('[data-slot=questionnaire-choice-input]');assert.ok(source);await v.click(source);await v.click(v.host.querySelector('[data-testid=wizard-world-next]'));assert.match(v.host.textContent,/认识角色/);assert.equal(v.host.querySelector('[data-slot=questionnaire]'),null);assert.equal(v.host.querySelectorAll('form form').length,0);
+  const source=v.host.querySelector('.creation-world-card');assert.ok(source);await v.click(source);await v.click(v.host.querySelector('[data-testid=wizard-world-next]'));assert.match(v.host.textContent,/认识角色/);assert.equal(v.host.querySelector('[data-slot=questionnaire]'),null);assert.equal(v.host.querySelectorAll('form form').length,0);
  }finally{await v.dispose();}
 });
 

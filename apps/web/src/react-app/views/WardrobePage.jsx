@@ -1,596 +1,1149 @@
-import Combobox from '@/react-app/shared/Combobox';
-import {Field,FieldLabel} from '@/components/ui/field';
-import {AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog";
-import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
-import {InlineFeedback} from "@/react-app/shared/Presentation";
-import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
-import ConfirmationFrame from "@/react-app/shared/ConfirmationFrame";
-const tabKeys = {
-  为她搭配: "compose",
-  方案库: "outfits",
-  全部衣服: "garments",
-};
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { DrawerFrame } from "@/react-app/controls";
-import { readValue } from "@/state/view-model";
-import { cn } from "@/lib/utils";
+import { useEffect, useId, useRef, useState } from "react";
 import {
-  ActionButton,
+  CameraIcon,
+  CheckIcon,
+  Edit3Icon,
+  EyeIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  ShirtIcon,
+  SlidersHorizontalIcon,
+  XIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
   Surface,
   FieldInput,
   ChoiceSelect,
   Disclosure,
   MenuDisclosure,
-  DialogFrame,
   Badge,
-} from "@/react-app/controls";
-import {
-  displayText,
-  eventModifiers,
-  listValues,
-  Fragment,
-} from "@/react-app/render-helpers";
-const At = ["外套", "上衣", "内衣", "内裤", "下衣", "袜子", "鞋子", "配饰"];
-function OutfitSlots({plan,character}){
- const chosen=At.filter(slot=>Array.isArray(plan.items?.[slot])&&plan.items[slot].length);
- const name=id=>character.garments.find(item=>item.id===id)?.name||plan._source?.items?.find(item=>(item.item_id||item.id)===id)?.description||character._wardrobe?.wearing?.worn_items?.find(item=>(item.item_id||item.id)===id)?.description||'衣物名称待读取';
- return chosen.length?<dl className="grid gap-3 sm:grid-cols-2">{chosen.map(slot=><div key={slot} className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)] gap-3 rounded-lg bg-muted/60 p-3"><dt className="text-sm text-muted-foreground">{slot}</dt><dd className="m-0 break-words text-sm">{plan.items[slot].map(name).join('、')}</dd></div>)}</dl>:<p className="text-sm text-muted-foreground">还没有选择衣服，先从上方部位挑选。</p>;
-}
-export function WardrobePageView({ view: view }) {
+} from "../controls";
+import { useWorkspace } from "../page";
+import { readValue, jsonValueSnapshot } from "@/state/view-model";
+import { garmentView, slots } from "@/state/workspace.mjs";
+import { errorMessage } from "@/v3/domain-presentation.mjs";
+import WorkspacePageHeader from "../shared/WorkspacePageHeader";
+import WorkspaceDialog from "../shared/WorkspaceDialog";
+import GarmentArt from "../shared/WorkspaceGarmentArt";
+import WearingSummary from "../shared/WearingSummary";
+import ConfirmationFrame from "../shared/ConfirmationFrame";
+import JsonDetails from "../shared/JsonDetails";
+import LoadingState from "../shared/LoadingState";
+import { EmptyState, InlineFeedback } from "../shared/Presentation";
+const tabKeys = {
+  全部衣服: "garments",
+  方案库: "outfits",
+  为她搭配: "compose",
+};
+const types = {
+  外套: "outer",
+  上衣: "upper_body",
+  内衣: "underwear",
+  内裤: "panties",
+  下衣: "lower_body",
+  袜子: "socks",
+  鞋子: "shoes",
+  配饰: "accessory",
+};
+const field = (label, control, group = false) => {
+  const Tag = group ? "div" : "label";
   return (
-    <Tabs
-      value={tabKeys[view.tab.value]}
-      onValueChange={(value) => {
-        const label = Object.keys(tabKeys).find(
-          (key) => tabKeys[key] === value,
-        );
-        if (label) view.tab.value = label;
-      }}
-    >
-      <TabsList className="h-auto group-data-horizontal/tabs:h-auto max-w-full flex-wrap">
-        <Fragment>
-          {listValues(["为她搭配", "方案库", "全部衣服"]).map((x, rowIndex) => (
-            <TabsTrigger className="h-auto min-h-10 max-w-full flex-none whitespace-normal break-words"
-              key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
-              value={tabKeys[x]}
+    <Tag className="replica-field">
+      <span>{label}</span>
+      {control}
+    </Tag>
+  );
+};
+const art = (g) => <GarmentArt type={types[g.type] || g.type} name={g.name} />;
+function RecordHistory({ fid, id, kind }) {
+  const w = useWorkspace(),
+    scope = w.currentScope(),
+    [page, setPage] = useState({ items: [], cursor: "", ready: false }),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const epoch = useRef(0),
+    active = useRef(false),
+    retry = useRef(null);
+  async function load(append = false, cursor = append ? page.cursor : "") {
+    const token = ++epoch.current;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await (kind === "outfit"
+        ? w.services.inventoryClient.outfitHistory(fid, id, cursor)
+        : w.services.inventoryClient.history(fid, id, cursor));
+      if (
+        !active.current ||
+        token !== epoch.current ||
+        w.currentScope() !== scope
+      )
+        return;
+      setPage((old) => ({
+        items: append ? [...old.items, ...result.items] : result.items,
+        cursor: result.next_cursor || "",
+        ready: true,
+      }));
+    } catch (cause) {
+      if (
+        active.current &&
+        token === epoch.current &&
+        w.currentScope() === scope
+      ) {
+        setError(errorMessage(cause));
+        retry.current = () => void load(append, cursor);
+      }
+    } finally {
+      if (active.current && token === epoch.current) setBusy(false);
+    }
+  }
+  useEffect(() => {
+    active.current = true;
+    setPage({ items: [], cursor: "", ready: false });
+    void load();
+    return () => {
+      active.current = false;
+      epoch.current++;
+    };
+  }, [scope, id, kind]);
+  return (
+    <Disclosure title="登记与修订历史">
+      {busy && <LoadingState label="正在读取修订历史…" />}
+      {error && (
+        <InlineFeedback role="alert">
+          {error}
+          <Button variant="outline" onClick={() => retry.current?.()}>
+            重新读取修订
+          </Button>
+        </InlineFeedback>
+      )}
+      {page.items.map((item, index) => (
+        <JsonDetails
+          key={item.id || index}
+          value={item}
+          title={item.reason || "修订记录"}
+        />
+      ))}
+      {page.ready && !page.items.length && !error && (
+        <p className="r-muted">当前读取范围没有修订记录。</p>
+      )}
+      {page.cursor && (
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={() => void load(true)}
+        >
+          加载更多修订
+        </Button>
+      )}
+    </Disclosure>
+  );
+}
+export function WardrobePageView({ view, route }) {
+  const w = useWorkspace(),
+    c = readValue(view.character),
+    fid = c.id,
+    scope = w.currentScope(),
+    ready = !!c._wardrobe,
+    readonly = ["retired", "archived", "已退休", "已归档"].includes(c.status),
+    formId = useId();
+  const [search, setSearch] = useState(""),
+    [archived, setArchived] = useState(false),
+    [archivedPage, setArchivedPage] = useState({
+      items: [],
+      cursor: "",
+      ready: false,
+    }),
+    [archiveBusy, setArchiveBusy] = useState(false),
+    [archiveError, setArchiveError] = useState(""),
+    [tagsOpen, setTagsOpen] = useState(false),
+    [activeTag, setActiveTag] = useState("all"),
+    [confirmBusy, setConfirmBusy] = useState(false),
+    [confirmError, setConfirmError] = useState("");
+  const archiveEpoch = useRef(0),
+    mounted = useRef(true),
+    archiveRetry = useRef(null),
+    trigger = useRef(null);
+  const routeQuery = route?.query?.toString() || "";
+  useEffect(() => {
+    const query = new URLSearchParams(routeQuery);
+    if (query.has("q")) setSearch(query.get("q") || "");
+    if (query.has("state")) setArchived(query.get("state") === "archived");
+    const tab = {clothes:"全部衣服",garments:"全部衣服",plans:"方案库",outfits:"方案库",compose:"为她搭配"}[query.get("tab")];
+    if (tab) view.tab.value = tab;
+  }, [routeQuery, scope]);
+  const all = archived ? archivedPage.items : c.garments,
+    filtered = all.filter(
+      (g) =>
+        (!view.type.value || g.type === view.type.value) &&
+        (!view.season.value || g.seasons.includes(view.season.value)) &&
+        g.name.toLowerCase().includes(search.trim().toLowerCase()),
+    );
+  const worn = c._wardrobe?.wearing?.worn_items,
+    wearingIds = Array.isArray(worn)
+      ? new Set(worn.map((g) => g.item_id || g.id))
+      : new Set();
+  const preview = c.outfits.find((o) => o.id === view.preview.value),
+    draft = view.garment.value,
+    selected = Object.entries(view.items.value).flatMap(([slot, ids]) =>
+      ids.map((id) => ({
+        slot,
+        id,
+        garment: c.garments.find((g) => g.id === id),
+      })),
+    );
+  const validOutfit = (o) =>
+    Object.values(o.items || {}).flat().length > 0 &&
+    Object.values(o.items || {})
+      .flat()
+      .every((id) =>
+        c.garments.some(
+          (g) =>
+            g.id === id &&
+            g._source?.availability === "available" &&
+            !g._source.archived_at,
+        ),
+      );
+  const reset = () => {
+    view.editingId.value = null;
+    view.items.value = {};
+    view.name.value = "";
+    view.draftError.value = "";
+  };
+  const openGarment = (g, event) => {
+    trigger.current = event?.currentTarget || document.activeElement;
+    view.garment.value = g
+      ? jsonValueSnapshot(g)
+      : {
+          name: "",
+          type: "上衣",
+          seasons: [],
+          ownership: "unknown",
+          availability: "available",
+        };
+  };
+  async function readArchived(
+    append = false,
+    cursor = append ? archivedPage.cursor : "",
+  ) {
+    const token = ++archiveEpoch.current;
+    setArchiveBusy(true);
+    setArchiveError("");
+    try {
+      const page = await w.services.inventoryClient.list(fid, {
+        kind: "wearable",
+        state: "archived",
+        ...(cursor ? { cursor } : {}),
+      });
+      if (
+        !mounted.current ||
+        token !== archiveEpoch.current ||
+        w.currentScope() !== scope
+      )
+        return;
+      setArchivedPage((old) => ({
+        items: append
+          ? [...old.items, ...page.items.map(garmentView)]
+          : page.items.map(garmentView),
+        cursor: page.next_cursor || "",
+        ready: true,
+      }));
+    } catch (cause) {
+      if (
+        mounted.current &&
+        token === archiveEpoch.current &&
+        w.currentScope() === scope
+      ) {
+        setArchiveError(errorMessage(cause));
+        archiveRetry.current = () => void readArchived(append, cursor);
+      }
+    } finally {
+      if (mounted.current && token === archiveEpoch.current)
+        setArchiveBusy(false);
+    }
+  }
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      archiveEpoch.current++;
+    };
+  }, [scope]);
+  useEffect(() => {
+    if (archived) void readArchived();
+  }, [archived, c._wardrobe?.catalog?.revision]);
+  const clear = () => {
+    setSearch("");
+    view.type.value = "";
+    view.season.value = "";
+    setArchived(false);
+  };
+  const requestWear = (o) => {
+    view.confirm(
+      "请" + c.name + "换上「" + o.name + "」？",
+      "请求受理后跟进实际处理结果，当前穿着以正式读回为准。",
+      () => view.wear(o),
+      "发送换装请求",
+    );
+  };
+  return (
+    <div className="replica-resource replica-wardrobe replica-life">
+      <WorkspacePageHeader
+        eyebrow="WARDROBE / WORN WITH A STORY"
+        title={c.name + "的衣柜"}
+        description="喜欢的衣服，合适的搭配，还有今天的自己。"
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="刷新衣柜"
+              disabled={w.state.loading.wardrobe}
+              onClick={() => void w.loadWardrobe().catch(() => {})}
             >
-              {displayText(
-                x === "为她搭配"
-                  ? "为" + readValue(view.character).name + "搭配"
-                  : x,
-              )}
-            </TabsTrigger>
-          ))}
-        </Fragment>
-      </TabsList>
-      <TabsContent value={tabKeys[view.tab.value]} className="min-w-0">
-        {readValue(view.tab) === "为她搭配" ? (
-          <Fragment key={0}>
-            {view.editingId.value&&<p role="status" className="text-sm">正在编辑方案「{readValue(view.character).outfits.find(outfit=>outfit.id===view.editingId.value)?.name||view.name.value}」。保存前，原方案保持不变。</p>}
-            <div className="toolbar">
-              <Field className="w-full min-w-0 sm:max-w-72">
-                <FieldLabel htmlFor="wardrobe-tag">先选标签</FieldLabel>
-                <Combobox id="wardrobe-tag" label="搭配标签" value={view.tag.value} placeholder="请选择搭配标签" options={readValue(view.character).outfitTags.map(tag=>({value:tag,label:view.tagLabel(tag)}))} onChange={value=>view.tag.value=value}/>
-              </Field>
-              <small>{"标签可在方案库维护 · 每个部位选一件，配饰可多选"}</small>
-            </div>
-            {view.tag.value?<Surface as="div" className="slot-picker">
-              <Fragment>
-                {listValues(readValue(At)).map((x, rowIndex) => (
-                  <Disclosure
-                    className="slot-accordion"
-                    open={view.openSlot.value===x} onOpenChange={open=>view.openSlot.value=open?x:null}
-                    title={
-                      <>
-                        {displayText(x) + " "}
-                        <small>
-                          {displayText(
-                            (view.items.value[x] || [])
-                              .map((R) => {
-                                var ye;
-                                return (ye = readValue(
-                                  view.character,
-                                ).garments.find((F) => F.id === R)) == null
-                                  ? void 0
-                                  : ye.name;
-                              })
-                              .join("、") || "未选择",
-                          )}
-                        </small>
-                      </>
-                    }
-                    key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
-                  >
-                    <div
-                      className="slot-row"
-                    >
-                      <Fragment>
-                        {listValues(
-                          readValue(view.character).garments.filter(
-                            (R) => R.type === x,
-                          ),
-                        ).map((R, rowIndex) => {
-                          var ye;
-                          return (
-                            <ActionButton variant={view.items.value[x]?.includes(R.id)?"secondary":"outline"}
-                              aria-pressed={!!view.items.value[x]?.includes(R.id)}
-                              aria-label={R.name}
-                              disabled={!view.tag.value}
-                              title={view.tag.value ? void 0 : "请先选择标签"}
-                              className={cn([
-                                "choice",
-                                {
-                                  chosen:
-                                    (ye = view.items.value[x]) == null
-                                      ? void 0
-                                      : ye.includes(R.id),
-                                },
-                              ])}
-                              onClick={(F) =>
-                                view.choose(x, R.id, x === "配饰")
-                              }
-                              key={
-                                typeof R === "object" ? (R?.id ?? rowIndex) : R
-                              }
-                            >
-                              {displayText(R.name)}
-                            </ActionButton>
-                          );
-                        })}
-                      </Fragment>
-                      {readValue(view.character).garments.some(
-                        (R) => R.type === x,
-                      ) ? null : (
-                        <small key={0}>{"暂无衣服"}</small>
-                      )}
-                    </div>
-                  </Disclosure>
-                ))}
-              </Fragment>
-            </Surface>:<p className="py-4 text-sm text-muted-foreground" role="status">先选择一个搭配标签，再挑选各部位的衣服。</p>}
-            <Surface as="div" >
-              <h3>{"当前搭配"}</h3>
-              <OutfitSlots plan={{items:view.items.value}} character={readValue(view.character)}/>
-            {view.duplicate.value ? (
-              <InlineFeedback key={0} >
-                {"方案名称已存在，请换一个名称。"}
-              </InlineFeedback>
-            ) : null}
-            {view.name.value.trim() ? null : (
-              <p key={1} className="muted">
-                {"请填写方案名称后保存。"}
-              </p>
-            )}
-            <form
-              className="input-row"
-              onSubmit={eventModifiers(view.saveOutfit, ["prevent"])}
+              <RefreshCwIcon size={15} />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                w.navigatePath(
+                  "/c/" + encodeURIComponent(fid) + "/media/generate",
+                )
+              }
             >
-              <FieldInput
-                placeholder="方案名称"
-                aria-label="方案名称"
-                value={view.name.value}
-                onChange={(event) => {
-                  ((x) => (view.name.value = x))(event.target.value);
-                }}
+              <CameraIcon size={15} />
+              拍一张穿搭
+            </Button>
+            <Button
+              disabled={!ready || readonly}
+              onClick={(event) => openGarment(null, event)}
+            >
+              <PlusIcon size={16} />
+              添加衣服
+            </Button>
+          </>
+        }
+      />
+      {w.state.loading.wardrobe && <LoadingState label="正在读取衣柜…" />}
+      <Surface className="r-wearing-strip">
+        <div className="r-wearing-icon">
+          <ShirtIcon size={25} strokeWidth={1.3} />
+        </div>
+        <div>
+          <span className="r-tiny-label">TODAY'S OUTFIT</span>
+          <h3>今天穿着</h3>
+          <WearingSummary character={c} />
+        </div>
+        <Badge variant="outline">
+          {Array.isArray(worn) ? "当前穿着" : "待读取"}
+        </Badge>
+      </Surface>
+      <Tabs
+        value={tabKeys[view.tab.value] || "garments"}
+        onValueChange={(value) => {
+          view.tab.value = Object.keys(tabKeys).find(
+            (key) => tabKeys[key] === value,
+          );
+        }}
+      >
+        <TabsList variant="line" className="replica-segment-tabs">
+          <TabsTrigger value="garments">
+            全部衣服 <span>{ready ? c.garments.length : "…"}</span>
+          </TabsTrigger>
+          <TabsTrigger value="outfits">
+            穿搭方案 <span>{ready ? c.outfits.length : "…"}</span>
+          </TabsTrigger>
+          <TabsTrigger value="compose">搭配工作台</TabsTrigger>
+        </TabsList>
+        <TabsContent value="garments">
+          <div className="r-toolbar r-wrap wardrobe-filters">
+            <div className="r-search">
+              <SearchIcon size={15} />
+              <Input
+                aria-label="搜索衣服"
+                placeholder="找到一件喜欢的衣服"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
-              <ActionButton variant="default"
-
-                disabled={
-                  readValue(view.busy) ||
-                  view.duplicate.value ||
-                  !view.tag.value ||
-                  !view.name.value.trim()
-                }
+            </div>
+            <ChoiceSelect
+              aria-label="按类型筛选"
+              value={view.type.value}
+              onChange={(e) => (view.type.value = e.target.value)}
+            >
+              <option value="">所有类型</option>
+              {slots.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </ChoiceSelect>
+            <ChoiceSelect
+              aria-label="按季节筛选"
+              value={view.season.value}
+              onChange={(e) => (view.season.value = e.target.value)}
+            >
+              <option value="">所有季节</option>
+              {["春", "夏", "秋", "冬"].map((s) => (
+                <option key={s} value={s}>
+                  {s}季
+                </option>
+              ))}
+            </ChoiceSelect>
+            <label className="r-inline-check">
+              <Checkbox
+                checked={archived}
+                onCheckedChange={(value) => setArchived(!!value)}
+              />
+              已归档
+            </label>
+          </div>
+          {archiveBusy && <LoadingState label="正在读取已归档衣服…" />}
+          {archiveError && (
+            <InlineFeedback role="alert">
+              {archiveError}
+              <Button
+                variant="outline"
+                onClick={() => archiveRetry.current?.()}
               >
-                {displayText(
-                  readValue(view.busy) && view.action.value === "save"
-                    ? "处理中…"
-                    : view.editingId.value
-                      ? "保存修改"
-                      : "保存为方案",
-                )}
-              </ActionButton>
-              <ActionButton variant="outline"
-                type="button"
-
-                onClick={(x) => {
-                  ((view.editingId.value = null),
-                    (view.items.value = {}),
-                    (view.name.value = ""));
-                }}
-              >
-                {"重新搭配"}
-              </ActionButton>
-            </form></Surface>
-          </Fragment>
-        ) : readValue(view.tab) === "方案库" ? (
-          <Fragment key={1}>
-            <Surface as="div" >
-              <div className="row">
-                <b>{"标签管理"}</b>
-                <small>{"删除标签保留方案"}</small>
-              </div>
-              <div className="tag-list">
-                <Fragment>
-                  {listValues(readValue(view.character).outfitTags).map(
-                    (x, rowIndex) => (
-                      <div className="wardrobe-tag"
-
-                        key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
-                      >
-                        <Badge className="h-auto min-h-5 max-w-full whitespace-normal break-all">{displayText(view.tagLabel(x))}</Badge>
-                        <MenuDisclosure title={<MoreActionsIcon className="size-4"/>} aria-label={view.tagLabel(x)+'的标签操作'}>                        <ActionButton variant="ghost"
-                          onClick={(R) => {
-                            ((view.renameTag.value = x),
-                              (view.newTag.value = x));
-                          }}
-                        >
-                          {"改名"}
-                        </ActionButton>
-                        <ActionButton variant="destructive" onClick={(R) => view.removeTag(x)}>
-                          {"删除"}
-                        </ActionButton>
-                        </MenuDisclosure>
-                      </div>
-                    ),
-                  )}
-                </Fragment>
-              </div>
-              <form
-                className="input-row"
-                onSubmit={eventModifiers(view.saveTags, ["prevent"])}
-              >
-                <FieldInput
-                  placeholder={view.renameTag.value ? "新标签名" : "添加标签"}
-                  aria-label="标签名称"
-                  value={view.newTag.value}
-                  onChange={(event) => {
-                    ((x) => (view.newTag.value = x))(event.target.value);
-                  }}
-                />
-                <ActionButton variant="outline"
-
-                  disabled={!view.newTag.value.trim()}
+                重新读取归档衣服
+              </Button>
+            </InlineFeedback>
+          )}
+          <div className="r-garment-grid garment-grid">
+            {filtered.map((g) => (
+              <Surface key={g.id} className="r-garment-card">
+                <Button
+                  variant="ghost"
+                  className="r-garment-image"
+                  aria-label={"查看" + g.name}
+                  onClick={(event) => openGarment(g, event)}
                 >
-                  {displayText(view.renameTag.value ? "保存标签" : "添加")}
-                </ActionButton>
-              </form>
-            </Surface>
-            <Fragment>
-              {listValues(readValue(view.character).outfits).map((x) => (
-                <Surface as="article" key={x.id} className="compact">
-                  <div className="row">
-                    {view.renameOutfit.value === x.id ? (
-                      <form
-                        key={0}
-                        className="input-row"
-                        onSubmit={eventModifiers(
-                          (R) => view.rename(x),
-                          ["prevent"],
-                        )}
-                      >
-                        <FieldInput
-                          aria-label="方案新名称"
-                          autoFocus=""
-                          value={view.renameValue.value}
-                          onChange={(event) => {
-                            ((R) => (view.renameValue.value = R))(
-                              event.target.value,
-                            );
-                          }}
-                        />
-                        <ActionButton variant="outline"
-
-                          disabled={
-                            readValue(view.busy) ||
-                            !view.renameValue.value.trim()
-                          }
-                        >
-                          {displayText(
-                            readValue(view.busy) &&
-                              view.action.value === "rename"
-                              ? "处理中…"
-                              : "保存",
-                          )}
-                        </ActionButton>
-                        <ActionButton variant="ghost"
-                          type="button"
-
-                          onClick={(R) => (view.renameOutfit.value = null)}
-                        >
-                          {"取消"}
-                        </ActionButton>
-                      </form>
-                    ) : (
-                      <b key={1}>{displayText(x.name)}</b>
-                    )}
-                    <Badge >
-                      {displayText(view.tagLabel(x.tag) || "未分类")}
-                    </Badge>
-                    <span className="spacer" />
+                  {art(g)}
+                  {wearingIds.has(g.id) && (
+                    <span className="r-floating-badge">正在穿</span>
+                  )}
+                </Button>
+                <div className="r-card-body">
+                  <span className="r-tiny-label">{g.type}</span>
+                  <h3>{g.name}</h3>
+                  <div className="r-inline-actions">
+                    {g.seasons.map((s) => (
+                      <span className="r-season-tag" key={s}>
+                        {s}
+                      </span>
+                    ))}
                     <MenuDisclosure
-                      className="actions-menu"
-                      onClick={(R) =>
-                        R.target.closest("button") &&
-                        R.currentTarget.removeAttribute("open")
-                      }
-                      title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
-                      aria-label={x.name + "的方案操作"}
+                      title={<Edit3Icon size={13} />}
+                      aria-label={g.name + "的衣服操作"}
                     >
-                      <div className="scroll-lock-list" data-scroll-lock="">
-                        <ActionButton variant="ghost"
-                          onClick={(R) =>
-                            (view.preview.value =
-                              view.preview.value === x.id ? null : x.id)
-                          }
+                      <Button
+                        variant="ghost"
+                        onClick={(event) => openGarment(g, event)}
+                      >
+                        {g._source?.archived_at ? "查看资料" : "编辑"}
+                      </Button>
+                      {!g._source?.archived_at && (
+                        <Button
+                          variant="ghost"
+                          disabled={readonly}
+                          onClick={() => view.removeGarment(g.id)}
                         >
-                          {"预览"}
-                        </ActionButton>
-                        <ActionButton variant="ghost" onClick={(R) => view.edit(x)}>
-                          {"编辑搭配"}
-                        </ActionButton>
-                        <ActionButton variant="ghost"
-                          onClick={(R) => {
-                            ((view.renameOutfit.value = x.id),
-                              (view.renameValue.value = x.name));
-                          }}
-                        >
-                          {"重命名"}
-                        </ActionButton>
-
-                      </div>
-                    </MenuDisclosure>
-                    <ActionButton variant="default" className="min-h-11"
-
-                      aria-label={
-                        "请" +
-                        readValue(view.character).name +
-                        "换上「" +
-                        x.name +
-                        "」"
-                      }
-                      disabled={readValue(view.busy)}
-                      onClick={(R) => view.wear(x)}
-                    >
-                      {displayText(
-                        readValue(view.busy) &&
-                          view.action.value === "wear" &&
-                          view.selectedOutfit.value === x.id
-                          ? "处理中…"
-                          : "请" + readValue(view.character).name + "换上",
+                          归档
+                        </Button>
                       )}
-                    </ActionButton>
+                    </MenuDisclosure>
                   </div>
-                  <view.ActionFeedback
-                    labels={["换装"]}
-                    operation={"wear-outfit:" + x.id}
-                    showStatus={true}
-                  />
-                  {view.preview.value === x.id ? (
-                    <OutfitSlots key={0} plan={x} character={readValue(view.character)}/>
-                  ) : null}
+                </div>
+              </Surface>
+            ))}
+          </div>
+          {ready &&
+            (!archived || archivedPage.ready) &&
+            !filtered.length &&
+            !archiveBusy &&
+            !archiveError && (
+              <EmptyState>
+                <h3>没有符合条件的衣服。</h3>
+                <p>试试调整类型、季节或搜索条件。</p>
+                <Button variant="outline" onClick={clear}>
+                  清除筛选
+                </Button>
+              </EmptyState>
+            )}
+          {archivedPage.cursor && archived && (
+            <Button
+              variant="outline"
+              disabled={archiveBusy}
+              onClick={() => void readArchived(true)}
+            >
+              加载更多归档衣服
+            </Button>
+          )}
+        </TabsContent>
+        <TabsContent value="outfits">
+          <div className="r-toolbar r-wrap">
+            <div className="r-filter-pills">
+              {["all", ...c.outfitTags].map((tag) => (
+                <Button
+                  key={tag}
+                  variant="ghost"
+                  className={activeTag === tag ? "active" : ""}
+                  onClick={() => setActiveTag(tag)}
+                >
+                  {tag === "all" ? "全部场景" : view.tagLabel(tag)}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="ghost"
+              onClick={(event) => {
+                trigger.current = event.currentTarget;
+                setTagsOpen(true);
+              }}
+            >
+              <SlidersHorizontalIcon size={14} />
+              管理标签
+            </Button>
+            <Button
+              disabled={!ready || readonly}
+              onClick={() => {
+                reset();
+                view.tab.value = "为她搭配";
+              }}
+            >
+              <PlusIcon size={14} />
+              搭配新方案
+            </Button>
+          </div>
+          <div className="r-outfit-grid">
+            {c.outfits
+              .filter(
+                (o) =>
+                  activeTag === "all" ||
+                  o.tags?.includes(activeTag) ||
+                  o.tag === activeTag,
+              )
+              .map((o) => (
+                <Surface key={o.id} className="r-outfit-card">
+                  <div className="r-outfit-preview">
+                    {Object.values(o.items)
+                      .flat()
+                      .slice(0, 4)
+                      .map((id) => {
+                        const g = c.garments.find((g) => g.id === id) || {
+                          name:
+                            o._source?.items?.find((g) => g.id === id)
+                              ?.description || "衣物名称待读取",
+                          type: "配饰",
+                        };
+                        return (
+                          <GarmentArt
+                            key={id}
+                            type={types[g.type]}
+                            name={g.name}
+                          />
+                        );
+                      })}
+                    <span className="r-floating-badge">
+                      {view.tagLabel(o.tag) || "未分类"}
+                    </span>
+                  </div>
+                  <div className="r-card-body">
+                    <h3>{o.name}</h3>
+                    <p>
+                      {Object.values(o.items).flat().length} 件服装 · v
+                      {o._source?.revision ?? "待核对"}
+                    </p>
+                    {!validOutfit(o) && (
+                      <small className="r-warning">
+                        部分成员当前不可穿，请先调整方案。
+                      </small>
+                    )}
+                    <div className="r-card-footer">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(event) => {
+                          trigger.current = event.currentTarget;
+                          view.preview.value = o.id;
+                        }}
+                      >
+                        <EyeIcon size={14} />
+                        预览
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        aria-label={"请" + c.name + "换上「" + o.name + "」"}
+                        disabled={view.busy.value || !validOutfit(o)}
+                        onClick={() => requestWear(o)}
+                      >
+                        请换上这套
+                      </Button>
+                    </div>
+                    <view.ActionFeedback
+                      labels={["换装"]}
+                      operation={"wear-outfit:" + o.id}
+                      showStatus
+                    />
+                  </div>
                 </Surface>
               ))}
-            </Fragment>
-            {readValue(view.character).outfits.length ? null : (
-              <p key={0} className="muted">
-                {"还没有方案，去搭配一套吧。"}
-              </p>
+          </div>
+          {ready &&
+            !c.outfits.filter(
+              (o) =>
+                activeTag === "all" ||
+                o.tags?.includes(activeTag) ||
+                o.tag === activeTag,
+            ).length && (
+              <EmptyState>
+                <h3>还没有符合场景的穿搭方案</h3>
+                <Button
+                  disabled={readonly}
+                  onClick={() => (view.tab.value = "为她搭配")}
+                >
+                  开始搭配
+                </Button>
+              </EmptyState>
             )}
-          </Fragment>
-        ) : (
-          <Fragment key={2}>
-            <div className="wardrobe-filters grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-              <ChoiceSelect
-                aria-label="按类型筛选"
-                value={view.type.value}
-                onChange={(event) => {
-                  ((x) => (view.type.value = x))(event.target.value);
-                }}
-              >
-                <option value="">{"全部类型"}</option>
-                <Fragment>
-                  {listValues(readValue(At)).map((x, rowIndex) => (
-                    <option
-                      key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
-                    >
-                      {displayText(x)}
-                    </option>
-                  ))}
-                </Fragment>
-              </ChoiceSelect>
-              <ChoiceSelect
-                aria-label="按季节筛选"
-                value={view.season.value}
-                onChange={(event) => {
-                  ((x) => (view.season.value = x))(event.target.value);
-                }}
-              >
-                <option value="">{"全部季节"}</option>
-                <Fragment>
-                  {listValues(["春", "夏", "秋", "冬"]).map((x, rowIndex) => (
-                    <option
-                      key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
-                    >
-                      {displayText(x)}
-                    </option>
-                  ))}
-                </Fragment>
-              </ChoiceSelect>
-
-              <ActionButton variant="outline"
-
-                onClick={(x) =>
-                  (view.garment.value = {
-                    id: Date.now(),
-                    name: "",
-                    type: "上衣",
-                    seasons: ["秋"],
-                  })
-                }
-              >
-                {"添加衣服"}
-              </ActionButton>
-            </div>
-            <div className="garment-grid">
-              <Fragment>
-                {listValues(view.filteredGarments.value).map((x) => (
-                  <Surface
-                    as="article"
-                    key={x.id}
-                    className="garment-card"
-                  >
-                    <div
-                      className={cn([
-                        "garment-thumb",
-                        "garment-type-" + x.type,
-                      ])}
-                    >
-                      <view.GarmentArt type={x.type} />
-
-                    </div>
-                    <div className="row">
-                      <div>
-                        <h3>{displayText(x.name)}</h3>
-                        <div className="flex flex-wrap gap-2"><Badge variant="outline">{x.type}</Badge><small>{displayText(x.seasons.join(" / "))}</small></div>
-                      </div>
-                      <span className="spacer" />
-                      <MenuDisclosure
-                        className="actions-menu"
-                        onClick={(R) =>
-                          R.target.closest("button") &&
-                          R.currentTarget.removeAttribute("open")
-                        }
-                        title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
-                        aria-label={x.name + "的衣服操作"}
-                      >
-                        <div className="scroll-lock-list" data-scroll-lock="">
-                          <ActionButton variant="ghost"
-                            onClick={(R) =>
-                              (view.garment.value = JSON.parse(
-                                JSON.stringify(x),
-                              ))
+        </TabsContent>
+        <TabsContent value="compose">
+          <div className="r-compose-layout">
+            <Surface className="r-padded">
+              <h2>挑选今天的灵感</h2>
+              <p className="r-muted">每个部位选一件，配饰可以多选。</p>
+              <div className="r-slot-list">
+                {slots.map((slot) => {
+                  const group = c.garments.filter((g) => g.type === slot);
+                  return group.length ? (
+                    <section key={slot}>
+                      <h4>
+                        {slot}
+                        <span>{group.length}</span>
+                      </h4>
+                      <div className="r-compose-garments">
+                        {group.map((g) => (
+                          <Button
+                            key={g.id}
+                            variant="ghost"
+                            aria-label={g.name}
+                            aria-pressed={
+                              !!view.items.value[slot]?.includes(g.id)
+                            }
+                            disabled={!view.tag.value || readonly}
+                            className={
+                              "r-compose-item choice" +
+                              (view.items.value[slot]?.includes(g.id)
+                                ? " selected"
+                                : "")
+                            }
+                            onClick={() =>
+                              view.choose(slot, g.id, slot === "配饰")
                             }
                           >
-                            {"编辑"}
-                          </ActionButton>
-                          <ActionButton variant="ghost"
-                            onClick={(R) => view.removeGarment(x.id)}
-                          >
-                            {"归档"}
-                          </ActionButton>
-                        </div>
-                      </MenuDisclosure>
-                    </div>
-                  </Surface>
-                ))}
-              </Fragment>
-              {view.filteredGarments.value.length ? null : (
-                <p key={0} className="muted">
-                  {"没有符合条件的衣服。"}
-                </p>
+                            {art(g)}
+                            <span>{g.name}</span>
+                            {view.items.value[slot]?.includes(g.id) && (
+                              <i>
+                                <CheckIcon size={11} />
+                              </i>
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null;
+                })}
+              </div>
+              {ready && !c.garments.length && (
+                <p className="r-muted">先补录已知衣物，再开始搭配。</p>
               )}
-            </div>
-          </Fragment>
-        )}
-        {view.garment.value ? (
-          <DrawerFrame
-            key={3}
-            title={readValue(view.character).garments.some(item=>item.id===view.garment.value.id)?"编辑衣服":"添加衣服"}
-            className="drawer-backdrop"
-            onClose={(x) => (view.garment.value = null)}
-          >
-            <form
-              data-testid="garment-drawer"
-              className="drawer-form form-grid"
-              aria-label="衣服"
-              onSubmit={eventModifiers(view.saveGarment, ["prevent"])}
-            >
-              <view.ActionFeedback labels={["衣柜"]} />
-
-              <label>
-                {"名称"}
-                <FieldInput
-                  required
-                  aria-label="衣服名称"
-                  value={view.garment.value.name}
-                  onChange={(event) => {
-                    ((x) => (view.garment.value.name = x))(event.target.value);
-                  }}
-                />
-                <p className="text-sm text-muted-foreground">填写便于辨认的衣服名称。</p>
-              </label>
-              <label>
-                {"类型"}
-                <ChoiceSelect
-                  value={view.garment.value.type}
-                  onChange={(event) => {
-                    ((x) => (view.garment.value.type = x))(event.target.value);
-                  }}
-                >
-                  <Fragment>
-                    {listValues(readValue(At)).map((x, rowIndex) => (
-                      <option
-                        key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
+            </Surface>
+            <Surface className="r-compose-summary">
+              <span className="r-tiny-label">YOUR COMBINATION</span>
+              <h2>{view.name.value || "一套新的日常"}</h2>
+              <div className="r-selected-clothes">
+                {selected.length ? (
+                  selected.map(({ id, slot, garment: g }) => (
+                    <div key={slot + id}>
+                      {art(g || { name: "衣物待读取", type: slot })}
+                      <span>
+                        <b>{g?.name || "当前目录没有这件衣物"}</b>
+                        <small>{slot}</small>
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={"移除" + (g?.name || id)}
+                        onClick={() =>
+                          (view.items.value[slot] = view.items.value[
+                            slot
+                          ].filter((value) => value !== id))
+                        }
                       >
-                        {displayText(x)}
+                        <XIcon size={13} />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState>
+                    <h3>慢慢挑，不着急</h3>
+                    <p>从左边选几件喜欢的衣服。</p>
+                  </EmptyState>
+                )}
+              </div>
+              {view.duplicate.value && (
+                <InlineFeedback>方案名称已存在，请换一个名称。</InlineFeedback>
+              )}
+              {view.draftError.value && (
+                <InlineFeedback role="alert">
+                  {view.draftError.value}
+                </InlineFeedback>
+              )}
+              <form
+                className="r-form-stack"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void view.saveOutfit();
+                }}
+              >
+                {field(
+                  "方案名称",
+                  <FieldInput
+                    aria-label="方案名称"
+                    value={view.name.value}
+                    onChange={(e) => (view.name.value = e.target.value)}
+                    placeholder="例如：书店里的慢时光"
+                  />,
+                )}
+                {field(
+                  "适合的场景",
+                  <ChoiceSelect
+                    aria-label="搭配标签"
+                    value={view.tag.value}
+                    onChange={(e) => (view.tag.value = e.target.value)}
+                  >
+                    {c.outfitTags.map((t) => (
+                      <option key={t} value={t}>
+                        {view.tagLabel(t)}
                       </option>
                     ))}
-                  </Fragment>
-                </ChoiceSelect>
-              </label>
-              <div className="row">
-                <Fragment>
-                  {listValues(["春", "夏", "秋", "冬"]).map((x, rowIndex) => (
-                    <label
-                      key={typeof x === "object" ? (x?.id ?? rowIndex) : x}
-                    >
-                      <FieldInput
-                        type="checkbox"
-                        value={x}
-                        modelValue={view.garment.value.seasons}
-                        onModelChange={(R) => (view.garment.value.seasons = R)}
-                      />
-                      {displayText(x)}
-                    </label>
-                  ))}
-                </Fragment>
-              </div>
-              <div className="row">
-                <ActionButton variant="default"
-
+                  </ChoiceSelect>,
+                )}
+                {!c.outfitTags.length && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={(event) => {
+                      trigger.current = event.currentTarget;
+                      setTagsOpen(true);
+                    }}
+                  >
+                    先添加场景标签
+                  </Button>
+                )}
+                <Button
                   disabled={
-                    readValue(view.busy) || !view.garment.value.name.trim()
+                    view.busy.value ||
+                    view.duplicate.value ||
+                    !view.tag.value ||
+                    !view.name.value.trim() ||
+                    !selected.length
                   }
                 >
-                  {displayText(
-                    readValue(view.busy) && view.action.value === "garment"
-                      ? "处理中…"
-                      : "保存衣服",
-                  )}
-                </ActionButton>
-                <ActionButton variant="outline"
+                  {view.editingId.value ? "保存方案修改" : "保存为穿搭方案"}
+                  <CheckIcon size={14} />
+                </Button>
+                <small className="r-muted">
+                  保存后，可在方案库单独请求换装。
+                </small>
+                <Button
                   type="button"
-
-                  onClick={(x) => (view.garment.value = null)}
+                  variant="ghost"
+                  onClick={() => {
+                    const editing = !!view.editingId.value;
+                    reset();
+                    if (editing) view.tab.value = "方案库";
+                  }}
                 >
-                  {"取消"}
-                </ActionButton>
-              </div>
-            </form>
-          </DrawerFrame>
-        ) : null}
-        {view.confirmation.value?<ConfirmationFrame title={view.confirmation.value.title} description={view.confirmation.value.message} onClose={()=>view.confirmation.value=null}><AlertDialogCancel>取消</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={()=>{view.confirmation.value.run();view.confirmation.value=null;}}>{view.confirmation.value.confirmLabel}</AlertDialogAction></ConfirmationFrame>:null}
-        {view.garment.value ? null : (
-          <view.ActionFeedback
-            key={5}
-            labels={["衣柜", "换装"]}
-            excludeOperationPrefix={
-              readValue(view.tab) === "方案库" ? "wear-outfit:" : ""
-            }
-          />
+                  {view.editingId.value ? "取消编辑" : "重新搭配"}
+                </Button>
+              </form>
+            </Surface>
+          </div>
+        </TabsContent>
+      </Tabs>
+      <WorkspaceDialog
+        className="replica-wardrobe"
+        open={!!draft}
+        onOpenChange={(open) => {
+          if (!open) view.garment.value = null;
+        }}
+        returnFocus={() => trigger.current}
+        title={draft ? (draft._source ? "服装资料" : "添加衣服") : "服装资料"}
+        description="补录或修正已经知道的衣物信息。"
+        footer={
+          draft ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => (view.garment.value = null)}
+              >
+                取消
+              </Button>
+              {!draft._source?.archived_at && (
+                <Button
+                  form={formId}
+                  type="submit"
+                  disabled={view.busy.value || !draft.name.trim()}
+                >
+                  保存衣服
+                </Button>
+              )}
+            </>
+          ) : undefined
+        }
+      >
+        {draft && (
+          <form
+            id={formId}
+            data-testid="garment-drawer"
+            className="r-form-stack"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void view.saveGarment();
+            }}
+          >
+            <view.ActionFeedback labels={["衣柜"]} />
+            <div className="r-garment-dialog-art">{art(draft)}</div>
+            {field(
+              "衣服名称 / 描述",
+              <FieldInput
+                aria-label="衣服名称"
+                disabled={readonly || !!draft._source?.archived_at}
+                value={draft.name}
+                onChange={(e) => (draft.name = e.target.value)}
+              />,
+            )}
+            <p className="r-muted">填写便于辨认的衣服名称。</p>
+            {field(
+              "服装类型",
+              <ChoiceSelect
+                aria-label="服装类型"
+                disabled={readonly || !!draft._source?.archived_at}
+                value={draft.type}
+                onChange={(e) => (draft.type = e.target.value)}
+              >
+                {slots.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </ChoiceSelect>,
+            )}
+            {field(
+              "适合季节",
+              <div className="r-check-list">
+                {["春", "夏", "秋", "冬"].map((s) => (
+                  <label key={s}>
+                    <Checkbox
+                      disabled={readonly || !!draft._source?.archived_at}
+                      checked={draft.seasons.includes(s)}
+                      onCheckedChange={(checked) =>
+                        (draft.seasons = checked
+                          ? [...draft.seasons, s]
+                          : draft.seasons.filter((v) => v !== s))
+                      }
+                    />
+                    {s}季
+                  </label>
+                ))}
+              </div>,
+              true,
+            )}
+            <div className="r-form-grid">
+              {field(
+                "拥有关系",
+                <ChoiceSelect
+                  aria-label="拥有关系"
+                  disabled={readonly || !!draft._source?.archived_at}
+                  value={
+                    draft.ownership || draft._source?.ownership || "unknown"
+                  }
+                  onChange={(e) => (draft.ownership = e.target.value)}
+                >
+                  <option value="owned">已拥有</option>
+                  <option value="borrowed">借用</option>
+                  <option value="unknown">尚未确认</option>
+                </ChoiceSelect>,
+              )}
+              {field(
+                "可用状态",
+                <ChoiceSelect
+                  aria-label="可用状态"
+                  disabled={readonly || !!draft._source?.archived_at}
+                  value={
+                    draft.availability ||
+                    draft._source?.availability ||
+                    "available"
+                  }
+                  onChange={(e) => (draft.availability = e.target.value)}
+                >
+                  <option value="available">可穿着</option>
+                  <option value="unavailable">暂不可用</option>
+                  <option value="lost">已遗失</option>
+                </ChoiceSelect>,
+              )}
+            </div>
+            {draft._source && (
+              <>
+                <RecordHistory fid={fid} id={draft.id} kind="garment" />
+                <JsonDetails value={draft._source} title="完整服装与来源" />
+                {draft._source.archived_at ? (
+                  <p className="r-muted">
+                    这件衣服已归档，历史和方案引用仍保留。
+                  </p>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={view.busy.value}
+                    onClick={() => view.removeGarment(draft.id)}
+                  >
+                    归档服装
+                  </Button>
+                )}
+              </>
+            )}
+          </form>
         )}
-      </TabsContent>
-    </Tabs>
+      </WorkspaceDialog>
+      <WorkspaceDialog
+        className="replica-wardrobe"
+        open={!!preview}
+        onOpenChange={(open) => {
+          if (!open) view.preview.value = null;
+        }}
+        returnFocus={() => trigger.current}
+        title={preview?.name || "穿搭预览"}
+        description={
+          (view.tagLabel(preview?.tag) || "未分类") + " · 已保存方案"
+        }
+        footer={
+          preview ? (
+            <>
+              <Button
+                variant="outline"
+                disabled={readonly}
+                onClick={() => {
+                  view.edit(preview);
+                  view.preview.value = null;
+                }}
+              >
+                编辑方案
+              </Button>
+              <Button
+                disabled={view.busy.value || !validOutfit(preview)}
+                onClick={() => requestWear(preview)}
+              >
+                请换上这套
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        {preview && (
+          <div className="r-form-stack">
+            <div className="r-selected-clothes">
+              {Object.values(preview.items)
+                .flat()
+                .map((id) => {
+                  const g = c.garments.find((g) => g.id === id);
+                  return (
+                    <div key={id}>
+                      {art(g || { type: "配饰", name: "衣物待读取" })}
+                      <span>
+                        <b>
+                          {g?.name ||
+                            preview._source?.items?.find((g) => g.id === id)
+                              ?.description ||
+                            "衣物名称待读取"}
+                        </b>
+                        <small>{g?.type || "当前目录未找到"}</small>
+                      </span>
+                      <Badge variant="outline">
+                        {g
+                          ? g._source?.availability === "available"
+                            ? "可穿"
+                            : "暂不可穿"
+                          : "待读取"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+            </div>
+            <div className="r-tag-edit">
+              <FieldInput
+                aria-label="方案新名称"
+                value={
+                  view.renameOutfit.value === preview.id
+                    ? view.renameValue.value
+                    : preview.name
+                }
+                onChange={(e) => {
+                  view.renameOutfit.value = preview.id;
+                  view.renameValue.value = e.target.value;
+                }}
+              />
+              <Button
+                variant="outline"
+                disabled={
+                  view.busy.value ||
+                  view.renameOutfit.value !== preview.id ||
+                  !view.renameValue.value.trim()
+                }
+                onClick={() => void view.rename(preview)}
+              >
+                重命名
+              </Button>
+            </div>
+            <view.ActionFeedback labels={["衣柜", "换装"]} />
+            <RecordHistory fid={fid} id={preview.id} kind="outfit" />
+            <JsonDetails value={preview._source} title="完整方案与来源" />
+          </div>
+        )}
+      </WorkspaceDialog>
+      <WorkspaceDialog
+        className="replica-wardrobe"
+        open={tagsOpen}
+        returnFocus={() => trigger.current}
+        onOpenChange={setTagsOpen}
+        title="管理穿搭场景"
+        description="删除场景标签会保留已有方案。"
+      >
+        <div className="r-form-stack tag-list">
+          {c.outfitTags.map((tag) => (
+            <div className="r-tag-edit wardrobe-tag" key={tag}>
+              <Badge variant="outline">{view.tagLabel(tag)}</Badge>
+              <MenuDisclosure
+                title={<SlidersHorizontalIcon size={14} />}
+                aria-label={view.tagLabel(tag) + "的标签操作"}
+              >
+                <Button
+                  variant="ghost"
+                  disabled={view.busy.value}
+                  onClick={() => {
+                    view.renameTag.value = tag;
+                    view.newTag.value = tag;
+                  }}
+                >
+                  改名
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={view.busy.value}
+                  onClick={() => view.removeTag(tag)}
+                >
+                  删除
+                </Button>
+              </MenuDisclosure>
+            </div>
+          ))}
+          <form
+            className="r-tag-edit"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void view.saveTags();
+            }}
+          >
+            <FieldInput
+              aria-label="标签名称"
+              placeholder={view.renameTag.value ? "新标签名" : "新的场景标签"}
+              value={view.newTag.value}
+              onChange={(e) => (view.newTag.value = e.target.value)}
+            />
+            <Button disabled={view.busy.value || !view.newTag.value.trim()}>
+              {view.renameTag.value ? "保存标签" : "添加"}
+            </Button>
+          </form>
+          {view.renameTag.value && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                view.renameTag.value = "";
+                view.newTag.value = "";
+              }}
+            >
+              取消改名
+            </Button>
+          )}
+          <view.ActionFeedback labels={["衣柜"]} />
+        </div>
+      </WorkspaceDialog>
+      {view.confirmation.value && (
+        <ConfirmationFrame
+          title={view.confirmation.value.title}
+          description={view.confirmation.value.message}
+          onClose={() => {
+            if (!confirmBusy) {
+              view.confirmation.value = null;
+              setConfirmError("");
+            }
+          }}
+        >
+          <>
+            {confirmError && (
+              <InlineFeedback role="alert">{confirmError}</InlineFeedback>
+            )}
+            <AlertDialogCancel disabled={confirmBusy}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmBusy}
+              onClick={async (e) => {
+                e.preventDefault();
+                setConfirmBusy(true);
+                setConfirmError("");
+                try {
+                  const result = view.confirmation.value.run();
+                  const saved = await (result?.completion || result);
+                  if (saved === false)
+                    setConfirmError(
+                      w.state.operations.filter((op) => op.fid === fid).at(-1)
+                        ?.reason || "操作未完成，原输入和请求记录已保留。",
+                    );
+                  else {
+                    view.confirmation.value = null;
+                    if (
+                      draft?.id &&
+                      !w.current.value.garments.some((g) => g.id === draft.id)
+                    )
+                      view.garment.value = null;
+                  }
+                } catch (cause) {
+                  setConfirmError(errorMessage(cause));
+                } finally {
+                  setConfirmBusy(false);
+                }
+              }}
+            >
+              {confirmBusy ? "正在处理…" : view.confirmation.value.confirmLabel}
+            </AlertDialogAction>
+          </>
+        </ConfirmationFrame>
+      )}
+      {!draft && !preview && !tagsOpen && (
+        <view.ActionFeedback
+          labels={["衣柜", "换装"]}
+          excludeOperationPrefix={
+            view.tab.value === "方案库" ? "wear-outfit:" : ""
+          }
+        />
+      )}
+    </div>
   );
 }

@@ -45,7 +45,7 @@ function DomainToolHost({route}: {route:any}) {
     void open();
     return()=>{active=false;dispose?.();validation?.();closeOverlays();if(w.state.pageHeading?.route===route.path&&w.state.pageHeading?.owner===owner)w.state.pageHeading=null;};
   },[w,owner,route,revision]);
-  return <section className="approved-domain" aria-label={route.feature.title} data-testid="domain-workspace">{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/></section>;
+  return <section className={"approved-domain"+(route.path.startsWith("/data")?" replica-data-domain":"")} aria-label={route.feature.title} data-testid="domain-workspace">{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/></section>;
 }
 
 export default function DomainPage({route}:{route:any}) {

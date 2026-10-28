@@ -124,6 +124,7 @@ function createManagementPageController(props, context, lifecycle) {
     reference = lifecycle.cell(""),
     testResult = lifecycle.cell(""),testRaw=lifecycle.cell(null),
     currentSection=lifecycle.cell("服务地址");
+  const catalogLoading=lifecycle.cell(true),catalogReady=lifecycle.cell(false);
   const settings = lifecycle.cell([]),
     endpoints = lifecycle.cell([]),
     bindings = lifecycle.cell([]),
@@ -136,13 +137,13 @@ function createManagementPageController(props, context, lifecycle) {
       character: "全部角色",
     }),
     records = lifecycle.cell([]),
-    diagnosticPages=lifecycle.cell({"模型调用":{cursor:"",loading:false,error:""},"媒体调用":{cursor:"",loading:false,error:""}}),
+    diagnosticPages=lifecycle.cell({"模型调用":{cursor:"",loading:true,error:"",ready:false},"媒体调用":{cursor:"",loading:true,error:"",ready:false}}),
     referenceRecord=lifecycle.cell(null),
     pending = new Map(),
     recovery = lifecycle.cell(null);
   const configForm = lifecycle.cell(null);
   let sectionObserver=null;
-  function observeSections(){sectionObserver?.disconnect();if(typeof IntersectionObserver==='undefined'||!configForm.value)return;const root=configForm.value.closest('.workspace-page'),visible=new Map();sectionObserver=new IntersectionObserver(entries=>{if(!live()||tab.value!=='配置中心')return;for(const entry of entries){if(entry.isIntersecting)visible.set(entry.target.id,entry.target);else visible.delete(entry.target.id);}const first=[...visible.values()].sort((a,b)=>a.getBoundingClientRect().top-b.getBoundingClientRect().top)[0];if(first)currentSection.value=sections.value.find(section=>sectionId(section)===first.id)||currentSection.value;},{root,rootMargin:'-96px 0px -55% 0px',threshold:0});for(const section of configForm.value.querySelectorAll('.settings-group'))sectionObserver.observe(section);}
+  function observeSections(){sectionObserver?.disconnect();}
   lifecycle.onDispose(()=>sectionObserver?.disconnect());
   lifecycle.observe(
     configForm,
@@ -301,7 +302,7 @@ function createManagementPageController(props, context, lifecycle) {
     const trigger = node?.querySelector("[data-slot=collapsible-trigger]");
     if (trigger?.getAttribute("aria-expanded") === "false") trigger.click();
     await afterPaint();
-    node?.scrollIntoView({
+    if(focus)node?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
@@ -334,6 +335,7 @@ function createManagementPageController(props, context, lifecycle) {
   );
   function confirmedEditable(){if(!catalog)return '';const hours=quiet.value._source||catalog.effective_values['product.autonomy']?.quiet_hours||{};return editableConfiguration(settings.value.map(group=>({...group,fields:group.fields.map(field=>uiField(field._settingKey,field._definition,catalog.effective_values[field._settingKey]))})),catalog.endpoints.map(endpoint=>({id:endpoint.id,name:endpoint.id,protocol:endpoint.kind,url:endpoint.base_url,secret:'',clearSecret:false})),Object.entries(roleNames).map(([role])=>{const saved=catalog.bindings.find(binding=>binding.role===role);return {role,endpoint:saved?.endpoint_id||'',model:saved?.model_id||'',timeout:saved?.timeout_seconds??''};}),{...quiet.value,enabled:!!hours.start,start:hours.start||'',end:hours.end||'',days:(hours.days||[0,1,2,3,4,5,6]).map(day=>weekdays[day])});}
   async function readCatalog() {
+    catalogLoading.value=true;
     const snapshot = await config.read();
     if (!live()) return;
     snapshot._loadedAt = Date.now();
@@ -392,7 +394,7 @@ function createManagementPageController(props, context, lifecycle) {
         error.value =
           "连接草稿已恢复。访问密钥不会保存在浏览器草稿中，请重新填写。";
     }
-    loaded = true;
+    loaded = true;catalogReady.value=true;catalogLoading.value=false;
     const hours =
       snapshot.effective_values["product.autonomy"]?.quiet_hours || {};
     quiet.value = {
@@ -435,10 +437,11 @@ function createManagementPageController(props, context, lifecycle) {
     const projected = [];
     for (const [index, result] of [models, media].entries()) {
       if (result.status === "rejected") {
-        error.value = errorMessage(result.reason);
+        const pageState=diagnosticPages.value[index?"媒体调用":"模型调用"];pageState.loading=false;pageState.error=errorMessage(result.reason);
+        projected.push(...records.value.filter(record=>record.kind===(index?"媒体调用":"模型调用")));
         continue;
       }
-      diagnosticPages.value[index?"媒体调用":"模型调用"].cursor=result.value.next_cursor||"";
+      Object.assign(diagnosticPages.value[index?"媒体调用":"模型调用"],{cursor:result.value.next_cursor||"",loading:false,error:"",ready:true});
       for (const record of result.value.items) {
         projected.push(diagnosticProjection(record, index, characters.value));
       }
@@ -446,7 +449,7 @@ function createManagementPageController(props, context, lifecycle) {
     records.value = projected;
     w.state.diagnostics = projected;
   }
-  async function loadMoreDiagnostics(){const selectedKind=kind.value,state=diagnosticPages.value[selectedKind],cursor=state.cursor;if(state.loading||!cursor)return;state.loading=true;state.error='';try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor});if(!live())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}catch(cause){if(live())state.error=errorMessage(cause);}finally{if(live())state.loading=false;}}
+  async function loadMoreDiagnostics(){const selectedKind=kind.value,state=diagnosticPages.value[selectedKind],cursor=state.cursor;if(!state.ready&&state.error){await loadDiagnostics();return;}if(state.loading||!cursor)return;state.loading=true;state.error='';try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor});if(!live())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}catch(cause){if(live())state.error=errorMessage(cause);}finally{if(live())state.loading=false;}}
   let referenceDetailEpoch=0;
   async function openReference(record,section){const token=++referenceDetailEpoch;referenceRecord.value={record,section,loading:true,error:'',detail:null};try{const detail=await diagnostics.record(section.kind,record.ref);if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:'',detail};}catch(cause){if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:errorMessage(cause),detail:null};}}
   async function write(kind, body, run) {
@@ -800,7 +803,7 @@ function createManagementPageController(props, context, lifecycle) {
     },
   );
   lifecycle.onStart(() => {
-    void readCatalog().catch((e) => (error.value = errorMessage(e)));
+    void readCatalog().catch((e) => {if(live()){error.value=errorMessage(e);catalogLoading.value=false;}});
     void loadDiagnostics().catch((e) => (error.value = errorMessage(e)));
   });
   lifecycle.onDispose(() => {
@@ -814,6 +817,8 @@ function createManagementPageController(props, context, lifecycle) {
     <ManagementPageView
       view={{
         accountActions:()=>(<div className="flex flex-wrap items-center justify-end gap-3" aria-label="账户">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton variant="ghost" type="button"  onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton variant="outline" type="button"  disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>),
+        catalogLoading,catalogReady,retryCatalog:()=>{void readCatalog().catch(cause=>{if(live()){catalogLoading.value=false;error.value=errorMessage(cause);}});},
+        openData:()=>w.navigatePath("/data"),
         sectionLabel:value=>({"聊天回复":"回复行为","看图理解":"图片理解设置"})[value]||value,
         userInstant,diagnosticPages,loadMoreDiagnostics,referenceRecord,openReference,
         selectReference:value=>{reference.value=value;selectedId.value=null;referenceRecord.value=null;},

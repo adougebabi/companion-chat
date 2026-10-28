@@ -1,0 +1,309 @@
+/* People and about-you layouts from the supplied Demo. */
+
+.replica-people .companion-people-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.replica-people .companion-person-card {
+  text-align: left;
+  border: 1px solid #e3e8dc;
+  border-radius: 13px;
+  background: #fffefb;
+  padding: 22px;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.replica-people .companion-person-card:hover {
+  border-color: #c3d4b1;
+  box-shadow: 0 5px 19px #6d835310;
+}
+.replica-people .companion-person-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  color: #75816c;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 19px;
+}
+.replica-people .companion-person-card h3 {
+  font-size: 18px;
+  font-family: var(--font-serif, Georgia, serif);
+  font-weight: 400;
+  margin: 18px 0 5px;
+  color: #526448;
+}
+.replica-people .companion-person-job {
+  font-size: 11px;
+  color: #8d9980;
+}
+.replica-people .companion-person-card > p {
+  font-size: 11px;
+  line-height: 1.95;
+  color: #9aa38d;
+  margin: 14px 0 22px;
+  flex: 1;
+}
+.replica-people .companion-person-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid #eef1e8;
+  color: #95a585;
+  font-size: 9px;
+  gap: 8px;
+}
+.replica-people .companion-person-bottom > span {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.replica-people .companion-revision-box {
+  background: #f5f7ef;
+  padding: 18px;
+  border: 1px solid #e5ebdb;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.replica-people .companion-revision-box h3 {
+  font-size: 12px;
+  color: #7c8e6c;
+}
+.replica-people .companion-relationship-card {
+  text-align: center;
+  padding: 32px !important;
+  background: linear-gradient(150deg, #fffefb, #f4f7ec) !important;
+}
+.replica-people .companion-relationship-avatars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 22px;
+}
+.replica-people .companion-owner-circle {
+  width: 66px;
+  height: 66px;
+  border: 4px solid white;
+  border-radius: 50%;
+  background: #eae8dc;
+  color: #a6a387;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 9px #687a4f0c;
+}
+.replica-people .companion-relationship-line {
+  width: 82px;
+  height: 1px;
+  background: #dfe8d2;
+  position: relative;
+  color: #aabb97;
+}
+.replica-people .companion-relationship-line svg {
+  position: absolute;
+  left: calc(50% - 14px);
+  top: -13px;
+  padding: 5px;
+  box-sizing: content-box;
+  background: #fafbf5;
+}
+.replica-people .companion-relationship-card > h2 {
+  font-size: 22px;
+  font-family: var(--font-serif, Georgia, serif);
+  font-weight: 400;
+  color: #657858;
+}
+.replica-people .companion-relationship-card > p {
+  font-size: 12px;
+  line-height: 2;
+  max-width: 420px;
+  margin: 17px auto 25px;
+  color: #92a080;
+}
+.replica-people .companion-relationship-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+  margin-bottom: 27px;
+}
+.replica-people .companion-relationship-metrics > div {
+  display: grid;
+  grid-template-columns: 100px 1fr 38px;
+  gap: 13px;
+  align-items: center;
+  text-align: left;
+}
+.replica-people .companion-relationship-metrics span,
+.replica-people .companion-relationship-metrics small {
+  font-size: 10px;
+  color: #93a17e;
+}
+.replica-people .companion-relationship-metrics [data-slot="progress"] {
+  height: 5px;
+}
+.replica-people .companion-relationship-card .info-box {
+  text-align: left;
+}
+@media (max-width: 1200px) {
+  .replica-people .companion-people-grid {
+    gap: 14px;
+  }
+  .replica-people .companion-person-card {
+    padding: 18px;
+  }
+}
+@media (max-width: 1050px) {
+  .replica-people .companion-people-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .replica-people .companion-people-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .replica-people .companion-person-card {
+    padding: 15px;
+  }
+  .replica-people .companion-person-card h3 {
+    font-size: 16px;
+  }
+  .replica-people .companion-person-card > p {
+    font-size: 10px;
+  }
+  .replica-people .companion-person-bottom > span {
+    font-size: 8px;
+  }
+  .replica-people .companion-relationship-card {
+    padding: 25px 20px !important;
+  }
+  .replica-people .companion-relationship-card > h2 {
+    font-size: 19px;
+  }
+  .replica-people .companion-relationship-metrics > div {
+    grid-template-columns: 90px 1fr 32px;
+    gap: 7px;
+  }
+}
+.replica-people .people-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+  min-width: 0;
+}
+.replica-people .replica-segment-tabs {
+  width: 100%;
+}
+.replica-people .people-search {
+  flex: 1;
+  max-width: 440px;
+  min-width: 0;
+}
+.replica-people .people-search [data-slot="input"] {
+  height: 39px;
+  min-height: 39px;
+  background: white;
+  font-size: 12px;
+}
+.replica-people .companion-toolbar [data-slot="select-trigger"] {
+  min-width: 145px;
+  width: auto;
+  font-size: 12px;
+}
+.replica-people [data-slot="button"].companion-person-card {
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  height: auto;
+  white-space: normal;
+  padding: 22px;
+  font-weight: 400;
+}
+.replica-people .companion-person-avatar {
+  background: #e3e9db;
+  flex: none;
+}
+.replica-people .companion-person-card [data-slot="badge"] {
+  font-size: 10px;
+  font-weight: 400;
+}
+.replica-people .companion-person-card [data-known="true"] {
+  background: #edf4e9;
+  color: #62804e;
+  border-color: #deead5;
+}
+.replica-people .companion-person-card [data-known="false"] {
+  background: #f1f3ed;
+  color: #7b856e;
+  border-color: #e8ecdf;
+}
+.replica-people .companion-person-bottom {
+  width: 100%;
+}
+.replica-people .companion-relationship-avatars .avatar-lg {
+  width: 66px;
+  height: 66px;
+  border: 4px solid white;
+  border-radius: 50%;
+}
+.replica-people .people-editor-fields {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.replica-people .people-routine-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e8ecdf;
+}
+.replica-people [data-slot="workspace-command-inline"] .lp-form {
+  display: block;
+}
+.replica-people .profile-section-heading .companion-action-row {
+  margin-top: 0;
+}
+.replica-people .companion-relationship-card .replica-info {
+  text-align: left;
+}
+@media (max-width: 700px) {
+  .replica-people .people-search {
+    max-width: none;
+  }
+  .replica-people .people-search [data-slot="input"] {
+    min-height: 44px;
+  }
+  .replica-people .companion-edit-grid {
+    grid-template-columns: 1fr;
+  }
+  .replica-people .people-routine-row {
+    grid-template-columns: 1fr;
+  }
+}
+.replica-profile .replica-segment-tabs,
+.replica-world .replica-segment-tabs {
+  justify-content: flex-start;
+}
+.replica-people .companion-toolbar > .relative {
+  width: 145px;
+  max-width: 100%;
+  flex: none;
+}
+@media (min-width: 701px) {
+  .replica-people .companion-toolbar [data-slot="select-trigger"] {
+    height: 39px;
+    min-height: 39px;
+  }
+}

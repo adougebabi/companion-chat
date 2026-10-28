@@ -1,28 +1,6 @@
-import JsonDetails from '@/react-app/shared/JsonDetails';
-import RecordView from '@/react-app/shared/RecordView';
-import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
-import {InlineFeedback,ReadState} from "@/react-app/shared/Presentation";
-import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import { useController } from "@/react-app/page";
-import { selector, readValue } from "@/state/view-model";
-import {
-  ActionButton,
-  Surface,
-  FieldInput,
-  ChoiceSelect,
-  Textarea,
-  Disclosure,
-} from "@/react-app/controls";
-import {
-  displayText,
-  eventModifiers,
-  listValues,
-  Fragment,
-} from "@/react-app/render-helpers";
-import { ActionFeedback } from "@/react-app/components";
-import CharacterAvatar from "@/react-app/shared/CharacterAvatar";
-import SemanticTree from "@/react-app/shared/SemanticTree";
-import ProfileForm from "@/react-app/shared/ProfileForm";
+import { selector, jsonValueSnapshot } from "@/state/view-model";
+import { persistentCommand } from "@/v3/providers/persistent-command.mjs";
 import {
   personaPresentation,
   workingPersonaPresentation,
@@ -38,15 +16,22 @@ import {
   profileChanges,
   profileSaveCommand,
   rebaseProfileFields,
+  applyProfileChanges,
 } from "@/approved-ui/profile-fields.mjs";
 import { errorMessage, stateLabel } from "@/v3/domain-presentation.mjs";
+import CharacterDetailPageView from "@/react-app/views/CharacterDetailPage";
 export function createProfileModel(lifecycle) {
-
   const w = lifecycle.workspace,
     fid = w.state.selectedId,
+    owner = w.state.session.actorId,
     scope = w.currentScope(),
     detail = lifecycle.cell(null),
+    readingDetail = lifecycle.cell(false),
+    acceptedRevision = lifecycle.cell(null),
     world = lifecycle.cell(null),
+    worldLoading = lifecycle.cell(false),
+    worldReady = lifecycle.cell(false),
+    worldError = lifecycle.cell(""),
     editing = lifecycle.cell(false),
     fields = lifecycle.cell([]),
     base = lifecycle.cell(null),
@@ -54,6 +39,7 @@ export function createProfileModel(lifecycle) {
     saving = lifecycle.cell(false),
     readbackPending = lifecycle.cell(false),
     submittedFields = lifecycle.cell(null),
+    pendingProfile = lifecycle.cell(null),
     error = lifecycle.cell(""),
     conflict = lifecycle.cell(false),
     last = lifecycle.cell(null),
@@ -63,13 +49,18 @@ export function createProfileModel(lifecycle) {
     confirm = lifecycle.cell(false),
     personaRecord = lifecycle.cell(null),
     personaSubmitted = lifecycle.cell(null),
+    personaReceipt = lifecycle.cell(null),
+    personaRequestId = lifecycle.cell(""),
+    pendingPersona = lifecycle.cell(null),
     personaReadbackPending = lifecycle.cell(false),
     personaFeedback = lifecycle.cell("");
   let active = true,
     epoch = 0,
     reading = false,
-    timer;
-  const live = () => active && w.currentScope() === scope;
+    timer,
+    personaEpoch = 0,
+    worldEpoch = 0;
+  const live = () => active && !!fid && w.currentScope() === scope;
   const snapshot = selector(() =>
       profileSnapshotFromDetail(detail.value || {}, w.current.value._directory),
     ),
@@ -77,6 +68,13 @@ export function createProfileModel(lifecycle) {
     personas = selector(() => snapshot.value.profiles),
     currentPersona = selector(() =>
       personas.value.find((p) => p.id === snapshot.value.activeProfileId),
+    ),
+    readOnly = selector(
+      () =>
+        snapshot.value.readOnly ||
+        ["retired", "archived", "已退休", "已归档"].includes(
+          w.current.value.status,
+        ),
     );
   const sections = selector(() =>
     [
@@ -114,6 +112,8 @@ export function createProfileModel(lifecycle) {
     ),
     subtitle = selector(() =>
       [
+        { female: "女", male: "男" }[detail.value?.identity?.gender] ||
+          detail.value?.identity?.gender,
         detail.value?.identity?.age != null
           ? detail.value.identity.age + " 岁"
           : "",
@@ -132,11 +132,40 @@ export function createProfileModel(lifecycle) {
     encodeURIComponent(fid) +
     "/governance" +
     (kind ? "?tab=" + encodeURIComponent(kind) : "");
-  async function read({ preserve = false } = {}) {
+  const profileChannel = persistentCommand({
+    key:
+      "fluctlight:approved-command:" +
+      JSON.stringify([owner, fid, "profile:" + fid]),
+    storage: () => sessionStorage,
+    execute: async () => {
+      throw Error("请通过原工作区命令恢复");
+    },
+  });
+  function refreshPendingProfile() {
+    try {
+      pendingProfile.value = profileChannel.pending();
+    } catch (cause) {
+      error.value = errorMessage(cause);
+    }
+    return pendingProfile.value;
+  }
+  async function read({
+    preserve = editing.value,
+    minimumRevision = readbackPending.value ? acceptedRevision.value : null,
+  } = {}) {
+    if (!live()) return false;
     const token = ++epoch;
+    readingDetail.value = true;
     try {
       const raw = await w.client.detail(fid);
-      if (!live() || token !== epoch) return;
+      if (!live() || token !== epoch) return false;
+      if (raw?.id !== fid) throw Error("角色资料范围不匹配，保留上次确认内容");
+      if (
+        Number.isSafeInteger(minimumRevision) &&
+        (!Number.isSafeInteger(raw.current_revision) ||
+          raw.current_revision < minimumRevision)
+      )
+        throw Error("已接受修订的版本尚未读回，请只读恢复结果");
       detail.value = raw;
       w.current.value.detail = raw;
       if (preserve) {
@@ -156,10 +185,12 @@ export function createProfileModel(lifecycle) {
     } catch (cause) {
       if (live() && token === epoch) error.value = errorMessage(cause);
       return false;
+    } finally {
+      if (live() && token === epoch) readingDetail.value = false;
     }
   }
   function edit() {
-    if (!detail.value || snapshot.value.readOnly) return;
+    if (!live() || !detail.value || readOnly.value) return;
     base.value = coreFromDetail(detail.value);
     baseline.value = detail.value.current_revision;
     fields.value = profileFields(base.value, semanticLabel);
@@ -167,15 +198,24 @@ export function createProfileModel(lifecycle) {
     error.value = "";
     conflict.value = false;
   }
-  async function save() {
-    if (saving.value || snapshot.value.readOnly) return;
+  async function save(original) {
+    if (!live() || saving.value || readOnly.value || readbackPending.value)
+      return;
     try {
       const changes = profileChanges(base.value, fields.value);
-      if (!Object.keys(changes).length) {
+      if (
+        !original &&
+        !String(
+          fields.value.find((field) => field.path.join(".") === "identity.name")
+            ?.value || "",
+        ).trim()
+      )
+        throw Error("请填写角色名字");
+      if (!original && !Object.keys(changes).length) {
         editing.value = false;
         return;
       }
-      if (!Number.isSafeInteger(baseline.value))
+      if (!original && !Number.isSafeInteger(baseline.value))
         throw Error("资料版本尚未读取，请重新读取后保存");
       const submitted = JSON.parse(JSON.stringify(fields.value));
       saving.value = true;
@@ -183,7 +223,7 @@ export function createProfileModel(lifecycle) {
       const record = w.command(
         "角色详情",
         "profile:" + fid,
-        {
+        original || {
           changes,
           expectedRevision: baseline.value,
           reason: "所有者编辑角色设定资料",
@@ -199,14 +239,30 @@ export function createProfileModel(lifecycle) {
             "foundation_proposal_stale",
           ],
           success: "角色资料已保存，并记录本次修订",
-          onSaved: async () => {
+          onSaved: async (receipt, acknowledged) => {
             if (!live()) return;
+            refreshPendingProfile();
             readbackPending.value = true;
-            submittedFields.value = submitted;
+            acceptedRevision.value = receipt.revision;
+            submittedFields.value = acknowledged
+              ? profileFields(
+                  applyProfileChanges(base.value, acknowledged.changes),
+                  semanticLabel,
+                )
+              : submitted;
             const readback = await read({
               preserve: true,
             });
-            if (!readback) return;
+            if (!readback) {
+              if (!live()) return;
+              if (
+                readbackPending.value ||
+                detail.value?.current_revision < receipt.revision
+              )
+                throw Error(
+                  error.value || "已保存资料尚未读回，请重新读取结果",
+                );
+            }
             if (live()) {
               if (!Object.keys(profileChanges(base.value, fields.value)).length)
                 editing.value = false;
@@ -223,13 +279,38 @@ export function createProfileModel(lifecycle) {
         conflict.value = cause.status === 409;
       }
     } finally {
-      if (live()) saving.value = false;
+      if (live()) {
+        saving.value = false;
+        refreshPendingProfile();
+      }
     }
+  }
+  async function resumeProfileSave() {
+    const pending = refreshPendingProfile();
+    if (!pending || !live() || readOnly.value || saving.value) return;
+    if (!editing.value) edit();
+    if (!editing.value) return;
+    return save(jsonValueSnapshot(pending.value));
+  }
+  async function recoverProfileReadback() {
+    if (!live()) return;
+    if (last.value?.readbackPending) {
+      await last.value.run();
+      return;
+    }
+    const ok = await read({ preserve: true });
+    if (
+      ok &&
+      editing.value &&
+      !Object.keys(profileChanges(base.value, fields.value)).length
+    )
+      editing.value = false;
   }
   async function rebase() {
     try {
       if (last.value) await last.value.release();
       if (!live()) return;
+      refreshPendingProfile();
       await read({
         preserve: true,
       });
@@ -238,34 +319,191 @@ export function createProfileModel(lifecycle) {
       if (live()) error.value = errorMessage(cause);
     }
   }
+  const personaSlot = "fluctlight-profile:" + owner + ":" + fid + ":persona";
+  const personaChannel = persistentCommand({
+    key:
+      "fluctlight:approved-command:" +
+      JSON.stringify([owner, fid, "persona-switch"]),
+    storage: () => sessionStorage,
+    execute: async () => {
+      throw Error("请通过原工作区命令恢复");
+    },
+  });
+  function refreshPendingPersona() {
+    try {
+      pendingPersona.value = personaChannel.pending();
+    } catch (cause) {
+      error.value = errorMessage(cause);
+    }
+    return pendingPersona.value;
+  }
+  function persistPersona() {
+    if (!live()) return false;
+    try {
+      if (
+        !target.value &&
+        !reason.value &&
+        !personaSubmitted.value &&
+        !personaRequestId.value
+      )
+        sessionStorage.removeItem(personaSlot);
+      else
+        sessionStorage.setItem(
+          personaSlot,
+          JSON.stringify({
+            target: target.value,
+            reason: reason.value,
+            confirm: confirm.value,
+            submitted: personaSubmitted.value,
+            requestId: personaRequestId.value,
+          }),
+        );
+      return true;
+    } catch (cause) {
+      error.value = "人格切换草稿保存失败：" + errorMessage(cause);
+      return false;
+    }
+  }
+  function restorePersona() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(personaSlot) || "null");
+      if (saved) {
+        if (
+          typeof saved.target !== "string" ||
+          typeof saved.reason !== "string"
+        )
+          throw Error("切换草稿无法读取，请核对原请求");
+        target.value = saved.target;
+        reason.value = saved.reason;
+        confirm.value = !!saved.confirm;
+        personaSubmitted.value = saved.submitted || null;
+        personaRequestId.value =
+          typeof saved.requestId === "string" ? saved.requestId : "";
+        personaReadbackPending.value =
+          !!personaRequestId.value && !!personaSubmitted.value;
+      }
+    } catch (cause) {
+      error.value = errorMessage(cause);
+    }
+    const pending = refreshPendingPersona();
+    if (pending && !personaSubmitted.value) {
+      personaSubmitted.value = {
+        target: pending.value.targetPersonaId,
+        reason: pending.value.reason,
+        body: pending.value,
+      };
+      if (!target.value) target.value = pending.value.targetPersonaId;
+      if (!reason.value) reason.value = pending.value.reason;
+    }
+  }
+  async function runPersona(body, submitted) {
+    if (!live() || readOnly.value || switching.value) return;
+    personaEpoch++;
+    switching.value = true;
+    personaSubmitted.value = submitted;
+    personaFeedback.value = "";
+    error.value = "";
+    if (!persistPersona()) {
+      switching.value = false;
+      return;
+    }
+    try {
+      const record = w.command(
+        "角色详情",
+        "persona-switch",
+        body,
+        async (value, key) => {
+          if (!live() || readOnly.value)
+            throw Error("账号、角色或可写状态已变化");
+          const result = await w.client.switchPersona(fid, {
+            ...value,
+            idempotencyKey: key,
+          });
+          if (
+            !result?.request_id ||
+            result.request?.id !== result.request_id ||
+            result.request?.kind !== "persona_switch" ||
+            result.request?.fluctlight_id !== fid ||
+            !["completed", "pending"].includes(result.status) ||
+            !Number.isSafeInteger(result.revision) ||
+            !Number.isSafeInteger(result.runtime_revision) ||
+            (result.status === "completed" &&
+              result.active_profile_id !== value.targetPersonaId)
+          )
+            throw Error("切换回执未完整确认，原目标与身份仍保留");
+          if (live()) {
+            personaReceipt.value = jsonValueSnapshot(result);
+            personaRequestId.value = result.request_id;
+            personaReadbackPending.value = true;
+            persistPersona();
+          }
+          return result;
+        },
+        {
+          onSaved: readPersonaOutcome,
+          success: "人格切换请求已读回，请核对实际结果",
+        },
+      );
+      personaRecord.value = record;
+      const receipt = await record.completion;
+      if (live() && receipt?.status === "completed")
+        await readPersonaOutcome(receipt.request || receipt);
+    } catch (cause) {
+      if (live()) error.value = errorMessage(cause);
+    } finally {
+      if (live()) {
+        switching.value = false;
+        refreshPendingPersona();
+        persistPersona();
+      }
+    }
+  }
+  async function resumePersona() {
+    const pending = refreshPendingPersona();
+    if (!pending || !live() || readOnly.value || switching.value) return;
+    if (pending.rejection) {
+      error.value =
+        "原请求已明确因版本冲突被拒绝，请通过操作记录核对并释放旧基线。";
+      return;
+    }
+    const body = jsonValueSnapshot(pending.value),
+      saved = personaSubmitted.value;
+    return runPersona(
+      body,
+      saved?.body && JSON.stringify(saved.body) === JSON.stringify(body)
+        ? jsonValueSnapshot(saved)
+        : { target: body.targetPersonaId, reason: body.reason, body },
+    );
+  }
   async function switchPersona() {
-  if (
-    !live() || snapshot.value.readOnly || personaRecord.value?.requestUnresolved || personaReadbackPending.value ||
-    !target.value ||
-    !reason.value.trim() ||
-    !confirm.value ||
-    switching.value
-  )
-    return;
-  if (
-    !personas.value.some((p) => p.id === target.value) ||
-    target.value === snapshot.value.activeProfileId
-  ) {
-    error.value = "请选择当前角色可用的其他人格";
-    return;
-  }
-  if (
-    snapshot.value.switchTargetIds &&
-    !snapshot.value.switchTargetIds.includes(target.value)
-  ) {
-    error.value = "该人格当前不能通过所有者指令切换";
-    return;
-  }
-  switching.value = true;
-  const submitted = { target: target.value, reason: reason.value };
-  personaSubmitted.value=submitted;
-  personaFeedback.value='';error.value='';
-  try {
+    if (
+      !live() ||
+      readOnly.value ||
+      personaRecord.value?.requestUnresolved ||
+      personaReadbackPending.value ||
+      switching.value
+    )
+      return;
+    if (refreshPendingPersona()) return resumePersona();
+    if (!target.value || !reason.value.trim() || !confirm.value) return;
+    if (reason.value.trim().length > 1000) {
+      error.value = "切换原因最多1000个字符";
+      return;
+    }
+    if (
+      !personas.value.some((p) => p.id === target.value) ||
+      target.value === snapshot.value.activeProfileId
+    ) {
+      error.value = "请选择当前角色可用的其他人格";
+      return;
+    }
+    if (
+      snapshot.value.switchTargetIds &&
+      !snapshot.value.switchTargetIds.includes(target.value)
+    ) {
+      error.value = "该人格当前不能通过所有者指令切换";
+      return;
+    }
     const body = {
       targetPersonaId: target.value,
       expectedRevision: snapshot.value.foundationRevision,
@@ -276,53 +514,137 @@ export function createProfileModel(lifecycle) {
     if (
       !Number.isSafeInteger(body.expectedRevision) ||
       !Number.isSafeInteger(body.expectedRuntimeRevision)
-    )
-      throw Error("人格或运行版本未读取完整，请重新读取");
-    const record = w.command(
-      "角色详情",
-      "persona-switch",
+    ) {
+      error.value = "人格或运行版本未读取完整，请重新读取";
+      return;
+    }
+    return runPersona(body, {
+      target: target.value,
+      reason: reason.value,
       body,
-      async (value, key) => {
-        const result = await w.client.switchPersona(fid, {
-          ...value,
-          idempotencyKey: key,
-        });
-        return result.request_id
-          ? { request: { id: result.request_id, status: "pending" } }
-          : result;
-      },
-      {
-        onSaved:readPersonaOutcome,
-        success: "人格切换命令已提交，请核对当前状态",
-      },
-    );
-    personaRecord.value=record;
-    await record.completion;
-  } catch (cause) {
-    if (live()) error.value = errorMessage(cause);
-  } finally {
-    if (live()) switching.value = false;
+    });
   }
-}
-async function readPersonaOutcome(receipt){
-  if(!live()||!personaSubmitted.value)return;
-  personaReadbackPending.value=true;
-  if(!await read()){
-    if(live())error.value='命令已提交，但最新状态读取失败。原目标和原因已保留，请重新读取，确认前不要重复切换。';
-    return;
+  async function readPersonaOutcome(receipt) {
+    if (!live()) return false;
+    if (receipt) {
+      const incoming = receipt.request || receipt;
+      const incomingId = incoming.id || incoming.request_id;
+      if (
+        incomingId &&
+        (!personaRequestId.value || incomingId !== personaRequestId.value)
+      )
+        return false;
+      if (incoming.fluctlight_id && incoming.fluctlight_id !== fid) {
+        error.value = "原切换请求范围不匹配";
+        return false;
+      }
+      if (incoming.kind && incoming.kind !== "persona_switch") {
+        error.value = "原请求类型不匹配";
+        return false;
+      }
+      personaReceipt.value = jsonValueSnapshot(incoming);
+    }
+    const original = personaReceipt.value,
+      submitted = personaSubmitted.value;
+    if (!submitted) return false;
+    const token = ++personaEpoch,
+      result = original?.result || original,
+      status = original?.status || result?.status;
+    personaReadbackPending.value = true;
+    const updated = await read();
+    if (!live() || token !== personaEpoch) return false;
+    if (!updated) {
+      error.value =
+        "命令已提交，但最新状态读取失败。原目标和原因已保留，请重新读取，确认前不要重复切换。";
+      return false;
+    }
+    if (["rejected", "failed", "cancelled"].includes(status)) {
+      personaReadbackPending.value = false;
+      personaFeedback.value =
+        "原切换请求" +
+        (status === "rejected"
+          ? "未被采纳"
+          : status === "cancelled"
+            ? "已取消"
+            : "未完成") +
+        "，当前人格以读回记录为准。";
+      error.value = result?.error_code
+        ? errorMessage(result.error_code, "这次人格切换未完成，请查看原请求。")
+        : "这次人格切换未完成，请查看原请求。";
+      confirm.value = false;
+      personaSubmitted.value = null;
+      personaRequestId.value = "";
+      persistPersona();
+      return true;
+    }
+    if (
+      status !== "completed" ||
+      result?.status !== "completed" ||
+      result.active_profile_id !== submitted.target ||
+      !Number.isSafeInteger(result.runtime_revision) ||
+      !Number.isSafeInteger(result.revision)
+    ) {
+      error.value =
+        "原切换尚未完整确认，请继续查询原请求；原目标和原因仍保留。";
+      persistPersona();
+      return false;
+    }
+    if (
+      snapshot.value.runtimeRevision == null ||
+      snapshot.value.foundationRevision == null ||
+      snapshot.value.runtimeRevision < result.runtime_revision ||
+      snapshot.value.foundationRevision < result.revision
+    ) {
+      error.value =
+        "原请求已完成，已提交的人格版本尚未完整读回，请只读恢复结果。";
+      persistPersona();
+      return false;
+    }
+    if (
+      snapshot.value.runtimeRevision === result.runtime_revision &&
+      snapshot.value.activeProfileId !== result.active_profile_id
+    ) {
+      error.value = "人格版本与目标状态尚未确认一致，请继续只读核对。";
+      return false;
+    }
+    personaReadbackPending.value = false;
+    personaFeedback.value =
+      snapshot.value.runtimeRevision === result.runtime_revision
+        ? result.disposition === "no_change"
+          ? "目标人格已经生效，本次无需新增切换。"
+          : "目标人格已生效，已读取最新状态。"
+        : "原切换已完成；当前人格已有后续变化，请以当前记录为准。";
+    if (
+      target.value === submitted.target &&
+      reason.value === submitted.reason
+    ) {
+      target.value = "";
+      reason.value = "";
+      confirm.value = false;
+    }
+    personaSubmitted.value = null;
+    personaRequestId.value = "";
+    persistPersona();
+    return true;
   }
-  if(!live())return;
-  const submitted=personaSubmitted.value;
-  const result=receipt?.result||receipt;
-  const currentMatches=snapshot.value.activeProfileId===submitted.target;
-  const recorded=result?.status==='completed'&&result.active_profile_id===submitted.target;
-  if(currentMatches||recorded){
-    personaReadbackPending.value=false;
-    personaFeedback.value=currentMatches?'目标人格已生效，已读取最新状态。':'原切换已完成；当前人格已有后续变化，请以当前记录为准。';
-    if(target.value===submitted.target&&reason.value===submitted.reason){target.value='';reason.value='';confirm.value=false;}
-  }else error.value='命令已提交，当前人格尚未与目标一致。原目标与原因已保留，请查询原请求和切换记录。';
-}
-
+  async function readWorld() {
+    if (!live()) return;
+    const token = ++worldEpoch;
+    worldLoading.value = true;
+    worldError.value = "";
+    try {
+      const value = await w.client.world(fid);
+      if (live() && token === worldEpoch) {
+        world.value = value.world;
+        worldReady.value = true;
+      }
+    } catch (cause) {
+      if (live() && token === worldEpoch)
+        worldError.value = errorMessage(cause);
+    } finally {
+      if (live() && token === worldEpoch) worldLoading.value = false;
+    }
+  }
   async function pollPreparation() {
     if (
       !live() ||
@@ -331,6 +653,7 @@ async function readPersonaOutcome(receipt){
       editing.value ||
       saving.value ||
       switching.value ||
+      personaReadbackPending.value ||
       !["pending", "running"].includes(
         detail.value?.persona_preparation?.status,
       )
@@ -347,6 +670,7 @@ async function readPersonaOutcome(receipt){
     if (
       !live() ||
       saving.value ||
+      readOnly.value ||
       !detail.value?.persona_preparation?.can_recover
     )
       return;
@@ -366,10 +690,12 @@ async function readPersonaOutcome(receipt){
         {
           success: "已继续准备角色资料",
           onSaved: async () => {
-            if (live()) await read();
+            if (live() && !(await read()))
+              throw Error(error.value || "准备请求已受理，读取尚未完成");
           },
         },
       );
+      last.value = record;
       await record.completion;
     } catch (cause) {
       if (live()) error.value = errorMessage(cause);
@@ -380,16 +706,19 @@ async function readPersonaOutcome(receipt){
   const visibility = () => {
     if (!document.hidden) void pollPreparation();
   };
+  lifecycle.observe(
+    () => [target.value, reason.value, confirm.value],
+    () => {
+      persistPersona();
+    },
+  );
   lifecycle.onStart(() => {
+    refreshPendingProfile();
+    restorePersona();
     void read();
     timer = setInterval(() => void pollPreparation(), 5000);
     document.addEventListener("visibilitychange", visibility);
-    void w.client
-      .world(fid)
-      .then((value) => {
-        if (live()) world.value = value.world;
-      })
-      .catch(() => {});
+    void readWorld();
   });
   lifecycle.onDispose(() => {
     active = false;
@@ -398,417 +727,66 @@ async function readPersonaOutcome(receipt){
     document.removeEventListener("visibilitychange", visibility);
   });
 
-const render=(_ctx, _cache) => {
-    return (
-      <div className="character-detail character-workflow">
-        <Surface as="section" >
-          <header className="row character-profile-heading">
-            <CharacterAvatar
-              className="character-avatar"
-              name={title.value}
-              initial={readValue(w).current.value.initial}
-              color={readValue(w).current.value.color}
-              src={avatar.value}
-            />
-            <div>
-              <h2>{displayText(title.value)}</h2>
-              {subtitle.value ? (
-                <small key={0}>{displayText(subtitle.value)}</small>
-              ) : null}
-            </div>
-            <span className="spacer" />
-            {detail.value && !editing.value ? (
-              <ActionButton variant="outline"
-                key={0}
-
-                data-testid="detail-edit"
-                disabled={snapshot.value.readOnly}
-                onClick={edit}
-              >
-                {"编辑资料"}
-              </ActionButton>
-            ) : null}
-          </header>
-          {detail.value?.persona_preparation &&
-          detail.value.persona_preparation.status !== "ready" ? (
-            <OperationStatus variant="default" key={0} className="approved-guidance" role="status">
-              {" 角色资料已保存。" +
-                displayText(
-                  detail.value.persona_preparation.status === "failed"
-                    ? "表达画像准备遇到问题，可继续原角色的准备。"
-                    : "正在后台整理表达画像，离开页面后仍会继续。",
-                ) +
-                " "}
-              {detail.value.persona_preparation.can_recover ? (
-                <ActionButton variant="ghost"
-                  key={0}
-
-                  disabled={saving.value || editing.value}
-                  onClick={recoverPreparation}
-                >
-                  {"继续准备"}
-                </ActionButton>
-              ) : null}
-            </OperationStatus>
-          ) : null}
-          {editing.value ? (
-            <form
-              key={1}
-              className="character-form detail-form"
-              noValidate=""
-              onSubmit={eventModifiers(save, ["prevent"])}
-            >
-              <p className="muted">
-                {
-                  " 保存会生成并接受一条资料修订记录。这里编辑的是设定；实际穿着、位置和已发生的经历由生活记录决定。 "
-                }
-              </p>
-              <ProfileForm fields={fields.value} />
-              {error.value ? (
-                <InlineFeedback key={0}  role="alert">
-                  {displayText(error.value)}
-                </InlineFeedback>
-              ) : null}
-              <ActionFeedback labels={["角色详情"]} />
-              {readbackPending.value ? (
-                <ActionButton variant="outline"
-                  key={1}
-                  type="button"
-
-                  onClick={($event) =>
-                    read({
-                      preserve: true,
-                    })
-                  }
-                >
-                  {"重新读取已保存资料"}
-                </ActionButton>
-              ) : null}
-              {conflict.value ? (
-                <ActionButton variant="outline"
-                  key={2}
-                  type="button"
-
-                  onClick={rebase}
-                >
-                  {"读取最新资料，保留当前编辑"}
-                </ActionButton>
-              ) : null}
-              <footer className="wizard-footer">
-                <ActionButton variant="outline"
-                  type="button"
-
-                  disabled={saving.value}
-                  onClick={($event) => (editing.value = false)}
-                >
-                  {"取消"}
-                </ActionButton>
-                <span className="spacer" />
-                <ActionButton variant="default"
-
-                  data-testid="detail-save"
-                  disabled={saving.value || readbackPending.value}
-                >
-                  {displayText(saving.value ? "保存中…" : "保存")}
-                </ActionButton>
-              </footer>
-            </form>
-          ) : (
-            <div key={2} className="character-detail-sections">
-              {!detail.value && !error.value ? (
-                <ReadState key={0} role="status">
-                  {"正在读取角色资料…"}
-                </ReadState>
-              ) : null}
-              {error.value ? (
-                <InlineFeedback key={1}  role="alert">
-                  {displayText(error.value) + " "}
-                  <ActionButton variant="ghost"
-
-                    onClick={($event) => read()}
-                  >
-                    {"重新读取"}
-                  </ActionButton>
-                </InlineFeedback>
-              ) : null}
-              <Fragment>
-                {listValues(sections.value).map(([key, label, value]) => {
-                  return (
-                    <section key={key}>
-                      <h3>{displayText(label)}</h3>
-                      <SemanticTree
-                        value={value}
-                        identity={core.value.identity}
-                        field={key === "personality" ? "personality" : ""}
-                      />
-                    </section>
-                  );
-                })}
-              </Fragment>
-              {personas.value.length ? (
-                <section key={2}>
-                  <h3>{"人格档案"}</h3>
-                  <p>
-                    {" 当前人格：" +
-                      displayText(
-                        currentPersona.value?.name ||
-                          snapshot.value.activeProfileId ||
-                          "尚未确认",
-                      )}
-                  </p>
-                  <Fragment>
-                    {listValues(personas.value).map((persona) => {
-                      return (
-                        <Disclosure
-                          key={persona.id}
-                          title={
-                            <>
-                              {displayText(persona.name || persona.id) + " "}
-                              {persona.id === snapshot.value.activeProfileId ? (
-                                <small key={0}>{"当前"}</small>
-                              ) : null}
-                            </>
-                          }
-                        >
-                          <p className="muted">
-                            {"这里展示此人格相对共同设定的补充与差异。"}
-                          </p>
-                          <SemanticTree
-                            value={personaValue(persona)}
-                            identity={core.value.identity}
-                          />
-                        </Disclosure>
-                      );
-                    })}
-                  </Fragment>
-                  {personas.value.length > 1 && !snapshot.value.readOnly ? (
-                    <Disclosure key={0} title={<>{"切换人格"}</>}>
-                      <form
-                        className="character-stack"
-                        onSubmit={eventModifiers(switchPersona, ["prevent"])}
-                      >
-                        <label>
-                          {"目标人格"}
-                          <ChoiceSelect
-                            aria-label="目标人格"
-                            value={target.value}
-                            onChange={(event) => {
-                              (($event) => (target.value = $event))(
-                                event.target.value,
-                              );
-                            }}
-                          >
-                            <option value="">{"请选择"}</option>
-                            <Fragment>
-                              {listValues(
-                                personas.value.filter(
-                                  (p) =>
-                                    p.id !== snapshot.value.activeProfileId &&
-                                    (!snapshot.value.switchTargetIds ||
-                                      snapshot.value.switchTargetIds.includes(
-                                        p.id,
-                                      )),
-                                ),
-                              ).map((persona) => {
-                                return (
-                                  <option key={persona.id} value={persona.id}>
-                                    {displayText(persona.name || persona.id)}
-                                  </option>
-                                );
-                              })}
-                            </Fragment>
-                          </ChoiceSelect>
-                        </label>
-                        <label>
-                          {"切换原因"}
-                          <Textarea
-                            maxLength="1000"
-                            rows="2"
-                            value={reason.value}
-                            onChange={(event) => {
-                              (($event) => (reason.value = $event))(
-                                event.target.value,
-                              );
-                            }}
-                          />
-                        </label>
-                        <label className="check-field">
-                          <FieldInput
-                            type="checkbox"
-                            modelValue={confirm.value}
-                            onModelChange={($event) => (confirm.value = $event)}
-                          />
-                          {"我确认向当前角色提出这次人格切换"}
-                        </label>
-                        <ActionButton variant="outline"
-
-                          disabled={
-                            switching.value || snapshot.value.readOnly || personaRecord.value?.requestUnresolved || personaReadbackPending.value ||
-                            !target.value ||
-                            !reason.value.trim() ||
-                            !confirm.value
-                          }
-                        >
-                          {displayText(
-                            switching.value ? "处理中…" : "确认切换",
-                          )}
-                        </ActionButton>
-{personaFeedback.value && <OperationStatus variant="default" role="status">{personaFeedback.value}</OperationStatus>}
-{personaReadbackPending.value && <ActionButton variant="outline" type="button"  disabled={switching.value} onClick={() => readPersonaOutcome()}>重新读取人格切换结果</ActionButton>}
-{personaRecord.value?.requestUnresolved && <small className="muted">切换请求已受理，等待原请求确认，当前输入已保留。</small>}
-
-                      </form>
-                    </Disclosure>
-                  ) : null}
-                </section>
-              ) : null}
-              {detail.value?.core_persona?.personality_system ? (
-                <section key={3}>
-                  <Disclosure title={<>{"人格之间的关系与协作"}</>}>
-                    <SemanticTree
-                      value={Object.fromEntries(
-                        Object.entries(
-                          detail.value.core_persona.personality_system,
-                        ).filter(([key]) => key !== "profiles"),
-                      )}
-                    />
-                  </Disclosure>
-                </section>
-              ) : null}
-              {snapshot.value.history.length ? (
-                <Disclosure key={4} title={<>{"人格切换记录"}</>}>
-                  <ul className="semantic-list">
-                    <Fragment>
-                      {listValues(snapshot.value.history).map(
-                        (entry, index) => {
-                          return (
-                            <li key={entry.id || index}>
-                              {displayText(
-                                personas.value.find(
-                                  (persona) =>
-                                    persona.id === entry.from_profile_id,
-                                )?.name || "原人格",
-                              ) +
-                                " → " +
-                                displayText(
-                                  personas.value.find(
-                                    (persona) =>
-                                      persona.id === entry.to_profile_id,
-                                  )?.name || "目标人格",
-                                ) +
-                                " "}
-                              {entry.reason ? (
-                                <p key={0} className="muted">
-                                  {displayText(entry.reason)}
-                                </p>
-                              ) : null}
-                            </li>
-                          );
-                        },
-                      )}
-                    </Fragment>
-                  </ul>
-                  {snapshot.value.historyHasMore ? (
-                    <p key={0} className="muted">
-                      {"这里展示最近的切换记录，完整记录可在治理入口查看。"}
-                    </p>
-                  ) : null}
-                </Disclosure>
-              ) : null}
-              <section>
-                <h3>{"头像与生活世界"}</h3>
-                {world.value?.name ? (
-                  <p key={0}>{displayText(world.value.name)}</p>
-                ) : null}
-                {detail.value?.identity?.residence ? (
-                  <p key={1}>
-                    {" 居住地 · " +
-                      displayText(detail.value.identity.residence)}
-                  </p>
-                ) : null}
-                <div className="row">
-                  <ActionButton variant="ghost" asChild >
-                    <a
-
-                      href={
-                        "#/c/" +
-                        encodeURIComponent(readValue(fid)) +
-                        "/media/avatar"
-                      }
-                    >
-                      {"更换头像 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-                    </a>
-                  </ActionButton>
-                  <ActionButton variant="ghost" asChild >
-                    <a
-
-                      href={
-                        "#/c/" + encodeURIComponent(readValue(fid)) + "/world"
-                      }
-                    >
-                      {"查看生活世界 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-                    </a>
-                  </ActionButton>
-                  <ActionButton variant="ghost" asChild >
-                    <a
-
-                      href={
-                        "#/c/" +
-                        encodeURIComponent(readValue(fid)) +
-                        "/life/wardrobe"
-                      }
-                    >
-                      {"查看衣柜 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-                    </a>
-                  </ActionButton>
-                </div>
-              </section>
-              {detail.value ? (
-                <Disclosure key={5} title={<>{"技术详情与来源"}</>}>
-                  <p>
-                    {" 身份核心版本 " +
-                      displayText(
-                        snapshot.value.foundationRevision ?? "未读取",
-                      ) +
-                      " · 运行版本 " +
-                      displayText(snapshot.value.runtimeRevision ?? "未读取")}
-                  </p>
-                  <RecordView value={{provenance:detail.value.provenance,initialization_source:detail.value.initialization_source,foundation_revisions:detail.value.foundation_revisions,persona_switch_history:detail.value.persona_switch_history,persona_compilation:detail.value.persona_compilation,working_personas:detail.value.working_personas}} technical/><JsonDetails title="完整身份与来源记录（可下载）" value={{core_persona:detail.value.core_persona,provenance:detail.value.provenance,initialization_source:detail.value.initialization_source,foundation_revisions:detail.value.foundation_revisions,persona_switch_history:detail.value.persona_switch_history,persona_compilation:detail.value.persona_compilation,working_personas:detail.value.working_personas}}/>
-
-                </Disclosure>
-              ) : null}
-            </div>
-          )}
-        </Surface>
-        <p className="character-more">
-          <small>{"更多："}</small>
-          <ActionButton variant="ghost" asChild >
-            <a  href={governance("capabilities")}>
-              {"能力申请"}
-            </a>
-          </ActionButton>
-          <span>{"·"}</span>
-          <ActionButton variant="ghost" asChild >
-            <a  href={governance("developing")}>
-              {"发展中的自我"}
-            </a>
-          </ActionButton>
-          <span>{"·"}</span>
-          <ActionButton variant="ghost" asChild >
-            <a  href={governance("foundation")}>
-              {"身份核心与提议"}
-            </a>
-          </ActionButton>
-        </p>
-        {!editing.value ? (
-          <ActionFeedback key={0} labels={["角色详情"]} />
-        ) : null}
-      </div>
-    );
+  const model = {
+    w,
+    fid,
+    owner,
+    scope,
+    live,
+    detail,
+    readingDetail,
+    readOnly,
+    world,
+    worldLoading,
+    worldReady,
+    worldError,
+    readWorld,
+    editing,
+    fields,
+    last,
+    saving,
+    readbackPending,
+    pendingProfile,
+    resumeProfileSave,
+    error,
+    conflict,
+    personaRecord,
+    personaSubmitted,
+    personaReceipt,
+    personaRequestId,
+    pendingPersona,
+    resumePersona,
+    personaReadbackPending,
+    personaFeedback,
+    switching,
+    target,
+    reason,
+    confirm,
+    snapshot,
+    core,
+    personas,
+    currentPersona,
+    sections,
+    personaValue,
+    title,
+    subtitle,
+    avatar,
+    governance,
+    read,
+    edit,
+    save,
+    rebase,
+    switchPersona,
+    readPersonaOutcome,
+    recoverPreparation,
+    recoverProfileReadback,
   };
-return {w,fid,detail,world,editing,fields,saving,readbackPending,error,conflict,personaRecord,personaSubmitted,personaReadbackPending,personaFeedback,switching,target,reason,confirm,snapshot,core,personas,currentPersona,sections,personaValue,title,subtitle,avatar,governance,read,edit,save,rebase,switchPersona,readPersonaOutcome,recoverPreparation,render};
+  model.render = () => <CharacterDetailPageView model={model} />;
+  return model;
 }
-function createCharacterDetailPageController(props,context,lifecycle){return createProfileModel(lifecycle).render;}
+function createCharacterDetailPageController(props, context, lifecycle) {
+  return createProfileModel(lifecycle).render;
+}
 
 export default function CharacterDetailPage(input = {}) {
   return useController(createCharacterDetailPageController, {

@@ -225,9 +225,11 @@ with labelled content and cancellation that never invokes the mutation.
 - Wrapping Tabs use `group-data-horizontal/tabs:h-auto` as well as `flex-wrap`;
   the primitive's default group height otherwise wins. Long tab labels fit
   their own row. Wardrobe renders slot choices only after a tag is selected.
-- Questionnaire is a form. Use it as the world's source form, never nest it in
-  another form. Its choices retain the existing source callbacks; step Tabs
-  display controlled progress and cannot bypass validation. Preparation Trace
+- Questionnaire is a form; never nest it in another form. The 2026-10-27 supplied
+  workspace Demo initializer supersedes the earlier Questionnaire source layout
+  with explicit world/source cards; see workspace-replica-contract.md. Elsewhere,
+  keep Questionnaire as the owning form. Source callbacks and step navigation
+  retain validation and controlled progress. Preparation Trace
   shows independently read states and only confirmed-ready stages count.
 
 Regression assertions: `r14-regressions`, `r11-flows`, `react-flows`,

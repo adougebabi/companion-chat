@@ -83,8 +83,21 @@ test("React settings stay busy through receipt readback and preserve newer model
   };
   const view = await mountReact(vite, Management, { workspace: w });
   try {
-    const model = view.host.querySelector('[role="combobox"][aria-label="模型 ID"]');
-    const choose=async value=>{await view.click(model);await view.input(document.querySelector('input[aria-label="搜索模型 ID"]'),value);await view.click([...document.querySelectorAll('[cmdk-item]')].find(item=>item.textContent.includes('采用「'+value+'」')));};
+    const model = view.host.querySelector(
+      '[role="combobox"][aria-label="模型 ID"]',
+    );
+    const choose = async (value) => {
+      await view.click(model);
+      await view.input(
+        document.querySelector('input[aria-label="搜索模型 ID"]'),
+        value,
+      );
+      await view.click(
+        [...document.querySelectorAll("[cmdk-item]")].find((item) =>
+          item.textContent.includes("采用「" + value + "」"),
+        ),
+      );
+    };
     assert.ok(model);
     await choose("new");
     const form = view.host.querySelector("form");
@@ -147,7 +160,26 @@ test("React world editor preserves world identity, CAS and saved category on rer
   });
   await w.loadWorlds();
   const oldUpdate = w.client.updateCatalogWorld,
-    oldCreate = w.client.createCatalogWorld;
+    oldCreate = w.client.createCatalogWorld,
+    oldCatalog = w.client.worldCatalog,
+    oldSnapshot = w.client.catalogWorld;
+  const rawWorld = () => ({
+    ...structuredClone(server),
+    fluctlight_id: "A",
+    venue_categories: structuredClone(server.venueCategories),
+  });
+  w.client.worldCatalog = async () => ({
+    items: [rawWorld()],
+    active_binding: { world_id: "W", revision: 1 },
+    next_cursor: null,
+  });
+  w.client.catalogWorld = async () => ({
+    available: true,
+    world: rawWorld(),
+    places: [],
+    npcs: [],
+    scenes: [],
+  });
   w.client.createCatalogWorld = async () =>
     assert.fail("must not recreate an existing world");
   w.client.updateCatalogWorld = async (fid, id, body) => {
@@ -167,8 +199,8 @@ test("React world editor preserves world identity, CAS and saved category on rer
   };
   const view = await mountReact(vite, World, { workspace: w });
   try {
-    await view.click(button("进入"));
-    await view.click(button("新增场地分类"));
+    await view.click(button("进入世界"));
+    await view.click(button("添加分类"));
     const input = document.querySelector('[role="dialog"] input');
     assert.ok(input);
     await view.input(input, "商店");
@@ -182,14 +214,14 @@ test("React world editor preserves world identity, CAS and saved category on rer
     await view.flush();
     assert.equal(writes, 1);
     assert.equal(server.venueCategories[0].name, "商店");
-    assert.match(view.host.textContent, /场地 · 商店/);
+    assert.match(view.host.textContent, /商店/);
     await act(async () => {
       w.state.worlds = [];
       await w.loadWorlds();
     });
     await view.flush();
-    assert.match(view.host.textContent, /场地 · 商店/);
-    await view.click(button("编辑世界信息"));
+    assert.match(view.host.textContent, /商店/);
+    await view.click(button("编辑世界"));
     const name = document.querySelector('[data-testid="world-name"]');
     assert.ok(name);
     await view.input(name, "更新世界");
@@ -208,6 +240,8 @@ test("React world editor preserves world identity, CAS and saved category on rer
     await view.dispose();
     w.client.updateCatalogWorld = oldUpdate;
     w.client.createCatalogWorld = oldCreate;
+    w.client.worldCatalog = oldCatalog;
+    w.client.catalogWorld = oldSnapshot;
     w.dispose();
   }
 });
@@ -410,16 +444,32 @@ test("React resource editor rejects whitespace and preserves edits made while an
     revision: 1,
   };
   const w = {
-    ...storeFacade(proxy({ session:{actorId:"editor-render-owner"},characters:[],selectedId: "A", operations: [] })),
+    ...storeFacade(
+      proxy({
+        session: { actorId: "editor-render-owner" },
+        characters: [],
+        selectedId: "A",
+        operations: [],
+      }),
+    ),
     services: {
       studioClient: {
-        jobs:async()=>({items:[],next_cursor:""}),materials:async()=>({items:[],next_cursor:""}),referenceGrants:async()=>({items:[],next_cursor:""}),versions:async()=>({items:[],next_cursor:""}),
+        jobs: async () => ({ items: [], next_cursor: "" }),
+        materials: async () => ({ items: [], next_cursor: "" }),
+        referenceGrants: async () => ({ items: [], next_cursor: "" }),
+        versions: async () => ({ items: [], next_cursor: "" }),
         resource: async () => structuredClone(resource),
         save: async (id, body) => {
           assert.equal(id, "place");
           writes++;
           payload = body;
-          return new Promise((resolve) => (release = value=>{Object.assign(resource,value);resolve(structuredClone(resource));}));
+          return new Promise(
+            (resolve) =>
+              (release = (value) => {
+                Object.assign(resource, value);
+                resolve(structuredClone(resource));
+              }),
+          );
         },
       },
     },
@@ -431,7 +481,10 @@ test("React resource editor rejects whitespace and preserves edits made while an
   });
   try {
     const name = view.host.querySelector("#resource-name");
-    await view.input(view.host.querySelector("#resource-reason"),"明确保存理由");
+    await view.input(
+      view.host.querySelector("#resource-reason"),
+      "明确保存理由",
+    );
     await view.input(name, "   ");
     await view.click(button("保存草稿"));
     assert.equal(writes, 0);

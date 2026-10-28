@@ -33,6 +33,11 @@ export function valueSnapshot(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(valueSnapshot);
   return value;
 }
+// JSON DTOs can contain nested Valtio proxies after entering a domain store.
+// Detach their serializable values before holding an editable/frozen UI baseline.
+export function jsonValueSnapshot<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
 export { proxy as model };
 
 const elementRefs = new WeakMap<object, (node: Element | null) => void>();

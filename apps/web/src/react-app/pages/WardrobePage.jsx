@@ -26,16 +26,24 @@ function createWardrobePageController(props, context, lifecycle) {
   const w = lifecycle.workspace,
     character = w.current,
     { inventoryClient } = w.services;
-  const openSlot=lifecycle.cell("上衣");
+  const openSlot = lifecycle.cell("上衣");
   const action = lifecycle.cell(""),
+    draftError = lifecycle.cell(""),
     selectedOutfit = lifecycle.cell(null),
-    busy = selector(() =>
-      w.state.operations.some(
-        (r) =>
-          r.fid === character.value.id &&
-          ["衣柜", "换装"].includes(r.label) &&
-          (r.status === "pending" || r.requestUnresolved),
-      ),
+    busy = selector(
+      () =>
+        !character.value._wardrobe ||
+        ["retired", "archived", "已退休", "已归档"].includes(
+          character.value.status,
+        ) ||
+        w.state.operations.some(
+          (r) =>
+            r.fid === character.value.id &&
+            ["衣柜", "换装"].includes(r.label) &&
+            (r.status === "pending" ||
+              r.requestUnresolved ||
+              r.readbackPending),
+        ),
     );
   const tab = selector({
       get: () => w.state.outfitTab,
@@ -125,8 +133,27 @@ function createWardrobePageController(props, context, lifecycle) {
       confirmLabel,
     });
   async function saveOutfit() {
+    draftError.value = "";
     if (busy.value || duplicate.value || !name.value.trim() || !tag.value)
       return;
+    if (!Object.values(items.value).some((values) => values.length)) {
+      draftError.value = "请至少选择一件已登记的衣服。";
+      return;
+    }
+    if (
+      Object.entries(items.value).some(([slot, ids]) =>
+        ids.some(
+          (id) =>
+            !character.value.garments.some(
+              (g) => g.id === id && g.type === slot,
+            ),
+        ),
+      )
+    ) {
+      draftError.value =
+        "部分衣物已不在当前目录中，或服装部位已变化，请明确移除并重新选择后再保存方案。";
+      return;
+    }
     const fid = character.value.id,
       state = character.value._wardrobe,
       old = character.value.outfits.find((o) => o.id === editingId.value),
@@ -174,6 +201,7 @@ function createWardrobePageController(props, context, lifecycle) {
         name.value = "";
         items.value = {};
         editingId.value = null;
+        tab.value = "方案库";
       }
     } catch {}
   }
@@ -272,9 +300,12 @@ function createWardrobePageController(props, context, lifecycle) {
           category: sameType ? source.category : slot,
           slot,
           description: value.name.trim(),
-          ownership: source?.ownership || "unknown",
-          availability: source?.availability || "available",
-          clothingType: sameType ? source.clothing_type || source.slot : slot,
+          ownership: value.ownership || source?.ownership || "unknown",
+          availability:
+            value.availability || source?.availability || "available",
+          clothingType: sameType
+            ? source.clothing_type || slotMap[value.type]
+            : slot,
           seasons: value.seasons.map((s) => seasons[s]).filter(Boolean),
         },
       };
@@ -306,30 +337,36 @@ function createWardrobePageController(props, context, lifecycle) {
   function removeGarment(id) {
     const value = character.value.garments.find((g) => g.id === id);
     if (!value) return;
-    confirm("归档衣服", "将从当前衣柜移出，历史和方案引用会保留。", () => {
-      const fid = character.value.id;
-      w.command(
-        "衣柜",
-        "archive:" + id,
-        {
-          expectedRevision: character.value._wardrobe.wearing.revision,
-          expectedItemRevision: value._source.revision,
-          reason: "归档当前服装登记",
-        },
-        (body, key) =>
-          inventoryClient.archive(fid, id, {
-            ...body,
-            idempotencyKey: key,
-          }),
-        {
-          onSaved: () => w.loadWardrobe(),
-          success: "服装已归档",
-        },
-      );
-    }, "确认归档");
+    confirm(
+      "归档衣服",
+      "将从当前衣柜移出，历史和方案引用会保留。",
+      () => {
+        if (busy.value) return false;
+        const fid = character.value.id;
+        return w.command(
+          "衣柜",
+          "archive:" + id,
+          {
+            expectedRevision: character.value._wardrobe.wearing.revision,
+            expectedItemRevision: value._source.revision,
+            reason: "归档当前服装登记",
+          },
+          (body, key) =>
+            inventoryClient.archive(fid, id, {
+              ...body,
+              idempotencyKey: key,
+            }),
+          {
+            onSaved: () => w.loadWardrobe(),
+            success: "服装已归档",
+          },
+        );
+      },
+      "确认归档",
+    );
   }
   async function saveTags(remove) {
-    if (busy.value) return;
+    if (busy.value) return false;
     const fid = character.value.id,
       old = renameTag.value,
       label = newTag.value.trim(),
@@ -338,7 +375,7 @@ function createWardrobePageController(props, context, lifecycle) {
         : old
           ? character.value.outfitTags.map((t) => (t === old ? label : t))
           : [...character.value.outfitTags, label];
-    if (!remove && !label) return;
+    if (!remove && !label) return false;
     const record = w.command(
       "衣柜",
       "tags",
@@ -369,14 +406,19 @@ function createWardrobePageController(props, context, lifecycle) {
         newTag.value = "";
         renameTag.value = "";
       }
-    } catch {}
+      return true;
+    } catch {
+      return false;
+    }
   }
   const render = () => (
     <WardrobePageView
+      route={props.route}
       view={{
         character,
+        draftError,
         openSlot,
-        tagLabel: value => seasonNames[value] || value,
+        tagLabel: (value) => seasonNames[value] || value,
         tab,
         tag,
         items,
@@ -428,6 +470,7 @@ function createWardrobePageController(props, context, lifecycle) {
     </Fragment>
   );
 }
+/** @param {{route?: {query?: URLSearchParams}}} [input] */
 export default function WardrobePage(input = {}) {
   return useController(createWardrobePageController, {
     ...input,

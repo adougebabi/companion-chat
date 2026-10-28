@@ -191,7 +191,7 @@ export function createWorkspace({ observable = proxy } = {}) {
     managementTab: "配置中心",
     managementSection: "",
     feedScope: /** @type {string | null} */ (null),
-    outfitTab: "为她搭配",
+    outfitTab: "全部衣服",
     appointmentHighlight: false,
     configuration: null,
   });
@@ -679,7 +679,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       (record) =>
         record.fid === fid &&
         record.operation === operation &&
-        (record.requestUnresolved ||
+        (record.requestUnresolved || record.readbackPending ||
           (operation.startsWith("wear-outfit:") &&
             record.status === "pending")),
     );
@@ -724,11 +724,23 @@ export function createWorkspace({ observable = proxy } = {}) {
         actionText: "重试",
       }),
       frozen = JSON.parse(JSON.stringify(value));
+    let acknowledged = false, acknowledgedResult, acknowledgedValue;
     const execute = async (recover = false) => {
       viewGeneration = generation;
       record.status = "pending";
       record.reason = "";
       try {
+        if (acknowledged) {
+          await onSaved?.(acknowledgedResult, acknowledgedValue);
+          if (live()) {
+            record.readbackPending = false;
+            record.status = "success";
+            record.response = success;
+            record.reason = "";
+            notify(success);
+          }
+          return acknowledgedResult;
+        }
         const pending = channel.pending();
         if (
           pending &&
@@ -745,6 +757,9 @@ export function createWorkspace({ observable = proxy } = {}) {
         const result = pending
           ? await channel.retry()
           : await channel.submit(frozen);
+        const executedValue=JSON.parse(JSON.stringify(pending?pending.value:frozen));
+        record.input=safeText(executedValue);
+        record.originalInput = "";
         channels.delete(scope);
         if (!live()) return result;
         const request = result?.request;
@@ -759,7 +774,12 @@ export function createWorkspace({ observable = proxy } = {}) {
           record.requestUnresolved = true;
           void observeRequest(owner, fid, request.id, record, onSaved);
         } else {
-          await onSaved?.(result);
+          acknowledged = true;
+          acknowledgedResult = result;
+          acknowledgedValue = executedValue;
+          record.readbackPending = true;
+          await onSaved?.(result, executedValue);
+          if (live()) record.readbackPending = false;
           if (live()) notify(success);
         }
         return result;
@@ -768,6 +788,11 @@ export function createWorkspace({ observable = proxy } = {}) {
         if (live()) {
           record.status = "error";
           record.reason = errorMessage(error);
+          if (acknowledged) {
+            record.response = "原操作已有回执，页面结果尚未读回。";
+            record.reason = "只读恢复页面结果：" + record.reason;
+            record.actionText = "只读恢复页面结果";
+          }
           if (channel.pending()?.rejection) {
             record.reason += "；请核对最新版本后重新提出修改。当前草稿已保留。";
             record.actionText = "核对版本";

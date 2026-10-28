@@ -1,22 +1,4 @@
-import Combobox from './Combobox';
-import {useState} from 'react';
-import {Button} from '@/components/ui/button';
-import {Card,CardContent,CardHeader,CardTitle} from '@/components/ui/card';
-import {Label,FieldInput,Disclosure} from '../controls';
-import RecordEditor from './RecordEditor';
-import CursorControls from './CursorControls';
-import {useCursorPage} from '../hooks/use-cursor-page';
-import {useWorkspace} from '../page';
-import {randomId} from '@/random-id.mjs';
-const copy=(value:any)=>JSON.parse(JSON.stringify(value));
-export default function StudioDefinitionForm({kind,value,onChange,disabled=false}:any){
- const update=(run:(body:any)=>void)=>{const next=copy(value);run(next);onChange(next);};
- const object=(item:any)=>!!item&&typeof item==='object'&&!Array.isArray(item);
- const malformed=kind==='world'&&(!object(value)||value.framework!==undefined&&(!object(value.framework)||!Array.isArray(value.framework.venues)||value.framework.venues.some((venue:any)=>!object(venue)||venue.places!==undefined&&(!Array.isArray(venue.places)||venue.places.some((place:any)=>!object(place))))));
- const venues=!malformed&&Array.isArray(value?.framework?.venues)?value.framework.venues:[];
- return <div className="grid gap-5"><RecordEditor value={value} onChange={onChange} disabled={disabled} fieldLabels={kind==='world'?{background:'世界背景',rules:'世界规则'}:{}} exclude={['schema',...(kind==='world'?['framework']:kind==='outfit'?['members']:[])]}/>{kind==='world'&&<section className="grid gap-4"><h3 className="font-medium">场地与具体地点</h3>{malformed&&<p role="alert" className="text-destructive">场地结构无法读取，请从完整 JSON 核对并修正；当前定义已保留。</p>}<p className="text-sm text-muted-foreground">可以先保存背景和规则。添加分类后，每个分类和地点需要名称与唯一的底稿局部键。</p>{venues.map((venue:any,index:number)=><Card key={index}><CardHeader><CardTitle>场地分类 {index+1}</CardTitle></CardHeader><CardContent className="grid gap-4"><RecordEditor value={venue} exclude={['places']} disabled={disabled} onChange={(next:any)=>update(body=>body.framework.venues[index]={...next,places:venue.places})}/>{(venue.places||[]).map((place:any,point:number)=><div key={point} className="grid gap-3 rounded-lg border p-4"><h4>具体地点 {point+1}</h4><RecordEditor value={place} disabled={disabled} onChange={(next:any)=>update(body=>body.framework.venues[index].places[point]=next)}/><Button type="button" variant="outline" disabled={disabled} onClick={()=>update(body=>body.framework.venues[index].places.splice(point,1))}>移除此地点</Button></div>)}<div className="flex flex-wrap gap-3"><Button type="button" variant="outline" disabled={disabled} onClick={()=>update(body=>(body.framework.venues[index].places??=[]).push({key:'place_'+randomId().slice(0,8),name:'',description:'',floor:'',atmosphere:'',layout:''}))}>添加具体地点</Button><Button type="button" variant="outline" disabled={disabled} onClick={()=>update(body=>body.framework.venues.splice(index,1))}>移除此分类</Button></div></CardContent></Card>)}<Button type="button" variant="outline" disabled={disabled||malformed} onClick={()=>update(body=>{body.framework??={schema:'world-framework.v1',venues:[]};body.framework.venues.push({key:'venue_'+randomId().slice(0,8),name:'',places:[]});})}>添加场地分类</Button></section>}{kind==='outfit'&&<OutfitMembers value={value.members} disabled={disabled} onChange={(members:any)=>onChange({...value,members})}/>}</div>;
-}
-function OutfitMembers({value,onChange,disabled}:any){const w=useWorkspace(),owner=w.state.session.actorId,[selected,setSelected]=useState(''),items=useCursorPage(cursor=>w.services.studioClient.list({kind:'item',published:true,cursor}),JSON.stringify([owner,'outfit-item-definitions']));
- const malformed=!Array.isArray(value)||(value||[]).some((member:any)=>typeof member?.resource_id!=='string'||typeof member?.resource_version!=='string');
- return <section className="grid gap-3"><h3 className="font-medium">服饰成员</h3>{malformed?<p role="alert" className="text-destructive">成员结构无法读取，请从完整 JSON 核对，已有内容仍保留。</p>:<>{value.map((member:any,index:number)=><div key={index} className="flex flex-wrap gap-3"><span>{member.resource_id} · 版本 {member.resource_version}</span><Button type="button" variant="outline" disabled={disabled} onClick={()=>onChange(value.filter((_entry:any,i:number)=>i!==index))}>移除此成员</Button></div>)}<Label htmlFor="outfit-member-definition">选择已发布的服饰定义<Combobox id="outfit-member-definition" label="服饰定义" disabled={disabled} value={selected} onChange={setSelected} options={[{value:'',label:'请选择'},...items.items.map((entry:any)=>({value:entry.id,label:entry.name+' · 版本 '+entry.published_version}))]}/></Label><Button type="button" variant="outline" disabled={disabled||!selected} onClick={()=>{const item=items.items.find((entry:any)=>entry.id===selected);if(item&&!value.some((entry:any)=>entry.resource_id===item.id&&entry.resource_version===item.published_version))onChange([...value,{resource_id:item.id,resource_version:item.published_version}]);}}>加入搭配成员</Button><CursorControls page={items} label="服饰定义"/></>}</section>;
+import StudioFields from "./StudioFields";
+export default function StudioDefinitionForm(props: any) {
+  return <StudioFields {...props} />;
 }

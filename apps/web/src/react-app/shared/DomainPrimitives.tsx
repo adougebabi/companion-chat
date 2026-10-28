@@ -95,8 +95,11 @@ function FieldPort({port}:{port:Port}){
  const source:any=port.source,type=source.tagName==='TEXTAREA'?'textarea':source.tagName==='SELECT'?'select':source.type;
  const id=(source.id||'domain-field-'+port.id)+'--ui';
  useLayoutEffect(()=>{const label=source.closest('label');if(label)label.htmlFor=id;},[source,id]);
- const syncSelection=(event:any)=>{try{if(event.target.selectionStart!==null)source.setSelectionRange?.(event.target.selectionStart,event.target.selectionEnd);}catch{}};
- const blur=(event:any)=>{syncSelection(event);source.dispatchEvent(new Event('change',{bubbles:true}));source.dispatchEvent(new Event('focusout',{bubbles:true}));};
+ const syncSelection=(event:any,carrierOnly=false)=>{try{if(event.target.selectionStart!==null){if(carrierOnly){const prototype=source.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;prototype.setSelectionRange.call(source,event.target.selectionStart,event.target.selectionEnd);}else source.setSelectionRange?.(event.target.selectionStart,event.target.selectionEnd);}}catch{}};
+ // WebKit may focus a visible control when setSelectionRange is called. Blur
+ // records selection on the hidden carrier only; explicit controller recovery
+ // still uses the forwarding method installed by useCarrier.
+ const blur=(event:any)=>{syncSelection(event,true);source.dispatchEvent(new Event('change',{bubbles:true}));source.dispatchEvent(new source.ownerDocument.defaultView.FocusEvent('focusout',{bubbles:true,relatedTarget:event.relatedTarget}));};
  const props:any={...copiedAttributes(source),'aria-label':source.getAttribute('aria-label')||source.closest('label')?.querySelector('.field-label')?.textContent?.replace(/\*$/,'').trim(),id,...(type==='radio'?{name:'domain-ui:'+(source.name||port.id)+':'+radioScope(source),form:'domain-visual-radios-'+radioScope(source),className:'size-4 rounded-full'}:{}),disabled:source.matches(':disabled')||!!source.readOnly&&['select','date','file','checkbox','radio'].includes(type),readOnly:source.readOnly,'aria-required':source.required&&!source.readOnly||undefined,'aria-invalid':source.getAttribute('aria-invalid')||undefined,'aria-describedby':source.getAttribute('aria-describedby')||undefined,placeholder:source.placeholder,min:source.min||undefined,max:source.max||undefined,minLength:source.minLength<0?undefined:source.minLength,maxLength:source.maxLength<0?undefined:source.maxLength,step:source.step||undefined,pattern:source.pattern||undefined,rows:source.rows||undefined};
  const commit=(value:any,checkbox=false)=>{
   if(!source.isConnected||source.matches(':disabled')||source.readOnly)return;

@@ -1,3 +1,5 @@
+import {WorldArt,StoryMark} from "../shared/WorkspaceArtwork";
+import {ArrowRight,RefreshCw} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { client, auth } from "@/v3/providers/real";
 import { Button } from "@/components/ui/button";
@@ -14,15 +16,17 @@ export default function AuthPage({
     [token, setToken] = useState(""),
     [confirmation, setConfirmation] = useState(""),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [checking,setChecking]=useState(true);
   const active = useRef(false),
     passwordField = useRef<HTMLInputElement>(null),
     confirmationField = useRef<HTMLInputElement>(null),
     tokenField = useRef<HTMLInputElement>(null);
   async function readSetup() {
-    setError("");
+    setError("");setChecking(true);
     try { const value=await client.setupStatus(); if(active.current)setSetup(value.setupAvailable); }
     catch { if(active.current){setSetup(null);setError("暂时无法读取初始化状态，请重新读取。");} }
+    finally {if(active.current)setChecking(false);}
   }
   useEffect(() => { active.current=true; void readSetup(); return()=>{active.current=false;}; }, []);
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
@@ -58,7 +62,9 @@ export default function AuthPage({
     } catch (cause) {
       if (active.current)
         setError(
-          cause instanceof Error
+          cause && typeof cause === "object" && "status" in cause && cause.status === 401
+            ? setup ? "密码或初始化令牌未被接受，请核对后重试。" : "密码未被接受，请核对后重试。"
+            : cause instanceof Error
             ? cause.message
             : "登录未被接受，请核对后重试。",
         );
@@ -67,10 +73,13 @@ export default function AuthPage({
     }
   }
   return (
-    <main className="grid w-full min-w-0 flex-1 min-h-dvh place-items-center p-6">
-      <Card className="w-full max-w-md">
+    <main className="replica-auth-page">
+      <div className="replica-auth-brand"><StoryMark/><div><b>Fluctlight</b><span>A LIFE OF THEIR OWN</span></div></div>
+      <Card className="replica-auth-frame">
+        <section className="replica-auth-story" aria-label="日常的故事"><div className="replica-eyebrow">WELCOME TO FLUCTLIGHT</div><h1>日常很长，<br/>有你就很好。</h1><p>一个独立生活的世界，<br/>和一些值得慢慢认识的人。</p><WorldArt kind="city"/></section>
+        <div className="replica-auth-form">
         <CardHeader>
-          <CardTitle>{setup ? "初始化摇光" : "欢迎回来"}</CardTitle>
+          <CardTitle><h2>{setup ? "开始你的故事" : "欢迎回来"}</h2></CardTitle><p>{checking?'正在读取账户初始化状态…':setup?'使用部署初始化令牌，设置你的所有者密码。':'使用当前部署的所有者密码，回到你的工作区。'}</p>
         </CardHeader>
         <CardContent>
           <form className="grid gap-5" onSubmit={submit} noValidate>
@@ -81,6 +90,8 @@ export default function AuthPage({
                   ref={tokenField}
                   id="setup-token"
                   type="password"
+                  minLength={16}
+                  required
                   autoComplete="off"
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
@@ -94,6 +105,9 @@ export default function AuthPage({
                 ref={passwordField}
                 id="owner-password"
                 type="password"
+                minLength={12}
+                required
+                placeholder="输入至少 12 个字符的所有者密码"
                 autoComplete={setup ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -109,6 +123,8 @@ export default function AuthPage({
                   ref={confirmationField}
                   id="owner-password-confirm"
                   type="password"
+                  minLength={12}
+                  required
                   autoComplete="new-password"
                   value={confirmation}
                   onChange={(e) => setConfirmation(e.target.value)}
@@ -121,12 +137,14 @@ export default function AuthPage({
                 {error}
               </p>
             )}
-            {setup === null && <Button type="button" variant="outline" onClick={()=>void readSetup()}>重新读取</Button>}
+            {setup === null && !checking && <Button type="button" variant="outline" onClick={()=>void readSetup()}><RefreshCw size={14}/>重新读取</Button>}
+            <p className="replica-auth-hint">密码至少 12 个字符。{setup?"初始化令牌由当前部署提供，两次密码必须完全一致。":"密码仅用于向当前部署认证。"}</p>
             <Button type="submit" disabled={busy || setup === null}>
-              {busy ? "正在连接…" : setup ? "完成初始化" : "登录"}
+              {busy ? "正在连接…" : checking ? "正在读取账户状态…" : setup ? "完成初始化" : "登录"}<ArrowRight size={16}/>
             </Button>
           </form>
         </CardContent>
+        </div>
       </Card>
     </main>
   );

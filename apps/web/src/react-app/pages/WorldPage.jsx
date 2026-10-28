@@ -1,420 +1,527 @@
-import { useController,afterPaint } from "@/react-app/page";
-import { selector } from "@/state/view-model";
-import { WorldPageView } from "@/react-app/views/WorldPage";
-import { DetailDrawer, ActionFeedback } from "@/react-app/components";
-import { worldDefinitionError } from "@/v3/proto/components/world-definition.js";
-import { stagedCommand } from "@/approved-ui/staged-command.mjs";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useWorkspace, afterPaint } from "../page";
+import { WorldPageView } from "../views/WorldPage";
+import WorldField, {
+  WorldForm,
+  WorldEditFields,
+  PlaceEditFields,
+} from "../shared/WorldFields";
+import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
+import useWorkspaceRead from "../shared/useWorkspaceRead";
+import {
+  worldDraft,
+  worldWrite,
+  placeDraft,
+  placeWrite,
+  acknowledgeWorldDraft,
+  rebaseWorldDraft,
+  acknowledgePlaceDraft,
+  rebasePlaceDraft,
+} from "@/approved-ui/world-fields.mjs";
+import { runWorldExpansion } from "@/approved-ui/world-expansion.mjs";
 import { randomId } from "@/random-id.mjs";
-const clone = (v) => JSON.parse(JSON.stringify(v));
-function createWorldPageController(props, context, lifecycle) {
-  const w = lifecycle.workspace,
-    worlds = selector(() => w.state.worlds),
-    character = w.current,
-    selected = lifecycle.cell(props.initialWorldId || null),
-    world = selector(() => worlds.value.find((v) => v.id === selected.value)),
-    expanded = lifecycle.cell(!!props.initialWorldId),
-    instruction = lifecycle.cell(""),
-    place = lifecycle.cell(null),
-    siteIndex = lifecycle.cell(0),
-    siteName = lifecycle.cell(""),
-    siteDialog = lifecycle.cell(false),
-    worldDraft = lifecycle.cell(null),
-    removeId = lifecycle.cell(null),
-    operation = lifecycle.cell("");
-  const headingFid=character.value.id;let headingActive=true,listTop=0;
-  lifecycle.observe(selected,async(value,previous)=>{const scroller=document.querySelector('.workspace-page');if(!scroller)return;if(value&&!previous)listTop=scroller.scrollTop;await afterPaint();if(headingActive&&character.value.id===headingFid)scroller.scrollTo({top:value?0:listTop});});
-  lifecycle.onDispose(()=>{headingActive=false;});
-  lifecycle.observe(()=>[selected.value,world.value?.name],()=>{w.state.pageHeading={page:'世界',fid:headingFid,title:world.value?.name||'世界'};},{immediate:true});
-  lifecycle.onDispose(()=>{if(w.state.pageHeading?.page==='世界'&&w.state.pageHeading?.fid===headingFid)w.state.pageHeading=null;});
-  const busy = selector(() =>
-    w.state.operations.some(
-      (r) =>
-        r.fid === character.value.id &&
-        r.label === "世界" &&
-        r.status === "pending",
-    ),
-  );
-  const fields = [
-    ["alias", "别名"],
-    ["floor", "楼层"],
-    ["description", "描述"],
-    ["atmosphere", "氛围"],
-    ["furniture", "固定陈设"],
-    ["layout", "布局描述"],
-  ];
-  function newWorld() {
-    worldDraft.value = {
-      id: null,
-      name: "",
-      genre: "",
-    };
-  }
-  async function saveWorld() {
-    const draft = worldDraft.value,
-      submitted = JSON.stringify(worldDraft.value);
-    if (!draft?.name.trim() || busy.value) return;
-    const fid = character.value.id,
-      source = draft._source;
-    operation.value = "world";
-    const body = {
-      name: draft.name.trim(),
-      flavor: draft.genre,
-      reason: source ? "编辑世界" : "创建世界",
-      ...(source
-        ? {
-            expectedRevision: source.revision,
-          }
-        : {}),
-    };
-    const record = w.command(
-      "世界",
-      "world:" + String(source?.id || "new"),
-      body,
-      (value, key) =>
-        source
-          ? w.client.updateCatalogWorld(fid, source.id, {
-              ...value,
-              idempotencyKey: key,
-            })
-          : w.client.createCatalogWorld(fid, {
-              ...value,
-              idempotencyKey: key,
-            }),
-      {
-        onSaved: () => w.loadWorlds(),
-        success: "世界已保存",
-      },
-    );
+import { errorMessage } from "@/v3/domain-presentation.mjs";
+export default function WorldPage({ initialWorldId = "" } = {}) {
+  const w = useWorkspace();
+  useSyncExternalStore(w.subscribe, w.getSnapshot, w.getSnapshot);
+  const c = w.current.value,
+    fid = c.id,
+    owner = w.state.session.actorId;
+  function readCreateRecovery() {
+    const key = `fluctlight-world-framework:${owner}:${fid}:replica:world:new`;
     try {
-      const result = await record.completion;
-      selected.value = result.id;
-      expanded.value = true;
-      if (JSON.stringify(worldDraft.value) === submitted)
-        worldDraft.value = null;
-    } catch {}
-  }
-  function editPlace(value, index) {
-    siteIndex.value = index;
-    place.value = clone(value);
-  }
-  async function savePlace() {
-    const submitted = JSON.stringify(place.value);
-    const draft = place.value,
-      currentWorld = world.value;
-    if (!draft?.name.trim() || !currentWorld || busy.value) return;
-    const fid = character.value.id,
-      source = draft._source,
-      site = currentWorld.sites[siteIndex.value];
-    const body = {
-      worldId: currentWorld.id,
-      expectedRevision: source?.revision || source?.version || 0,
-      name: source?.name || draft.name.trim(),
-      description: draft.description,
-      alias: draft.alias || "",
-      group: site?.name || "",
-      ...(site?.id &&
-      !String(site.id).startsWith("draft:") &&
-      site.id !== "unclassified" &&
-      !String(site.id).startsWith("group:")
-        ? {
-            venueCategoryId: site.id,
-          }
-        : {}),
-      floor: draft.floor || "",
-      atmosphere: draft.atmosphere || "",
-      furniture:
-        source && draft.furniture === source.furniture
-          ? (source._rawCollections?.furniture ?? draft.furniture)
-          : draft.furniture || "",
-      layout: draft.layout || "",
-      reason: "保存世界中的具体地点",
-    };
-    operation.value = "place";
-    const record = w.command(
-      "世界",
-      "place:" + String(source?.id || "new:" + currentWorld.id),
-      body,
-      (value, key) =>
-        source
-          ? w.client.updateWorldPlace(fid, source.id, {
-              ...value,
-              idempotencyKey: key,
-            })
-          : w.client.createWorldPlace(fid, {
-              ...value,
-              idempotencyKey: key,
-            }),
-      {
-        onSaved: () => w.loadWorlds(),
-        success: "地点已保存",
-      },
-    );
-    try {
-      await record.completion;
-      if (JSON.stringify(place.value) === submitted) place.value = null;
-    } catch {}
-  }
-  async function addSite() {
-    const name = siteName.value.trim();
-    if (!world.value || !name || busy.value) return;
-    if (world.value.sites.some((s) => s.name === name)) {
-      w.notify("已有同名场地");
-      return;
+      return [":draft", ":command", ":command:outcome"].some((part) =>
+        sessionStorage.getItem(key + part),
+      );
+    } catch {
+      return false;
     }
-    const target = world.value,
-      fid = character.value.id;
-    operation.value = "site";
-    const record = w.command(
-      "世界",
-      "category:" + target.id,
-      {
-        name: target.name,
-        expectedRevision: target._source.revision,
-        venueCategories: [
-          ...(target._source.venueCategories || []),
-          {
-            id: "venue_" + randomId(),
-            name,
-          },
-        ],
-        reason: "新增世界场地分类",
-      },
-      (body, key) =>
-        w.client.updateCatalogWorld(fid, target.id, {
-          ...body,
-          idempotencyKey: key,
-        }),
-      {
-        onSaved: () => w.loadWorlds(),
-        success: "场地分类已保存，可继续添加店铺等具体地点",
-      },
+  }
+  const [selected, setSelected] = useState(initialWorldId),
+    [tab, setTab] = useState("places"),
+    [category, setCategory] = useState("all"),
+    [query, setQuery] = useState(""),
+    [search, setSearch] = useState(""),
+    [action, setAction] = useState(null),
+    [history, setHistory] = useState(null),
+    [instruction, setInstruction] = useState(""),
+    [notice, setNotice] = useState(""),
+    [error, setError] = useState(""),
+    [createRecovery, setCreateRecovery] = useState(readCreateRecovery);
+  function dismissAction() {
+    setAction(null);
+    setCreateRecovery(readCreateRecovery());
+  }
+  const active = useRef(true),
+    trigger = useRef(null),
+    listTop = useRef(0),
+    catalogRef = useRef(null);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+  const live = () => active.current && w.isCurrent(owner, fid);
+  const readOnly =
+    ["retired", "archived", "已退休", "已归档"].includes(c.status) ||
+    ["retired", "archived"].includes(c.detail?.status);
+  const assertWritable = () => {
+    if (
+      !live() ||
+      ["retired", "archived", "已退休", "已归档"].includes(
+        w.current.value.status,
+      ) ||
+      ["retired", "archived"].includes(w.current.value.detail?.status)
+    )
+      throw Error("账号、角色或可写状态已经变化，请回到原范围核对。");
+  };
+  async function readCatalog() {
+    const page = await w.client.worldCatalog(fid);
+    if (
+      !Array.isArray(page.items) ||
+      page.items.some((row) => row.fluctlight_id !== fid)
+    )
+      throw Error("世界目录范围尚未完整确认。");
+    const views = await Promise.all(
+      page.items.map(async (row) => {
+        const view = await w.client.catalogWorld(fid, row.id);
+        if (
+          view.world?.id !== row.id ||
+          view.world?.fluctlight_id !== fid ||
+          !Array.isArray(view.places) ||
+          view.places.some((p) => p.world_id !== row.id) ||
+          !Array.isArray(view.npcs) ||
+          view.npcs.some((p) => p.world_id !== row.id)
+        )
+          throw Error("世界、地点与人物范围不匹配。");
+        return [row.id, view];
+      }),
     );
-    try {
-      await record.completion;
-      if (siteName.value.trim() === name) {
-        siteName.value = "";
-        siteDialog.value = false;
-      }
-    } catch {}
+    return { ...page, snapshots: Object.fromEntries(views) };
+  }
+  const catalog = useWorkspaceRead({
+    identity: ["world-catalog"],
+    read: readCatalog,
+  });
+  catalogRef.current = catalog;
+  const world = catalog.items.find((row) => row.id === selected),
+    snapshot = catalog.extra.snapshots?.[selected],
+    binding = catalog.extra.active_binding,
+    activeWorld = catalog.items.find((row) => row.id === binding?.world_id);
+  const busy = w.state.operations.some(
+    (row) =>
+      row.fid === fid && row.label === "世界" && row.status === "pending",
+  );
+  function openWorld(id) {
+    listTop.current = document.querySelector(".workspace-page")?.scrollTop || 0;
+    setSelected(id);
+    setCategory("all");
+    setSearch("");
+    setTab("places");
+    void afterPaint(() =>
+      document.querySelector(".workspace-page")?.scrollTo({ top: 0 }),
+    );
+  }
+  function back() {
+    setSelected("");
+    void afterPaint(() =>
+      document
+        .querySelector(".workspace-page")
+        ?.scrollTo({ top: listTop.current }),
+    );
+  }
+  function start(identity, spec, event) {
+    assertWritable();
+    if (event) trigger.current = event.currentTarget;
+    setAction({
+      identity,
+      scope: ["world", fid, identity],
+      storageKey: `fluctlight-world-framework:${owner}:${fid}:replica:${identity}`,
+      ...spec,
+    });
+  }
+  function verifyResult(result, id, status) {
+    if (
+      !result?.id ||
+      (id && result.id !== id) ||
+      (status && result.status !== status) ||
+      !Number.isSafeInteger(result.revision)
+    )
+      throw Error("原提交回执尚未完整确认，请核对原请求。");
+    return result;
+  }
+  async function savedWorld(
+    result,
+    { deleted = false, selectedWorld = false } = {},
+  ) {
+    const page = await readCatalog();
+    if (!live()) return;
+    if (deleted) {
+      if (page.items.some((row) => row.id === result.id))
+        throw Error("世界移除结果尚未读回。");
+    } else if (selectedWorld) {
+      const b = page.active_binding;
+      if (
+        !b ||
+        b.revision < result.revision ||
+        (b.revision === result.revision && b.world_id !== result.world_id)
+      )
+        throw Error("世界绑定版本尚未读回。");
+    } else {
+      const row = page.items.find((row) => row.id === result.id);
+      if (!row || row.revision < result.revision)
+        throw Error("世界保存版本尚未读回。");
+    }
+    catalogRef.current.adopt(page);
+    setNotice(
+      selectedWorld
+        ? "世界绑定已读回，角色的实际地点仍以生活记录为准。"
+        : "已读回实际世界资料与地点。",
+    );
+    if (deleted && selected === result.id) setSelected("");
+  }
+  function editWorld(row, event) {
+    const id = row?.id || null;
+    start(
+      "world:" + (id || "new"),
+      {
+        title: id ? "编辑世界资料" : "创建一个新世界",
+        description: "让名字、背景和规则，成为这个世界的起点。",
+        submitLabel: "保存世界",
+        initial: worldDraft(row),
+        validate: worldWrite,
+        build: worldWrite,
+        execute: async (value, key) => {
+          assertWritable();
+          return verifyResult(
+            await (value.id
+              ? w.client.updateCatalogWorld(fid, value.id, {
+                  ...value.body,
+                  idempotencyKey: key,
+                })
+              : w.client.createCatalogWorld(fid, {
+                  ...value.body,
+                  idempotencyKey: key,
+                })),
+            value.id,
+          );
+        },
+        afterAcknowledged: acknowledgeWorldDraft,
+        readLatest: async (draft) =>
+          draft.id ? (await w.client.catalogWorld(fid, draft.id)).world : null,
+        adoptLatest: rebaseWorldDraft,
+        onSaved: async (result) => {
+          await savedWorld(result);
+          if (live() && !id) setSelected(result.id);
+        },
+        fields: (d, edit) => <WorldEditFields draft={d} edit={edit} />,
+      },
+      event,
+    );
+  }
+  function addCategory(event) {
+    if (!world) return;
+    const id = world.id;
+    start(
+      "category:" + id,
+      {
+        title: "添加场地分类",
+        description: "把相关的地点放在一起，例如街区、自然或生活空间。",
+        submitLabel: "添加分类",
+        initial: {
+          name: "",
+          revision: world.revision,
+          worldName: world.name,
+          categories: world.venue_categories || [],
+          categoryId: "venue_" + randomId(),
+        },
+        validate: (d) => {
+          if (!d.name.trim() || [...d.name.trim()].length > 128)
+            throw Error("请填写分类名称，最多128个字符。");
+          if (
+            d.categories.length >= 32 ||
+            d.categories.some((row) => row.name === d.name.trim())
+          )
+            throw Error("已有同名分类或分类数量已满。");
+        },
+        build: (d) => ({
+          name: d.worldName,
+          expectedRevision: d.revision,
+          venueCategories: [
+            ...d.categories,
+            { id: d.categoryId, name: d.name.trim() },
+          ],
+          reason: "所有者新增场地分类",
+        }),
+        execute: async (body, key) => {
+          assertWritable();
+          return verifyResult(
+            await w.client.updateCatalogWorld(fid, id, {
+              ...body,
+              idempotencyKey: key,
+            }),
+            id,
+          );
+        },
+        readLatest: async () => (await w.client.catalogWorld(fid, id)).world,
+        adoptLatest: (draft, row) => ({
+          ...draft,
+          revision: row.revision,
+          worldName: row.name,
+          categories: row.venue_categories || [],
+        }),
+        onSaved: savedWorld,
+        fields: (d, edit) => (
+          <WorldForm>
+            <WorldField
+              label="分类名称"
+              required
+              value={d.name}
+              onChange={(name) => edit({ name })}
+            />
+          </WorldForm>
+        ),
+      },
+      event,
+    );
+  }
+  function editPlace(row, categoryId, event) {
+    if (!world) return;
+    const wid = world.id,
+      id = row?.id || null,
+      categories = world.venue_categories || [],
+      places = snapshot.places;
+    start(
+      "place:" + wid + ":" + (id || "new"),
+      {
+        title: id ? row.alias || row.name : "添加具体地点",
+        description:
+          "编辑地点资料。已有正式名称和分类保持固定，别名可用于补充称呼。",
+        wide: true,
+        submitLabel: "保存地点",
+        initial: placeDraft(row, world, categoryId),
+        validate: placeWrite,
+        build: placeWrite,
+        execute: async (value, key) => {
+          assertWritable();
+          return verifyResult(
+            await (value.id
+              ? w.client.updateWorldPlace(fid, value.id, {
+                  ...value.body,
+                  idempotencyKey: key,
+                })
+              : w.client.createWorldPlace(fid, {
+                  ...value.body,
+                  idempotencyKey: key,
+                })),
+            value.id,
+          );
+        },
+        afterAcknowledged: acknowledgePlaceDraft,
+        readLatest: async (draft) => {
+          const view = await w.client.catalogWorld(fid, wid);
+          const row = draft.id
+            ? view.places.find((p) => p.id === draft.id)
+            : null;
+          if (draft.id && !row) throw Error("原地点不在当前世界中。");
+          return row;
+        },
+        adoptLatest: rebasePlaceDraft,
+        onSaved: async (result) => {
+          const page = await readCatalog(),
+            p = page.snapshots[wid]?.places.find((p) => p.id === result.id);
+          if (!p || p.revision < result.revision)
+            throw Error("地点保存版本尚未读回。");
+          if (live()) {
+            catalogRef.current.adopt(page);
+            setNotice("地点已保存，实际位置仍以生活记录为准。");
+          }
+        },
+        fields: (d, edit) => (
+          <PlaceEditFields
+            draft={d}
+            edit={edit}
+            categories={categories}
+            places={places}
+            onHistory={() => {
+              const p =
+                catalogRef.current.extra.snapshots?.[wid]?.places.find(
+                  (p) => p.id === d.id,
+                ) || d.source;
+              if (p) {
+                setAction(null);
+                setHistory({ place: p, world, trigger: trigger.current });
+              }
+            }}
+          />
+        ),
+      },
+      event,
+    );
+  }
+  function selectWorld(event) {
+    if (!world) return;
+    const id = world.id;
+    start(
+      "select:" + id,
+      {
+        title: "切换到「" + world.name + "」？",
+        description: "保留原世界的生活记录。切换后，角色的位置需要重新确认。",
+        submitLabel: "切换世界",
+        initial: { revision: binding?.revision || 0 },
+        build: (d) => ({
+          worldId: id,
+          expectedRevision: d.revision,
+          reason: "所有者显式切换世界",
+        }),
+        execute: async (body, key) => {
+          assertWritable();
+          const result = verifyResult(
+            await w.client.selectWorld(fid, { ...body, idempotencyKey: key }),
+            id,
+            "selected",
+          );
+          if (result.world_id !== id) throw Error("世界绑定回执范围不匹配。");
+          return result;
+        },
+        readLatest: readCatalog,
+        adoptLatest: (d, p) => ({
+          ...d,
+          revision: p.active_binding?.revision || 0,
+        }),
+        onSaved: (r) => savedWorld(r, { selectedWorld: true }),
+        fields: () => (
+          <WorldForm>
+            <p className="r-prose">
+              确认将当前角色绑定到这个世界。浏览和编辑世界资料本身不会触发切换。
+            </p>
+          </WorldForm>
+        ),
+      },
+      event,
+    );
+  }
+  function removeWorld(event) {
+    if (!world) return;
+    const id = world.id;
+    start(
+      "remove:" + id,
+      {
+        title: "移除「" + world.name + "」？",
+        description:
+          "仅能移除没有绑定或引用的世界，后端会再次检查地点、人物和历史引用。",
+        submitLabel: "确认移除",
+        initial: { revision: world.revision, reason: "" },
+        validate: (d) => {
+          if (!d.reason.trim() || [...d.reason.trim()].length > 1000)
+            throw Error("请填写移除说明，最多1000个字符。");
+        },
+        build: (d) => ({
+          expectedRevision: d.revision,
+          reason: d.reason.trim(),
+        }),
+        execute: async (body, key) => {
+          assertWritable();
+          const r = await w.client.deleteCatalogWorld(fid, id, {
+            ...body,
+            idempotencyKey: key,
+          });
+          if (r.id !== id || r.status !== "deleted")
+            throw Error("移除回执未完整确认。");
+          return r;
+        },
+        readLatest: async () => (await w.client.catalogWorld(fid, id)).world,
+        adoptLatest: (d, row) => ({ ...d, revision: row.revision }),
+        onSaved: (r) => savedWorld(r, { deleted: true }),
+        fields: (d, edit) => (
+          <WorldForm>
+            <WorldField
+              label="移除说明"
+              multiline
+              value={d.reason}
+              onChange={(reason) => edit({ reason })}
+            />
+          </WorldForm>
+        ),
+      },
+      event,
+    );
   }
   async function expandWorld() {
-    const target = world.value;
-    if (!target || busy.value) return;
-    const fid = character.value.id,
-      owner = w.state.session?.actorId,
-      source = target._source;
-    operation.value = "expand";
-    const input = {
-      wid: target.id,
-      world: source,
-      instruction:
-        instruction.value.trim() ||
-        "按当前世界主题补充合理的场地分类与具体地点，保留现有地点及历史，不改变角色位置。",
-    };
-    const record = w.command(
-      "世界",
-      "expand:" + target.id,
-      input,
-      async (value, key) => {
-        const live = () => w.isCurrent(owner, fid),
-          journal = stagedCommand({
-            storage: sessionStorage,
-            key: "fluctlight:approved-stages:" + key,
-            live,
-          });
-        const body = {
-          background: value.world.background || value.world.description || "",
-          rules: value.world.rules || "",
-          description: value.world.description || "",
-          flavor: value.world.flavor || "",
-        };
-        const resource = await journal.stage(
-          "source",
-          () => ({
-            kind: "world",
-            name: value.world.name,
-            body,
-            reason: "为原世界准备扩写底稿",
-          }),
-          (payload, idempotencyKey) =>
-            w.services.studioClient.save(null, {
-              ...payload,
-              idempotencyKey,
-            }),
-        );
-        const accepted = await journal.stage(
-          "job",
-          () => ({
-            resourceId: resource.id,
-            resourceRevision: resource.revision,
-            kind: "assistant",
-            name: resource.name,
-            body,
-            instruction: value.instruction,
-            reason: "扩写已有世界中的场地和地点",
-          }),
-          (payload, idempotencyKey) =>
-            w.services.studioClient.createJob({
-              ...payload,
-              idempotencyKey,
-            }),
-        );
-        let job = accepted;
-        for (let attempt = 0; attempt < 100; attempt++) {
-          if (!live()) throw Error("角色已变化，请回到原世界继续");
-          if (document.hidden)
-            throw Error("已暂停后台观察，返回后可重试读取原扩写任务");
-          job = await w.services.studioClient.job(accepted.id);
-          if (!live()) throw Error("角色已变化");
-          if (!["queued", "running"].includes(job.status)) break;
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-        }
-        if (
-          job.status !== "completed" ||
-          job.result?.disposition !== "proposal" ||
-          !job.result.body?.framework
-        )
-          throw Error(job.error_code || "扩写仍未完成，请查看原创作任务");
-        const proposal = {
-            ...body,
-            framework: job.result.body.framework,
-          },
-          invalid = worldDefinitionError(proposal);
-        if (invalid) throw Error(invalid);
-        const saved = await journal.stage(
-          "save",
-          () => ({
-            resourceId: resource.id,
-            kind: "world",
-            name: resource.name,
-            body: proposal,
-            expectedVersion: resource.draft_version,
-            reason: "保存实际模型返回的世界扩写",
-          }),
-          ({ resourceId, ...payload }, idempotencyKey) =>
-            w.services.studioClient.save(resourceId, {
-              ...payload,
-              idempotencyKey,
-            }),
-        );
-        const published = await journal.stage(
-          "publish",
-          () => ({
-            resourceId: saved.id,
-            expectedRevision: saved.revision,
-            reason: "发布实际世界扩写",
-          }),
-          ({ resourceId, ...payload }, idempotencyKey) =>
-            w.client.publishStudioResource(resourceId, {
-              ...payload,
-              idempotencyKey,
-            }),
-        );
-        const result = await journal.stage(
-          "apply",
-          async () => {
-            const preview = await w.services.studioClient.preview(
-              fid,
-              published.id,
-              published.published_version,
-              value.wid,
-            );
-            return {
-              resourceId: published.id,
-              fluctlightId: fid,
-              runtimeWorldId: value.wid,
-              resourceVersion: published.published_version,
-              expectedInstanceRevision: preview.instance_revision,
-              expectedRuntimeRevision: preview.runtime_revision,
-              choices: preview.diff.map((row) => ({
-                field: row.field,
-                decision: row.field === "framework" ? "override" : "keep",
-              })),
-              reason: "应用明确请求的世界扩写，保留已有地点与历史",
-            };
-          },
-          ({ resourceId, ...payload }, idempotencyKey) =>
-            w.services.studioClient.apply(resourceId, {
-              ...payload,
-              idempotencyKey,
-            }),
-        );
-        journal.finish();
-        return result;
+    if (!world || busy) return;
+    assertWritable();
+    setError("");
+    const record = runWorldExpansion({
+      w,
+      fid,
+      owner,
+      target: world,
+      instruction,
+      onSaved: async () => {
+        const page = await readCatalog();
+        if (live()) catalogRef.current.adopt(page);
       },
-      {
-        onSaved: () => w.loadWorlds(),
-        success: "扩写已应用并读回实际地点",
-        multiStage: true,
-      },
-    );
+    });
     try {
       await record.completion;
-    } catch {}
+    } catch (cause) {
+      if (live()) setError(errorMessage(cause));
+    }
   }
-  function removeWorld(id) {
-    const value = worlds.value.find((v) => v.id === id);
-    if (!value) return;
-    const fid = character.value.id;
-    const record = w.command(
-      "世界",
-      "delete-world:" + id,
-      {
-        expectedRevision: value._source.revision,
-        reason: "移除不再使用且没有引用的世界",
-      },
-      (body, key) =>
-        w.client.deleteCatalogWorld(fid, id, {
-          ...body,
-          idempotencyKey: key,
-        }),
-      {
-        onSaved: () => w.loadWorlds(),
-        success: "世界已移除",
-      },
-    );
-    record.completion
-      .then(() => {
-        removeId.value = null;
-        if (selected.value === id) selected.value = null;
-      })
-      .catch(() => {});
-  }
-  return () => (
-    <WorldPageView
-      view={{
-        world,
-        selected,
-        siteDialog,
-        worldDraft,
-        expanded,
-        instruction,
-        busy,
-        expandWorld,
-        operation,
-        siteIndex,
-        place,
-        editPlace,
-        newWorld,
-        worlds,
-        character,
-        characters: selector(() => w.state.characters),
-        removeId,
-        DetailDrawer,
-        savePlace,
-        ActionFeedback,
-        fields,
-        saveWorld,
-        addSite,
-        siteName,
-        removeWorld,
-      }}
-    />
+  return (
+    <>
+      <WorldPageView
+        view={{
+          w,
+          c,
+          fid,
+          owner,
+          catalog,
+          world,
+          snapshot,
+          activeWorld,
+          binding,
+          selected,
+          query,
+          setQuery,
+          search,
+          setSearch,
+          category,
+          setCategory,
+          tab,
+          setTab,
+          openWorld,
+          back,
+          editWorld,
+          editPlace,
+          addCategory,
+          selectWorld,
+          removeWorld,
+          readOnly,
+          notice,
+          error,
+          createRecovery,
+          history,
+          setHistory,
+          instruction,
+          setInstruction,
+          expandWorld,
+          busy,
+          live,
+          assertWritable,
+          readCatalog,
+          refresh: catalog.load,
+        }}
+      />
+      {action && (
+        <WorkspaceCommandDialog
+          key={action.identity}
+          action={action}
+          onClose={dismissAction}
+          returnFocus={() => trigger.current}
+        />
+      )}
+    </>
   );
-}
-/** @param {{initialWorldId?: string}} input */
-export default function WorldPage(input = {}) {
-  return useController(createWorldPageController, {
-    ...input,
-  });
 }

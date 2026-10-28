@@ -24,3 +24,6 @@ test('React failed-message retry and status reading preserve the original record
   await f.update(()=>{f.store.messages=[{...message,turnRetryable:false}];});await f.view.click(f.button('查看状态'));assert.deepEqual(f.calls.at(-1),['status',true]);
  }finally{await f.dispose();}
 });
+test('React chat renders streaming deltas and replaces them with the committed reply without disturbing the draft',async()=>{
+ const f=await fixture();try{const field=f.view.host.querySelector('textarea');await f.view.input(field,'下一句话的草稿');field.focus();field.setSelectionRange(2,4);await f.update(()=>{f.store.messages=[{id:'stream-current',kind:'assistant',text:'正在回应的第一段',createdAt:new Date().toISOString(),attachmentRefs:[]}];});assert.match(f.view.host.textContent,/正在回应的第一段/);await f.update(()=>{f.store.messages=[{...f.store.messages[0],text:'正在回应的第一段，继续增长。'}];});assert.match(f.view.host.textContent,/继续增长/);await f.update(()=>{f.store.messages=[{id:'committed-answer',kind:'assistant',text:'最终保存的回应',createdAt:new Date().toISOString(),attachmentRefs:[]}];});assert.doesNotMatch(f.view.host.textContent,/继续增长/);assert.match(f.view.host.textContent,/最终保存的回应/);assert.equal(f.view.host.querySelector('textarea'),field);assert.equal(field.value,'下一句话的草稿');assert.equal(field.selectionStart,2);assert.equal(field.selectionEnd,4);}finally{await f.dispose();}
+});

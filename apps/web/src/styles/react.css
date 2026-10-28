@@ -4,6 +4,18 @@
 @import "./react-layout.css";
 @import "./domain-tools.css";
 @import "./r16-layout.css";
+@import "./workspace-replica.css";
+@import "./replica-chat.css";
+@import "./replica-life.css";
+@import "./replica-resources.css";
+@import "./replica-profile.css";
+@import "./replica-world.css";
+@import "./replica-people.css";
+@import "./replica-feed.css";
+@import "./replica-media.css";
+@import "./replica-studio.css";
+@import "./replica-creation.css";
+@import "./replica-management.css";
 
 @theme inline {
   --color-background: var(--background);
@@ -41,26 +53,26 @@
   *, ::before, ::after { border-color: var(--border); }
 }
 :root {
-  --background: #f0f3f0;
-  --foreground: #1f2a27;
+  --background: #f7f8f4;
+  --foreground: #2e3931;
   --card: #fff;
-  --card-foreground: #1f2a27;
+  --card-foreground: #2e3931;
   --popover: #fff;
-  --popover-foreground: #1f2a27;
-  --primary: #286b59;
+  --popover-foreground: #2e3931;
+  --primary: #295442;
   --primary-foreground: #fff;
-  --secondary: #e1eee7;
-  --secondary-foreground: #205746;
-  --muted: #f0f3f0;
-  --muted-foreground: #59675e;
-  --accent: #e1eee7;
-  --accent-foreground: #205746;
-  --destructive: #ae3f37;
-  --border: #dbe3dd;
-  --input: #cfdad2;
-  --ring: #286b59;
+  --secondary: #edf2ec;
+  --secondary-foreground: #426354;
+  --muted: #f7f8f4;
+  --muted-foreground: #6e7b70;
+  --accent: #edf2ec;
+  --accent-foreground: #426354;
+  --destructive: #b94d48;
+  --border: #e2e7de;
+  --input: #dce3d9;
+  --ring: #295442;
   --radius: 0.6rem;
-  --sidebar: #f6f8f5;
+  --sidebar: #fbfcf8;
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);

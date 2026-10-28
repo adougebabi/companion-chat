@@ -30,3 +30,10 @@ test('explicit progress read closes a stuck observer only for its confirmed term
   status='failed';await state.refreshActiveTurn(true);assert.equal(signal.aborted,true);assert.equal(state.sending,false);assert.equal(state.retryTurn.turnId,'turn');assert.equal(state.retryTurn.idempotencyKey,'same');assert.match(state.error,/request_timeout/);assert.equal(state.messages.some(m=>m.id==='stream-one'),false);
  }finally{await vite.close();Object.assign(globalThis,old);}
 });
+
+test('a failed initial conversation read releases loading and allows reopening the same role',async()=>{
+ const old={window:globalThis.window,fetch:globalThis.fetch,localStorage:globalThis.localStorage};const saved=new Map();globalThis.window={location:{origin:'http://scope.test'}};globalThis.localStorage={getItem:key=>saved.get(key)??null,setItem:(key,value)=>saved.set(key,String(value)),removeItem:key=>saved.delete(key)};
+ let reads=0;globalThis.fetch=async()=>++reads===1?Response.json({message:'temporarily unavailable'},{status:503}):Response.json({conversation:{id:'recovered-conversation',revision:0},messages:[{id:'saved-message',kind:'assistant',text:'已读回'}],participants:[],nextBeforeSequence:null});
+ const vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
+ try{const {createConversationController}=await vite.ssrLoadModule('/src/state/conversation.ts');const store=createConversationController();store.fluctlights=[{id:'role',identity:{name:'角色'},status:'active'}];await store.selectFluctlight('role');assert.equal(store.loading,false);assert.equal(store.conversation,null);assert.match(store.error,/无法打开/);await store.selectFluctlight('role');assert.equal(store.loading,false);assert.equal(store.fluctlightId,'role');assert.equal(store.conversation.id,'recovered-conversation');assert.equal(store.messages[0].text,'已读回');assert.equal(store.error,'');assert.equal(reads,2);}finally{await vite.close();Object.assign(globalThis,old);}
+});

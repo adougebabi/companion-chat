@@ -1,3 +1,4 @@
+import InboxPage from "@/react-app/pages/InboxPage";
 import { isComposingKey } from "@/react-app/render-helpers";
 import { useController } from "@/react-app/page";
 import { selector } from "@/state/view-model";
@@ -406,6 +407,9 @@ function createBrowsePageController(props, context, lifecycle) {
 }
 /** @param {{page: string, onGo?: (page: string) => void}} input */
 export default function BrowsePage(input) {
+  return input.page === "通知与待处理" ? <InboxPage/> : <OtherBrowsePage {...input}/>;
+}
+function OtherBrowsePage(input) {
   return useController(createBrowsePageController, {
     ...input,
   });

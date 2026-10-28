@@ -92,6 +92,10 @@ export async function readApprovedCreationProgress(client, draft) {
     )?.schedule;
   const preparation = wardrobe.value;
   const persona=detail.value?.persona_preparation;
+  const worldConfirmed =
+    typeof draft.worldRuntimeId === "string" &&
+    draft.worldRuntimeId.trim().length > 0 &&
+    world.value?.world?.id === draft.worldRuntimeId;
   const stages = [
     {
       key: "analysis",
@@ -109,7 +113,7 @@ export async function readApprovedCreationProgress(client, draft) {
         world.state === "unknown" || detail.state === "unknown"
           ? "unknown"
           : persona?.status === "failed" ? "failed"
-          : world.value?.world?.id === draft.worldRuntimeId &&
+          : worldConfirmed &&
               draft.groupConfirmed && persona?.status === 'ready'
             ? "ready"
             : persona?.status === 'running' ? 'running' : "pending",
@@ -122,7 +126,7 @@ export async function readApprovedCreationProgress(client, draft) {
       personaCanRecover: !!persona?.can_recover,
       revision: detail.value?.current_revision,
       retryable: !!persona?.can_recover || !(
-        world.value?.world?.id === draft.worldRuntimeId && draft.groupConfirmed
+        worldConfirmed && draft.groupConfirmed
       ),
     },
     wardrobePreparationStage(preparation,wardrobe.errorMessage),

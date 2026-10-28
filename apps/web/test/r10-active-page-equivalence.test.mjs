@@ -26,6 +26,6 @@ test('React library renders durable continuation and a role whose group has not 
   const {default:Library}=await vite.ssrLoadModule('/src/react-app/pages/LibraryPage.jsx');
   const state=proxy({session:{actorId:'owner'},characters:[{id:'role',groupId:'unloaded-group',name:'晚晴',status:'正常',tags:[],job:'',bio:''}],groups:[]});
   const w={state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),services:{configurationClient:{read:async()=>({bindings:[]})}},select(){},navigate(){},navigatePath(){}};
-  view=await mountReact(vite,Library,{workspace:w});assert.match(view.host.textContent,/继续创建与查看进度/);assert.match(view.host.textContent,/晚晴/);
+  view=await mountReact(vite,Library,{workspace:w});assert.match(view.host.textContent,/继续创建/);assert.match(view.host.textContent,/晚晴/);
  }finally{await view?.dispose();await vite.close();environment.restore();}
 });

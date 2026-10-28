@@ -1,27 +1,21 @@
-import {Card,CardHeader,CardTitle,CardDescription,CardContent,CardFooter} from "@/components/ui/card";
-import EntityCardGrid from "@/react-app/shared/EntityCardGrid";
-import ControlHint from "@/react-app/shared/ControlHint";
-import {InlineFeedback,EmptyState} from "@/react-app/shared/Presentation";
-import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
-import { useController } from "@/react-app/page";
-import { selector, readValue } from "@/state/view-model";
-import {
-  ActionButton,
-  Surface,
-  MenuDisclosure,
-  Badge,
-} from "@/react-app/controls";
-import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
-import { FilterChips } from "@/react-app/components";
+import {Card} from "@/components/ui/card";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {InlineFeedback, EmptyState} from "@/react-app/shared/Presentation";
+import LoadingState from "@/react-app/shared/LoadingState";
+import {ArrowRightIcon,CheckIcon,ChevronRightIcon,LayoutGridIcon,ListIcon,PlusIcon,SearchIcon,XIcon} from "lucide-react";
+import {useController} from "@/react-app/page";
+import {selector} from "@/state/view-model";
+import {Surface} from "@/react-app/controls";
 import CharacterAvatar from "@/react-app/shared/CharacterAvatar";
-import {
-  migrateCreationRecovery,
-  creationHistoryKey,
-} from "@/approved-ui/creation-recovery.mjs";
-import { LibraryIcon } from "lucide-react";
+import {StoryMark,WorldArt} from "@/react-app/shared/WorkspaceArtwork";
+import {currentReadError} from "@/approved-ui/read-feedback.mjs";
+import {migrateCreationRecovery,creationHistoryKey} from "@/approved-ui/creation-recovery.mjs";
+
 function createLibraryPageController(__props, context, lifecycle) {
   const w = lifecycle.workspace,
     search = lifecycle.cell(""),
+    view = lifecycle.cell("grid"),
     filters = lifecycle.cell({
       tag: "",
     }),
@@ -40,7 +34,7 @@ function createLibraryPageController(__props, context, lifecycle) {
     rows = selector(() =>
       characters.value.filter(
         (c) =>
-          [c.name, c.job, c.bio]
+          [c.name, c.job, c.bio, ...(c.tags || [])]
             .filter(Boolean)
             .join(" ")
             .toLowerCase()
@@ -63,7 +57,23 @@ function createLibraryPageController(__props, context, lifecycle) {
   }
   const subtitle = (c) =>
     [c.job, c.detail?.identity?.residence].filter(Boolean).join(" · ");
+  const owner = w.state.session.actorId;
+  const uiKey = `fluctlight:library-view:${owner}`;
+  const saveView = () => {
+    try {
+      if(w.state.session?.actorId!==owner){sessionStorage.removeItem(uiKey);return;}
+      sessionStorage.setItem(uiKey, JSON.stringify({search: search.value, tag: filters.value.tag, view: view.value}));
+    } catch { /* UI preferences are optional. */ }
+  };
   lifecycle.onStart(() => {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(uiKey) || "null");
+      if (stored) {
+        search.value = typeof stored.search === "string" ? stored.search : "";
+        filters.value = {tag: typeof stored.tag === "string" ? stored.tag : ""};
+        view.value = stored.view === "list" ? "list" : "grid";
+      }
+    } catch { /* An invalid UI preference cannot block real data. */ }
     try {
       migrateCreationRecovery(
         w.state.session.actorId,
@@ -89,179 +99,53 @@ function createLibraryPageController(__props, context, lifecycle) {
         if (active) configured.value = null;
       });
   });
-  lifecycle.onDispose(() => (active = false));
-  return (_ctx, _cache) => {
-    return (
-      <div className="library">
-        <div className="row library-toolbar">
-          <p className="muted">
-            {displayText(
-              characters.value.length
-                ? "在这里，遇见和你一起生活的人。"
-                : "相识，可以从一句简单的介绍开始。",
-            )}
-          </p>
-          <span className="spacer" />
-          {characters.value.length ? (
-            <ActionButton variant="default" asChild  key={0}>
-              <a
-                key={0}
-
-                href={
-                  saved.value?.activatedId
-                    ? "#/library/create?new=1"
-                    : "#/library/create"
-                }
-              >
-                {displayText(
-                  saved.value && !saved.value.activatedId
-                    ? "继续创建"
-                    : "创建角色",
-                )}
-              </a>
-            </ActionButton>
-          ) : null}
+  lifecycle.observe(() => [search.value, filters.value.tag, view.value], saveView);
+  lifecycle.onDispose(() => { active = false; saveView(); });
+  return () => {
+    const current = characters.value.find(character=>character.id===w.state.selectedId) || {};
+    const createHref = saved.value?.activatedId ? "#/library/create?new=1" : "#/library/create";
+    const readError = currentReadError(w.state, "library", JSON.stringify([w.state.session.actorId,w.state.selectedId]));
+    const tags = groups.value[0].options;
+    return <div className="replica-library" data-testid="replica-library" aria-busy={!!w.state.loading?.library}>
+      <section className="library-hero">
+        <div className="hero-copy">
+          <div className="eyebrow">A LITTLE WORLD, A MEANINGFUL CONNECTION</div>
+          <h1>每一场相遇，<br/>都值得认真开始。</h1>
+          <p>在自己的世界里生活，也在日常里慢慢靠近。<br/>这里，收藏着你们的每一个故事。</p>
+          <Button asChild><a href={createHref}><PlusIcon/>{saved.value && !saved.value.activatedId ? "继续这段相识" : "开启新的相识"}<ArrowRightIcon/></a></Button>
         </div>
-        {saved.value ? (
-          <Surface key={0} as="aside" className="approved-guidance">
-            <b>
-              {displayText(
-                saved.value.activatedId ? "继续查看准备进度" : "继续上次的相识",
-              )}
-            </b>
-            <p>{"上次的资料和准备进度已经为你保留。"}</p>
-            <ActionButton variant="link" className="w-fit self-start" asChild>
-              <a href="#/library/create">
-                {"继续创建与查看进度 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-              </a>
-            </ActionButton>
-          </Surface>
-        ) : null}
-        {error.value ? (
-          <InlineFeedback key={1}  role="alert">
-            {displayText(error.value)}
-          </InlineFeedback>
-        ) : null}
-        {characters.value.length ? (
-          <Fragment key={2}>
-            <FilterChips
-              search={search.value}
-              onUpdateSearch={($event) => (search.value = $event)}
-              filters={filters.value}
-              onUpdateFilters={($event) => (filters.value = $event)}
-              groups={groups.value}
-              testId="library-filters"
-              placeholder="搜索角色 / 职业"
-            />
-            <EntityCardGrid className="library-grid" data-testid="library-grid" aria-label="角色卡片">
-              {listValues(rows.value).map((character)=><Card key={character.id} asChild className="entity-card h-full gap-0 overflow-hidden py-0"><article className="library-character" data-testid={'library-card-'+character.id}>
-                <CardHeader className="gap-3 pb-4"><div className="flex min-w-0 items-start justify-between gap-3"><CharacterAvatar className="size-12" name={character.name} initial={character.initial} color={character.color} src={character._directory?.avatar}/><div className="min-w-0 flex-1"><CardTitle className="line-clamp-2 break-words">{character.name}</CardTitle>{subtitle(character)&&<CardDescription>{subtitle(character)}</CardDescription>}</div><div className="flex shrink-0 items-center gap-1">{readValue(w).state.selectedId===character.id&&<Badge variant="secondary">当前</Badge>}
-                      <MenuDisclosure
-                        className="actions-menu"
-                        title={<><MoreActionsIcon className="size-4" aria-hidden="true"/></>}
-                        aria-label={character.name + "的操作"}
-                      >
-                        <div>
-                          <ActionButton variant="ghost"
-                            onClick={($event) => details(character.id)}
-                          >
-                            {"角色详情"}
-                          </ActionButton>
-                          {progressHref(character.id) ? (
-                            <ActionButton variant="ghost"
-                              asChild
-
-                              key={0}
-                            >
-                              <a
-                                key={0}
-
-                                href={progressHref(character.id)}
-                              >
-                                {"查看准备进度"}
-                              </a>
-                            </ActionButton>
-                          ) : null}
-                          {readValue(w).state.selectedId !== character.id ? (
-                            <ActionButton variant="ghost"
-                              key={1}
-                              onClick={($event) => choose(character.id)}
-                            >
-                              {"切换角色"}
-                            </ActionButton>
-                          ) : null}
-                        </div>
-                      </MenuDisclosure>
-                </div></div></CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-3 pb-4">{!character.bio&&!(character.tags||[]).length&&<p className="text-sm text-muted-foreground">生活细节会在相处中慢慢补充。</p>}{character.bio&&<p className="m-0 line-clamp-3 break-words text-sm text-muted-foreground">{character.bio}</p>}<div className="flex flex-wrap gap-1.5">{(character.tags||[]).map(tag=><Badge key={tag} variant="outline">{tag}</Badge>)}</div></CardContent>
-                <CardFooter className="grid grid-cols-2 gap-3 [&>button]:w-full"><ActionButton variant="outline" onClick={()=>details(character.id)}>角色详情</ActionButton><ActionButton variant="default" onClick={()=>choose(character.id)}>进入聊天</ActionButton></CardFooter>
-              </article></Card>)}
-            </EntityCardGrid>
-            {!rows.value.length ? (
-              <EmptyState key={0} as="div" >
-                <p>{"暂无匹配角色。"}</p>
-                <ActionButton variant="outline"
-
-                  onClick={($event) => {
-                    search.value = "";
-                    filters.value = {
-                      tag: "",
-                    };
-                  }}
-                >
-                  {"清除筛选"}
-                </ActionButton>
-              </EmptyState>
-            ) : null}
-          </Fragment>
-        ) : (
-          <Surface key={3} as="section" className="library-first-use">
-            <LibraryIcon size={30} aria-hidden="true" />
-            <h2>{"还没有一起生活的人"}</h2>
-            <p>
-              {" 从一个名字或一段介绍开始，为新的相识准备一个生活世界。"}
-              <br />
-              {"我们会一步步陪你整理资料，再由你确认开启生活。 "}
-            </p>
-            {configured.value === false ? (
-              <p key={0} className="approved-guidance">
-                {
-                  " 还没有连接通用模型。描述分析需要先配置模型，也可以选择不调用模型的空白创建。 "
-                }
-              </p>
-            ) : null}
-            <div className="row first-use-actions">
-              {configured.value !== true ? (
-                <ActionButton variant="outline" asChild  key={0}>
-                  <a
-                    key={0}
-
-                    href="#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94"
-                  >
-                    {"先连接模型"}
-                  </a>
-                </ActionButton>
-              ) : null}
-              <ActionButton variant="default" asChild >
-                <a
-
-                  data-testid="library-create-first"
-                  href="#/library/create"
-                >
-                  {displayText(
-                    saved.value ? "继续创建第一个角色" : "创建第一个角色",
-                  )}
-                </a>
-              </ActionButton>
-            </div>
-          </Surface>
-        )}
+        <div className="hero-orbit" aria-hidden="true"/>
+        <div aria-hidden="true"><StoryMark className="hero-plant"/></div>
+        {current.id && <div className="library-resume">
+          <small>CONTINUE YOUR STORY</small>
+          <div className="resume-character"><CharacterAvatar name={current.name} initial={current.initial} color={current.color} src={current._directory?.avatar}/><div><h3>{current.name}</h3><p>你的上一次相遇，还在这里。</p></div></div>
+          <Button variant="outline" onClick={()=>choose(current.id)}>继续相处<ArrowRightIcon/></Button>
+        </div>}
+      </section>
+      {saved.value && <Surface as="aside" className="library-draft-notice"><div><b>{saved.value.activatedId ? "继续查看准备进度" : "还有一段尚未开始的故事。"}</b><p>上次的资料和准备进度已经为你保留。</p></div><Button variant="outline" asChild><a href="#/library/create">继续创建<ArrowRightIcon/></a></Button></Surface>}
+      {error.value && <InlineFeedback role="alert">{error.value}</InlineFeedback>}
+      {readError && <InlineFeedback role="alert" className="library-read-error"><p>角色资料暂未完整读到，已保留当前角色列表。{readError}</p><Button variant="outline" disabled={!!w.state.loading?.library} onClick={()=>void w.load("角色库")}>重新读取角色资料</Button></InlineFeedback>}
+      <div className="library-header"><h2>我的角色 <span>{characters.value.length} 位相识</span></h2><div className="library-actions">
+        <div className="library-search"><SearchIcon size={15}/><Input type="search" aria-label="搜索名字、职业或标签" placeholder="搜索名字、职业或标签" value={search.value} onChange={event=>search.value=event.target.value}/>{search.value && <Button variant="ghost" size="icon" aria-label="清除搜索" onClick={()=>search.value=""}><XIcon/></Button>}</div>
+        <div className="library-view" role="group" aria-label="角色列表视图"><Button variant={view.value==="grid"?"secondary":"ghost"} size="icon" aria-label="网格视图" aria-pressed={view.value==="grid"} onClick={()=>view.value="grid"}><LayoutGridIcon/></Button><Button variant={view.value==="list"?"secondary":"ghost"} size="icon" aria-label="列表视图" aria-pressed={view.value==="list"} onClick={()=>view.value="list"}><ListIcon/></Button></div>
+      </div></div>
+      <div className="tag-filter" aria-label="角色标签"><Button variant="ghost" aria-pressed={!filters.value.tag} className={!filters.value.tag?"active":""} onClick={()=>filters.value={tag:""}}>全部</Button>{tags.map(tag=><Button variant="ghost" key={tag} aria-pressed={filters.value.tag===tag} className={filters.value.tag===tag?"active":""} onClick={()=>filters.value={tag}}>{tag}</Button>)}</div>
+      {w.state.loading?.library && <LoadingState label="正在读取角色资料…"/>}
+      <div className={view.value==="grid"?"character-grid":"character-list"} data-testid="library-grid" aria-label="角色卡片">
+        {rows.value.map(character=><Card asChild key={character.id} className="library-card"><article data-testid={"library-card-"+character.id}>
+          <div className="library-card-art" aria-hidden="true"><WorldArt kind="city"/></div>
+          <span className={"library-status "+(w.state.selectedId===character.id?"status-current":"")}>{w.state.selectedId===character.id?"当前相处":({active:"生活中",正常:"生活中",paused:"已暂停",已暂停:"已暂停",retired:"已退休",已退休:"已退休",failed:"需要处理",异常:"需要处理"}[character.status] || "准备中")}</span>
+          <div className="library-card-content"><div className="library-card-title"><CharacterAvatar className="library-avatar" name={character.name} initial={character.initial} color={character.color} src={character._directory?.avatar}/><div className="library-card-name"><h3>{character.name}</h3><p>{subtitle(character) || "生活资料待补充"}</p></div></div>
+          <p>{character.bio || "生活细节会在相处中慢慢补充。"}</p>
+          <div className="library-chips">{(character.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
+          <div className="library-card-bottom"><span>每一次相处，慢慢了解</span><div className="library-actions"><Button variant="ghost" onClick={()=>details(character.id)}>角色档案</Button><Button variant="secondary" onClick={()=>choose(character.id)}>进入聊天<ArrowRightIcon/></Button></div></div>
+          {progressHref(character.id)&&<a className="library-progress" href={progressHref(character.id)}>查看准备进度<ChevronRightIcon size={12}/></a>}
+          </div>
+        </article></Card>)}
       </div>
-    );
+      {!rows.value.length && !w.state.loading?.library && (characters.value.length ? <EmptyState><h3>没有找到这位相识</h3><p>换一个关键词，或者从一个新的故事开始。</p><Button variant="outline" onClick={()=>{search.value="";filters.value={tag:""};}}>清除筛选</Button></EmptyState> : <Surface as="section" className="library-first-use"><h2>还没有一起生活的人</h2><p>从一个名字或一段介绍开始，为新的相识准备一个生活世界。</p>{configured.value===false&&<p>还没有连接通用模型。可以先配置模型，也可以选择空白创建。</p>}<div className="library-actions">{configured.value!==true&&<Button variant="outline" asChild><a href="#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94">先连接模型</a></Button>}<Button asChild><a data-testid="library-create-first" href={createHref}>{saved.value&&!saved.value.activatedId?"继续创建第一个角色":"创建第一个角色"}</a></Button></div></Surface>)}
+      <div className="library-footer"><span><CheckIcon size={12}/>角色资料来自当前工作区</span><Button variant="link" onClick={()=>w.navigate("创作中心")}>去创作中心寻找灵感<ChevronRightIcon size={12}/></Button></div>
+    </div>;
   };
 }
-export default function LibraryPage(input = {}) {
-  return useController(createLibraryPageController, {
-    ...input,
-  });
-}
+export default function LibraryPage(input={}) { return useController(createLibraryPageController,input); }

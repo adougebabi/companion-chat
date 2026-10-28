@@ -107,7 +107,11 @@ export function ActionFeedback({
       {showStatus && latest.status !== "error" && (
         <OperationStatus variant="default" className="muted" role="status" data-testid="request-status">
           {latest.status === "pending"
-            ? "换装请求已受理，等待处理；当前穿着以实际记录为准。"
+            ? latest.operation === "persona-switch"
+              ? "人格切换请求已受理，等待处理；当前人格以实际记录为准。"
+              : latest.operation?.startsWith("wear-outfit:")
+                ? "换装请求已受理，等待处理；当前穿着以实际记录为准。"
+                : "请求已受理，等待处理；结果以实际记录为准。"
             : latest.response || "请求已处理，请核对实际结果。"}
         </OperationStatus>
       )}

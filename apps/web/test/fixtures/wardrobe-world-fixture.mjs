@@ -1,14 +1,23 @@
 // Explicit isolated browser replay only. No proxy, model call or production import.
-export function wardrobeWorldFixture({fid,owner,date}){
+export function wardrobeWorldFixture({fid,owner,date,scenario=""}){
  let revision=3,sequence=0,tags=['在家','外出','上班'];const profile='sunny';
  let items=['upper_body','lower_body','underwear','panties','socks','shoes','accessory','accessory','outer'].map((type,index)=>({id:`clothing-${index}`,fluctlight_id:fid,item_kind:'wearable',category:type,slot:type,clothing_type:type,seasons:['spring','autumn'],description:['青绿棉质上衣','宽松长裤','柔软内衣','棉质内裤','短袜','平底鞋','银色项链','简约手链','薄外套'][index],ownership:'owned',availability:'available',source_kind:'owner_correction',source_ref:'fixture-known',source_item_key:`fixture-${index}`,source_verified:true,revision:1,acquired_at:date,updated_at:date,archived_at:null,media:[],worn:null,use:null}));
- let plans=[];const worn=items.slice(0,6),world={id:'fixture-world',fluctlight_id:fid,name:'温和魔法世界',background:'中世纪魔法与普通生活并存',rules:'尊重居民的日常生活',flavor:'温暖、安静',description:'集市与住家构成的小镇',item_pool:[],revision:2,venue_categories:[{id:'home',name:'家'},{id:'shops',name:'商店'}]};
+ if(scenario==='empty'){items=[];tags=[];}
+ const receipts=new Map();let reads=0,lost=false,requestReads=0,wearRequest=null;
+ let plans=[];let worn=items.slice(0,6);const world={id:'fixture-world',fluctlight_id:fid,name:'温和魔法世界',background:'中世纪魔法与普通生活并存',rules:'尊重居民的日常生活',flavor:'温暖、安静',description:'集市与住家构成的小镇',item_pool:[],revision:2,venue_categories:[{id:'home',name:'家'},{id:'shops',name:'商店'}]};
  let places=[{id:'fixture-bedroom',world_id:world.id,name:'卧室',venue_category_id:'home',alias:'她的房间',floor:'二层',desc:'安静的木质房间',atmosphere:'温暖',furniture:['木床','书桌'],layout:'床靠西墙，窗朝东',connections:[],room_items:[],connection_place_ids:[],parent_place_id:null,revision:1,status:'active'},{id:'fixture-clothing-shop',world_id:world.id,name:'服装店',venue_category_id:'shops',alias:'',floor:'一层',desc:'出售日常服饰的小店',atmosphere:'明亮',furniture:['衣架','柜台'],layout:'中间通道',connections:[],room_items:[],connection_place_ids:[],parent_place_id:null,revision:1,status:'active'}];
  const outfit=p=>({...p,active_profile_id:profile,items:p.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean)});
  const snapshot=()=>({available:true,world,places,npcs:[],scenes:[],current_context:{location_known:false},active_effects:[]});
- return function handle({path,method,body,url,json,res}){
+ return async function handle({path,method,body,url,json,res}){
+  if(path==='/api/owner-requests/request-wardrobe-fixture'&&wearRequest){requestReads++;if(requestReads>=3){wearRequest.status='completed';wearRequest.revision++;const plan=plans.find(p=>p.id===wearRequest.payload.outfitId);if(plan)worn=plan.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);}json(res,wearRequest);return true;}
+
   if(!path.startsWith(`/api/fluctlights/${fid}/`))return false;
-  const end=path.slice(`/api/fluctlights/${fid}`.length),reply=(value,status=200)=>{json(res,value,status);return true;};
+  const end=path.slice(`/api/fluctlights/${fid}`.length),receiptKey=body.idempotencyKey;
+  if(method==='GET'&&end==='/inventory'){reads++;if(scenario==='loading'&&reads===1)await new Promise(r=>setTimeout(r,5000));if(scenario==='failure'&&reads===1){json(res,{code:'request_failed',message:'衣柜暂时无法读取'},503);return true;}}
+  if(method!=='GET'&&receiptKey&&receipts.has(receiptKey)){json(res,receipts.get(receiptKey));return true;}
+  const reply=(value,status=200)=>{if(method!=='GET'&&receiptKey&&status===200){receipts.set(receiptKey,value);if(scenario==='unknown'&&!lost){lost=true;json(res,{code:'request_failed',message:'衣柜回执尚未确认'},503);return true;}}json(res,value,status);return true;};
+  if(end==='/inventory/requests'&&method==='POST'){wearRequest={id:'request-wardrobe-fixture',fluctlight_id:fid,kind:'inventory_action',status:'pending',revision:1,created_at:date,payload:body,result:{},result_refs:[]};return reply({request:wearRequest,audit_id:'audit-wardrobe-fixture'});}
+
   const conflict=expected=>Number(expected)!==revision;
   if(end==='/inventory/preparation')return reply({id:'preparation-fixture',fluctlight_id:fid,status:'completed',profile_id:profile,result:{inventory_committed:true},task_id:'fixture-wardrobe-task',can_recover:false});
   if(end==='/inventory/tags'){

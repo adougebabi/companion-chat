@@ -13,7 +13,7 @@ import { finishCreationWorld } from "../v3/creation-world.mjs";
 import { persistentCommand } from "../v3/providers/persistent-command.mjs";
 import { creationFeedback } from "../v3/creation-feedback.mjs";
 import { errorMessage } from "../v3/domain-presentation.mjs";
-import {reviewWorldReuse,confirmWorldReuse} from '../v3/reuse-world.mjs';
+import { reviewWorldReuse, confirmWorldReuse } from "../v3/reuse-world.mjs";
 import { randomId } from "../random-id.mjs";
 import {
   creationRecovery,
@@ -56,6 +56,8 @@ export function createCreationController({
     fieldErrors = cell({}),
     analysisStartedAt = cell(null),
     worldSourceReview = cell(null),
+    recoveryPending = cell([]),
+    recoveryReview = cell(null),
     step = cell(
       draft.activatedId
         ? "progress"
@@ -125,6 +127,8 @@ export function createCreationController({
     })
   ) {
     draft.previewDraft = [];
+    delete draft.previewJsonText;
+    delete draft.previewJsonBase;
     step.value = "person";
   }
   if (
@@ -140,7 +144,10 @@ export function createCreationController({
   }
   function initializePreview() {
     if (!draft.analysis) return;
-    if (!draft.analysis.core_persona.identity.timezone)
+    if (
+      !draft.analysis.core_persona.identity.timezone &&
+      !draft.previewDefinitionEdited
+    )
       draft.analysis.core_persona.identity.timezone = draft.timezone;
     previewFields.value = profileFields(draft.analysis.core_persona, label);
     const restored = new Map(
@@ -152,14 +159,67 @@ export function createCreationController({
   }
   if (draft.activatedId && !draft.activationDate)
     draft.activationDate = today(draft.timezone);
-  if (!draft.timezone?.trim())
+  if (!draft.timezone?.trim() && !draft.previewDefinitionEdited)
     draft.timezone =
       Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai";
   initializePreview();
   persist();
+  syncRecoveryPending();
+  function syncRecoveryPending() {
+    if (!live()) return;
+    const entries = [];
+    if (draft.activatedId)
+      for (const [key, title] of Object.entries({
+        world: "人格与世界",
+        persona: "人格资料",
+        wardrobe: "初始衣柜",
+        schedule: "初始日程",
+        reference: "形象参考图",
+        sheet: "角色设定图",
+      })) {
+        const slot = `fluctlight-creation:${owner}:${draft.activatedId}:recover:${key}`;
+        try {
+          if (!storage.getItem(slot)) continue;
+          const record = persistentCommand({
+            key: slot,
+            storage: () => storage,
+            execute() {
+              throw Error("此处只读取原恢复提交。");
+            },
+          }).pending();
+          if (record)
+            entries.push({
+              key,
+              title,
+              original: record,
+              personaCanRecover: ["world", "persona"].includes(key),
+            });
+        } catch (cause) {
+          entries.push({ key, title, error: errorMessage(cause) });
+        }
+      }
+    recoveryPending.value = entries;
+  }
   function fail(cause) {
     if (live()) {
-      if(draft.activatedId){feedback.value=null;error.value=errorMessage(cause,'角色已建立，这一步结果尚未确认，原请求已保留。');pending.value=activation.pending();return;}
+      if (draft.activatedId) {
+        feedback.value = null;
+        error.value = errorMessage(
+          cause,
+          "角色已建立，这一步结果尚未确认，原请求已保留。",
+        );
+        pending.value = activation.pending();
+        return;
+      }
+      const original = activation.pending();
+      if (original) {
+        pending.value = original;
+        feedback.value = null;
+        error.value = original.rejection
+          ? "原创建因分析版本变化被拒绝，请保留输入并重新整理。"
+          : "创建请求结果尚未确认，原身份与输入已保留。";
+        return;
+      }
       feedback.value = creationFeedback(cause);
       error.value = feedback.value.message;
       pending.value = activation.pending();
@@ -172,18 +232,26 @@ export function createCreationController({
     feedback.value = null;
     draft.analysis = null;
     draft.analysisText = "";
+    delete draft.previewDefinitionEdited;
     draft.previewDraft = [];
+    delete draft.previewJsonText;
+    delete draft.previewJsonBase;
     draft.templateReviewed = false;
     draft.requestId = randomId();
     previewFields.value = [];
     persist();
   }
+  function preserveRejectedPreview() {
+    // Keep the Owner's edited data, without retaining rejected analysis authority.
+    if (draft.mode !== "blank" && draft.analysis)
+      draft.rejectedPreviewText = JSON.stringify(previewDefinition(), null, 2);
+  }
   function selectWorld(world) {
     if (draft.activatedId || pending.value) return;
-    const hadSource=!!draft.worldSource;
-    draft.worldSource=null;
+    const hadSource = !!draft.worldSource;
+    draft.worldSource = null;
     if (!world) {
-      if (!draft.useDefaultWorld||hadSource) {
+      if (!draft.useDefaultWorld || hadSource) {
         draft.useDefaultWorld = true;
         draft.worldResourceId = "";
         draft.worldResourceVersion = "";
@@ -199,17 +267,26 @@ export function createCreationController({
     ) {
       draft.worldName = world.name;
       draft.previewDraft = [];
+      delete draft.previewJsonText;
+      delete draft.previewJsonBase;
       previewFields.value = [];
     }
     persist();
   }
-  function selectExistingWorld(world){
-    if(draft.activatedId||pending.value)return;
-    draft.useDefaultWorld=false;
-    draft.worldResourceId='';draft.worldResourceVersion='';
-    draft.worldSource={worldId:world.id,fluctlightId:world.fluctlightId,revision:world.revision,name:world.name};
-    draft.worldName=world.name;
-    invalidate();persist();
+  function selectExistingWorld(world) {
+    if (draft.activatedId || pending.value) return;
+    draft.useDefaultWorld = false;
+    draft.worldResourceId = "";
+    draft.worldResourceVersion = "";
+    draft.worldSource = {
+      worldId: world.id,
+      fluctlightId: world.fluctlightId,
+      revision: world.revision,
+      name: world.name,
+    };
+    draft.worldName = world.name;
+    invalidate();
+    persist();
   }
   function changeMode(mode) {
     if (busy.value || pending.value || draft.activatedId) return;
@@ -241,7 +318,8 @@ export function createCreationController({
     error.value = "";
     if (step.value === "world") {
       if (
-        !draft.useDefaultWorld && !draft.worldSource &&
+        !draft.useDefaultWorld &&
+        !draft.worldSource &&
         (!draft.worldResourceId || !draft.worldResourceVersion)
       ) {
         error.value = "请选择一份已发布的世界底稿，或使用日常生活世界。";
@@ -300,7 +378,8 @@ export function createCreationController({
         return;
       }
       if (
-        !draft.useDefaultWorld && !draft.worldSource &&
+        !draft.useDefaultWorld &&
+        !draft.worldSource &&
         (!draft.worldResourceId || !draft.worldResourceVersion)
       )
         throw Error("请先选择生活世界。");
@@ -311,6 +390,7 @@ export function createCreationController({
       analysisAbort = new AbortController();
       const requestId = draft.requestId;
       draft.analysis = null;
+      delete draft.previewDefinitionEdited;
       draft.previewDraft = [];
       previewFields.value = [];
       step.value = "analysis";
@@ -322,11 +402,30 @@ export function createCreationController({
             "\n说话方式期望：" + draft.speakingStyle.trim();
         if (draft.coreValues?.trim())
           request.description += "\n核心价值观期望：" + draft.coreValues.trim();
-        if(draft.worldSource){
-          const source=await client.catalogWorld(draft.worldSource.fluctlightId,draft.worldSource.worldId);
-          if(!savedCurrent(requestId))return;
-          const world=source.world||{};
-          request.description+='\n所选世界设定：'+JSON.stringify({name:world.name,body:{background:world.background,rules:world.rules,description:world.description,flavor:world.flavor,places:(source.places||[]).map(place=>({name:place.name,description:place.desc||place.description,atmosphere:place.atmosphere,floor:place.floor}))}});
+        if (draft.worldSource) {
+          const source = await client.catalogWorld(
+            draft.worldSource.fluctlightId,
+            draft.worldSource.worldId,
+          );
+          if (!savedCurrent(requestId)) return;
+          const world = source.world || {};
+          request.description +=
+            "\n所选世界设定：" +
+            JSON.stringify({
+              name: world.name,
+              body: {
+                background: world.background,
+                rules: world.rules,
+                description: world.description,
+                flavor: world.flavor,
+                places: (source.places || []).map((place) => ({
+                  name: place.name,
+                  description: place.desc || place.description,
+                  atmosphere: place.atmosphere,
+                  floor: place.floor,
+                })),
+              },
+            });
         } else if (draft.worldResourceId) {
           const world = await directory.publication(
             draft.worldResourceId,
@@ -417,10 +516,76 @@ export function createCreationController({
     const next = applyProfileChanges(draft.analysis.core_persona, changes);
     draft.analysis = { ...draft.analysis, core_persona: next };
     draft.analysisText = JSON.stringify(draft.analysis, null, 2);
-    draft.name = next.identity?.name || draft.name;
-    draft.timezone = next.identity?.timezone || draft.timezone;
+    draft.name =
+      typeof next.identity?.name === "string" ? next.identity.name : "";
+    draft.timezone =
+      typeof next.identity?.timezone === "string" ? next.identity.timezone : "";
     draft.requestId = randomId();
     persist();
+  }
+  function previewDefinition() {
+    if (!draft.analysis) return null;
+    const value = clone(draft.analysis);
+    value.core_persona = applyProfileChanges(
+      value.core_persona,
+      profileChanges(value.core_persona, previewFields.value),
+    );
+    delete value.analysis_id;
+    delete value.correlation_id;
+    return value;
+  }
+  function updatePreviewDefinition(value, { consumeJson = false } = {}) {
+    if (
+      !live() ||
+      busy.value ||
+      pending.value ||
+      draft.activatedId ||
+      step.value !== "preview" ||
+      draft.mode === "blank"
+    )
+      return false;
+    try {
+      if (draft.previewJsonText !== undefined && !consumeJson)
+        throw Error("请先应用或还原完整 JSON 修改，再编辑其他结构。");
+      if (!value || typeof value !== "object" || Array.isArray(value))
+        throw Error("完整设定须为 JSON 对象。");
+      const source = draft.analysis;
+      for (const key of ["analysis_id", "correlation_id", "schema_version"])
+        if (Object.hasOwn(value, key) && value[key] !== source[key])
+          throw Error("原分析来源和版本保持不变，请核对完整设定。");
+      const next = parseCreationAnalysis(
+        JSON.stringify({
+          ...value,
+          analysis_id: source.analysis_id,
+          correlation_id: source.correlation_id,
+          schema_version: source.schema_version,
+        }),
+      );
+      draft.analysis = next;
+      draft.previewDefinitionEdited = true;
+      draft.name =
+        typeof next.core_persona.identity.name === "string"
+          ? next.core_persona.identity.name
+          : "";
+      draft.timezone =
+        typeof next.core_persona.identity.timezone === "string"
+          ? next.core_persona.identity.timezone
+          : "";
+      draft.analysisText = JSON.stringify(next, null, 2);
+      draft.previewDraft = [];
+      delete draft.previewJsonText;
+      delete draft.previewJsonBase;
+      draft.requestId = randomId();
+      initializePreview();
+      fieldErrors.value = {};
+      error.value = "";
+      feedback.value = null;
+      persist();
+      return true;
+    } catch (cause) {
+      fail(cause);
+      return false;
+    }
   }
   async function finishWorld() {
     const requestId = draft.requestId,
@@ -457,8 +622,17 @@ export function createCreationController({
         let value;
         if (retry) value = activation.pending()?.value;
         else {
+          if (draft.previewJsonText !== undefined)
+            throw Error("请先应用或还原完整 JSON 修改，再确认创建。");
           applyPreview();
           if (!draft.name?.trim()) throw Error("请在资料预览中填写角色名字。");
+          if (!draft.timezone?.trim())
+            throw Error("请在资料预览中填写生活时区。");
+          try {
+            new Intl.DateTimeFormat("zh-CN", { timeZone: draft.timezone });
+          } catch {
+            throw Error("请填写有效的 IANA 生活时区，例如 Asia/Shanghai。");
+          }
           const analysis =
             draft.includeGoals === false
               ? { ...draft.analysis, initial_goals: [], initial_intentions: [] }
@@ -482,7 +656,9 @@ export function createCreationController({
             worldResourceId: draft.worldResourceId,
             worldResourceVersion: draft.worldResourceVersion,
             useDefaultWorld: !!draft.useDefaultWorld,
-            ...(draft.worldSource?{worldSource:clone(draft.worldSource)}:{}),
+            ...(draft.worldSource
+              ? { worldSource: clone(draft.worldSource) }
+              : {}),
           };
         }
         if (!value) throw Error("原创建请求尚未读取，请保留草稿核对。");
@@ -508,6 +684,7 @@ export function createCreationController({
       ) {
         // A definitive pre-admission rejection is editable. Never discard an
         // unknown command outcome, which must keep its original identity.
+        preserveRejectedPreview();
         invalidate();
         step.value = "person";
         persist();
@@ -517,6 +694,10 @@ export function createCreationController({
       if (live()) {
         busy.value = false;
         pending.value = activation.pending();
+        if (pending.value && !draft.activatedId) {
+          step.value = "progress";
+          persist();
+        }
         if (draft.activatedId) await refreshProgress();
       }
     }
@@ -525,6 +706,7 @@ export function createCreationController({
     if (!live() || !draft.activatedId) return;
     const token = ++readEpoch,
       requestId = draft.requestId;
+    syncRecoveryPending();
     try {
       const result = await readApprovedCreationProgress(client, clone(draft));
       if (!savedCurrent(requestId) || token !== readEpoch) return;
@@ -540,6 +722,7 @@ export function createCreationController({
       if (busy.value || draft.activatedId) return;
       if (activation.pending()) activation.releaseRejected();
       pending.value = null;
+      preserveRejectedPreview();
       step.value = "person";
       invalidate();
       error.value = "输入已保留，请重新整理并审阅。";
@@ -554,7 +737,14 @@ export function createCreationController({
     let command;
     busy.value = true;
     try {
-      if (stage.key === "persona" || stage.personaCanRecover) {
+      if (
+        stage.key === "persona" ||
+        stage.personaCanRecover ||
+        (stage.key === "world" &&
+          recoveryPending.value.some(
+            (entry) => entry.key === "world" && entry.original,
+          ))
+      ) {
         command = persistentCommand({
           key,
           storage: () => storage,
@@ -625,20 +815,157 @@ export function createCreationController({
     } finally {
       if (live()) {
         busy.value = false;
+        syncRecoveryPending();
         await refreshProgress();
       }
     }
   }
-  async function reviewWorldSource(){
-    if(!live()||busy.value)return;busy.value=true;
-    try{worldSourceReview.value=await reviewWorldReuse({client,recovery,storage,owner,ownerCurrent:live});error.value='';}catch(e){fail(e);}finally{if(live())busy.value=false;}
+  async function reviewRejectedRecovery(entry) {
+    if (!live() || busy.value || !draft.activatedId) return;
+    const fid = draft.activatedId,
+      requestId = draft.requestId,
+      key = `fluctlight-creation:${owner}:${fid}:recover:${entry.key}`;
+    const channel = persistentCommand({
+      key,
+      storage: () => storage,
+      execute() {
+        throw Error("此处只核对已拒绝的恢复提交。");
+      },
+    });
+    busy.value = true;
+    try {
+      const original = channel.pending();
+      if (!original?.rejection || original.attempts !== 1)
+        throw Error("原恢复尚未确认无效果，请先核对原提交。");
+      let actual;
+      if (["world", "persona"].includes(entry.key)) {
+        const detail = await client.detail(fid);
+        actual = {
+          current_revision: detail.current_revision,
+          persona_preparation: detail.persona_preparation,
+        };
+      } else if (entry.key === "wardrobe") {
+        const [preparation, wardrobe] = await Promise.all([
+          client.inventoryPreparation(fid),
+          client.wardrobe(fid),
+        ]);
+        actual = { preparation, revision: wardrobe.revision };
+      } else if (["reference", "sheet"].includes(entry.key)) {
+        const [identity, brief] = await Promise.all([
+          client.visualIdentityManagement(fid),
+          client.visualBrief(fid),
+        ]);
+        actual = { identity, brief };
+      } else
+        actual = await client.schedules(fid, {
+          from: draft.activationDate,
+          to: draft.activationDate,
+        });
+      if (
+        !live() ||
+        draft.activatedId !== fid ||
+        draft.requestId !== requestId ||
+        channel.pending()?.idempotencyKey !== original.idempotencyKey
+      )
+        return;
+      recoveryReview.value = {
+        fid,
+        requestId,
+        key,
+        stageKey: entry.key,
+        title: entry.title,
+        idempotencyKey: original.idempotencyKey,
+        original: clone(original.value),
+        actual: clone(actual),
+      };
+      error.value = "";
+    } catch (cause) {
+      if (live()) fail(cause);
+    } finally {
+      if (live()) busy.value = false;
+    }
   }
-  async function confirmWorldSourceReview(){
-    if(!live()||busy.value||!worldSourceReview.value)return;busy.value=true;
-    try{confirmWorldReuse({client,recovery,storage,owner,ownerCurrent:live},worldSourceReview.value);Object.assign(draft,recovery.read());worldSourceReview.value=null;await finishWorld();error.value='';}catch(e){fail(e);}finally{if(live()){busy.value=false;await refreshProgress();}}
+  async function confirmRejectedRecovery() {
+    const review = recoveryReview.value;
+    if (
+      !live() ||
+      busy.value ||
+      !review ||
+      draft.activatedId !== review.fid ||
+      draft.requestId !== review.requestId
+    )
+      return;
+    try {
+      const channel = persistentCommand({
+          key: review.key,
+          storage: () => storage,
+          execute() {
+            throw Error("此处只解除已明确拒绝的原提交。");
+          },
+        }),
+        original = channel.pending();
+      if (
+        original?.idempotencyKey !== review.idempotencyKey ||
+        JSON.stringify(original.value) !== JSON.stringify(review.original)
+      )
+        throw Error("原恢复记录已变化，请重新读取核对。");
+      channel.releaseRejected();
+      recoveryReview.value = null;
+      syncRecoveryPending();
+      error.value = "";
+      await refreshProgress();
+    } catch (cause) {
+      if (live()) fail(cause);
+    }
+  }
+  async function reviewWorldSource() {
+    if (!live() || busy.value) return;
+    busy.value = true;
+    try {
+      worldSourceReview.value = await reviewWorldReuse({
+        client,
+        recovery,
+        storage,
+        owner,
+        ownerCurrent: live,
+      });
+      error.value = "";
+    } catch (e) {
+      fail(e);
+    } finally {
+      if (live()) busy.value = false;
+    }
+  }
+  async function confirmWorldSourceReview() {
+    if (!live() || busy.value || !worldSourceReview.value) return;
+    busy.value = true;
+    try {
+      confirmWorldReuse(
+        { client, recovery, storage, owner, ownerCurrent: live },
+        worldSourceReview.value,
+      );
+      Object.assign(draft, recovery.read());
+      worldSourceReview.value = null;
+      await finishWorld();
+      error.value = "";
+    } catch (e) {
+      fail(e);
+    } finally {
+      if (live()) {
+        busy.value = false;
+        await refreshProgress();
+      }
+    }
   }
   function newDraft() {
-    if (!draft.activatedId || pending.value || recovery.archived) return;
+    if (
+      !live() ||
+      busy.value ||
+      !draft.activatedId ||
+      pending.value ||
+      recovery.archived
+    )
+      return false;
     recovery.clear();
     const next = recovery.read();
     for (const key of Object.keys(draft)) delete draft[key];
@@ -647,7 +974,14 @@ export function createCreationController({
     step.value = "world";
     pending.value = null;
     previewFields.value = [];
+    error.value = "";
+    feedback.value = null;
+    fieldErrors.value = {};
+    worldSourceReview.value = null;
+    recoveryPending.value = [];
+    recoveryReview.value = null;
     persist();
+    return true;
   }
   return {
     draft,
@@ -663,10 +997,18 @@ export function createCreationController({
     live,
     persist,
     persistPreview,
+    previewDefinition,
+    updatePreviewDefinition,
     invalidate,
     selectWorld,
     selectExistingWorld,
-    worldSourceReview,reviewWorldSource,confirmWorldSourceReview,
+    worldSourceReview,
+    recoveryPending,
+    recoveryReview,
+    reviewRejectedRecovery,
+    confirmRejectedRecovery,
+    reviewWorldSource,
+    confirmWorldSourceReview,
     changeMode,
     next,
     importFile,

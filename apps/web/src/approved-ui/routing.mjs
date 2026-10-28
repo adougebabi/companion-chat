@@ -114,3 +114,10 @@ export function bookmarkedPath(pathname,search='') {
   if(path==='/')return null;
   return ({'/chat':'/library','/world':'/worlds','/people':'/library'})[path]||path+search;
 }
+
+// UI reading position belongs to an Owner and the complete route/filter context.
+export function workspaceReadingKey(owner, route) {
+  const query = [...(route.query || new URLSearchParams()).entries()];
+  query.sort(([left], [right]) => left.localeCompare(right));
+  return JSON.stringify([owner, route.path || route.page, route.fid || null, query]);
+}

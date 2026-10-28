@@ -726,6 +726,7 @@ export const conversationDefinition = defineDomain({
     },
     clearActiveConversation() {
       this.invalidateRequest();
+      this.loading = false;
       this.conversation = null;
       this.conversationParticipants = [];
       this.fluctlightId = null;

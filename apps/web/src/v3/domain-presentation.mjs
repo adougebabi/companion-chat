@@ -36,6 +36,7 @@ export function errorMessage(error, fallback='操作未完成，请稍后重试�
  if(error?.status===401||/\b401\b|invalid_password|invalid_credentials/.test(source))return '登录未成功，请检查密码并重新登录。';
  if(error?.status===403||/\b403\b|forbidden/.test(source))return '当前账户没有执行此操作的权限。';
  if(error?.status===404||/resource not found|could not be read|not_found/.test(source))return '没有找到这条记录，请返回列表核对。';
+ if(code==='resource_referenced')return '这条记录已有资料或历史引用，暂不能移除。请保留原记录并核对引用来源。';
  if(error?.status===409||/current_facts_stale|actor_context_stale|version_conflict|revision_conflict|resource revision conflict/.test(source))return '资料版本已变化，草稿已保留，请重新读取后核对。';
  if(/prompt_(?:required_|context_|tool_result_)?budget_exceeded/.test(source))return '要读取的资料超过模型输入上限，请在模型设置核对可用上下文。';
  if(/adk_final_(?:output|repair)|structured_response_invalid/.test(source))return '模型返回的内容格式不完整，请检查模型服务后重试。';

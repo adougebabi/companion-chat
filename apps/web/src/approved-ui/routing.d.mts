@@ -3,3 +3,4 @@ export function approvedHref(page: string, fid?: string | null): string;
 export const lifePages: string[];
 export const workspacePages: string[];
 export function approvedRoute(hash: string): {page: string; fid?: string | null; path: string; query: URLSearchParams; feature?: any; removed?: boolean; notFound?: boolean; [key: string]: any};
+export function workspaceReadingKey(owner: string | undefined, route: {path?: string; page?: string; fid?: string | null; query?: URLSearchParams}): string;

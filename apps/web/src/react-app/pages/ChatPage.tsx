@@ -4,13 +4,18 @@ import {Bubble,BubbleContent} from '@/components/ui/bubble';
 import {Attachment,AttachmentMedia,AttachmentTrigger,AttachmentGroup} from '@/components/ui/attachment';
 import {Marker,MarkerContent} from '@/components/ui/marker';
 import {Spinner} from '@/components/ui/spinner';
-import {Kbd} from '@/components/ui/kbd';
+import WorkspacePageHeader from '../shared/WorkspacePageHeader';
+import WorkspaceMomentArt from '../shared/WorkspaceMomentArt';
+import WearingSummary from '../shared/WearingSummary';
+import {currentReadError} from '@/approved-ui/read-feedback.mjs';
+import ConversationHistory from '../shared/ConversationHistory';
+import {Surface} from '../controls';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {SidebarProvider,Sidebar,SidebarContent} from '@/components/ui/sidebar';
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
-import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription,SheetClose} from "@/components/ui/sheet";
-import {XIcon} from "lucide-react";
+import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription} from "@/components/ui/sheet";
 import {
   useEffect,
   useRef,
@@ -18,7 +23,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
-  RotateCcwIcon,
+  HistoryIcon,SlidersHorizontalIcon,MapPinIcon,CheckCheckIcon,
   SendIcon,
   ShieldCheckIcon,
   ChevronRightIcon,
@@ -29,12 +34,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import CharacterAvatar from "../shared/CharacterAvatar";
-import { DetailDrawer,CurrentOutfit } from "../components";
+import { DetailDrawer } from "../components";
 import {
   chatWaitingPresentation,
   chatDiagnosticTurn,
   chatFailureText,
 } from "@/v3/chat-feedback.mjs";
+import {errorMessage} from '@/v3/domain-presentation.mjs';
 import { userInstant } from "@/v3/presentation-time.mjs";
 import {approvedRoute} from "@/approved-ui/routing.mjs";
 import DomainPage from "./DomainPage";
@@ -44,8 +50,10 @@ export default function ChatPage({
   preview,
   onGo,
   onPreviewChange,
+  historyRoute,
 }: {
   preview: boolean;
+  historyRoute?: any;
   onPreviewChange?: (open:boolean)=>void;
   onGo: (page: string) => void;
 }) {
@@ -73,13 +81,21 @@ export default function ChatPage({
   });
   const [diagnosticRoute,setDiagnosticRoute]=useState<any>(null);
   const [now, setNow] = useState(Date.now);
-  const [narrow,setNarrow]=useState(()=>window.matchMedia("(max-width: 800px)").matches);
-  useEffect(()=>{const media=window.matchMedia("(max-width: 800px)");const update=()=>setNarrow(media.matches);media.addEventListener("change",update);return()=>media.removeEventListener("change",update);},[]);
+  const [historyOpen,setHistoryOpen]=useState(false);
+  const [readFailure,setReadFailure]=useState(''),[readLoading,setReadLoading]=useState(true);
   const latestDraft = useRef(draft);
   latestDraft.current = draft;
+  const pageActive=useRef(false),historyFocus=useRef<HTMLButtonElement>(null);
   const composing = useRef(false),
     attachmentFocus = useRef<HTMLButtonElement>(null);
   const [attachment,setAttachment]=useState<string|null>(null);
+  function closeHistory(){
+    setHistoryOpen(false);
+    if(historyRoute){
+      const target=historyRoute.query.get('returnTo');
+      workspace.navigatePath(/^#?\/(?!\/)/.test(target||'')?target.replace(/^#/,''):'/c/'+encodeURIComponent(character.id)+'/chat');
+    }
+  }
   const busy =
     snapshot.sending || store.hasPendingTurn || store.hasSettlingTurn;
   useEffect(() => {
@@ -90,16 +106,16 @@ export default function ChatPage({
     }
   }, [draft, storageKey]);
   useEffect(() => {
+    pageActive.current=true;
     let active = true,
       polling = false,
       lastIdleRead = 0,
       lastSummaryRead = 0;
     const live = () => active && workspace.currentScope() === scope;
-    void workspace
-      .openConversation(character.id, live)
-      .catch((error: Error) => {
-        if (live()) workspace.state.errors.chat = error.message;
-      });
+    setReadLoading(true);setReadFailure('');
+    void workspace.openConversation(character.id, live)
+      .catch((cause: unknown) => { if(live())setReadFailure(errorMessage(cause,'对话暂时无法读取。')); })
+      .finally(()=>{if(live())setReadLoading(false);});
     const timer = setInterval(async () => {
       if (!live() || document.hidden || polling) return;
       setNow(Date.now());
@@ -123,14 +139,13 @@ export default function ChatPage({
         }
       } catch (error) {
         if (live())
-          workspace.state.errors.chat =
-            error instanceof Error ? error.message : "读取失败";
+          setReadFailure(errorMessage(error,"读取失败"));
       } finally {
         polling = false;
       }
     }, 2000);
     return () => {
-      active = false;
+      active = false;pageActive.current=false;
       clearInterval(timer);
       if (store.fluctlightId === character.id) store.invalidateRequest();
     };
@@ -139,16 +154,16 @@ export default function ChatPage({
     snapshot.fluctlightId === character.id
       ? snapshot.messages.filter(
           (message) =>
-            message.kind !== "system" && !message.id.startsWith("stream-"),
+            message.kind !== "system",
         )
       : [];
   async function send() {
     const submitted = latestDraft.current,
       text = submitted.trim();
-    if (!text || busy) return;
+    if (!text || busy || readLoading || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
     await store.send(text, false, null, () => {
       if (
-        workspace.currentScope() === scope &&
+        pageActive.current && workspace.currentScope() === scope &&
         latestDraft.current === submitted
       ) {
         setDraft("");
@@ -182,7 +197,14 @@ export default function ChatPage({
               message.kind === "assistant" && message.turnId === turn,
           ),
         )
-      : workspace.state.errors.chat || "";
+      : readFailure;
+  async function reread(){
+    setReadLoading(true);setReadFailure('');
+    const live=()=>pageActive.current&&workspace.currentScope()===scope;
+    try{if(!store.conversation||store.fluctlightId!==character.id)await workspace.openConversation(character.id,live);else await store.refreshActiveTurn(true);}
+    catch(cause){if(live())setReadFailure(errorMessage(cause,'对话暂时无法读取。'));}
+    finally{if(live())setReadLoading(false);}
+  }
   const schedule =
     character.schedule.find(
       (item: any) => item._source?.action_status === "in_progress",
@@ -191,106 +213,49 @@ export default function ChatPage({
       (item: any) =>
         !item._source?.end_at || Date.parse(item._source.end_at) > now,
     );
-  const previewContent=<>
-
-          <div className="preview-heading">
-            <span>{character.name}的此刻</span>
-            <Badge variant="secondary">生活摘要</Badge>
-          </div>
-          <div className="scene">
-            <div className="scene-window">
-              <i />
-              <i />
-            </div>
-            <div className="scene-sun" />
-            <div className="scene-vase">♧</div>
-            <div className="scene-desk" />
-            <div className="scene-caption">
-              <span className="scene-tag">A LITTLE MOMENT</span>
-              <p>{character.location || character.activity || "此刻"}</p>
-            </div>
-          </div>
-          <div className="compact-bio">
-            <b>{[character.name, character.job].filter(Boolean).join(" · ")}</b>
-            <p>{character.bio}</p>
-            <small>
-              {[character.mood, character.location].filter(Boolean).join(" · ")}
-            </small>
-          </div>
-          <CurrentOutfit />
-          <div className="schedule-preview">
-            <div>
-              <span>接下来的安排</span>
-              <Button variant="ghost" onClick={() => {onPreviewChange?.(false);onGo("日程");}}>
-                查看全部
-                <ChevronRightIcon size={12} />
-              </Button>
-            </div>
-            {schedule && (
-              <div className="next-item">
-                <span className="schedule-dot" />
-                <div>
-                  <small>
-                    {schedule.time} —{" "}
-                    {schedule._source?.end_at
-                      ? workspace.clock(
-                          schedule._source.end_at,
-                          character.timezone,
-                        )
-                      : ""}
-                  </small>
-                  <p>{schedule.text}</p>
-                  <Badge variant="secondary">
-                    {schedule._source?.action_status === "in_progress"
-                      ? "进行中"
-                      : "日程安排"}
-                  </Badge>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="preview-tip">
-            <LeafIcon size={16} />
-            <p>
-              生活在继续，故事也在慢慢生长。
-              <br />
-              这里是 {character.name} 的小小世界。
-            </p>
-          </div>
-
-  </>;
+  const previewContent=<><Surface className="replica-moment-card">
+    <div className="replica-section-heading"><h2>{character.name}的此刻</h2><Badge variant="outline">实时预览</Badge></div>
+    <WorkspaceMomentArt/>
+    <div className="companion-moment-copy"><span className="companion-moment-location"><MapPinIcon size={13}/>{character.location||'位置尚未记录'}</span><h3>{character.activity||'此刻活动尚未记录'}</h3><p>{character.mood||'心情尚未记录'}</p></div>
+    <div className="companion-mini-section"><span>今天的穿着</span><WearingSummary character={character} error={currentReadError(workspace.state,'wardrobe',scope)} loading={workspace.state.loading.wardrobe}/><Button variant="link" onClick={()=>onGo('衣柜')}>去衣柜看看<ChevronRightIcon size={13}/></Button></div>
+    <div className="companion-mini-section"><div className="companion-row-between"><span>接下来的安排</span><Button variant="link" onClick={()=>onGo('日程')}>查看全部<ChevronRightIcon size={12}/></Button></div>{schedule?<div className="companion-next-schedule"><time dateTime={schedule._source?.start_at} title={userInstant(schedule._source?.start_at)}>{schedule.time}</time><div><p>{schedule.text}</p><small>{schedule._source?.action_status==='in_progress'?'正在进行':'日程安排'}</small></div></div>:<p className="replica-caption">还没有读到接下来的安排。</p>}</div>
+    </Surface><div className="companion-soft-note"><LeafIcon size={17}/><p>生活在继续，故事也在慢慢生长。<br/>这里是 {character.name} 的小小世界。</p></div></>;
   return (
-    <div className={`chat-layout ${preview ? "" : "collapsed"}`}>
-      <section className="chat-panel">
-        <header className="chat-header">
+    <div className="replica-chat companion-page">
+      <WorkspacePageHeader eyebrow="DAILY / A LITTLE CONVERSATION" title="从一句话，慢慢走近。" description="分享今天的小事，也留一点安静相处的时间。" actions={<><Button ref={historyFocus} variant="outline" onClick={()=>setHistoryOpen(true)}><HistoryIcon size={15}/>会话历史</Button><Button data-testid="chat-preview-toggle" variant="outline" onClick={()=>onPreviewChange?.(!preview)}><SlidersHorizontalIcon size={15}/>{preview?'收起此刻':'展开此刻'}</Button></>}/>
+      <div className={`companion-chat-layout ${preview ? "" : "without-preview"}`}>
+
+      <Surface as="section" className="companion-chat-panel">
+        <header className="companion-chat-heading">
           <CharacterAvatar
             name={character.name}
             initial={character.initial}
             color={character.color}
             src={character._directory?.avatar}
           />
-          <div>
+          <div className="companion-chat-person">
             <strong className="line-clamp-2" title={character.name}>{character.name}</strong>
-            <small>
+            <span>
               <i className="online-dot" />{" "}
               {character.status === "正常"
                 ? "运行中"
                 : character.status || "状态未读取"}
               {character.job && <span> · {character.job}</span>}
-            </small>
+            </span>
           </div>
-          <span className="spacer" />
-          <span className="chat-private">
+          <Select value={character.id} onValueChange={id=>{workspace.select(id);onGo("聊天");}}><SelectTrigger className="companion-select" aria-label="切换聊天角色"><SelectValue/></SelectTrigger><SelectContent>{(workspace.state.characters||[]).map((value:any)=><SelectItem key={value.id} value={value.id}>{value.name}</SelectItem>)}</SelectContent></Select>
+          <span className="companion-private">
             <ShieldCheckIcon size={13} />
             只属于你们的对话
           </span>
         </header>
         <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollEdgeThreshold={80}>
-          <MessageScroller className="flex-1 h-auto bg-muted/30">
-            <MessageScrollerViewport aria-label="聊天消息" className="timeline p-4 sm:p-6">
-              <MessageScrollerContent className="pb-14">
+          <MessageScroller className="replica-chat-scroller">
+            <MessageScrollerViewport aria-label="聊天消息" className="companion-message-list">
+              <MessageScrollerContent className="replica-chat-messages">
 
-                <MessageScrollerItem messageId="intro"><Marker className="justify-center text-xs"><MarkerContent>从一句问候开始，让陪伴慢慢发生。</MarkerContent></Marker></MessageScrollerItem>
+                {(snapshot.loading||readLoading)&&<MessageScrollerItem messageId="loading"><Spinner/>正在读取对话…</MessageScrollerItem>}
+                {!snapshot.loading&&!readLoading&&!messages.length&&!error&&!busy&&<MessageScrollerItem messageId="intro"><div className="replica-chat-empty"><LeafIcon size={24}/><p>从一句问候开始，让陪伴慢慢发生。</p></div></MessageScrollerItem>}
           {messages.map((message,index) => {
             const mine = message.kind === "user",
               failed =
@@ -298,15 +263,15 @@ export default function ChatPage({
                 ["failed", "cancelled"].includes(message.turnStatus || "");
             const day=messageDay(message.createdAt),previous=messages[index-1],newDay=!previous||day!==messageDay(previous.createdAt);
             return (
-              <MessageScrollerItem key={message.id} messageId={message.id}>{newDay&&<Marker variant="separator" className="mb-5"><MarkerContent>{day}</MarkerContent></Marker>}<Message align={mine?"end":"start"} className="items-start gap-3">
+              <MessageScrollerItem key={message.id} messageId={message.id}>{newDay&&<Marker className="companion-date-divider"><MarkerContent>{day}</MarkerContent></Marker>}<Message align={mine?"end":"start"} className={"companion-message"+(mine?" is-mine":"")}>
                 <CharacterAvatar
-                  className="size-8 shrink-0"
+                  className={mine?"companion-self-avatar":"replica-message-avatar"}
                   name={mine ? "我" : character.name}
                   initial={mine ? "我" : character.initial}
                   color={mine ? "#e9eae6" : character.color}
                 />
-                <MessageContent>
-                  <MessageHeader className="gap-2">
+                <MessageContent className="companion-message-body">
+                  <MessageHeader className="companion-message-meta">
                     {mine ? "我" : character.name}
                     <ControlHint text={userInstant(message.createdAt)}><time
                       dateTime={message.createdAt}
@@ -315,9 +280,10 @@ export default function ChatPage({
                       {workspace.clock(message.createdAt, "Asia/Shanghai")}
                     </time></ControlHint>
                   </MessageHeader>
-                  <Bubble variant={mine?"tinted":"outline"} align={mine?"end":"start"}><BubbleContent className="whitespace-pre-wrap">{message.text}</BubbleContent>
+                  <Bubble className="replica-message-bubble" variant={mine?"tinted":"outline"} align={mine?"end":"start"}><BubbleContent className="companion-bubble">{message.text}</BubbleContent>
                     {!!message.attachmentRefs?.length&&<AttachmentGroup className="flex-wrap overflow-visible">{message.attachmentRefs.map(id=><Attachment key={id} orientation="vertical" className="w-36"><AttachmentMedia variant="image"><img src={workspace.services.mediaClient.url(id)} alt={character.name+' 的附件'} loading="lazy"/></AttachmentMedia><AttachmentTrigger aria-label="查看对话附件" onClick={event=>{attachmentFocus.current=event.currentTarget;setAttachment(id);}}/></Attachment>)}</AttachmentGroup>}
                   </Bubble>
+                  {mine&&message.turnStatus==='completed'&&<div className="companion-message-state"><CheckCheckIcon size={12}/>已送达</div>}
                   {failed && (
                     <ChatTurnFeedback
                       message={message}
@@ -330,16 +296,15 @@ export default function ChatPage({
             );
           })}
           {busy && (
-            <MessageScrollerItem messageId="waiting"><Message><MessageContent role="status" className="items-start text-sm text-muted-foreground"><div className="flex items-center gap-2"><Spinner aria-hidden="true"/>
-              {waiting.label}
-              </div>
+            <MessageScrollerItem messageId="waiting"><Message><MessageContent role="status" className="companion-typing"><div className="replica-typing-dots" aria-hidden="true"><i/><i/><i/></div><div>
+              {waiting.label}</div>
               {waiting.detail && <small>{waiting.detail}</small>}
               {waiting.showDiagnostics && (
                 <Button variant="link" asChild>
                   <a href={diagnosticHref} onClick={openDiagnostic}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
                 </Button>
               )}
-              {waiting.showStop && store.canCancel && (
+              {store.canCancel && (
                 <Button variant="link" onClick={() => store.cancel()}>
                   停止本次生成
                 </Button>
@@ -348,7 +313,7 @@ export default function ChatPage({
           )}
           {error && !busy && !messages.some(message=>message.kind==='user'&&['failed','cancelled'].includes(message.turnStatus||'')) && (
             <MessageScrollerItem messageId="error"><InlineFeedback role="alert">
-              {error}
+              {error}<Button variant="outline" disabled={snapshot.loading||readLoading} onClick={()=>void reread()}>重新读取对话</Button>
               <Button variant="link" asChild>
                 <a href={diagnosticHref} onClick={openDiagnostic}>查看本次运行 <ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/></a>
               </Button>
@@ -359,7 +324,7 @@ export default function ChatPage({
             <MessageScrollerButton className="bottom-3" aria-label="回到最新消息"/>
           </MessageScroller>
         </MessageScrollerProvider>
-        <div className="composer">
+        <div className="companion-composer">
           <Textarea
             aria-label="聊天消息"
             placeholder="说点什么，分享你的今天…"
@@ -383,11 +348,11 @@ export default function ChatPage({
               }
             }}
           />
-          <div className="composer-bottom">
-            <small className="composer-keyboard-hint"><Kbd>Enter</Kbd> 发送 · <Kbd>Shift + Enter</Kbd> 换行</small>
+          <div className="companion-composer-bottom">
+            <span>Enter 发送 <i/> Shift + Enter 换行</span>
             <Button
               className="touch-target"
-              disabled={!draft.trim() || busy}
+              disabled={!draft.trim() || busy || readLoading || !snapshot.conversation}
               onClick={() => void send()}
             >
               {busy ? "回应中" : "发送"}
@@ -395,14 +360,10 @@ export default function ChatPage({
             </Button>
           </div>
         </div>
-      </section>
-      {preview&&!narrow&&<SidebarProvider keyboardShortcut={false} open={preview} onOpenChange={onPreviewChange} className="contents min-h-0"><Sidebar side="right" data-side="right" collapsible="none" className="chat-preview-sidebar"><SidebarContent className="chat-preview-content">{previewContent}</SidebarContent></Sidebar></SidebarProvider>}
-      <Sheet open={preview&&narrow} onOpenChange={onPreviewChange}>
-        <SheetContent className="react-workspace chat-preview-sheet data-[side=right]:w-full sm:max-w-[380px] gap-0 p-0" showCloseButton={false} onCloseAutoFocus={event=>{const trigger=document.querySelector<HTMLElement>('[data-testid="chat-preview-toggle"]');if(trigger){event.preventDefault();trigger.focus({preventScroll:true});}}}>
-          <SheetHeader className="relative border-b pr-16"><SheetTitle>此刻预览</SheetTitle><SheetDescription>查看穿着与接下来的安排</SheetDescription><SheetClose asChild><Button type="button" variant="ghost" size="icon" className="touch-target absolute right-2 top-2" aria-label="关闭预览"><XIcon/></Button></SheetClose></SheetHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">{previewContent}</div>
-        </SheetContent>
-      </Sheet>
+      </Surface>
+      {preview&&<aside className="companion-moment-preview"><SidebarProvider keyboardShortcut={false} open={preview} onOpenChange={onPreviewChange} className="contents min-h-0"><Sidebar side="right" data-side="right" collapsible="none" className="replica-chat-preview"><SidebarContent className="replica-chat-preview-content">{previewContent}</SidebarContent></Sidebar></SidebarProvider></aside>}
+      </div>
+      {(historyOpen||historyRoute)&&<ConversationHistory key={historyRoute?historyRoute.path+'?'+historyRoute.query:'inline'} initialQuery={historyRoute?.query.get('q')||''} initialConversationId={historyRoute?.query.get('conversation')||''} initialMessageId={historyRoute?.query.get('message')||''} returnFocus={()=>historyFocus.current} busy={busy} onClose={closeHistory}/>}
       {attachment&&<Sheet open onOpenChange={open=>{if(!open)setAttachment(null);}}><SheetContent className="react-workspace gap-4" onCloseAutoFocus={event=>{if(attachmentFocus.current?.isConnected){event.preventDefault();attachmentFocus.current.focus({preventScroll:true});}}}><SheetHeader><SheetTitle>对话附件</SheetTitle><SheetDescription>{character.name} 的历史对话图片</SheetDescription></SheetHeader><div className="min-h-0 flex-1 overflow-y-auto p-4"><img className="h-auto w-full object-contain" src={workspace.services.mediaClient.url(attachment)} alt={character.name+' 的附件'}/></div></SheetContent></Sheet>}
       {diagnosticRoute&&<DetailDrawer title="本次对话运行" testId="chat-diagnostic-drawer" onClose={()=>setDiagnosticRoute(null)}><DomainPage route={diagnosticRoute}/></DetailDrawer>}
     </div>

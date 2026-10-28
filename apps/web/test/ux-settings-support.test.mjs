@@ -64,7 +64,7 @@ test('numeric edits compare values and an untouched editor cannot submit an unch
  raw.value='10';raw.oninput();assert.equal(node('[data-save]').disabled,true);
 });
 test('an original-only recovery drawer without a pending identity cannot create an empty command',async()=>{
- let admitted=0;const host=box(),mount=Function('get','persistentCommand','studioDraftStorage','drawer','esc',source('durable-command-drawer')+'\nreturn durableCommandDrawer;')(()=>({actorId:'owner'}),()=>({pending:()=>null,submit:async()=>{admitted++;}}),()=>({}),()=>({el:host,close(){}}),String);
+ let admitted=0;const host=box(),mount=Function('get','persistentCommand','studioDraftStorage','drawer','esc','subscribe',source('durable-command-drawer')+'\nreturn durableCommandDrawer;')(()=>({actorId:'owner'}),()=>({pending:()=>null,submit:async()=>{admitted++;}}),()=>({getItem:()=>null}),()=>({el:host,close(){}}),String,()=>()=>{});
  mount({slot:'original',title:'原提交',body:'',read:()=>({}),execute(){},originalOnly:true});
  assert.equal(host.querySelector('[data-command-send]').disabled,true);
  assert.equal(host.querySelector('[data-command-send]').hidden,true);

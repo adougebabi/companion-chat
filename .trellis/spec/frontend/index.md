@@ -11,7 +11,9 @@ The Owner explicitly required removal of Vue and old UI entry points on
 Every `legacy=1` route is rejected before page dispatch, including duplicate
 query values. It is not redirected to another old interface.
 
-The approved v6.2 appearance and domain behavior remain the visual baseline.
+The supplied 2026-10-27 workspace Demo is the visual baseline for migrated pages;
+read [Workspace Replica Contract](./workspace-replica-contract.md). Existing domain
+behavior remains authoritative.
 Read [Approved Demo Contract](./approved-demo-contract.md) together with the
 current [React shadcn Contract](./react-shadcn-contract.md).
 
@@ -19,6 +21,7 @@ current [React shadcn Contract](./react-shadcn-contract.md).
 
 | Guide | Use it for |
 | --- | --- |
+| [Workspace Replica Contract](./workspace-replica-contract.md) | Current Demo source, page sequence, layout and state verification |
 | [React shadcn Contract](./react-shadcn-contract.md) | Required stack, real adoption, retired route gate, controller and primitive contracts |
 | [Directory Structure](./directory-structure.md) | Page, view, state, service and UI ownership |
 | [Component Guidelines](./component-guidelines.md) | React events, composition, forms and accessibility |

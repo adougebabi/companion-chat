@@ -1,6 +1,6 @@
 import { randomId } from '../../random-id.mjs';
 import {persistentCommand} from './persistent-command.mjs';
-import type { BrowserClient, BrowserGoalCommand, BrowserPromiseCommandBody, BrowserPromiseRescheduleBody, BrowserOwnerScheduleBody, BrowserScheduleRequestView } from '@fluctlight/browser-client';
+import type { BrowserClient, BrowserGoalCommand, BrowserPromiseCommandBody, BrowserPromiseRescheduleBody, BrowserOwnerScheduleBody, BrowserScheduleRequestView, BrowserScheduleCalendar } from '@fluctlight/browser-client';
 import { configureDomainService } from '../proto/services.js';
 import { get } from '../proto/store.js';
 
@@ -29,7 +29,7 @@ export function createLifeProvider(client: BrowserClient) {
   function scheduleChannel(fid:string,localDate:string,promiseId=''){
     const owner=get('session')?.actorId;if(typeof owner!=='string'||!owner)throw new Error('请先登录再安排日程');
     const key='fluctlight:pending-schedule:'+JSON.stringify([owner,fid,localDate,promiseId]);let channel=scheduleChannels.get(key);
-    if(!channel){channel=persistentCommand<ScheduleDraft,BrowserScheduleRequestView>({key,storage:()=>globalThis.sessionStorage,execute:(value,idempotencyKey)=>{writable(fid);if(get('session')?.actorId!==owner)throw new Error('所有者已经变化，请回原账户查看请求');return client.requestSchedule(fid,{...value,idempotencyKey});}});scheduleChannels.set(key,channel);}
+    if(!channel){channel=persistentCommand<ScheduleDraft,BrowserScheduleRequestView>({key,storage:()=>globalThis.sessionStorage,execute:(value,idempotencyKey)=>{writable(fid);if(get('session')?.actorId!==owner)throw new Error('所有者已经变化，请回原账户查看请求');return client.requestSchedule(fid,{...value,idempotencyKey}).then(result=>{if(!result||typeof result.request_id!=='string'||!result.request_id||result.fluctlight_id!==fid)throw new Error('日程请求回执尚未完整读到，原提交身份已保留');return result;});}});scheduleChannels.set(key,channel);}
     return channel;
   }
   type ItemRequest=Omit<Parameters<BrowserClient['suggestScheduleItem']>[2],'idempotencyKey'>;
@@ -41,8 +41,8 @@ export function createLifeProvider(client: BrowserClient) {
     if(!channel){channel=persistentCommand<ItemDraft,Awaited<ReturnType<BrowserClient['suggestScheduleItem']>>>({key,storage:()=>globalThis.sessionStorage,execute:(value,idempotencyKey)=>{
       writable(fid);if(get('session')?.actorId!==owner)throw new Error('所有者已经变化，请回原账户查看建议');
       const body={...value.request,idempotencyKey};
-      if(value.operation==='cancel')return client.deleteScheduleItem(fid,value.scheduleId,String(value.itemId),{expectedRevision:body.expectedRevision,expectedLifeContextRevision:body.expectedLifeContextRevision,reason:body.reason,idempotencyKey});
-      return value.itemId?client.updateScheduleItem(fid,value.scheduleId,value.itemId,body):client.suggestScheduleItem(fid,value.scheduleId,body);
+      const result=value.operation==='cancel'?client.deleteScheduleItem(fid,value.scheduleId,String(value.itemId),{expectedRevision:body.expectedRevision,expectedLifeContextRevision:body.expectedLifeContextRevision,reason:body.reason,idempotencyKey}):value.itemId?client.updateScheduleItem(fid,value.scheduleId,value.itemId,body):client.suggestScheduleItem(fid,value.scheduleId,body);
+      return result.then(envelope=>{if(!envelope?.request||typeof envelope.request.id!=='string'||!envelope.request.id||envelope.request.fluctlight_id!==fid)throw new Error('日程建议回执尚未完整读到，原提交身份已保留');return envelope;});
     }});itemChannels.set(key,channel);}return channel;
   }
   const life = {
@@ -63,6 +63,16 @@ export function createLifeProvider(client: BrowserClient) {
     schedulePending:(fid:string,date:string,promiseId='')=>scheduleChannel(fid,date,promiseId).pending(),
     submitSchedule:(fid:string,body:ScheduleDraft)=>scheduleChannel(fid,body.localDate,body.promiseId).submit(body),
     retrySchedule:(fid:string,date:string,promiseId='')=>scheduleChannel(fid,date,promiseId).retry(),
+    releaseSchedule:(fid:string,date:string)=>scheduleChannel(fid,date).releaseRejected(),
+    async rebaseSchedule(fid:string,date:string,calendar:BrowserScheduleCalendar,expectedKey:string){
+      const channel=scheduleChannel(fid,date),pending=channel.pending();
+      if(!pending?.rejection||pending.idempotencyKey!==expectedKey||pending.value.localDate!==date)throw new Error('原规划的状态已经变化，不能采用新的提交身份。');
+      const target=calendar.days.find(day=>day.local_date===date);
+      if(!target||typeof calendar.context_revision!=='string'||!calendar.context_revision||!calendar.timezone)throw new Error('所选日期或生活版本尚未完整读到，请重新核对。');
+      if(target.schedule)throw new Error('这一天已有日程记录，整份原安排会保留，不能重新生成。');
+      const value={...pending.value,expectedRevision:0,expectedLifeContextRevision:calendar.context_revision};
+      channel.releaseRejected();return channel.submit(value);
+    },
     nearby: (fid:string)=>client.nearby(fid),
     detail: (fid:string) => client.detail(fid),
     async now(fid:string) {

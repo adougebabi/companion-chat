@@ -1,24 +1,89 @@
-import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {Button} from '@/components/ui/button';
-import {Sheet,SheetContent,SheetTitle,SheetDescription} from '@/components/ui/sheet';
-import {Alert,AlertDescription} from '@/components/ui/alert';
-import {Label,Textarea} from '../controls';
-import {useWorkspace} from '../page';
-import {persistentCommand} from '@/v3/providers/persistent-command.mjs';
-import {studioDraftStorage} from '@/v3/proto/components/studio-draft-storage.js';
-import {confirm} from '@/v3/proto/components/overlay.js';
-import {errorMessage} from '@/v3/domain-presentation.mjs';
-import JsonDetails from './JsonDetails';
-export default function MaterialRetention({material,open,onClose,onSaved}:any){
- const w=useWorkspace(),owner=w.state.session.actorId,service=w.services.studioClient,slot=`fluctlight-studio:${owner}:material:${material.id}:retention`;
- const [draft,setDraft]=useState<any>(null),[pending,setPending]=useState<any>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),active=useRef(false),current=useRef<any>(null);
- const live=()=>active.current&&w.state.session?.actorId===owner;
- const command=useMemo(()=>persistentCommand({key:slot+':command',storage:studioDraftStorage,execute:(value:any,key:string)=>{if(!live())throw Error('会话或素材范围已切换');const {operation,...body}=value;if(!['retain','release'].includes(operation))throw Error('未知素材保留操作');return service.materialRetention(material.id,operation,{...body,idempotencyKey:key});}}),[slot,service]);
- useEffect(()=>{active.current=true;try{const original=command.pending(),raw=studioDraftStorage().getItem(slot+':draft');let restored=raw?JSON.parse(raw):null;if(!original&&!restored?.reason?.trim())restored=null;restored??={operation:material.released_at?'retain':'release',expectedRevision:material.revision,reason:''};if(!['retain','release'].includes(restored.operation)||typeof restored.reason!=='string'||!Number.isInteger(restored.expectedRevision))throw Error('素材操作草稿无法读取，请保留原记录核对');current.current=restored;setDraft(restored);setPending(original);}catch(cause){setError(errorMessage(cause));}return()=>{active.current=false;};},[command]);
- function edit(reason:string){if(!live())return;const next={...current.current,reason};try{studioDraftStorage().setItem(slot+':draft',JSON.stringify(next));current.current=next;setDraft(next);}catch(cause){setError(errorMessage(cause));}}
- async function save(retry=false){if(!live()||busy||!current.current||!retry&&!current.current.reason.trim())return;const original=retry?command.pending():null;if(retry&&!original)return;const submitted=JSON.stringify(retry?original!.value:current.current);setBusy(true);setError('');let acknowledged=false;
-  try{await(retry?command.retry():command.submit(current.current));acknowledged=true;if(!live())return;const actual=await service.material(material.id);if(!live())return;if(JSON.stringify(current.current)===submitted){const next={operation:actual.released_at?'retain':'release',expectedRevision:actual.revision,reason:''};current.current=next;setDraft(next);studioDraftStorage().removeItem(slot+':draft');}setNotice('原操作已记录；当前素材'+(actual.released_at?'已取消保留。':'处于保留状态。'));await onSaved(actual);}catch(cause){if(live())setError((acknowledged?'原操作已有回执，最新状态尚未读回：':'')+errorMessage(cause));}finally{if(live()){setBusy(false);setPending(command.pending());}}}
- async function rebase(){if(!live()||busy||command.pending()&&!command.pending()?.rejection)return;setBusy(true);try{const actual=await service.material(material.id);if(!live())return;if(!await confirm({title:'采用素材最新版本',text:`当前${actual.released_at?'已取消保留':'仍保留'}，版本 ${actual.revision}。保留本次操作意图和理由继续？`})||!live())return;if(command.pending()?.rejection)command.releaseRejected();const next={...current.current,expectedRevision:actual.revision};studioDraftStorage().setItem(slot+':draft',JSON.stringify(next));current.current=next;setDraft(next);setPending(command.pending());setNotice('已核对最新版本，请再次明确提交。');}catch(cause){if(live())setError(errorMessage(cause));}finally{if(live())setBusy(false);}}
- return <Sheet open={open} onOpenChange={value=>!value&&onClose()}><SheetContent className="react-workspace overflow-y-auto p-6"><SheetTitle>创作素材保留状态</SheetTitle><SheetDescription>取消保留只解除资源素材关联，不删除原任务、字节或来源。</SheetDescription><div className="grid gap-4 py-5">{error&&<Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}{notice&&<OperationStatus variant="default" role="status">{notice}</OperationStatus>}{draft&&<><p>本次意图：{draft.operation==='retain'?'恢复保留':'取消保留'} · 基线版本 {draft.expectedRevision}</p><Label htmlFor="material-retention-reason">修改原因<Textarea id="material-retention-reason" required maxLength={1000} value={draft.reason} onChange={event=>edit(event.target.value)}/></Label><div className="flex flex-wrap gap-3"><Button type="button" disabled={busy||!!pending||!draft.reason.trim()} onClick={()=>void save()}>确认操作</Button>{pending&&!pending.rejection&&<Button type="button" variant="outline" disabled={busy} onClick={()=>void save(true)}>重试原提交</Button>}<Button type="button" variant="outline" disabled={busy||!!pending&&!pending.rejection} onClick={()=>void rebase()}>读取最新版本并保留意图</Button></div>{pending&&<JsonDetails value={pending.value} title="原保留状态提交"/>}</>}</div></SheetContent></Sheet>;
+import { useMemo } from "react";
+import { Textarea } from "../controls";
+import { useWorkspace } from "../page";
+import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
+export default function MaterialRetention({
+  material,
+  open,
+  onClose,
+  onSaved,
+}: any) {
+  const w = useWorkspace(),
+    owner = w.state.session.actorId,
+    service = w.services.studioClient;
+  const action = useMemo(
+    () => ({
+      identity: `studio-material:${owner}:${material.id}`,
+      scope: ["studio-material-retention", material.id],
+      storageKey: `fluctlight-studio:${owner}:material:${material.id}:retention`,
+      className: "replica-studio",
+      title: "创作素材保留状态",
+      description: "取消保留只解除资源素材关联，原任务、字节和来源仍保留。",
+      initial: {
+        operation: material.released_at ? "retain" : "release",
+        expectedRevision: material.revision,
+        reason: "",
+      },
+      validate: (d: any) => {
+        if (!d.reason.trim() || [...d.reason].length > 1000)
+          throw Error("请填写修改原因，最多1000个字符。");
+      },
+      build: (d: any) => ({ ...d }),
+      execute: async (value: any, key: string) => {
+        const { operation, ...body } = value;
+        if (!["retain", "release"].includes(operation))
+          throw Error("未知素材保留操作。");
+        const result = await service.materialRetention(material.id, operation, {
+          ...body,
+          idempotencyKey: key,
+        });
+        if (
+          result.id !== material.id ||
+          result.resource_id !== material.resource_id ||
+          result.job_id !== material.job_id ||
+          !Number.isSafeInteger(result.revision)
+        )
+          throw Error("素材保留状态回执尚未完整确认。");
+        return result;
+      },
+      readLatest: () => service.material(material.id),
+      adoptLatest: (d: any, r: any) => ({ ...d, expectedRevision: r.revision }),
+      onSaved: async (result: any) => {
+        const actual = await service.material(material.id);
+        if (
+          actual.id !== material.id ||
+          actual.revision < result.revision ||
+          (actual.revision === result.revision &&
+            actual.released_at !== result.released_at)
+        )
+          throw Error("素材保留状态尚未读回。");
+        await onSaved(actual);
+      },
+      fields: (d: any, edit: any) => (
+        <>
+          <p>
+            本次意图：{d.operation === "retain" ? "恢复保留" : "取消保留"} ·
+            基线版本 {d.expectedRevision}
+          </p>
+          <label className="replica-field">
+            <span>修改原因</span>
+            <Textarea
+              aria-label="修改原因"
+              required
+              value={d.reason}
+              onChange={(event) => edit({ reason: event.target.value })}
+            />
+          </label>
+        </>
+      ),
+    }),
+    [owner, material.id],
+  );
+  return open ? (
+    <WorkspaceCommandDialog
+      action={action}
+      onClose={onClose}
+      returnFocus={() => null}
+    />
+  ) : null;
 }

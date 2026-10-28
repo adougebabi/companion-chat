@@ -1,40 +1,13 @@
-import Combobox from '@/react-app/shared/Combobox';
-import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
-import {Questionnaire,QuestionnaireItem,QuestionnaireTitle,QuestionnaireChoices,QuestionnaireChoice,QuestionnaireChoiceDescription} from '@/components/ui/questionnaire';
-import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
-import {InlineFeedback,ReadState} from "@/react-app/shared/Presentation";
-import {Surface as CardSurface} from "@/react-app/controls";
-import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
-import WorkspaceBreadcrumb from '@/react-app/shared/WorkspaceBreadcrumb';
-import ChoiceCards from '@/react-app/shared/ChoiceCards';
-import {hasVisibleSemanticValue} from '@/react-app/shared/SemanticTree';
+import { useController } from "../page";
+import { selector, elementRef } from "@/state/view-model";
 import { reusableWorlds } from "@/approved-ui/world-sources.mjs";
-import { useController } from "@/react-app/page";
-import { selector, readValue, elementRef } from "@/state/view-model";
-import { cn } from "@/lib/utils";
-import {
-  ActionButton,
-  Surface,
-  FieldInput,
-  ChoiceSelect,
-  Textarea,
-  Disclosure,
-} from "@/react-app/controls";
-import {
-  displayText,
-  eventModifiers,
-  listValues,
-  Fragment,
-} from "@/react-app/render-helpers";
 import { directory, activationFromAnalysis } from "@/v3/providers/real.ts";
 import { list } from "@/v3/proto/store.js";
 import { semanticLabel } from "@/v3/proto/components/semantic-fields.js";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
 import { createCreationController } from "@/state/creation-controller.mjs";
-import PreparationSteps from "@/react-app/shared/PreparationSteps";
-import ProfileForm from "@/react-app/shared/ProfileForm";
-import SemanticTree from "@/react-app/shared/SemanticTree";
 import { migrateCreationRecovery } from "@/approved-ui/creation-recovery.mjs";
+import CharacterWizardView from "../views/CharacterWizard";
 function createCharacterWizardPageController(__props, context, lifecycle) {
   const w = lifecycle.workspace,
     owner = w.state.session?.actorId,
@@ -75,7 +48,12 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
       worldSourceReview,
     } = c,
     existingWorlds = lifecycle.cell([]),
-    worldChoice = lifecycle.cell(!!draft.worldSource || !!draft.worldResourceId || !!draft.worldChoiceConfirmed || !!draft.activatedId),
+    worldChoice = lifecycle.cell(
+      !!draft.worldSource ||
+        !!draft.worldResourceId ||
+        !!draft.worldChoiceConfirmed ||
+        !!draft.activatedId,
+    ),
     worlds = lifecycle.cell([]),
     templates = lifecycle.cell([]),
     worldCursor = lifecycle.cell(""),
@@ -84,25 +62,26 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     existingWorldError = lifecycle.cell(""),
     templateError = lifecycle.cell(""),
     existingWorldLoading = lifecycle.cell(false),
+    sourceLoading = lifecycle.cell(false),
+    templateLoading = lifecycle.cell(false),
     configured = lifecycle.cell(null),
     worldsConfirmed = lifecycle.cell(false),
     worldReadNotice = lifecycle.cell("");
-  if(!draft.activatedId&&!pending.value&&!worldChoice.value)step.value="world";
+  if (!draft.activatedId && !pending.value && !worldChoice.value)
+    step.value = "world";
   const wizardRoot = lifecycle.cell(null);
   const analysisNow = lifecycle.cell(Date.now());
   lifecycle.observe(
     step,
     () => {
       const root = wizardRoot.value,
-        heading = root?.querySelector("h2");
+        heading = root?.querySelector("h1");
       if (heading) {
         heading.tabIndex = -1;
         heading.focus({
           preventScroll: true,
         });
-        root.scrollIntoView({
-          block: "start",
-        });
+        root.closest(".workspace-page")?.scrollTo({ top: 0 });
       }
     },
     {
@@ -118,9 +97,29 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     ["json", "JSON 导入", "导入已有的人物资料，核对后再创建。"],
     ["template", "角色模板", "选择一份已发布版本，先解析与审阅。"],
   ];
-  const groups = selector(() =>
-    list("groups").filter((g) => g.id !== "ungrouped"),
-  );
+  const groups = lifecycle.cell(
+      list("groups").filter((g) => g.id !== "ungrouped"),
+    ),
+    groupsLoading = lifecycle.cell(false),
+    groupsError = lifecycle.cell("");
+  let groupsEpoch = 0;
+  async function loadGroups() {
+    const token = ++groupsEpoch;
+    groupsLoading.value = true;
+    try {
+      const value = await w.client.listActorGroups();
+      if (!active || !c.live() || token !== groupsEpoch) return;
+      if (!Array.isArray(value)) throw Error("角色分组尚未完整读到。");
+      groups.value = value.filter((g) => g.id !== "ungrouped");
+      groupsError.value = "";
+    } catch (cause) {
+      if (active && c.live() && token === groupsEpoch)
+        groupsError.value = errorMessage(cause);
+    } finally {
+      if (active && c.live() && token === groupsEpoch)
+        groupsLoading.value = false;
+    }
+  }
   const navSteps = ["生活世界", "认识角色", "资料预览", "准备相遇"],
     currentStep = selector(
       () =>
@@ -144,52 +143,210 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
   const configHref = (section) =>
     "#/settings?section=" + encodeURIComponent(section || "模型用途");
   let worldReadEpoch = 0;
-  async function loadExistingWorlds(refresh=false) {
-    existingWorldLoading.value=true;worldsConfirmed.value=false;
-    if(refresh){try{await w.refreshDirectory?.();}catch(cause){if(c.live()){existingWorldError.value=errorMessage(cause);existingWorldLoading.value=false;}return;}}
-    const token=++worldReadEpoch,characters=w.state.characters.map(({id,name})=>({id,name}));
+  async function loadExistingWorlds(refresh = false) {
+    existingWorldLoading.value = true;
+    worldsConfirmed.value = false;
+    if (refresh) {
+      try {
+        await w.refreshDirectory?.();
+      } catch (cause) {
+        if (c.live()) {
+          existingWorldError.value = errorMessage(cause);
+          existingWorldLoading.value = false;
+        }
+        return;
+      }
+    }
+    const token = ++worldReadEpoch,
+      characters = w.state.characters.map(({ id, name }) => ({ id, name }));
     try {
-      if(w.state.errors?.bootstrap)throw Error('角色目录尚未读到，请重新读取后选择世界。');
-      const result=await reusableWorlds(w.client,characters,existingWorlds.value);
-      if(!active||!c.live()||token!==worldReadEpoch)return;
-      existingWorlds.value=result.items;
-      worldsConfirmed.value=result.unavailable===0;
-      existingWorldError.value=result.unavailable?`${result.unavailable} 个角色的世界暂未读到（${result.unavailableNames.join('、')}），已读到的世界仍可选择。`:'';
-      worldReadNotice.value=result.unavailable?'上次已读到的世界保留，暂不可确认没有其他世界。':`已读取 ${characters.length} 个角色的世界目录，共 ${result.items.length} 个生活世界。`;
-      if(!busy.value&&!draft.activatedId&&!pending.value&&((result.items.length&&draft.worldResourceId)||(draft.worldSource&&!result.items.some(world=>world.id===draft.worldSource.worldId&&world.fluctlightId===draft.worldSource.fluctlightId)))){worldChoice.value=false;step.value='world';}
-      if(result.items.length&&!draft.activatedId&&!pending.value&&!draft.worldSource&&!draft.worldResourceId)chooseExistingWorld(result.items[0]);
-    }catch(cause){if(active&&c.live()&&token===worldReadEpoch)existingWorldError.value=errorMessage(cause);}
-    finally{if(active&&c.live()&&token===worldReadEpoch)existingWorldLoading.value=false;}
+      if (w.state.errors?.bootstrap)
+        throw Error("角色目录尚未读到，请重新读取后选择世界。");
+      const result = await reusableWorlds(
+        w.client,
+        characters,
+        existingWorlds.value,
+      );
+      if (!active || !c.live() || token !== worldReadEpoch) return;
+      existingWorlds.value = result.items;
+      worldsConfirmed.value = result.unavailable === 0;
+      existingWorldError.value = result.unavailable
+        ? `${result.unavailable} 个角色的世界暂未读到（${result.unavailableNames.join("、")}），已读到的世界仍可选择。`
+        : "";
+      worldReadNotice.value = result.unavailable
+        ? "上次已读到的世界保留，暂不可确认没有其他世界。"
+        : `已读取 ${characters.length} 个角色的世界目录，共 ${result.items.length} 个生活世界。`;
+      if (
+        !busy.value &&
+        !draft.activatedId &&
+        !pending.value &&
+        draft.worldSource &&
+        !result.items.some(
+          (world) =>
+            world.id === draft.worldSource.worldId &&
+            world.fluctlightId === draft.worldSource.fluctlightId,
+        )
+      ) {
+        worldChoice.value = false;
+        step.value = "world";
+      }
+    } catch (cause) {
+      if (active && c.live() && token === worldReadEpoch)
+        existingWorldError.value = errorMessage(cause);
+    } finally {
+      if (active && c.live() && token === worldReadEpoch)
+        existingWorldLoading.value = false;
+    }
   }
-  lifecycle.observe(() => w.state.characters.map(({id,name}) => [id,name]), () => void loadExistingWorlds(), {immediate:true});
-  function chooseWorld(world){c.selectWorld(world);worldChoice.value=true;draft.worldChoiceConfirmed=true;c.persist();}
-  function chooseExistingWorld(world){c.selectExistingWorld(world);worldChoice.value=true;draft.worldChoiceConfirmed=true;c.persist();}
-  async function loadSources(kind, more = false) {
+  lifecycle.observe(
+    () => w.state.characters.map(({ id, name }) => [id, name]),
+    () => void loadExistingWorlds(),
+    { immediate: true },
+  );
+  function chooseWorld(world) {
+    c.selectWorld(world);
+    worldChoice.value = true;
+    draft.worldChoiceConfirmed = true;
+    c.persist();
+  }
+  function chooseExistingWorld(world) {
+    c.selectExistingWorld(world);
+    worldChoice.value = true;
+    draft.worldChoiceConfirmed = true;
+    c.persist();
+  }
+  const sourceEpochs = { world: 0, character_template: 0 },
+    failedSources = {};
+  async function loadSources(kind, more = false, frozenCursor) {
+    const token = ++sourceEpochs[kind],
+      loading = kind === "world" ? sourceLoading : templateLoading;
+    const cursor =
+      frozenCursor ??
+      (more
+        ? kind === "world"
+          ? worldCursor.value
+          : templateCursor.value
+        : "");
+    loading.value = true;
     try {
       const result = await w.client.listStudioResources({
         kind,
         published: true,
-        cursor: more
-          ? kind === "world"
-            ? worldCursor.value
-            : templateCursor.value
-          : "",
+        cursor,
       });
-      if (!active || !c.live()) return;
+      if (!active || !c.live() || sourceEpochs[kind] !== token) return;
+      const previous = kind === "world" ? worlds.value : templates.value;
+      const publications = await Promise.allSettled(
+        result.items.map((row) =>
+          directory.publication(row.id, row.published_version),
+        ),
+      );
+      if (!active || !c.live() || sourceEpochs[kind] !== token) return;
+      let unavailable = 0;
+      const rows = result.items.map((row, index) => {
+        const read = publications[index],
+          publication = read.status === "fulfilled" ? read.value : null;
+        if (
+          publication?.id === row.id &&
+          publication.version === row.published_version &&
+          publication.kind === kind &&
+          publication.immutable === true
+        )
+          return { ...row, publication };
+        unavailable++;
+        const retained = previous.find(
+          (old) =>
+            old.id === row.id &&
+            old.published_version === row.published_version,
+        )?.publication;
+        return {
+          ...row,
+          publication: retained || null,
+          publicationError: "精确发布定义尚未读到",
+        };
+      });
       if (kind === "world") {
-        worlds.value = more ? [...worlds.value, ...result.items] : result.items;
+        worlds.value = more
+          ? [
+              ...new Map(
+                [...worlds.value, ...rows].map((row) => [row.id, row]),
+              ).values(),
+            ]
+          : rows;
         worldCursor.value = result.next_cursor || "";
       } else {
         templates.value = more
-          ? [...templates.value, ...result.items]
-          : result.items;
+          ? [
+              ...new Map(
+                [...templates.value, ...rows].map((row) => [row.id, row]),
+              ).values(),
+            ]
+          : rows;
         templateCursor.value = result.next_cursor || "";
       }
-      (kind === "world" ? sourceError : templateError).value = "";
+      (kind === "world" ? sourceError : templateError).value = unavailable
+        ? `${unavailable} 份精确发布定义暂未读到，已确认的来源仍可选择。`
+        : "";
+      if (unavailable) failedSources[kind] = { more, cursor };
+      else delete failedSources[kind];
     } catch (cause) {
-      if (active && c.live()) (kind === "world" ? sourceError : templateError).value = errorMessage(cause);
+      if (active && c.live() && sourceEpochs[kind] === token) {
+        failedSources[kind] = { more, cursor };
+        (kind === "world" ? sourceError : templateError).value =
+          errorMessage(cause);
+      }
+    } finally {
+      if (active && c.live() && sourceEpochs[kind] === token)
+        loading.value = false;
     }
   }
+  function retrySources(kind) {
+    const original = failedSources[kind];
+    return loadSources(kind, original?.more ?? false, original?.cursor);
+  }
+  const selectedPublication = lifecycle.cell(null),
+    selectedPublicationError = lifecycle.cell(""),
+    selectedPublicationLoading = lifecycle.cell(false);
+  let selectedPublicationEpoch = 0;
+  async function readSelectedPublication() {
+    const id = draft.worldResourceId,
+      version = draft.worldResourceVersion,
+      token = ++selectedPublicationEpoch;
+    selectedPublication.value = null;
+    selectedPublicationError.value = "";
+    if (!id || !version) {
+      selectedPublicationLoading.value = false;
+      return;
+    }
+    selectedPublicationLoading.value = true;
+    try {
+      const value = await directory.publication(id, version);
+      if (!active || !c.live() || token !== selectedPublicationEpoch) return;
+      if (
+        value.id !== id ||
+        value.version !== version ||
+        value.kind !== "world" ||
+        value.immutable !== true
+      )
+        throw Error("所选世界的精确发布版本尚未完整确认。");
+      selectedPublication.value = value;
+      if (!draft.activatedId && !pending.value) {
+        draft.worldName = value.name;
+        c.persist();
+      }
+    } catch (cause) {
+      if (active && c.live() && token === selectedPublicationEpoch)
+        selectedPublicationError.value = errorMessage(cause);
+    } finally {
+      if (active && c.live() && token === selectedPublicationEpoch)
+        selectedPublicationLoading.value = false;
+    }
+  }
+  lifecycle.observe(
+    () => [draft.worldResourceId, draft.worldResourceVersion],
+    () => void readSelectedPublication(),
+    { immediate: true },
+  );
   function templateChanged(event) {
     const value = templates.value.find((t) => t.id === event.target.value);
     if (!value) return;
@@ -230,6 +387,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     if (!document.hidden) void poll();
   };
   lifecycle.onStart(() => {
+    void loadGroups();
     void loadSources("world");
     void loadSources("character_template");
     void w.services.configurationClient
@@ -251,701 +409,99 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     document.removeEventListener("visibilitychange", visibility);
     c.dispose();
   });
-  return (_ctx, _cache) => {
-    const mayCreate=worldsConfirmed.value&&!existingWorldLoading.value&&!existingWorlds.value.length;
-    const worldOptions=existingWorlds.value.length?existingWorlds.value.map(world=>({value:'existing:'+world.fluctlightId+':'+world.id,label:world.name+' · '+world.characterName,description:'复用背景和地点，创建独立生活记录',select:()=>chooseExistingWorld(world)})):mayCreate?[...worlds.value.map(world=>({value:'definition:'+world.id+':'+world.published_version,label:world.name,description:'已发布世界设定 · '+world.published_version,select:()=>chooseWorld(world)})),{value:'default',label:'使用日常生活世界',description:'明确选择后建立独立的日常生活世界；不会自动创建。',select:()=>chooseWorld(null)}]:[];
-    const canContinue=worldChoice.value&&worldOptions.some(option=>option.value===(draft.worldSource?'existing:'+draft.worldSource.fluctlightId+':'+draft.worldSource.worldId:draft.useDefaultWorld?'default':'definition:'+draft.worldResourceId+':'+draft.worldResourceVersion));
-    const worldValue=!worldChoice.value?'':draft.worldSource?'existing:'+draft.worldSource.fluctlightId+':'+draft.worldSource.worldId:draft.useDefaultWorld?'default':'definition:'+draft.worldResourceId+':'+draft.worldResourceVersion;
-
+  return () => {
+    const canContinue =
+      worldChoice.value &&
+      (draft.worldSource
+        ? existingWorlds.value.some(
+            (world) =>
+              world.id === draft.worldSource.worldId &&
+              world.fluctlightId === draft.worldSource.fluctlightId,
+          )
+        : draft.useDefaultWorld
+          ? true
+          : !!selectedPublication.value &&
+            !selectedPublicationLoading.value &&
+            !selectedPublicationError.value);
     return (
-      <div ref={elementRef(wizardRoot)} className="character-workflow">
-
-      <Tabs value={'step-'+currentStep.value} onValueChange={value=>{const index=Number(value.slice(5));if(!busy.value&&!pending.value&&!draft.activatedId&&index<currentStep.value){step.value=index===0?'world':'person';c.persist();}}} aria-label="创建步骤"><TabsList className="h-auto group-data-horizontal/tabs:h-auto w-full flex-wrap justify-start gap-2">{navSteps.map((label,index)=><TabsTrigger key={label} value={'step-'+index} disabled={index>currentStep.value||index!==currentStep.value&&(!!busy.value||!!pending.value||!!draft.activatedId)} aria-current={index===currentStep.value?'step':undefined} className="min-h-11 flex-none gap-2"><span aria-hidden="true">{index<currentStep.value?'✓':index+1}</span>{label}</TabsTrigger>)}</TabsList></Tabs>
-        {readValue(step) === "world" ? (
-          <Questionnaire
-            key={0}
-            className="character-form rounded-xl border border-border bg-card text-card-foreground shadow-sm"
-            noValidate
-            onSubmit={eventModifiers(
-              ($event) => canContinue && readValue(c).next(),
-              ["prevent"],
-            )}
-          >
-            <header>
-              <small>{"第 1 / 4 步"}</small>
-              <h2>{"生活世界"}</h2>
-              <p className="muted">
-                {
-                  " 世界是生活的背景、地点和规则。先选一份底稿，再慢慢认识这个人。 "
-                }
-              </p>
-            </header>
-            <section className="character-stack">
-              <h3>已有生活世界</h3>
-              {existingWorldLoading.value && <ReadState role="status">正在读取已有世界…</ReadState>}
-              {existingWorldError.value && <InlineFeedback  role="alert">{existingWorldError.value}</InlineFeedback>}
-              {!existingWorldLoading.value && !existingWorldError.value && !existingWorlds.value.length && <p className="muted">已确认没有已有生活世界。请选择下方世界来源，或先创建一份世界设定。</p>}
-              <p className="muted">只复用世界背景、规则和地点；人物、物品实例、事件模板、运行位置与生活历史不复制。</p>
-              <QuestionnaireItem name="world-source" required disabled={readValue(busy)||!!readValue(pending)}><QuestionnaireTitle>生活世界来源</QuestionnaireTitle><QuestionnaireChoices className="sm:grid-cols-2">{worldOptions.map(option=><QuestionnaireChoice key={option.value} value={option.value} checked={worldValue===option.value} onChange={()=>option.select()}><span>{option.label}</span><QuestionnaireChoiceDescription>{option.description}</QuestionnaireChoiceDescription></QuestionnaireChoice>)}</QuestionnaireChoices></QuestionnaireItem>
-              <div className="grid gap-2"><ActionButton variant="outline" type="button" disabled={existingWorldLoading.value} onClick={()=>void loadExistingWorlds(true)}>{existingWorldLoading.value?'正在读取世界目录…':'重新读取已有世界'}</ActionButton>{worldReadNotice.value&&<p role="status" className="text-sm text-muted-foreground">{worldReadNotice.value}</p>}{!canContinue&&<p className="text-sm text-muted-foreground">请选择一个已读到的世界，再继续认识角色。</p>}</div>
-              {mayCreate&&!worlds.value.length&&!sourceError.value&&<p className="muted">创作中心的世界草稿需要先发布，才会出现在可选底稿中。</p>}
-              {mayCreate&&worldCursor.value ? (
-                <ActionButton variant="outline"
-                  key={1}
-                  type="button"
-
-                  onClick={($event) => loadSources("world", true)}
-                >
-                  {"读取更多世界"}
-                </ActionButton>
-              ) : null}
-              {sourceError.value ? (
-                <InlineFeedback key={2} >
-                  {displayText(sourceError.value) + " "}
-                  <ActionButton variant="ghost"
-                    type="button"
-
-                    onClick={($event) => loadSources("world")}
-                  >
-                    {"重新读取"}
-                  </ActionButton>
-                </InlineFeedback>
-              ) : null}
-              {mayCreate&&<ActionButton variant="outline" asChild >
-                <a  href="#/studio/edit/new?kind=world">
-                  {"创建世界设定 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-                </a>
-              </ActionButton>}
-            </section>
-            {Object.keys(readValue(fieldErrors)).length ? (
-              <InlineFeedback key={0}  role="alert">
-                <Fragment>
-                  {listValues(readValue(fieldErrors)).map((message, key) => {
-                    return <li key={key}>{displayText(message)}</li>;
-                  })}
-                </Fragment>
-              </InlineFeedback>
-            ) : null}
-            {readValue(error) ? (
-              <InlineFeedback key={1}  role="alert">
-                {displayText(readValue(error))}
-              </InlineFeedback>
-            ) : null}
-            <footer className="wizard-footer">
-              <ActionButton variant="outline" asChild >
-                <a  href="#/library">
-                  {"保留草稿并返回"}
-                </a>
-              </ActionButton>
-              <span className="spacer" />
-              <ActionButton variant="default"
-
-                data-testid="wizard-world-next"
-                disabled={!canContinue || readValue(busy)}
-              >
-                {"下一步"}
-              </ActionButton>
-            </footer>
-          </Questionnaire>
-        ) : readValue(step) === "person" || readValue(step) === "analysis" ? (
-          <Surface
-            key={1}
-            as="form"
-            className="character-form"
-            noValidate=""
-            onSubmit={eventModifiers(
-              ($event) => {if(canContinue&&!(configured.value===false&&draft.mode==='description'))return readValue(c).analyze();},
-              ["prevent"],
-            )}
-          >
-            <header>
-              <small>{"第 2 / 4 步"}</small>
-              <h2>{"这是一个什么样的人？"}</h2>
-              <p className="muted">
-                {displayText(
-                  readValue(draft).useDefaultWorld
-                    ? "生活世界：日常生活世界"
-                    : "生活世界：" +
-                        (readValue(draft).worldName || "所选已发布底稿"),
-                )}
-              </p>
-            </header>
-            <fieldset
-              className="character-fieldset character-stack"
-              disabled={readValue(busy) || !!readValue(pending)}
-            >
-              <ChoiceCards label="创建方式" value={draft.mode} disabled={readValue(busy)||!!readValue(pending)} options={modes.map(([value,label,note])=>({value,label,description:note}))} onChange={value=>c.changeMode(value)}/>
-              <div className="character-field-grid">
-                <label>
-                  {"名字" +
-                    displayText(
-                      readValue(draft).mode === "blank"
-                        ? "（必填）"
-                        : "（可选）",
-                    )}
-                  <FieldInput
-                    data-testid="wizard-name"
-                    maxLength="200"
-                    placeholder="你想怎么称呼对方？"
-                    value={readValue(draft).name}
-                    onChange={(event) => {
-                      (($event) => (readValue(draft).name = $event))(
-                        event.target.value,
-                      );
-                      (($event) => readValue(c).invalidate())(event);
-                    }}
-                  />
-                  {readValue(error) &&
-                  readValue(draft).mode === "blank" &&
-                  !readValue(draft).name.trim() ? (
-                    <InlineFeedback key={0} >
-                      {"请填写角色名字。"}
-                    </InlineFeedback>
-                  ) : null}
-                </label>
-                <label>
-                  {"生活时区（必填）"}
-                  <Combobox label="生活时区" value={draft.timezone} options={['Asia/Shanghai','Asia/Hong_Kong','Asia/Tokyo','Asia/Singapore','UTC',...(Intl.supportedValuesOf?.('timeZone')||[])]} allowCustom onChange={value=>{draft.timezone=value;c.invalidate();}}/>
-                  {readValue(error) &&
-                  (!readValue(draft).timezone ||
-                    readValue(error).includes("时区")) ? (
-                    <InlineFeedback key={0} >
-                      {displayText(
-                        readValue(error).includes("时区")
-                          ? readValue(error)
-                          : "请填写生活时区。",
-                      )}
-                    </InlineFeedback>
-                  ) : null}
-                </label>
-              </div>
-              <label>
-                {"角色分组"}
-                <ChoiceSelect
-                  value={readValue(draft).groupId}
-                  onChange={(event) => {
-                    (($event) => (readValue(draft).groupId = $event))(
-                      event.target.value,
-                    );
-                    (($event) => readValue(c).persist())(event);
-                  }}
-                >
-                  <option value="">{"未分组"}</option>
-                  <Fragment>
-                    {listValues(groups.value).map((group) => {
-                      return (
-                        <option key={group.id} value={group.id}>
-                          {displayText(group.name)}
-                        </option>
-                      );
-                    })}
-                  </Fragment>
-                </ChoiceSelect>
-              </label>
-              {readValue(draft).mode === "description" ? (
-                <Fragment key={0}>
-                  <label>
-                    {"描述你想认识的人"}
-                    <Textarea
-                      data-testid="wizard-description"
-                      rows="7"
-                      placeholder="身份、背景、性格和生活可以写在同一段描述里。"
-                      value={readValue(draft).bio}
-                      onChange={(event) => {
-                        (($event) => (readValue(draft).bio = $event))(
-                          event.target.value,
-                        );
-                        (($event) => readValue(c).invalidate())(event);
-                      }}
-                    />
-                    {readValue(error) && !readValue(draft).bio.trim() ? (
-                      <InlineFeedback key={0} >
-                        {"请写一段人物描述。"}
-                      </InlineFeedback>
-                    ) : null}
-                  </label>
-                  <Disclosure title={<>{"可选：一些相处期望"}</>}>
-                    <div className="character-stack">
-                      <label>
-                        {"性格期望"}
-                        <FieldInput
-                          value={readValue(draft).traits}
-                          onChange={(event) => {
-                            (($event) => (readValue(draft).traits = $event))(
-                              event.target.value,
-                            );
-                            (($event) => readValue(c).invalidate())(event);
-                          }}
-                        />
-                      </label>
-                      <label>
-                        {"说话方式"}
-                        <Textarea
-                          rows="2"
-                          value={readValue(draft).speakingStyle}
-                          onChange={(event) => {
-                            (($event) =>
-                              (readValue(draft).speakingStyle = $event))(
-                              event.target.value,
-                            );
-                            (($event) => readValue(c).invalidate())(event);
-                          }}
-                        />
-                      </label>
-                      <label>
-                        {"核心价值观"}
-                        <Textarea
-                          rows="2"
-                          value={readValue(draft).coreValues}
-                          onChange={(event) => {
-                            (($event) =>
-                              (readValue(draft).coreValues = $event))(
-                              event.target.value,
-                            );
-                            (($event) => readValue(c).invalidate())(event);
-                          }}
-                        />
-                      </label>
-                      <small className="muted">
-                        {
-                          "这些内容会加入描述，由模型整理；不会把标签直接写成人格数值。"
-                        }
-                      </small>
-                    </div>
-                  </Disclosure>
-                </Fragment>
-              ) : readValue(draft).mode === "json" ? (
-                <Fragment key={1}>
-                  <ActionButton variant="ghost" asChild >
-                    <a
-
-                      href="/templates/yaoguang-character-init-template.v2.json"
-                      download=""
-                    >
-                      {"下载当前 JSON 模板"}
-                    </a>
-                  </ActionButton>
-                  <label>
-                    {"选择 JSON 文件"}
-                    <FieldInput
-                      type="file"
-                      accept="application/json,.json"
-                      onChange={($event) =>
-                        readValue(c).importFile($event.target.files?.[0])
-                      }
-                    />
-                  </label>
-                  <p className="muted">
-                    {displayText(readValue(draft).fileName || "尚未选择文件") +
-                      " · 上限 60000 UTF-8 字节 "}
-                  </p>
-                  <label>
-                    {"核对或修正 JSON "}
-                    <Textarea
-                      data-testid="wizard-json"
-                      rows="10"
-                      spellCheck="false"
-                      value={readValue(draft).json}
-                      onChange={(event) => {
-                        (($event) => (readValue(draft).json = $event))(
-                          event.target.value,
-                        );
-                        (($event) => readValue(c).invalidate())(event);
-                      }}
-                    />
-                  </label>
-                  <p className="muted">
-                    {
-                      "填写已知的人物资料，保留模板结构；不要导入聊天存档或其他分析记录。"
-                    }
-                  </p>
-                </Fragment>
-              ) : readValue(draft).mode === "template" ? (
-                <Fragment key={2}>
-                  <label>
-                    {"已发布角色模板"}
-                    <ChoiceSelect
-                      value={readValue(draft).templateId || ""}
-                      onChange={templateChanged}
-                    >
-                      <option value="">{"请选择一份模板"}</option>
-                      <Fragment>
-                        {listValues(templates.value).map((template) => {
-                          return (
-                            <option key={template.id} value={template.id}>
-                              {displayText(template.name) +
-                                " · " +
-                                displayText(template.published_version)}
-                            </option>
-                          );
-                        })}
-                      </Fragment>
-                    </ChoiceSelect>
-                  </label>
-                  {readValue(draft).templateId ? (
-                    <p key={0} className="muted">
-                      {" 使用精确发布版本 " +
-                        displayText(readValue(draft).templateVersion)}
-                    </p>
-                  ) : null}
-                  {templateError.value && <InlineFeedback  role="alert">{templateError.value}<ActionButton variant="ghost" type="button" onClick={()=>loadSources("character_template")}>重新读取模板</ActionButton></InlineFeedback>}
-                  {templateCursor.value ? (
-                    <ActionButton variant="outline"
-                      key={1}
-                      type="button"
-
-                      onClick={($event) =>
-                        loadSources("character_template", true)
-                      }
-                    >
-                      {"读取更多模板"}
-                    </ActionButton>
-                  ) : null}
-                  {!templates.value.length ? (
-                    <p key={2} className="muted">
-                      {" 还没有已发布的角色模板。可以选择其他创建方式，或"}
-                      <ActionButton variant="ghost" asChild >
-                        <a
-
-                          href="#/studio/edit/new?kind=character_template"
-                        >
-                          {"去创作中心发布角色模板"}
-                        </a>
-                      </ActionButton>
-                      {"。 "}
-                    </p>
-                  ) : null}
-                </Fragment>
-              ) : (
-                <p key={3} className="muted">
-                  {
-                    " 空白创建从名字和生活时区开始，其他资料可以稍后在角色详情里补充。 "
-                  }
-                </p>
-              )}
-            </fieldset>
-            {configured.value === false &&
-            readValue(draft).mode === "description" ? (
-              <p key={0} className="approved-guidance">
-                {
-                  " 还没有配置通用模型。描述分析需要模型服务；也可以先选择空白创建。"
-                }
-                <ActionButton variant="ghost" asChild >
-                  <a  href={configHref("模型用途")}>
-                    {"先连接模型 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-                  </a>
-                </ActionButton>
-              </p>
-            ) : null}
-            {readValue(step) === "analysis" ? (
-              <OperationStatus variant="default" key={1} className="approved-guidance" role="status">
-                {" 正在整理人物设定，已等待 " +
-                  displayText(
-                    Math.max(
-                      0,
-                      Math.floor(
-                        (analysisNow.value -
-                          (readValue(analysisStartedAt) || analysisNow.value)) /
-                          1000,
-                      ),
-                    ),
-                  ) +
-                  " 秒。原输入已保留。 "}
-                <ActionButton variant="ghost"
-                  type="button"
-
-                  onClick={($event) => readValue(c).cancelAnalysis()}
-                >
-                  {"停止本次等待"}
-                </ActionButton>
-              </OperationStatus>
-            ) : null}
-            {readValue(error) && !Object.keys(readValue(fieldErrors)).length ? (
-              <InlineFeedback key={2}  role="alert">
-                {displayText(readValue(error)) + " "}
-                {readValue(feedback)?.type === "configuration" ? (
-                  <ActionButton variant="ghost" asChild  key={0}>
-                    <a
-                      key={0}
-
-                      href={configHref("模型用途")}
-                    >
-                      {"去配置中心 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-                    </a>
-                  </ActionButton>
-                ) : null}
-              </InlineFeedback>
-            ) : null}
-            <footer className="wizard-footer">
-              <ActionButton variant="outline"
-                type="button"
-
-                disabled={readValue(busy)}
-                onClick={prev}
-              >
-                {"上一步"}
-              </ActionButton>
-              <span className="spacer" />
-              <ActionButton variant="default"
-
-                disabled={
-                  !canContinue ||
-                  (configured.value===false&&draft.mode==='description') ||
-                  readValue(busy) ||
-                  !!readValue(pending) ||
-                  (readValue(draft).mode === "template" &&
-                    (!readValue(draft).templateId ||
-                      !readValue(draft).templateVersion))
-                }
-                data-testid="wizard-analyze"
-              >
-                {displayText(
-                  readValue(busy)
-                    ? "整理中…"
-                    : readValue(draft).mode === "blank"
-                      ? "预览空白角色"
-                      : "整理并预览资料",
-                )}
-              </ActionButton>
-            </footer>
-          </Surface>
-        ) : readValue(step) === "preview" ? (
-          <Surface
-            key={2}
-            as="form"
-            className="character-form"
-            noValidate=""
-            onSubmit={eventModifiers(
-              ($event) => canContinue && readValue(c).activate(),
-              ["prevent"],
-            )}
-          >
-            <header>
-              <small>{"第 3 / 4 步"}</small>
-              <h2>{"在相遇之前，先认识一下"}</h2>
-              <p className="muted">
-                {" 这是根据你的资料整理的角色。确认后会开始准备衣柜、日程和形象；你可以在下一步查看进度或恢复失败环节。 "}
-              </p>
-            </header>
-            {readValue(draft).mode === "blank" ? (
-              <Fragment key={0}>
-                <h3>{displayText(readValue(draft).name)}</h3>
-                <p>{"生活时区：" + displayText(readValue(draft).timezone)}</p>
-                <p className="muted">
-                  {" 性格与生活细节可以在相处中继续补充，经历与认识在后续互动中形成。 "}
-                </p>
-              </Fragment>
-            ) : (
-              <Fragment key={1}>
-                {hasVisibleSemanticValue(draft.analysis?.core_persona?.personality)&&<section className="character-stack"><h3>性格概览</h3><p className="muted">根据当前资料整理，性格维度在这里供你核对。</p><SemanticTree value={draft.analysis.core_persona.personality}/></section>}
-                <ProfileForm
-                  fields={readValue(previewFields)}
-                  primaryOnly
-                  disabled={readValue(busy) || !!readValue(pending)}
-                />
-
-                <Disclosure title="更多设定"><div className="character-stack"><ProfileForm fields={readValue(previewFields)} additionalOnly disabled={readValue(busy)||!!readValue(pending)}/>
-                <Disclosure title={<>{"初始关系、目标与意图"}</>}>
-                  <SemanticTree
-                    value={{
-                      initial_relationships:
-                        readValue(draft).analysis?.initial_relationships,
-                      initial_goals: readValue(draft).analysis?.initial_goals,
-                      initial_intentions:
-                        readValue(draft).analysis?.initial_intentions,
-                    }}
-                  />
-                </Disclosure>
-                <label className="check-field">
-                  <FieldInput
-                    type="checkbox"
-                    disabled={readValue(busy) || !!readValue(pending)}
-                    onChange={($event) => readValue(c).persist()}
-                    modelValue={readValue(draft).includeGoals}
-                    onModelChange={($event) =>
-                      (readValue(draft).includeGoals = $event)
-                    }
-                  />
-                  {"采用已预览的初始目标和意图"}
-                </label>
-                <Disclosure title={<>{"完整设定与分析来源"}</>}>
-                  <pre className="approved-json">
-                    {displayText(
-                      JSON.stringify(readValue(draft).analysis, null, 2),
-                    )}
-                  </pre>
-                </Disclosure>
-                </div></Disclosure>
-              </Fragment>
-            )}
-            {readValue(error) ? (
-              <InlineFeedback key={2}  role="alert">
-                {displayText(readValue(error))}
-              </InlineFeedback>
-            ) : null}
-            <footer className="wizard-footer">
-              <ActionButton variant="outline"
-                type="button"
-
-                disabled={readValue(busy) || !!readValue(pending)}
-                onClick={prev}
-              >
-                {"返回修改"}
-              </ActionButton>
-              <span className="spacer" />
-              <ActionButton variant="default"
-
-                data-testid="wizard-activate"
-                disabled={!canContinue || readValue(busy) || !!readValue(pending)}
-              >
-                {displayText(readValue(busy) ? "正在激活…" : "确认，开始准备")}
-              </ActionButton>
-            </footer>
-          </Surface>
-        ) : (
-          <Surface key={3} as="section" className="character-preparation">
-            <header>
-              <small>
-                {displayText(readValue(draft).name || "角色") + "的新生活"}
-              </small>
-              <h2>
-                {displayText(
-                  readValue(progress)?.complete
-                    ? "准备好了，很高兴遇见你"
-                    : readValue(progress)?.blocker
-                      ? "准备已暂停，需要恢复"
-                      : "一点点，准备好相遇",
-                )}
-              </h2>
-              <p className="muted">
-                {displayText(
-                  readValue(progress)?.complete
-                    ? "每个准备环节都已读回确认，接下来一起走进日常。"
-                    : readValue(progress)?.blocker
-                      ? `「${readValue(progress).blocker.title}」尚未完成，后续等待环节不会自行继续。请先恢复此环节，角色与原任务均已保留。`
-                      : "角色与原任务会保留。遇到问题时，可单独恢复尚未完成的环节。",
-                )}
-              </p>
-            </header>
-            <PreparationSteps
-              stages={readValue(progress)?.stages || []}
-              busy={readValue(busy)}
-              onRecover={readValue(c).recoverStage}
-            />
-            {!readValue(progress) ? (
-              <ReadState key={0} className="muted" role="status">
-                {displayText(
-                  readValue(busy)
-                    ? "正在确认原创建结果…"
-                    : "正在读取实际准备进度…",
-                )}
-              </ReadState>
-            ) : null}
-            {readValue(error) ? (
-              <InlineFeedback key={1}  role="alert">
-                {displayText(readValue(error))}
-              </InlineFeedback>
-            ) : null}
-            {draft.worldSource && !draft.worldSelectionConfirmed && <CardSurface as="section" className="character-stack">
-              <p>角色已建立。世界配置复用仍需核对，原角色和原提交身份均已保留。</p>
-              {worldSourceReview.value ? <><SemanticTree value={worldSourceReview.value.preview}/><ActionButton variant="outline" type="button"  disabled={readValue(busy)} onClick={()=>c.confirmWorldSourceReview()}>确认新版配置并继续复用</ActionButton></> : <ActionButton variant="outline" type="button"  disabled={readValue(busy)} onClick={()=>c.reviewWorldSource()}>核对已有世界的最新配置</ActionButton>}
-            </CardSurface>}
-            <div className="preparation-done row">
-              {readValue(draft).activatedId &&
-              readValue(draft).worldSelectionConfirmed ? (
-                <ActionButton variant="default" asChild  key={0}>
-                  <a
-                    key={0}
-
-                    href={
-                      "#/c/" +
-                      encodeURIComponent(readValue(draft).activatedId) +
-                      "/chat"
-                    }
-                  >
-                    {"先开始相处"}
-                  </a>
-                </ActionButton>
-              ) : null}
-              {readValue(draft).activatedId ? (
-                <ActionButton variant="outline" asChild  key={1}>
-                  <a
-                    key={1}
-
-                    href={
-                      "#/c/" +
-                      encodeURIComponent(readValue(draft).activatedId) +
-                      "/profile"
-                    }
-                  >
-                    {"角色详情"}
-                  </a>
-                </ActionButton>
-              ) : null}
-              <ActionButton variant="outline"
-
-                disabled={readValue(busy)}
-                onClick={($event) => readValue(c).refreshProgress()}
-              >
-                {"重新读取进度"}
-              </ActionButton>
-              {readValue(progress)?.complete ? (
-                <ActionButton variant="ghost"
-                  key={2}
-
-                  onClick={()=>{c.newDraft();worldChoice.value=false;draft.worldChoiceConfirmed=false;step.value="world";c.persist();}}
-                >
-                  {"创建新的角色"}
-                </ActionButton>
-              ) : null}
-            </div>
-          </Surface>
-        )}
-        {readValue(pending) ? (
-          <Surface key={4} as="section" className="approved-guidance">
-            <p>
-              {
-                " 原激活结果尚未确认，当前资料和请求身份已保留。请先查询或重试原提交，避免创建第二个角色。 "
-              }
-            </p>
-            {!readValue(pending).rejection ? (
-              <ActionButton variant="outline"
-                key={0}
-
-                disabled={readValue(busy)}
-                onClick={($event) => readValue(c).activate(true)}
-              >
-                {"查询或重试原激活"}
-              </ActionButton>
-            ) : (
-              <ActionButton variant="outline"
-                key={1}
-
-                onClick={($event) => readValue(c).reanalyze()}
-              >
-                {"保留输入并重新整理"}
-              </ActionButton>
-            )}
-          </Surface>
-        ) : null}
-
-        {readValue(draft).activatedId &&
-        !readValue(c).archived &&
-        !readValue(pending) ? (
-          <ActionButton variant="ghost"
-            key={5}
-
-            onClick={()=>{c.newDraft();worldChoice.value=false;draft.worldChoiceConfirmed=false;step.value="world";c.persist();}}
-          >
-            {"再认识一个人（保留当前进度）"}
-          </ActionButton>
-        ) : null}
-      </div>
+      <CharacterWizardView
+        model={{
+          w,
+          c,
+          draft,
+          step: step.value,
+          busy: busy.value,
+          error: error.value,
+          feedback: feedback.value,
+          fieldErrors: fieldErrors.value,
+          progress: progress.value,
+          previewFields: previewFields.value,
+          pending: pending.value,
+          analysisStartedAt: analysisStartedAt.value,
+          analysisNow: analysisNow.value,
+          worldSourceReview: worldSourceReview.value,
+          recoveryPending: c.recoveryPending.value,
+          recoveryReview: c.recoveryReview.value,
+          existingWorlds: existingWorlds.value,
+          worlds: worlds.value,
+          templates: templates.value,
+          worldCursor: worldCursor.value,
+          templateCursor: templateCursor.value,
+          sourceError: sourceError.value,
+          existingWorldError: existingWorldError.value,
+          templateError: templateError.value,
+          existingWorldLoading: existingWorldLoading.value,
+          sourceLoading: sourceLoading.value,
+          templateLoading: templateLoading.value,
+          configured: configured.value,
+          worldsConfirmed: worldsConfirmed.value,
+          worldReadNotice: worldReadNotice.value,
+          selectedPublication: selectedPublication.value,
+          selectedPublicationError: selectedPublicationError.value,
+          selectedPublicationLoading: selectedPublicationLoading.value,
+          readSelectedPublication,
+          currentStep: currentStep.value,
+          canContinue,
+          groups: groups.value,
+          groupsLoading: groupsLoading.value,
+          groupsError: groupsError.value,
+          loadGroups,
+          rootRef: elementRef(wizardRoot),
+          chooseWorld,
+          chooseExistingWorld,
+          loadExistingWorlds,
+          loadSources,
+          retrySources,
+          templateChanged,
+          prev,
+          configHref,
+          showError: (message) => {
+            error.value = message;
+          },
+          goStep: (index) => {
+            if (
+              busy.value ||
+              pending.value ||
+              draft.activatedId ||
+              index >= currentStep.value
+            )
+              return;
+            step.value =
+              index === 0 ? "world" : index === 1 ? "person" : "preview";
+            c.persist();
+          },
+          newDraft: () => {
+            if (!c.newDraft()) return;
+            worldChoice.value = false;
+            draft.worldChoiceConfirmed = false;
+            step.value = "world";
+            c.persist();
+          },
+        }}
+      />
     );
   };
 }
 export default function CharacterWizardPage(input = {}) {
-  return useController(createCharacterWizardPageController, {
-    ...input,
-  });
+  return useController(createCharacterWizardPageController, input);
 }

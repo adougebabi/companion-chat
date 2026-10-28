@@ -1,3 +1,4 @@
+import NowPage from './NowPage';
 import {Item,ItemContent,ItemTitle,ItemDescription,ItemActions} from '@/components/ui/item';
 import {ChevronRightIcon} from 'lucide-react';
 import {AlertDialogCancel,AlertDialogAction} from "@/components/ui/alert-dialog";
@@ -26,74 +27,11 @@ import {
   Fragment,
 } from "@/react-app/render-helpers";
 export function LifePageView({ view: view }) {
+  if(view.props.page==='此刻')return <NowPage view={view}/>;
   const editingMemoryId=view.draftMemory.value?.id;
   const memory=readValue(view.life).memories.find(item=>item.id===view.selectedMemoryId.value);
   return (
     <Fragment>
-      {view.props.page === "此刻" ? (
-        <Fragment key={0}>
-          <Surface as="div" className="now-card">
-            <ActionButton variant="outline" type="button" className="w-fit" onClick={()=>view.openTimeline()}>生活时间线</ActionButton>
-            <span className="eyebrow">
-              {displayText(readValue(view.todayLabel))}
-            </span>
-            <h2>
-              {displayText(
-                readValue(view.character).activity || "此刻状态尚未更新",
-              )}
-            </h2>
-            <p>
-              {displayText(
-                view.joined(
-                  readValue(view.character).location,
-                  readValue(view.character).mood,
-                ),
-              )}
-            </p>
-            <p>{displayText(readValue(view.character).world)}</p>
-          </Surface>
-          <div className="grid now-grid">
-            <Surface as="div" >
-              <view.CurrentOutfit compact="" />
-            </Surface>
-            <Surface as="section" className="now-appointments">
-              <div className="row">
-                <h2>{"约定"}</h2>
-                <span className="spacer" />
-                <ActionButton variant="ghost"
-
-                  data-testid="now-appointments"
-                  onClick={(k) => {
-                    ((view.appointmentHighlight.value = !0),
-                      view.emit("go", "目标"));
-                  }}
-                >
-                  {"查看全部 "}<ExternalLinkIcon className="inline size-3.5 shrink-0" aria-hidden="true"/>
-                </ActionButton>
-              </div>
-              <Fragment>
-                {listValues(view.life.value.appointments.slice(0, 2)).map(
-                  (k) => (
-                    <div key={k.date + k.time} className="appointment-row">
-                      <time>
-                        {displayText(k.date.slice(5).replace("-", "月")) + "日"}
-                        <br />
-                        {displayText(k.time)}
-                      </time>
-                      <span>{displayText(k.text)}</span>
-                    </div>
-                  ),
-                )}
-              </Fragment>
-              {view.life.value.appointments.length ? null : (
-                <p key={0} className="muted">
-                  {"还没有约定，留一些期待给明天。"}
-                </p>
-              )}
-            </Surface>
-          </div>
-        </Fragment>
-      ) : null}
       {view.props.page === "此刻" || view.props.page === "日程" ? (
         <Fragment key={1}>
           <h2>

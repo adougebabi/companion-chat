@@ -29,7 +29,7 @@ export function checkpointCreation(recovery,submitted,result,ownerCurrent){
   if(!ownerCurrent())return;
   const saved=recovery.read();
   if(saved.requestId!==submitted.body.requestId)return;
-  recovery.save({...saved,activatedId:result.id,activationGroupId:submitted.groupId,...(Object.hasOwn(submitted,'worldSource')?{worldSource:submitted.worldSource}:{}),...(Object.hasOwn(submitted,'useDefaultWorld')?{useDefaultWorld:submitted.useDefaultWorld}:{}),...(submitted.worldResourceId?{worldResourceId:submitted.worldResourceId,worldResourceVersion:submitted.worldResourceVersion}:{})});
+  recovery.save({...saved,activatedId:result.id,activationSnapshot:structuredClone(submitted),activationGroupId:submitted.groupId,...(Object.hasOwn(submitted,'worldSource')?{worldSource:submitted.worldSource}:{}),...(Object.hasOwn(submitted,'useDefaultWorld')?{useDefaultWorld:submitted.useDefaultWorld}:{}),...(submitted.worldResourceId?{worldResourceId:submitted.worldResourceId,worldResourceVersion:submitted.worldResourceVersion}:{})});
 }
 
 // A different published source changes analysis context, never a pending command.

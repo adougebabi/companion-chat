@@ -143,11 +143,12 @@ test("memory deep links open a reading Sheet by ID and the confirmation supports
     const toggle = view.host.querySelector('[data-testid="memory-toggle-M"]');
     assert.equal(toggle.getAttribute("aria-haspopup"), "dialog");
     assert.ok(document.querySelector("#memory-details-M"));
-    assert.equal(document.querySelectorAll('[role="dialog"]').length,1);
-    assert.equal(document.querySelector('[data-testid="memory-edit-content"]'),null);
-    await view.click(
-      document.querySelector('[data-testid="memory-forget-M"]'),
+    assert.equal(document.querySelectorAll('[role="dialog"]').length, 1);
+    assert.equal(
+      document.querySelector('[data-testid="memory-edit-content"]'),
+      null,
     );
+    await view.click(document.querySelector('[data-testid="memory-forget-M"]'));
     assert.ok(document.querySelector('[role="alertdialog"]'));
     await act(async () =>
       document.dispatchEvent(
@@ -158,13 +159,23 @@ test("memory deep links open a reading Sheet by ID and the confirmation supports
     assert.equal(document.querySelector('[role="alertdialog"]'), null);
     assert.ok(document.querySelector("#memory-details-M"));
     await view.click(document.querySelector('[data-testid="memory-edit-M"]'));
-    const field=document.querySelector('[data-testid="memory-edit-content"]');
-    await view.input(field,"取消时应保留原文");
-    await view.click(document.querySelector('[data-testid="memory-drawer-close"]'));
-    assert.match(document.querySelector("#memory-details-M").textContent,/需要核对的真实记忆/);
-    assert.doesNotMatch(document.querySelector("#memory-details-M").textContent,/取消时应保留原文/);
-    await view.click(document.querySelector('[data-testid="memory-detail-drawer-close"]'));
-    assert.equal(document.activeElement,toggle);
+    const field = document.querySelector('[data-testid="memory-edit-content"]');
+    await view.input(field, "取消时应保留原文");
+    await view.click(
+      document.querySelector('[data-testid="memory-drawer-close"]'),
+    );
+    assert.match(
+      document.querySelector("#memory-details-M").textContent,
+      /需要核对的真实记忆/,
+    );
+    assert.doesNotMatch(
+      document.querySelector("#memory-details-M").textContent,
+      /取消时应保留原文/,
+    );
+    await view.click(
+      document.querySelector('[data-testid="memory-detail-drawer-close"]'),
+    );
+    assert.equal(document.activeElement, toggle);
   } finally {
     await view.dispose();
   }
@@ -229,41 +240,189 @@ test("comment candidate confirmation with IME never submits but ordinary Enter d
   }
 });
 
-test("world deletion confirmation supports its Radix close control without issuing a mutation", async () => {
-  const { default: World } = await load("react-app/pages/WorldPage.jsx"),
-    w = workspace();
-  w.state.worlds = [
-    {
-      id: "W",
-      name: "保留世界",
-      genre: "日常",
-      residents: [],
-      sites: [],
-      _source: { revision: 1 },
+function worldWorkspace(name, revision = 1) {
+  const w = workspace();
+  let row = {
+    id: "W",
+    fluctlight_id: "A",
+    name,
+    revision,
+    flavor: "日常",
+    background: "",
+    rules: "",
+    description: "",
+    item_pool: [],
+    venue_categories: [],
+  };
+  sessionStorage.clear();
+  w.isCurrent = (owner, fid) =>
+    w.state.session.actorId === owner && w.state.selectedId === fid;
+  w.client = {
+    worldCatalog: async () => ({
+      items: row ? [structuredClone(row)] : [],
+      active_binding: null,
+      next_cursor: null,
+    }),
+    catalogWorld: async () => ({
+      available: true,
+      world: structuredClone(row),
+      places: [],
+      npcs: [],
+      scenes: [],
+    }),
+    deleteCatalogWorld: async () => {
+      throw Error("unexpected mutation");
     },
-  ];
+  };
+  w.deleted = () => {
+    row = null;
+  };
+  return w;
+}
+async function openWorldRemoval(view, name) {
+  await view.click(
+    view.host.querySelector('[aria-label="进入世界 ' + name + '"]'),
+  );
+  await act(async () =>
+    [...view.host.querySelectorAll("[role=tab]")]
+      .find((n) => n.textContent === "世界设定")
+      .dispatchEvent(
+        new window.MouseEvent("mousedown", {
+          bubbles: true,
+          button: 0,
+          ctrlKey: false,
+        }),
+      ),
+  );
+  await view.flush();
+  await view.click(
+    [...view.host.querySelectorAll("button")].find(
+      (n) => n.textContent === "移除无引用世界",
+    ),
+  );
+}
+test("world removal confirmation supports its Radix close control without issuing a mutation", async () => {
+  const { default: World } = await load("react-app/pages/WorldPage.jsx"),
+    w = worldWorkspace("保留世界");
   const view = await mountReact(vite, World, { workspace: w });
   try {
-    const menuTrigger=view.host.querySelector('[aria-label="保留世界的世界操作"]');menuTrigger.focus();act(()=>menuTrigger.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await view.flush();
-    await view.click([...document.querySelectorAll('[role="menuitem"]')].find(node=>node.textContent==='删除'));
-    const dialog = document.querySelector('[role="alertdialog"]');
+    await openWorldRemoval(view, "保留世界");
+    const dialog = document.querySelector("[role=dialog]");
     assert.ok(dialog);
-    await view.click(dialog.querySelector('[aria-label="关闭确认"]'));
-    assert.equal(document.querySelector('[role="alertdialog"]'), null);
+    await view.click(
+      [...dialog.querySelectorAll("button")].find(
+        (node) => node.textContent === "关闭",
+      ),
+    );
+    assert.equal(document.querySelector("[role=dialog]"), null);
     assert.match(view.host.textContent, /保留世界/);
   } finally {
     await view.dispose();
   }
 });
-test('world delete keeps its original confirmation on a rejected command and closes only after acknowledged completion',async()=>{
- const {default:World}=await load('react-app/pages/WorldPage.jsx'),w=workspace(),bodies=[];let settle,reject;
- w.state.worlds=[{id:'W',name:'保留的世界',genre:'日常',residents:[],sites:[],_source:{revision:7}}];
- w.command=(_label,operation,body)=>{bodies.push({operation,body});return{completion:new Promise((resolve,no)=>{settle=resolve;reject=no;})};};
- const v=await mountReact(vite,World,{workspace:w});try{const trigger=v.host.querySelector('[aria-label="保留的世界的世界操作"]');trigger.focus();await act(async()=>trigger.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));await v.flush();await v.click([...document.querySelectorAll('[role=menuitem]')].find(n=>n.textContent==='删除'));await v.click(document.querySelector('[data-slot=alert-dialog-action]'));assert.equal(bodies.length,1);assert.equal(bodies[0].body.expectedRevision,7);assert.ok(document.querySelector('[role=alertdialog]'));await act(async()=>reject(Error('写入失败')));await v.flush();assert.ok(document.querySelector('[role=alertdialog]'));assert.match(document.querySelector('[data-slot=alert-dialog-description]').textContent,/保留的世界/);await v.click(document.querySelector('[data-slot=alert-dialog-action]'));assert.equal(bodies.length,2);assert.deepEqual(bodies[1],bodies[0]);await act(async()=>settle({}));await v.flush();assert.equal(document.querySelector('[role=alertdialog]'),null);}finally{await v.dispose();}
+test("world removal retains its confirmation through failure and replays the same original body before closing on readback", async () => {
+  const { default: World } = await load("react-app/pages/WorldPage.jsx"),
+    w = worldWorkspace("保留的世界", 7),
+    bodies = [];
+  let settle, reject;
+  w.client.deleteCatalogWorld = (_fid, _id, body) => {
+    bodies.push(structuredClone(body));
+    return new Promise((resolve, no) => {
+      settle = () => {
+        w.deleted();
+        resolve({ id: "W", status: "deleted", audit_id: "audit" });
+      };
+      reject = no;
+    });
+  };
+  const v = await mountReact(vite, World, { workspace: w });
+  try {
+    await openWorldRemoval(v, "保留的世界");
+    await v.input(
+      document.querySelector('[aria-label="移除说明"]'),
+      "移除没有引用的世界",
+    );
+    await v.click(
+      [...document.querySelectorAll("button")].find(
+        (n) => n.textContent === "确认移除",
+      ),
+    );
+    assert.equal(bodies.length, 1);
+    assert.equal(bodies[0].expectedRevision, 7);
+    assert.ok(document.querySelector("[role=dialog]"));
+    await act(async () => reject(Error("写入失败")));
+    await v.flush();
+    assert.match(
+      document.querySelector("[role=dialog]").textContent,
+      /保留的世界/,
+    );
+    await v.click(
+      [...document.querySelectorAll("button")].find(
+        (n) => n.textContent === "核对或重试原提交",
+      ),
+    );
+    assert.equal(bodies.length, 2);
+    assert.deepEqual(bodies[1], bodies[0]);
+    await act(async () => settle());
+    await v.flush();
+    assert.equal(document.querySelector("[role=dialog]"), null);
+  } finally {
+    await v.dispose();
+  }
 });
-test('memory forget keeps the original selected memory on failure and waits for completion before closing',async()=>{
- const {default:Life}=await load('react-app/pages/LifePage.jsx'),w=workspace();let reject,settle,writes=0;
- w.current.value.life.memories=[{id:'M',text:'保留的记忆正文',date:'2026-10-26',importance:3,category:'长期记忆',tags:[],_source:{id:'M',revision:4}}];
- w.command=()=>{writes++;return{completion:new Promise((resolve,no)=>{settle=resolve;reject=no;})};};
- const v=await mountReact(vite,Life,{workspace:w,props:{page:'记忆',initialMemoryId:'M'}});try{await v.click(document.querySelector('[data-testid=memory-forget-M]'));await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,1);assert.ok(document.querySelector('[role=alertdialog]'));await act(async()=>reject(Error('写入失败')));await v.flush();assert.ok(document.querySelector('[role=alertdialog]'));assert.match(document.querySelector('[data-slot=alert-dialog-description]').textContent,/保留的记忆正文/);await v.click(document.querySelector('[data-testid=memory-confirm-forget]'));assert.equal(writes,2);await act(async()=>settle({}));await v.flush();assert.equal(document.querySelector('[role=alertdialog]'),null);}finally{await v.dispose();}
+test("memory forget keeps the original selected memory on failure and waits for completion before closing", async () => {
+  const { default: Life } = await load("react-app/pages/LifePage.jsx"),
+    w = workspace();
+  let reject,
+    settle,
+    writes = 0;
+  w.current.value.life.memories = [
+    {
+      id: "M",
+      text: "保留的记忆正文",
+      date: "2026-10-26",
+      importance: 3,
+      category: "长期记忆",
+      tags: [],
+      _source: { id: "M", revision: 4 },
+    },
+  ];
+  w.command = () => {
+    writes++;
+    return {
+      completion: new Promise((resolve, no) => {
+        settle = resolve;
+        reject = no;
+      }),
+    };
+  };
+  const v = await mountReact(vite, Life, {
+    workspace: w,
+    props: { page: "记忆", initialMemoryId: "M" },
+  });
+  try {
+    await v.click(document.querySelector("[data-testid=memory-forget-M]"));
+    await v.click(
+      document.querySelector("[data-testid=memory-confirm-forget]"),
+    );
+    assert.equal(writes, 1);
+    assert.ok(document.querySelector("[role=alertdialog]"));
+    await act(async () => reject(Error("写入失败")));
+    await v.flush();
+    assert.ok(document.querySelector("[role=alertdialog]"));
+    assert.match(
+      document.querySelector("[data-slot=alert-dialog-description]")
+        .textContent,
+      /保留的记忆正文/,
+    );
+    await v.click(
+      document.querySelector("[data-testid=memory-confirm-forget]"),
+    );
+    assert.equal(writes, 2);
+    await act(async () => settle({}));
+    await v.flush();
+    assert.equal(document.querySelector("[role=alertdialog]"), null);
+  } finally {
+    await v.dispose();
+  }
 });

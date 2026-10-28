@@ -525,9 +525,7 @@ test("profile save recovers the same proposal before accepting and preserves dec
         once = false;
         throw Error("lost response");
       }
-      return {
-        status: "accepted"
-      };
+      return {id,fluctlight_id:fid,revision:4,status:"accepted"};
     }
   };
   const run = profileSaveCommand({

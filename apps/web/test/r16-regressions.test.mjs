@@ -22,11 +22,11 @@ test('world reads retain successful sources on failure, remove confirmed empty s
  const incomplete=await reusableWorlds({worldCatalog:async()=>({items:[],next_cursor:'unread'})},characters,previous);assert.equal(incomplete.unavailable,1);assert.deepEqual(incomplete.items,previous);
 });
 
-test('existing-world wizard excludes fallback and creation and keeps the selected world through a failed refresh',async()=>{
+test('world wizard requires an explicit real-source choice and keeps it through a failed refresh',async()=>{
  const {default:Wizard}=await load('react-app/pages/CharacterWizardPage.jsx'),w=workspace();let fail=false,directories=0;
  w.state.session.actorId='r16-wizard-owner';w.day=()=> '2026-10-27';w.refreshDirectory=async()=>{directories++;};w.services.configurationClient.read=async()=>({bindings:[]});
  w.client={listStudioResources:async()=>({items:[],next_cursor:''}),worldCatalog:async()=>{if(fail)throw Error('offline');return{items:[{id:'W',name:'日常世界',revision:2}]};}};
- const v=await mountReact(vite,Wizard,{workspace:w});try{assert.match(v.host.textContent,/日常世界 · 角色甲/);assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,false);fail=true;await v.click(button(v.host,'重新读取已有世界'));assert.equal(directories,1);assert.match(v.host.textContent,/日常世界 · 角色甲/);assert.match(v.host.textContent,/暂未读到/);assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);}finally{await v.dispose();}
+ const v=await mountReact(vite,Wizard,{workspace:w});try{assert.match(v.host.textContent,/日常世界/);assert.match(v.host.textContent,/来自 角色甲/);assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);await v.click(v.host.querySelector('.creation-world-card'));assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,false);fail=true;await v.click(button(v.host,'重新读取已有世界'));assert.equal(directories,1);assert.match(v.host.textContent,/日常世界/);assert.match(v.host.textContent,/来自 角色甲/);assert.match(v.host.textContent,/暂未读到/);assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);}finally{await v.dispose();}
 });
 
 test('malformed default-world reads never admit a create command',async()=>{
@@ -60,11 +60,12 @@ test('profile presentation preserves custom English, false and zero while removi
  const v=await mountReact(vite,Tree,{props:{value:original}});try{assert.match(v.host.textContent,/Architect/);assert.match(v.host.textContent,/否/);assert.match(v.host.textContent,/0/);assert.doesNotMatch(v.host.textContent,/补充设定|尚未确定|下装 · 下装/);assert.deepEqual(original,before);}finally{await v.dispose();}
 });
 
-test('media thumbnail opens a local lightbox while keeping the separate asset-management action',async()=>{
- const {default:Media}=await load('react-app/pages/MediaPage.tsx'),w=workspace(),moves=[];w.services.mediaClient={list:async()=>({items:[{id:'image',kind:'image',origin:'owner_upload',title:'素材样本',byte_size:10240,readable:true}],next_cursor:''}),url:id=>'/media/'+id};w.navigatePath=path=>moves.push(path);
- const v=await mountReact(vite,Media,{workspace:w,props:{route:{query:new URLSearchParams()}}});try{const preview=v.host.querySelector('[aria-label=预览素材样本]');await v.click(preview);assert.ok(document.querySelector('[role=dialog] img'));assert.deepEqual(moves,[]);await act(async()=>document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,preview);await v.click(v.host.querySelector('[aria-label=查看素材样本]'));assert.deepEqual(moves,['/media/image']);}finally{await v.dispose();}
+test('media thumbnail opens the Demo detail in place and keeps source and management actions reachable',async()=>{
+ const {default:Media}=await load('react-app/pages/MediaPage.tsx'),w=workspace(),moves=[];
+ const asset={id:'image',kind:'image',origin:'owner_upload',title:'素材样本',byte_size:10240,readable:true,read_state:'readable',status:'ready',asset_revision:1,metadata_revision:0,hidden:false};
+ w.services.mediaClient={list:async()=>({items:[asset],next_cursor:''}),asset:async()=>asset,url:id=>'/media/'+id};w.navigatePath=path=>moves.push(path);
+ const v=await mountReact(vite,Media,{workspace:w,props:{route:{query:new URLSearchParams()}}});try{const preview=v.host.querySelector('[aria-label="查看画面 素材样本"]');await v.click(preview);const detail=document.querySelector('[role=dialog]');assert.ok(detail.querySelector('img'));assert.match(detail.textContent,/编辑库信息|引用授权与删除管理/);assert.deepEqual(moves,[]);await act(async()=>document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,preview);assert.deepEqual(moves,[]);}finally{await v.dispose();}
 });
-
 
 test('new creation drafts default to Beijing while a stored explicit timezone is retained',()=>{
  const storage=memoryStorage(),drafts=creationDraft({owner:'r16-timezone',storage});assert.equal(drafts.read().timezone,'Asia/Shanghai');const saved=drafts.read();saved.timezone='America/Los_Angeles';drafts.save(saved);assert.equal(creationDraft({owner:'r16-timezone',storage}).read().timezone,'America/Los_Angeles');
@@ -84,7 +85,7 @@ test('structured readers translate declared status fields without rewriting quot
 test('failed reads cannot reveal a default world; confirmed empty catalogs require an explicit source choice',async()=>{
  const {default:Wizard}=await load('react-app/pages/CharacterWizardPage.jsx'),w=workspace();w.state.session.actorId='r16-empty-world-owner';w.refreshDirectory=async()=>{};w.day=()=> '2026-10-27';let fail=true,creates=0;
  w.services.configurationClient.read=async()=>({bindings:[]});w.client={worldCatalog:async()=>{if(fail)throw Error('offline');return{items:[]};},listStudioResources:async()=>({items:[],next_cursor:''}),updateRuntimeWorld:async()=>{creates++;}};
- const v=await mountReact(vite,Wizard,{workspace:w});try{assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);fail=false;await v.click(button(v.host,'重新读取已有世界'));assert.match(v.host.textContent,/使用日常生活世界/);assert.match(v.host.textContent,/创建世界设定/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);await v.click(v.host.querySelector('[data-slot=questionnaire-choice-input]'));assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,false);assert.equal(creates,0);}finally{await v.dispose();}
+ const v=await mountReact(vite,Wizard,{workspace:w});try{assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);fail=false;await v.click(button(v.host,'重新读取已有世界'));assert.match(v.host.textContent,/已确认没有已有生活世界/);assert.match(v.host.textContent,/创建新的世界底稿/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);await act(async()=>[...v.host.querySelectorAll('[role=tab]')].find(n=>n.textContent==='日常生活世界').dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0,ctrlKey:false})));await v.flush();await v.click(button(v.host,'使用日常生活世界'));assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,false);assert.equal(creates,0);}finally{await v.dispose();}
 });
 
 test('workspace read failures are scoped and distinguish first failure from preserved successful data across role switches',async()=>{

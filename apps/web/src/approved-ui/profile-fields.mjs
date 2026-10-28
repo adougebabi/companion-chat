@@ -1,5 +1,5 @@
-import {semanticEntries} from './profile-presentation.mjs';
-import { bodyFieldVisible } from '../lib/body-field-presentation.mjs';
+import { semanticEntries } from "./profile-presentation.mjs";
+import { bodyFieldVisible } from "../lib/body-field-presentation.mjs";
 const clone = (value) =>
   value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 export const identityFields = {
@@ -55,7 +55,13 @@ const technical = (key) =>
   ) || /_(?:id|ids|version|revision|at)$/.test(key);
 const readOnlyLife = new Set(["wardrobe_items", "relationship_seeds"]);
 const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const fieldOptions = {message_length:[['short','简短'],['medium','适中'],['long','详细']]};
+const fieldOptions = {
+  message_length: [
+    ["short", "简短"],
+    ["medium", "适中"],
+    ["long", "详细"],
+  ],
+};
 export function coreFromDetail(detail) {
   return {
     identity: clone(detail.identity || detail.core_persona?.identity || {}),
@@ -101,7 +107,9 @@ export function profileFields(core, label = (key) => key) {
             ? "boolean"
             : numeric
               ? "number"
-              : path[0] === 'behavioral_policy' && fieldOptions[key] ? 'select' : "text";
+              : path[0] === "behavioral_policy" && fieldOptions[key]
+                ? "select"
+                : "text";
     const display =
       kind === "lines"
         ? Array.isArray(value)
@@ -115,11 +123,23 @@ export function profileFields(core, label = (key) => key) {
         .map((p) =>
           typeof p === "number"
             ? `第 ${p + 1} 项`
-            : identityFields[p] || behavioralFields[p] || (label(p)==="自定义字段"?"补充说明":label(p)),
+            : identityFields[p] ||
+              behavioralFields[p] ||
+              (label(p) === "自定义字段" ? "补充说明" : label(p)),
         )
         .join(" · "),
       kind,
-      options:kind === 'select' ? [{value:'',label:'尚未填写'},...fieldOptions[key].map(([value,label])=>({value,label})),...(!fieldOptions[key].some(([option])=>option===value)&&value ? [{value,label:String(value)}] : [])] : undefined,
+      options:
+        kind === "select"
+          ? [
+              { value: "", label: "尚未填写" },
+              ...fieldOptions[key].map(([value, label]) => ({ value, label })),
+              ...(!fieldOptions[key].some(([option]) => option === value) &&
+              value
+                ? [{ value, label: String(value) }]
+                : []),
+            ]
+          : undefined,
       itemType:
         Array.isArray(value) &&
         value.length &&
@@ -153,7 +173,14 @@ export function profileFields(core, label = (key) => key) {
     walk(value, ["identity", key]);
   const policy = {
     ...Object.fromEntries(
-      Object.keys(behavioralFields).filter(k => !["expression","traits"].some(carrier => Object.hasOwn(core.behavioral_policy?.[carrier] || {}, k))).map((k) => [k, undefined]),
+      Object.keys(behavioralFields)
+        .filter(
+          (k) =>
+            !["expression", "traits"].some((carrier) =>
+              Object.hasOwn(core.behavioral_policy?.[carrier] || {}, k),
+            ),
+        )
+        .map((k) => [k, undefined]),
     ),
     ...core.behavioral_policy,
   };
@@ -237,12 +264,23 @@ export function applyProfileChanges(base, patch) {
 }
 
 export function rebaseProfileFields(base, current, label, submitted) {
-  const comparison = submitted && new Map(submitted.map((f) => [f.path.join("."), f.value]));
-  const edits = new Map(current.filter((f) => !equal(f.value, comparison ? comparison.get(f.path.join(".")) : f.initial))
-    .map((f) => [f.path.join("."), f.value]));
+  const comparison =
+    submitted && new Map(submitted.map((f) => [f.path.join("."), f.value]));
+  const edits = new Map(
+    current
+      .filter(
+        (f) =>
+          !equal(
+            f.value,
+            comparison ? comparison.get(f.path.join(".")) : f.initial,
+          ),
+      )
+      .map((f) => [f.path.join("."), f.value]),
+  );
   const next = profileFields(base, label);
   for (const field of next) {
-    if (edits.has(field.path.join("."))) field.value = edits.get(field.path.join("."));
+    if (edits.has(field.path.join(".")))
+      field.value = edits.get(field.path.join("."));
   }
   return next;
 }
@@ -259,10 +297,18 @@ export function profileSaveCommand({ client, fid, live }) {
       if (!live()) throw Error("账号或角色已变化，原提议已保留");
       if (proposal.fluctlight_id !== fid || !proposal.id)
         throw Error("修订提议的角色范围不匹配");
-      return await client.acceptFoundationRevision(fid, proposal.id, {
+      const result = await client.acceptFoundationRevision(fid, proposal.id, {
         expectedRevision: value.expectedRevision,
         reason: value.reason,
       });
+      if (
+        result.id !== proposal.id ||
+        result.fluctlight_id !== fid ||
+        result.status !== "accepted" ||
+        !Number.isSafeInteger(result.revision)
+      )
+        throw Error("修订接受回执尚未完整确认，原提案和提交身份仍保留");
+      return result;
     } catch (error) {
       if (
         proposal &&

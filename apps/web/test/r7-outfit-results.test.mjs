@@ -42,7 +42,7 @@ test('outfit receipts survive reload, retain exact outcomes and block duplicate 
     const render=()=>renderReact(vite,WardrobePage,workspace);
     await recreate();
     let html=await render();
-    assert.match(html,/为周屿搭配/);assert.doesNotMatch(html,/为她搭配/);
+    assert.match(html,/周屿的衣柜/);assert.match(html,/搭配工作台/);assert.doesNotMatch(html,/为她搭配/);
     assert.match(html,/aria-label="请周屿换上「日常搭配」"/);
     assert.match(html,/aria-label="请周屿换上「跑步搭配」"/);
     for (const [index,status,result,expected] of [

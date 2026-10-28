@@ -6,7 +6,8 @@ import {configureToast} from '@/v3/proto/components/toast.js';
 import OverlayHost from './shared/OverlayHost';
 import WorkspaceBreadcrumb from './shared/WorkspaceBreadcrumb';
 import {SidebarProvider,Sidebar,SidebarInset,SidebarTrigger,SidebarRail,useSidebar} from '@/components/ui/sidebar';
-import WorkspaceNavigation from './shared/WorkspaceNavigation';
+import WorkspaceNavigation,{workspaceNavigationGroup,workspacePageLabel} from './shared/WorkspaceNavigation';
+import WorkspaceQuickJump from './shared/WorkspaceQuickJump';
 import {Toaster} from '@/components/ui/sonner';
 import {toast} from 'sonner';
 import LoadingState from './shared/LoadingState';
@@ -20,14 +21,14 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
-  LeafIcon,CheckIcon,LogOutIcon,UserRoundIcon,
-  ChevronDownIcon,
+  BellIcon,LogOutIcon,UserRoundIcon,
   PanelRightCloseIcon,
   PanelRightOpenIcon,
 } from "lucide-react";
 import { createWorkspace } from "../state/workspace.mjs";
 import {
   approvedRoute,
+  workspaceReadingKey,
   approvedHref,
   lifePages,
 } from "../approved-ui/routing.mjs";
@@ -40,11 +41,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import CharacterAvatar from "./shared/CharacterAvatar";
 const ChatPage = lazy(() => import("./pages/ChatPage"));
+const GoalsPage = lazy(() => import("./pages/GoalsPage"));
+const DiaryPage = lazy(() => import("./pages/DiaryPage"));
+const MemoryPage = lazy(() => import("./pages/MemoryPage"));
+const SchedulePage = lazy(() => import("./pages/SchedulePage"));
 const LifePage = lazy(() => import("./pages/LifePage"));
 const WardrobePage = lazy(() => import("./pages/WardrobePage"));
 const WorldPage = lazy(() => import("./pages/WorldPage"));
+const PeoplePage = lazy(() => import("./pages/PeoplePage"));
+const FeedPage = lazy(() => import("./pages/FeedPage"));
 const BrowsePage = lazy(() => import("./pages/BrowsePage"));
 const ManagementPage = lazy(() => import("./pages/ManagementPage"));
 const LibraryPage = lazy(() => import("./pages/LibraryPage"));
@@ -79,8 +85,8 @@ export default function App() {
   }, []);
   return workspace ? (
     <WorkspaceContext.Provider value={workspace}>
-      <div className="react-workspace">
-        <SidebarProvider className="h-dvh min-h-0 w-full overflow-hidden" style={{"--sidebar-width":"256px"} as React.CSSProperties}><WorkspaceShell workspace={workspace}/><OverlayHost/><Toaster richColors closeButton/></SidebarProvider>
+      <div className="react-workspace replica-workspace">
+        <SidebarProvider mobileBreakpoint={701} className="replica-shell h-dvh min-h-0 w-full overflow-hidden" style={{"--sidebar-width":"var(--workspace-sidebar-width)","--sidebar-width-icon":"51px"} as React.CSSProperties}><WorkspaceShell workspace={workspace}/><OverlayHost/><Toaster richColors closeButton/></SidebarProvider>
       </div>
     </WorkspaceContext.Provider>
   ) : (
@@ -96,8 +102,8 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const [route, setRoute] = useState<Route>(() => approvedRoute(location.hash));
   const {setOpenMobile:setMobileOpen,open:sidebarOpen,isMobile}=useSidebar();
   const [accountBusy,setAccountBusy]=useState(false);
-  const [lifeOpen, setLifeOpen] = useState(true),
-    [preview, setPreview] = useState(() => !window.matchMedia("(max-width: 800px)").matches);
+  const [preview, setPreview] = useState(true);
+  const scrollPositions = useRef(new Map<string,number>());
   const main = useRef<HTMLDivElement>(null),
     page = route.removed||route.notFound?"页面暂不可用":route.page || state.page;
   const current = workspace.current.value;
@@ -121,11 +127,6 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     return () => window.removeEventListener("hashchange", parse);
   }, [workspace, navigate]);
   useEffect(() => {
-    const narrow=window.matchMedia("(max-width: 800px)");
-    const resize=()=>{setMobileOpen(false);if(narrow.matches)setPreview(false);};
-    narrow.addEventListener("change",resize);return()=>narrow.removeEventListener("change",resize);
-  },[]);
-  useEffect(() => {
     if (!state.ready || !state.session || route.removed || route.notFound || !routeCharacterExists)
       return;
     let active = true;
@@ -147,18 +148,18 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     else if(page==="管理中心"&&route.query?.get("section"))workspace.state.managementTab="配置中心";
     workspace.state.feedScope = route.query?.get("fid") || null;
     setPreview(
-      !window.matchMedia("(max-width: 800px)").matches && !chatSummaryPreference({
+      !chatSummaryPreference({
         owner: state.session.actorId,
         fid: workspace.state.selectedId,
         defaultFolded: false,
       }).read(),
     );
     void (
-      route.feature || route.information || ["媒体", "创作中心", "登录"].includes(page) || (page==="世界"&&!workspace.state.selectedId)
+      route.feature&&route.feature.native!=='chat-history' || route.information || ["媒体", "创作中心", "登录", "日程", "目标", "日记", "记忆", "角色详情", "世界", "人物关系", "动态"].includes(page)
         ? Promise.resolve()
         : workspace.load(page)
     ).then(() => {
-      if (active) main.current?.scrollTo({ top: 0 });
+      if (active) main.current?.scrollTo({ top: scrollPositions.current.get(workspaceReadingKey(state.session?.actorId,route)) || 0 });
     });
     return () => {
       active = false;
@@ -209,91 +210,48 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   const unavailable=route.removed||route.notFound;
   const scopedHeading=state.pageHeading&&(route.feature?state.pageHeading.route===route.path&&state.pageHeading.owner===state.session?.actorId:state.pageHeading.page===page&&state.pageHeading.fid===state.selectedId)?state.pageHeading.title:"";
   const displayTitle=unavailable?"页面暂不可用":scopedHeading||route.feature?.title||route.title||(page==="管理中心"&&state.managementTab==="运行诊断"?"运行诊断":page);
-  const content = unavailable?<CardSurface as="section"><h2>这个页面暂时无法访问</h2><p>可以返回刚才的页面，或从导航继续浏览。</p><Button variant="outline" onClick={()=>history.back()}>返回上一页</Button><Button asChild><a href="#/library">打开角色库</a></Button></CardSurface>:route.feature ? <DomainPage key={route.path+"?"+route.query} route={route}/>
+  const content = unavailable?<CardSurface as="section"><h2>这个页面暂时无法访问</h2><p>可以返回刚才的页面，或从导航继续浏览。</p><Button variant="outline" onClick={()=>history.back()}>返回上一页</Button><Button asChild><a href="#/library">打开角色库</a></Button></CardSurface>:route.feature?.native==='people'?<PeoplePage key={'people:'+character.id} route={route} initialTab={route.feature.initialTab} initialNpcId={route.feature.params.npcId} initialEdit={route.feature.initialEdit} initialCreate={route.feature.initialCreate}/>:route.feature?.native==='media'?<MediaPage key={route.path+'?'+route.query} route={route} initialTab={route.feature.initialTab} initialAssetId={route.feature.params.mdId} initialEdit={route.feature.initialEdit}/>:route.feature?.native==='feed'?<FeedPage key={'feed:'+character.id} route={route} initialPostId={route.feature.params.postId}/>:route.feature?.native==='chat-history'?<ChatPage key={character.id} preview={preview} onPreviewChange={changePreview} onGo={navigate} historyRoute={route}/>:route.feature ? <DomainPage key={route.path+"?"+route.query} route={route}/>
     : route.information ? <CardSurface as="section" ><h2>{route.information.title}</h2><p>{route.information.body}</p><Button variant="outline" onClick={()=>navigate(route.information!.page)}>{route.information.label}</Button></CardSurface>
-    : page === "聊天" ? <ChatPage key={character.id} preview={preview} onPreviewChange={changePreview} onGo={navigate}/>
-    : page === "衣柜" ? <WardrobePage key={"wardrobe:"+character.id}/>
+    : page === "聊天" ? <ChatPage key={character.id} preview={preview} onPreviewChange={changePreview} onGo={navigate} historyRoute={route.query?.has('conversation')||route.query?.has('message')?route:undefined}/>
+    : page === "衣柜" ? <WardrobePage key={"wardrobe:"+character.id} route={route}/>
     : page === "世界" ? character.id ? <WorldPage key={"world:"+character.id}/> : <StudioPage key="global-worlds" kind="world" route={route}/>
+    : page === "动态" ? <FeedPage key={"feed:"+character.id} route={route}/>
+    : page === "人物关系" ? <PeoplePage key={'people:'+character.id} route={route}/>
     : page === "媒体" ? <MediaPage key={route.path+"?"+route.query} route={route}/>
     : page === "创作中心" ? <StudioPage key={route.path+"?"+route.query} route={route}/>
     : page === "角色详情" ? <CharacterDetailPage key={"profile:"+character.id}/>
+    : page === "目标" ? <GoalsPage key={"goals:"+character.id} route={route} onGo={navigate}/>
+    : page === "日记" ? <DiaryPage key={"diary:"+character.id}/>
+    : page === "记忆" ? <MemoryPage key={"memory:"+character.id} route={route}/>
+    : page === "日程" ? <SchedulePage key={"schedule:"+character.id} route={route}/>
     : lifePages.includes(page) ? <LifePage key={character.id} page={page} onGo={navigate}/>
     : page === "管理中心" ? <ManagementPage/>
     : page === "角色库" ? <LibraryPage/>
     : page === "初始化角色" ? <CharacterWizardPage/>
     : <BrowsePage key={page+":"+character.id} page={page}/>;
-  const reading=workspaceReadFeedback(state,route.feature?'':page,workspace.currentScope());
+  const reading=workspaceReadFeedback(state,(route.feature||['通知与待处理','日程','目标','日记','记忆','角色详情','世界','人物关系','动态','媒体'].includes(page))?'':page,workspace.currentScope());
+  const pageReadErrors=page==='此刻'?reading.errors.filter(error=>error.key!=='schedule'):reading.errors;
   const readError=state.errors.directory||state.errors.session||'';
   const isLifeRoute=lifePages.includes(page)||route.path?.includes('/life/');
   const ancestors=isLifeRoute&&page!=='此刻'?[{label:'生活',href:approvedHref('此刻',state.selectedId)}]:page==='管理中心'&&state.managementTab==='运行诊断'&&!route.feature?[{label:'管理中心',href:'#/settings?section='+encodeURIComponent('服务地址')}]:[];
   return (
     <>
-      <Sidebar collapsible="icon" variant="inset"><WorkspaceNavigation page={page} character={character} lifeOpen={lifeOpen} onLifeOpenChange={setLifeOpen} onNavigate={navigate}/><SidebarRail aria-label="切换导航宽度"/></Sidebar>
-      <SidebarInset tabIndex={-1} className="min-w-0 min-h-0 overflow-hidden">
-      <header className="topbar">
-        <SidebarTrigger className="touch-target" aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
-        <Button
-          variant="ghost"
-          className={sidebarOpen&&!isMobile?"brand hidden":"brand"}
-          onClick={() => navigate("角色库")}
-        >
-          <span className="brand-mark">
-            <LeafIcon size={19} />
-          </span>
-          摇光<span className="brand-en">FLUCTLIGHT</span>
-        </Button>
-        <span className="top-divider" />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="character-switch touch-target">
-              <CharacterAvatar
-                className="small"
-                name={character.name}
-                initial={character.initial}
-                color={character.color}
-                src={character._directory?.avatar}
-              />
-              <b>{character.name}</b>
-              <ChevronDownIcon size={14} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {state.characters.map((c: any) => (
-              <DropdownMenuItem
-                key={c.id}
-                onSelect={() => {
-                  workspace.select(c.id);
-                  navigate(page==="初始化角色"?"聊天":page);
-                }}
-              >
-                <CharacterAvatar
-                  className="small"
-                  name={c.name}
-                  initial={c.initial}
-                  color={c.color}
-                  src={c._directory?.avatar}
-                />
-                <span className="min-w-0 flex-1">{c.name}</span>{state.selectedId===c.id&&<><CheckIcon className="size-4"/><span className="sr-only">当前角色</span></>}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <span className="scope">角色工作区</span>
-        <span className="spacer" />
-        <span className="local">
-          <i />
-          相伴此刻
-        </span>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" className="touch-target" aria-label="账户菜单"><CharacterAvatar name="我" initial="我" className="small"/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={()=>navigate('管理中心')}><UserRoundIcon/>账户与设置</DropdownMenuItem><DropdownMenuItem disabled={accountBusy} className="text-destructive focus:text-destructive" onSelect={async()=>{setAccountBusy(true);try{await workspace.logout();}catch(cause){toast.error(cause instanceof Error?cause.message:'退出未能确认，请重试');}finally{setAccountBusy(false);}}}><LogOutIcon/>{accountBusy?'正在退出…':'退出登录'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+      <Sidebar collapsible="icon" variant="inset" className="replica-sidebar"><WorkspaceNavigation page={page} character={current.id?current:character} characters={state.characters} onCharacterChange={(id)=>{workspace.select(id);navigate(page==="初始化角色"?"聊天":page);}} onNavigate={navigate} unread={state.notifications.filter((notice:any)=>!notice.read_at&&!notice.read).length} accountMenu={<DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label="账户菜单"><LogOutIcon size={14}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={()=>navigate('管理中心')}><UserRoundIcon/>账户与设置</DropdownMenuItem><DropdownMenuItem disabled={accountBusy} className="text-destructive focus:text-destructive" onSelect={async()=>{setAccountBusy(true);try{await workspace.logout();}catch(cause){toast.error(cause instanceof Error?cause.message:'退出未能确认，请重试');}finally{setAccountBusy(false);}}}><LogOutIcon/>{accountBusy?'正在退出…':'退出登录'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}/><SidebarRail aria-label="切换导航宽度"/></Sidebar>
+      <SidebarInset tabIndex={-1} className="replica-main min-w-0 min-h-0 overflow-hidden">
+      <header className="replica-topbar">
+        <SidebarTrigger className="replica-topbar-icon" aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
+        <WorkspaceBreadcrumb parentLabel={workspaceNavigationGroup(page)} parentHref="#/library" ancestors={route.feature?ancestors:[]} currentLabel={workspacePageLabel(displayTitle)}/>
+        <div className="replica-topbar-actions"><WorkspaceQuickJump key={state.session?.actorId} characters={state.characters} hasCharacter={!!current.id} onNavigate={navigate} onCharacter={id=>{workspace.select(id);navigate('聊天');}}/><Button type="button" variant="ghost" size="icon" className="replica-topbar-icon" aria-label="查看通知" onClick={()=>navigate('通知与待处理')}><BellIcon size={16}/></Button></div>
       </header>
         <div
           ref={main}
           tabIndex={-1}
-          className={"workspace-page" + (page === "聊天" ? " chat-main" : "")}
+          onScroll={event=>scrollPositions.current.set(workspaceReadingKey(state.session?.actorId,route),event.currentTarget.scrollTop)}
+          className={"workspace-page replica-page" + (page === "聊天" ? " replica-chat-main" : "")}
         >
-          <div className="page-heading">
+          {!(page==='世界'&&!route.feature)&&!(page==='人物关系'&&(!route.feature||route.feature.native==='people'))&&!(page==="管理中心"&&(!route.feature||route.feature.native==="task"||route.path==="/data"))&&!(page==="通知与待处理"&&!route.feature)&&!["角色库","聊天","此刻","日程","目标","衣柜","日记","记忆","角色详情","动态","媒体","创作中心","初始化角色"].includes(page)&&<div className="page-heading">
             <div>
-              <WorkspaceBreadcrumb parentLabel={page==='初始化角色'?'角色库':character.id?`${character.name} 的工作区`:'我的空间'} parentHref="#/library" ancestors={ancestors} currentLabel={displayTitle}/>
+
               <h1>
                 {displayTitle}
                 {page === "聊天" && (
@@ -314,12 +272,12 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
               </Button>
             )}
             {page==='管理中心'&&!route.feature&&route.query?.get('returnTo')?.startsWith('#/')&&<Button variant="outline" onClick={()=>{const target=route.query?.get('returnTo');if(target?.startsWith('#/'))workspace.navigatePath(target.slice(1));}}>{route.query?.get('returnTo')==='#/inbox'?'返回通知中心':'返回来源页面'}</Button>}
-          </div>
+          </div>}
           <Suspense key={state.session?.actorId} fallback={<LoadingState label="正在读取页面…"/>}>
             {page === "聊天" ? (
               content
             ) : (
-              <div className="page-content">{reading.errors.length>0&&<InlineFeedback role="alert" className="mb-4"><p>{reading.initialFailure?'当前内容尚未读到。':'本次读取未完成，保留上次已读取的内容。'}</p>{reading.errors.map(error=><p key={error.key}>{error.label}：{error.message}</p>)}<Button type="button" variant="outline" disabled={reading.loading} onClick={()=>void workspace.load(page)}>重新读取当前页面</Button></InlineFeedback>}<div hidden={reading.initialFailure}>{content}</div></div>
+              <div className="page-content">{pageReadErrors.length>0&&<InlineFeedback role="alert" className="mb-4"><p>{reading.initialFailure?'当前内容尚未读到。':'本次读取未完成，保留上次已读取的内容。'}</p>{pageReadErrors.map(error=><p key={error.key}>{error.label}：{error.message}</p>)}<Button type="button" variant="outline" disabled={reading.loading} onClick={()=>void workspace.load(page)}>重新读取当前页面</Button></InlineFeedback>}<div hidden={reading.initialFailure}>{content}</div></div>
             )}
           </Suspense>
         </div>
