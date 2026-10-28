@@ -27,5 +27,11 @@
 ## 继续批次：保留工具弹层主题
 管理深层截图确认OverlayHost、DisclosurePort和WorkflowRecovery的portal仅有react-workspace，未命中复刻控件主题；Sheet手机默认75%宽造成编辑区狭窄。给真实content根增加纯主题replica-overlay scope，复用既有product-sheet宽度并保留wide尺寸，不给Sheet套Dialog几何。WorkflowRecovery使用既有WorkspaceDialog承载原表单，统一尺寸、单一body滚动、固定确认/取消区与返回焦点；提交仍调用同一原handler。durableCommandDrawer默认保留原危险色；仅资源包导入明确destructive:false，显示普通确认绿色。修改限于以上共享容器、主题CSS、该helper呈现选项及导入调用，不动命令/回读/Owner/权限。以现有Management DOM回归和18组实际Admin UI复验、同截图computed字体/输入/宽度/变体验证。
 
+## 继续批次：目标详情次级记录同步
+实际UI的暂停/继续/核对已成功且history API含新原因，但同一打开详情只在openGoal读取证据/历史。仅GoalsPage在确认定义/状态写回和原评估终态后重读当前选中对象的两类记录，复用现有kind epoch/错误/原游标重试；未选中不读，不新增轮询、不改API或完成判定。新增React回归验证新历史/证据同步及次级GET失败不重放已确认命令，再走双视口实际原流程。
+
 ## 继续批次：共享按钮与聊天图片
 差异位于Button默认变体与ChatPage附件结构：按原Demo按钮尺寸/disabled状态修复共享primitive；保留group/button与全部现有API。附件置回同一BubbleContent，保留Attachment真实媒体primitive，225×150预览和caption，增加图片读取失败的原URL重读，并使用WorkspaceDialog保持详情、Escape和返回焦点。涉及Button.tsx、ChatPage.tsx、新ChatAttachment.tsx、replica-chat.css和相应风险验证；不改业务请求、Demo、消息正文与附件URL。
+
+## 继续批次：同页创建入口身份
+实际snapshot-completion双视口验证发现，开启新草稿后通过同页resume参数访问原历史，地址已变但CharacterWizardPage未卸载，控制器仍持有新草稿。修改仅限App创建页的React key，按现有path/query绑定入口身份；已有creationRecovery读取独立历史，保留原快照/请求，旧控制器dispose后新入口读取。以生产构建同页resume、原激活只一次和精确世界版本带入验证。不修改创建后端或历史协议。

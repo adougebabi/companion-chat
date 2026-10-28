@@ -38,11 +38,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/shell-deep/report-pass59.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "navigation-pages-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "navigation resolves and highlights 聊天; navigation resolves and highlights 此刻; navigation resolves and highlights 日程; navigation resolves and highlights 目标; navigation resolves and highlights 衣柜; navigation resolves and highlights 日记; navigation resolves and highlights 记忆; navigation resolves and highlights 角色详情; navigation resolves and highlights 世界; navigation resolves and highlights 动态; navigation resolves and highlights 人物关系; navigation resolves and highlights 媒体; navigation resolves and highlights 角色库; navigation resolves and highlights 创作中心; navigation resolves and highlights 通知与待处理; navigation resolves and highlights 管理中心; brand returns to actual library; library-return: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "empty-directory-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "navigation-pages-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "navigation resolves and highlights 聊天; navigation resolves and highlights 此刻; navigation resolves and highlights 日程; navigation resolves and highlights 目标; navigation resolves and highlights 衣柜; navigation resolves and highlights 日记; navigation resolves and highlights 记忆; navigation resolves and highlights 角色详情; navigation resolves and highlights 世界; navigation resolves and highlights 动态; navigation resolves and highlights 人物关系; navigation resolves and highlights 媒体; navigation resolves and highlights 角色库; navigation resolves and highlights 创作中心; navigation resolves and highlights 通知与待处理; navigation resolves and highlights 管理中心; brand returns to actual library; library-return: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "empty-directory-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "shell-switch",
@@ -79,11 +113,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/shell-deep/report-pass59.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "character-switch-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "role switch retains current page; new role uses actual scoped schedule read; switched: no horizontal overflow; selected role name is actually projected; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "empty-directory-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "character-switch-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "role switch retains current page; new role uses actual scoped schedule read; switched: no horizontal overflow; selected role name is actually projected; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "empty-directory-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "shell-sidebar",
@@ -117,7 +185,8 @@
         "visual": [],
         "interaction": [
           "evidence/interaction/workspace-ui.json",
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/shell-deep/report-pass59.json"
         ],
         "business": []
       },
@@ -166,6 +235,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "sidebar-focus-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "collapsed icon stays labelled 聊天; collapsed icon stays labelled 此刻; collapsed icon stays labelled 日程; collapsed icon stays labelled 目标; collapsed icon stays labelled 衣柜; collapsed icon stays labelled 日记; collapsed icon stays labelled 记忆; collapsed icon stays labelled 角色详情; collapsed icon stays labelled 世界; collapsed icon stays labelled 动态; collapsed icon stays labelled 人物关系; collapsed icon stays labelled 媒体; collapsed icon stays labelled 角色库; collapsed icon stays labelled 创作中心; collapsed icon stays labelled 通知与待处理; collapsed icon stays labelled 管理中心; collapsed: no horizontal overflow; main shortcut preserves independent chat preview; focus-and-width: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "sidebar-focus-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "mobile Escape restores connected navigation trigger; focus-and-width: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -299,11 +382,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/shell-deep/report-pass59.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "account-logout-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "account-logout-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "library-hero",
@@ -573,14 +676,33 @@
             "layer": "React DOM controlled regression",
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
-          }
+          },
+          "evidence/shell-deep/report-pass59.json"
         ],
         "business": []
       },
       "fixes": [
         "F05"
       ],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "empty-directory-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "empty-directory-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "auth-demo-form",
@@ -617,11 +739,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/shell-deep/report-pass59.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "account-logout-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "account-logout-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "auth-formal-init",
@@ -851,7 +993,8 @@
           "evidence/visual/chat/shared-pass31/actual-mobile.png"
         ],
         "interaction": [
-          "evidence/interaction/workspace-ui.json"
+          "evidence/interaction/workspace-ui.json",
+          "evidence/shell-deep/report-pass59.json"
         ],
         "business": [
           {
@@ -889,6 +1032,20 @@
               "evidence/interaction/workspace-ui.json"
             ],
             "notes": "empty draft disables send; whitespace disables send; text enables send; Shift Enter adds newline; attachment detail uses actual media URL; attachment dismissal restores source focus; history dismissal restores source focus; draft survived details; preview folds; preview unfolds; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "say-existing-draft-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "say-existing-draft-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -1099,14 +1256,33 @@
             "layer": "React DOM controlled regression",
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
-          }
+          },
+          "evidence/shell-deep/report-pass59.json"
         ],
         "business": []
       },
       "fixes": [
         "F03"
       ],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "say-existing-draft-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "say-existing-draft-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "chat-now-preview",
@@ -1610,11 +1786,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "profile-read-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "personality: no horizontal overflow; life definition is visible independently of current wearing; life: no horizontal overflow; source: no horizontal overflow; source: dialog fits viewport; reading tabs and full source never mutates; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "persona-switch-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "incomplete switch remains disabled; reason alone does not imply switch confirmation; confirmed-draft: no horizontal overflow; confirmed-draft: dialog fits viewport; current persona comes from actual runtime after receipt; one explicit persona request only; runtime-readback: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "profile-read-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "personality: no horizontal overflow; life definition is visible independently of current wearing; life: no horizontal overflow; source: no horizontal overflow; source: dialog fits viewport; reading tabs and full source never mutates; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "persona-switch-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "incomplete switch remains disabled; reason alone does not imply switch confirmation; confirmed-draft: no horizontal overflow; confirmed-draft: dialog fits viewport; current persona comes from actual runtime after receipt; one explicit persona request only; runtime-readback: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-life",
@@ -1654,11 +1864,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "profile-read-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "personality: no horizontal overflow; life definition is visible independently of current wearing; life: no horizontal overflow; source: no horizontal overflow; source: dialog fits viewport; reading tabs and full source never mutates; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "profile-read-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "personality: no horizontal overflow; life definition is visible independently of current wearing; life: no horizontal overflow; source: no horizontal overflow; source: dialog fits viewport; reading tabs and full source never mutates; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-history-source",
@@ -1695,11 +1925,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "profile-read-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "personality: no horizontal overflow; life definition is visible independently of current wearing; life: no horizontal overflow; source: no horizontal overflow; source: dialog fits viewport; reading tabs and full source never mutates; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "profile-read-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "personality: no horizontal overflow; life definition is visible independently of current wearing; life: no horizontal overflow; source: no horizontal overflow; source: dialog fits viewport; reading tabs and full source never mutates; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-edit-basic",
@@ -1808,11 +2058,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "edit-expression-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "keep editing retains unsaved group value; discard has no proposal or acceptance write; editing: no horizontal overflow; editing: dialog fits viewport; selected group saves actual typed field; life extension and runtime wearing remain independent; save creates then explicitly accepts one definition proposal; editor reopens confirmed saved group; saved-reopened: no horizontal overflow; saved-reopened: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "edit-expression-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "keep editing retains unsaved group value; discard has no proposal or acceptance write; editing: no horizontal overflow; editing: dialog fits viewport; selected group saves actual typed field; life extension and runtime wearing remain independent; save creates then explicitly accepts one definition proposal; editor reopens confirmed saved group; saved-reopened: no horizontal overflow; saved-reopened: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-edit-life",
@@ -1858,11 +2128,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "edit-life-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "keep editing retains unsaved group value; discard has no proposal or acceptance write; editing: no horizontal overflow; editing: dialog fits viewport; selected group saves actual typed field; life extension and runtime wearing remain independent; save creates then explicitly accepts one definition proposal; editor reopens confirmed saved group; saved-reopened: no horizontal overflow; saved-reopened: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "edit-life-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "keep editing retains unsaved group value; discard has no proposal or acceptance write; editing: no horizontal overflow; editing: dialog fits viewport; selected group saves actual typed field; life extension and runtime wearing remain independent; save creates then explicitly accepts one definition proposal; editor reopens confirmed saved group; saved-reopened: no horizontal overflow; saved-reopened: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-edit-more",
@@ -1916,11 +2206,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "edit-more-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "keep editing retains unsaved group value; discard has no proposal or acceptance write; editing: no horizontal overflow; editing: dialog fits viewport; selected group saves actual typed field; life extension and runtime wearing remain independent; save creates then explicitly accepts one definition proposal; editor reopens confirmed saved group; saved-reopened: no horizontal overflow; saved-reopened: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "edit-more-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "keep editing retains unsaved group value; discard has no proposal or acceptance write; editing: no horizontal overflow; editing: dialog fits viewport; selected group saves actual typed field; life extension and runtime wearing remain independent; save creates then explicitly accepts one definition proposal; editor reopens confirmed saved group; saved-reopened: no horizontal overflow; saved-reopened: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-switch-persona",
@@ -1957,11 +2267,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "persona-switch-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "incomplete switch remains disabled; reason alone does not imply switch confirmation; confirmed-draft: no horizontal overflow; confirmed-draft: dialog fits viewport; current persona comes from actual runtime after receipt; one explicit persona request only; runtime-readback: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "persona-switch-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "incomplete switch remains disabled; reason alone does not imply switch confirmation; confirmed-draft: no horizontal overflow; confirmed-draft: dialog fits viewport; current persona comes from actual runtime after receipt; one explicit persona request only; runtime-readback: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-foundation-proposal",
@@ -1999,11 +2329,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "foundation-governance-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "proposal: no horizontal overflow; proposal: dialog fits viewport; historical restore appends a new identity revision; accept and restore remain separate commands; restored-new-version: no horizontal overflow; restored-new-version: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "foundation-governance-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "proposal: no horizontal overflow; proposal: dialog fits viewport; historical restore appends a new identity revision; accept and restore remain separate commands; restored-new-version: no horizontal overflow; restored-new-version: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-capabilities",
@@ -2040,11 +2390,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "capability-review-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "capability need and delivered implementation are distinct revisions; two explicit reviews only; fulfilled-record: no horizontal overflow; fulfilled-record: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "capability-review-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "capability need and delivered implementation are distinct revisions; two explicit reviews only; fulfilled-record: no horizontal overflow; fulfilled-record: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "profile-self-claims",
@@ -2419,7 +2789,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/profile-people/report-consolidated.json"
         ],
         "business": []
       },
@@ -2433,6 +2804,20 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "person exact story is retained; about view reads owner background; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "people-about-save-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-about-save-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -2474,11 +2859,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "people-about-save-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-about-save-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "people-knowledge",
@@ -2513,11 +2918,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "people-knowledge-relation-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "known-fact: no horizontal overflow; known-fact: dialog fits viewport; relationship-basis: no horizontal overflow; relationship-basis: dialog fits viewport; relationship metrics remain actual sunny perspective; relationship-metrics: no horizontal overflow; reading cognitive facts and relationship sources sends no write; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-knowledge-relation-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "known-fact: no horizontal overflow; known-fact: dialog fits viewport; relationship-basis: no horizontal overflow; relationship-basis: dialog fits viewport; relationship metrics remain actual sunny perspective; relationship-metrics: no horizontal overflow; reading cognitive facts and relationship sources sends no write; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "people-relation-basis",
@@ -2553,11 +2978,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "people-knowledge-relation-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "known-fact: no horizontal overflow; known-fact: dialog fits viewport; relationship-basis: no horizontal overflow; relationship-basis: dialog fits viewport; relationship metrics remain actual sunny perspective; relationship-metrics: no horizontal overflow; reading cognitive facts and relationship sources sends no write; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-knowledge-relation-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "known-fact: no horizontal overflow; known-fact: dialog fits viewport; relationship-basis: no horizontal overflow; relationship-basis: dialog fits viewport; relationship metrics remain actual sunny perspective; relationship-metrics: no horizontal overflow; reading cognitive facts and relationship sources sends no write; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "people-authored-history",
@@ -2590,11 +3035,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "people-about-save-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-about-save-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "people-relationship-tab",
@@ -2631,11 +3096,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/profile-people/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "people-knowledge-relation-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "known-fact: no horizontal overflow; known-fact: dialog fits viewport; relationship-basis: no horizontal overflow; relationship-basis: dialog fits viewport; relationship metrics remain actual sunny perspective; relationship-metrics: no horizontal overflow; reading cognitive facts and relationship sources sends no write; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-knowledge-relation-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-people/report-consolidated.json"
+            ],
+            "notes": "known-fact: no horizontal overflow; known-fact: dialog fits viewport; relationship-basis: no horizontal overflow; relationship-basis: dialog fits viewport; relationship metrics remain actual sunny perspective; relationship-metrics: no horizontal overflow; reading cognitive facts and relationship sources sends no write; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "people-formal-management",
@@ -2866,11 +3351,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/feed-goals/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "feed-comment-actions-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cursor appends older actual feed records; cursor appends older actual feed records; comment uses one original mutation; comment-saved: no horizontal overflow; comment-saved: dialog fits viewport; care reaction reads actual viewer state; hidden post disables reactions; hidden: no horizontal overflow; hidden: dialog fits viewport; restore preserves original comment and no active reaction; restored: no horizontal overflow; restored: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-comment-actions-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cursor appends older actual feed records; cursor appends older actual feed records; comment uses one original mutation; comment-saved: no horizontal overflow; comment-saved: dialog fits viewport; care reaction reads actual viewer state; hidden post disables reactions; hidden: no horizontal overflow; hidden: dialog fits viewport; restore preserves original comment and no active reaction; restored: no horizontal overflow; restored: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "feed-detail-comments",
@@ -2911,7 +3416,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/feed-goals/report-consolidated.json"
         ],
         "business": []
       },
@@ -2925,6 +3431,62 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "comments retain exact content; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "feed-publish-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-comment-actions-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cursor appends older actual feed records; cursor appends older actual feed records; comment uses one original mutation; comment-saved: no horizontal overflow; comment-saved: dialog fits viewport; care reaction reads actual viewer state; hidden post disables reactions; hidden: no horizontal overflow; hidden: dialog fits viewport; restore preserves original comment and no active reaction; restored: no horizontal overflow; restored: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-publish-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-comment-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cursor appends older actual feed records; cursor appends older actual feed records; comment-readback-failed: no horizontal overflow; comment-readback-failed: dialog fits viewport; comment uses one original mutation; comment-saved: no horizontal overflow; comment-saved: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-publish-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-comment-actions-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cursor appends older actual feed records; cursor appends older actual feed records; comment uses one original mutation; comment-saved: no horizontal overflow; comment-saved: dialog fits viewport; care reaction reads actual viewer state; hidden post disables reactions; hidden: no horizontal overflow; hidden: dialog fits viewport; restore preserves original comment and no active reaction; restored: no horizontal overflow; restored: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-publish-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-comment-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cursor appends older actual feed records; cursor appends older actual feed records; comment-readback-failed: no horizontal overflow; comment-readback-failed: dialog fits viewport; comment uses one original mutation; comment-saved: no horizontal overflow; comment-saved: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -2966,7 +3528,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/form-groups/report-after.json"
+          "evidence/form-groups/report-after.json",
+          "evidence/feed-goals/report-consolidated.json"
         ],
         "business": []
       },
@@ -2980,6 +3543,34 @@
               "evidence/form-groups/report-after.json"
             ],
             "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-publish-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-publish-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-publish-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-publish-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -3020,7 +3611,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/form-groups/report-after.json"
+          "evidence/form-groups/report-after.json",
+          "evidence/feed-goals/report-consolidated.json"
         ],
         "business": []
       },
@@ -3034,6 +3626,20 @@
               "evidence/form-groups/report-after.json"
             ],
             "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-suggest-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "suggestion is a request instead of immediate publication; processed-request: no horizontal overflow; processed-request: dialog fits viewport; request follows actual published result; actual-published-result: no horizontal overflow; actual-published-result: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "feed-suggest-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "suggestion is a request instead of immediate publication; processed-request: no horizontal overflow; processed-request: dialog fits viewport; request follows actual published result; actual-published-result: no horizontal overflow; actual-published-result: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -3551,11 +4157,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/shell-deep/report-pass59.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "unavailable-route-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "unknown role does not fall back to a different chat; unknown-role: no horizontal overflow; retired entry is explicitly unavailable; no second legacy application appears; retired-entry: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "unavailable-route-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-deep/report-pass59.json"
+            ],
+            "notes": "unknown role does not fall back to a different chat; unknown-role: no horizontal overflow; retired entry is explicitly unavailable; no second legacy application appears; retired-entry: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-now-current",
@@ -4500,11 +5126,101 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/feed-goals/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "goal-read-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "evidence-history: no horizontal overflow; evidence-history: dialog fits viewport; reading evidence never marks goal complete; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-edit-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cancel does not write goal; editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; original goal command is resolved; newer goal draft remains after original recovery; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-read-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "evidence-history: no horizontal overflow; evidence-history: dialog fits viewport; reading evidence never marks goal complete; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-edit-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cancel does not write goal; editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; original goal command is resolved; newer goal draft remains after original recovery; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-history-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; authority has the just-confirmed history row; latest-history: no horizontal overflow; latest-history: dialog fits viewport; current detail refreshes its history after state commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-history-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; authority has the just-confirmed history row; latest-history: no horizontal overflow; latest-history: dialog fits viewport; current detail refreshes its history after state commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-stale-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "older-snapshot-readback: no horizontal overflow; older-snapshot-readback: dialog fits viewport; stale goal readback keeps exactly one pause command; goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-stale-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "older-snapshot-readback: no horizontal overflow; older-snapshot-readback: dialog fits viewport; stale goal readback keeps exactly one pause command; goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-goals-edit",
@@ -4549,7 +5265,8 @@
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
           },
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/feed-goals/report-consolidated.json"
         ],
         "business": []
       },
@@ -4565,6 +5282,34 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "goal search has no result; blank target stays in editor; blank target reports validation; cancel did not add a goal; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "goal-edit-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cancel does not write goal; editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; original goal command is resolved; newer goal draft remains after original recovery; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-edit-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "cancel does not write goal; editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "editing-goal: no horizontal overflow; editing-goal: dialog fits viewport; original goal command is resolved; newer goal draft remains after original recovery; full definition reads actual saved title criteria and protection; new definition stays separate from confirmed completion; goal correction preserves original identity across unknown receipt; saved-goal: no horizontal overflow; saved-goal: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4600,11 +5345,59 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/feed-goals/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "goal-state-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-history-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; authority has the just-confirmed history row; latest-history: no horizontal overflow; latest-history: dialog fits viewport; current detail refreshes its history after state commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-history-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; authority has the just-confirmed history row; latest-history: no horizontal overflow; latest-history: dialog fits viewport; current detail refreshes its history after state commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-stale-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "older-snapshot-readback: no horizontal overflow; older-snapshot-readback: dialog fits viewport; stale goal readback keeps exactly one pause command; goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "goal-state-stale-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-goals/report-consolidated.json"
+            ],
+            "notes": "older-snapshot-readback: no horizontal overflow; older-snapshot-readback: dialog fits viewport; stale goal readback keeps exactly one pause command; goal status reads back paused; goal status reads back active; evaluation-request: no horizontal overflow; evaluation-request: dialog fits viewport; reassessment does not imply goal completion; pause resume and reassess are separate explicit commands; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-diary-read",
@@ -7323,11 +8116,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation-supplement/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "published-world-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "exact selected publication permits next step; selected-publication: no horizontal overflow; published world selection reaches role input without activation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "published-wrong-version-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "wrong immutable version never silently becomes latest; wrong-version: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "published-world-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "exact selected publication permits next step; selected-publication: no horizontal overflow; published world selection reaches role input without activation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "published-wrong-version-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "wrong immutable version never silently becomes latest; wrong-version: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "creation-world-daily",
@@ -8233,7 +9060,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/creation/creation-ui.json"
+          "evidence/creation/creation-ui.json",
+          "evidence/creation-supplement/report-consolidated.json"
         ],
         "business": []
       },
@@ -8282,6 +9110,20 @@
               "evidence/creation/creation-ui.json"
             ],
             "notes": "analysis used the selected source; full nested identity retained; full life settings retained; reload restores preview without another analysis; back preserves entered name; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "structured-editor-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "invalid-structure: no horizontal overflow; invalid-structure: dialog fits viewport; invalid edits and cancellation preserve whole definition; valid structured edit keeps false and unrelated extensions; reload retains structured preview edit; preview editing never activates a role; valid-preview-reloaded: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "structured-editor-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "invalid-structure: no horizontal overflow; invalid-structure: dialog fits viewport; invalid edits and cancellation preserve whole definition; valid structured edit keeps false and unrelated extensions; reload retains structured preview edit; preview editing never activates a role; valid-preview-reloaded: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -8407,7 +9249,8 @@
         "visual": [],
         "interaction": [
           "evidence/creation/creation-ui.json",
-          "evidence/creation/creation-ui-preview-trait-edit-preservation.json"
+          "evidence/creation/creation-ui-preview-trait-edit-preservation.json",
+          "evidence/creation-supplement/report-consolidated.json"
         ],
         "business": []
       },
@@ -8463,6 +9306,20 @@
               "evidence/creation/creation-ui-preview-trait-edit-preservation.json"
             ],
             "notes": "existing personality score is editable; keyboard edit reaches full preview JSON; trait edit retains nested life fields; trait edit retains relationships; trait edit retains unknown extension; edited personality score survives reload; no activation was submitted; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "structured-editor-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "invalid-structure: no horizontal overflow; invalid-structure: dialog fits viewport; invalid edits and cancellation preserve whole definition; valid structured edit keeps false and unrelated extensions; reload retains structured preview edit; preview editing never activates a role; valid-preview-reloaded: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "structured-editor-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "invalid-structure: no horizontal overflow; invalid-structure: dialog fits viewport; invalid edits and cancellation preserve whole definition; valid structured edit keeps false and unrelated extensions; reload retains structured preview edit; preview editing never activates a role; valid-preview-reloaded: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -8496,11 +9353,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation-supplement/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "structured-editor-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "invalid-structure: no horizontal overflow; invalid-structure: dialog fits viewport; invalid edits and cancellation preserve whole definition; valid structured edit keeps false and unrelated extensions; reload retains structured preview edit; preview editing never activates a role; valid-preview-reloaded: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "structured-editor-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "invalid-structure: no horizontal overflow; invalid-structure: dialog fits viewport; invalid edits and cancellation preserve whole definition; valid structured edit keeps false and unrelated extensions; reload retains structured preview edit; preview editing never activates a role; valid-preview-reloaded: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "creation-activation",
@@ -9016,11 +9893,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation-supplement/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "world-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "stale source version is not automatically reused; source-conflict: no horizontal overflow; latest-source-review: no horizontal overflow; new source review resumes same original created role; same-role-ready: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "world-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "stale source version is not automatically reused; source-conflict: no horizontal overflow; latest-source-review: no horizontal overflow; new source review resumes same original created role; same-role-ready: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "creation-visual-review",
@@ -9108,11 +10005,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation-supplement/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "snapshot-completion-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "download is actual frozen original creation JSON; frozen-snapshot: no horizontal overflow; frozen-snapshot: dialog fits viewport; completion links target the exact created role; cancel new story preserves original activation; archived creation resumes read state without activating again; resumed-original: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "snapshot-completion-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "download is actual frozen original creation JSON; frozen-snapshot: no horizontal overflow; frozen-snapshot: dialog fits viewport; completion links target the exact created role; cancel new story preserves original activation; archived creation resumes read state without activating again; resumed-original: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "creation-start-snapshot",
@@ -9143,11 +10060,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation-supplement/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "snapshot-completion-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "download is actual frozen original creation JSON; frozen-snapshot: no horizontal overflow; frozen-snapshot: dialog fits viewport; completion links target the exact created role; cancel new story preserves original activation; archived creation resumes read state without activating again; resumed-original: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "snapshot-completion-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "download is actual frozen original creation JSON; frozen-snapshot: no horizontal overflow; frozen-snapshot: dialog fits viewport; completion links target the exact created role; cancel new story preserves original activation; archived creation resumes read state without activating again; resumed-original: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "creation-demo-scenarios",
@@ -9674,11 +10611,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation-supplement/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "rejected-copy-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "rejected copy retains complete preview without analysis authority; rejected preview exports real JSON file; rejected copy survives refresh; reuse is a fresh analysis input and does not replay rejected activation; copy-reanalyzed: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "rejected-copy-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "rejected copy retains complete preview without analysis authority; rejected preview exports real JSON file; rejected copy survives refresh; reuse is a fresh analysis input and does not replay rejected activation; copy-reanalyzed: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.world.directory",
@@ -11881,11 +12838,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/creation-supplement/report-consolidated.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "studio-world-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "Studio carries its actual immutable published version; precise-version-handoff: no horizontal overflow; handoff does not save publish apply or activate; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-template-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "Studio carries its actual immutable published version; precise-version-handoff: no horizontal overflow; handoff does not save publish apply or activate; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-world-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "Studio carries its actual immutable published version; precise-version-handoff: no horizontal overflow; handoff does not save publish apply or activate; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-template-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/creation-supplement/report-consolidated.json"
+            ],
+            "notes": "Studio carries its actual immutable published version; precise-version-handoff: no horizontal overflow; handoff does not save publish apply or activate; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.studio.sandbox",

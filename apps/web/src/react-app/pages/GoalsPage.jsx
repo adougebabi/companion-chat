@@ -332,6 +332,10 @@ export default function GoalsPage({ route, onGo }) {
         setRecordLoading((old) => ({ ...old, [kind]: false }));
     }
   }
+  async function refreshSelectedRecords(id) {
+    if (!live() || detailId.current !== id) return;
+    await Promise.all([readRecords("evidence", id), readRecords("history", id)]);
+  }
   useEffect(() => {
     mounted.current = true;
     void readPartition("current");
@@ -429,6 +433,7 @@ export default function GoalsPage({ route, onGo }) {
             setEvaluationPointer(null);
             void readPartition("current");
             void readPartition("history");
+            void refreshSelectedRecords(goal.id);
             return;
           }
         } else
@@ -598,10 +603,13 @@ export default function GoalsPage({ route, onGo }) {
           throw Error("保存已受理，读回内容尚未确认一致。");
         if (!live()) return;
         const confirmed = adopt(saved);
-        if (detailId.current !== confirmed.id) openGoal(confirmed);
+        const alreadySelected = detailId.current === confirmed.id;
+        if (!alreadySelected) openGoal(confirmed);
         else setDetail(confirmed);
         setNotice("目标已保存并读回，完成状态仍根据实际证据确认。");
-        await Promise.all([readPartition("current"), readPartition("history")]);
+        await Promise.all([readPartition("current"), readPartition("history"),
+          ...(alreadySelected ? [refreshSelectedRecords(confirmed.id)] : []),
+        ]);
       },
       fields: (d, edit) => (
         <>
@@ -776,6 +784,9 @@ export default function GoalsPage({ route, onGo }) {
         const saved = await w.client.goalDetail(fid, goal.id);
         if (saved.id !== goal.id)
           throw Error("命令已有回执，目标身份尚未完整读回。");
+        if (!Number.isSafeInteger(saved.revision) || saved.revision < result.revision ||
+          (saved.revision === result.revision && Object.hasOwn(goalLabels, result.status) && saved.status !== result.status))
+          throw Error("命令已有回执，目标版本或状态尚未完整读回。");
         if (!live()) return;
         const confirmed = adopt(saved);
         if (detailId.current === goal.id) setDetail(confirmed);
@@ -784,7 +795,7 @@ export default function GoalsPage({ route, onGo }) {
             ? "进展核对请求已提交，正在跟进真实评估结果。"
             : "目标状态已读回。",
         );
-        await Promise.all([readPartition("current"), readPartition("history")]);
+        await Promise.all([readPartition("current"), readPartition("history"), refreshSelectedRecords(goal.id)]);
       },
       fields: (d, edit) =>
         field(

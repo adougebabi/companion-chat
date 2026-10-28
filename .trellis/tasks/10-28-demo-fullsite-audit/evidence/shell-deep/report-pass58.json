@@ -1,0 +1,1268 @@
+[
+  {
+    "name": "navigation-pages",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "navigation resolves and highlights 聊天",
+      "navigation resolves and highlights 此刻",
+      "navigation resolves and highlights 日程",
+      "navigation resolves and highlights 目标",
+      "navigation resolves and highlights 衣柜",
+      "navigation resolves and highlights 日记",
+      "navigation resolves and highlights 记忆",
+      "navigation resolves and highlights 角色详情",
+      "navigation resolves and highlights 世界",
+      "navigation resolves and highlights 动态",
+      "navigation resolves and highlights 人物关系",
+      "navigation resolves and highlights 媒体",
+      "navigation resolves and highlights 角色库",
+      "navigation resolves and highlights 创作中心",
+      "navigation resolves and highlights 通知与待处理",
+      "navigation resolves and highlights 管理中心",
+      "brand returns to actual library",
+      "library-return: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/yuejian/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/diary",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/memories",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/promises",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/world",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/yuejian/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/yuejian/detail",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-navigation-pages-desktop-library-return.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "character-switch",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/owner-requests",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-character-switch-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('menuitem', { name: /周屿/ })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚 · 独立书店店主\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日程\n快速前往\n⌘ K\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-27\n今天\n10月27日 · 今天\n\n5 项安排 · Asia/Shanghai\n\n刷新\n08:30\n早餐，整理今天的想法\n已结束\n\n08:30—09:30　·　住处\n\n10:00\n开店，整理读者的订书单\n已结束\n\n10:00—12:00　·　迟山书店\n\n14:00\n整理新到的书，读一会儿诗\n正在进行\n\n14:00—17:00　·　迟山书店 · 窗边\n\n17:30\n沿河散步，买晚餐的食材\n计划中\n\n17:30—18:30　·　青岚河畔\n\n20:00\n晚间阅读，记下今天的片段\n计划中\n\n20:00—21:00　·　住处\n\n日程小记\n已确认安排\n5 项\n已读取待处理建议\n0 条\n修改会先成为建议，等林晚确认后，再更新已接受的安排。\n约定、意向与日程来源\n林晚\n当前角色\n江\n江屿\n月\n月见"
+  },
+  {
+    "name": "empty-directory",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "empty directory disables role picker",
+      "empty directory disables 聊天",
+      "empty directory disables 此刻",
+      "empty directory disables 日程",
+      "empty directory disables 目标",
+      "empty directory disables 衣柜",
+      "empty directory disables 日记",
+      "empty directory disables 记忆",
+      "empty directory disables 角色详情",
+      "empty directory disables 人物关系",
+      "global library remains available",
+      "directory stays truly empty",
+      "no invented role detail request",
+      "empty-honest: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-empty-directory-desktop-empty-honest.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "sidebar-focus",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/conversations/parity-conversation-linwan/messages",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-sidebar-focus-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "page.waitForFunction: Timeout 10000ms exceeded.",
+    "text": "我\nToggle Sidebar\n日常相处\n聊天\n快速前往\n⌘ K\nDAILY / A LITTLE CONVERSATION\n从一句话，慢慢走近。\n\n分享今天的小事，也留一点安静相处的时间。\n\n会话历史\n收起此刻\n林晚\n生活进行中\n· 独立书店店主\n林晚\n只属于你们的对话\n2026年10月27日\n林晚\n15:42\n今天店里很安静。刚整理好新到的书，窗外又下起小雨了。\n我\n我\n15:43\n这种天气，感觉很适合待在书店。\n已送达\n林晚\n15:43\n嗯，纸张的气味和雨声还挺搭的。\n\n给自己煮了一杯咖啡，打算读完昨天剩下的那几页。你今天过得怎么样？\n林晚\n15:44\n给你看看窗边这个小角落。\n查看这个片刻\nScroll to end\nEnter 发送\nShift + Enter 换行\n发送\n林晚的此刻\n实时预览\nA LITTLE MOMENT\n把时间，留给喜欢的事。\n迟山书店 · 窗边\n整理新到的书，等雨停下来\n\n平静而满足\n\n今天的穿着\n\n奶油色针织开衫 · 米白棉麻衬衫 · 米白长裙 · 棕色乐福鞋\n\n去衣柜看看\n接下来的安排\n查看全部\n17:30\n\n沿河散步，买晚餐的食材\n\n日程安排\n\n生活在继续，故事也在慢慢生长。\n这里是 林晚 的小小世界。"
+  },
+  {
+    "name": "say-existing-draft",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "external request preserves existing draft",
+      "dismissal leaves composer unchanged",
+      "explicit append retains both texts",
+      "prefill never automatically sends a turn",
+      "joined-draft: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-say-existing-draft-desktop-joined-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "account-logout",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET"
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET"
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-account-logout-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.auth-page') to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\nWELCOME TO FLUCTLIGHT\n日常很长，\n有你就很好。\n\n一个独立生活的世界，\n和一些值得慢慢认识的人。\n\n欢迎回来\n\n使用当前部署的所有者密码，回到你的工作区。\n\n所有者密码\n\n密码至少 12 个字符。密码仅用于向当前部署认证。\n\n登录"
+  },
+  {
+    "name": "unavailable-route",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "unknown role does not fall back to a different chat",
+      "unknown-role: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-unavailable-route-desktop-unknown-role.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-unavailable-route-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "retired entry is explicitly unavailable",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚 · 独立书店店主\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n页面暂不可用\n快速前往\n⌘ K\n页面暂不可用\n这个页面暂时无法访问\n\n可以返回刚才的页面，或从导航继续浏览。\n\n返回上一页\n打开角色库"
+  },
+  {
+    "name": "navigation-pages",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/yuejian/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/conversations/parity-conversation-linwan/messages",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-navigation-pages-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "page.waitForFunction: Timeout 10000ms exceeded.",
+    "text": "Toggle Sidebar\n日常相处\n聊天\n快速前往\nDAILY / A LITTLE CONVERSATION\n从一句话，慢慢走近。\n\n分享今天的小事，也留一点安静相处的时间。\n\n会话历史\n收起此刻\n林晚\n生活进行中\n· 独立书店店主\n林晚\n2026年10月27日\n林晚\n15:42\n今天店里很安静。刚整理好新到的书，窗外又下起小雨了。\n我\n我\n15:43\n这种天气，感觉很适合待在书店。\n已送达\n林晚\n15:43\n嗯，纸张的气味和雨声还挺搭的。\n\n给自己煮了一杯咖啡，打算读完昨天剩下的那几页。你今天过得怎么样？\n林晚\n15:44\n给你看看窗边这个小角落。\n查看这个片刻\nScroll to end\nEnter 发送\nShift + Enter 换行\n发送\n林晚的此刻\n实时预览\nA LITTLE MOMENT\n把时间，留给喜欢的事。\n迟山书店 · 窗边\n整理新到的书，等雨停下来\n\n平静而满足\n\n今天的穿着\n\n奶油色针织开衫 · 米白棉麻衬衫 · 米白长裙 · 棕色乐福鞋\n\n去衣柜看看\n接下来的安排\n查看全部\n17:30\n\n沿河散步，买晚餐的食材\n\n日程安排"
+  },
+  {
+    "name": "character-switch",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/owner-requests",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-character-switch-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('menuitem', { name: /周屿/ })\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n日程\n快速前往\nLIFE / A DAY AT A TIME\n日程\n\n看看今天如何展开，也为接下来的生活留一点期待。\n\n规划日程\n日程时间线\n调整建议\n0\n生活倾向\n2026-10-27\n今天\n10月27日 · 今天\n\n5 项安排 · Asia/Shanghai\n\n刷新\n08:30\n早餐，整理今天的想法\n已结束\n\n08:30—09:30　·　住处\n\n10:00\n开店，整理读者的订书单\n已结束\n\n10:00—12:00　·　迟山书店\n\n14:00\n整理新到的书，读一会儿诗\n正在进行\n\n14:00—17:00　·　迟山书店 · 窗边\n\n17:30\n沿河散步，买晚餐的食材\n计划中\n\n17:30—18:30　·　青岚河畔\n\n20:00\n晚间阅读，记下今天的片段\n计划中\n\n20:00—21:00　·　住处\n\n日程小记\n已确认安排\n5 项\n已读取待处理建议\n0 条\n修改会先成为建议，等林晚确认后，再更新已接受的安排。\n约定、意向与日程来源\n工作区导航\n\n选择角色页面或全局管理页面。\n\nFluctlight\nA LIFE OF THEIR OWN\n正在相处\n林晚 · 独立书店店主\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n4\n管理中心\n我\n我的空间\nMY WORKSPACE\n林晚\n当前角色\n江\n江屿\n月\n月见"
+  },
+  {
+    "name": "empty-directory",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "empty directory disables role picker",
+      "empty directory disables 聊天",
+      "empty directory disables 此刻",
+      "empty directory disables 日程",
+      "empty directory disables 目标",
+      "empty directory disables 衣柜",
+      "empty directory disables 日记",
+      "empty directory disables 记忆",
+      "empty directory disables 角色详情",
+      "empty directory disables 人物关系",
+      "global library remains available",
+      "directory stays truly empty",
+      "no invented role detail request",
+      "empty-honest: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-empty-directory-mobile-empty-honest.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "sidebar-focus",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "mobile Escape restores connected navigation trigger",
+      "focus-and-width: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-sidebar-focus-mobile-focus-and-width.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "say-existing-draft",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "external request preserves existing draft",
+      "dismissal leaves composer unchanged",
+      "explicit append retains both texts",
+      "prefill never automatically sends a turn",
+      "joined-draft: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-say-existing-draft-mobile-joined-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "account-logout",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET"
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET"
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-account-logout-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.auth-page') to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n欢迎回来\n\n使用当前部署的所有者密码，回到你的工作区。\n\n所有者密码\n\n密码至少 12 个字符。密码仅用于向当前部署认证。\n\n登录"
+  },
+  {
+    "name": "unavailable-route",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "unknown role does not fall back to a different chat",
+      "unknown-role: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-unavailable-route-mobile-unknown-role.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass58-unavailable-route-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "retired entry is explicitly unavailable",
+    "text": "Toggle Sidebar\n角色库\n页面暂不可用\n快速前往\n页面暂不可用\n这个页面暂时无法访问\n\n可以返回刚才的页面，或从导航继续浏览。\n\n返回上一页\n打开角色库"
+  }
+]

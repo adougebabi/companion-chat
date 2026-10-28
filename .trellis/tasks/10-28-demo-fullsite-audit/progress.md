@@ -112,3 +112,18 @@ coverage.json的state_verification记录具体执行，行级状态未因单一�
 - F40独立复核无协议/Owner/Sheet几何明确回归；唯一焦点小缺口已修并实际两视口通过。完整Web644/644、0skip，typecheck/build52及生产守卫通过。
 - 122/177行具有具体浏览器证据，3条纯Demo模拟/种子重置NA；这不是完成率，行级仍有未验状态。视觉索引已指向shared-pass31、memory-mapped-pass32、diary-pass33最新配对，保留发现问题/待逐张完验，不制造全通过。
 - 最新dist已经静态热同步隔离18480并恢复原runtime-config，最新五页只读通过、记录API均200、无发送/生成/新激活。第三个本地检查点准确hash见git log，不推送、不归档，继续上述剩余矩阵。
+
+
+## 第三检查点后：档案/关系/动态/目标UI（当前执行）
+- 第三本地检查点75ec4e7a已保存F37–F40及之前证据，未推送。此后暂无新生产修复，新增验证脚本/证据仍未提交。
+- Profile/People report-consolidated.json18/18通过（pass54加pass55）：身份提议接受/历史恢复、能力接受/已交付分别复核；人格/生活/来源读取；expression/life/more三组取消→继续编辑→放弃→保存→重开；人格选择/原因/勾选/真实请求终态；关于你取消确认/保存/修订，自填资料与已有事实分开；关系依据和sunny指标。
+- 这批使用夹具已知默认fid，Profile桌面4402、手机4406独立；People4403组合PROFILE+PEOPLE供有效人格读面，但不在此服务编辑Profile。初始pass53的别名角色缺seed名字/时区导致编辑正确阻止提交，且多处控件类型/确认文案假设错误；这些是验收场景失配，没有改产品来迁就。
+- 服务4402 profile normal当前59326，4406 profile normal38054，4403 profile+people94477。默认身份提议已在桌面/手机各处理一次，重测其v4预置基线应重启对应服务。
+- Feed/Goals桌面4404（25478）、手机4405（45967）正常。verification/verify-feed-goals-ui.mjs初轮pass56的suggest、Goal read/state/edit两视口已通过；失败主要是发布自动开详情、列表分页、相同条件不增criteria_version、恢复未等busy结束等脚本期望，未判产品缺陷。已调整后执行pass57精选case，当前运行session69989，需取结果。Feed全局状态已含本轮新动态，别假定post-one仍在首页。
+- 下一步取pass57、检查失败真因与截图；补矩阵Profile/People与Feed/Goal最新state，然后再继续完整矩阵其它未验项。生产状态仍in_progress，不能结束/归档/声称全站完成。
+
+## 2026-10-29 继续批次 F41–F43
+- F41目标打开详情的证据/历史刷新、F42命令旧快照只读恢复：pass63双视口4场景通过，Goal13项通过。
+- F43创建同页resume在URL改变后仍持有新草稿，pass65两视口复现；App按path/query重建控制器，pass66两视口恢复原历史且激活仅一次。
+- 创建补验report-consolidated共16场景通过：精确/错误世界版本、结构编辑类型校验和扩展保留、世界源冲突重审、创建快照导出与完成导航、拒绝副本再分析、Studio世界和人物模板精确发布版本带入。只证明受控HTTP UI，不证明真实模型/激活。
+- pass66 Web646/646、0skip，类型检查/构建及374模块生产守卫通过。没有改Demo或后端。任务仍in_progress；视觉逐张完验和剩余深层入口继续。

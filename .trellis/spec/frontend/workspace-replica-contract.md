@@ -1002,6 +1002,15 @@ Schedule's conflict review emphasizes the frozen proposal's activity, interval,
 place and reason; its full original protocol remains in an explicit disclosure.
 Neither presentation changes the original key, CAS baseline or explicit rebase.
 
+Confirmed Goal edits, state commands and a matched evaluation terminal refresh
+the selected detail's evidence/history through its existing kind epochs. New
+selection already loads records once; closed or other goals are not refreshed.
+Secondary record failures retain confirmed goal data and their own read retry,
+without repeating a mutation. State command readback must reach the receipt's
+revision, and same-version GoalStatus receipts must match the actual goal state.
+Evaluation receipt `pending` is a request status and is excluded from that goal
+status comparison. A stale primary read remains accepted-receipt GET-only recovery.
+
 `durableCommandDrawer({destructive=true,...})` preserves its existing visual
 default; independent resource-pack import explicitly uses false. This option
 affects only the displayed button variant, never execute/read/accepted receipts.
@@ -1014,3 +1023,12 @@ does not hide independent source read failures and does not demote already
 confirmed readable images. Source reread is independent; a failed initial world
 binding can still require the explicit original world preparation entry, without
 a second activation. A discarded Studio job is explicitly `已丢弃`, not unknown.
+
+## Creation route entry identity
+
+The wizard controller reads world/template/resume query inputs when mounted.
+App keys CharacterWizardPage by path+query, so a same-page historical resume
+releases the prior controller and reads the correct archived creation. The existing
+Owner-scoped archive and original activation remain authoritative; changing the
+URL must never replay activation or erase the separate current draft.
+Browser regression: creation-supplement snapshot-completion desktop/mobile.

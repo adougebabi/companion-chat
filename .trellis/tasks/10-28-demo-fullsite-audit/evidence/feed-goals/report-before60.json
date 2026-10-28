@@ -1,0 +1,308 @@
+[
+  {
+    "name": "goal-state-history",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "authority has the just-confirmed history row",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "显式核对目标状态 paused before60 desktop",
+          "idempotencyKey": "60c1e39f-87b8-42b5-a2e3-d7996aa32d54"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "显式核对目标状态 active before60 desktop",
+          "idempotencyKey": "3fbab25a-e43a-46fb-b877-d862ae0c97ff"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 8,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "d38ba64e-5a1e-4acb-a2c7-47fd166c4006"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/before60-goal-state-history-desktop-evaluation-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/before60-goal-state-history-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('显式核对目标状态 paused before60 desktop', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n目标\n快速前往\n⌘ K\nLIFE / THINGS THAT MATTER\n林岚 · 验收样本想做的事\n\n一些长远的期待，一些今天就想迈出的小步。\n\n添加目标\n正在追寻\n2\n暂时搁置\n已经做到\n全部\n进展核对请求已提交，正在跟进真实评估结果。\n本次核对已结束，完成状态与条件证据以下方真实记录为准。\n一般目标\n进行中\n目标修改 pass57 goal-unknown desktop\n\n保留完整定义和可追溯的条件。\n\n条件评估待读取\n慢慢来，不设期限\n一般目标\n进行中\n根据真实偏好推荐一本小说\n\n分享有趣的阅读体验。\n\n条件评估待读取\n慢慢来，不设期限\n生活会继续，期待也是。\n\n完成状态根据实际经历核对，目标也会在相处中自然生长。\n\n独立目标规划与治理\n和林岚 · 验收样本聊聊最近的想法\n目标修改 pass57 goal-unknown desktop\n\n属于林岚 · 验收样本的一个期待\n\n保留完整定义和可追溯的条件。\n\n一般目标\n重要程度 · 0.7\n紧迫程度 · 0.3\n怎样算做到？\n完成街景草图\n等待实际证据核对\n保存最终画作\n等待实际证据核对\n核对实际产物\n等待实际证据核对\n当前证据评估进度：0%。 目标完成状态以实际领域记录为准。\n刷新核对状态\n推进条件与核对状态\n证据来源\n目标修订历史\n\n核对完整定义字段与保存回读\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n核对完整定义字段与保存回读\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n核对完整定义字段与保存回读\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n跟进原评估，不手动宣布目标完成\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n显式核对目标状态 active\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n显式核对目标状态 paused\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n完整目标与来源\n放下这个目标\n取消这个目标\n编辑\n暂停\n核对进展\n关闭"
+  },
+  {
+    "name": "goal-state-history",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "authority has the just-confirmed history row",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "显式核对目标状态 paused before60 mobile",
+          "idempotencyKey": "21d9dc39-7f48-446e-92ff-1426c9133013"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "显式核对目标状态 active before60 mobile",
+          "idempotencyKey": "211412e0-7359-47d9-a14e-11135147de97"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 8,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "ab27885b-e10e-4e63-b13d-50604653c7bf"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/before60-goal-state-history-mobile-evaluation-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/before60-goal-state-history-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('显式核对目标状态 paused before60 mobile', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n目标\n快速前往\nLIFE / THINGS THAT MATTER\n林岚 · 验收样本想做的事\n\n一些长远的期待，一些今天就想迈出的小步。\n\n添加目标\n正在追寻\n2\n暂时搁置\n已经做到\n全部\n进展核对请求已提交，正在跟进真实评估结果。\n本次核对已结束，完成状态与条件证据以下方真实记录为准。\n一般目标\n进行中\n目标修改 pass57 goal-unknown mobile\n\n保留完整定义和可追溯的条件。\n\n条件评估待读取\n慢慢来，不设期限\n一般目标\n进行中\n根据真实偏好推荐一本小说\n\n分享有趣的阅读体验。\n\n条件评估待读取\n慢慢来，不设期限\n生活会继续，期待也是。\n\n完成状态根据实际经历核对，目标也会在相处中自然生长。\n\n独立目标规划与治理\n和林岚 · 验收样本聊聊最近的想法\n目标修改 pass57 goal-unknown mobile\n\n属于林岚 · 验收样本的一个期待\n\n保留完整定义和可追溯的条件。\n\n一般目标\n重要程度 · 0.7\n紧迫程度 · 0.3\n怎样算做到？\n完成街景草图\n等待实际证据核对\n保存最终画作\n等待实际证据核对\n核对实际产物\n等待实际证据核对\n当前证据评估进度：0%。 目标完成状态以实际领域记录为准。\n刷新核对状态\n推进条件与核对状态\n证据来源\n目标修订历史\n\n核对完整定义字段与保存回读\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n核对完整定义字段与保存回读\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n核对完整定义字段与保存回读\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n跟进原评估，不手动宣布目标完成\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n显式核对目标状态 active\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n\n显式核对目标状态 paused\n\n2026-10-13 09:00 (北京时间)\n\n完整记录与来源\n完整目标与来源\n放下这个目标\n取消这个目标\n编辑\n暂停\n核对进展\n关闭"
+  }
+]

@@ -475,3 +475,33 @@ test('malformed evidence reads retain the selected goal and expose the original 
   assert.doesNotMatch(dialog().textContent,/目标记录尚未完整读到/);
  }finally{await v.dispose();}
 });
+
+test('confirmed goal state refreshes current history and evidence while secondary read failure never repeats the command',async()=>{
+ const w=workspace(),initial=w.rows.get('one').revision;
+ let failHistory=false;
+ w.client.goalHistory=async(fid,id)=>{if(failHistory)throw Error('最新修订读取暂时失败');const revision=w.rows.get(id).revision;return{items:[{id:'history-'+revision,reason:'实际修订 v'+revision,created_at:'2026-10-27T07:00:00Z'}],next_cursor:''};};
+ w.client.goalEvidence=async(fid,id)=>{const revision=w.rows.get(id).revision;return{items:[{id:'evidence-'+revision,source:{summary:'实际证据 v'+revision},created_at:'2026-10-27T07:00:00Z'}],next_cursor:''};};
+ const v=await mount(w);
+ try{
+  await open(v);await v.click(button(dialog(),'暂停'));await input(v,'目标操作原因','先暂停，再核对记录');await v.click(button(dialog(),'暂停目标'));
+  await v.click(button(dialog(),'目标修订历史'));assert.match(dialog().textContent,new RegExp('实际修订 v'+(initial+1)));
+  await v.click(button(dialog(),'证据来源'));assert.match(dialog().textContent,new RegExp('实际证据 v'+(initial+1)));
+  failHistory=true;await v.click(button(dialog(),'继续'));await input(v,'目标操作原因','继续并保留次级读取错误');await v.click(button(dialog(),'继续目标'));
+  assert.equal(w.rows.get('one').status,'active');assert.ok(button(dialog(),'暂停'));
+  await v.click(button(dialog(),'目标修订历史'));assert.match(dialog().textContent,/最新修订读取暂时失败/);assert.match(dialog().textContent,new RegExp('实际修订 v'+(initial+1)));
+  failHistory=false;await v.click(button(dialog(),'重新读取修订'));assert.match(dialog().textContent,new RegExp('实际修订 v'+(initial+2)));
+  assert.equal(w.calls.filter(call=>['pause','resume'].includes(call[0])).length,2);
+ }finally{await v.dispose();}
+});
+
+test('a state receipt with an older goal readback remains read-only recovery until the promised version is confirmed',async()=>{
+ const w=workspace(),original=structuredClone(w.rows.get('one')),read=w.client.goalDetail;
+ let stale=true;
+ w.client.goalDetail=async(...args)=>stale&&w.calls.some(call=>call[0]==='pause')?structuredClone(original):read(...args);
+ const v=await mount(w);
+ try{
+  await open(v);await v.click(button(dialog(),'暂停'));await input(v,'目标操作原因','原版本读回确认前不重复暂停');await v.click(button(dialog(),'暂停目标'));
+  assert.match(dialog().textContent,/目标版本或状态尚未完整读回/);assert.ok(button(dialog(),'只读恢复页面结果'));assert.equal(w.calls.filter(call=>call[0]==='pause').length,1);
+  stale=false;await v.click(button(dialog(),'只读恢复页面结果'));assert.ok(button(dialog(),'继续'));assert.equal(w.rows.get('one').status,'paused');assert.equal(w.calls.filter(call=>call[0]==='pause').length,1);
+ }finally{await v.dispose();}
+});

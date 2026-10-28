@@ -66,3 +66,11 @@
 |F39|初始化服务已知awaiting_review时，参考图/设定图只显示等待任务与产物，入口仍为查看技术详情|creation-progress按已知session状态明确等待人工评审；仅未确认图片的对应行用前往审阅候选链接；PreparationSteps支持该行label，保留原href/returnTo与其它来源未知状态|preparation-read/report-before44.json桌面/手机复现；新增等待不计完成、已有可读图不回退的回归，待pass45实际复验|
 
 |F40|保留工具Sheet/Dialog没有复刻theme，手机Sheet默认75%宽、输入16px/500；导入普通独立草稿固定红色确认；任务恢复自有Dialog层级/取消/焦点与其它页不同|OverlayHost/DisclosurePort真实portal根加纯replica-overlay主题，Sheet复用product-sheet并独立wide宽度，Dialog几何仅Dialog选择器；统一13px/400输入与可见焦点；WorkflowRecovery共用WorkspaceDialog保留form/footer关联及busy保护；durableCommandDrawer默认危险色不变，import仅显式false|admin-deep/report-pass49为修前；pass50/51实际18/20场景通过并测字体/宽度/焦点/主色；独立静态复核后补记录被拒绝审阅窗的实际入口，pass52两视口返回焦点通过。Web644全量、类型/构建52、相关DOM回归通过，无协议/Owner/原key变化|
+
+|F41|暂停/继续/核对写入与主目标回读已成功，history API有新原因，但已打开详情的证据/历史仅在首次openGoal加载，仍显示旧记录|GoalsPage在已确认编辑/状态命令和原核对终态后，仅为当前所选目标重读两类记录；复用原scope/epoch/原游标重试，次级读取错误不翻转已确认结果，不重放mutation|feed-goals/report-before60.json两视口实测：authority有新历史但UI缺失；新增正常更新+次级GET失败独立重读React回归；pass63双视口通过，Goal13项及完整Web646项通过|
+
+|F42|状态命令回执后只核对goal id，过旧主目标快照也会释放提交、显示已读回状态；与定义保存的版本校验不一致|GoalsPage状态onSaved要求安全整数revision不低于回执，同版本且回执为GoalStatus时核对status；reassess的pending不作GoalStatus比较，旧快照进入原回执只读恢复|新增React旧读回→GET恢复且pause仅一次；feed-goals/pass63两视口实际旧快照恢复通过；13项Goal与全量646通过|
+
+跨日验收工具修正：2026-10-29零点后，Now测试用now-1h且未带local_date，样本落在前一天而被正确过滤。只把fixture改为当前本地日的明确全天计划，保留action_status=null的“不从时钟推断执行”断言；生产日期规则未变。pass62全量曾因该两测试失败，修正后pass63为646/646。Goal历史原因现按case唯一命名，避免其它场景的同名旧记录产生假通过。
+
+|F43|创建页内从新草稿跳转resume历史参数时，URL变更但组件无key、长存控制器未重建，仍呈现新草稿，尽管原历史完整保留|App创建页使用path+query作为key，与现有Studio/Media路由身份约定一致；既有Owner隔离和creationRecovery保持|creation-supplement/report-pass65.json桌面同页恢复失败且history里保留精确createdId；pass66双视口同页resume与原激活只一次断言通过；14场景均通过，另pass64世界冲突两视口通过；类型/构建及Web646通过|

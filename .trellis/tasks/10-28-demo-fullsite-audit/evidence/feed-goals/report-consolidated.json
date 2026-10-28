@@ -1,0 +1,2844 @@
+[
+  {
+    "name": "feed-publish",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "published-detail: no horizontal overflow",
+      "published-detail: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass57 feed-publish desktop",
+          "mediaIds": [],
+          "idempotencyKey": "d8de79d6-284b-4ca4-93ae-3c6d73654f8f"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-14/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-14/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-desktop-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-desktop-published-detail.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-suggest",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "suggestion is a request instead of immediate publication",
+      "processed-request: no horizontal overflow",
+      "processed-request: dialog fits viewport",
+      "request follows actual published result",
+      "actual-published-result: no horizontal overflow",
+      "actual-published-result: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "有空时分享一下今天的小事 pass56 desktop",
+          "mediaIds": [],
+          "idempotencyKey": "5aa35399-c9d0-4a31-8ee8-e56546b2c852"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-desktop-processed-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-desktop-actual-published-result.png"
+    ],
+    "requestId": "suggestion-12",
+    "status": "passed"
+  },
+  {
+    "name": "feed-comment-actions",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cursor appends older actual feed records",
+      "cursor appends older actual feed records",
+      "comment uses one original mutation",
+      "comment-saved: no horizontal overflow",
+      "comment-saved: dialog fits viewport",
+      "care reaction reads actual viewer state",
+      "hidden post disables reactions",
+      "hidden: no horizontal overflow",
+      "hidden: dialog fits viewport",
+      "restore preserves original comment and no active reaction",
+      "restored: no horizontal overflow",
+      "restored: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "POST",
+        "body": {
+          "text": "留下实际可读评论 pass57 feed-comment-actions desktop",
+          "expectedRevision": 3,
+          "reason": "所有者以自己的身份评论动态",
+          "idempotencyKey": "2ced2963-5410-443f-bc51-0db4ba661c15"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/reaction",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者明确回应动态",
+          "kind": "care",
+          "idempotencyKey": "7bf56b28-62b8-4d82-9514-1b996c8d2cd5"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/reaction",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "所有者明确回应动态",
+          "kind": "like",
+          "idempotencyKey": "b4b660e3-118f-4fb8-948b-c4531ac11c98"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/reaction",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "所有者明确回应动态",
+          "kind": "none",
+          "idempotencyKey": "d268da1e-1a98-4909-a4bd-76e1a705a023"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/hide",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "所有者明确隐藏动态",
+          "idempotencyKey": "bf353378-f768-474a-83f4-789ff21dbb8b"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/restore",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 8,
+          "reason": "所有者明确恢复展示动态",
+          "idempotencyKey": "67f3bba1-74c7-4d22-8991-bb70fcbc2883"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-actions-desktop-comment-saved.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-actions-desktop-hidden.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-actions-desktop-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-publish-unknown",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "published-detail: no horizontal overflow",
+      "published-detail: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass57 feed-publish-unknown desktop",
+          "mediaIds": [],
+          "idempotencyKey": "e4875c6f-e392-4df9-8b32-be984ba82137"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass57 feed-publish-unknown desktop",
+          "mediaIds": [],
+          "idempotencyKey": "e4875c6f-e392-4df9-8b32-be984ba82137"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-16/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-16/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-unknown-desktop-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-unknown-desktop-published-detail.png"
+    ],
+    "injectedFault": "accepted publication response lost",
+    "status": "passed"
+  },
+  {
+    "name": "feed-comment-readback",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cursor appends older actual feed records",
+      "cursor appends older actual feed records",
+      "comment-readback-failed: no horizontal overflow",
+      "comment-readback-failed: dialog fits viewport",
+      "comment uses one original mutation",
+      "comment-saved: no horizontal overflow",
+      "comment-saved: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "POST",
+        "body": {
+          "text": "留下实际可读评论 pass57 feed-comment-readback desktop",
+          "expectedRevision": 9,
+          "reason": "所有者以自己的身份评论动态",
+          "idempotencyKey": "01024c72-d937-41dd-b27f-4dd940c81c0d"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-readback-desktop-comment-readback-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-readback-desktop-comment-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-read",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "evidence-history: no horizontal overflow",
+      "evidence-history: dialog fits viewport",
+      "reading evidence never marks goal complete",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-read-desktop-evidence-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-state",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "显式核对目标状态 paused",
+          "idempotencyKey": "0c5169bd-bc24-4116-b9e1-08f403275584"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "显式核对目标状态 active",
+          "idempotencyKey": "ddc63ce2-c4f6-4dcd-8606-34b82d8a2b96"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "dc4a1471-bdd0-4d09-9a5e-d14eb9a05ffd"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-state-desktop-evaluation-request.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-edit",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cancel does not write goal",
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "full definition reads actual saved title criteria and protection",
+      "new definition stays separate from confirmed completion",
+      "goal correction preserves original identity across unknown receipt",
+      "saved-goal: no horizontal overflow",
+      "saved-goal: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 10,
+          "desiredOutcome": "目标修改 pass61 goal-edit desktop",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "5e11ed03-c1ee-4939-9d07-bedd7ab3dcf1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-edit-desktop-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-edit-desktop-saved-goal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-unknown",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "original goal command is resolved",
+      "newer goal draft remains after original recovery",
+      "full definition reads actual saved title criteria and protection",
+      "new definition stays separate from confirmed completion",
+      "goal correction preserves original identity across unknown receipt",
+      "saved-goal: no horizontal overflow",
+      "saved-goal: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 11,
+          "desiredOutcome": "目标修改 pass61 goal-unknown desktop",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "455eba7c-1bc2-453b-9d40-f282c4c90e7f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 11,
+          "desiredOutcome": "目标修改 pass61 goal-unknown desktop",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "455eba7c-1bc2-453b-9d40-f282c4c90e7f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-unknown-desktop-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-unknown-desktop-saved-goal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-publish",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "published-detail: no horizontal overflow",
+      "published-detail: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass57 feed-publish mobile",
+          "mediaIds": [],
+          "idempotencyKey": "c4507bcb-ed3e-4cc8-bacd-4e756ea00ea4"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-14",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-14/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-14/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-mobile-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-mobile-published-detail.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-suggest",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "suggestion is a request instead of immediate publication",
+      "processed-request: no horizontal overflow",
+      "processed-request: dialog fits viewport",
+      "request follows actual published result",
+      "actual-published-result: no horizontal overflow",
+      "actual-published-result: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "有空时分享一下今天的小事 pass56 mobile",
+          "mediaIds": [],
+          "idempotencyKey": "5b2565d3-c1f6-4b6c-9756-1aed0f85258b"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-mobile-processed-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-mobile-actual-published-result.png"
+    ],
+    "requestId": "suggestion-12",
+    "status": "passed"
+  },
+  {
+    "name": "feed-comment-actions",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cursor appends older actual feed records",
+      "cursor appends older actual feed records",
+      "comment uses one original mutation",
+      "comment-saved: no horizontal overflow",
+      "comment-saved: dialog fits viewport",
+      "care reaction reads actual viewer state",
+      "hidden post disables reactions",
+      "hidden: no horizontal overflow",
+      "hidden: dialog fits viewport",
+      "restore preserves original comment and no active reaction",
+      "restored: no horizontal overflow",
+      "restored: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "POST",
+        "body": {
+          "text": "留下实际可读评论 pass57 feed-comment-actions mobile",
+          "expectedRevision": 3,
+          "reason": "所有者以自己的身份评论动态",
+          "idempotencyKey": "82e35c20-bafe-43b4-9ba7-d3a3492ab2a8"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/reaction",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者明确回应动态",
+          "kind": "care",
+          "idempotencyKey": "b2c58156-b1e1-4531-8cfd-155252804670"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/reaction",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "所有者明确回应动态",
+          "kind": "like",
+          "idempotencyKey": "4deee54f-1179-41c6-9d99-826191a00aed"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/reaction",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "所有者明确回应动态",
+          "kind": "none",
+          "idempotencyKey": "e1439f3a-d580-4b24-872d-11180cda5d06"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/hide",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "所有者明确隐藏动态",
+          "idempotencyKey": "7c4a91e3-f700-4e31-acb3-5c0c5d773824"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/restore",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 8,
+          "reason": "所有者明确恢复展示动态",
+          "idempotencyKey": "d934c287-a3b1-4bf1-8465-1e8c2f679b7d"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-actions-mobile-comment-saved.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-actions-mobile-hidden.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-actions-mobile-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-publish-unknown",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "published-detail: no horizontal overflow",
+      "published-detail: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass57 feed-publish-unknown mobile",
+          "mediaIds": [],
+          "idempotencyKey": "08f10d26-d14e-4d38-bc11-4a16119f4ea1"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass57 feed-publish-unknown mobile",
+          "mediaIds": [],
+          "idempotencyKey": "08f10d26-d14e-4d38-bc11-4a16119f4ea1"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-16",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-16/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-16/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-unknown-mobile-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-publish-unknown-mobile-published-detail.png"
+    ],
+    "injectedFault": "accepted publication response lost",
+    "status": "passed"
+  },
+  {
+    "name": "feed-comment-readback",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cursor appends older actual feed records",
+      "cursor appends older actual feed records",
+      "comment-readback-failed: no horizontal overflow",
+      "comment-readback-failed: dialog fits viewport",
+      "comment uses one original mutation",
+      "comment-saved: no horizontal overflow",
+      "comment-saved: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "POST",
+        "body": {
+          "text": "留下实际可读评论 pass57 feed-comment-readback mobile",
+          "expectedRevision": 9,
+          "reason": "所有者以自己的身份评论动态",
+          "idempotencyKey": "4ac1aab4-1a4e-4e55-bf85-982c00659324"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-readback-mobile-comment-readback-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass57-feed-comment-readback-mobile-comment-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-read",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "evidence-history: no horizontal overflow",
+      "evidence-history: dialog fits viewport",
+      "reading evidence never marks goal complete",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-read-mobile-evidence-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-state",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "显式核对目标状态 paused",
+          "idempotencyKey": "b6babd45-63b4-4f60-8813-9d7699a64aec"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "显式核对目标状态 active",
+          "idempotencyKey": "0aec611c-0900-4d6f-81f0-baded7626bd0"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "28a73fa6-6645-44b2-9a23-209a5da3f777"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-state-mobile-evaluation-request.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-edit",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cancel does not write goal",
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "full definition reads actual saved title criteria and protection",
+      "new definition stays separate from confirmed completion",
+      "goal correction preserves original identity across unknown receipt",
+      "saved-goal: no horizontal overflow",
+      "saved-goal: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 10,
+          "desiredOutcome": "目标修改 pass61 goal-edit mobile",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "6ab38606-e634-49d0-894c-198a8d82ce45"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-edit-mobile-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-edit-mobile-saved-goal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-unknown",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "original goal command is resolved",
+      "newer goal draft remains after original recovery",
+      "full definition reads actual saved title criteria and protection",
+      "new definition stays separate from confirmed completion",
+      "goal correction preserves original identity across unknown receipt",
+      "saved-goal: no horizontal overflow",
+      "saved-goal: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 11,
+          "desiredOutcome": "目标修改 pass61 goal-unknown mobile",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "6f46df0a-c9e5-419a-8ce2-074d5545554e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 11,
+          "desiredOutcome": "目标修改 pass61 goal-unknown mobile",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "6f46df0a-c9e5-419a-8ce2-074d5545554e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-unknown-mobile-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass61-goal-unknown-mobile-saved-goal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-state-history",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "authority has the just-confirmed history row",
+      "latest-history: no horizontal overflow",
+      "latest-history: dialog fits viewport",
+      "current detail refreshes its history after state commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 18,
+          "reason": "显式核对目标状态 paused pass63 desktop goal-state-history",
+          "idempotencyKey": "297f0a0a-346f-4016-8ba0-5d2ffe50ccb1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 19,
+          "reason": "显式核对目标状态 active pass63 desktop goal-state-history",
+          "idempotencyKey": "91675942-aec9-4299-a7cb-4aa76cf9bd5d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 20,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "6c426f05-b60a-4736-8a64-dd5568350d6e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-history-desktop-evaluation-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-history-desktop-latest-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-state-history",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "authority has the just-confirmed history row",
+      "latest-history: no horizontal overflow",
+      "latest-history: dialog fits viewport",
+      "current detail refreshes its history after state commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 18,
+          "reason": "显式核对目标状态 paused pass63 mobile goal-state-history",
+          "idempotencyKey": "922c5788-165d-4a91-b851-f56acbd7449d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 19,
+          "reason": "显式核对目标状态 active pass63 mobile goal-state-history",
+          "idempotencyKey": "24dcbb39-c4bf-4e43-ae2f-e2d60abfb789"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 20,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "09650414-947b-4c21-8050-cd67856bd818"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-history-mobile-evaluation-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-history-mobile-latest-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-state-stale",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "older-snapshot-readback: no horizontal overflow",
+      "older-snapshot-readback: dialog fits viewport",
+      "stale goal readback keeps exactly one pause command",
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 16,
+          "reason": "显式核对目标状态 paused pass63 desktop goal-state-stale",
+          "idempotencyKey": "374c3188-76db-4744-b168-1685cb0e9005"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 17,
+          "reason": "显式核对目标状态 active pass63 desktop goal-state-stale",
+          "idempotencyKey": "eb487ffb-7fef-42d7-91b4-4cb72bb45612"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 18,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "1f573218-6038-4151-b4af-9ea7a9b51286"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-stale-desktop-older-snapshot-readback.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-stale-desktop-evaluation-request.png"
+    ],
+    "injectedFault": "original older snapshot on first GET after accepted pause; no change to actual server goal",
+    "status": "passed"
+  },
+  {
+    "name": "goal-state-stale",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "older-snapshot-readback: no horizontal overflow",
+      "older-snapshot-readback: dialog fits viewport",
+      "stale goal readback keeps exactly one pause command",
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 16,
+          "reason": "显式核对目标状态 paused pass63 mobile goal-state-stale",
+          "idempotencyKey": "34ec4efb-bfd3-4c3e-8c82-c4c553743d6e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 17,
+          "reason": "显式核对目标状态 active pass63 mobile goal-state-stale",
+          "idempotencyKey": "f195e025-ba55-4fbc-ae9b-32b7806aa14d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 18,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "24ff110a-91a3-4f22-a447-e0e8f8fd0fd6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-stale-mobile-older-snapshot-readback.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass63-goal-state-stale-mobile-evaluation-request.png"
+    ],
+    "injectedFault": "original older snapshot on first GET after accepted pause; no change to actual server goal",
+    "status": "passed"
+  }
+]

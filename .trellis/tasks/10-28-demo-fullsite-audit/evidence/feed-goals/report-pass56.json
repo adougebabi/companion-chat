@@ -1,0 +1,1550 @@
+[
+  {
+    "name": "feed-publish",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass56 feed-publish desktop",
+          "mediaIds": [],
+          "idempotencyKey": "95384aea-7fdc-4754-9556-85cb2afa6eda"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-11/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-11/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-desktop-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-11').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n你的动态已保存并读回。\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish desktop\n\n2\n评论\n查看详情\n林\n林青\n今天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n今天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish desktop\n\n2\n评论\n更多回应与实际来源\n评论 · 0\n\n还没有回应，你可以留下第一句话。\n\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：我 · 由你发布\n关闭"
+  },
+  {
+    "name": "feed-suggest",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "suggestion is a request instead of immediate publication",
+      "processed-request: no horizontal overflow",
+      "processed-request: dialog fits viewport",
+      "request follows actual published result",
+      "actual-published-result: no horizontal overflow",
+      "actual-published-result: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "有空时分享一下今天的小事 pass56 desktop",
+          "mediaIds": [],
+          "idempotencyKey": "5aa35399-c9d0-4a31-8ee8-e56546b2c852"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-desktop-processed-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-desktop-actual-published-result.png"
+    ],
+    "requestId": "suggestion-12",
+    "status": "passed"
+  },
+  {
+    "name": "feed-comment-actions",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-comment-actions-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-one').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n今天 · 11:00\n\n窗边的光很好，想把这段阅读时光留在这里。\n\n2\n评论\n查看详情\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish desktop\n\n2\n评论\n查看详情\n加载更多动态\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n\n有空时分享一下今天的小事 pass56 desktop\n\n2026-10-28 11:00 (北京时间) · 已完成"
+  },
+  {
+    "name": "feed-publish-unknown",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass56 feed-publish-unknown desktop",
+          "mediaIds": [],
+          "idempotencyKey": "83e957d0-ad0a-40ab-aa68-a3cc47cdec55"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass56 feed-publish-unknown desktop",
+          "mediaIds": [],
+          "idempotencyKey": "83e957d0-ad0a-40ab-aa68-a3cc47cdec55"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-13/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-13/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-unknown-desktop-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-unknown-desktop-failure.png"
+    ],
+    "injectedFault": "accepted publication response lost",
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-13').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n你的动态已保存并读回。\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish-unknown desktop\n\n2\n评论\n查看详情\n林\n林青\n今天 · 11:00\n\n窗边的光很好，想把这段阅读时光留在这里。\n\n2\n评论\n查看详情\n加载更多动态\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n\n有空时分享一下今天的小事 pass56 desktop\n\n2026-10-28 11:00 (北京时间) · 已完成\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish-unknown desktop\n\n2\n评论\n更多回应与实际来源\n评论 · 0\n\n还没有回应，你可以留下第一句话。\n\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：我 · 由你发布\n关闭"
+  },
+  {
+    "name": "feed-comment-readback",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-comment-readback-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-one').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish-unknown desktop\n\n2\n评论\n查看详情\n林\n林青\n今天 · 11:00\n\n窗边的光很好，想把这段阅读时光留在这里。\n\n2\n评论\n查看详情\n加载更多动态\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n\n有空时分享一下今天的小事 pass56 desktop\n\n2026-10-28 11:00 (北京时间) · 已完成"
+  },
+  {
+    "name": "goal-read",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "evidence-history: no horizontal overflow",
+      "evidence-history: dialog fits viewport",
+      "reading evidence never marks goal complete",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-read-desktop-evidence-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-state",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "显式核对目标状态 paused",
+          "idempotencyKey": "0c5169bd-bc24-4116-b9e1-08f403275584"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "显式核对目标状态 active",
+          "idempotencyKey": "ddc63ce2-c4f6-4dcd-8606-34b82d8a2b96"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "dc4a1471-bdd0-4d09-9a5e-d14eb9a05ffd"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-state-desktop-evaluation-request.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-edit",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cancel does not write goal",
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "full definition reads actual saved title criteria and protection",
+      "new definition stays separate from confirmed completion",
+      "goal correction preserves original identity across unknown receipt",
+      "saved-goal: no horizontal overflow",
+      "saved-goal: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 3,
+          "desiredOutcome": "目标修改 pass56 goal-edit desktop",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "93a73642-a3bb-477b-8441-006ec235b8f4"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-edit-desktop-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-edit-desktop-saved-goal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-unknown",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "newer goal draft remains after original recovery",
+      "full definition reads actual saved title criteria and protection",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "desiredOutcome": "目标修改 pass56 goal-unknown desktop",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "4ebfd2a4-57e4-42be-828a-58bff552c7cc"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "desiredOutcome": "目标修改 pass56 goal-unknown desktop",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "4ebfd2a4-57e4-42be-828a-58bff552c7cc"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-unknown-desktop-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-unknown-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "new definition stays separate from confirmed completion",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n目标\n快速前往\n⌘ K\nLIFE / THINGS THAT MATTER\n林岚 · 验收样本想做的事\n\n一些长远的期待，一些今天就想迈出的小步。\n\n添加目标\n正在追寻\n2\n暂时搁置\n已经做到\n全部\n一般目标\n进行中\n目标修改 pass56 goal-edit desktop\n\n保留完整定义和可追溯的条件。\n\n条件评估待读取\n慢慢来，不设期限\n一般目标\n进行中\n根据真实偏好推荐一本小说\n\n分享有趣的阅读体验。\n\n条件评估待读取\n慢慢来，不设期限\n生活会继续，期待也是。\n\n完成状态根据实际经历核对，目标也会在相处中自然生长。\n\n独立目标规划与治理\n和林岚 · 验收样本聊聊最近的想法\n编辑目标\n\n保存目标定义；完成条件由后续实际证据评估。\n\n想做什么\n为什么想做\n目标范围\n一般目标\n一般目标\n关系目标\n截止策略\n软期限\n软期限\n硬期限\n期待完成时间（北京时间，可留空）\n选择日期\n完成条件（每行一项）\n归属与保护\n人格 ID（新建可选）\n关联 Actor ID（新建可选）\n所有者保护\n操作原因\n核对或重试原提交\n读取最新版本并保留输入\n原提交内容\n取消\n正在处理…\n关闭"
+  },
+  {
+    "name": "feed-publish",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass56 feed-publish mobile",
+          "mediaIds": [],
+          "idempotencyKey": "d98afccb-7fe6-48c1-b0d2-0030af6435c9"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-11/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-11/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-mobile-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-11').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n你的动态已保存并读回。\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish mobile\n\n2\n评论\n查看详情\n林\n林青\n今天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n今天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n你们的分享建议与原请求\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish mobile\n\n2\n评论\n更多回应与实际来源\n评论 · 0\n\n还没有回应，你可以留下第一句话。\n\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：我 · 由你发布\n关闭"
+  },
+  {
+    "name": "feed-suggest",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "suggestion is a request instead of immediate publication",
+      "processed-request: no horizontal overflow",
+      "processed-request: dialog fits viewport",
+      "request follows actual published result",
+      "actual-published-result: no horizontal overflow",
+      "actual-published-result: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "有空时分享一下今天的小事 pass56 mobile",
+          "mediaIds": [],
+          "idempotencyKey": "5b2565d3-c1f6-4b6c-9756-1aed0f85258b"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/published-suggestion-12/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-mobile-processed-request.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-suggest-mobile-actual-published-result.png"
+    ],
+    "requestId": "suggestion-12",
+    "status": "passed"
+  },
+  {
+    "name": "feed-comment-actions",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-comment-actions-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-one').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n今天 · 11:00\n\n窗边的光很好，想把这段阅读时光留在这里。\n\n2\n评论\n查看详情\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish mobile\n\n2\n评论\n查看详情\n加载更多动态\n你们的分享建议与原请求"
+  },
+  {
+    "name": "feed-publish-unknown",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "empty publication cannot submit",
+      "owner global scope is explicit",
+      "publication-draft: no horizontal overflow",
+      "publication-draft: dialog fits viewport",
+      "publication keeps owner identity and exact original replay",
+      "one actual owner publication is readable",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass56 feed-publish-unknown mobile",
+          "mediaIds": [],
+          "idempotencyKey": "13f73f04-df45-4210-8732-7e402a193909"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moments",
+        "method": "POST",
+        "body": {
+          "text": "来自我的动态 pass56 feed-publish-unknown mobile",
+          "mediaIds": [],
+          "idempotencyKey": "13f73f04-df45-4210-8732-7e402a193909"
+        }
+      },
+      {
+        "path": "/api/moment-feed/post-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-13",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-13/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-13/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-unknown-mobile-publication-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-publish-unknown-mobile-failure.png"
+    ],
+    "injectedFault": "accepted publication response lost",
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-13').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n你的动态已保存并读回。\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish-unknown mobile\n\n2\n评论\n查看详情\n林\n林青\n今天 · 11:00\n\n窗边的光很好，想把这段阅读时光留在这里。\n\n2\n评论\n查看详情\n加载更多动态\n你们的分享建议与原请求\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish-unknown mobile\n\n2\n评论\n更多回应与实际来源\n评论 · 0\n\n还没有回应，你可以留下第一句话。\n\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：我 · 由你发布\n关闭"
+  },
+  {
+    "name": "feed-comment-readback",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-feed-comment-readback-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByTestId('feed-post-post-one').getByRole('button', { name: '查看详情', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n我\n我\n今天 · 11:00\n\n来自我的动态 pass56 feed-publish-unknown mobile\n\n2\n评论\n查看详情\n林\n林青\n今天 · 11:00\n\n窗边的光很好，想把这段阅读时光留在这里。\n\n2\n评论\n查看详情\n加载更多动态\n你们的分享建议与原请求"
+  },
+  {
+    "name": "goal-read",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "evidence-history: no horizontal overflow",
+      "evidence-history: dialog fits viewport",
+      "reading evidence never marks goal complete",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-read-mobile-evidence-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-state",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "显式核对目标状态 paused",
+          "idempotencyKey": "b6babd45-63b4-4f60-8813-9d7699a64aec"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "显式核对目标状态 active",
+          "idempotencyKey": "0aec611c-0900-4d6f-81f0-baded7626bd0"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "28a73fa6-6645-44b2-9a23-209a5da3f777"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-state-mobile-evaluation-request.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-edit",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cancel does not write goal",
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "full definition reads actual saved title criteria and protection",
+      "new definition stays separate from confirmed completion",
+      "goal correction preserves original identity across unknown receipt",
+      "saved-goal: no horizontal overflow",
+      "saved-goal: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 3,
+          "desiredOutcome": "目标修改 pass56 goal-edit mobile",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "89bba127-9deb-4661-a514-f62a6efcdaa1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-edit-mobile-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-edit-mobile-saved-goal.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "goal-unknown",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "newer goal draft remains after original recovery",
+      "full definition reads actual saved title criteria and protection",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "desiredOutcome": "目标修改 pass56 goal-unknown mobile",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "9e150dc1-3e06-408d-a091-531efef59166"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "desiredOutcome": "目标修改 pass56 goal-unknown mobile",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "9e150dc1-3e06-408d-a091-531efef59166"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-unknown-mobile-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/pass56-goal-unknown-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "new definition stays separate from confirmed completion",
+    "text": "Toggle Sidebar\n日常相处\n目标\n快速前往\nLIFE / THINGS THAT MATTER\n林岚 · 验收样本想做的事\n\n一些长远的期待，一些今天就想迈出的小步。\n\n添加目标\n正在追寻\n2\n暂时搁置\n已经做到\n全部\n一般目标\n进行中\n目标修改 pass56 goal-edit mobile\n\n保留完整定义和可追溯的条件。\n\n条件评估待读取\n慢慢来，不设期限\n一般目标\n进行中\n根据真实偏好推荐一本小说\n\n分享有趣的阅读体验。\n\n条件评估待读取\n慢慢来，不设期限\n生活会继续，期待也是。\n\n完成状态根据实际经历核对，目标也会在相处中自然生长。\n\n独立目标规划与治理\n和林岚 · 验收样本聊聊最近的想法\n编辑目标\n\n保存目标定义；完成条件由后续实际证据评估。\n\n想做什么\n为什么想做\n目标范围\n一般目标\n一般目标\n关系目标\n截止策略\n软期限\n软期限\n硬期限\n期待完成时间（北京时间，可留空）\n选择日期\n完成条件（每行一项）\n归属与保护\n人格 ID（新建可选）\n关联 Actor ID（新建可选）\n所有者保护\n操作原因\n核对或重试原提交\n读取最新版本并保留输入\n原提交内容\n取消\n正在处理…\n关闭"
+  }
+]
