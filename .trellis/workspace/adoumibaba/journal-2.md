@@ -318,3 +318,41 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Status
 
 [OK] **Completed**
+
+
+## Session 76: 全站 UI 复验继续：F41–F59
+<!-- trellis-session: v=2 fp=55cbdb7a71334ec3 -->
+
+**Date**: 2026-10-29
+**Task**: 全站 UI 复验继续：F41–F59
+**Branch**: `codex/demo-fullsite-audit-20261028`
+
+### Summary
+
+继续以只读Demo为基准修复前端布局、交互和原结果恢复，保存具体浏览器证据；任务仍在进行中，未归档。
+
+### Main Changes
+
+- 修复目标记录刷新和旧快照校验、同页创建resume、取消失败反馈、嵌套折叠内容丢失、响应式卡片和工具条、状态徽标及来源图标。
+- 补齐174行具体浏览器状态证据；3项Demo专用入口明确不适用；保留未验证状态和真实业务边界。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c5945f17` | fix(web): refresh goal records and restore creation route identity |
+| `56ca449e` | fix(web): recover nested tools and align responsive workspace controls |
+| `e1c084a3` | fix(web): align list states and responsive filters with demo |
+
+### Testing
+
+- [OK] Web650/650、0skip；typecheck95、build99及374模块生产守卫通过。
+- [OK] 双视口深层交互与最终正常配对；真实隔离Web18480同步并五页只读复验通过，后端未重启。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 继续visual-review.md中逐项未验的深层视觉状态及业务边界，不将受控HTTP和真实模型/存储混为完成。

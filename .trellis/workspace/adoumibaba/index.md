@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 75
-- **Last Active**: 2026-10-28
+- **Total Sessions**: 76
+- **Last Active**: 2026-10-29
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~320 | Active |
+| `journal-2.md` | ~358 | Active |
 | `journal-1.md` | ~1994 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 76 | 2026-10-29 | 全站 UI 复验继续：F41–F59 | `c5945f17`, `56ca449e`, `e1c084a3` | `codex/demo-fullsite-audit-20261028` |
 | 75 | 2026-10-28 | 完成 Demo 工作区逐页复刻与最终验收 | `b8991b1c`, `a0313076` | `codex/demo-workspace-replica-20261027` |
 | 74 | 2026-10-27 | r14 组件适配与基础交互修复 | `20ee3aed` | `codex/fluctlight-functional-recovery` |
 | 73 | 2026-10-27 | R13 mobile and domain regressions | `3bed0519` | `codex/v62-r3-retest` |
