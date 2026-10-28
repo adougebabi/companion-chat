@@ -1,0 +1,208 @@
+[
+  {
+    "name": "studio-status",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; presentation from explicit source_kind and published version, no business mutation",
+    "checks": [
+      "published status uses original compact green presentation",
+      "unpublished draft retains neutral state",
+      "published: no document overflow",
+      "archived resource never appears published",
+      "archived: no document overflow",
+      "presentation checks send no business mutation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-studio-status-desktop-published.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-studio-status-desktop-archived.png"
+    ],
+    "fixtureBoundary": "archived read uses the same immutable published resource DTO with archived status; no actual archive mutation",
+    "geometry": {
+      "size": "9px",
+      "weight": "400",
+      "color": "rgb(98, 128, 78)",
+      "background": "rgb(237, 244, 233)",
+      "dot": "true"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "notification-sources",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; presentation from explicit source_kind and published version, no business mutation",
+    "checks": [
+      "explicit notification source selects conversation.reply.published",
+      "explicit notification source selects moment.published",
+      "explicit notification source selects moment.comment.created",
+      "explicit notification source selects moment.reaction.created",
+      "explicit notification source selects capability.requested",
+      "explicit notification source selects owner.request.settled",
+      "explicit notification source selects media.asset.ready",
+      "explicit notification source selects world.npc.encountered",
+      "explicit notification source selects diary.generated",
+      "explicit notification source selects goal.evaluated",
+      "explicit notification source selects fixture.future-source",
+      "explicit notification source selects constructor",
+      "explicit notification source selects __proto__",
+      "decision, progress and service sources keep their own icons",
+      "source-types: no document overflow",
+      "pending-types: no document overflow",
+      "presentation checks send no business mutation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET"
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-notification-sources-desktop-source-types.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-notification-sources-desktop-pending-types.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-status",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; presentation from explicit source_kind and published version, no business mutation",
+    "checks": [
+      "published status uses original compact green presentation",
+      "unpublished draft retains neutral state",
+      "published: no document overflow",
+      "archived resource never appears published",
+      "archived: no document overflow",
+      "presentation checks send no business mutation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-studio-status-mobile-published.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-studio-status-mobile-archived.png"
+    ],
+    "fixtureBoundary": "archived read uses the same immutable published resource DTO with archived status; no actual archive mutation",
+    "geometry": {
+      "size": "9px",
+      "weight": "400",
+      "color": "rgb(98, 128, 78)",
+      "background": "rgb(237, 244, 233)",
+      "dot": "true"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "notification-sources",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; presentation from explicit source_kind and published version, no business mutation",
+    "checks": [
+      "explicit notification source selects conversation.reply.published",
+      "explicit notification source selects moment.published",
+      "explicit notification source selects moment.comment.created",
+      "explicit notification source selects moment.reaction.created",
+      "explicit notification source selects capability.requested",
+      "explicit notification source selects owner.request.settled",
+      "explicit notification source selects media.asset.ready",
+      "explicit notification source selects world.npc.encountered",
+      "explicit notification source selects diary.generated",
+      "explicit notification source selects goal.evaluated",
+      "explicit notification source selects fixture.future-source",
+      "explicit notification source selects constructor",
+      "explicit notification source selects __proto__",
+      "decision, progress and service sources keep their own icons",
+      "source-types: no document overflow",
+      "pending-types: no document overflow",
+      "presentation checks send no business mutation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET"
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-notification-sources-mobile-source-types.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/status-presentation/pass95-notification-sources-mobile-pending-types.png"
+    ],
+    "status": "passed"
+  }
+]

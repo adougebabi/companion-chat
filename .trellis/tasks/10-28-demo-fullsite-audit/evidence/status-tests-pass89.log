@@ -1,0 +1,28 @@
+✔ notification detail retains list and separates read acknowledgement from source navigation (322.431084ms)
+✔ notification and pending failed reads retain independent cursors and actual group retry (223.914958ms)
+✔ inbox display filter survives returning from a source and clears with its Owner session (220.962791ms)
+✔ role filtering starts its own server read and the global unread count is not the page length (152.267167ms)
+✔ Studio directory reads nine actual resource types, searches and keeps archived collection separate (381.784375ms)
+✔ Studio empty directory and failed initial read are distinct and recover via original GET (231.199375ms)
+✔ Studio saves typed edits using the opaque draft version and publishes an exact immutable saved version (300.555625ms)
+✔ Studio new save checkpoints the actual identity and canonical name before navigation (216.331458ms)
+✔ Studio apply freezes the exact publication and generic accepted receipt does not require a fabricated target kind (308.939667ms)
+✔ Studio version history reads immutable content, while independent copies stay unpublished (270.055125ms)
+✔ sandbox freezes current working input, observes actual jobs and adopts suggestions only after explicit review (249.100958ms)
+✔ acknowledged sandbox readback failure survives remount and recovers with GET only while preserving newer composer text (289.7585ms)
+✔ late sandbox acceptance after unmount retains its pointer (184.081209ms)
+✔ legacy directory recovery replays the original localStorage identity and body (195.911959ms)
+✔ raw JSON edits cannot be silently replaced by an assistant proposal, including edits made while confirmation is open (273.785208ms)
+✔ event scope changes remove only the invalid place reference while preserving unknown extensions (173.693292ms)
+✔ an Owner purge prevents a late accepted sandbox task from recreating another Owners recovery pointer (181.0075ms)
+✔ a late independent-copy acknowledgement after unmount preserves its actual copied identity (189.433334ms)
+✔ copying a historical publication uses its exact immutable definition and restores dialog source focus on cancel (412.065958ms)
+✔ sandbox text materials retain their original job and release only the resource association (456.569791ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6206.796084

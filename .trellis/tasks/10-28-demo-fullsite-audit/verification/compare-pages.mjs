@@ -24,6 +24,18 @@ try{
    const record={page:name,size,phase,referenceScene,browser:browser.version(),referenceUrl:'http://127.0.0.1:4179/fluctlight-offline.html#'+(referenceRoutes[name]||routes[name]),actualUrl:'http://127.0.0.1:4381/#'+routes[name],errors:{reference:[],actual:[]}};
    const inspect=async(page,url,kind)=>{
     const listener=error=>record.errors[kind].push(error.message);page.on('pageerror',listener);
+    // Demo media is an inline responsive SVG. Its HTTP test image must have
+    // the same viewport as the actual image element, retaining the original
+    // MediaImage/Art drawing and CSS rather than the browser's 300x150 default.
+    // This does not resize the element or change reference pixels.
+    const mediaPattern='**/api/media/parity-media-*';
+    if(kind==='actual'&&name==='media')await page.route(mediaPattern,async route=>{
+     const response=await route.fetch(),assetPath=new URL(route.request().url()).pathname;
+     const frame=await page.evaluate(path=>{const image=Array.from(document.images).find(i=>new URL(i.src).pathname===path&&i.getBoundingClientRect().width>0);if(!image)return null;const r=image.getBoundingClientRect();return {width:r.width,height:r.height};},assetPath);
+     let body=await response.text();
+     if(frame?.width>0&&frame?.height>0){body=body.replace('<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">','<svg xmlns="http://www.w3.org/2000/svg" width="'+frame.width+'" height="'+frame.height+'">');(record.fixtureImageViewports||=[]).push({assetPath,...frame,source:'immutable Demo MediaImage/Art; own production image viewport'});}
+     await route.fulfill({response,body});
+    });
     await page.goto(url,{waitUntil:'networkidle'});await page.locator('h1').first().waitFor({state:'visible'});
     if(kind==='actual'&&name==='library')await page.waitForFunction(()=>document.querySelectorAll('.library-chips').length===3&&document.querySelectorAll('.library-chips span').length>0);
     if(name==='chat')await page.getByText('给你看看窗边这个小角落。',{exact:false}).waitFor();
@@ -32,13 +44,18 @@ try{
     record[kind]=await page.evaluate(()=>{
      const shape=element=>{const r=element.getBoundingClientRect(),s=getComputedStyle(element);return {tag:element.tagName,class:element.className,text:element.textContent?.trim().slice(0,140),x:r.x,y:r.y,width:r.width,height:r.height,font:s.fontFamily,fontSize:s.fontSize,fontWeight:s.fontWeight,lineHeight:s.lineHeight,color:s.color,padding:s.padding,gap:s.gap,display:s.display};};
      const first=selectors=>selectors.map(s=>document.querySelector(s)).find(Boolean);
-     return {environment:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio,scale:visualViewport.scale,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,windowScrollY:scrollY,font:getComputedStyle(document.body).fontFamily,documentWidth:document.documentElement.scrollWidth},heading:shape(document.querySelector('h1')),header:first(['.page-heading','.replica-page-heading'])?shape(first(['.page-heading','.replica-page-heading'])):null,landmarks:Array.from(document.querySelectorAll('aside,nav,header,.library-hero,.library-header,.tag-filter,.character-grid,.character-list,.library-card,.character-card,.companion-chat-panel,.companion-message-list,.companion-composer,.companion-moment-card,.lp-hero,.lp-grid')).map(shape),images:Array.from(document.images).map(i=>({alt:i.alt,src:i.getAttribute('src'),loaded:i.complete&&i.naturalWidth>0,width:i.width,height:i.height})),scrolling:Array.from(document.querySelectorAll('*')).filter(e=>e.clientHeight>0&&e.scrollHeight>e.clientHeight+1&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({class:e.className,scrollTop:e.scrollTop,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight})),buttons:Array.from(document.querySelectorAll('button')).filter(e=>e.getBoundingClientRect().width&&e.getBoundingClientRect().height).map(shape)};
+     return {environment:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio,scale:visualViewport.scale,timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,windowScrollY:scrollY,font:getComputedStyle(document.body).fontFamily,documentWidth:document.documentElement.scrollWidth},heading:shape(document.querySelector('h1')),header:first(['.page-heading','.replica-page-heading'])?shape(first(['.page-heading','.replica-page-heading'])):null,landmarks:Array.from(document.querySelectorAll('aside,nav,header,.library-hero,.library-header,.tag-filter,.character-grid,.character-list,.library-card,.character-card,.companion-chat-panel,.companion-message-list,.companion-composer,.companion-moment-card,.lp-hero,.lp-grid')).map(shape),artRects:Array.from(document.querySelectorAll('.r-media-image-button,.media-card-art')).filter(e=>!e.parentElement?.closest('.r-media-image-button,.media-card-art')).map(shape),images:Array.from(document.images).map(i=>({alt:i.alt,src:i.getAttribute('src'),loaded:i.complete&&i.naturalWidth>0,width:i.width,height:i.height})),scrolling:Array.from(document.querySelectorAll('*')).filter(e=>e.clientHeight>0&&e.scrollHeight>e.clientHeight+1&&['auto','scroll'].includes(getComputedStyle(e).overflowY)).map(e=>({class:e.className,scrollTop:e.scrollTop,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight})),buttons:Array.from(document.querySelectorAll('button')).filter(e=>e.getBoundingClientRect().width&&e.getBoundingClientRect().height).map(shape)};
     });
-    await page.screenshot({path:resolve(out,kind+'-'+size.name+'.png'),fullPage:false,animations:'disabled'});page.off('pageerror',listener);
+    await page.screenshot({path:resolve(out,kind+'-'+size.name+'.png'),fullPage:false,animations:'disabled'});page.off('pageerror',listener);if(kind==='actual'&&name==='media')await page.unroute(mediaPattern);
    };
    try{
     await inspect(reference,record.referenceUrl,'reference');await inspect(actual,record.actualUrl,'actual');
     const a=PNG.sync.read(await readFile(resolve(out,'reference-'+size.name+'.png'))),b=PNG.sync.read(await readFile(resolve(out,'actual-'+size.name+'.png'))),diff=new PNG({width:a.width,height:a.height});
+    if(name==='media')record.artAssetDifferences=record.reference.artRects.map((r,i)=>{
+     const other=record.actual.artRects[i];if(!other)return {index:i,missing:true};const width=Math.min(Math.floor(r.width),Math.floor(other.width)),height=Math.min(Math.floor(r.height),Math.floor(other.height));
+     if(r.y<0||other.y<0||r.y+height>a.height||other.y+height>b.height)return {index:i,scope:'outside captured viewport; not measured'};
+     const left=new PNG({width,height}),right=new PNG({width,height});for(let y=0;y<height;y++){a.data.copy(left.data,y*width*4,((Math.round(r.y)+y)*a.width+Math.round(r.x))*4,((Math.round(r.y)+y)*a.width+Math.round(r.x)+width)*4);b.data.copy(right.data,y*width*4,((Math.round(other.y)+y)*b.width+Math.round(other.x))*4,((Math.round(other.y)+y)*b.width+Math.round(other.x)+width)*4);}return {index:i,width,height,reference:{x:r.x,y:r.y,width:r.width,height:r.height},actual:{x:other.x,y:other.y,width:other.width,height:other.height},pixels:pixelmatch(left.data,right.data,null,width,height),scope:'aligned original media art only; full-page raw difference is still recorded separately'};
+    });
     record.pixelDifference={pixels:pixelmatch(a.data,b.data,diff.data,a.width,a.height),total:a.width*a.height,meaning:'raw image difference only; no pass threshold, masking or completion inference'};
     await writeFile(resolve(out,'difference-'+size.name+'.png'),PNG.sync.write(diff));
     const pair=new PNG({width:a.width*2,height:a.height});for(let y=0;y<a.height;y++){a.data.copy(pair.data,y*pair.width*4,y*a.width*4,(y+1)*a.width*4);b.data.copy(pair.data,y*pair.width*4+a.width*4,y*b.width*4,(y+1)*b.width*4);}await writeFile(resolve(out,'comparison-'+size.name+'.png'),PNG.sync.write(pair));

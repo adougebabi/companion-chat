@@ -136,3 +136,14 @@ coverage.json的state_verification记录具体执行，行级状态未因单一�
 - 最新Web649/649、0skip，typecheck87、build86及374模块生产守卫通过。Demo48与旧10-22无关108文件hash保持。
 - 正在使用4381夹具session4785（原样重载，仅测试素材），真实后端18480保持，不重启Core/Worker/PG；前端即将同步dist86并只读核验。
 - 仍应继续的视觉细节：通知图标/来源状态、Studio已发布徽标色彩/自然高度、侧栏长角色职业的省略与完整可读、媒体/日记/记忆等正式DTO语义差异和额外入口的密度；需要逐项区分正式契约与可修展示。业务边界统一写入business-verification.md，不扩展后端回归。
+
+## 2026-10-29 最新继续批次 F54–F59（检查点前）
+- 发布/草稿/归档状态回到原颜色/圆点/字号；通知按10种真实source_kind与5种pending来源映射，未知来源仍保留正文/详情，追加constructor/__proto__消费回归。
+- 侧栏完整title与菜单实际职业；Shell切换作用域、空目录、移动关闭/焦点通过。
+- 记忆工具条恢复320/130尺寸，通知恢复原SegTabs绿线及700px下34图标、11/10/9px密度；两页双视口实际筛选、刷新与草稿独立通过。
+- 最新全量650/650、0skip（web-tests-pass96），typecheck95、build99及374模块生产守卫通过。state/presentation4、Shell6补验、通知8复验、responsive16合并全部通过。
+- 最新正常视觉索引：inbox/memory/studio final-pass99；media final-pass94（含原矢量固有视口记录）；其他12页final-pass85。原Demo 48文件和旧10-22的108文件hash未变。
+- 第五检查点56ca449e已保存F44–F53，当前F54–F59准备保存下一检查点。真实Web18480即将同步build99，只读复验，不重启Core/Worker/PG。
+- 当前4381视觉夹具session19298；Demo4179。4412/3、4420/1、4430–3为本轮附加受控场景，均不是业务服务。任务保持in_progress：具体未验深层视觉状态与真实业务边界不自动升为完成，见visual-review.md/business-verification.md。
+
+最终记录补充：build99已同步18480，real-browser/report五页实际API读取通过；Core/Worker/PG未重启。650全量、typecheck95、build99/生产守卫通过。F57–F59最终responsive/pass99和通知来源pass99均通过；正常图inbox/memory/studio final-pass99，媒体final-pass94；checkpoints及未完成范围见visual-review.md。

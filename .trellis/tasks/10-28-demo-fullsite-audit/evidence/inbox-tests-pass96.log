@@ -1,0 +1,13 @@
+✔ notification detail retains list and separates read acknowledgement from source navigation (293.441959ms)
+✔ notification and pending failed reads retain independent cursors and actual group retry (217.883333ms)
+✔ inbox display filter survives returning from a source and clears with its Owner session (224.866375ms)
+✔ role filtering starts its own server read and the global unread count is not the page length (161.895333ms)
+✔ unrecognized notification source names retain their content and a usable detail (139.083459ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2388.844459

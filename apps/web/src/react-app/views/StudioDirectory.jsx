@@ -212,7 +212,9 @@ export default function StudioDirectoryView({ model: m }) {
                     variant="outline"
                     className="r-resource-state"
                     data-status={row.status}
+                    data-published={!!row.published_version&&row.status!=='archived'}
                   >
+                    <i aria-hidden="true"/>
                     {row.status === "archived"
                       ? "已归档"
                       : row.published_version

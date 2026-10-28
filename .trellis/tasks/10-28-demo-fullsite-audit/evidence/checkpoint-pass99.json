@@ -1,0 +1,30 @@
+{
+  "task_status": "in_progress",
+  "overall_accepted": false,
+  "web_tests": {
+    "passed": 650,
+    "failed": 0,
+    "skipped": 0,
+    "evidence": "web-tests-pass96.log"
+  },
+  "typecheck": "typecheck-pass95.log",
+  "build": "build-pass99.log",
+  "production_graph_modules": 374,
+  "recorded_browser_cases": {
+    "chat_inbox_avatar": 16,
+    "retained_tools": 18,
+    "media_lifecycle": 6,
+    "formal_edges": 8,
+    "responsive_layout": 16,
+    "status_presentation": 4,
+    "shell": 14,
+    "admin": 22
+  },
+  "note": "case counts have overlapping scope and cannot be summed into a completion rate; unverified per-row states remain pending",
+  "preservation": {
+    "demo_files": 48,
+    "demo_changed": [],
+    "unrelated_10_22_files": 108,
+    "unrelated_changed": []
+  }
+}

@@ -388,24 +388,22 @@
         "body": null
       },
       {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
         "path": "/api/notifications",
         "method": "GET",
         "body": null
       },
       {
         "path": "/api/pending",
-        "method": "GET",
-        "body": null
-      },
-      {
-        "path": "/api/notifications/inbox-fixture-one/read",
-        "method": "POST",
-        "body": {
-          "idempotencyKey": "d17acce3-589c-4e3e-a49c-6e4c3ea167ae"
-        }
-      },
-      {
-        "path": "/api/notifications/unread-count",
         "method": "GET",
         "body": null
       },
@@ -432,8 +430,8 @@
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-source-desktop-notification-detail.png",
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-source-desktop-original-task-review.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-source-desktop-notification-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-source-desktop-original-task-review.png"
     ],
     "status": "passed"
   },
@@ -455,6 +453,16 @@
       },
       {
         "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
         "method": "GET",
         "body": null
       },
@@ -494,6 +502,16 @@
         "body": null
       },
       {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
         "path": "/api/fluctlights",
         "method": "GET",
         "body": null
@@ -502,11 +520,21 @@
         "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
         "method": "GET",
         "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
       }
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-back-desktop-back-to-chat.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-back-desktop-back-to-chat.png"
     ],
     "status": "passed"
   },
@@ -533,6 +561,16 @@
         "body": null
       },
       {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
         "path": "/api/notifications",
         "method": "GET",
         "body": null
@@ -546,13 +584,13 @@
         "path": "/api/notifications/inbox-fixture-one/read",
         "method": "POST",
         "body": {
-          "idempotencyKey": "555b9a14-ecf0-46bf-82e1-bb18df63ecf5"
+          "idempotencyKey": "08f60fdf-32fa-414f-8321-9a1e8d8c19cc"
         }
       }
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-source-errors-desktop-invalid-source-and-read-failure.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-source-errors-desktop-invalid-source-and-read-failure.png"
     ],
     "status": "passed"
   },
@@ -578,6 +616,16 @@
         "body": null
       },
       {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
         "path": "/api/notifications",
         "method": "GET",
         "body": null
@@ -595,7 +643,7 @@
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-groups-desktop-separate-source-categories.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-groups-desktop-separate-source-categories.png"
     ],
     "status": "passed"
   },
@@ -1560,18 +1608,6 @@
         "body": null
       },
       {
-        "path": "/api/notifications/inbox-fixture-one/read",
-        "method": "POST",
-        "body": {
-          "idempotencyKey": "0d1e92e1-27a7-47ee-aa87-b558fd0c7114"
-        }
-      },
-      {
-        "path": "/api/notifications/unread-count",
-        "method": "GET",
-        "body": null
-      },
-      {
         "path": "/api/diagnostics/tasks/task-fixture",
         "method": "GET",
         "body": null
@@ -1594,8 +1630,8 @@
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-source-mobile-notification-detail.png",
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-source-mobile-original-task-review.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-source-mobile-notification-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-source-mobile-original-task-review.png"
     ],
     "status": "passed"
   },
@@ -1656,6 +1692,16 @@
         "body": null
       },
       {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
         "path": "/api/fluctlights",
         "method": "GET",
         "body": null
@@ -1664,11 +1710,21 @@
         "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
         "method": "GET",
         "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
       }
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-back-mobile-back-to-chat.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-back-mobile-back-to-chat.png"
     ],
     "status": "passed"
   },
@@ -1708,13 +1764,13 @@
         "path": "/api/notifications/inbox-fixture-one/read",
         "method": "POST",
         "body": {
-          "idempotencyKey": "63870d45-f787-4e90-95c3-1db4af273278"
+          "idempotencyKey": "4366ee64-2374-4f7b-9496-677de6b6f1d2"
         }
       }
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-source-errors-mobile-invalid-source-and-read-failure.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-source-errors-mobile-invalid-source-and-read-failure.png"
     ],
     "status": "passed"
   },
@@ -1757,7 +1813,7 @@
     ],
     "errors": [],
     "screenshots": [
-      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass67-inbox-groups-mobile-separate-source-categories.png"
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/pass99-inbox-groups-mobile-separate-source-categories.png"
     ],
     "status": "passed"
   },

@@ -56,3 +56,15 @@ shared-pass79人工逐张复核确认人物卡Button冗余22px覆盖原15px，Ba
 
 ## 继续批次：日记与创作中心窄屏工具条
 日记现有正式收藏过滤挤出独立工具行，Studio刷新/独立查询使标题和目录各下移一行。日记桌面原checkbox保留，小屏通过共享DropdownMenuCheckboxItem操作同一favorite状态，搜索与tabs双列；Studio原refresh和form提交收进同一搜索区，新建仍原dropdown，查询按钮保留“查询”可访问名与原onSubmit。修改DiaryPage/StudioDirectory和局部CSS及具体控件风险回归，不改API和读回。
+
+## 继续批次：资源与通知的状态来源呈现
+Studio目录已发布版本现有标签仅灰色outline，与原Demo绿色圆点不符；恢复展示标记与样式，保留row.status及精确发布版本语义。Inbox固定Leaf/ShieldCheck遗漏正式source_kind与pending group.kind已有区分；仅为已支持已提交事件和5类来源选图标，未知仍中性，不从标题/示例ID猜测，也不为Demo模拟task/persona造新事件。复验目录、未知来源、来源跳转和已读独立，修改限前端呈现和对应测试DTO。
+
+## 继续批次：角色切换的完整辨认信息
+原Demo菜单有name+occupation，正式菜单只显示name；侧栏窄区省略后也无完整title。只在WorkspaceNavigation保留现有完整title，并让菜单显示真实job、长词按可用宽度换行。原ID回调/角色scope/移动关闭逻辑不变。以双视口切角色、返回、空目录和焦点行为复验，不更改目录数据。
+
+## 继续批次：记忆和通知工具条原始规则
+逐张正常配对确认记忆搜索480/筛选160偏离原320/130；通知默认Tabs line伪元素与42px高度未采用原SegTabs规则。只改replica-life/management既有局部规则；恢复尺寸、绿线、字体和计数，不改框架/输入/filters/原读取/已读逻辑。以生产构建两视口normal paired和实际筛选/刷新/未读切换核验。
+
+## 继续批次：通知窄屏密度
+对照controls-pass98并核对原companion.css700px规则，正式通知图标/字号沿用桌面，遗漏移动34px图标、11/10/9px文字。仅在原通知mobile规则恢复18×16 padding、11gap、34px图标及原元信息色，不改正文或处理状态。复拍及来源/已读恢复原流程。

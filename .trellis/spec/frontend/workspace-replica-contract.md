@@ -1057,3 +1057,19 @@ state and reader as the desktop checkbox; it does not create another cache.
 Demo test-art extraction keeps the original decorative paths and MediaImage/Art
 wrapper. Raw wardrobe SVG and the media outfit branch are different resources.
 Such fixture corrections do not alter reference images or production media.
+
+## Source-based status presentation
+
+Studio directory presentation uses the actual published_version independently
+from row.status; archived rows stay neutral even when an older publication exists.
+Do not change the domain status to produce a green badge. Inbox icons consume
+explicit committed source_kind values and the existing five pending group kinds;
+unknown values preserve a neutral icon and readable content. Map lookups must
+check own properties so source names such as constructor/__proto__ cannot become
+React component values. Never infer a new notification event from a Demo title.
+
+Role menus retain actual name/job values. Long selected text keeps its full title
+and menu copy while the sidebar width stays bounded. Memory search is320px wide
+at most on desktop; local filter wrappers keep the supplied130px geometry. Inbox
+uses its supplied SegTabs presentation and the original narrow typography/icon
+sizes while Radix continues to own keyboard and selection behavior.

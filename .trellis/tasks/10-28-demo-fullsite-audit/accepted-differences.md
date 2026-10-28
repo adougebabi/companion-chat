@@ -13,7 +13,7 @@
 - 管理服务当前用正式endpoint ID作为服务标识，无单独持久化显示名。只读已保存ID与可编辑的新连接区分保留，模型目录仍可完整检索，不把本地编辑当保存成功。
 - 额外的刷新、真实任务恢复、来源JSON、治理、资源管理、模型目录、审计/版本与请求状态入口继续保留。其布局需按原Demo层级融入，不能以“正式能力”作为明显错位的借口。
 
-仍在检查：管理二级页面、初始化全部步骤、9类资源编辑/弹窗、视觉审阅与头像各状态；通知图标及状态徽标、服饰示意颜色、部分元信息文字层级。所有未实际核验状态仍留在coverage待检查，不能由上述差异说明改成已完成。
+当前各模块具体完成范围与未验状态以coverage.state_verification和visual-review.md为准。管理二级、初始化与九类资源已有独立实际浏览器证据；不能将旧“待检查”段落解读为从未处理。正式DTO差异与尚未逐项核验的深层视觉状态继续独立登记。
 
 补充固定场景：Demo初始worn有开衫/衬衫/裙子/鞋四件，runtime.outfit文字只有三件。新版chat/now/wardrobe参考场景通过原生方案换装完成并收起结果，固定为原有四件；HTTP夹具提供相同确认快照。没有改Demo源码、store或截图。reference-scene.mjs记录可复现操作。较早轮次保留发现该不一致时的证据，不能视为最终同内容通过。
 
@@ -22,3 +22,5 @@ Demo下一项runtime.nextActivity文案与其17:30日程activity并不相同，�
 测试场景校正：早期memoryRows把原Demo“经历/知识”漏映射而误归为自我，这是夹具错误，不是正式契约差异。现已按原种子分别映射episodic/semantic，复拍见memory-mapped-pass32；此前分类不一致的图片保留为历史发现，不能当成同内容通过。
 
 新增深层受控UI边界：Studio fixture能验证保存、发布、不可变旧版本、副本、应用预览与回执，但应用后的世界GET是固定样本，不能据此证明运行世界已更新；角色模板解析fixture没有结构化初始化产物。World fixture的queued→applied按读取次数模拟，可验阶段与详情UI，不能证明真实Worker执行；未覆盖failed-run retry与current_definition有效基准。Growth fixture支持实际HTTP对象修改和刷新读取，自我治理历史未追加每次快照，不能声称完整认识历史谱系通过。
+
+状态图标补充：通知正式source_kind依notification_center.go的已提交事件映射，pending依5类实际来源映射。Demo模拟task/persona通知没有同名正式事件，不能以media.asset.ready或capability.requested冒充；缺真实来源字段时使用中性图标。Studio只依据已有published_version呈现发布状态，归档仍保持中性。

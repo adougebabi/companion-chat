@@ -1,0 +1,156 @@
+[
+  {
+    "name": "character-switch",
+    "size": "desktop",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "selected role keeps its full display copy",
+      "menu retains actual occupation",
+      "role switch retains current page",
+      "new role uses actual scoped schedule read",
+      "switched: no horizontal overflow",
+      "selected role name is actually projected",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/owner-requests",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/owner-requests",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/schedules",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass95-character-switch-desktop-switched.png"
+    ],
+    "targetRole": {
+      "id": "jiangyu",
+      "name": "江屿"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "character-switch",
+    "size": "mobile",
+    "kind": "production dist / controlled shell directory and authentication HTTP",
+    "checks": [
+      "selected role keeps its full display copy",
+      "menu retains actual occupation",
+      "role switch retains current page",
+      "new role uses actual scoped schedule read",
+      "switched: no horizontal overflow",
+      "selected role name is actually projected",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/owner-requests",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/schedules",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/owner-requests",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/jiangyu/schedules",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/pass95-character-switch-mobile-switched.png"
+    ],
+    "targetRole": {
+      "id": "jiangyu",
+      "name": "江屿"
+    },
+    "status": "passed"
+  }
+]

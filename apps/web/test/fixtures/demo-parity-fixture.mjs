@@ -11,7 +11,7 @@ export function demoParityFixture({scenario='normal'}={}) {
  const domains=parityDomains({data,owner,clock:parityClock,chars,clone});
  const noticeSeed=()=>clone(data.notices).map(n=>{
   const amount=Number(n.time?.match(/\d+/)?.[0]||0),age=n.time?.includes('分钟')?amount*60000:n.time?.includes('小时')?amount*3600000:n.time?.includes('昨天')?86400000:0;
-  return {id:n.id,fluctlight_id:n.characterId,title:n.title,body:n.body,kind:n.type,created_at:new Date(Date.parse(parityClock)-age).toISOString(),read_at:n.read?timestamp:null,link:n.type==='task'?'/diag/task/'+n.sourceId:n.page==='profile'?'/c/'+n.characterId+'/profile':n.page==='goals'?'/c/'+n.characterId+'/life/goals':'/c/'+n.characterId+'/chat',quiet:false};
+  return {id:n.id,fluctlight_id:n.characterId,title:n.title,body:n.body,kind:n.type,...(n.type==='moment'?{source_kind:'moment.published',source_id:n.sourceId}:{}),created_at:new Date(Date.parse(parityClock)-age).toISOString(),read_at:n.read?timestamp:null,link:n.type==='task'?'/diag/task/'+n.sourceId:n.page==='profile'?'/c/'+n.characterId+'/profile':n.page==='goals'?'/c/'+n.characterId+'/life/goals':'/c/'+n.characterId+'/chat',quiet:false};
  });
  let notices=noticeSeed(),authMode='authenticated';
  const avatar=c=>c.id==='linwan'?{url:'/api/media/parity-avatar',asset_id:'parity-avatar'}:null;

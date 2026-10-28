@@ -606,7 +606,17 @@
 }
 .replica-studio .r-resource-state {
   margin-left: auto;
+  font-size:9px;
+  font-weight:400;
+  line-height:1.5;
+  gap:5px;
+  padding:3px 7px;
+  background:#f1f3ed;
+  color:#7b856e;
+  border-color:#e8ecdf;
 }
+.replica-studio .r-resource-state>i{width:4px;height:4px;border-radius:50%;background:currentColor;flex:none}
+.replica-studio .r-resource-state[data-published="true"]{background:#edf4e9;color:#62804e;border-color:#deead5}
 .replica-studio .r-resource-card .r-inline-between {
   gap: 8px;
 }

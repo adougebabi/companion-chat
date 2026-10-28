@@ -32,3 +32,7 @@ test('role filtering starts its own server read and the global unread count is n
   assert.match(ui.host.textContent,/包含其他角色/);
  }finally{await ui.dispose();}
 });
+test('unrecognized notification source names retain their content and a usable detail',async()=>{
+ sessionStorage.clear();const {w,api}=fixture();api.notifications=async()=>({items:['constructor','__proto__'].map((source_kind,index)=>({id:'unknown-'+index,title:'原来源 '+source_kind,body:'保留这条实际通知正文',source_kind,fluctlight_id:'A',link:'/diag/task/task-one',created_at:'2026-10-27T00:00:00Z'})),as_of:'server-as-of',next_cursor:''});
+ const ui=await mountReact(vite,Inbox,{workspace:w});try{assert.equal(ui.host.querySelectorAll('.replica-notice').length,2);await ui.click(ui.host.querySelectorAll('.replica-notice-main')[1]);assert.match(document.querySelector('[role=dialog]').textContent,/原来源 __proto__/);assert.match(document.querySelector('[role=dialog]').textContent,/保留这条实际通知正文/);await ui.click(button(document,'返回通知'));assert.equal(ui.host.querySelectorAll('.replica-notice').length,2);}finally{await ui.dispose();}
+});

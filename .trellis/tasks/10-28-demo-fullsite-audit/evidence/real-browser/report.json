@@ -1,7 +1,7 @@
 {
   "origin": "http://127.0.0.1:18480",
   "layer": "latest production dist / actual isolated Core / existing PostgreSQL records",
-  "capturedAt": "2026-10-28T18:20:15.059Z",
+  "capturedAt": "2026-10-28T19:05:04.465Z",
   "checks": [
     "existing isolated Owner session authenticated",
     "five latest React pages rendered actual API data without browser exception",
@@ -21,12 +21,12 @@
     },
     {
       "method": "GET",
-      "path": "/api/configuration-catalog",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
       "status": 200
     },
     {
       "method": "GET",
-      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
+      "path": "/api/configuration-catalog",
       "status": 200
     },
     {
@@ -51,7 +51,12 @@
     },
     {
       "method": "GET",
-      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/wardrobe",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/outfits",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/tags",
       "status": 200
     },
     {
@@ -61,12 +66,7 @@
     },
     {
       "method": "GET",
-      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/outfits",
-      "status": 200
-    },
-    {
-      "method": "GET",
-      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/tags",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/wardrobe",
       "status": 200
     },
     {
@@ -86,17 +86,17 @@
     },
     {
       "method": "GET",
-      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory",
-      "status": 200
-    },
-    {
-      "method": "GET",
       "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/tags",
       "status": 200
     },
     {
       "method": "GET",
       "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/outfits",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory",
       "status": 200
     },
     {
@@ -141,17 +141,17 @@
     },
     {
       "method": "GET",
+      "path": "/api/conversations/conversation_1f97f9e2fd2eb3772d4d5f896f877542/messages",
+      "status": 200
+    },
+    {
+      "method": "GET",
       "path": "/api/pending",
       "status": 200
     },
     {
       "method": "GET",
       "path": "/api/conversations/conversation_0ff5e5cb189572a38569c827473ff493/messages",
-      "status": 200
-    },
-    {
-      "method": "GET",
-      "path": "/api/conversations/conversation_1f97f9e2fd2eb3772d4d5f896f877542/messages",
       "status": 200
     }
   ],
@@ -192,6 +192,6 @@
     "id": "fluctlight_347839e7b22d4f0003824b1c4487de07",
     "name": "V3回归-f1730708-fullsite-audit"
   },
-  "uiEntry": "/assets/index-BhlDsfxT.js",
+  "uiEntry": "/assets/index-qdFSkmuy.js",
   "status": "passed"
 }

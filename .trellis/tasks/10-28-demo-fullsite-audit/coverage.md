@@ -55,12 +55,12 @@
 |feed-publish|我来发动态 / 发布弹窗|待检查|待检查|待检查|5|
 |feed-suggest|邀请分享近况 / 建议输入和结果|待检查|待检查|待检查|3|
 |feed-formal-npc|Demo不适用：没有世界人物在动态中的真实互动|待检查|待检查|待检查|2|
-|inbox-list-read|通知 / 全部未读、角色过滤与已读|待检查|待检查|待检查|12|
+|inbox-list-read|通知 / 全部未读、角色过滤与已读|待检查|待检查|待检查|14|
 |inbox-detail-source|通知详情 / 返回与来源链接|待检查|待检查|待检查|4|
 |inbox-pending|需要你决定 / 待处理卡|待检查|待检查|待检查|5|
 |inbox-task-recover|失败任务通知 / 原任务恢复轨迹|待检查|待检查|待检查|2|
 |inbox-back-chat|通知 / 回到日常|待检查|待检查|待检查|2|
-|inbox-formal-groups|Demo不适用：只模拟几条通知与pending，没有真实多来源运行态|待检查|待检查|待检查|2|
+|inbox-formal-groups|Demo不适用：只模拟几条通知与pending，没有真实多来源运行态|待检查|待检查|待检查|4|
 |avatar-source-all|侧栏/角色库/聊天/档案/关系/动态头像|待检查|已修复待验证|待检查|2|
 |shell-formal-routing|Demo不适用：Demo始终有本地种子角色与可用页面|待检查|待检查|待检查|2|
 |life-now-current|now|待检查|待检查|待检查|9|
@@ -79,7 +79,7 @@
 |life-diary-reply|diary → 读完后想对她说|待检查|待检查|待检查|2|
 |life-diary-shared|diary?tab=shared|待检查|待检查|待检查|3|
 |life-diary-generate|diary → 整理过去一天的日记|待检查|待检查|待检查|2|
-|life-memory-list|memory?tab=memory|待检查|待检查|待检查|10|
+|life-memory-list|memory?tab=memory|待检查|待检查|待检查|12|
 |life-memory-detail|memory → 记忆详情|待检查|待检查|待检查|9|
 |life-memory-correct|memory → 纠正这段记忆|待检查|待检查|待检查|6|
 |life-memory-forget|memory → 遗忘确认|待检查|待检查|待检查|2|
@@ -156,7 +156,7 @@
 |resources.wardrobe.compose|wardrobe → 搭配工作台|待检查|待检查|待检查|2|
 |resources.wardrobe.tags|wardrobe → 管理穿搭场景弹窗|待检查|待检查|待检查|2|
 |resources.wardrobe.wear|wardrobe → 方案 → 换装确认/结果条|待检查|待检查|待检查|2|
-|resources.studio.directory|studio → 资源目录|待检查|待检查|待检查|11|
+|resources.studio.directory|studio → 资源目录|待检查|待检查|待检查|13|
 |resources.studio.editor.world|studio?kind=world → 新建/编辑|待检查|待检查|待检查|4|
 |resources.studio.editor.character_template|studio?kind=character_template → 新建/编辑|待检查|待检查|待检查|3|
 |resources.studio.editor.item|studio?kind=item → 新建/编辑|待检查|待检查|待检查|1|
@@ -166,7 +166,7 @@
 |resources.studio.editor.event_template|studio?kind=event_template → 新建/编辑|待检查|待检查|待检查|1|
 |resources.studio.editor.persona_fragment|studio?kind=persona_fragment → 新建/编辑|待检查|待检查|待检查|1|
 |resources.studio.editor.visual_style|studio?kind=visual_style → 新建/编辑|待检查|待检查|待检查|1|
-|resources.studio.lifecycle|studio → 保存与发布/资源管理/发布版本历史|待检查|待检查|待检查|4|
+|resources.studio.lifecycle|studio → 保存与发布/资源管理/发布版本历史|待检查|待检查|待检查|6|
 |resources.studio.apply|studio → 应用弹窗/结果|待检查|待检查|待检查|4|
 |resources.studio.creation|studio → 用于初始化/返回创建流程|待检查|待检查|待检查|4|
 |resources.studio.sandbox|studio?mode=sandbox → 任务/结果/采用|待检查|待检查|待检查|4|

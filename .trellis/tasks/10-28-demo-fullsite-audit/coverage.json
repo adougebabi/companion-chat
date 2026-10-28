@@ -39,7 +39,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -50,28 +51,28 @@
           "navigation-pages-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "navigation resolves and highlights 聊天; navigation resolves and highlights 此刻; navigation resolves and highlights 日程; navigation resolves and highlights 目标; navigation resolves and highlights 衣柜; navigation resolves and highlights 日记; navigation resolves and highlights 记忆; navigation resolves and highlights 角色详情; navigation resolves and highlights 世界; navigation resolves and highlights 动态; navigation resolves and highlights 人物关系; navigation resolves and highlights 媒体; navigation resolves and highlights 角色库; navigation resolves and highlights 创作中心; navigation resolves and highlights 通知与待处理; navigation resolves and highlights 管理中心; brand returns to actual library; library-return: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "empty-directory-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "navigation-pages-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "navigation resolves and highlights 聊天; navigation resolves and highlights 此刻; navigation resolves and highlights 日程; navigation resolves and highlights 目标; navigation resolves and highlights 衣柜; navigation resolves and highlights 日记; navigation resolves and highlights 记忆; navigation resolves and highlights 角色详情; navigation resolves and highlights 世界; navigation resolves and highlights 动态; navigation resolves and highlights 人物关系; navigation resolves and highlights 媒体; navigation resolves and highlights 角色库; navigation resolves and highlights 创作中心; navigation resolves and highlights 通知与待处理; navigation resolves and highlights 管理中心; brand returns to actual library; library-return: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "empty-directory-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -114,7 +115,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -125,28 +127,28 @@
           "character-switch-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
-            "notes": "role switch retains current page; new role uses actual scoped schedule read; switched: no horizontal overflow; selected role name is actually projected; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+            "notes": "selected role keeps its full display copy; menu retains actual occupation; role switch retains current page; new role uses actual scoped schedule read; switched: no horizontal overflow; selected role name is actually projected; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "empty-directory-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "character-switch-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
-            "notes": "role switch retains current page; new role uses actual scoped schedule read; switched: no horizontal overflow; selected role name is actually projected; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+            "notes": "selected role keeps its full display copy; menu retains actual occupation; role switch retains current page; new role uses actual scoped schedule read; switched: no horizontal overflow; selected role name is actually projected; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "empty-directory-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -186,7 +188,8 @@
         "interaction": [
           "evidence/interaction/workspace-ui.json",
           "evidence/interaction/settings-studio-ui.json",
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -239,14 +242,14 @@
           "sidebar-focus-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "collapsed icon stays labelled 聊天; collapsed icon stays labelled 此刻; collapsed icon stays labelled 日程; collapsed icon stays labelled 目标; collapsed icon stays labelled 衣柜; collapsed icon stays labelled 日记; collapsed icon stays labelled 记忆; collapsed icon stays labelled 角色详情; collapsed icon stays labelled 世界; collapsed icon stays labelled 动态; collapsed icon stays labelled 人物关系; collapsed icon stays labelled 媒体; collapsed icon stays labelled 角色库; collapsed icon stays labelled 创作中心; collapsed icon stays labelled 通知与待处理; collapsed icon stays labelled 管理中心; collapsed: no horizontal overflow; main shortcut preserves independent chat preview; focus-and-width: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "sidebar-focus-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "mobile Escape restores connected navigation trigger; focus-and-width: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -383,7 +386,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -394,14 +398,14 @@
           "account-logout-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "account-logout-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -689,7 +693,8 @@
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
           },
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -702,14 +707,14 @@
           "empty-directory-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "empty-directory-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -752,7 +757,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -763,14 +769,14 @@
           "account-logout-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "account-logout-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -1014,7 +1020,8 @@
         ],
         "interaction": [
           "evidence/interaction/workspace-ui.json",
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": [
           {
@@ -1056,14 +1063,14 @@
           "say-existing-draft-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "say-existing-draft-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -1315,7 +1322,8 @@
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
           },
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -1328,14 +1336,14 @@
           "say-existing-draft-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "say-existing-draft-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -3942,12 +3950,17 @@
           "evidence/visual/inbox/final-pass85/reference-desktop.png",
           "evidence/visual/inbox/final-pass85/actual-desktop.png",
           "evidence/visual/inbox/final-pass85/reference-mobile.png",
-          "evidence/visual/inbox/final-pass85/actual-mobile.png"
+          "evidence/visual/inbox/final-pass85/actual-mobile.png",
+          "evidence/visual/inbox/final-pass99/reference-desktop.png",
+          "evidence/visual/inbox/final-pass99/actual-desktop.png",
+          "evidence/visual/inbox/final-pass99/reference-mobile.png",
+          "evidence/visual/inbox/final-pass99/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui.json",
           "evidence/states/read-states.json",
-          "evidence/responsive-layout/report-consolidated.json"
+          "evidence/responsive-layout/report-consolidated.json",
+          "evidence/status-presentation/report-consolidated.json"
         ],
         "business": [
           "evidence/real-browser/report.json"
@@ -3960,16 +3973,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/final-pass85/reference-desktop.png",
-              "evidence/visual/inbox/final-pass85/actual-desktop.png"
+              "evidence/visual/inbox/final-pass99/reference-desktop.png",
+              "evidence/visual/inbox/final-pass99/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/final-pass85/reference-mobile.png",
-              "evidence/visual/inbox/final-pass85/actual-mobile.png"
+              "evidence/visual/inbox/final-pass99/reference-mobile.png",
+              "evidence/visual/inbox/final-pass99/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -4029,14 +4042,28 @@
             "evidence": [
               "evidence/responsive-layout/report-consolidated.json"
             ],
-            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+            "notes": "notification refresh stays on the selector row; selected notification tab uses original green underline; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "inbox-mobile": {
             "status": "已验证",
             "evidence": [
               "evidence/responsive-layout/report-consolidated.json"
             ],
-            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+            "notes": "notification refresh stays on the selector row; selected notification tab uses original green underline; notification applies original compact density; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "notification-sources-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "explicit notification source selects conversation.reply.published; explicit notification source selects moment.published; explicit notification source selects moment.comment.created; explicit notification source selects moment.reaction.created; explicit notification source selects capability.requested; explicit notification source selects owner.request.settled; explicit notification source selects media.asset.ready; explicit notification source selects world.npc.encountered; explicit notification source selects diary.generated; explicit notification source selects goal.evaluated; explicit notification source selects fixture.future-source; explicit notification source selects constructor; explicit notification source selects __proto__; decision, progress and service sources keep their own icons; source-types: no document overflow; pending-types: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "notification-sources-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "explicit notification source selects conversation.reply.published; explicit notification source selects moment.published; explicit notification source selects moment.comment.created; explicit notification source selects moment.reaction.created; explicit notification source selects capability.requested; explicit notification source selects owner.request.settled; explicit notification source selects media.asset.ready; explicit notification source selects world.npc.encountered; explicit notification source selects diary.generated; explicit notification source selects goal.evaluated; explicit notification source selects fixture.future-source; explicit notification source selects constructor; explicit notification source selects __proto__; decision, progress and service sources keep their own icons; source-types: no document overflow; pending-types: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         },
         "business": {
@@ -4170,7 +4197,11 @@
           "evidence/visual/inbox/final-pass85/reference-desktop.png",
           "evidence/visual/inbox/final-pass85/actual-desktop.png",
           "evidence/visual/inbox/final-pass85/reference-mobile.png",
-          "evidence/visual/inbox/final-pass85/actual-mobile.png"
+          "evidence/visual/inbox/final-pass85/actual-mobile.png",
+          "evidence/visual/inbox/final-pass99/reference-desktop.png",
+          "evidence/visual/inbox/final-pass99/actual-desktop.png",
+          "evidence/visual/inbox/final-pass99/reference-mobile.png",
+          "evidence/visual/inbox/final-pass99/actual-mobile.png"
         ],
         "interaction": [
           "evidence/interaction/domain-ui.json",
@@ -4185,16 +4216,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/final-pass85/reference-desktop.png",
-              "evidence/visual/inbox/final-pass85/actual-desktop.png"
+              "evidence/visual/inbox/final-pass99/reference-desktop.png",
+              "evidence/visual/inbox/final-pass99/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/inbox/final-pass85/reference-mobile.png",
-              "evidence/visual/inbox/final-pass85/actual-mobile.png"
+              "evidence/visual/inbox/final-pass99/reference-mobile.png",
+              "evidence/visual/inbox/final-pass99/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           }
@@ -4212,14 +4243,14 @@
             "evidence": [
               "evidence/responsive-layout/report-consolidated.json"
             ],
-            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+            "notes": "notification refresh stays on the selector row; selected notification tab uses original green underline; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "inbox-mobile": {
             "status": "已验证",
             "evidence": [
               "evidence/responsive-layout/report-consolidated.json"
             ],
-            "notes": "notification refresh stays on the selector row; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+            "notes": "notification refresh stays on the selector row; selected notification tab uses original green underline; notification applies original compact density; filtered-and-refreshed: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4375,7 +4406,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/chat-inbox-avatar/report-consolidated.json"
+          "evidence/chat-inbox-avatar/report-consolidated.json",
+          "evidence/status-presentation/report-consolidated.json"
         ],
         "business": []
       },
@@ -4396,6 +4428,20 @@
               "evidence/chat-inbox-avatar/report-consolidated.json"
             ],
             "notes": "source failure is labelled unread, not zero; running request stays separate from decisions; separate-source-categories: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "notification-sources-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "explicit notification source selects conversation.reply.published; explicit notification source selects moment.published; explicit notification source selects moment.comment.created; explicit notification source selects moment.reaction.created; explicit notification source selects capability.requested; explicit notification source selects owner.request.settled; explicit notification source selects media.asset.ready; explicit notification source selects world.npc.encountered; explicit notification source selects diary.generated; explicit notification source selects goal.evaluated; explicit notification source selects fixture.future-source; explicit notification source selects constructor; explicit notification source selects __proto__; decision, progress and service sources keep their own icons; source-types: no document overflow; pending-types: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "notification-sources-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "explicit notification source selects conversation.reply.published; explicit notification source selects moment.published; explicit notification source selects moment.comment.created; explicit notification source selects moment.reaction.created; explicit notification source selects capability.requested; explicit notification source selects owner.request.settled; explicit notification source selects media.asset.ready; explicit notification source selects world.npc.encountered; explicit notification source selects diary.generated; explicit notification source selects goal.evaluated; explicit notification source selects fixture.future-source; explicit notification source selects constructor; explicit notification source selects __proto__; decision, progress and service sources keep their own icons; source-types: no document overflow; pending-types: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4512,7 +4558,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/shell-deep/report-pass59.json"
+          "evidence/shell-deep/report-pass59.json",
+          "evidence/shell-deep/report-consolidated.json"
         ],
         "business": []
       },
@@ -4523,14 +4570,14 @@
           "unavailable-route-desktop": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "unknown role does not fall back to a different chat; unknown-role: no horizontal overflow; retired entry is explicitly unavailable; no second legacy application appears; retired-entry: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           },
           "unavailable-route-mobile": {
             "status": "已验证",
             "evidence": [
-              "evidence/shell-deep/report-pass59.json"
+              "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "unknown role does not fall back to a different chat; unknown-role: no horizontal overflow; retired entry is explicitly unavailable; no second legacy application appears; retired-entry: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
@@ -6401,11 +6448,16 @@
           "evidence/visual/memory/final-pass85/reference-desktop.png",
           "evidence/visual/memory/final-pass85/actual-desktop.png",
           "evidence/visual/memory/final-pass85/reference-mobile.png",
-          "evidence/visual/memory/final-pass85/actual-mobile.png"
+          "evidence/visual/memory/final-pass85/actual-mobile.png",
+          "evidence/visual/memory/final-pass99/reference-desktop.png",
+          "evidence/visual/memory/final-pass99/actual-desktop.png",
+          "evidence/visual/memory/final-pass99/reference-mobile.png",
+          "evidence/visual/memory/final-pass99/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states.json",
-          "evidence/memory-deep/report-pass26.json"
+          "evidence/memory-deep/report-pass26.json",
+          "evidence/responsive-layout/report-consolidated.json"
         ],
         "business": []
       },
@@ -6416,16 +6468,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/memory/final-pass85/reference-desktop.png",
-              "evidence/visual/memory/final-pass85/actual-desktop.png"
+              "evidence/visual/memory/final-pass99/reference-desktop.png",
+              "evidence/visual/memory/final-pass99/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/memory/final-pass85/reference-mobile.png",
-              "evidence/visual/memory/final-pass85/actual-mobile.png"
+              "evidence/visual/memory/final-pass99/reference-mobile.png",
+              "evidence/visual/memory/final-pass99/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -6486,6 +6538,20 @@
               "evidence/memory-deep/report-pass26.json"
             ],
             "notes": "search draft does not prematurely replace results; empty-search: no horizontal page overflow; relationship filter excludes pending semantic record; current-source: dialog fits viewport; current-source: no horizontal page overflow; historical-source: dialog fits viewport; historical-source: no horizontal page overflow; Escape restores originating memory card focus; filter remains selected after closing detail; pending-provenance: dialog fits viewport; pending-provenance: no horizontal page overflow; viewing/search/cancel sent no mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "memory search uses original responsive width; refresh retains original applied filter and newer search draft; explicit memory search applies the draft; memory-query-no-match: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/responsive-layout/report-consolidated.json"
+            ],
+            "notes": "memory search uses original responsive width; refresh retains original applied filter and newer search draft; explicit memory search applies the draft; memory-query-no-match: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -12539,11 +12605,16 @@
           "evidence/visual/studio/final-pass85/reference-desktop.png",
           "evidence/visual/studio/final-pass85/actual-desktop.png",
           "evidence/visual/studio/final-pass85/reference-mobile.png",
-          "evidence/visual/studio/final-pass85/actual-mobile.png"
+          "evidence/visual/studio/final-pass85/actual-mobile.png",
+          "evidence/visual/studio/final-pass99/reference-desktop.png",
+          "evidence/visual/studio/final-pass99/actual-desktop.png",
+          "evidence/visual/studio/final-pass99/reference-mobile.png",
+          "evidence/visual/studio/final-pass99/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states.json",
-          "evidence/responsive-layout/report-consolidated.json"
+          "evidence/responsive-layout/report-consolidated.json",
+          "evidence/status-presentation/report-consolidated.json"
         ],
         "business": [
           "evidence/real-browser/report.json"
@@ -12556,16 +12627,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/studio/final-pass85/reference-desktop.png",
-              "evidence/visual/studio/final-pass85/actual-desktop.png"
+              "evidence/visual/studio/final-pass99/reference-desktop.png",
+              "evidence/visual/studio/final-pass99/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/studio/final-pass85/reference-mobile.png",
-              "evidence/visual/studio/final-pass85/actual-mobile.png"
+              "evidence/visual/studio/final-pass99/reference-mobile.png",
+              "evidence/visual/studio/final-pass99/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
@@ -12626,6 +12697,20 @@
               "evidence/responsive-layout/report-consolidated.json"
             ],
             "notes": "new resource remains alongside heading; refresh preserves draft without applying a new search; original create menu retains all resource types; search-and-create-menu: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-status-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "published status uses original compact green presentation; unpublished draft retains neutral state; published: no document overflow; archived resource never appears published; archived: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-status-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "published status uses original compact green presentation; unpublished draft retains neutral state; published: no document overflow; archived resource never appears published; archived: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         },
         "business": {
@@ -13451,7 +13536,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/studio-deep/report-after-pass29.json"
+          "evidence/studio-deep/report-after-pass29.json",
+          "evidence/status-presentation/report-consolidated.json"
         ],
         "business": []
       },
@@ -13486,6 +13572,20 @@
               "evidence/studio-deep/report-after-pass29.json"
             ],
             "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-status-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "published status uses original compact green presentation; unpublished draft retains neutral state; published: no document overflow; archived resource never appears published; archived: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "studio-status-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/status-presentation/report-consolidated.json"
+            ],
+            "notes": "published status uses original compact green presentation; unpublished draft retains neutral state; published: no document overflow; archived resource never appears published; archived: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -13823,7 +13923,11 @@
           "evidence/visual/media/media-pass87/reference-desktop.png",
           "evidence/visual/media/media-pass87/actual-desktop.png",
           "evidence/visual/media/media-pass87/reference-mobile.png",
-          "evidence/visual/media/media-pass87/actual-mobile.png"
+          "evidence/visual/media/media-pass87/actual-mobile.png",
+          "evidence/visual/media/final-pass94/reference-desktop.png",
+          "evidence/visual/media/final-pass94/actual-desktop.png",
+          "evidence/visual/media/final-pass94/reference-mobile.png",
+          "evidence/visual/media/final-pass94/actual-mobile.png"
         ],
         "interaction": [
           "evidence/states/read-states.json",
@@ -13838,16 +13942,16 @@
           "正常-desktop": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/media/media-pass87/reference-desktop.png",
-              "evidence/visual/media/media-pass87/actual-desktop.png"
+              "evidence/visual/media/final-pass94/reference-desktop.png",
+              "evidence/visual/media/final-pass94/actual-desktop.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
           "正常-mobile": {
             "status": "发现问题",
             "evidence": [
-              "evidence/visual/media/media-pass87/reference-mobile.png",
-              "evidence/visual/media/media-pass87/actual-mobile.png"
+              "evidence/visual/media/final-pass94/reference-mobile.png",
+              "evidence/visual/media/final-pass94/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
           },
