@@ -295,3 +295,26 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Next Steps
 
 - 后续真实 NAS 与模型联调验收应独立记录，当前证据为隔离 UI fixture。
+
+
+## Session 75: 完成 Demo 工作区逐页复刻与最终验收
+<!-- trellis-session: v=2 fp=5ade672288d786db -->
+
+**Date**: 2026-10-28
+**Task**: 完成 Demo 工作区逐页复刻与最终验收
+**Branch**: `codex/demo-workspace-replica-20261027`
+
+### Summary
+
+完成16组Demo页面、正式领域接线及正常/空白/编辑/加载/失败验收；补9类保留对象和头像/实际换装跨页与角色隔离证据，修复原消息来源及衣柜返回筛选。Web625/625、lint/typecheck/build/两项production guard通过；更新规格并归档当前任务。保留10-22全部无关材料，仅本地提交，未推送/部署；隔离fixture不替代live Core/DB/model/NAS/operator验收。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b8991b1c` | feat(web): replicate demo workspace with formal domain workflows |
+| `a0313076` | docs(task): record complete demo replica acceptance evidence |
+
+### Status
+
+[OK] **Completed**
