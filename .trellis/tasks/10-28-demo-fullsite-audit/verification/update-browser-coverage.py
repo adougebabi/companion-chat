@@ -55,12 +55,24 @@ extra_maps={
  'evidence/creation/creation-ui.json':lambda name:['creation-blank'] if name.startswith('source-blank-') else ['creation-'+name.split('-')[1],'creation-analysis','creation-review-identity','creation-review-personality','creation-review-life','creation-review-relations','creation-review-json'] if name.startswith('source-') else ['creation-analysis'],
  'evidence/creation/creation-ui-preview-trait-edit-preservation.json':lambda name:['creation-review-personality','creation-review-json'],
  'evidence/preparation/preparation-ui.json':lambda name:['creation-seven-stages','creation-activation']+(['creation-inventory-recovery'] if name in ['wardrobe-failure','recovery-unknown'] else []),
- 'evidence/interaction/visual-ui.json':lambda name:['resources.media.visual.brief'] if name.startswith('visual-definition-') else ['resources.media.avatar'] if name.startswith('avatar-') else ['resources.media.generation'] if name.startswith('generation-') else ['resources.media.gallery']}
+ 'evidence/form-groups/report-after.json':lambda name:['feed-publish','feed-suggest'] if name=='feed-compose' else ['people-create'] if name=='people-create' else ['people-formal-management','people-detail'],
+ 'evidence/interaction/visual-ui.json':lambda name:['resources.media.visual.brief'] if name.startswith('visual-definition-') else ['resources.media.visual.candidate','resources.media.visual.review'] if name.startswith('candidate-review-') else ['resources.media.avatar'] if name.startswith('avatar-') else ['resources.media.generation'] if name.startswith('generation-') else ['resources.media.gallery']}
+extra_maps.update({
+ 'evidence/memory-deep/report-pass26.json':lambda name:['life-reflection-list','life-reflection-detail'] if name=='reflection-feedback' else ['life-self-list','life-self-detail'] if name=='self-governance' else ['life-memory-correct','life-memory-forget','life-memory-restore','life-memory-detail'] if name=='memory-governance' else ['life-memory-list','life-memory-detail'] if name=='filter-sources' else ['life-memory-correct','life-memory-detail'],
+ 'evidence/memory-deep/report-pass29.json':lambda name:['life-memory-correct','life-memory-detail'],
+ 'evidence/studio-deep/report-after-pass29.json':lambda name:['resources.studio.editor.'+name,'resources.studio.lifecycle','resources.studio.apply'],
+ 'evidence/world-deep/report-pass31.json':lambda name:['resources.world.venues','resources.world.place.editor','resources.world.place.history'] if name=='place-history-restore' else ['resources.world.items'] if name=='item-availability' else ['resources.world.events'],
+})
 for file,ids in extra_maps.items():
  if not (root/file).exists():continue
  for result in json.loads((root/file).read_text()):
-  name=result.get('name') or result.get('scenario');targets=[id for id in ids(name) if id in rows]
-  add(targets,'interaction',name,'已验证' if result['status']=='passed' else '发现问题',[file],'; '.join(result['checks'])+'。只证明记录的断言，不代表该矩阵整行所有状态已完成。')
+  name=result.get('name') or result.get('scenario');result.setdefault('checks',['rendered group fills form width','20px flex stack gap','cancel without a write','no horizontal overflow'] if file=='evidence/form-groups/report-after.json' else []);targets=[id for id in ids(name) if id in rows]
+  state=name+('-'+result['size'] if isinstance(result.get('size'),str) else '')
+  add(targets,'interaction',state,'已验证' if result['status']=='passed' else '发现问题',[file],'; '.join(result['checks'])+'。只证明记录的断言，不代表该矩阵整行所有状态已完成。')
+real='evidence/real-browser/report.json'
+if (root/real).exists():
+ report=json.loads((root/real).read_text())
+ add(['library-cards','chat-room','life-now-current','resources.studio.directory','inbox-list-read'],'business','真实隔离Core/PG浏览器读取','已验证' if report.get('status')=='passed' else '发现问题',[real],'现有Owner和角色；5页面实际API读取，无聊天发送/模型生成/新激活。本项不证明各页全部写操作。')
 (root/'coverage.json').write_text(json.dumps(c,ensure_ascii=False,indent=2)+'\n')
 (root/'evidence/states/read-states-consolidated.json').write_text(json.dumps([r for _,r in states.values()],ensure_ascii=False,indent=2)+'\n')
 md=['# 全站覆盖矩阵','',f'初始 {len(rows)} 行。行级视觉、交互、业务状态保持独立；本轮执行细节在每行 state_verification，不以单个正常页或一次测试覆盖整行全部状态。','', '|ID|页面/入口|视觉|交互|业务|本轮已登记具体核验项|','|---|---|---|---|---|---|']

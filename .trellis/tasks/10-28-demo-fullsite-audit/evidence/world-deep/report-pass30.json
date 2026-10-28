@@ -1,0 +1,983 @@
+[
+  {
+    "name": "place-history-restore",
+    "size": "desktop",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "existing place formal name is readonly",
+      "existing category remains fixed",
+      "cancel sends no place write",
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "place alias saved with advancing revision",
+      "untouched structured furniture and connections preserved",
+      "restore-preview: no horizontal overflow",
+      "restore-preview: dialog fits viewport",
+      "empty restore reason does not mutate",
+      "restored: no horizontal overflow",
+      "restored: dialog fits viewport",
+      "restore appends version and returns to confirmed original alias",
+      "restore preserves existing spatial links",
+      "only one edit and one explicit restore",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room",
+        "method": "PUT",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "name": "卧室",
+          "description": "保留原空间连接与陈设，补充窗边光线。",
+          "alias": "窗边卧室 desktop pass30",
+          "group": "",
+          "floor": "二层",
+          "scene": "",
+          "atmosphere": "温暖",
+          "layout": "床靠西墙，窗朝东",
+          "status": "active",
+          "reason": "所有者保存世界中的具体地点",
+          "venueCategoryId": "home",
+          "idempotencyKey": "caa5f9a5-e6d3-4500-8ea4-fe0148668adf"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 2,
+          "expectedDefaultRevision": 1,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "恢复已核对字段，保留空间关系",
+          "idempotencyKey": "ba8cc8ad-7b79-4135-aab4-6889b2118ce2"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-desktop-restore-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-desktop-restored.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '她的房间', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n世界\n快速前往\n⌘ K\nYOUR WORLD / A PLACE TO BELONG\n世界\n\n每个人，都在自己的风景里生活。\n\n世界底稿\n新建世界\n2 个世界\n当前世界\n温暖、安静\n温和魔法世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n2 处地点\n1 位已读人物\n林\n进入世界\n自然与绿意\n远山森林\n\n为另一段生活保留的世界。\n\n0 处地点\n0 位已读人物\n进入世界\n从一个想法开始\n\n把新的风景，写成世界底稿\n\n创建可复用的世界设定\n林岚 · 验收样本的当前世界：温和魔法世界\n\n实际位置与活动以此刻记录为准。\n\n看看此刻"
+  },
+  {
+    "name": "item-availability",
+    "size": "desktop",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "unavailable item request is disabled",
+      "unavailable: no horizontal overflow",
+      "unavailable: dialog fits viewport",
+      "unavailable and unrestricted place read back",
+      "availability returns only after confirmed read",
+      "available: no horizontal overflow",
+      "available: dialog fits viewport",
+      "only two explicit item configurations",
+      "item suggestion enters chat draft without sending",
+      "chat-draft: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 3,
+          "available": false,
+          "placeId": null,
+          "reason": "所有者配置世界物品的取得范围",
+          "idempotencyKey": "1938bce3-ae49-4b8a-a2e9-0df104a048f3"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "available": true,
+          "placeId": null,
+          "reason": "所有者配置世界物品的取得范围",
+          "idempotencyKey": "393b38e7-2708-4ca6-8ce4-1a2019ce8a19"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-item-availability-desktop-unavailable.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-item-availability-desktop-available.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-item-availability-desktop-chat-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "event-toggle-trigger",
+    "size": "desktop",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "pause switch reflects confirmed disabled template",
+      "paused template cannot trigger",
+      "paused: no horizontal overflow",
+      "paused: dialog fits viewport",
+      "blank trigger reason does not enqueue",
+      "queued: no horizontal overflow",
+      "queued: dialog fits viewport",
+      "UI follows original run to applied result",
+      "only two toggles and one trigger",
+      "applied: no horizontal overflow",
+      "applied: dialog fits viewport",
+      "life-event: no horizontal overflow",
+      "life-event: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "暂时暂停事件",
+          "enabled": false,
+          "idempotencyKey": "7fefb391-bd26-4e53-ba3f-3afbebccb5b5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "明确恢复启用",
+          "enabled": true,
+          "idempotencyKey": "39815725-0c22-474c-8a11-4ff486f18108"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 8,
+          "reason": "验证一次事件的受理与实际记录展示",
+          "idempotencyKey": "4e37ebc2-1111-4caa-b0a9-f49c25d368b9"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/world-run-3",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events/event-world-run-3",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-desktop-paused.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-desktop-queued.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-desktop-applied.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-desktop-life-event.png"
+    ],
+    "runId": "world-run-3",
+    "status": "passed"
+  },
+  {
+    "name": "place-history-restore",
+    "size": "mobile",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "existing place formal name is readonly",
+      "existing category remains fixed",
+      "cancel sends no place write",
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "place alias saved with advancing revision",
+      "untouched structured furniture and connections preserved",
+      "restore-preview: no horizontal overflow",
+      "restore-preview: dialog fits viewport",
+      "empty restore reason does not mutate",
+      "restored: no horizontal overflow",
+      "restored: dialog fits viewport",
+      "restore appends version and returns to confirmed original alias",
+      "restore preserves existing spatial links",
+      "only one edit and one explicit restore",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room",
+        "method": "PUT",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 3,
+          "name": "卧室",
+          "description": "保留原空间连接与陈设，补充窗边光线。",
+          "alias": "窗边卧室 mobile pass30",
+          "group": "",
+          "floor": "二层",
+          "scene": "",
+          "atmosphere": "温暖",
+          "layout": "床靠西墙，窗朝东",
+          "status": "active",
+          "reason": "所有者保存世界中的具体地点",
+          "venueCategoryId": "home",
+          "idempotencyKey": "1385a0b3-e21c-4043-9672-59d3f7b5851e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 4,
+          "expectedDefaultRevision": 1,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "恢复已核对字段，保留空间关系",
+          "idempotencyKey": "9611a9fa-8241-4e8c-89a5-b84576bac97b"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-room/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-mobile-restore-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-mobile-restored.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-place-history-restore-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('heading', { name: '她的房间', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n世界\n快速前往\nYOUR WORLD / A PLACE TO BELONG\n世界\n\n每个人，都在自己的风景里生活。\n\n世界底稿\n新建世界\n2 个世界\n当前世界\n温暖、安静\n温和魔法世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n2 处地点\n1 位已读人物\n林\n进入世界\n自然与绿意\n远山森林\n\n为另一段生活保留的世界。\n\n0 处地点\n0 位已读人物\n进入世界\n从一个想法开始\n\n把新的风景，写成世界底稿\n\n创建可复用的世界设定\n林岚 · 验收样本的当前世界：温和魔法世界\n\n实际位置与活动以此刻记录为准。\n\n看看此刻"
+  },
+  {
+    "name": "item-availability",
+    "size": "mobile",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "unavailable item request is disabled",
+      "unavailable: no horizontal overflow",
+      "unavailable: dialog fits viewport",
+      "unavailable and unrestricted place read back",
+      "availability returns only after confirmed read",
+      "available: no horizontal overflow",
+      "available: dialog fits viewport",
+      "only two explicit item configurations",
+      "item suggestion enters chat draft without sending",
+      "chat-draft: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 5,
+          "available": false,
+          "placeId": null,
+          "reason": "所有者配置世界物品的取得范围",
+          "idempotencyKey": "c63896e9-42ce-4fea-b0d8-51e2497e81aa"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 6,
+          "available": true,
+          "placeId": null,
+          "reason": "所有者配置世界物品的取得范围",
+          "idempotencyKey": "7c3e3989-46b7-4553-bf3a-ea973a9bda03"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items/fluctlight-fixture-one-world-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/items",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-item-availability-mobile-unavailable.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-item-availability-mobile-available.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-item-availability-mobile-chat-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "event-toggle-trigger",
+    "size": "mobile",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "pause switch reflects confirmed disabled template",
+      "paused template cannot trigger",
+      "paused: no horizontal overflow",
+      "paused: dialog fits viewport",
+      "blank trigger reason does not enqueue",
+      "queued: no horizontal overflow",
+      "queued: dialog fits viewport",
+      "UI follows original run to applied result",
+      "only two toggles and one trigger",
+      "applied: no horizontal overflow",
+      "applied: dialog fits viewport",
+      "life-event: no horizontal overflow",
+      "life-event: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 8,
+          "reason": "暂时暂停事件",
+          "enabled": false,
+          "idempotencyKey": "1fa607fe-10bd-4b8b-a971-0bfa6504072d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 9,
+          "reason": "明确恢复启用",
+          "enabled": true,
+          "idempotencyKey": "1e425487-0c99-4024-be5e-75ade1d191a5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 10,
+          "reason": "验证一次事件的受理与实际记录展示",
+          "idempotencyKey": "42c772ac-9402-48d2-a11b-f085bb12c314"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/world-run-6",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events/event-world-run-3",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-mobile-paused.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-mobile-queued.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-mobile-applied.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass30-event-toggle-trigger-mobile-life-event.png"
+    ],
+    "runId": "world-run-6",
+    "status": "passed"
+  }
+]

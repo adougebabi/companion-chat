@@ -223,7 +223,7 @@ export default function PersonDetail({
           }
         },
         fields: (d, change) => (
-          <div className="replica-profile replica-people companion-form-stack">
+          <div className="replica-profile replica-people companion-form-stack lp-wide">
             <p className="companion-caption">
               时间按 {d.zone}{" "}
               填写。本次实际确认会记录为来源，已有记录引用可在证据字段补充。
@@ -561,7 +561,7 @@ function NpcFields({ draft: d, edit, places }) {
     </>
   );
   return (
-    <div className="replica-profile replica-people companion-form-stack">
+    <div className="replica-profile replica-people companion-form-stack lp-wide">
       {input("名字", "name")}
       {input("职业 / 身份", "role")}
       {field(

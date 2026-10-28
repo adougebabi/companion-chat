@@ -1,0 +1,88 @@
+[
+  {
+    "name": "filter-sources",
+    "size": "desktop",
+    "fid": "audit-pass23-filter-sources-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass23-filter-sources-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.fill: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('textbox', { name: '搜索记忆正文', exact: true })\u001b[22m\n",
+    "text": "角色不存在\n\n请回到角色库选择当前可用的角色。\n\n返回角色库"
+  },
+  {
+    "name": "memory-governance",
+    "size": "desktop",
+    "fid": "audit-pass23-memory-governance-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass23-memory-governance-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '查看记忆 你喜欢下雨天，也喜欢坐在窗边读书。', exact: true })\u001b[22m\n",
+    "text": "角色不存在\n\n请回到角色库选择当前可用的角色。\n\n返回角色库"
+  },
+  {
+    "name": "reflection-feedback",
+    "size": "desktop",
+    "fid": "audit-pass23-reflection-feedback-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '展开这次反思', exact: true })\u001b[22m\n",
+    "text": null
+  }
+]

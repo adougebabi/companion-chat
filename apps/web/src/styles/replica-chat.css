@@ -360,6 +360,7 @@
   gap: 5px;
   padding: 7px 9px;
   font-size: 9px;
+  line-height: 1.95;
   color: #89977a;
 }
 .replica-chat .companion-message-attachments {
@@ -667,7 +668,7 @@
 .replica-chat .companion-chat-person strong{font-weight:600}
 .replica-chat .companion-select{width:115px;min-width:90px;min-height:30px;height:30px;font-size:10px;border-color:transparent;background:#f6f7f2;box-shadow:none;border-radius:7px}
 .replica-chat .companion-message-body{width:auto;gap:0}
-.replica-chat .companion-message-meta{padding:0;font-weight:400}
+.replica-chat .companion-message-meta{padding:0;font-weight:400;line-height:1.5}
 .replica-chat .replica-message-avatar{width:34px;height:34px;font-size:13px}
 .replica-chat .companion-self-avatar{border-radius:10px}
 .replica-chat .replica-message-bubble{max-width:100%;gap:0}
@@ -689,6 +690,7 @@
 .replica-typing-dots{display:flex;gap:4px;padding:11px 14px;background:white;border:1px solid #e5ebdd;border-radius:12px}
 .replica-chat-empty{padding:60px 20px;text-align:center;color:#99aa8c;font-size:12px;line-height:1.9}
 .replica-chat-empty svg{margin:0 auto 14px}
+@media(max-width:900px){.replica-page-heading{align-items:flex-start}.replica-page-actions{justify-content:flex-end}}
 .replica-history-search{display:flex;gap:9px;margin-bottom:20px}
 .replica-history-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;font-size:11px;color:#8a987c}
 .companion-history-list>button{display:block;width:100%;height:auto;white-space:normal}

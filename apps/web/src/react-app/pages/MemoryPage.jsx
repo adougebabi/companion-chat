@@ -446,12 +446,18 @@ export default function MemoryPage({ route }) {
         return result;
       },
       readLatest: () => readMemory(id),
-      adoptLatest: (d, current) => ({
-        ...d,
-        revision: current.revision,
-        status: current.status,
-        baseline: current.content,
-      }),
+      adoptLatest: (d, current) => {
+        if (live()) {
+          setSourceRevision(current.revision);
+          void refreshSelection(current);
+        }
+        return {
+          ...d,
+          revision: current.revision,
+          status: current.status,
+          baseline: current.content,
+        };
+      },
       onSaved: async (result, value) => {
         const current = await readMemory(id);
         if (

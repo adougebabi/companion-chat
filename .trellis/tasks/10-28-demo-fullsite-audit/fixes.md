@@ -32,3 +32,28 @@
 |F21|初始化预览性格滑块因profileFields无personality而全部禁用；手机主题标签换行；身份字段顺序偏离Demo|Wizard按完整预览更新性格值（保留分析权威和其它结构）；身份按Demo排序、未知字段仍保留末尾；标签单行横向滚动；结构正文按原标签/内容列排版|由同内容creation-preview五主题双视口截图定位；键盘改值→完整JSON→刷新保留回归正在运行|
 
 |F22|角色作用域媒体子页重复选择角色，手机操作区多一行；非媒体库页的顶栏刷新实际只刷新隐藏媒体库|MediaWorkspace仅全局非媒体库显示目标选择；媒体库刷新留在媒体库，各子页用自身重读；恢复生成描述示例、头像职业/独立保存层级；共享Badge按Demo字号/圆角|visual-normal三子页双视口截图定位；角色作用域/全局目标选择与现有媒体回归待本批复验|
+
+|F23|目标证据/历史首读缺失items时，undefined进入records并在渲染时.map致整页空白|GoalsPage在采用记录前确认items及对象条目；保留原详情/原读取重试。parity同时修复记录端点误返回Goal行|由实际目标详情崩溃定位；新增畸形读取→原详情保留→重读恢复回归，待运行|
+|F24|地点编辑完整WorldForm只占外层lp-form一列，内部再分两列造成字段仅四分之一宽；弹窗遮罩过浅|WorldForm使用既有lp-wide跨全列，原r-form-stack规则同时匹配同节点的页面类以恢复20px间距；DialogOverlay按Demo颜色/4px模糊|由dialogs/world-place-edit双视口对照定位，修复后待复拍|
+|F25|资料表单值从外层Label继承500字重；选中文字仍使用浏览器蓝色而非Demo浅绿|共享输入/选择值恢复400字重，复制原Demo选中文字背景；标签字重与交互保持|由profile/world/wardrobe弹窗实际配对图定位，待本批复拍|
+
+|F26|动态发布/分享、人物新建/编辑/接触/应用整组表单仅占一列，部分根容器未匹配堆叠间距；实测桌面251.5/521、手机138.5/295宽|完整组用已有lp-wide；Feed根标记其样式作用域；Profile堆叠规则补同节点根匹配|form-groups/report-before.json记录实际宽度与display:block，修复后正在双视口复验|
+
+补充核查：媒体动作已有.replica-media .lp-form单列保护，后补lp-wide不改变显示；已撤掉冗余类并纠正F24范围。媒体评审完整宽度回归仍保留。
+
+|F27|当前穿着分隔符偏离Demo；原始验收场景穿着标记/文字不一致妨碍比较|WearingSummary只把确认条目用原Demo中点分隔；测试快照统一原有四件，参考仅经原生方案换装同步|source/reference-scene.mjs显式记录前置操作；生产穿着仍完全来自真实worn_items，待新一轮同内容截图|
+
+|F28|衣物示意图虽有明确颜色描述仍全部用默认绿灰，活跃聊天状态文案偏离Demo|矢量示意按已有明确色词选用原Demo色调，无说明保持中性，显式color prop仍优先；正常聊天状态用原文案“生活进行中”|仅展示，不写回颜色/不新增Core字段/不依赖示例ID；待正常衣柜双视口对照|
+
+|F29|当前表达画像整组结构与正文混在主卡，存在其他人格记录时不能直接当当前正文|仅突出API已有portrait_text，沿用原语义行解读并保留段落/状态/完整记录；profile_id与当前runtime不匹配时明确待核对，不借用其他人格正文|正常fixture用原Demo当前人格描述/语气作测试画像，技术结构按真实既有DTO核对；生产不从人设文案补运行画像。新增当前/不同profile回归待运行|
+
+|F30|手机档案仍沿用桌面23px gap；原始Badge标签被局部统一浅绿覆盖，当前人格标签固定20px；性格条颜色偏离原Demo生效全局规则|replica-profile恢复18px断点、标签各自variant和自然高度、人格状态的点/间距、正文行高；indicator采用原Demo index.css实际#5d8766|normal-pass23/shared-pass26配对；after-pass23/26 computed。初次代理仅查primary得到#295442，主线程核对生效全局规则后纠正为#5d8766。原始before-pass22检测未等动画且重叠构建，只为探索，不当验收证据|
+|F31|新Card自带text-sm导致默认20px行框，原Demo普通Surface继承21px；时间线p受旧全局1.8行高影响；附件caption继承错误行高|workspace作用域Card/base恢复1.5，时间线p明确1.5、聊天meta明确1.5/caption1.95；衣柜确认穿着标签按原Status自然高度和颜色|原有实际宽高差异逐项记录；最终共享复拍待新build后运行。保持原数据和图像URL，不固定卡高|
+|F32|记忆纠正回执未知，已读取并明确采用最新基线后取消，详情和目录仍显示旧正文/版本|MemoryPage.memoryCommand.adoptLatest同步已校验current到详情、来源版本并刷新列表/历史；保留当前输入，不调用纠正mutation|浏览器memory-deep/report-pass24.json记录修前两视口失败；report-pass26.json的12场景全部通过（含此路径仅1次PUT、保存后GET失败只读恢复），DOM12/12通过|
+|F33|记忆编辑的整段说明作为lp-form直接子项只占半列，窄屏产生过高细长说明块|replica-life的lp-form直接replica-info跨全列，保留其它字段分组|实际unknown手机图定位，添加实际note/form宽度断言；待最终复拍|
+|F34|同一Studio编辑页发布后，版本列表读取identity仅resource.id，导致历史未包含刚发布版本|StudioLifecycle版本读取identity加入真实published_version，旧不可变版本仍可查|studio-deep/report-before-pass28.json桌面世界/角色模板实测失败；补已有真实React发布测试，待本批复验|
+
+|F35|900px以下标题操作区缺少Demo的align-start规则；目标页额外刷新按钮挤宽顶栏，390px新增一整行；记忆卡继承Button500字重|恢复原900px断点；目标刷新移入搜索框保留原两组GET/disabled/label，查询清除独立定位；记忆卡400正文|shared-pass31同内容图已亲看：目标操作区回到第一行，记忆卡正文恢复；11项Goal检查通过，独立静态复核无明确问题|
+|F36|手机日记目录摘要从网格子项溢出，原有ellipsis因justify-items:start下子项未被约束而失效|仅为目录摘要span恢复100%宽度与min-width:0，继续保留完整正文，不截断业务数据|shared-pass29/31实际截图定位；待最终窄屏宽度断言/复拍|
+
+最新核验：F23的畸形记录回归、F29的12项Profile检查、F32的12项Memory检查、F34的16项Studio检查均通过；Web全量pass30为642/642、0skip，随后仅F35布局/操作区搬移再跑Goal11项。F24–F26八个完整表单双视口几何通过；F27/F28正常穿着同内容、色词示意图已复拍。最终几何after-pass31中档案hero桌面/手机宽高与Y、手机此刻timeline卡片尺寸/Y相同；桌面Now仍2px内栏宽差、手机档案下方正式披露/字段内容增加、衣柜行高等差异继续记录，不宣称全站视觉通过。

@@ -928,3 +928,58 @@ Wrong: `fields.find(f => f.path[0] === 'personality')` gates creation sliders, o
 badge=`notifications.filter(unread).length` caps total to the first list page.
 Correct: update the complete editable definition through its existing controller;
 consume the separate Owner-scoped authoritative notification counter.
+
+### Complete groups inside command forms
+
+`WorkspaceCommandDialog` renders `.lp-form` as a two-column grid. A renderer
+returning a complete group (WorldForm, NPC edit/create/contact/apply, feed
+composer) uses the existing `lp-wide` class on that group's root. Keep its theme
+scope on a portaled root: feed uses `replica-feed companion-form-stack lp-wide`;
+people uses `replica-profile replica-people companion-form-stack lp-wide`.
+Rules for a scope and layout on the same node need `.scope.layout`, not only
+`.scope .layout`. Otherwise the portal loses flex spacing even after spanning.
+Inspect existing effective rules first: media command forms already have a
+specific single-column `.replica-media .lp-form` rule, so adding span classes
+there is redundant. Never assume a missing class alone proves a layout defect.
+Browser assertions compare the rendered group and form widths and check20px
+stack gap at desktop/narrow widths; do not replace them with class-name regexes.
+
+Malformed goal evidence/history responses must not store an undefined `items`
+and crash the selected detail. Reject missing/non-object records before adoption,
+keep the confirmed goal, and retain the original read retry. The actual React
+regression in `demo-replica-goals` verifies this recovery without a new mutation.
+
+### Confirmed read views and publication history
+
+When an unknown CAS-only memory correction is explicitly reconciled through
+`readLatest` and `confirmLatest`, adopt the validated current object into the
+reader and refresh its list/history/source revision as well as the command's
+baseline. Keep the current editable text/reason. This is a read reconciliation,
+not proof that the lost command succeeded and not permission to repeat it.
+Closing the command must not return to stale prose/version after that explicit
+confirmation. `demo-replica-memory` checks one mutation and current read views.
+
+Studio's immutable version reader includes Owner, resource ID and the actual
+`published_version` in its cursor scope. Publishing a new saved version must
+refresh history without remounting the editor; old exact versions stay readable
+and can create independent unpublished copies. `demo-replica-studio` checks both
+the previous and new publication in the same mounted page.
+
+### Primitive line boxes and narrow headings
+
+The supplied Demo's ordinary Surface inherits14px/1.5. The local Card primitive
+adds `text-sm`, so the replica Card rule explicitly owns1.5 rather than inheriting
+its20px utility line box. Typography inside cards still uses its own documented
+sizes/line heights. Chat metadata uses1.5, attachment captions1.95 and timeline
+secondary text1.5. Profile narrow page gap is18px; its tag variants remain
+distinct and the current-persona status uses natural height. The original
+progress indicator's effective color comes from Demo index.css (`#5d8766`),
+not only the primitive's `bg-primary` class.
+
+At<=900px page headings align actions to the top, and<=700px retains wrapping.
+Keep formal refresh actions compact in their corresponding controls when they
+otherwise force an extra heading row. Search clear and refresh remain separate
+labelled buttons with reserved input space. Explanatory `.replica-info` directly
+inside `.lp-form` spans both columns. Diary index excerpts have a bounded width
+and min-width0 so ellipsis works under the grid's start alignment; the full diary
+body is unchanged. Production-build desktop/narrow geometry remains the gate.

@@ -422,10 +422,23 @@
   margin-bottom: 27px;
 }
 .replica-wardrobe .r-wearing-strip [data-slot="badge"] {
-  background: #e7efdc;
-  color: #7d9569;
-  border-color: #d9e5ca;
+  background: #edf4e9;
+  color: #62804e;
+  border-color: #deead5;
   font-size: 10px;
+  height: auto;
+  line-height: 1.5;
+  font-weight: 400;
+  padding: 3px 7px;
+  gap: 5px;
+}
+.replica-wardrobe .r-wearing-strip [data-slot="badge"]::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
 }
 .replica-wardrobe [data-slot="card"].r-padded {
   padding: 24px;

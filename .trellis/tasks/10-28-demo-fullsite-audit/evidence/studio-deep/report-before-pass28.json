@@ -1,0 +1,412 @@
+[
+  {
+    "name": "world",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled HTTP; runtime application itself is not persisted by this fixture",
+    "checks": [
+      "initial-history: no horizontal overflow",
+      "unsaved definition cannot publish",
+      "editing: no horizontal overflow",
+      "save advances only draft while publication remains fixed",
+      "saved field and unrelated extensions survive",
+      "publish-review: no horizontal overflow",
+      "publication cancellation sends no publish",
+      "published exact saved version",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "PUT",
+        "body": {
+          "kind": "world",
+          "name": "晨雾小镇",
+          "body": {
+            "schema": "world-definition.v1",
+            "background": "UI核验 before-pass28 desktop world：保留原结构与扩展字段。",
+            "rules": "普通日常，尊重各自的生活。",
+            "framework": {
+              "schema": "world-framework.v1",
+              "venues": [
+                {
+                  "key": "home",
+                  "name": "住处",
+                  "places": [
+                    {
+                      "key": "study",
+                      "name": "书房",
+                      "description": "靠窗的书桌",
+                      "layout": "书架与窗台"
+                    }
+                  ]
+                }
+              ]
+            },
+            "custom_preserved": {
+              "value": false
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对编辑保存与明确发布",
+          "idempotencyKey": "6433caa3-c0c3-47a7-aec5-b6e0ac0df550"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/publish",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "所有者发布保存的资源定义",
+          "idempotencyKey": "5e29b60a-0951-40e2-b7b6-8abd8978bdef"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions/draft%3A2",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-desktop-initial-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-desktop-publish-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().locator('.r-version-row').filter({ hasText: 'draft:2' }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n编辑创作资源\n快速前往\n⌘ K\n创作中心\n晨雾小镇\nSTUDIO / MAKE IT YOUR OWN\n晨雾小镇\n\n把想法慢慢补全，保存，再选择何时使用。\n\n创作沙盒\n保存草稿\n已发布确认的保存版本。应用仍需独立确认。\n资源设定\n已保存\n资源名称\n世界背景\n基础规则\n场地与具体地点 · 1 类\n其他扩展字段\n保存原因\n完整 JSON 定义\n最近的使用\n\n尚未读到运行引用。发布、应用和实际使用分别记录。\n\n保存版本与当前工作草稿的完整差异\n保存与发布\n保存版本\ndraft:2\n当前可用版本\ndraft:2\n保存草稿\n发布版本\n用于生活\n\n当前保存版本已经发布，可供独立应用。\n\n发布已保存版本\n版本历史\n应用到角色\n用于创建新角色\n核对最新版本基线\n资源管理\n创建独立副本\n导出当前定义\n归档资源\n发布版本历史\n\n每个发布版本保留当时的完整定义。\n\n晨雾小镇 · draft:1\n2026-10-27 16:00 (北京时间)\n查看\n上一页发布版本\n下一页发布版本\n关闭"
+  },
+  {
+    "name": "character_template",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled HTTP; runtime application itself is not persisted by this fixture",
+    "checks": [
+      "initial-history: no horizontal overflow",
+      "unsaved definition cannot publish",
+      "editing: no horizontal overflow",
+      "save advances only draft while publication remains fixed",
+      "saved field and unrelated extensions survive",
+      "publish-review: no horizontal overflow",
+      "publication cancellation sends no publish",
+      "published exact saved version",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "PUT",
+        "body": {
+          "kind": "character_template",
+          "name": "旅行中的编辑",
+          "body": {
+            "schema": "character-template.v1",
+            "description": "UI核验 before-pass28 desktop character_template：保留原结构与扩展字段。"
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对编辑保存与明确发布",
+          "idempotencyKey": "c4933169-dbf8-4cdc-9509-579619dbf6b4"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template/publish",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "所有者发布保存的资源定义",
+          "idempotencyKey": "db87b33c-f0ad-4e60-94e0-03e69bfd3e75"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template/versions/draft%3A2",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-desktop-initial-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-desktop-publish-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().locator('.r-version-row').filter({ hasText: 'draft:2' }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n编辑创作资源\n快速前往\n⌘ K\n创作中心\n旅行中的编辑\nSTUDIO / MAKE IT YOUR OWN\n旅行中的编辑\n\n把想法慢慢补全，保存，再选择何时使用。\n\n创作沙盒\n保存草稿\n已发布确认的保存版本。应用仍需独立确认。\n资源设定\n已保存\n资源名称\n完整角色描述\n模板只保留可复用设定，对话、记忆和运行状态不包含在内。\n保存原因\n完整 JSON 定义\n最近的使用\n\n尚未读到运行引用。发布、应用和实际使用分别记录。\n\n保存版本与当前工作草稿的完整差异\n保存与发布\n保存版本\ndraft:2\n当前可用版本\ndraft:2\n保存草稿\n发布版本\n用于生活\n\n当前保存版本已经发布，可供独立应用。\n\n发布已保存版本\n版本历史\n应用到角色\n用于创建新角色\n核对最新版本基线\n资源管理\n创建独立副本\n导出当前定义\n归档资源\n发布版本历史\n\n每个发布版本保留当时的完整定义。\n\n旅行中的编辑 · draft:1\n2026-10-27 16:00 (北京时间)\n查看\n上一页发布版本\n下一页发布版本\n关闭"
+  },
+  {
+    "name": "world",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled HTTP; runtime application itself is not persisted by this fixture",
+    "checks": [
+      "initial-history: no horizontal overflow",
+      "unsaved definition cannot publish",
+      "editing: no horizontal overflow",
+      "save advances only draft while publication remains fixed",
+      "saved field and unrelated extensions survive",
+      "publish-review: no horizontal overflow",
+      "publication cancellation sends no publish",
+      "published exact saved version",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "PUT",
+        "body": {
+          "kind": "world",
+          "name": "晨雾小镇",
+          "body": {
+            "schema": "world-definition.v1",
+            "background": "UI核验 before-pass28 mobile world：保留原结构与扩展字段。",
+            "rules": "普通日常，尊重各自的生活。",
+            "framework": {
+              "schema": "world-framework.v1",
+              "venues": [
+                {
+                  "key": "home",
+                  "name": "住处",
+                  "places": [
+                    {
+                      "key": "study",
+                      "name": "书房",
+                      "description": "靠窗的书桌",
+                      "layout": "书架与窗台"
+                    }
+                  ]
+                }
+              ]
+            },
+            "custom_preserved": {
+              "value": false
+            }
+          },
+          "expectedVersion": "draft:2",
+          "reason": "核对编辑保存与明确发布",
+          "idempotencyKey": "956b992b-7e62-4deb-aa07-d4521a1f9565"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/publish",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者发布保存的资源定义",
+          "idempotencyKey": "d32a194c-ee31-422b-a9c1-e05c1a0cfe66"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions/draft%3A4",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-mobile-initial-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-mobile-publish-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-world-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().locator('.r-version-row').filter({ hasText: 'draft:4' }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n创作与管理\n编辑创作资源\n快速前往\n创作中心\n晨雾小镇\nSTUDIO / MAKE IT YOUR OWN\n晨雾小镇\n\n把想法慢慢补全，保存，再选择何时使用。\n\n创作沙盒\n保存草稿\n已发布确认的保存版本。应用仍需独立确认。\n资源设定\n已保存\n资源名称\n世界背景\n基础规则\n场地与具体地点 · 1 类\n其他扩展字段\n保存原因\n完整 JSON 定义\n最近的使用\n\n尚未读到运行引用。发布、应用和实际使用分别记录。\n\n保存版本与当前工作草稿的完整差异\n保存与发布\n保存版本\ndraft:4\n当前可用版本\ndraft:4\n保存草稿\n发布版本\n用于生活\n\n当前保存版本已经发布，可供独立应用。\n\n发布已保存版本\n版本历史\n应用到角色\n用于创建新角色\n核对最新版本基线\n资源管理\n创建独立副本\n导出当前定义\n归档资源\n发布版本历史\n\n每个发布版本保留当时的完整定义。\n\n晨雾小镇 · draft:1\n2026-10-27 16:00 (北京时间)\n查看\n晨雾小镇 · draft:2\n2026-10-27 16:00 (北京时间)\n查看\n上一页发布版本\n下一页发布版本\n关闭"
+  },
+  {
+    "name": "character_template",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled HTTP; runtime application itself is not persisted by this fixture",
+    "checks": [
+      "initial-history: no horizontal overflow",
+      "unsaved definition cannot publish",
+      "editing: no horizontal overflow",
+      "save advances only draft while publication remains fixed",
+      "saved field and unrelated extensions survive",
+      "publish-review: no horizontal overflow",
+      "publication cancellation sends no publish",
+      "published exact saved version",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "PUT",
+        "body": {
+          "kind": "character_template",
+          "name": "旅行中的编辑",
+          "body": {
+            "schema": "character-template.v1",
+            "description": "UI核验 before-pass28 mobile character_template：保留原结构与扩展字段。"
+          },
+          "expectedVersion": "draft:2",
+          "reason": "核对编辑保存与明确发布",
+          "idempotencyKey": "fca2fd88-9762-4c84-9a2e-33a4e4fb4454"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template/publish",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者发布保存的资源定义",
+          "idempotencyKey": "0c478639-2a16-4582-81ea-126134dd6b70"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-character_template/versions/draft%3A4",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-mobile-initial-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-mobile-publish-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-deep/before-pass28-character_template-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().locator('.r-version-row').filter({ hasText: 'draft:4' }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n创作与管理\n编辑创作资源\n快速前往\n创作中心\n旅行中的编辑\nSTUDIO / MAKE IT YOUR OWN\n旅行中的编辑\n\n把想法慢慢补全，保存，再选择何时使用。\n\n创作沙盒\n保存草稿\n已发布确认的保存版本。应用仍需独立确认。\n资源设定\n已保存\n资源名称\n完整角色描述\n模板只保留可复用设定，对话、记忆和运行状态不包含在内。\n保存原因\n完整 JSON 定义\n最近的使用\n\n尚未读到运行引用。发布、应用和实际使用分别记录。\n\n保存版本与当前工作草稿的完整差异\n保存与发布\n保存版本\ndraft:4\n当前可用版本\ndraft:4\n保存草稿\n发布版本\n用于生活\n\n当前保存版本已经发布，可供独立应用。\n\n发布已保存版本\n版本历史\n应用到角色\n用于创建新角色\n核对最新版本基线\n资源管理\n创建独立副本\n导出当前定义\n归档资源\n发布版本历史\n\n每个发布版本保留当时的完整定义。\n\n旅行中的编辑 · draft:1\n2026-10-27 16:00 (北京时间)\n查看\n旅行中的编辑 · draft:2\n2026-10-27 16:00 (北京时间)\n查看\n上一页发布版本\n下一页发布版本\n关闭"
+  }
+]

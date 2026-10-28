@@ -1,0 +1,138 @@
+[
+  {
+    "name": "wardrobe-edit",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 94.203125,
+          "width": 590,
+          "height": 736.59375,
+          "scrollHeight": 735,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述*服装类型外套适合季节春季夏季秋季冬季拥有关系已拥有可用状态可穿着登记与修订历史初始服装登记10/26 14:30归档服装保存资料Close"
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 50.875,
+          "width": 590,
+          "height": 823.25,
+          "scrollHeight": 821,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述填写便于辨认的衣服名称。服装类型外套外套上衣内衣内裤下衣袜子鞋子配饰适合季节春季夏季秋季冬季拥有关系已拥有已拥有借用尚未确认可用状态可穿着可穿着暂不可用已遗失登记与修订历史完整服装与来源归档服装取消保存衣服关闭"
+        }
+      }
+    ]
+  },
+  {
+    "name": "goal-detail",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 168.3203125,
+          "width": 590,
+          "height": 588.359375,
+          "scrollHeight": 586,
+          "text": "办一场属于小城的读书会属于林晚的一个期待让喜欢书的人有机会坐下来，认真聊聊彼此。生活优先期待在 2026-11-01 前完成怎样算做到？确定主题与书单已有对应记录邀请三位读者已有对应记录完成第一场线下读书会等待实际经历放下这个目标编辑暂停核对进展Close"
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [
+          "Cannot read properties of undefined (reading 'map')"
+        ],
+        "status": "failed",
+        "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog') to be visible\u001b[22m\n",
+        "text": ""
+      }
+    ]
+  },
+  {
+    "name": "wardrobe-edit",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 851,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述*服装类型外套适合季节春季夏季秋季冬季拥有关系已拥有可用状态可穿着登记与修订历史初始服装登记10/26 14:30归档服装保存资料Close"
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 774,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述填写便于辨认的衣服名称。服装类型外套外套上衣内衣内裤下衣袜子鞋子配饰适合季节春季夏季秋季冬季拥有关系已拥有已拥有借用尚未确认可用状态可穿着可穿着暂不可用已遗失登记与修订历史完整服装与来源归档服装取消保存衣服关闭"
+        }
+      }
+    ]
+  },
+  {
+    "name": "goal-detail",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 85.8203125,
+          "width": 356,
+          "height": 672.359375,
+          "scrollHeight": 670,
+          "text": "办一场属于小城的读书会属于林晚的一个期待让喜欢书的人有机会坐下来，认真聊聊彼此。生活优先期待在 2026-11-01 前完成怎样算做到？确定主题与书单已有对应记录邀请三位读者已有对应记录完成第一场线下读书会等待实际经历放下这个目标编辑暂停核对进展Close"
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [
+          "Cannot read properties of undefined (reading 'map')"
+        ],
+        "status": "failed",
+        "error": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog') to be visible\u001b[22m\n",
+        "text": ""
+      }
+    ]
+  }
+]

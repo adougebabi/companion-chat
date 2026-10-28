@@ -1,7 +1,18 @@
 // Decorative category sketches copied from the supplied Demo; never a real item photograph.
+// Explicit color words select a Demo illustration tone, not a persisted item
+// color or a claim about the photograph. Unspecified colors keep the neutral tone.
+function illustrationTone(type:string,name:string) {
+  if (/奶油色|\bcream\b/i.test(name)) return '#c6bea1';
+  if (/米白|奶白|\bivory\b|\boff-white\b/i.test(name))
+    return type==='lower_body'?'#d6d1b9':type==='socks'?'#e5e3cf':'#e6e2d1';
+  if (/棕色|深棕|浅棕|\bbrown\b/i.test(name)) return '#876954';
+  if (/苔绿|\bmoss green\b/i.test(name)) return '#7d8e74';
+  if (/深灰|\bcharcoal\b|\bdark gr[ae]y\b/i.test(name)) return '#747d74';
+  return '#aeb59c';
+}
 export default function WorkspaceGarmentArt({
   type,
-  color = "#aeb59c",
+  color,
   className = "",
   name = "",
 }: {
@@ -10,7 +21,7 @@ export default function WorkspaceGarmentArt({
   className?: string;
   name?: string;
 }) {
-  const line = "#66715e";
+  const line = "#66715e", tone=color||illustrationTone(type,name);
   return (
     <svg
       className={"r-garment-svg " + className}
@@ -24,7 +35,7 @@ export default function WorkspaceGarmentArt({
         <>
           <path
             d="m73 27-29 13-22 40 24 13 13-23-3 78h88l-3-78 13 23 24-13-22-40-29-13c-10 12-43 12-54 0Z"
-            fill={color}
+            fill={tone}
             stroke={line}
             strokeWidth="1.2"
           />
@@ -62,7 +73,7 @@ export default function WorkspaceGarmentArt({
         <>
           <path
             d="M77 27h46l30 120c-28 11-78 11-106 0Z"
-            fill={color}
+            fill={tone}
             stroke={line}
             strokeWidth="1.2"
           />
@@ -83,7 +94,7 @@ export default function WorkspaceGarmentArt({
         <>
           <path
             d="M69 28h62l12 122h-33L99 78l-10 72H55Z"
-            fill={color}
+            fill={tone}
             stroke={line}
             strokeWidth="1.2"
           />
@@ -98,13 +109,13 @@ export default function WorkspaceGarmentArt({
         <>
           <path
             d="M32 106c10 0 17-10 28-27l24 6 9 24c17 5 29 10 28 21H28c-7-8-4-20 4-24Z"
-            fill={color}
+            fill={tone}
             stroke={line}
             strokeWidth="1.2"
           />
           <path
             d="M92 81c10 0 17-10 28-27l24 6 9 24c17 5 29 10 28 21H88c-7-8-4-20 4-24Z"
-            fill={color}
+            fill={tone}
             stroke={line}
             strokeWidth="1.2"
           />
@@ -119,12 +130,12 @@ export default function WorkspaceGarmentArt({
         <>
           <path
             d="M64 34h29v76c-4 25-49 37-56 19-5-12 8-20 27-23Z"
-            fill={color}
+            fill={tone}
             stroke={line}
           />
           <path
             d="M111 34h29v76c-4 25-49 37-56 19-5-12 8-20 27-23Z"
-            fill={color}
+            fill={tone}
             stroke={line}
           />
           <path
@@ -135,7 +146,7 @@ export default function WorkspaceGarmentArt({
         </>
       ) : type === "panties" ? (
         <>
-          <path d="M48 58h104l-24 64H72Z" fill={color} stroke={line} />
+          <path d="M48 58h104l-24 64H72Z" fill={tone} stroke={line} />
           <path
             d="M49 67h102M54 76c21 9 29 25 31 45m61-45c-21 9-29 25-31 45"
             stroke={line}
@@ -146,7 +157,7 @@ export default function WorkspaceGarmentArt({
         <>
           <path
             d="M65 25h48l22 118-31 7-18-91-14 78-28-6Z"
-            fill={color}
+            fill={tone}
             stroke={line}
             strokeWidth="1.2"
           />

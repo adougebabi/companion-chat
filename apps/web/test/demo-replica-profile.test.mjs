@@ -477,3 +477,17 @@ test("refreshing an open capability request adopts external decisions and refres
     await f.dispose();
   }
 });
+
+
+test('current expression emphasizes the actual portrait text and never promotes a different profile snapshot',async()=>{
+ const f=await fixture();
+ try{
+  let note=f.v.host.querySelector('.companion-portrait-note');
+  assert.match(note.querySelector('[data-testid="current-working-portrait"]').textContent,/愿意听完日常里的细节/);
+  assert.ok(button(note,'表达画像完整记录与来源'));
+  await act(async()=>{f.api.state('A').detail.persona_compilation.profile_id='focused';await f.c.read();});await f.v.flush();note=f.v.host.querySelector('.companion-portrait-note');
+  assert.equal(note.querySelector('[data-testid="current-working-portrait"]'),null);
+  assert.match(note.textContent,/当前人格的表达画像尚未读回/);
+  assert.ok(button(note,'表达画像完整记录与来源'));
+ }finally{await f.dispose();}
+});

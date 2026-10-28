@@ -1,0 +1,154 @@
+[
+  {
+    "name": "feed-compose",
+    "phase": "before",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 521,
+      "groupWidth": 251.5,
+      "groupClass": "companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  },
+  {
+    "name": "people-create",
+    "phase": "before",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 521,
+      "groupWidth": 251.5,
+      "groupClass": "replica-profile replica-people companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  },
+  {
+    "name": "people-edit",
+    "phase": "before",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 521,
+      "groupWidth": 251.5,
+      "groupClass": "replica-profile replica-people companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  },
+  {
+    "name": "people-contact",
+    "phase": "before",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 791,
+      "groupWidth": 386.5,
+      "groupClass": "replica-profile replica-people companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  },
+  {
+    "name": "feed-compose",
+    "phase": "before",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 295,
+      "groupWidth": 138.5,
+      "groupClass": "companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  },
+  {
+    "name": "people-create",
+    "phase": "before",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 295,
+      "groupWidth": 138.5,
+      "groupClass": "replica-profile replica-people companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  },
+  {
+    "name": "people-edit",
+    "phase": "before",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 295,
+      "groupWidth": 138.5,
+      "groupClass": "replica-profile replica-people companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  },
+  {
+    "name": "people-contact",
+    "phase": "before",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 295,
+      "groupWidth": 138.5,
+      "groupClass": "replica-profile replica-people companion-form-stack",
+      "display": "block",
+      "gap": "normal"
+    },
+    "status": "measured"
+  }
+]

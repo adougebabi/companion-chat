@@ -1,7 +1,9 @@
 /* 2026-10-27 supplied Demo: layout ownership for shell and migrated pages. */
-.replica-workspace,.replica-dialog,.replica-quick-dialog { --ink:var(--foreground);--border:#e2e7de;--teal:var(--primary);--page:var(--background);font-size:14px; color:#2e3931; }
+.replica-workspace,.replica-dialog,.replica-quick-dialog { --ink:var(--foreground);--border:#e2e7de;--teal:var(--primary);--page:var(--background);font-size:14px;line-height:1.5;color:#2e3931; }
 /* The Demo's shared control rules also apply to portaled workspace dialogs. */
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog) :is(button,input,textarea,select) { font-family:inherit;line-height:1.5; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) :is(input,textarea,select,[data-slot="select-trigger"]) { font-weight:400; }
+:where(.replica-workspace,.replica-dialog,.replica-quick-dialog) ::selection { background:#dce8da; }
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="button"] { font-size:12px;font-weight:500;border-radius:7px;gap:7px; }
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="button"] svg { width:15px;height:15px; }
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="badge"] { font-size:10px;font-weight:500;border-radius:5px; }
@@ -9,7 +11,7 @@
 :where(.replica-workspace,.replica-dialog,.replica-quick-dialog) [data-slot="button"][data-variant="outline"]:hover { background:#f0f5e9;border-color:#b6c9a6; }
 .replica-workspace :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="textarea"],[data-slot="select-trigger"]) { font-size:13px;background:white;border-color:#dfe5db;border-radius:7px;box-shadow:none; }
 .replica-workspace :is([data-slot="input"],[data-slot="select-trigger"]),.replica-dialog :is([data-slot="input"],[data-slot="select-trigger"]) { min-height:39px; }
-:where(.replica-workspace,.replica-dialog) [data-slot="card"] { border:1px solid #e2e7de;border-radius:12px;box-shadow:none; }
+:where(.replica-workspace,.replica-dialog) [data-slot="card"] { border:1px solid #e2e7de;border-radius:12px;box-shadow:none;line-height:1.5; }
 :where(.replica-workspace,.replica-dialog) .replica-info { padding:13px 15px;border:1px solid #e3ebd9;border-radius:8px;background:#f1f5ec;color:#748768;font-size:11px;line-height:1.85; }
 .replica-shell { --workspace-sidebar-width:218px; --sidebar-width-icon:51px; }
 .replica-shell > [data-slot="sidebar"] > [data-slot="sidebar-container"] { padding:0; border-right:1px solid #e2e7de; }

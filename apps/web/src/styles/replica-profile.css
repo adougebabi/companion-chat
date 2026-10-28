@@ -6,7 +6,8 @@
   min-width: 0;
 }
 .replica-profile .companion-stack,
-.replica-profile .companion-form-stack {
+.replica-profile .companion-form-stack,
+.replica-profile.companion-form-stack {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -562,6 +563,7 @@
   font-size: 27px;
   font-weight: 500;
   font-family: Georgia, "Noto Serif SC", serif;
+  line-height: 1.5;
   margin: 8px 0 7px;
   overflow-wrap: anywhere;
 }
@@ -593,10 +595,34 @@
 .replica-profile .companion-profile-quote [data-slot="badge"] {
   font-size: 10px;
   border-radius: 5px;
-  background: #edf3e5;
-  color: #789367;
-  border-color: #dde7d3;
+  height: auto;
+}
+.replica-profile .companion-profile-intro > p {
+  line-height: 1.5;
+}
+.replica-profile .companion-tag-row [data-slot="badge"] {
+  font-weight: 500;
+}
+.replica-profile .companion-tag-row [data-variant="secondary"] {
+  background: #edf2ec;
+  color: #426354;
+}
+.replica-profile .companion-profile-quote [data-slot="badge"] {
+  padding: 3px 7px;
+  line-height: 1.5;
+  gap: 5px;
+  background: #edf4e9;
+  color: #62804e;
+  border-color: #deead5;
   font-weight: 400;
+}
+.replica-profile .companion-profile-quote [data-slot="badge"]::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
 }
 .replica-profile .profile-key-value {
   display: flex;
@@ -645,7 +671,7 @@
   text-align: left;
 }
 .replica-profile .companion-dimension-list [data-slot="progress-indicator"] {
-  background: #8da17a;
+  background: #5d8766;
 }
 .replica-profile .character-fieldset {
   border: 0;
@@ -737,6 +763,9 @@
   }
 }
 @media (max-width: 700px) {
+  .replica-profile.companion-page {
+    gap: 18px;
+  }
   .replica-profile [data-slot="card"].companion-profile-hero {
     padding: 23px 20px !important;
     gap: 17px;

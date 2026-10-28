@@ -25,7 +25,7 @@ export default function WorldField({
   );
 }
 export function WorldForm({ children }) {
-  return <div className="replica-world r-form-stack">{children}</div>;
+  return <div className="replica-world r-form-stack lp-wide">{children}</div>;
 }
 export function WorldReader({ source, label }) {
   return (

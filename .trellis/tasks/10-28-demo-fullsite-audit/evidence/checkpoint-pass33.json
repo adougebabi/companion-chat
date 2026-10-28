@@ -1,0 +1,27 @@
+{
+  "web": {
+    "full_tests": 642,
+    "passed": 642,
+    "skipped": 0,
+    "evidence": "evidence/web-tests-pass30.log",
+    "note": "Subsequent Goal refresh placement passed its11 tests; final diary excerpt change is CSS only."
+  },
+  "targeted": {
+    "profile": 12,
+    "memory": 12,
+    "studio": 16,
+    "goals": 11
+  },
+  "typecheck": "passed / typecheck-pass31",
+  "latest_build": "passed / build-pass33 / production fixture exclusion / React-only graph374 modules",
+  "browser": {
+    "memory_deep": 12,
+    "memory_recovery_recheck": 4,
+    "studio_deep": 4,
+    "world_deep": 6,
+    "normal_pairs": 32,
+    "real_existing_data_read_pages": 5
+  },
+  "independent_static_review": "Memory adopted baseline, publication scope and Goal refresh: no definite issue found; primary agent owns final verification",
+  "completion": "in_progress; counts never certify all177 rows or all states"
+}

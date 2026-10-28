@@ -18,5 +18,8 @@
 
 状态要求：未执行不得标已验证；受阻项写具体依赖与已验证范围；不按16页或测试数代替验收。用户已明确允许创建任务并直接实施，本轮不重复请求常规开发授权。
 
+## 继续批次：正常场景几何与记忆深层状态
+正常配对图发现手机档案根gap未随断点调整、性格indicator局部颜色覆盖、此刻时间线p继承旧全局行高。修复限于replica-profile.css和replica-life.css，由对应组件样式承担；不固定卡片高度、不改变原数据。浏览器核对实际computed geometry与桌面/窄屏配对。随后用既有mutable growth HTTP fixture验证记忆纠正、历史来源、遗忘/补偿恢复、反思反馈和自我认知治理，记录请求/回读及未知状态；仅测试场景，不扩大后端回归。
+
 ## 继续批次：共享按钮与聊天图片
 差异位于Button默认变体与ChatPage附件结构：按原Demo按钮尺寸/disabled状态修复共享primitive；保留group/button与全部现有API。附件置回同一BubbleContent，保留Attachment真实媒体primitive，225×150预览和caption，增加图片读取失败的原URL重读，并使用WorkspaceDialog保持详情、Escape和返回焦点。涉及Button.tsx、ChatPage.tsx、新ChatAttachment.tsx、replica-chat.css和相应风险验证；不改业务请求、Demo、消息正文与附件URL。

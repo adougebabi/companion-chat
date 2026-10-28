@@ -378,7 +378,7 @@ export default function FeedPage({ route, initialPostId } = {}) {
         }
       },
       fields: (d, edit) => (
-        <div className="companion-form-stack">
+        <div className="replica-feed companion-form-stack lp-wide">
           <label className="replica-field">
             <span>{mode === "suggest" ? "建议哪位角色" : "发布范围"}</span>
             <ChoiceSelect

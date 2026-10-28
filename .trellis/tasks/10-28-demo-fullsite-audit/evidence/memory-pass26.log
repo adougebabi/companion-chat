@@ -1,0 +1,20 @@
+✔ the current revision reason wins over older merged support references (0.885667ms)
+✔ memory card scores use the actual 0–1 scale and search sends the applied scope rather than fabricating tags (530.017958ms)
+✔ memory edit cancellation preserves original; correction sends CAS body without client idempotency fields and reads real revision back (681.448208ms)
+✔ an unknown CAS-only correction requires actual current-object review, and equal confirmed prose cannot be submitted again (649.6865ms)
+✔ an acknowledged memory mutation with failed readback recovers using reads only (396.001083ms)
+✔ a validated readback stays visible when secondary refreshes cannot reread the changed record (739.34625ms)
+✔ source pagination pins the chosen revision and never marks a returned nonlive source as valid (1242.195958ms)
+✔ forget cancellation does not write and historical memory restoration appends a new revision (839.840542ms)
+✔ reflection feedback preserves actual proposal/application state and follows a pending OwnerRequest (704.153208ms)
+✔ self review appends acknowledgement without changing claim revision or confidence; historical restore is a real command (608.719875ms)
+✔ failed append retries its original server query despite unsubmitted edits; a stale scope cannot admit a correction (545.611833ms)
+✔ growth route query updates close the old detail and select the requested tab/filter in the same mounted page (261.117167ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10435.554375

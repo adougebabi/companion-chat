@@ -1,0 +1,584 @@
+[
+  {
+    "name": "memory-unknown",
+    "size": "desktop",
+    "fid": "audit-pass29-memory-unknown-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "unknown-response: dialog fits viewport",
+      "unknown-response: no horizontal page overflow",
+      "unknown-response: explanatory form note spans full form",
+      "current-review: dialog fits viewport",
+      "current-review: no horizontal page overflow",
+      "current-review: explanatory form note spans full form",
+      "latest review retains edited text",
+      "original operation executed once",
+      "confirmed object uses corrected content and new revision",
+      "recovered: dialog fits viewport",
+      "recovered: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-unknown-desktop-unknown-response.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-unknown-desktop-current-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-unknown-desktop-recovered.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "server executed PUT; replace its response with503",
+    "status": "passed"
+  },
+  {
+    "name": "memory-readback",
+    "size": "desktop",
+    "fid": "audit-pass29-memory-readback-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "readback-failed: dialog fits viewport",
+      "readback-failed: no horizontal page overflow",
+      "readback-failed: explanatory form note spans full form",
+      "original operation executed once",
+      "confirmed object uses corrected content and new revision",
+      "recovered: dialog fits viewport",
+      "recovered: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-readback-desktop-readback-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-readback-desktop-recovered.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "accepted PUT; first subsequent object GET503",
+    "status": "passed"
+  },
+  {
+    "name": "memory-unknown",
+    "size": "mobile",
+    "fid": "audit-pass29-memory-unknown-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "unknown-response: dialog fits viewport",
+      "unknown-response: no horizontal page overflow",
+      "unknown-response: explanatory form note spans full form",
+      "current-review: dialog fits viewport",
+      "current-review: no horizontal page overflow",
+      "current-review: explanatory form note spans full form",
+      "latest review retains edited text",
+      "original operation executed once",
+      "confirmed object uses corrected content and new revision",
+      "recovered: dialog fits viewport",
+      "recovered: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-unknown-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-unknown-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-unknown-mobile-unknown-response.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-unknown-mobile-current-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-unknown-mobile-recovered.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "server executed PUT; replace its response with503",
+    "status": "passed"
+  },
+  {
+    "name": "memory-readback",
+    "size": "mobile",
+    "fid": "audit-pass29-memory-readback-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "readback-failed: dialog fits viewport",
+      "readback-failed: no horizontal page overflow",
+      "readback-failed: explanatory form note spans full form",
+      "original operation executed once",
+      "confirmed object uses corrected content and new revision",
+      "recovered: dialog fits viewport",
+      "recovered: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass29-memory-readback-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass29-memory-readback-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-readback-mobile-readback-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass29-memory-readback-mobile-recovered.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "accepted PUT; first subsequent object GET503",
+    "status": "passed"
+  }
+]

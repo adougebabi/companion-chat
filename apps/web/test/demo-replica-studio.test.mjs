@@ -188,6 +188,10 @@ test("Studio saves typed edits using the opaque draft version and publishes an e
       f.api.publications.get("studio-world:draft:1").body.background,
       "沿着河流生活的小镇，书店与花园在清晨醒来。",
     );
+    await f.v.click(button(f.v.host, "版本历史"));
+    const versions = [...dialog().querySelectorAll(".r-version-row")];
+    assert.ok(versions.some((row) => row.textContent.includes("draft:2")));
+    assert.ok(versions.some((row) => row.textContent.includes("draft:1")));
   } finally {
     await f.dispose();
   }

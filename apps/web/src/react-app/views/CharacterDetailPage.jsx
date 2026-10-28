@@ -43,6 +43,7 @@ import { profileChanges } from "@/approved-ui/profile-fields.mjs";
 import {
   semanticEntries,
   workingPersonaPresentation,
+  portraitPresentation,
 } from "@/approved-ui/profile-presentation.mjs";
 import { semanticLabel } from "@/v3/proto/components/semantic-fields.js";
 import { stateLabel } from "@/v3/domain-presentation.mjs";
@@ -264,6 +265,8 @@ export default function CharacterDetailPageView({ model: m }) {
   const working = workingPersonaPresentation(
       snapshot.groups.find((group) => group.key === "working")?.value || {},
     ),
+    workingProfileMismatch = typeof working?.profile_id === "string" && working.profile_id !== snapshot.activeProfileId,
+    workingPortrait = !workingProfileMismatch && typeof working?.portrait_text === "string" ? working.portrait_text : "",
     remainingSystem = Object.fromEntries(
       Object.entries(d.core_persona?.personality_system || {}).filter(
         ([key]) => key !== "profiles",
@@ -559,8 +562,9 @@ export default function CharacterDetailPageView({ model: m }) {
                 </Section>
                 <Surface className="companion-portrait-note">
                   <span className="companion-eyebrow">WORKING PERSONA</span>
-                  <h3>当前表达画像</h3>
-                  <Value value={working} identity={identity} />
+                  <div className="companion-row-between"><h3>当前表达画像</h3>{typeof working?.status==="string"&&working.status&&<Badge variant="outline">{stateLabel(working.status)}</Badge>}</div>
+                  {workingProfileMismatch?<p>当前人格的表达画像尚未读回，可核对保留的完整记录。</p>:workingPortrait?<div data-testid="current-working-portrait">{portraitPresentation(workingPortrait).map((line,index)=><p key={index}>{line.field?<><b>{semanticLabel(line.field)}：</b><Value value={line.value} field={line.field} identity={identity}/></>:line.text||'\u00a0'}</p>)}</div>:<Value value={working} identity={identity} />}
+                  {(workingPortrait||workingProfileMismatch)&&<JsonDetails value={working} title="表达画像完整记录与来源"/>}
                   <span>人格设定与最近生活共同影响此刻的表达</span>
                 </Surface>
               </div>

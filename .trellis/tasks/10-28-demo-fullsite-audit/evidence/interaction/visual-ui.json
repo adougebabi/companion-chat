@@ -22,6 +22,30 @@
     "status": "passed"
   },
   {
+    "name": "candidate-review-desktop",
+    "viewport": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "review uses the complete dialog width",
+      "review does not invent default scores",
+      "invalid review does not submit decision",
+      "cancel leaves candidate pending",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/candidate-review-desktop-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/candidate-review-desktop-validation.png"
+    ],
+    "status": "passed"
+  },
+  {
     "name": "avatar-select-desktop",
     "viewport": {
       "name": "desktop",
@@ -85,6 +109,30 @@
     "writes": [],
     "screenshots": [
       "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/visual-definition-mobile-editing.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "candidate-review-mobile",
+    "viewport": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "kind": "production components / controlled HTTP, no generation or save certified",
+    "checks": [
+      "review uses the complete dialog width",
+      "review does not invent default scores",
+      "invalid review does not submit decision",
+      "cancel leaves candidate pending",
+      "no browser exception",
+      "no document overflow"
+    ],
+    "errors": [],
+    "writes": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/candidate-review-mobile-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/interaction/candidate-review-mobile-validation.png"
     ],
     "status": "passed"
   },

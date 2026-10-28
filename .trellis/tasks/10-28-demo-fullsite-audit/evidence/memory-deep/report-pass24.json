@@ -1,0 +1,1832 @@
+[
+  {
+    "name": "filter-sources",
+    "size": "desktop",
+    "fid": "audit-pass24-filter-sources-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "search draft does not prematurely replace results",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-desktop/memories",
+        "query": "?q=%E4%B8%8D%E5%AD%98%E5%9C%A8%E7%9A%84%E8%AE%B0%E5%BF%86&status=active&aboutOwner=false&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-filter-sources-desktop-failure.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('当前筛选还没有记忆记录。') to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n记\n正在相处\n记忆核验样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n记忆\n快速前往\n⌘ K\nGROWTH / WHAT STAYS WITH US\n记忆与成长\n\n相处留下的细节，逐渐成为她理解世界的方式。\n\n关于你\n记忆\n0\n反思记录\n自我认知\n所有类型\n所有类型\n经历\n知识\n关系\n自我\n有效记忆\n全部状态\n有效记忆\n已遗忘\n已替代\n已废弃\n这里没有找到匹配的记忆\n\n试试别的关键词，或清除筛选。\n\n清除筛选\n记忆小册\n0\n\n当前筛选已读\n\n0\n\n含你的引用\n\n记忆可以被纠正，也可以选择遗忘。原来的来源与修订会认真保留。数量仅包含已读取记录。\n\n看看关于你的记忆\n“\n\n不是记住所有的事情，\n而是让重要的细节，\n有地方慢慢安放。"
+  },
+  {
+    "name": "memory-governance",
+    "size": "desktop",
+    "fid": "audit-pass24-memory-governance-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "empty reason does not mutate",
+      "empty-reason: dialog fits viewport",
+      "empty-reason: no horizontal page overflow",
+      "cancel preserves confirmed memory",
+      "cancel does not mutate",
+      "unchanged content does not mutate",
+      "revised-history: dialog fits viewport",
+      "revised-history: no horizontal page overflow",
+      "correction readback has new content/revision",
+      "forget cancellation remains active",
+      "forgotten-history: dialog fits viewport",
+      "forgotten-history: no horizontal page overflow",
+      "forget appends a revision",
+      "compensated-history: dialog fits viewport",
+      "compensated-history: no horizontal page overflow",
+      "rollback appends active revision instead of deleting history",
+      "three explicit commands only",
+      "all prior versions remain readable",
+      "refresh reads confirmed compensated record",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:明确喜好而非每天固定安排"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:不再作为当前认识"
+          ]
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/rollback",
+        "query": "",
+        "body": {
+          "expectedRevision": 4,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:按可追溯旧版追加补偿"
+          ],
+          "targetRevision": 0
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=5&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-desktop-empty-reason.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-desktop-revised-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-desktop-forgotten-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-desktop-compensated-history.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "reflection-feedback",
+    "size": "desktop",
+    "fid": "audit-pass24-reflection-feedback-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "expanded: dialog fits viewport",
+      "expanded: no horizontal page overflow",
+      "cancel sends no feedback",
+      "accepted: dialog fits viewport",
+      "accepted: no horizontal page overflow",
+      "one feedback request with stance and stable key",
+      "feedback does not fabricate immediate reflection/persona adoption",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/reflections/audit-pass24-reflection-feedback-desktop-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/reflections/audit-pass24-reflection-feedback-desktop-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/reflections/audit-pass24-reflection-feedback-desktop-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/reflections/audit-pass24-reflection-feedback-desktop-reflection-one/feedback",
+        "query": "",
+        "body": {
+          "text": "赞同认真听完再表达。",
+          "stance": "agree",
+          "idempotencyKey": "f8542b05-57b6-457a-b4a4-42b9fc2921ec"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-desktop/reflections/audit-pass24-reflection-feedback-desktop-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-1",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-reflection-feedback-desktop-expanded.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-reflection-feedback-desktop-accepted.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "self-governance",
+    "size": "desktop",
+    "fid": "audit-pass24-self-governance-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "review keeps revision and confidence",
+      "reviewed: dialog fits viewport",
+      "reviewed: no horizontal page overflow",
+      "cancel preserves active self claim",
+      "forget has confirmed new revision",
+      "forgotten: dialog fits viewport",
+      "forgotten: no horizontal page overflow",
+      "restore appends current version and clears old review",
+      "three separate governance commands",
+      "restored: dialog fits viewport",
+      "restored: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/review",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和依据",
+          "idempotencyKey": "0bd6f8c9-810e-4484-b453-388a9839604e"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "先停止采用，保留来源",
+          "idempotencyKey": "fdd8460b-4250-4dfb-9ce2-422403cb3161"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/restore",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复已核对历史来源的内容",
+          "targetRevision": 1,
+          "idempotencyKey": "9c0c79eb-0761-4839-b75c-70b150053264"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-desktop/self-claims/audit-pass24-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-self-governance-desktop-reviewed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-self-governance-desktop-forgotten.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-self-governance-desktop-restored.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "memory-unknown",
+    "size": "desktop",
+    "fid": "audit-pass24-memory-unknown-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "unknown-response: dialog fits viewport",
+      "unknown-response: no horizontal page overflow",
+      "current-review: dialog fits viewport",
+      "current-review: no horizontal page overflow",
+      "latest review retains edited text",
+      "failure: dialog fits viewport",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-unknown-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-unknown-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-unknown-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-desktop-memory-one",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-unknown-desktop-unknown-response.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-unknown-desktop-current-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-unknown-desktop-failure.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "server executed PUT; replace its response with503",
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('你喜欢安静的雨天，在窗边读诗。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n记\n正在相处\n记忆核验样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n记忆\n快速前往\n⌘ K\nGROWTH / WHAT STAYS WITH US\n记忆与成长\n\n相处留下的细节，逐渐成为她理解世界的方式。\n\n关于你\n记忆\n2\n反思记录\n自我认知\n所有类型\n所有类型\n经历\n知识\n关系\n自我\n有效记忆\n全部状态\n有效记忆\n已遗忘\n已替代\n已废弃\n关系\n2026-10-26 20:00 (北京时间)\n\n你喜欢下雨天，也喜欢坐在窗边读书。\n\n有效记忆 · 第 2 版\n知识\n2026-10-26 20:00 (北京时间)\n\n这是一条等待来源核对的隔离样本记录。\n\n有效记忆 · 第 1 版来源待核对\n记忆小册\n2\n\n当前筛选已读\n\n1\n\n含你的引用\n\n记忆可以被纠正，也可以选择遗忘。原来的来源与修订会认真保留。数量仅包含已读取记录。\n\n看看关于你的记忆\n“\n\n不是记住所有的事情，\n而是让重要的细节，\n有地方慢慢安放。\n\n记忆详情\n\n第 2 版 · 关系\n\n刷新当前详情\n这段记忆\n原始来源\n修订记录\n你喜欢下雨天，也喜欢坐在窗边读书。\n状态\n有效记忆\n重要度\n来源状态\n有效\n记于\n2026-10-26 20:00 (北京时间)\n范围、人格理解与完整记录\n返回列表\n遗忘这段记忆\n记错了，纠正一下\n关闭"
+  },
+  {
+    "name": "memory-readback",
+    "size": "desktop",
+    "fid": "audit-pass24-memory-readback-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "readback-failed: dialog fits viewport",
+      "readback-failed: no horizontal page overflow",
+      "original operation executed once",
+      "confirmed object uses corrected content and new revision",
+      "recovered: dialog fits viewport",
+      "recovered: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-readback-desktop-readback-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-readback-desktop-recovered.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "accepted PUT; first subsequent object GET503",
+    "status": "passed"
+  },
+  {
+    "name": "filter-sources",
+    "size": "mobile",
+    "fid": "audit-pass24-filter-sources-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "search draft does not prematurely replace results",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-filter-sources-mobile/memories",
+        "query": "?q=%E4%B8%8D%E5%AD%98%E5%9C%A8%E7%9A%84%E8%AE%B0%E5%BF%86&status=active&aboutOwner=false&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-filter-sources-mobile-failure.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('当前筛选还没有记忆记录。') to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n记忆\n快速前往\nGROWTH / WHAT STAYS WITH US\n记忆与成长\n\n相处留下的细节，逐渐成为她理解世界的方式。\n\n关于你\n记忆\n0\n反思记录\n自我认知\n所有类型\n所有类型\n经历\n知识\n关系\n自我\n有效记忆\n全部状态\n有效记忆\n已遗忘\n已替代\n已废弃\n这里没有找到匹配的记忆\n\n试试别的关键词，或清除筛选。\n\n清除筛选\n记忆小册\n0\n\n当前筛选已读\n\n0\n\n含你的引用\n\n记忆可以被纠正，也可以选择遗忘。原来的来源与修订会认真保留。数量仅包含已读取记录。\n\n看看关于你的记忆\n“\n\n不是记住所有的事情，\n而是让重要的细节，\n有地方慢慢安放。"
+  },
+  {
+    "name": "memory-governance",
+    "size": "mobile",
+    "fid": "audit-pass24-memory-governance-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "empty reason does not mutate",
+      "empty-reason: dialog fits viewport",
+      "empty-reason: no horizontal page overflow",
+      "cancel preserves confirmed memory",
+      "cancel does not mutate",
+      "unchanged content does not mutate",
+      "revised-history: dialog fits viewport",
+      "revised-history: no horizontal page overflow",
+      "correction readback has new content/revision",
+      "forget cancellation remains active",
+      "forgotten-history: dialog fits viewport",
+      "forgotten-history: no horizontal page overflow",
+      "forget appends a revision",
+      "compensated-history: dialog fits viewport",
+      "compensated-history: no horizontal page overflow",
+      "rollback appends active revision instead of deleting history",
+      "three explicit commands only",
+      "all prior versions remain readable",
+      "refresh reads confirmed compensated record",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:明确喜好而非每天固定安排"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:不再作为当前认识"
+          ]
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/rollback",
+        "query": "",
+        "body": {
+          "expectedRevision": 4,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:按可追溯旧版追加补偿"
+          ],
+          "targetRevision": 0
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=5&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-mobile-empty-reason.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-mobile-revised-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-mobile-forgotten-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-governance-mobile-compensated-history.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "reflection-feedback",
+    "size": "mobile",
+    "fid": "audit-pass24-reflection-feedback-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "expanded: dialog fits viewport",
+      "expanded: no horizontal page overflow",
+      "cancel sends no feedback",
+      "accepted: dialog fits viewport",
+      "accepted: no horizontal page overflow",
+      "one feedback request with stance and stable key",
+      "feedback does not fabricate immediate reflection/persona adoption",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/reflections/audit-pass24-reflection-feedback-mobile-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/reflections/audit-pass24-reflection-feedback-mobile-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/reflections/audit-pass24-reflection-feedback-mobile-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/reflections/audit-pass24-reflection-feedback-mobile-reflection-one/feedback",
+        "query": "",
+        "body": {
+          "text": "赞同认真听完再表达。",
+          "stance": "agree",
+          "idempotencyKey": "466e6727-002e-4029-a2ab-69e8ae992dc8"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-reflection-feedback-mobile/reflections/audit-pass24-reflection-feedback-mobile-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-3",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-reflection-feedback-mobile-expanded.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-reflection-feedback-mobile-accepted.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "self-governance",
+    "size": "mobile",
+    "fid": "audit-pass24-self-governance-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "review keeps revision and confidence",
+      "reviewed: dialog fits viewport",
+      "reviewed: no horizontal page overflow",
+      "cancel preserves active self claim",
+      "forget has confirmed new revision",
+      "forgotten: dialog fits viewport",
+      "forgotten: no horizontal page overflow",
+      "restore appends current version and clears old review",
+      "three separate governance commands",
+      "restored: dialog fits viewport",
+      "restored: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/review",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和依据",
+          "idempotencyKey": "debebc56-bf81-4cae-9a25-b95dc17ec34b"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "先停止采用，保留来源",
+          "idempotencyKey": "3104cb1e-cdca-49e1-b6dc-56770263a40f"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/restore",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复已核对历史来源的内容",
+          "targetRevision": 1,
+          "idempotencyKey": "ecd9c679-142a-4735-89ee-08b04f949e9f"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-self-governance-mobile/self-claims/audit-pass24-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-self-governance-mobile-reviewed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-self-governance-mobile-forgotten.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-self-governance-mobile-restored.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "memory-unknown",
+    "size": "mobile",
+    "fid": "audit-pass24-memory-unknown-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "unknown-response: dialog fits viewport",
+      "unknown-response: no horizontal page overflow",
+      "current-review: dialog fits viewport",
+      "current-review: no horizontal page overflow",
+      "latest review retains edited text",
+      "failure: dialog fits viewport",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-unknown-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-unknown-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-unknown-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-unknown-mobile-memory-one",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-unknown-mobile-unknown-response.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-unknown-mobile-current-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-unknown-mobile-failure.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "server executed PUT; replace its response with503",
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('你喜欢安静的雨天，在窗边读诗。', { exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n记忆\n快速前往\nGROWTH / WHAT STAYS WITH US\n记忆与成长\n\n相处留下的细节，逐渐成为她理解世界的方式。\n\n关于你\n记忆\n2\n反思记录\n自我认知\n所有类型\n所有类型\n经历\n知识\n关系\n自我\n有效记忆\n全部状态\n有效记忆\n已遗忘\n已替代\n已废弃\n关系\n2026-10-26 20:00 (北京时间)\n\n你喜欢下雨天，也喜欢坐在窗边读书。\n\n有效记忆 · 第 2 版\n知识\n2026-10-26 20:00 (北京时间)\n\n这是一条等待来源核对的隔离样本记录。\n\n有效记忆 · 第 1 版来源待核对\n记忆小册\n2\n\n当前筛选已读\n\n1\n\n含你的引用\n\n记忆可以被纠正，也可以选择遗忘。原来的来源与修订会认真保留。数量仅包含已读取记录。\n\n看看关于你的记忆\n“\n\n不是记住所有的事情，\n而是让重要的细节，\n有地方慢慢安放。\n\n记忆详情\n\n第 2 版 · 关系\n\n刷新当前详情\n这段记忆\n原始来源\n修订记录\n你喜欢下雨天，也喜欢坐在窗边读书。\n状态\n有效记忆\n重要度\n来源状态\n有效\n记于\n2026-10-26 20:00 (北京时间)\n范围、人格理解与完整记录\n返回列表\n遗忘这段记忆\n记错了，纠正一下\n关闭"
+  },
+  {
+    "name": "memory-readback",
+    "size": "mobile",
+    "fid": "audit-pass24-memory-readback-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "readback-failed: dialog fits viewport",
+      "readback-failed: no horizontal page overflow",
+      "original operation executed once",
+      "confirmed object uses corrected content and new revision",
+      "recovered: dialog fits viewport",
+      "recovered: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:验证原状态恢复"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-pass24-memory-readback-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-pass24-memory-readback-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-readback-mobile-readback-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/pass24-memory-readback-mobile-recovered.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "injectedFault": "accepted PUT; first subsequent object GET503",
+    "status": "passed"
+  }
+]

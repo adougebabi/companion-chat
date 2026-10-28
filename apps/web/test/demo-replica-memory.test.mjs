@@ -421,6 +421,11 @@ test("an unknown CAS-only correction requires actual current-object review, and 
     await v.click(button(dialog(), "保存纠正"));
     assert.match(dialog().textContent, /当前版本已经是这段正文/);
     assert.equal(w.calls.filter((c) => c[0] === "revise").length, 1);
+    await v.click(button(dialog(), "取消"));
+    assert.match(dialog().textContent, /第 3 版/);
+    assert.match(dialog().textContent, /实际已经提交的正文/);
+    assert.match(v.host.textContent, /实际已经提交的正文/);
+    assert.equal(w.calls.filter((c) => c[0] === "revise").length, 1);
   } finally {
     await v.dispose();
   }

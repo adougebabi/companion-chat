@@ -79,7 +79,8 @@
 .replica-world [data-slot="card"].r-padded {
   padding: 24px;
 }
-.replica-world .r-form-stack {
+.replica-world .r-form-stack,
+.replica-world.r-form-stack {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -94,12 +95,14 @@
 .replica-world .r-form-grid > .field {
   min-width: 0;
 }
-.replica-world .r-form-stack > fieldset {
+.replica-world .r-form-stack > fieldset,
+.replica-world.r-form-stack > fieldset {
   border: 0;
   margin: 0;
   padding: 0;
 }
-.replica-world .r-form-stack > fieldset:disabled {
+.replica-world .r-form-stack > fieldset:disabled,
+.replica-world.r-form-stack > fieldset:disabled {
   opacity: 0.65;
 }
 .replica-world .r-two-column {

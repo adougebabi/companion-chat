@@ -1,0 +1,254 @@
+[
+  {
+    "name": "place-history-restore",
+    "size": "desktop",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass29-place-history-restore-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '场地与地点', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n世界\n快速前往\n⌘ K\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n场地分类\n全部地点\n2\n生活空间\n1\n商店\n1\n添加分类\n添加地点\n显示已归档地点\n生活空间 · 二层\n她的房间\n\n安静的木质房间\n\n温暖\nkeep-camel\n木\n修订记录\n查看与编辑\n商店 · 一层\n迟山书店\n\n出售书籍与文具的小店。\n\n安静\n书架、柜台\n修订记录\n查看与编辑"
+  },
+  {
+    "name": "item-availability",
+    "size": "desktop",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass29-item-availability-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '场地与地点', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n世界\n快速前往\n⌘ K\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n场地分类\n全部地点\n2\n生活空间\n1\n商店\n1\n添加分类\n添加地点\n显示已归档地点\n生活空间 · 二层\n她的房间\n\n安静的木质房间\n\n温暖\nkeep-camel\n木\n修订记录\n查看与编辑\n商店 · 一层\n迟山书店\n\n出售书籍与文具的小店。\n\n安静\n书架、柜台\n修订记录\n查看与编辑"
+  },
+  {
+    "name": "event-toggle-trigger",
+    "size": "desktop",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass29-event-toggle-trigger-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '场地与地点', exact: true }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n世界\n快速前往\n⌘ K\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n场地分类\n全部地点\n2\n生活空间\n1\n商店\n1\n添加分类\n添加地点\n显示已归档地点\n生活空间 · 二层\n她的房间\n\n安静的木质房间\n\n温暖\nkeep-camel\n木\n修订记录\n查看与编辑\n商店 · 一层\n迟山书店\n\n出售书籍与文具的小店。\n\n安静\n书架、柜台\n修订记录\n查看与编辑"
+  },
+  {
+    "name": "place-history-restore",
+    "size": "mobile",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass29-place-history-restore-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '场地与地点', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n世界\n快速前往\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n场地分类\n全部地点\n2\n生活空间\n1\n商店\n1\n添加分类\n添加地点\n显示已归档地点\n生活空间 · 二层\n她的房间\n\n安静的木质房间\n\n温暖\nkeep-camel\n木\n修订记录\n查看与编辑\n商店 · 一层\n迟山书店\n\n出售书籍与文具的小店。\n\n安静\n书架、柜台\n修订记录\n查看与编辑"
+  },
+  {
+    "name": "item-availability",
+    "size": "mobile",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass29-item-availability-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '场地与地点', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n世界\n快速前往\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n场地分类\n全部地点\n2\n生活空间\n1\n商店\n1\n添加分类\n添加地点\n显示已归档地点\n生活空间 · 二层\n她的房间\n\n安静的木质房间\n\n温暖\nkeep-camel\n木\n修订记录\n查看与编辑\n商店 · 一层\n迟山书店\n\n出售书籍与文具的小店。\n\n安静\n书架、柜台\n修订记录\n查看与编辑"
+  },
+  {
+    "name": "event-toggle-trigger",
+    "size": "mobile",
+    "kind": "production dist / mutable world HTTP fixture; auto-run completion is simulated",
+    "checks": [
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/pass29-event-toggle-trigger-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('tab', { name: '场地与地点', exact: true }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n世界与联系\n世界\n快速前往\nYOUR WORLD / A PLACE TO BELONG\n温和魔法世界\n\n场所、风景与相遇，让生活有迹可循。\n\n世界底稿\n新建世界\n全部世界\n温和魔法世界\n温暖、安静\n一座属于日常的世界\n\n中世纪魔法与普通生活并存，集市和住家构成安静的小镇。\n\n当前运行世界\n2 类场地 · 2 处地点\n编辑世界\n场地与地点\n2\n世界设定\n物品目录\n世界事件\n场地分类\n全部地点\n2\n生活空间\n1\n商店\n1\n添加分类\n添加地点\n显示已归档地点\n生活空间 · 二层\n她的房间\n\n安静的木质房间\n\n温暖\nkeep-camel\n木\n修订记录\n查看与编辑\n商店 · 一层\n迟山书店\n\n出售书籍与文具的小店。\n\n安静\n书架、柜台\n修订记录\n查看与编辑"
+  }
+]

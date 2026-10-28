@@ -99,7 +99,7 @@ export default function StudioLifecycle({
   );
   const versions = useCursorPage(
     (cursor) => service.versions(resource.id, { cursor }),
-    JSON.stringify([owner, resource.id, "publications"]),
+    JSON.stringify([owner, resource.id, resource.published_version, "publications"]),
   );
   async function readReceipt() {
     const raw = studioDraftStorage().getItem(slot + ":lifecycle-receipt");

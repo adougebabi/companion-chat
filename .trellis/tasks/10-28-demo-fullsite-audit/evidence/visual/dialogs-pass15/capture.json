@@ -1,0 +1,574 @@
+[
+  {
+    "name": "profile-edit",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 244,
+          "y": 178.203125,
+          "width": 860,
+          "height": 568.59375,
+          "scrollHeight": 567,
+          "text": "编辑林晚的资料编辑稳定设定。穿着、位置和已经发生的事情，继续以生活记录为准。基本资料性格与表达生活设定更多设定名字*昵称性别年龄职业居住地生活时区*取消保存资料Close",
+          "forms": []
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 244,
+          "y": 188.703125,
+          "width": 860,
+          "height": 547.59375,
+          "scrollHeight": 546,
+          "text": "编辑林晚的资料编辑稳定设定。穿着、位置和已经发生的事情，继续以生活记录为准。基本资料性格与表达生活设定更多设定名字昵称性别女尚未填写女男非二元不透露自定义年龄职业居住地生活时区Asia/Shanghai核心价值观独立、真诚、尊重彼此的选择回复风格自然平和，表达具体消息长短适中尚未填写简短适中详细适中直接程度中 · 0.620–1，数值越大表示这项倾向越明显。主动性中 · 0.580–1，数值越大表示这项倾向越明显。分歧处理先听清楚，再直接说出不同意见拒绝方式温和而坚定简介与经历在青岚小城经营一家叫「迟山」的独立书店。喜欢雨天、纸张的气味，也喜欢认真听人说话。生平偏好 · 喜欢偏好 · 稳定偏好偏好 · 补充说明生活习惯性格边界外貌 · 说明深棕色齐肩发，清澈的眼睛，习惯把一边头发别到耳后。身高说明身高（厘米）血型出生地生日世界观备注关系从真实的相处里生长。补充说明温柔\n细腻\n独立补充说明补充说明表情频率0–1，数值越大表示这项倾向越明显。标点习惯幽默方式调侃倾向0–1，数值越大表示这项倾向越明显。开启话题0–1，数值越大表示这项倾向越明显。对沉默的接受程度0–1，数值越大表示这项倾向越明显。回应节奏情绪表达0–1，数值越大表示这项倾向越明显。亲密表达取消保存资料关闭",
+          "forms": [
+            {
+              "class": "companion-form-stack",
+              "width": 791,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "wardrobe-edit",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 94.203125,
+          "width": 590,
+          "height": 736.59375,
+          "scrollHeight": 735,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述*服装类型外套适合季节春季夏季秋季冬季拥有关系已拥有可用状态可穿着登记与修订历史初始服装登记10/26 14:30归档服装保存资料Close",
+          "forms": [
+            {
+              "class": "r-form-stack",
+              "width": 536,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 536,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "259px 259px"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 50.875,
+          "width": 590,
+          "height": 823.25,
+          "scrollHeight": 821,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述填写便于辨认的衣服名称。服装类型外套外套上衣内衣内裤下衣袜子鞋子配饰适合季节春季夏季秋季冬季拥有关系已拥有已拥有借用尚未确认可用状态可穿着可穿着暂不可用已遗失登记与修订历史完整服装与来源归档服装取消保存衣服关闭",
+          "forms": [
+            {
+              "class": "r-form-stack",
+              "width": 521,
+              "display": "flex",
+              "gap": "18px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 521,
+              "display": "grid",
+              "gap": "16px",
+              "columns": "252.5px 252.5px"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "goal-detail",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 168.3203125,
+          "width": 590,
+          "height": 588.359375,
+          "scrollHeight": 586,
+          "text": "办一场属于小城的读书会属于林晚的一个期待让喜欢书的人有机会坐下来，认真聊聊彼此。生活优先期待在 2026-11-01 前完成怎样算做到？确定主题与书单已有对应记录邀请三位读者已有对应记录完成第一场线下读书会等待实际经历放下这个目标编辑暂停核对进展Close",
+          "forms": []
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 50.875,
+          "width": 590,
+          "height": 823.25,
+          "scrollHeight": 821,
+          "text": "办一场属于小城的读书会属于林晚的一个期待让喜欢书的人有机会坐下来，认真聊聊彼此。一般目标重要程度 · 尚未提供紧迫程度 · 尚未提供期待在 2026-11-01 前完成怎样算做到？确定主题与书单已由当前版本评估确认邀请三位读者已由当前版本评估确认完成第一场线下读书会本次评估尚未满足当前证据评估进度：67%。 目标完成状态以实际领域记录为准。推进条件与核对状态证据来源目标修订历史完整目标与来源放下这个目标取消这个目标编辑暂停核对进展关闭",
+          "forms": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "world-place-edit",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 244,
+          "y": 95.703125,
+          "width": 860,
+          "height": 733.59375,
+          "scrollHeight": 732,
+          "text": "迟山编辑地点资料，当前未保存的草稿会为你保留。正式名称*正式名称固定，可用别名补充称呼。别名所属场地老城街区楼层 / 位置场景描述一间临河的独立书店，午后的光线落在靠窗的阅读桌上。氛围固定陈设空间布局前区陈列新书，中间是阅读桌，后侧有小小的工作间场景与空间连接场景素材城市与日常父地点无父地点连通地点白日咖啡馆青岚河岸南湾海边河畔公寓恢复默认字段修订历史保存地点Close",
+          "forms": [
+            {
+              "class": "r-form-stack",
+              "width": 806,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 806,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "394px 394px"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 806,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "394px 394px"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 806,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "394px 394px"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 244,
+          "y": 50.875,
+          "width": 860,
+          "height": 823.25,
+          "scrollHeight": 821,
+          "text": "迟山编辑地点资料。已有正式名称和分类保持固定，别名可用于补充称呼。正式名称别名所属场地老城街区未分类老城街区自然与户外生活空间楼层 / 位置场景描述一间临河的独立书店，午后的光线落在靠窗的阅读桌上。氛围固定陈设（文本或JSON数组）原木书架、圆形阅读桌、落地灯、咖啡机空间布局前区陈列新书，中间是阅读桌，后侧有小小的工作间场景与空间连接恢复默认字段修订历史读取最新版本并保留输入取消保存地点关闭",
+          "forms": [
+            {
+              "class": "lp-form",
+              "width": 791,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "386.5px 386.5px"
+            },
+            {
+              "class": "replica-world r-form-stack lp-wide",
+              "width": 791,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 791,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "386.5px 386.5px"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 791,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "386.5px 386.5px"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "people-detail",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 196.96875,
+          "width": 590,
+          "height": 531.0625,
+          "scrollHeight": 529,
+          "text": "陈叔旧物修理铺店主熟悉的街坊在河西街开了二十多年的修理铺，说话慢，做事很仔细。偶尔会来书店借一本文集。所在地点河西街 · 修理铺最近接触昨天 16:20结识 / 目录来源10 月 20 日 · 修理书店门口的旧木椅时相识已经结识，后续的共同经历会继续留下关系记录。编辑人物资料查看所在世界Close",
+          "forms": []
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 379,
+          "y": 96.9140625,
+          "width": 590,
+          "height": 731.171875,
+          "scrollHeight": 729,
+          "text": "陈叔旧物修理铺店主 已经结识在河西街开了二十多年的修理铺，说话慢，做事很仔细。偶尔会来书店借一本文集。地点尚未设定目录来源人物定义 · 描述熟悉的街坊10 月 20 日 · 修理书店门口的旧木椅时相识目录、预计位置、在场与实际结识分别记录，浏览不会建立关系。接触、在场与相遇记录完整人物、生活规律与来源编辑人物资料人物管理记录实际接触查看所在世界关闭",
+          "forms": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "profile-edit",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 874,
+          "text": "编辑林晚的资料编辑稳定设定。穿着、位置和已经发生的事情，继续以生活记录为准。基本资料性格与表达生活设定更多设定名字*昵称性别年龄职业居住地生活时区*取消保存资料Close",
+          "forms": []
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 774,
+          "text": "编辑林晚的资料编辑稳定设定。穿着、位置和已经发生的事情，继续以生活记录为准。基本资料性格与表达生活设定更多设定名字昵称性别女尚未填写女男非二元不透露自定义年龄职业居住地生活时区Asia/Shanghai核心价值观独立、真诚、尊重彼此的选择回复风格自然平和，表达具体消息长短适中尚未填写简短适中详细适中直接程度中 · 0.620–1，数值越大表示这项倾向越明显。主动性中 · 0.580–1，数值越大表示这项倾向越明显。分歧处理先听清楚，再直接说出不同意见拒绝方式温和而坚定简介与经历在青岚小城经营一家叫「迟山」的独立书店。喜欢雨天、纸张的气味，也喜欢认真听人说话。生平偏好 · 喜欢偏好 · 稳定偏好偏好 · 补充说明生活习惯性格边界外貌 · 说明深棕色齐肩发，清澈的眼睛，习惯把一边头发别到耳后。身高说明身高（厘米）血型出生地生日世界观备注关系从真实的相处里生长。补充说明温柔\n细腻\n独立补充说明补充说明表情频率0–1，数值越大表示这项倾向越明显。标点习惯幽默方式调侃倾向0–1，数值越大表示这项倾向越明显。开启话题0–1，数值越大表示这项倾向越明显。对沉默的接受程度0–1，数值越大表示这项倾向越明显。回应节奏情绪表达0–1，数值越大表示这项倾向越明显。亲密表达取消保存资料关闭",
+          "forms": [
+            {
+              "class": "companion-form-stack",
+              "width": 295,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "wardrobe-edit",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 851,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述*服装类型外套适合季节春季夏季秋季冬季拥有关系已拥有可用状态可穿着登记与修订历史初始服装登记10/26 14:30归档服装保存资料Close",
+          "forms": [
+            {
+              "class": "r-form-stack",
+              "width": 310,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 310,
+              "display": "grid",
+              "gap": "14px",
+              "columns": "310px"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 774,
+          "text": "服装资料补录或修正已经知道的衣物信息。衣服名称 / 描述填写便于辨认的衣服名称。服装类型外套外套上衣内衣内裤下衣袜子鞋子配饰适合季节春季夏季秋季冬季拥有关系已拥有已拥有借用尚未确认可用状态可穿着可穿着暂不可用已遗失登记与修订历史完整服装与来源归档服装取消保存衣服关闭",
+          "forms": [
+            {
+              "class": "r-form-stack",
+              "width": 295,
+              "display": "flex",
+              "gap": "18px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 295,
+              "display": "grid",
+              "gap": "16px",
+              "columns": "295px"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "goal-detail",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 85.8203125,
+          "width": 356,
+          "height": 672.359375,
+          "scrollHeight": 670,
+          "text": "办一场属于小城的读书会属于林晚的一个期待让喜欢书的人有机会坐下来，认真聊聊彼此。生活优先期待在 2026-11-01 前完成怎样算做到？确定主题与书单已有对应记录邀请三位读者已有对应记录完成第一场线下读书会等待实际经历放下这个目标编辑暂停核对进展Close",
+          "forms": []
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 774,
+          "text": "办一场属于小城的读书会属于林晚的一个期待让喜欢书的人有机会坐下来，认真聊聊彼此。一般目标重要程度 · 尚未提供紧迫程度 · 尚未提供期待在 2026-11-01 前完成怎样算做到？确定主题与书单已由当前版本评估确认邀请三位读者已由当前版本评估确认完成第一场线下读书会本次评估尚未满足当前证据评估进度：67%。 目标完成状态以实际领域记录为准。推进条件与核对状态证据来源目标修订历史完整目标与来源放下这个目标取消这个目标编辑暂停核对进展关闭",
+          "forms": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "world-place-edit",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 1062,
+          "text": "迟山编辑地点资料，当前未保存的草稿会为你保留。正式名称*正式名称固定，可用别名补充称呼。别名所属场地老城街区楼层 / 位置场景描述一间临河的独立书店，午后的光线落在靠窗的阅读桌上。氛围固定陈设空间布局前区陈列新书，中间是阅读桌，后侧有小小的工作间场景与空间连接场景素材城市与日常父地点无父地点连通地点白日咖啡馆青岚河岸南湾海边河畔公寓恢复默认字段修订历史保存地点Close",
+          "forms": [
+            {
+              "class": "r-form-stack",
+              "width": 310,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 310,
+              "display": "grid",
+              "gap": "14px",
+              "columns": "310px"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 310,
+              "display": "grid",
+              "gap": "14px",
+              "columns": "310px"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 310,
+              "display": "grid",
+              "gap": "14px",
+              "columns": "310px"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 774,
+          "text": "迟山编辑地点资料。已有正式名称和分类保持固定，别名可用于补充称呼。正式名称别名所属场地老城街区未分类老城街区自然与户外生活空间楼层 / 位置场景描述一间临河的独立书店，午后的光线落在靠窗的阅读桌上。氛围固定陈设（文本或JSON数组）原木书架、圆形阅读桌、落地灯、咖啡机空间布局前区陈列新书，中间是阅读桌，后侧有小小的工作间场景与空间连接恢复默认字段修订历史读取最新版本并保留输入取消保存地点关闭",
+          "forms": [
+            {
+              "class": "lp-form",
+              "width": 295,
+              "display": "grid",
+              "gap": "18px",
+              "columns": "138.5px 138.5px"
+            },
+            {
+              "class": "replica-world r-form-stack lp-wide",
+              "width": 295,
+              "display": "flex",
+              "gap": "20px",
+              "columns": "none"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 295,
+              "display": "grid",
+              "gap": "14px",
+              "columns": "295px"
+            },
+            {
+              "class": "r-form-grid",
+              "width": 295,
+              "display": "grid",
+              "gap": "14px",
+              "columns": "295px"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "people-detail",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "results": [
+      {
+        "kind": "reference",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 114,
+          "width": 356,
+          "height": 616,
+          "scrollHeight": 614,
+          "text": "陈叔旧物修理铺店主熟悉的街坊在河西街开了二十多年的修理铺，说话慢，做事很仔细。偶尔会来书店借一本文集。所在地点河西街 · 修理铺最近接触昨天 16:20结识 / 目录来源10 月 20 日 · 修理书店门口的旧木椅时相识已经结识，后续的共同经历会继续留下关系记录。编辑人物资料查看所在世界Close",
+          "forms": []
+        }
+      },
+      {
+        "kind": "actual",
+        "errors": [],
+        "status": "captured",
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875,
+          "scrollHeight": 774,
+          "text": "陈叔旧物修理铺店主 已经结识在河西街开了二十多年的修理铺，说话慢，做事很仔细。偶尔会来书店借一本文集。地点尚未设定目录来源人物定义 · 描述熟悉的街坊10 月 20 日 · 修理书店门口的旧木椅时相识目录、预计位置、在场与实际结识分别记录，浏览不会建立关系。接触、在场与相遇记录完整人物、生活规律与来源编辑人物资料人物管理记录实际接触查看所在世界关闭",
+          "forms": []
+        }
+      }
+    ]
+  }
+]

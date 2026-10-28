@@ -1,0 +1,19 @@
+✔ goal judgments use current goal/version/criterion identity and preserve Core's policy progress (0.897625ms)
+✔ current/history pages are independent, filtered and both append cursors remain reachable (272.383625ms)
+✔ initial loading is not an empty result; failed history retries its original partition (131.36325ms)
+✔ cancelled edit discards unsaved input; save uses the actual definition and returns readback (447.759458ms)
+✔ pause/resume and reassessment follow actual records; pending reassessment does not complete criteria (445.340709ms)
+✔ unknown create survives reopen with equal body/key, and newer fields become an update after reviewed readback (681.67475ms)
+✔ acknowledged create with failed readback is recovered by reads only (325.04ms)
+✔ saving a new goal replaces the previous detail evidence and history with its own records (425.228625ms)
+✔ acknowledged goal saves verify criteria, deadlines and protection before success and recover by GET only (1055.496ms)
+✔ goal details expose recorded stages, commitments and dependencies without claiming parent completion (108.144292ms)
+✔ malformed evidence reads retain the selected goal and expose the original read recovery (161.324583ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6374.788166

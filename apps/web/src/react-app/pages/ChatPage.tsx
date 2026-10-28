@@ -245,7 +245,7 @@ export default function ChatPage({
             <span>
               <i className="online-dot" />{" "}
               {character.status === "正常"
-                ? "运行中"
+                ? "生活进行中"
                 : character.status || "状态未读取"}
               {character.job && <span> · {character.job}</span>}
             </span>

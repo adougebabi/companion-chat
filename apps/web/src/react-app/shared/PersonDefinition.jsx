@@ -222,7 +222,7 @@ export default function PersonDefinition({ model: m, onClose }) {
         };
     },
     fields: (d, edit) => (
-      <div className="replica-profile replica-people companion-form-stack">
+      <div className="replica-profile replica-people companion-form-stack lp-wide">
         {[
           ["name", "名字"],
           ["role", "职业 / 身份"],
@@ -415,7 +415,7 @@ export default function PersonDefinition({ model: m, onClose }) {
         }
       },
       fields: (d) => (
-        <div className="replica-profile replica-people companion-form-stack">
+        <div className="replica-profile replica-people companion-form-stack lp-wide">
           <p>
             发布版本 {version} · 目标{" "}
             {m.catalog.extra.world?.name || "原预览世界"}

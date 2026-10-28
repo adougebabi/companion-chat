@@ -488,7 +488,9 @@
           "evidence/visual/library/normal-pass4/actual-mobile.png"
         ],
         "interaction": [],
-        "business": []
+        "business": [
+          "evidence/real-browser/report.json"
+        ]
       },
       "fixes": [],
       "blockers": [],
@@ -509,6 +511,15 @@
               "evidence/visual/library/normal-pass4/actual-mobile.png"
             ],
             "notes": "已生成并按内容/布局核对；共享修复及正式契约差异见fixes.md、accepted-differences.md。未将整行全部状态标通过。"
+          }
+        },
+        "business": {
+          "真实隔离Core/PG浏览器读取": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/real-browser/report.json"
+            ],
+            "notes": "现有Owner和角色；5页面实际API读取，无聊天发送/模型生成/新激活。本项不证明各页全部写操作。"
           }
         }
       }
@@ -701,7 +712,8 @@
             "path": "evidence/real-runtime.json",
             "layer": "actual Core/Worker/PostgreSQL/Temporal/local model",
             "verified_scope": "endpoint and four model roles; original blank actor; real NDJSON completed + persisted assistant message"
-          }
+          },
+          "evidence/real-browser/report.json"
         ]
       },
       "fixes": [],
@@ -767,6 +779,15 @@
               "evidence/states/read-states-chat.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          }
+        },
+        "business": {
+          "真实隔离Core/PG浏览器读取": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/real-browser/report.json"
+            ],
+            "notes": "现有Owner和角色；5页面实际API读取，无聊天发送/模型生成/新激活。本项不证明各页全部写操作。"
           }
         }
       }
@@ -2228,7 +2249,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/form-groups/report-after.json"
         ],
         "business": []
       },
@@ -2242,6 +2264,20 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "person exact story is retained; about view reads owner background; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "people-edit": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/form-groups/report-after.json"
+            ],
+            "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-contact": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/form-groups/report-after.json"
+            ],
+            "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -2282,11 +2318,24 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/form-groups/report-after.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "people-create": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/form-groups/report-after.json"
+            ],
+            "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "people-about-display",
@@ -2588,11 +2637,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/form-groups/report-after.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "people-edit": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/form-groups/report-after.json"
+            ],
+            "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "people-contact": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/form-groups/report-after.json"
+            ],
+            "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "feed-filter-list",
@@ -2851,11 +2920,24 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/form-groups/report-after.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "feed-compose": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/form-groups/report-after.json"
+            ],
+            "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "feed-suggest",
@@ -2892,11 +2974,24 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/form-groups/report-after.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "feed-compose": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/form-groups/report-after.json"
+            ],
+            "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "feed-formal-npc",
@@ -2991,7 +3086,9 @@
           "evidence/interaction/domain-ui.json",
           "evidence/states/read-states.json"
         ],
-        "business": []
+        "business": [
+          "evidence/real-browser/report.json"
+        ]
       },
       "fixes": [],
       "blockers": [],
@@ -3063,6 +3160,15 @@
               "evidence/states/read-states.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          }
+        },
+        "business": {
+          "真实隔离Core/PG浏览器读取": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/real-browser/report.json"
+            ],
+            "notes": "现有Owner和角色；5页面实际API读取，无聊天发送/模型生成/新激活。本项不证明各页全部写操作。"
           }
         }
       }
@@ -3445,7 +3551,9 @@
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json"
         ],
-        "business": []
+        "business": [
+          "evidence/real-browser/report.json"
+        ]
       },
       "fixes": [],
       "blockers": [],
@@ -3510,6 +3618,15 @@
               "evidence/states/read-states-now-wardrobe-profile-settings.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          }
+        },
+        "business": {
+          "真实隔离Core/PG浏览器读取": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/real-browser/report.json"
+            ],
+            "notes": "现有Owner和角色；5页面实际API读取，无聊天发送/模型生成/新激活。本项不证明各页全部写操作。"
           }
         }
       }
@@ -4520,7 +4637,8 @@
           "evidence/states/read-states.json"
         ],
         "interaction": [
-          "evidence/states/read-states.json"
+          "evidence/states/read-states.json",
+          "evidence/memory-deep/report-pass26.json"
         ],
         "business": []
       },
@@ -4587,6 +4705,20 @@
               "evidence/states/read-states.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          },
+          "filter-sources-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "search draft does not prematurely replace results; empty-search: no horizontal page overflow; relationship filter excludes pending semantic record; current-source: dialog fits viewport; current-source: no horizontal page overflow; historical-source: dialog fits viewport; historical-source: no horizontal page overflow; Escape restores originating memory card focus; filter remains selected after closing detail; pending-provenance: dialog fits viewport; pending-provenance: no horizontal page overflow; viewing/search/cancel sent no mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "filter-sources-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "search draft does not prematurely replace results; empty-search: no horizontal page overflow; relationship filter excludes pending semantic record; current-source: dialog fits viewport; current-source: no horizontal page overflow; historical-source: dialog fits viewport; historical-source: no horizontal page overflow; Escape restores originating memory card focus; filter remains selected after closing detail; pending-provenance: dialog fits viewport; pending-provenance: no horizontal page overflow; viewing/search/cancel sent no mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4626,7 +4758,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/memory-deep/report-pass26.json",
+          "evidence/memory-deep/report-pass29.json"
         ],
         "business": []
       },
@@ -4640,6 +4774,62 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "full active memory list displayed; detail includes source/history; reflection source renders; self claims source renders; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "filter-sources-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "search draft does not prematurely replace results; empty-search: no horizontal page overflow; relationship filter excludes pending semantic record; current-source: dialog fits viewport; current-source: no horizontal page overflow; historical-source: dialog fits viewport; historical-source: no horizontal page overflow; Escape restores originating memory card focus; filter remains selected after closing detail; pending-provenance: dialog fits viewport; pending-provenance: no horizontal page overflow; viewing/search/cancel sent no mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-governance-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "unknown-response: dialog fits viewport; unknown-response: no horizontal page overflow; unknown-response: explanatory form note spans full form; current-review: dialog fits viewport; current-review: no horizontal page overflow; current-review: explanatory form note spans full form; latest review retains edited text; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "readback-failed: dialog fits viewport; readback-failed: no horizontal page overflow; readback-failed: explanatory form note spans full form; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "filter-sources-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "search draft does not prematurely replace results; empty-search: no horizontal page overflow; relationship filter excludes pending semantic record; current-source: dialog fits viewport; current-source: no horizontal page overflow; historical-source: dialog fits viewport; historical-source: no horizontal page overflow; Escape restores originating memory card focus; filter remains selected after closing detail; pending-provenance: dialog fits viewport; pending-provenance: no horizontal page overflow; viewing/search/cancel sent no mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-governance-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "unknown-response: dialog fits viewport; unknown-response: no horizontal page overflow; unknown-response: explanatory form note spans full form; current-review: dialog fits viewport; current-review: no horizontal page overflow; current-review: explanatory form note spans full form; latest review retains edited text; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "readback-failed: dialog fits viewport; readback-failed: no horizontal page overflow; readback-failed: explanatory form note spans full form; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4677,11 +4867,60 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/memory-deep/report-pass26.json",
+          "evidence/memory-deep/report-pass29.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "memory-governance-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "unknown-response: dialog fits viewport; unknown-response: no horizontal page overflow; unknown-response: explanatory form note spans full form; current-review: dialog fits viewport; current-review: no horizontal page overflow; current-review: explanatory form note spans full form; latest review retains edited text; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "readback-failed: dialog fits viewport; readback-failed: no horizontal page overflow; readback-failed: explanatory form note spans full form; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-governance-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "unknown-response: dialog fits viewport; unknown-response: no horizontal page overflow; unknown-response: explanatory form note spans full form; current-review: dialog fits viewport; current-review: no horizontal page overflow; current-review: explanatory form note spans full form; latest review retains edited text; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass29.json"
+            ],
+            "notes": "readback-failed: dialog fits viewport; readback-failed: no horizontal page overflow; readback-failed: explanatory form note spans full form; original operation executed once; confirmed object uses corrected content and new revision; recovered: dialog fits viewport; recovered: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-memory-forget",
@@ -4712,11 +4951,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/memory-deep/report-pass26.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "memory-governance-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-governance-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-memory-restore",
@@ -4747,11 +5006,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/memory-deep/report-pass26.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "memory-governance-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "memory-governance-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "empty reason does not mutate; empty-reason: dialog fits viewport; empty-reason: no horizontal page overflow; cancel preserves confirmed memory; cancel does not mutate; unchanged content does not mutate; revised-history: dialog fits viewport; revised-history: no horizontal page overflow; correction readback has new content/revision; forget cancellation remains active; forgotten-history: dialog fits viewport; forgotten-history: no horizontal page overflow; forget appends a revision; compensated-history: dialog fits viewport; compensated-history: no horizontal page overflow; rollback appends active revision instead of deleting history; three explicit commands only; all prior versions remain readable; refresh reads confirmed compensated record; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-reflection-list",
@@ -4784,7 +5063,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/memory-deep/report-pass26.json"
         ],
         "business": []
       },
@@ -4798,6 +5078,20 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "full active memory list displayed; detail includes source/history; reflection source renders; self claims source renders; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "reflection-feedback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "expanded: dialog fits viewport; expanded: no horizontal page overflow; cancel sends no feedback; accepted: dialog fits viewport; accepted: no horizontal page overflow; one feedback request with stance and stable key; feedback does not fabricate immediate reflection/persona adoption; request-completed: dialog fits viewport; request-completed: no horizontal page overflow; feedback follows its original request until terminal read; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "reflection-feedback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "expanded: dialog fits viewport; expanded: no horizontal page overflow; cancel sends no feedback; accepted: dialog fits viewport; accepted: no horizontal page overflow; one feedback request with stance and stable key; feedback does not fabricate immediate reflection/persona adoption; request-completed: dialog fits viewport; request-completed: no horizontal page overflow; feedback follows its original request until terminal read; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4837,11 +5131,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/memory-deep/report-pass26.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "reflection-feedback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "expanded: dialog fits viewport; expanded: no horizontal page overflow; cancel sends no feedback; accepted: dialog fits viewport; accepted: no horizontal page overflow; one feedback request with stance and stable key; feedback does not fabricate immediate reflection/persona adoption; request-completed: dialog fits viewport; request-completed: no horizontal page overflow; feedback follows its original request until terminal read; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "reflection-feedback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "expanded: dialog fits viewport; expanded: no horizontal page overflow; cancel sends no feedback; accepted: dialog fits viewport; accepted: no horizontal page overflow; one feedback request with stance and stable key; feedback does not fabricate immediate reflection/persona adoption; request-completed: dialog fits viewport; request-completed: no horizontal page overflow; feedback follows its original request until terminal read; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "life-self-list",
@@ -4875,7 +5189,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/domain-ui.json"
+          "evidence/interaction/domain-ui.json",
+          "evidence/memory-deep/report-pass26.json"
         ],
         "business": []
       },
@@ -4889,6 +5204,20 @@
               "evidence/interaction/domain-ui.json"
             ],
             "notes": "full active memory list displayed; detail includes source/history; reflection source renders; self claims source renders; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "self-governance-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "review keeps revision and confidence; reviewed: dialog fits viewport; reviewed: no horizontal page overflow; cancel preserves active self claim; forget has confirmed new revision; forgotten: dialog fits viewport; forgotten: no horizontal page overflow; restore appends current version and clears old review; three separate governance commands; restored: dialog fits viewport; restored: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "self-governance-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "review keeps revision and confidence; reviewed: dialog fits viewport; reviewed: no horizontal page overflow; cancel preserves active self claim; forget has confirmed new revision; forgotten: dialog fits viewport; forgotten: no horizontal page overflow; restore appends current version and clears old review; three separate governance commands; restored: dialog fits viewport; restored: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -4927,11 +5256,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/memory-deep/report-pass26.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "self-governance-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "review keeps revision and confidence; reviewed: dialog fits viewport; reviewed: no horizontal page overflow; cancel preserves active self claim; forget has confirmed new revision; forgotten: dialog fits viewport; forgotten: no horizontal page overflow; restore appends current version and clears old review; three separate governance commands; restored: dialog fits viewport; restored: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "self-governance-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/memory-deep/report-pass26.json"
+            ],
+            "notes": "review keeps revision and confidence; reviewed: dialog fits viewport; reviewed: no horizontal page overflow; cancel preserves active self claim; forget has confirmed new revision; forgotten: dialog fits viewport; forgotten: no horizontal page overflow; restore appends current version and clears old review; three separate governance commands; restored: dialog fits viewport; restored: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "management-navigation",
@@ -7991,7 +8340,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json"
+          "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json",
+          "evidence/world-deep/report-pass31.json"
         ],
         "business": []
       },
@@ -8005,6 +8355,20 @@
               "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json"
             ],
             "notes": "world search no matches; world has original place names; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "place-history-restore-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "place-history-restore-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -8066,11 +8430,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/world-deep/report-pass31.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "place-history-restore-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "place-history-restore-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.world.place.history",
@@ -8115,11 +8499,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/world-deep/report-pass31.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "place-history-restore-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "place-history-restore-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.world.items",
@@ -8163,11 +8567,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/world-deep/report-pass31.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "item-availability-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "unavailable item request is disabled; unavailable: no horizontal overflow; unavailable: dialog fits viewport; unavailable and unrestricted place read back; availability returns only after confirmed read; available: no horizontal overflow; available: dialog fits viewport; only two explicit item configurations; item suggestion enters chat draft without sending; chat-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "item-availability-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "unavailable item request is disabled; unavailable: no horizontal overflow; unavailable: dialog fits viewport; unavailable and unrestricted place read back; availability returns only after confirmed read; available: no horizontal overflow; available: dialog fits viewport; only two explicit item configurations; item suggestion enters chat draft without sending; chat-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.world.events",
@@ -8209,11 +8633,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/world-deep/report-pass31.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "event-toggle-trigger-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "pause switch reflects confirmed disabled template; paused template cannot trigger; paused: no horizontal overflow; paused: dialog fits viewport; blank trigger reason does not enqueue; queued: no horizontal overflow; queued: dialog fits viewport; UI follows original run to applied result; only two toggles and one trigger; applied: no horizontal overflow; applied: dialog fits viewport; life-event: no horizontal overflow; life-event: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "event-toggle-trigger-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-deep/report-pass31.json"
+            ],
+            "notes": "pause switch reflects confirmed disabled template; paused template cannot trigger; paused: no horizontal overflow; paused: dialog fits viewport; blank trigger reason does not enqueue; queued: no horizontal overflow; queued: dialog fits viewport; UI follows original run to applied result; only two toggles and one trigger; applied: no horizontal overflow; applied: dialog fits viewport; life-event: no horizontal overflow; life-event: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.wardrobe.garments",
@@ -8684,7 +9128,9 @@
         "interaction": [
           "evidence/states/read-states.json"
         ],
-        "business": []
+        "business": [
+          "evidence/real-browser/report.json"
+        ]
       },
       "fixes": [],
       "blockers": [],
@@ -8750,6 +9196,15 @@
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
           }
+        },
+        "business": {
+          "真实隔离Core/PG浏览器读取": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/real-browser/report.json"
+            ],
+            "notes": "现有Owner和角色；5页面实际API读取，无聊天发送/模型生成/新激活。本项不证明各页全部写操作。"
+          }
         }
       }
     },
@@ -8810,7 +9265,8 @@
         "visual": [],
         "interaction": [
           "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json",
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-deep/report-after-pass29.json"
         ],
         "business": [
           {
@@ -8842,6 +9298,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; resource title is preserved; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "world-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; application-receipt: no horizontal overflow; one application against explicit saved publication; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "world-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; application-receipt: no horizontal overflow; one application against explicit saved publication; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -8900,7 +9370,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-deep/report-after-pass29.json"
         ],
         "business": [
           {
@@ -8920,6 +9391,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; resource title is preserved; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "character_template-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "character_template-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
           }
         }
       }
@@ -9534,11 +10019,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/studio-deep/report-after-pass29.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "world-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; application-receipt: no horizontal overflow; one application against explicit saved publication; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "character_template-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "world-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; application-receipt: no horizontal overflow; one application against explicit saved publication; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "character_template-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.studio.apply",
@@ -9595,11 +10114,45 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/studio-deep/report-after-pass29.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "world-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; application-receipt: no horizontal overflow; one application against explicit saved publication; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "character_template-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "world-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; application-receipt: no horizontal overflow; one application against explicit saved publication; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "character_template-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-deep/report-after-pass29.json"
+            ],
+            "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.studio.creation",
@@ -10096,11 +10649,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/interaction/visual-ui.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "candidate-review-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/interaction/visual-ui.json"
+            ],
+            "notes": "review uses the complete dialog width; review does not invent default scores; invalid review does not submit decision; cancel leaves candidate pending; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "candidate-review-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/interaction/visual-ui.json"
+            ],
+            "notes": "review uses the complete dialog width; review does not invent default scores; invalid review does not submit decision; cancel leaves candidate pending; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.media.visual.review",
@@ -10150,11 +10723,31 @@
       "business_status": "待检查",
       "evidence": {
         "visual": [],
-        "interaction": [],
+        "interaction": [
+          "evidence/interaction/visual-ui.json"
+        ],
         "business": []
       },
       "fixes": [],
-      "blockers": []
+      "blockers": [],
+      "state_verification": {
+        "interaction": {
+          "candidate-review-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/interaction/visual-ui.json"
+            ],
+            "notes": "review uses the complete dialog width; review does not invent default scores; invalid review does not submit decision; cancel leaves candidate pending; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "candidate-review-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/interaction/visual-ui.json"
+            ],
+            "notes": "review uses the complete dialog width; review does not invent default scores; invalid review does not submit decision; cancel leaves candidate pending; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          }
+        }
+      }
     },
     {
       "id": "resources.media.visual.sheet",

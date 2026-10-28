@@ -294,6 +294,8 @@ export default function GoalsPage({ route, onGo }) {
         recordEpochs.current[kind] !== token
       )
         return;
+      if (!Array.isArray(page?.items) || page.items.some(item => !item || typeof item !== 'object' || Array.isArray(item)))
+        throw Error('目标记录尚未完整读到，请重新读取。');
       setRecords((old) => ({
         ...old,
         [kind]: {
@@ -814,18 +816,6 @@ export default function GoalsPage({ route, onGo }) {
         description="一些长远的期待，一些今天就想迈出的小步。"
         actions={
           <>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="刷新目标"
-              disabled={anyLoading}
-              onClick={() => {
-                void readPartition("current");
-                void readPartition("history");
-              }}
-            >
-              <RefreshCwIcon size={15} />
-            </Button>
             <Button disabled={readonly} onClick={() => editor()}>
               <PlusIcon size={15} />
               添加目标
@@ -850,7 +840,7 @@ export default function GoalsPage({ route, onGo }) {
               <TabsTrigger value="completed">已经做到</TabsTrigger>
               <TabsTrigger value="all">全部</TabsTrigger>
             </TabsList>
-            <div className="replica-search">
+            <div className="replica-search replica-goal-search" data-has-query={!!query}>
               <SearchIcon size={15} />
               <Input
                 aria-label="搜索目标"
@@ -868,6 +858,18 @@ export default function GoalsPage({ route, onGo }) {
                   <XIcon size={13} />
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="刷新目标"
+                disabled={anyLoading}
+                onClick={() => {
+                  void readPartition("current");
+                  void readPartition("history");
+                }}
+              >
+                <RefreshCwIcon size={15} />
+              </Button>
             </div>
           </div>
           <TabsContent value={filter}>

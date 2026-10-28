@@ -460,3 +460,18 @@ test('goal details expose recorded stages, commitments and dependencies without 
  });
  const v=await mount(w);try{await open(v);const d=dialog();assert.match(d.querySelector('[aria-label="目标阶段"]').textContent,/准备读书会.*邀请愿意参与的读者.*书单已确认.*收到三位明确回复.*三位读者确认/s);assert.match(d.querySelector('[aria-label="目标行动承诺"]').textContent,/联系第一位读者.*对方方便交流时.*尚未确认空闲时间.*取得明确回复/s);assert.match(d.querySelector('[aria-label="目标前置条件"]').textContent,/先确认读书会书单.*尚未完成/s);assert.equal(w.rows.get('one').status,'active');assert.equal(w.calls.some(c=>['update','reassess'].includes(c[0])),false);}finally{await v.dispose();}
 });
+
+
+test('malformed evidence reads retain the selected goal and expose the original read recovery',async()=>{
+ const w=workspace();let reads=0;w.client.goalEvidence=async()=>++reads===1?{unexpected:true}:{items:[{id:'restored-evidence',source:{summary:'完整证据已恢复'},created_at:'2026-10-27T07:00:00Z'}],next_cursor:''};
+ const v=await mount(w);
+ try{
+  await open(v);
+  assert.ok(dialog());assert.match(dialog().textContent,/完成one的画作/);
+  await v.click(button(dialog(),'证据来源'));
+  assert.match(dialog().textContent,/目标记录尚未完整读到/);
+  await v.click(button(dialog(),'重新读取证据'));
+  assert.equal(reads,2);assert.match(dialog().textContent,/完整证据已恢复/);
+  assert.doesNotMatch(dialog().textContent,/目标记录尚未完整读到/);
+ }finally{await v.dispose();}
+});

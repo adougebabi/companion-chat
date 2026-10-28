@@ -1,0 +1,154 @@
+[
+  {
+    "name": "feed-compose",
+    "phase": "after",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 536,
+      "groupWidth": 536,
+      "groupClass": "replica-feed companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "people-create",
+    "phase": "after",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 536,
+      "groupWidth": 536,
+      "groupClass": "replica-profile replica-people companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "people-edit",
+    "phase": "after",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 536,
+      "groupWidth": 536,
+      "groupClass": "replica-profile replica-people companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "people-contact",
+    "phase": "after",
+    "size": {
+      "name": "desktop",
+      "width": 1348,
+      "height": 925
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 806,
+      "groupWidth": 806,
+      "groupClass": "replica-profile replica-people companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "feed-compose",
+    "phase": "after",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 310,
+      "groupWidth": 310,
+      "groupClass": "replica-feed companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "people-create",
+    "phase": "after",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 310,
+      "groupWidth": 310,
+      "groupClass": "replica-profile replica-people companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "people-edit",
+    "phase": "after",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 310,
+      "groupWidth": 310,
+      "groupClass": "replica-profile replica-people companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "people-contact",
+    "phase": "after",
+    "size": {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    },
+    "errors": [],
+    "writes": [],
+    "layout": {
+      "formWidth": 310,
+      "groupWidth": 310,
+      "groupClass": "replica-profile replica-people companion-form-stack lp-wide",
+      "display": "flex",
+      "gap": "20px"
+    },
+    "status": "passed"
+  }
+]
