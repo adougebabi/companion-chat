@@ -9,6 +9,17 @@ const {createStudioEditor}=await vite.ssrLoadModule('/src/state/studio-editor.mj
 const storage=()=>{const values=new Map();return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)};};
 const resource=(version='1')=>({id:'R',kind:'world',name:'原世界',body:{background:'原背景',rules:''},draft_version:version,revision:Number(version)});
 function fixture(service,id='R'){const store=storage(),calls=[];let owner=true;const controller=createStudioEditor({owner:'studio-owner',resourceId:id,kind:'world',service,storage:()=>store,ownerCurrent:()=>owner,navigate:path=>calls.push(path)});return {controller,store,calls,changeOwner(){owner=false;}};}
+test('Studio JSON validation clears after explicit adoption or withdrawal without erasing an independent failure',async()=>{
+ const f=fixture({resource:async()=>resource('1')});await f.controller.start();
+ try{
+  f.controller.edit({bodyText:'{invalid'});assert.equal(f.controller.parseBodyText(),false);assert.ok(f.controller.state.error);
+  f.controller.edit({bodyText:'{"background":"已修正","nested":{"keep":false}}'});assert.equal(f.controller.parseBodyText(),true);
+  assert.equal(f.controller.state.error,'');assert.equal(f.controller.state.draft.body.background,'已修正');assert.deepEqual(f.controller.state.draft.body.nested,{keep:false});
+  f.controller.edit({bodyText:'['});assert.equal(f.controller.parseBodyText(),false);f.controller.edit({bodyText:undefined});assert.equal(f.controller.state.error,'');
+  f.controller.edit({bodyText:'{bad'});assert.equal(f.controller.parseBodyText(),false);f.controller.state.error='独立原请求读取尚未完成';
+  f.controller.edit({bodyText:'{"background":"保留修改"}'});assert.equal(f.controller.parseBodyText(),true);assert.equal(f.controller.state.error,'独立原请求读取尚未完成');
+ }finally{f.controller.dispose();}
+});
 test('Studio reads retain the old CAS draft until a deliberate latest-baseline review',async()=>{
  const f=fixture({resource:async()=>resource('3')});f.store.setItem('fluctlight-studio:studio-owner:R:draft',JSON.stringify({kind:'world',name:'保留名字',body:{background:'保留修改'},expectedVersion:'1',reason:'保留理由',target:'A'}));
  await f.controller.start();assert.equal(f.controller.state.draft.expectedVersion,'1');assert.equal(f.controller.state.draft.name,'保留名字');await f.controller.load();assert.equal(f.controller.state.draft.expectedVersion,'1');await f.controller.reviewRebase();assert.equal(f.controller.state.draft.expectedVersion,'1');f.controller.confirmRebase();assert.equal(f.controller.state.draft.expectedVersion,'3');assert.equal(f.controller.state.draft.body.background,'保留修改');assert.equal(f.controller.state.draft.reason,'保留理由');f.controller.dispose();

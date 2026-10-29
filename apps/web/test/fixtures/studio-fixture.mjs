@@ -1,4 +1,5 @@
 // Isolated UI evidence only. Never loaded by the product bundle.
+import { isDeepStrictEqual } from 'node:util';
 const clone = (v) => JSON.parse(JSON.stringify(v));
 export function studioFixture({
   owner = "studio-owner",
@@ -6,6 +7,7 @@ export function studioFixture({
   scenario = "normal",
   autoJobs = false,
   externalWorld = false,
+  worldRuntime,
 } = {}) {
   const date = "2026-10-27T08:00:00Z",
     resources = new Map(),
@@ -13,6 +15,7 @@ export function studioFixture({
     jobs = new Map(),
     materials = new Map(),
     receipts = new Map(),
+    runtimeCommands = new Map(),
     calls = [];
   let serial = 0,
     firstRead = true,
@@ -213,8 +216,14 @@ export function studioFixture({
         );
     }
     const originalKey = body.idempotencyKey;
-    if (method !== "GET" && originalKey && receipts.has(originalKey))
+    if (method !== "GET" && originalKey && receipts.has(originalKey)) {
+      const prior = runtimeCommands.get(originalKey);
+      const runtimeApply = worldRuntime && /\/apply$/.test(path) &&
+        resources.get(decodeURIComponent(path.split('/')[4] || ''))?.kind === 'world';
+      if ((prior || runtimeApply) && (!prior || prior.path !== path || prior.method !== method || !isDeepStrictEqual(prior.body, body)))
+        return send({ code: "idempotency_conflict" }, 409);
       return send(receipts.get(originalKey));
+    }
     const ack = (v, status = 200) => {
       if (originalKey) receipts.set(originalKey, clone(v));
       if (scenario === "unknown" && firstUnknown && method !== "GET") {
@@ -359,6 +368,10 @@ export function studioFixture({
             runtime_revision: 0,
             semantics: "先解析已发布文本，再审阅完整定义。",
           });
+        if (v.kind === "world" && worldRuntime) {
+          const result = worldRuntime(v, body, true);
+          return send(result.error || result.value, result.status || 200);
+        }
         const target = {
           world: "world",
           place: "world_place",
@@ -388,6 +401,26 @@ export function studioFixture({
       if (op === "apply" && method === "POST") {
         const v = publications.get(id + ":" + body.resourceVersion);
         if (!v) return send({ code: "not_found" }, 404);
+        if (v.kind === "world" && worldRuntime) {
+          if (scenario === "runtime-rejected") return send({ code: "invalid_request", message: "受控应用拒绝" }, 422);
+          const result = worldRuntime(v, body);
+          if (result.error) return send(result.error, result.status);
+          if (originalKey) runtimeCommands.set(originalKey, { path, method, body: clone(body) });
+          const ref = { fluctlight_id: body.fluctlightId, runtime_id: result.value.id,
+            running_version: v.version, instance_revision: result.value.runtime_revision, status: "applied" };
+          r.referenced_by = r.referenced_by.filter(ref => ref.fluctlight_id !== body.fluctlightId || ref.runtime_id !== result.value.id);
+          r.referenced_by.push(ref);
+          if (scenario === "runtime-pending") {
+            if (originalKey) receipts.set(originalKey, clone(result.value));
+            await new Promise(resolve => setTimeout(resolve, 1200));
+          }
+          if (scenario === "runtime-unknown" && firstUnknown) {
+            firstUnknown = false;
+            if (originalKey) receipts.set(originalKey, clone(result.value));
+            return send({ code: "fixture_response_lost" }, 503);
+          }
+          return ack(result.value);
+        }
         const foundation = ["character_template", "persona_fragment"].includes(
           v.kind,
         );

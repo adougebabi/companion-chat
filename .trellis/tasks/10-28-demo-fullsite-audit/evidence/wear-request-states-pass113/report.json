@@ -1,0 +1,1290 @@
+[
+  {
+    "name": "failed",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 failed",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "777c0879-29a5-4bd3-b871-27a643cbaeda"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "2c9ab115-6aca-4f19-9cd8-980d940d1c2e"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 failed', exact: true }) }).getByText('本次换装没有确认提交结果。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:52:97",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 failed\n\n3 件服装 · v1\n\n预览\n请换上这套\n本次换装没有确认提交结果。 查看原请求"
+  },
+  {
+    "name": "denied",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 denied",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "47dcf680-fb78-4481-ba21-e0e87e035d67"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "fb521b9e-0ce6-484a-85fd-66caf72c91fc"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 denied', exact: true }) }).getByText('本次换装未被采纳，继续保留当前穿着。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:52:97",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 denied\n\n3 件服装 · v1\n\n预览\n请换上这套\n本次换装未被采纳，继续保留当前穿着。 查看原请求"
+  },
+  {
+    "name": "no-change",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "no-change is distinct and does not fabricate a wearing mutation"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 no-change",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "adedc383-1e6f-4be0-8d94-b428fc677a4c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "d0d090f4-4d7a-4647-aef5-013383df8700"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 no-change', exact: true }) }).getByRole('button', { name: '查看原请求', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:65:64",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 no-change\n\n3 件服装 · v1\n\n预览\n请换上这套\n已经穿着这套搭配，本次无需换装。"
+  },
+  {
+    "name": "unknown",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 unknown",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "a0c2cc9b-5423-4b80-a057-47418b534f2c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "6c93ed55-e325-4a93-b5e9-316611550ee7"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 unknown', exact: true }) }).getByRole('button', { name: '重试', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:46:63",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 unknown\n\n3 件服装 · v1\n\n预览\n请换上这套\n服务暂时无法连接，请稍后重新读取。 重试\n请林岚 · 验收样本换上「换装结果核验 unknown」？\n\n请求受理后跟进实际处理结果，当前穿着以正式读回为准。\n\n服务暂时无法连接，请稍后重新读取。\n取消\n发送换装请求"
+  },
+  {
+    "name": "readback-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "terminal readback failure retains known request result",
+      "readback-failure: no horizontal overflow",
+      "readback recovery uses GET only",
+      "confirmed member set is actually read back after original recovery"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 readback-failure",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "d9aa99ab-b1f5-4fef-bb19-8b129299a85a"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "fffa88e9-e075-44ff-b50d-156c074538f4"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-pass113/readback-failure-desktop-readback-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 readback-failure', exact: true }) }).getByRole('button', { name: '查看原请求', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:65:64",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n薄外套 · 银色项链 · 简约手链\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 readback-failure\n\n3 件服装 · v1\n\n预览\n请换上这套\n请求已完成，可核对当前记录。"
+  },
+  {
+    "name": "failed",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 failed",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "40b518e4-9fd9-4993-9916-6e4f04e0145d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "cb511bac-745a-443e-ae0c-a0e83b10257e"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 failed', exact: true }) }).getByText('本次换装没有确认提交结果。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:52:97",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 failed\n\n3 件服装 · v1\n\n预览\n请换上这套\n本次换装没有确认提交结果。 查看原请求"
+  },
+  {
+    "name": "denied",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 denied",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "5f557a51-7c10-433d-8068-979482b91858"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "871eb58f-5183-412c-b54d-969f075caf4d"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 denied', exact: true }) }).getByText('本次换装未被采纳，继续保留当前穿着。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:52:97",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 denied\n\n3 件服装 · v1\n\n预览\n请换上这套\n本次换装未被采纳，继续保留当前穿着。 查看原请求"
+  },
+  {
+    "name": "no-change",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "no-change is distinct and does not fabricate a wearing mutation"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 no-change",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "ae92b842-33ff-4211-a317-794dfe206236"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "34d02a5f-5cf7-47d6-ab96-2a434c67b04e"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 no-change', exact: true }) }).getByRole('button', { name: '查看原请求', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:65:64",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 no-change\n\n3 件服装 · v1\n\n预览\n请换上这套\n已经穿着这套搭配，本次无需换装。"
+  },
+  {
+    "name": "unknown",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 unknown",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "c6b92a42-b5f0-449e-92ae-25545e22be50"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "fb3f085e-9aa8-42c7-b4c9-06ffcef9a6e8"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 unknown', exact: true }) }).getByRole('button', { name: '重试', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:46:63",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 unknown\n\n3 件服装 · v1\n\n预览\n请换上这套\n服务暂时无法连接，请稍后重新读取。 重试\n请林岚 · 验收样本换上「换装结果核验 unknown」？\n\n请求受理后跟进实际处理结果，当前穿着以正式读回为准。\n\n服务暂时无法连接，请稍后重新读取。\n取消\n发送换装请求"
+  },
+  {
+    "name": "readback-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "terminal readback failure retains known request result",
+      "readback-failure: no horizontal overflow",
+      "readback recovery uses GET only",
+      "confirmed member set is actually read back after original recovery"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 readback-failure",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "88aed812-8345-4875-90b2-4d88d81edcd5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "afc157fa-95dc-4f84-83fb-d00bb48f97fd"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-pass113/readback-failure-mobile-readback-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.r-outfit-card').filter({ has: getByRole('heading', { name: '换装结果核验 readback-failure', exact: true }) }).getByRole('button', { name: '查看原请求', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-wear-request-states.mjs:65:64",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n薄外套 · 银色项链 · 简约手链\n\n当前穿着\n全部衣服\n9\n穿搭方案\n1\n搭配工作台\n全部场景\n在家\n外出\n上班\n管理标签\n搭配新方案\n在家\n换装结果核验 readback-failure\n\n3 件服装 · v1\n\n预览\n请换上这套\n请求已完成，可核对当前记录。"
+  }
+]

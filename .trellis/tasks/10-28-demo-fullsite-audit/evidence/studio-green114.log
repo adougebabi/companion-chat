@@ -1,0 +1,32 @@
+✔ Studio directory reads nine actual resource types, searches and keeps archived collection separate (390.358625ms)
+✔ Studio empty directory and failed initial read are distinct and recover via original GET (243.632791ms)
+✔ Studio saves typed edits using the opaque draft version and publishes an exact immutable saved version (311.73075ms)
+✔ Studio new save checkpoints the actual identity and canonical name before navigation (223.553375ms)
+✔ Studio apply freezes the exact publication and generic accepted receipt does not require a fabricated target kind (322.873ms)
+✔ Studio version history reads immutable content, while independent copies stay unpublished (271.444666ms)
+✔ sandbox freezes current working input, observes actual jobs and adopts suggestions only after explicit review (260.0425ms)
+✔ acknowledged sandbox readback failure survives remount and recovers with GET only while preserving newer composer text (308.187791ms)
+✔ late sandbox acceptance after unmount retains its pointer (187.229833ms)
+✔ legacy directory recovery replays the original localStorage identity and body (200.255208ms)
+✔ raw JSON edits cannot be silently replaced by an assistant proposal, including edits made while confirmation is open (282.943625ms)
+✔ event scope changes remove only the invalid place reference while preserving unknown extensions (203.269375ms)
+✔ an Owner purge prevents a late accepted sandbox task from recreating another Owners recovery pointer (178.152125ms)
+✔ a late independent-copy acknowledgement after unmount preserves its actual copied identity (264.278666ms)
+✔ copying a historical publication uses its exact immutable definition and restores dialog source focus on cancel (366.124916ms)
+✔ sandbox text materials retain their original job and release only the resource association (453.043167ms)
+✔ Studio real editor applies linked world and result navigation retains original role (339.369208ms)
+✔ Studio JSON validation clears after explicit adoption or withdrawal without erasing an independent failure (1.893875ms)
+✔ Studio reads retain the old CAS draft until a deliberate latest-baseline review (0.262292ms)
+✔ Studio retries the original frozen save and preserves later editing while advancing only the acknowledged baseline (0.912625ms)
+✔ Studio save readback failure never resends the mutation, and reload does not silently adopt an unrelated later version (0.274166ms)
+✔ Studio publication requires a saved unchanged version and confirmation freezes the exact resource revision (0.513542ms)
+✔ Studio apply carries the preview world binding, runtime and exact publication through unknown retries (0.496083ms)
+✔ new Studio creation checkpoints the returned resource before navigation, while malformed replies retain the original request (0.402542ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6768.22425

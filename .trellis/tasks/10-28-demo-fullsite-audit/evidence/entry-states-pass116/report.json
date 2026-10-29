@@ -1,0 +1,110 @@
+[
+  {
+    "name": "library-directory-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "required directory failure never fabricates cards",
+      "failed: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass116/library-directory-failure-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass116/library-directory-failure-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-directory-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "required directory failure never fabricates cards",
+      "failed: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass116/library-directory-failure-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass116/library-directory-failure-mobile-recovered.png"
+    ],
+    "status": "passed"
+  }
+]

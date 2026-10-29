@@ -4,6 +4,7 @@ import http from 'node:http';
 import {demoParityFixture} from './demo-parity-fixture.mjs';
 import {managementFixture} from './management-fixture.mjs';
 import {scheduleReplayFixture} from './schedule-fixture.mjs';
+import {goalPlanningFixture} from './goal-planning-fixture.mjs';
 import {goalsFixture} from './goals-fixture.mjs';
 import {diaryFixture} from './diary-fixture.mjs';
 import {growthFixture} from './growth-fixture.mjs';
@@ -52,6 +53,7 @@ let endpoints=[{id:'fixture-model',kind:'openai-compatible',base_url:'http://fix
 let bindings=[{role:'generic_llm',endpoint_id:'fixture-model',model_id:'fixture-model',token_budget:40960,timeout_seconds:300,endpoint_status:'available'},{role:'embedding',endpoint_id:'fixture-model',model_id:'fixture-embedding',token_budget:4096,timeout_seconds:60,endpoint_status:'available'}];
 let goals=[{id:'goal-fixture-one',desired_outcome:'完成一幅新的水彩作品',description:'完成一幅新的水彩作品',motivation:'把观察到的街景画下来。',status:'active',criteria_version:1,revision:1,scope:'general',success_criteria:['完成并保存画作'],criterion_ids:['criterion-fixture'],deadline_policy:'soft',execution:{next_step:'选择构图',wait_condition:'有一段安静的时间',blocker:'',evaluation_request:{status:'pending'}},stages:[],commitments:[],evaluations:[],evidence:[],reviews:[],resolutions:[]},{id:'goal-fixture-two',desired_outcome:'根据真实偏好推荐一本小说',description:'根据真实偏好推荐一本小说',motivation:'分享有趣的阅读体验。',status:'active',criteria_version:1,revision:1,scope:'general',success_criteria:['完成推荐'],criterion_ids:['criterion-fixture-two'],deadline_policy:'soft',execution:{},stages:[],commitments:[],evaluations:[],evidence:[],reviews:[],resolutions:[]}];
 let goalSet={revision:1,facts_revision:factsRevision,active_count:2,max_active_goals:5,auto_planning_enabled:true,ordering_mode:'automatic',capacity_violation:false,goals,dependencies:[],source_reviews:[]};
+const planningReplay=process.env.FLUCTLIGHT_UI_FIXTURE_GOAL_PLANNING?goalPlanningFixture({scenario:process.env.FLUCTLIGHT_UI_FIXTURE_GOAL_PLANNING}):null;
 const goalScenario=process.env.FLUCTLIGHT_UI_FIXTURE_GOALS;
 const goalFixture=goalScenario?goalsFixture({goals,owner,scenario:goalScenario,date}):null;
 const diaryScenario=process.env.FLUCTLIGHT_UI_FIXTURE_DIARY;
@@ -88,7 +90,7 @@ const peopleReplay=process.env.FLUCTLIGHT_UI_FIXTURE_PEOPLE?peopleFixture({owner
 const mediaReplay=process.env.FLUCTLIGHT_UI_FIXTURE_MEDIA?mediaFixture({owner,defaultFid:instance,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_MEDIA,externalWorld:!!worldReplay,externalInventory:!!wardrobeWorld,onAvatar:(fid,value)=>{const row=instances.find(c=>c.id===fid);if(row)row.avatar=value.avatar;if(profileReplay)profileReplay.state(fid).detail.avatar=value.avatar;}}):null;
 const creationReplay=process.env.FLUCTLIGHT_UI_FIXTURE_CREATION?creationHttpFixture({owner,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_CREATION,instances,groups,baseDetail:detail}):null;
 const feedReplay=process.env.FLUCTLIGHT_UI_FIXTURE_FEED?feedFixture({owner,fid:instance,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_FEED}):null;
-const studioReplay=process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO?studioFixture({owner,fid:instance,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO,autoJobs:true,externalWorld:!!worldReplay}):null;
+const studioReplay=process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO?studioFixture({owner,fid:instance,scenario:process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO,autoJobs:true,externalWorld:!!worldReplay,worldRuntime:process.env.FLUCTLIGHT_UI_FIXTURE_STUDIO_RUNTIME==='1'?worldReplay?.studioWorld:undefined}):null;
 if(mediaReplay&&feedReplay&&mediaReplay.assets.has('replica-landscape'))mediaReplay.assets.set('feed-image',{...mediaReplay.assets.get('replica-landscape'),id:'feed-image',title:'动态中的窗边阅读',source_filename:'feed-image.png',url:'/api/media/feed-image',version:'version-feed-image'});
 function json(res,value,status=200){res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(value));}
 async function telemetry(){await writeFile(telemetryPath,JSON.stringify({requests,settings,background,goalSet,messages},null,2));}
@@ -125,6 +127,7 @@ const server=http.createServer(async(req,res)=>{
    if(lifeScenario==='failure'&&lifeScheduleReads===1)return json(res,{code:'request_failed',message:'日程暂时无法读取'},503);
   }
   if(scheduleReplay.handler({path,method,body,url,json,res}))return;
+  if(planningReplay&&await planningReplay.handle({path,method,body,json,res}))return;
   if(goalFixture&&await goalFixture({path,method,body,url,json,res}))return;
   if(diaryReplay&&await diaryReplay({path,method,body,url,json,res}))return;
   if(growthReplay&&await growthReplay({path,method,body,url,json,res}))return;

@@ -1,0 +1,76 @@
+✔ the current revision reason wins over older merged support references (0.45525ms)
+✔ memory card scores use the actual 0–1 scale and search sends the applied scope rather than fabricating tags (299.13175ms)
+✔ memory edit cancellation preserves original; correction sends CAS body without client idempotency fields and reads real revision back (410.511167ms)
+✔ an unknown CAS-only correction requires actual current-object review, and equal confirmed prose cannot be submitted again (375.772916ms)
+✔ an acknowledged memory mutation with failed readback recovers using reads only (327.250875ms)
+✔ a validated readback stays visible when secondary refreshes cannot reread the changed record (302.014ms)
+✔ source pagination pins the chosen revision and never marks a returned nonlive source as valid (250.827084ms)
+✔ forget cancellation does not write and historical memory restoration appends a new revision (504.13525ms)
+✔ reflection feedback preserves actual proposal/application state and follows a pending OwnerRequest (259.491833ms)
+✔ self review appends acknowledgement without changing claim revision or confidence; historical restore is a real command (412.936583ms)
+✔ failed append retries its original server query despite unsubmitted edits; a stale scope cannot admit a correction (446.46025ms)
+✔ growth route query updates close the old detail and select the requested tab/filter in the same mounted page (203.2015ms)
+✖ self adopt reconciles detail, revision history and independent reviews (309.401042ms)
+✖ self refresh reconciles detail, revision history and independent reviews (267.932375ms)
+✖ self accepted forget with inconsistent same-revision status remains GET-only recoverable (288.583709ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 12
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6431.084333
+
+✖ failing tests:
+
+test at apps/web/test/demo-replica-memory.test.mjs:725:46
+✖ self adopt reconciles detail, revision history and independent reviews (309.401042ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /已遗忘/. Input:
+  
+  '这条认识从哪里来第 2 版 · 自我看法 刷新当前详情我愿意把对话慢慢听完。当前状态已记录的认识置信度70%来源有效是有效期限未设置期限复核只是你已阅读当前版本的记录，不提高证据或置信度。认识正文由实际反思产生。依据与完整认识之前的认识与历史恢复所有者复核记录返回列表不再采用确认已核对关闭'
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/demo-replica-memory.test.mjs:746:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '这条认识从哪里来第 2 版 · 自我看法 刷新当前详情我愿意把对话慢慢听完。当前状态已记录的认识置信度70%来源有效是有效期限未设置期限复核只是你已阅读当前版本的记录，不提高证据或置信度。认识正文由实际反思产生。依据与完整认识之前的认识与历史恢复所有者复核记录返回列表不再采用确认已核对关闭',
+    expected: /已遗忘/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at apps/web/test/demo-replica-memory.test.mjs:725:46
+✖ self refresh reconciles detail, revision history and independent reviews (267.932375ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok([...dialog().querySelectorAll("h4")].some(n => n.textContent.startsWith("第 3 版")))
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/demo-replica-memory.test.mjs:748:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at apps/web/test/demo-replica-memory.test.mjs:755:1
+✖ self accepted forget with inconsistent same-revision status remains GET-only recoverable (288.583709ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(button(dialog(), "只读恢复页面结果"))
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/demo-replica-memory.test.mjs:764:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

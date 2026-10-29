@@ -1,0 +1,64 @@
+✖ manual policy sends only active goal order, preserves candidate rows and saves advanced/dependency values (31.889958ms)
+✖ accepted write with failed readback recovers with GET only after remount and keeps later draft (23.048292ms)
+✖ unknown result replays original body and key while later draft stays separate (15.078167ms)
+✔ first CAS rejection preserves the stale draft and does not silently adopt server baseline (29.45625ms)
+✔ fixture CAS, facts, candidate decisions and source reviews are atomic and survive readback (0.496458ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 2
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 585.603584
+
+✖ failing tests:
+
+test at apps/web/test/goal-planning-recovery.test.mjs:20:1
+✖ manual policy sends only active goal order, preserves candidate rows and saves advanced/dependency values (31.889958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'active-two',
+  +   'candidate-one',
+      'active-one',
+  +   'candidate-two'
+    ]
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/goal-planning-recovery.test.mjs:22:61)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'active-two', 'candidate-one', 'active-one', 'candidate-two' ],
+    expected: [ 'active-two', 'active-one' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at apps/web/test/goal-planning-recovery.test.mjs:24:1
+✖ accepted write with failed readback recovers with GET only after remount and keeps later draft (23.048292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/goal-planning-recovery.test.mjs:25:230)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/web/test/goal-planning-recovery.test.mjs:27:1
+✖ unknown result replays original body and key while later draft stays separate (15.078167ms)
+  TypeError: Cannot read properties of null (reading 'click')
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/goal-planning-recovery.test.mjs:28:152)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+BASELINE_EXIT=1

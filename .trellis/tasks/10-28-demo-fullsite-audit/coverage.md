@@ -10,12 +10,12 @@
 |shell-jump|快速前往 / Cmd或Ctrl K|待检查|已修复待验证|待检查|1|
 |shell-help-reset|交互演示/演示说明 → 帮助 → 重置演示数据|明确不适用|明确不适用|明确不适用|0|
 |shell-account|侧栏账户与登录|待检查|待检查|待检查|2|
-|library-hero|角色库 / 开启新的相识与继续相处|待检查|待检查|待检查|2|
+|library-hero|角色库 / 开启新的相识与继续相处|待检查|待检查|待检查|8|
 |library-search-view|角色库 / 搜索、标签、网格列表|待检查|待检查|待检查|3|
-|library-cards|角色库 / 角色卡片|待检查|待检查|待检查|3|
-|library-empty-errors|角色库 / 空筛选和底部创作入口|待检查|已修复待验证|待检查|2|
-|auth-demo-form|账户 / 登录或注册|待检查|待检查|待检查|2|
-|auth-formal-init|Demo不适用：纯前端演示无需部署初始化|待检查|待检查|待检查|1|
+|library-cards|角色库 / 角色卡片|待检查|待检查|待检查|5|
+|library-empty-errors|角色库 / 空筛选和底部创作入口|待检查|已修复待验证|待检查|6|
+|auth-demo-form|账户 / 登录或注册|待检查|待检查|待检查|6|
+|auth-formal-init|Demo不适用：纯前端演示无需部署初始化|待检查|待检查|待检查|5|
 |chat-room|聊天 / 页首与角色栏|待检查|待检查|待检查|9|
 |chat-send|聊天 / 消息输入|待检查|待检查|待检查|5|
 |chat-message-cards|聊天 / 消息流与图片|待检查|已修复待验证|待检查|8|
@@ -30,7 +30,7 @@
 |profile-personas|性格与人格 / 共同性格、人格卡、协作、切换记录|待检查|待检查|待检查|4|
 |profile-life|生活与此刻|待检查|待检查|待检查|2|
 |profile-history-source|修订与来源 / 完整设定与来源弹窗|待检查|待检查|待检查|2|
-|profile-edit-basic|编辑资料 / basic|待检查|待检查|待检查|1|
+|profile-edit-basic|编辑资料 / basic|待检查|待检查|待检查|5|
 |profile-edit-expression|编辑资料 / expression|待检查|待检查|待检查|2|
 |profile-edit-life|编辑资料 / life|待检查|待检查|待检查|2|
 |profile-edit-more|编辑资料 / more|待检查|待检查|待检查|2|
@@ -38,7 +38,7 @@
 |profile-foundation-proposal|身份与能力 / 身份核心提议|待检查|待检查|待检查|2|
 |profile-capabilities|身份与能力 / 能力申请|待检查|待检查|待检查|2|
 |profile-self-claims|身份与能力 / 发展中的自我|待检查|待检查|待检查|2|
-|profile-formal-recovery|Demo不适用：本地同步编辑没有真实提交恢复|待检查|待检查|待检查|2|
+|profile-formal-recovery|Demo不适用：本地同步编辑没有真实提交恢复|待检查|待检查|待检查|6|
 |people-directory|人物关系 / 世界中的人|待检查|待检查|待检查|11|
 |people-detail|人物详情弹窗|待检查|待检查|待检查|5|
 |people-create|新增世界人物 / 编辑世界人物|待检查|待检查|待检查|1|
@@ -87,7 +87,7 @@
 |life-reflection-list|memory?tab=reflection|待检查|待检查|待检查|3|
 |life-reflection-detail|memory → 反思详情|待检查|待检查|待检查|2|
 |life-self-list|memory?tab=self|待检查|待检查|待检查|3|
-|life-self-detail|memory → 这条认识从哪里来|待检查|待检查|待检查|2|
+|life-self-detail|memory → 这条认识从哪里来|待检查|待检查|待检查|12|
 |management-navigation|settings?tab=|待检查|待检查|待检查|12|
 |management-model-services|settings?tab=models → services|待检查|待检查|待检查|10|
 |management-model-roles|settings?tab=models → roles|待检查|待检查|待检查|2|
@@ -133,9 +133,9 @@
 |creation-start-snapshot|progress → 查看创建资料|待检查|待检查|待检查|2|
 |creation-demo-scenarios|preview → 初始化演示场景|明确不适用|明确不适用|明确不适用|0|
 |formal-life-timeline|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
-|formal-goal-planning|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
+|formal-goal-planning|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|10|
 |formal-diary-favorite|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|4|
-|formal-self-governance|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
+|formal-self-governance|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|12|
 |formal-config-extra|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
 |formal-diagnostic-export-clear|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
 |formal-data-import-pack|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
@@ -143,31 +143,31 @@
 |formal-data-rollback-boundary|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
 |formal-backup-isolated-detail|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
 |formal-creation-rejected-copy|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
-|resources.world.directory|world → 世界目录|待检查|待检查|待检查|9|
-|resources.world.settings|world → 详情 → 世界设定|待检查|待检查|待检查|2|
-|resources.world.venues|world → 场地与地点|待检查|待检查|待检查|3|
+|resources.world.directory|world → 世界目录|待检查|待检查|待检查|17|
+|resources.world.settings|world → 详情 → 世界设定|待检查|待检查|待检查|4|
+|resources.world.venues|world → 场地与地点|待检查|待检查|待检查|11|
 |resources.world.place.editor|world → 地点详情/新建/编辑弹窗|待检查|待检查|待检查|2|
-|resources.world.place.history|world → 地点 → 修订记录|待检查|待检查|待检查|2|
+|resources.world.place.history|world → 地点 → 修订记录|待检查|待检查|待检查|10|
 |resources.world.items|world → 物品目录 → 详情/配置|待检查|待检查|待检查|2|
-|resources.world.events|world → 世界事件 → 详情|待检查|待检查|待检查|2|
+|resources.world.events|world → 世界事件 → 详情|待检查|待检查|待检查|8|
 |resources.wardrobe.garments|wardrobe → 全部衣服|待检查|待检查|待检查|13|
 |resources.wardrobe.garment.editor|wardrobe → 服装详情/编辑|待检查|待检查|待检查|5|
 |resources.wardrobe.outfits|wardrobe → 穿搭方案 → 预览|待检查|待检查|待检查|3|
 |resources.wardrobe.compose|wardrobe → 搭配工作台|待检查|待检查|待检查|2|
 |resources.wardrobe.tags|wardrobe → 管理穿搭场景弹窗|待检查|待检查|待检查|2|
-|resources.wardrobe.wear|wardrobe → 方案 → 换装确认/结果条|待检查|待检查|待检查|2|
+|resources.wardrobe.wear|wardrobe → 方案 → 换装确认/结果条|待检查|待检查|待检查|12|
 |resources.studio.directory|studio → 资源目录|待检查|待检查|待检查|13|
 |resources.studio.editor.world|studio?kind=world → 新建/编辑|待检查|待检查|待检查|4|
 |resources.studio.editor.character_template|studio?kind=character_template → 新建/编辑|待检查|待检查|待检查|3|
-|resources.studio.editor.item|studio?kind=item → 新建/编辑|待检查|待检查|待检查|1|
-|resources.studio.editor.outfit|studio?kind=outfit → 新建/编辑|待检查|待检查|待检查|1|
-|resources.studio.editor.place|studio?kind=place → 新建/编辑|待检查|待检查|待检查|1|
-|resources.studio.editor.npc|studio?kind=npc → 新建/编辑|待检查|待检查|待检查|1|
-|resources.studio.editor.event_template|studio?kind=event_template → 新建/编辑|待检查|待检查|待检查|1|
-|resources.studio.editor.persona_fragment|studio?kind=persona_fragment → 新建/编辑|待检查|待检查|待检查|1|
-|resources.studio.editor.visual_style|studio?kind=visual_style → 新建/编辑|待检查|待检查|待检查|1|
+|resources.studio.editor.item|studio?kind=item → 新建/编辑|待检查|待检查|待检查|3|
+|resources.studio.editor.outfit|studio?kind=outfit → 新建/编辑|待检查|待检查|待检查|3|
+|resources.studio.editor.place|studio?kind=place → 新建/编辑|待检查|待检查|待检查|3|
+|resources.studio.editor.npc|studio?kind=npc → 新建/编辑|待检查|待检查|待检查|3|
+|resources.studio.editor.event_template|studio?kind=event_template → 新建/编辑|待检查|待检查|待检查|3|
+|resources.studio.editor.persona_fragment|studio?kind=persona_fragment → 新建/编辑|待检查|待检查|待检查|3|
+|resources.studio.editor.visual_style|studio?kind=visual_style → 新建/编辑|待检查|待检查|待检查|3|
 |resources.studio.lifecycle|studio → 保存与发布/资源管理/发布版本历史|待检查|待检查|待检查|6|
-|resources.studio.apply|studio → 应用弹窗/结果|待检查|待检查|待检查|4|
+|resources.studio.apply|studio → 应用弹窗/结果|待检查|待检查|待检查|12|
 |resources.studio.creation|studio → 用于初始化/返回创建流程|待检查|待检查|待检查|4|
 |resources.studio.sandbox|studio?mode=sandbox → 任务/结果/采用|待检查|待检查|待检查|4|
 |resources.media.gallery|media → 媒体库|待检查|待检查|待检查|9|

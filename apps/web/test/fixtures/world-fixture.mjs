@@ -4,6 +4,8 @@ export function worldFixture({
   scenario = "normal",
   autoRuns = false,
 } = {}) {
+  const expansion = scenario.startsWith("expansion-"),
+    commandScenario = expansion ? scenario.slice("expansion-".length) : scenario;
   const stores = new Map(),
     calls = [],
     clone = (v) => JSON.parse(JSON.stringify(v));
@@ -180,7 +182,25 @@ export function worldFixture({
                   next_check_at: now(),
                 },
               ],
-        runs: [],
+        // Opt-in formal-only states; the Demo has no failed-run recovery controls.
+        runs: expansion ? [{
+          id: fid + "-failed-run", fluctlight_id: fid, world_id: wid,
+          owner_actor_id: owner, template_id: fid + "-template",
+          template_revision: 6, definition: { category: "daily", description: "带一本最近喜欢的书，来聊聊它。", trigger: { schedule: "每周五19:30" } },
+          trigger_kind: "manual", status: "failed", source_key: "fixture-original-failed-run",
+          due_at: now(), expires_at: new Date(Date.now() + 1800000).toISOString(),
+          started_at: now(), end_at: now(), attempt_count: 1, revision: 4,
+          life_event_id: null, result: {}, error_code: "fixture_worker_failed",
+          recovery_status: "not_required", recovery_result: {}, created_at: now(), updated_at: now(),
+        }] : [],
+        // Published definition is intentionally distinct from current saved and recorded fields.
+        definitions: expansion ? new Map([[places[1].id, {
+          revision: 1, source_kind: "published_definition", source_resource_id: "place-resource",
+          source_version: "v1", definition: { ...placeFields(places[1]),
+            description: "已应用定义中的书店：木窗、长桌与旧书架。", atmosphere: "定义中的暖黄灯光",
+            furniture: [{ name: "旧书架", customKey: { exactValue: "保留定义扩展" } }],
+          },
+        }]]) : new Map(),
         npcs: [],
         runReads: new Map(),
         events: [],
@@ -190,6 +210,7 @@ export function worldFixture({
           context_revision: "unchanged-context",
         },
       });
+      if (scenario === "expansion-effective") stores.get(fid).defaults.delete(places[1].id);
     }
     return stores.get(fid);
   }
@@ -296,8 +317,11 @@ export function worldFixture({
           body: clone(body),
           result: clone(result),
         });
-      if (scenario === "readback-failure") s.failCatalog = 1;
-      if (scenario === "unknown" && !lost) {
+      if (commandScenario === "readback-failure") {
+        s.failCatalog = 1;
+        if (path.endsWith("/retry")) s.failRunRead = 1;
+      }
+      if (commandScenario === "unknown" && !lost) {
         lost = true;
         return fail();
       }
@@ -457,7 +481,7 @@ export function worldFixture({
           return reply({ items: s.histories.get(pid) || [], next_cursor: "" });
         if (method === "GET") {
           const source = url.searchParams.get("source") || "recorded";
-          if (source === "current_definition")
+          if (source === "current_definition" && !s.definitions.has(pid))
             return reply(
               {
                 code: "place_definition_source_missing",
@@ -466,14 +490,17 @@ export function worldFixture({
               422,
             );
           const target =
-            source === "current_saved"
+            source === "current_definition"
+              ? { ...clone(s.definitions.get(pid)), revision: baseline?.revision || 0 }
+              : source === "current_saved"
               ? {
                   revision: baseline?.revision || 0,
                   definition: placeFields(p),
                   source_kind: "owner_pinned_saved",
                   created_at: now(),
                 }
-              : baseline;
+              : baseline || (s.definitions.has(pid)
+                ? { ...clone(s.definitions.get(pid)), revision: 0 } : null);
           return reply({
             world_id: wid,
             place_id: pid,
@@ -506,19 +533,26 @@ export function worldFixture({
           return conflict();
         const before = placeFields(p);
         if (body.operation === "capture") {
+          const definition = body.source === "current_definition" ? s.definitions.get(pid) : null;
+          if (body.source === "current_definition" && !definition)
+            return reply({ code: "place_definition_source_missing", message: "这个地点没有已验证的定义来源" }, 422);
           s.defaults.set(pid, {
             revision: (baseline?.revision || 0) + 1,
-            definition: before,
-            source_kind: "owner_pinned_saved",
+            definition: definition ? clone(definition.definition) : before,
+            source_kind: definition ? "published_definition" : "owner_pinned_saved",
+            source_resource_id: definition?.source_resource_id || null,
+            source_version: definition?.source_version || null,
             created_at: now(),
           });
         } else {
-          if (!baseline)
+          const effective = baseline || s.definitions.get(pid);
+          if (!effective)
             return reply(
               { code: "place_default_not_configured", message: "缺少恢复基准" },
               422,
             );
-          for (const [key, value] of Object.entries(baseline.definition))
+          if (!baseline) s.defaults.set(pid, { ...clone(effective), revision: 1 });
+          for (const [key, value] of Object.entries(effective.definition))
             if (key !== "name")
               p[key === "description" ? "desc" : key] = clone(value);
           p.revision++;
@@ -684,6 +718,7 @@ export function worldFixture({
       if (method === "GET") {
         if (!runsPart) return reply(t);
         if (rid) {
+          if (s.failRunRead) { s.failRunRead--; return fail(); }
           const row = s.runs.find((r) => r.id === rid && r.template_id === tid);
           return row ? reply(observedRun(s, row)) : missing();
         }
@@ -727,8 +762,9 @@ export function worldFixture({
             400,
           );
         row.status = "queued";
+        row.error_code = null;
         row.revision++;
-        return save(row);
+        return save({ id: row.id, status: row.status, revision: row.revision });
       }
       const row = {
         id: "world-run-" + ++sequence,
@@ -773,5 +809,62 @@ export function worldFixture({
     }
     return false;
   }
-  return { handler, state, calls };
+  // Opt-in Studio transport shares this exact catalogue and active binding.
+  // Mirrors world_resources.go/world_framework.go; never selects a created world.
+  function studioWorld(publication, body, preview = false) {
+    const fid = body.fluctlightId, s = state(fid);
+    const current = body.runtimeWorldId
+      ? s.worlds.find(w => w.id === body.runtimeWorldId)
+      : s.worlds.find(w => w.source_resource_id === publication.id);
+    const failure = (code, status = 409) => ({ error: { code }, status });
+    if (body.runtimeWorldId && !current) return failure("not_found", 404);
+    const values = { name: publication.name, background: publication.body.background || "",
+      rules: publication.body.rules || "", description: publication.body.description || "" };
+    for (const key of ["flavor", "item_pool", "framework"])
+      if (Object.hasOwn(publication.body, key)) values[key] = clone(publication.body[key]);
+    const fields = ["name", "background", "rules", ...["description", "flavor", "item_pool", "framework"].filter(k => Object.hasOwn(publication.body, k))];
+    // Core does not project framework in worldApplyCurrent, so it remains a diff.
+    const diff = current ? fields.filter(k => JSON.stringify(k === "framework" ? undefined : current[k]) !== JSON.stringify(values[k]))
+      .map(field => ({ field, from: field === "framework" ? null : current[field] ?? null, to: clone(values[field]) })) : [];
+    const baseline = { available: true, operation: !current ? "create" : diff.length ? "update" : "unchanged",
+      create_required: !current, runtime_id: current?.id ?? null, runtime_revision: current?.revision || 0,
+      instance_revision: 1, diff, conflicts: clone(diff) };
+    if (preview) return { value: baseline };
+    if (body.expectedInstanceRevision !== 1 || body.expectedRuntimeRevision !== baseline.runtime_revision)
+      return failure("revision_conflict");
+    const choices = new Map((body.choices || []).map(c => [c.field, c.decision]));
+    if ([...choices.values()].some(c => !["keep", "override"].includes(c))) return failure("invalid_request", 400);
+    if (current) for (const row of diff) {
+      if (!choices.has(row.field)) return failure("apply_choices_required");
+      if (choices.get(row.field) === "keep") {
+        if (row.field === "framework") delete values.framework;
+        else values[row.field] = clone(current[row.field]);
+      }
+    }
+    const row = current || { id: fid + "-studio-world-" + ++sequence, fluctlight_id: fid,
+      revision: 0, venue_categories: [], item_pool: [] };
+    const framework = values.framework; delete values.framework;
+    Object.assign(row, values, { source_resource_id: publication.id, source_version: publication.version });
+    row.revision++;
+    if (!current) s.worlds.push(row);
+    let createdPlaces = 0;
+    for (const venue of framework?.venues || []) {
+      if (!row.venue_categories.some(c => c.id === venue.key)) row.venue_categories.push({ id: venue.key, name: venue.name });
+      for (const point of venue.places || []) {
+        const key = JSON.stringify([venue.key, point.key]);
+        if (s.places.some(p => p.world_id === row.id && p.framework_key === key)) continue;
+        const place = { ...clone(point), id: fid + "-studio-place-" + ++sequence, world_id: row.id,
+          venue_category_id: venue.key, framework_key: key, desc: point.description || "", revision: 1,
+          status: "active", connection_place_ids: [], parent_place_id: null,
+          framework_source: { resource_id: publication.id, version: publication.version, category_key: venue.key, place_key: point.key } };
+        delete place.key; delete place.description;
+        s.places.push(place); createdPlaces++;
+      }
+    }
+    return { value: { id: row.id, revision: row.revision, status: "applied", applied: true,
+      resource_id: publication.id, resource_version: publication.version, instance_revision: 1,
+      runtime_revision: row.revision, ...(!current ? { active: false } : {}),
+      ...(framework ? { framework_result: { created_places: createdPlaces, venue_categories: clone(row.venue_categories), warnings: [] } } : {}) } };
+  }
+  return { handler, state, calls, studioWorld };
 }

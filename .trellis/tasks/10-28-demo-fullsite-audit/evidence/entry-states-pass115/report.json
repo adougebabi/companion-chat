@@ -1,0 +1,898 @@
+[
+  {
+    "name": "auth-setup",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "normal: no horizontal overflow",
+      "short token prevents POST and receives focus",
+      "short-token: no horizontal overflow",
+      "mismatch prevents POST and focuses confirmation",
+      "mismatch: no horizontal overflow",
+      "busy disables all three credential fields",
+      "busy prevents duplicate submit",
+      "busy: no horizontal overflow",
+      "acknowledged setup enters actual workspace",
+      "complete: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET"
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET"
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET"
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-desktop-short-token.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-desktop-mismatch.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-desktop-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-desktop-complete.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "auth-status-recovery",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "checking disables authentication submit",
+      "checking: no horizontal overflow",
+      "failed: no horizontal overflow",
+      "status retry recovers real setup form without auth POST",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-status-recovery-desktop-checking.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-status-recovery-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-status-recovery-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-draft",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "draft hero uses correct creation identity",
+      "resume retains original durable slot",
+      "draft: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-draft-desktop-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-activated",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "draft hero uses correct creation identity",
+      "resume retains original durable slot",
+      "draft: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-activated-desktop-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-corrupt",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "corrupt draft warning preserves readable directory",
+      "warning: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-corrupt-desktop-warning.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-lifecycle",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "paused badge follows actual directory status",
+      "retired badge follows actual directory status",
+      "failed badge follows actual directory status",
+      "preparing badge follows actual directory status",
+      "lifecycle: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-paused/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-retired/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-failed/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-preparing/detail",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-lifecycle-desktop-lifecycle.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-detail-recovery",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "detail loading retains real directory cards",
+      "loading: no horizontal overflow",
+      "detail failure retains existing cards",
+      "failed: no horizontal overflow",
+      "detail retry clears error and retains card identities",
+      "recovered: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-detail-recovery-desktop-loading.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-detail-recovery-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-detail-recovery-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-directory-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "required directory failure never fabricates cards",
+      "failed: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-directory-failure-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-directory-failure-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "auth-setup",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "normal: no horizontal overflow",
+      "short token prevents POST and receives focus",
+      "short-token: no horizontal overflow",
+      "mismatch prevents POST and focuses confirmation",
+      "mismatch: no horizontal overflow",
+      "busy disables all three credential fields",
+      "busy prevents duplicate submit",
+      "busy: no horizontal overflow",
+      "acknowledged setup enters actual workspace",
+      "complete: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup",
+        "method": "POST"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET"
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET"
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET"
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET"
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-mobile-short-token.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-mobile-mismatch.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-mobile-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-setup-mobile-complete.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "auth-status-recovery",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "checking disables authentication submit",
+      "checking: no horizontal overflow",
+      "failed: no horizontal overflow",
+      "status retry recovers real setup form without auth POST",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-status-recovery-mobile-checking.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-status-recovery-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/auth-status-recovery-mobile-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-draft",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "draft hero uses correct creation identity",
+      "resume retains original durable slot",
+      "draft: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-draft-mobile-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-activated",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "draft hero uses correct creation identity",
+      "resume retains original durable slot",
+      "draft: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-activated-mobile-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-corrupt",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "corrupt draft warning preserves readable directory",
+      "warning: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-corrupt-mobile-warning.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-lifecycle",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "paused badge follows actual directory status",
+      "retired badge follows actual directory status",
+      "failed badge follows actual directory status",
+      "preparing badge follows actual directory status",
+      "lifecycle: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-paused/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-retired/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-failed/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/entry-preparing/detail",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-lifecycle-mobile-lifecycle.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-detail-recovery",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "detail loading retains real directory cards",
+      "loading: no horizontal overflow",
+      "detail failure retains existing cards",
+      "failed: no horizontal overflow",
+      "detail retry clears error and retains card identities",
+      "recovered: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-detail-recovery-mobile-loading.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-detail-recovery-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-detail-recovery-mobile-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "library-directory-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled auth and directory HTTP; no real account creation or business mutation",
+    "checks": [
+      "required directory failure never fabricates cards",
+      "failed: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "library state verification performs no business write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET"
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-directory-failure-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/entry-states-pass115/library-directory-failure-mobile-recovered.png"
+    ],
+    "status": "passed"
+  }
+]

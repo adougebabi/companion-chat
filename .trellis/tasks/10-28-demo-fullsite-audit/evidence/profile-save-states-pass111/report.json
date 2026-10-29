@@ -1,0 +1,380 @@
+[
+  {
+    "name": "validation-busy",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "empty name never submits and gets focus",
+      "invalid: no horizontal overflow",
+      "invalid: bounded dialog",
+      "busy blocks duplicate save and cancel",
+      "busy Escape retains editor",
+      "saving: no horizontal overflow",
+      "saving: bounded dialog",
+      "one save creates and accepts exactly one proposal",
+      "confirmed detail is authoritative",
+      "reopen reads saved name",
+      "saved: no horizontal overflow",
+      "saved: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "资料保存等待验收"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "8363da0c-1be2-4a60-b597-b8b09efe1f7c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/validation-busy-desktop-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/validation-busy-desktop-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/validation-busy-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "conflict-rebase",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "external setup truly advances revision",
+      "stale save is rejected before proposal acceptance",
+      "conflict preserves unsaved field",
+      "conflict: no horizontal overflow",
+      "conflict: bounded dialog",
+      "explicit rebase is GET-only and preserves field",
+      "rebased: no horizontal overflow",
+      "rebased: bounded dialog",
+      "rebased save uses new revision and independent new key",
+      "saved edited field retains externally confirmed other fields",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "d38a2515-2d83-4e4a-9a9a-630c949e1547"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "8c21c259-0813-406a-8e17-168400aaedb2"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-2/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/conflict-rebase-desktop-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/conflict-rebase-desktop-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/conflict-rebase-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "validation-busy",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "empty name never submits and gets focus",
+      "invalid: no horizontal overflow",
+      "invalid: bounded dialog",
+      "busy blocks duplicate save and cancel",
+      "busy Escape retains editor",
+      "saving: no horizontal overflow",
+      "saving: bounded dialog",
+      "one save creates and accepts exactly one proposal",
+      "confirmed detail is authoritative",
+      "reopen reads saved name",
+      "saved: no horizontal overflow",
+      "saved: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "资料保存等待验收"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "200b21d9-6889-4891-a34b-d67c4bb33d38"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/validation-busy-mobile-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/validation-busy-mobile-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/validation-busy-mobile-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "conflict-rebase",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "external setup truly advances revision",
+      "stale save is rejected before proposal acceptance",
+      "conflict preserves unsaved field",
+      "conflict: no horizontal overflow",
+      "conflict: bounded dialog",
+      "explicit rebase is GET-only and preserves field",
+      "rebased: no horizontal overflow",
+      "rebased: bounded dialog",
+      "rebased save uses new revision and independent new key",
+      "saved edited field retains externally confirmed other fields",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "e5b5f2dc-c9a5-4eed-9086-c3fceb1492fc"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "2f87306c-6705-455b-b21e-21fcd649649f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-2/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/conflict-rebase-mobile-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/conflict-rebase-mobile-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass111/conflict-rebase-mobile-saved.png"
+    ],
+    "status": "passed"
+  }
+]

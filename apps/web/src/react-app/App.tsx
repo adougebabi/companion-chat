@@ -177,6 +177,15 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
       }).save(!next);
   };
   const togglePreview = () => changePreview(!preview);
+  if (state.ready && state.errors.bootstrap)
+    return (
+      <CardSurface as="section" className="approved-bootstrap self-start" role="alert">
+        <p>{state.errors.bootstrap}</p>
+        <Button onClick={() => void workspace.bootstrap().catch(() => {})}>
+          重新读取
+        </Button>
+      </CardSurface>
+    );
   if (state.ready && state.session && !routeCharacterExists) return <section className="approved-bootstrap"><h1>角色不存在</h1><p>请回到角色库选择当前可用的角色。</p><Button asChild><a href="#/library">返回角色库</a></Button></section>;
   if (state.ready && !state.session)
     return (
@@ -198,15 +207,6 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
       <ReadState className="approved-bootstrap" role="status">
         正在读取你的角色与工作区…
       </ReadState>
-    );
-  if (state.errors.bootstrap)
-    return (
-      <CardSurface as="section" className="approved-bootstrap" role="alert">
-        <p>{state.errors.bootstrap}</p>
-        <Button onClick={() => void workspace.bootstrap().catch(() => {})}>
-          重新读取
-        </Button>
-      </CardSurface>
     );
   const unavailable=route.removed||route.notFound;
   const scopedHeading=state.pageHeading&&(route.feature?state.pageHeading.route===route.path&&state.pageHeading.owner===state.session?.actorId:state.pageHeading.page===page&&state.pageHeading.fid===state.selectedId)?state.pageHeading.title:"";

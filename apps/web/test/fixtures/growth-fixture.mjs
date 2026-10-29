@@ -173,23 +173,30 @@ export function growthFixture({ owner, scenario = "normal" }) {
           ],
         ]),
       );
+      // Each semantic snapshot is complete and belongs to its own revision.
+      // These fictional sources do not implement Core's actor-fact validation.
+      const claimSnapshot = (c) => {
+        const { owner_review, source_valid, expired, ...snapshot } = clone(c);
+        return snapshot;
+      };
       const claimHistory = new Map(
-        claims.map((c) => [
-          c.id,
-          [
-            {
-              revision: 1,
-              status: "accepted",
-              change_type: "create",
-              after_value: {
-                ...clone(c),
-                claim: "我想给彼此留一点倾听的空间。",
-              },
-              evidence_refs: clone(c.evidence_refs),
-              created_at: created,
-            },
-          ],
-        ]),
+        claims.map((c) => {
+          const current = claimSnapshot(c), prior = {
+            ...clone(current), revision: 1,
+            claim: "我想给彼此留一点倾听的空间。",
+          };
+          const record = (after, before, change) => ({
+            id: c.id + "-revision-" + after.revision,
+            fluctlight_id: fid, claim_id: c.id,
+            revision: after.revision, base_revision: after.revision - 1,
+            status: "accepted", change_type: change, reason_code: "accepted",
+            before_value: clone(before), after_value: clone(after), candidate: clone(after),
+            confidence: after.confidence, evidence_refs: clone(after.evidence_refs),
+            provenance: clone(after.provenance), source_window: "reflection-fixture",
+            created_at: created,
+          });
+          return [c.id, [record(current, prior, "update"), record(prior, {}, "create")]];
+        }),
       );
       stores.set(fid, {
         memories: scenario === "empty" ? [] : memories,
@@ -433,6 +440,8 @@ export function growthFixture({ owner, scenario = "normal" }) {
           { code: "self_claim_revision_conflict", message: "认识版本已变化" },
           409,
         );
+      const { owner_review, source_valid, expired, ...before } = clone(row);
+      let reviewID;
       if (part === "review") {
         const review = {
           id: "self-review-" + ++sequence,
@@ -444,6 +453,7 @@ export function growthFixture({ owner, scenario = "normal" }) {
           disposition: "acknowledged",
           created_at: created,
         };
+        reviewID = review.id;
         row.owner_review = review;
         state.reviews.set(id, [review, ...(state.reviews.get(id) || [])]);
       } else if (part === "forget") {
@@ -459,21 +469,41 @@ export function growthFixture({ owner, scenario = "normal" }) {
             { code: "self_snapshot_unavailable", message: "历史快照不可恢复" },
             422,
           );
+        const snapshot = target.after_value?.category ? target.after_value : target.candidate;
+        if (!["category", "claim", "value", "confidence", "evidence_refs", "provenance", "status"].every(key => Object.hasOwn(snapshot || {}, key)))
+          return reply({ code: "self_snapshot_incomplete", message: "旧修订缺少完整快照" }, 422);
+        if (!["active", "uncertain"].includes(snapshot.status))
+          return reply({ code: "self_snapshot_invalid", message: "该历史快照不能恢复为有效认识" }, 422);
         const revision = row.revision + 1;
-        Object.assign(row, clone(target.after_value), {
+        Object.assign(row, clone(snapshot), {
           id,
           fluctlight_id: fid,
           revision,
           owner_review: null,
         });
       } else return false;
+      if (part !== "review") {
+        row.updated_at = new Date(Date.parse(created) + ++sequence * 1000).toISOString();
+        const { owner_review, source_valid, expired, ...after } = clone(row);
+        state.claimHistory.set(id, [{
+          id: id + "-revision-" + row.revision, fluctlight_id: fid, claim_id: id,
+          revision: row.revision, base_revision: before.revision,
+          status: part === "forget" ? "forgotten" : "accepted",
+          change_type: part, reason_code: "owner_" + part, source_window: "owner:" + owner,
+          candidate: { ...clone(after), reason: body.reason, owner_actor_id: owner },
+          before_value: before, after_value: after, confidence: row.confidence,
+          evidence_refs: clone(row.evidence_refs), provenance: clone(row.provenance),
+          created_at: row.updated_at,
+        }, ...(state.claimHistory.get(id) || [])]);
+      }
       result = {
         id,
         fluctlight_id: fid,
         operation: part,
         revision: row.revision,
         status: row.status,
-        audit_id: "self-audit",
+        audit_id: "self-audit-" + row.revision + "-" + part,
+        ...(part === "review" ? { review_id: reviewID } : { target_revision: part === "restore" ? body.targetRevision : 0 }),
       };
     } else return false;
     receipts.set(key, clone(result));

@@ -1,0 +1,380 @@
+[
+  {
+    "name": "validation-busy",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "empty name never submits and gets focus",
+      "invalid: no horizontal overflow",
+      "invalid: bounded dialog",
+      "busy blocks duplicate save and cancel",
+      "busy Escape retains editor",
+      "saving: no horizontal overflow",
+      "saving: bounded dialog",
+      "one save creates and accepts exactly one proposal",
+      "confirmed detail is authoritative",
+      "reopen reads saved name",
+      "saved: no horizontal overflow",
+      "saved: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "资料保存等待验收"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "074e63ee-4786-4e7a-beb4-95629a07f994"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/validation-busy-desktop-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/validation-busy-desktop-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/validation-busy-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "conflict-rebase",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "external setup truly advances revision",
+      "stale save is rejected before proposal acceptance",
+      "conflict preserves unsaved field",
+      "conflict: no horizontal overflow",
+      "conflict: bounded dialog",
+      "explicit rebase is GET-only and preserves field",
+      "rebased: no horizontal overflow",
+      "rebased: bounded dialog",
+      "rebased save uses new revision and independent new key",
+      "saved edited field retains externally confirmed other fields",
+      "saved: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "96fcbc60-72a6-4172-b3ab-a90c787fde23"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "04b981fb-baaa-4832-b759-b477141f2b17"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-2/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/conflict-rebase-desktop-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/conflict-rebase-desktop-rebased.png"
+    ],
+    "status": "failed",
+    "error": "locator.boundingBox: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last()\u001b[22m\n\n    at shot (/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-profile-save-states.mjs:19:367)\n    at async file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-profile-save-states.mjs:45:227",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n版\n正在相处\n版本冲突之后保留的名字 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n角色档案\n快速前往\n⌘ K\nLIFE / A PERSON WITH A STORY\n认识更完整的版本冲突之后保留的名字。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n版\nA PERSON, NOT JUST A PROFILE\n版本冲突之后保留的名字小青\n\n26 岁 · 书籍编辑 · 运行中\n\n温和魔法世界\n\n这是用于资料分层验收的角色背景。\n\n日常人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n3\n身份与背景\n编辑\n称呼\n小青\n年龄\n26\n职业\n书籍编辑\n居住地\n青岚\n生活时区\nAsia/Shanghai\n出生地\n南方小城\n简介与经历\n这是用于资料分层验收的角色背景。\n表达与相处\n调整表达\n回复风格\n自然随和\n消息长短\n适中\n分歧处理\n温和协商\n拒绝方式\n温和而坚定\n核心价值观\n诚实\n尊重\n完整表达与相处设定\n共同性格\n\n这些倾向构成了相处时的底色。\n\n开放性\n82%\n尽责性\n72%\n亲和性\n74%\n完整性格与来源\nWORKING PERSONA\n当前表达画像\n\n开放性：愿意探索新事物\n\n愿意听完日常里的细节。\n\n表达画像完整记录与来源\n人格设定与最近生活共同影响此刻的表达\n完整能力申请与历史\n发展中的自我"
+  },
+  {
+    "name": "validation-busy",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "empty name never submits and gets focus",
+      "invalid: no horizontal overflow",
+      "invalid: bounded dialog",
+      "busy blocks duplicate save and cancel",
+      "busy Escape retains editor",
+      "saving: no horizontal overflow",
+      "saving: bounded dialog",
+      "one save creates and accepts exactly one proposal",
+      "confirmed detail is authoritative",
+      "reopen reads saved name",
+      "saved: no horizontal overflow",
+      "saved: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "资料保存等待验收"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "da313550-b5bf-4cad-b829-1d080f950304"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/validation-busy-mobile-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/validation-busy-mobile-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/validation-busy-mobile-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "conflict-rebase",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / fresh controlled profile HTTP; no real identity mutation",
+    "checks": [
+      "external setup truly advances revision",
+      "stale save is rejected before proposal acceptance",
+      "conflict preserves unsaved field",
+      "conflict: no horizontal overflow",
+      "conflict: bounded dialog",
+      "explicit rebase is GET-only and preserves field",
+      "rebased: no horizontal overflow",
+      "rebased: bounded dialog",
+      "rebased save uses new revision and independent new key",
+      "saved edited field retains externally confirmed other fields",
+      "saved: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "0167bbb4-aebc-4cae-9916-b3b9263306ba"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "identity": {
+              "name": "版本冲突之后保留的名字"
+            }
+          },
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "83485df6-528e-4c42-9ed8-332aef6c089e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-2/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/conflict-rebase-mobile-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-save-states-pass110/conflict-rebase-mobile-rebased.png"
+    ],
+    "status": "failed",
+    "error": "locator.boundingBox: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last()\u001b[22m\n\n    at shot (/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-profile-save-states.mjs:19:367)\n    at async file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-profile-save-states.mjs:45:227",
+    "text": "Toggle Sidebar\n日常相处\n角色档案\n快速前往\nLIFE / A PERSON WITH A STORY\n认识更完整的版本冲突之后保留的名字。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n版\nA PERSON, NOT JUST A PROFILE\n版本冲突之后保留的名字小青\n\n26 岁 · 书籍编辑 · 运行中\n\n温和魔法世界\n\n这是用于资料分层验收的角色背景。\n\n日常人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n3\n身份与背景\n编辑\n称呼\n小青\n年龄\n26\n职业\n书籍编辑\n居住地\n青岚\n生活时区\nAsia/Shanghai\n出生地\n南方小城\n简介与经历\n这是用于资料分层验收的角色背景。\n表达与相处\n调整表达\n回复风格\n自然随和\n消息长短\n适中\n分歧处理\n温和协商\n拒绝方式\n温和而坚定\n核心价值观\n诚实\n尊重\n完整表达与相处设定\n共同性格\n\n这些倾向构成了相处时的底色。\n\n开放性\n82%\n尽责性\n72%\n亲和性\n74%\n完整性格与来源\nWORKING PERSONA\n当前表达画像\n\n开放性：愿意探索新事物\n\n愿意听完日常里的细节。\n\n表达画像完整记录与来源\n人格设定与最近生活共同影响此刻的表达\n完整能力申请与历史\n发展中的自我"
+  }
+]

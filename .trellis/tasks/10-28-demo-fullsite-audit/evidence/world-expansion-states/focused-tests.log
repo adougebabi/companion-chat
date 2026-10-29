@@ -1,0 +1,37 @@
+✔ world browse/search/back keeps the original filter and inactive catalog tabs cannot switch worlds or read active-world objects (401.205125ms)
+✔ world create cancellation never writes and an accepted create does not bind or move the character (387.17925ms)
+✔ place edit preserves immutable name/category and omits unchanged nested arrays while reading the actual revision back (307.825125ms)
+✔ world field builders preserve unknown nested data and only explicitly changed collections enter the wire payload (0.909542ms)
+✔ a lost world-create receipt resumes the same body and key after remount; newer input updates the acknowledged world instead of creating another (515.140958ms)
+✔ world readback failure retains the accepted result and recovery sends no additional mutation (273.840875ms)
+✔ world binding uses its own revision and preserves the existing life context (203.457083ms)
+✔ unread world catalog remains unknown; failure retries a read and an empty catalog stays empty (289.19825ms)
+✔ item configuration uses the catalog item revision without creating inventory, and a request preserves existing chat draft without sending (480.50725ms)
+✔ world events distinguish admitted queued execution from applied results; failed execution retries its original run with two revisions (499.540542ms)
+✔ place historical default restoration uses both versions and preserves spatial references (463.705917ms)
+✔ reviewing a newer baseline refreshes untouched nested fields while retaining the user's actual edits (0.630125ms)
+✔ category conflict review preserves the externally updated world name rather than renaming it back (341.313667ms)
+✔ recovering an unknown place create records the saved immutable identity and retains later editable fields and unapplied identity input (554.767542ms)
+✔ remounted event-toggle readback checks the originally executed target rather than the newly opened opposite action (481.265084ms)
+✔ applied definition preview and capture stay distinct from current saved fields; only explicit restore changes the place (617.486917ms)
+✔ definition capture expansion-unknown preserves original command and recovers confirmed baseline (318.871417ms)
+✔ definition capture expansion-readback-failure preserves original command and recovers confirmed baseline (327.532375ms)
+✔ failed run expansion-unknown recovery preserves original execution (319.481083ms)
+✔ failed run expansion-readback-failure recovery preserves original execution (308.72675ms)
+✔ failed run recovery is disabled for expired (180.775667ms)
+✔ failed run recovery is disabled for changed-template (185.277291ms)
+✔ failed run recovery is disabled for paused (183.120833ms)
+✔ failed run recovery is disabled for invalid-expiry (186.609833ms)
+✔ retry rejects a mismatched minimal receipt {"id":"foreign-run"} (270.20325ms)
+✔ retry rejects a mismatched minimal receipt {"status":"applied"} (274.787083ms)
+✔ retry rejects a mismatched minimal receipt {"revision":4} (276.483208ms)
+✔ minimal retry receipt still requires scoped full run readback and recovery is GET-only (337.669667ms)
+✔ a legacy place without a recorded baseline uses its verified published definition as effective baseline (278.803458ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11219.857917

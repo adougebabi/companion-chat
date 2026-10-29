@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 import { React, act, installDOM, mountReact } from "./helpers/react-dom.mjs";
+import { worldFixture } from "./fixtures/world-fixture.mjs";
 import { studioFixture } from "./fixtures/studio-fixture.mjs";
 const env = installDOM(),
   vite = await createServer({
@@ -717,4 +718,27 @@ test("sandbox text materials retain their original job and release only the reso
   } finally {
     await f.dispose();
   }
+});
+
+
+test("Studio real editor applies linked world and result navigation retains original role", async () => {
+  const runtime = worldFixture();
+  const api = studioFixture({ externalWorld: true, worldRuntime: runtime.studioWorld });
+  const f = await fixture({ api, Component: Editor, props: { resourceId: "studio-world" } });
+  try {
+    const binding = structuredClone(runtime.state("A").binding);
+    await f.v.click(button(f.v.host, "应用到角色"));
+    await choose(f, "目标角色", "林青");
+    await f.v.click(button(dialog(), "读取应用差异"));
+    assert.match(dialog().textContent, /这是新的运行定义/);
+    await f.v.click(button(dialog(), "确认应用所选字段"));
+    assert.match(dialog().textContent, /原应用回执已核对/);
+    const row = runtime.state("A").worlds.find(w => w.source_resource_id === "studio-world");
+    assert.ok(row); assert.equal(row.source_version, "draft:1");
+    assert.equal(row.background, api.publications.get("studio-world:draft:1").body.background);
+    assert.deepEqual(runtime.state("A").binding, binding);
+    await f.v.click(button(dialog(), "查看角色中的结果"));
+    assert.deepEqual(f.moves, ["/c/A/worlds"]);
+    assert.equal(f.writes().filter(c => c.path.endsWith("/apply")).length, 1);
+  } finally { await f.dispose(); }
 });

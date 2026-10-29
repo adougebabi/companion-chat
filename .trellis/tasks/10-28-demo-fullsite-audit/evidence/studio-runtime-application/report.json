@@ -1,0 +1,329 @@
+[
+  {
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "dpr": 1,
+    "boundary": "production components / controlled HTTP in-memory runtime; no live persistence claim",
+    "checks": [
+      "first desktop creates; following mobile sees same runtime",
+      "preview: no document overflow",
+      "receipt: no document overflow",
+      "target directory renders exact published name/background",
+      "creation does not activate new world",
+      "target-directory: no document overflow",
+      "actual target detail renders source id and immutable version",
+      "target-settings-source: no document overflow",
+      "target-refreshed: no document overflow",
+      "same role runtime source and body survive page refresh",
+      "binding unchanged by applying and browsing",
+      "framework concrete place materialized once",
+      "other role unaffected",
+      "source references real runtime id",
+      "repreview targets same existing runtime",
+      "one apply mutation per viewport",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/apply-preview",
+        "method": "POST",
+        "body": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "resourceVersion": "draft:1"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions/draft%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/apply",
+        "method": "POST",
+        "body": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "resourceVersion": "draft:1",
+          "expectedInstanceRevision": 1,
+          "expectedRuntimeRevision": 0,
+          "choices": [],
+          "reason": "所有者确认差异后应用已发布资源",
+          "idempotencyKey": "96b2fe71-ec88-46e9-b62a-c9135438244d"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fluctlight-fixture-one-studio-world-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fluctlight-fixture-one-studio-world-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/apply-preview",
+        "method": "POST",
+        "body": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "resourceVersion": "draft:1"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions/draft%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/desktop-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/desktop-receipt.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/desktop-target-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/desktop-target-settings-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/desktop-target-refreshed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "boundary": "production components / controlled HTTP in-memory runtime; no live persistence claim",
+    "checks": [
+      "first desktop creates; following mobile sees same runtime",
+      "preview: no document overflow",
+      "receipt: no document overflow",
+      "target directory renders exact published name/background",
+      "creation does not activate new world",
+      "target-directory: no document overflow",
+      "actual target detail renders source id and immutable version",
+      "target-settings-source: no document overflow",
+      "target-refreshed: no document overflow",
+      "same role runtime source and body survive page refresh",
+      "binding unchanged by applying and browsing",
+      "framework concrete place materialized once",
+      "other role unaffected",
+      "source references real runtime id",
+      "repreview targets same existing runtime",
+      "one apply mutation per viewport",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/apply-preview",
+        "method": "POST",
+        "body": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "resourceVersion": "draft:1"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions/draft%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/apply",
+        "method": "POST",
+        "body": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "resourceVersion": "draft:1",
+          "expectedInstanceRevision": 1,
+          "expectedRuntimeRevision": 1,
+          "choices": [
+            {
+              "field": "framework",
+              "decision": "override"
+            }
+          ],
+          "reason": "所有者确认差异后应用已发布资源",
+          "idempotencyKey": "de220736-6271-40dd-a785-df0f4626ffa9"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fluctlight-fixture-one-studio-world-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fluctlight-fixture-one-studio-world-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/apply-preview",
+        "method": "POST",
+        "body": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "resourceVersion": "draft:1"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions/draft%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/mobile-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/mobile-receipt.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/mobile-target-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/mobile-target-settings-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-runtime-application/mobile-target-refreshed.png"
+    ],
+    "status": "passed"
+  }
+]

@@ -1,0 +1,54 @@
+✔ one application tree ports exact native form values, original listeners and submission while preserving a long focused draft (310.132583ms)
+✔ Collapsible keeps original nested controls and callbacks, reflects controller open state and removes ports on page replacement (175.199875ms)
+✔ nested disclosures retain original form controls when ancestor contents move into a portal (205.669375ms)
+✔ radio selection keeps the original group checked state, change listener and single FormData value (116.455916ms)
+✔ controller redraw resolves the focused carrier and restores the same selection to the new React control (117.657917ms)
+✔ rich disclosure summaries retain structured labels and settings Sheets reopen the same form after Escape (191.117333ms)
+✔ datetime fields use one original form value while date and time edits keep the local datetime contract (90.669541ms)
+✖ immediate checkable changes do not reenter controller change when synchronous redraw moves focus (91.725583ms)
+✔ text, number and textarea drafts still commit change on blur and preserve carrier selection and focusout (347.590209ms)
+✖ date trigger blur preserves focusout without committing an unchanged date (89.030125ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 8
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3646.119208
+
+✖ failing tests:
+
+test at apps/web/test/r11-domain-primitives.test.mjs:66:1
+✖ immediate checkable changes do not reenter controller change when synchronous redraw moves focus (91.725583ms)
+  AssertionError [ERR_ASSERTION]: checkbox commits one change even when the handler moves focus
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/r11-domain-primitives.test.mjs:78:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/web/test/r11-domain-primitives.test.mjs:102:1
+✖ date trigger blur preserves focusout without committing an unchanged date (89.030125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/r11-domain-primitives.test.mjs:105:155)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

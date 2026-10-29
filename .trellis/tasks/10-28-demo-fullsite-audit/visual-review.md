@@ -35,13 +35,24 @@
 
 media-pass93记录了额外的对齐图像区域量测，没有通过阈值；完整未遮罩页面差异仍单独保留。参考图的收藏图标、渲染抗锯齿等仍计入原始差异；手机截图外的4张图明确未量测。该量测不能代替整页视觉结论，也不代表真实上传字节或模型图像身份判断。
 
+## 深层批次的最新视觉与交互证据
+
+- 世界failed-run retry、current_definition及有效v0基准：evidence/world-expansion-states/report.json 14/14通过，生产构建与两视口，关键失败恢复/定义截图已人工核对。已填补此前实际浏览器缺口。
+- Studio世界应用：evidence/studio-runtime-application/report.json 2/2通过；fixture现在与目标世界GET共享实例，实际从回执进入同角色目录/详情/来源并刷新、重开，当前绑定和另一角色保持。人工核对桌面预览与手机目标设定；受控运行态，不证明真实持久化。
+- 目标高级规划：advanced-pass103 8/8通过；人工查看手机高级策略编辑、恢复与桌面布局。原生checkbox重绘异常已修。上限/恢复JSON/依赖/手动排序/候选和来源/冲突/未知/accepted GET恢复均按实际脚本记录，不扩大成真实模型完成。
+- Self历史：pass104八个异常/采用/刷新场景加pass106两个normal，合并10/10；人工查看手机完整来源、恢复详情与桌面正式Self页四版历史。旧normal验收失败保留，其选择器与展开时机已校正，产品没有为错误假设改字段名。
+
 ## 仍未取得完整证据的具体范围
 
-- resources.world.venues：受控扩写的queued→applied已验，failed-run retry及current_definition有效基准尚未在实际浏览器形成完整证据。
-- resources.studio.apply：保存/发布/版本/差异和回执已验，fixture的世界GET固定，不能证明应用后整个运行世界实际更新；不得据此标全部业务通过。
-- formal-goal-planning：自动规划保存、草稿、JSON校验已验；上限/恢复策略/CAS/候选入集的fixture未完整持久化，完整业务回读不在已验证范围。
-- life-self-detail/formal-self-governance：自我治理动作和阅读可达，fixture未为每次修改追加完整认识历史快照，历史谱系不能判全部通过。
-- resources.media.visual.candidate/review/sheet/generation：UI受控阶段与恢复有记录，真实模型/Comfy候选→规范参考→设定图与生成全链路没有本轮完整通过证据。
-- 深层状态的视觉：各模块正常/编辑/加载/失败/未知/冲突截图和断言分别登记；尚未逐张与Demo对应状态完成细节复核的项保持待检查/发现问题，不批量升为已验证。
+- Studio runtime-rejected/unknown/pending目前为组件/transport证据，尚未做其实际浏览器目标跳转恢复；本批正常应用不能代替这些状态。
+- resources.media.visual.candidate/review/sheet/generation：UI受控阶段与恢复有记录，真实模型/Comfy候选→规范参考→设定图与生成全链路没有本轮完整通过证据。按UI主线不为补证据改配置。
+- 深层状态视觉：多个模块已有正常/编辑/加载/失败/未知/冲突截图与交互断言；尚未逐张与Demo对应状态完成细节复核的项保持待检查/发现问题。本轮Goal规划、World恢复与正式Self历史为正式独有能力，不制造Demo对照状态。
 
-以上未验项继续在活动任务中保留，不以测试数、截图数、174行有证据或标题坐标一致换算完成率。
+任务继续in_progress；不以694项测试、截图数、174行有证据或标题坐标一致换算完成率。
+
+
+## pass108–116 补验与人工查看
+
+Studio运行异常6、Auth/Library16、Profile保存4、Studio七类型14、Wear结果10全部实际生产浏览器通过。主线程亲看了手机应用等待/未知/拒绝、初始化normal/busy、损坏草稿、目录失败、Profile冲突，以及七种类型的编辑代表图。Studio新JSON错误已定位并在pass115改正；item纠正后无旧alert截图已看。Profile冲突恢复动作在滚动体内，页脚保存/取消保持可达。
+
+目录错误卡旧图pass115被flex拉成多余空白；pass116在同一错误卡使用self-start，交互再次双视口通过。没有调整业务数据或参考Demo。其它新增图仍按各自截图/断言范围记录；六组确定未验分支见verification/remaining-state-backlog.md，不能宣布仅剩视觉复核。

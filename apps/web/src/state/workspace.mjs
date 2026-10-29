@@ -267,6 +267,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       await refreshProduct({ initialOnly: true });
       if (!active) return;
       replaceDirectory();
+      delete state.errors.bootstrap;
       state.ready = true;
     } catch (error) {
       state.errors.bootstrap = errorMessage(error);

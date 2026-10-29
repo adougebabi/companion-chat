@@ -1,0 +1,1974 @@
+[
+  {
+    "scenario": "normal",
+    "size": "desktop",
+    "checks": [
+      "normal: no document overflow",
+      "editing: no document overflow",
+      "all advanced policy values saved",
+      "manual active order excludes candidates",
+      "dependency saved",
+      "policy survives refresh",
+      "candidate cancel never writes",
+      "candidate acceptance is active, never completed",
+      "rejected candidate removed from current partition",
+      "candidate changes require explicit policy baseline review",
+      "source review and goal review read back",
+      "unknown extensions survive",
+      "planning sends stable original identity",
+      "reviewed-and-requested: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "manual",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [
+              "active-two"
+            ],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "order": [
+            "active-two",
+            "active-one"
+          ],
+          "recoveryPolicy": {
+            "merge_window_seconds": 8,
+            "retry_backoff_seconds": 45,
+            "max_attempts": 4,
+            "lease_seconds": 180,
+            "candidate_limit": 12
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "规划策略与依赖保存核对",
+          "idempotencyKey": "41030659-0b98-4aeb-8657-0ebbba115f81"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "changes": [
+            {
+              "id": "candidate-one",
+              "operation": "resume",
+              "expected_revision": 1
+            }
+          ],
+          "expectedVersion": 2,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "采纳候选",
+          "idempotencyKey": "fdefebc2-8f54-493c-bb23-8c14b8910d04"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "changes": [
+            {
+              "id": "candidate-two",
+              "operation": "cancel",
+              "expected_revision": 1
+            }
+          ],
+          "expectedVersion": 3,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "拒绝候选",
+          "idempotencyKey": "92e37b23-0393-43fc-8644-2c8efc3ac474"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "sourceReviews": [
+            {
+              "source_id": "source-one",
+              "expected_revision": 1,
+              "operation": "dismiss"
+            }
+          ],
+          "reviewedGoalIds": [
+            "active-one"
+          ],
+          "expectedVersion": 4,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "来源不构成行动目标",
+          "idempotencyKey": "605b3e50-95da-44f5-858e-96c5ce3c40af"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "490b9476-9b7f-474d-a153-ab4af6b624ba"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [
+      "Failed to set the 'innerHTML' property on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/goal-planning-advanced-pass101/normal-desktop-failure.png"
+    ],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: no browser exceptions\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-goal-planning-ui.mjs:24:91)\n    at run (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-goal-planning-ui.mjs:44:3)\n    at async file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-goal-planning-ui.mjs:47:123",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n生活\n目标规划\n快速前往\n⌘ K\n目标列表\n重新读取\n\n策略版本已变化，原草稿已保留。请核对最新策略后采用新基线。\n\n读取并采用最新基线，保留草稿\n独立规划\n\n规划可产生候选、保留现有目标或无须新增；不会强制每次凑足固定数量。已受理不代表规划完成。\n\n 自动规划\n排序方式\n手动排序\n自动排序\n手动排序\n活跃目标上限*\n目标顺序与前置条件\n\n选择一个目标，再调整顺序或前置条件。完成并确认有效后，才能推进依赖它的目标。\n\n1\n完成街景练习\n2\n整理观察笔记\n↑\n↓\n3\n尝试新的绘画材料\n整理观察笔记的前置条件\n完成街景练习\n尝试新的绘画材料\n依赖与恢复策略\n修改原因*\n保存策略\n\n目标集 v5 · 当前活跃 3\n\n立即规划\n规划任务与历史\n目标记录\n等待处理\n\n2026-10-29 09:00 (北京时间)\n\n完整记录与来源\n候选与来源审查\n\n当前规划窗口暂无候选，可查看历史中的判断结果。\n\n初始化来源\n\n尚无记录\n\n来源审查与候选生命周期分别记录，不能通过删除目标消除来源。\n\n审查命令\n规划请求已受理，正在重新读取任务历史；受理不代表完成\n本次提交已保存并读回，期间的新草稿保留\n本次提交已保存并读回，期间的新草稿保留\n本次提交已保存并读回，期间的新草稿保留"
+  },
+  {
+    "scenario": "conflict",
+    "size": "desktop",
+    "checks": [
+      "normal: no document overflow",
+      "rebase preserves draft",
+      "reviewed baseline uses actual version/facts",
+      "rebased: no document overflow",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "冲突后保留草稿",
+          "idempotencyKey": "92c58fd3-c1d0-4220-b240-4347f35589cf"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 2,
+          "expectedFactsRevision": "facts-planning-2",
+          "reason": "冲突后保留草稿",
+          "idempotencyKey": "56914d1c-4148-46ca-b71c-9ce13d8ba64b"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "passed"
+  },
+  {
+    "scenario": "readback-failure",
+    "size": "desktop",
+    "checks": [
+      "normal: no document overflow",
+      "newer draft retained",
+      "accepted recovery sends no second PUT",
+      "recovered: no document overflow",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "原提交原因",
+          "idempotencyKey": "ecbae35d-6714-4f82-901e-62403d5847ad"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "passed"
+  },
+  {
+    "scenario": "lost-response",
+    "size": "desktop",
+    "checks": [
+      "normal: no document overflow",
+      "newer draft retained",
+      "unknown recovery repeats equal body/key",
+      "recovered: no document overflow",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "原提交原因",
+          "idempotencyKey": "6e734c04-75d2-4dcd-a6eb-9de12bf95a8f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "原提交原因",
+          "idempotencyKey": "6e734c04-75d2-4dcd-a6eb-9de12bf95a8f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "passed"
+  },
+  {
+    "scenario": "normal",
+    "size": "mobile",
+    "checks": [
+      "normal: no document overflow",
+      "editing: no document overflow",
+      "all advanced policy values saved",
+      "manual active order excludes candidates",
+      "dependency saved",
+      "policy survives refresh",
+      "candidate cancel never writes",
+      "candidate acceptance is active, never completed",
+      "rejected candidate removed from current partition",
+      "candidate changes require explicit policy baseline review",
+      "source review and goal review read back",
+      "unknown extensions survive",
+      "planning sends stable original identity",
+      "reviewed-and-requested: no document overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "manual",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [
+              "active-two"
+            ],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "order": [
+            "active-two",
+            "active-one"
+          ],
+          "recoveryPolicy": {
+            "merge_window_seconds": 8,
+            "retry_backoff_seconds": 45,
+            "max_attempts": 4,
+            "lease_seconds": 180,
+            "candidate_limit": 12
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "规划策略与依赖保存核对",
+          "idempotencyKey": "318fb8e9-470d-4fc1-b120-4efc375a97f7"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "changes": [
+            {
+              "id": "candidate-one",
+              "operation": "resume",
+              "expected_revision": 1
+            }
+          ],
+          "expectedVersion": 2,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "采纳候选",
+          "idempotencyKey": "cb353c7c-b6fb-4a4d-a71a-93302370a4ab"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "changes": [
+            {
+              "id": "candidate-two",
+              "operation": "cancel",
+              "expected_revision": 1
+            }
+          ],
+          "expectedVersion": 3,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "拒绝候选",
+          "idempotencyKey": "793bc948-1c11-416e-af75-ad96683b5ff2"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "sourceReviews": [
+            {
+              "source_id": "source-one",
+              "expected_revision": 1,
+              "operation": "dismiss"
+            }
+          ],
+          "reviewedGoalIds": [
+            "active-one"
+          ],
+          "expectedVersion": 4,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "来源不构成行动目标",
+          "idempotencyKey": "5f338cb5-6b1e-4de3-bc19-9d6dad315761"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "3c05b12a-670a-4ec9-828e-04d43627869b"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [
+      "Failed to set the 'innerHTML' property on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/goal-planning-advanced-pass101/normal-mobile-failure.png"
+    ],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: no browser exceptions\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-goal-planning-ui.mjs:24:91)\n    at run (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-goal-planning-ui.mjs:44:3)\n    at async file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-goal-planning-ui.mjs:47:123",
+    "text": "Toggle Sidebar\n日常相处\n生活\n目标规划\n快速前往\n目标列表\n重新读取\n\n策略版本已变化，原草稿已保留。请核对最新策略后采用新基线。\n\n读取并采用最新基线，保留草稿\n独立规划\n\n规划可产生候选、保留现有目标或无须新增；不会强制每次凑足固定数量。已受理不代表规划完成。\n\n 自动规划\n排序方式\n手动排序\n自动排序\n手动排序\n活跃目标上限*\n目标顺序与前置条件\n\n选择一个目标，再调整顺序或前置条件。完成并确认有效后，才能推进依赖它的目标。\n\n1\n完成街景练习\n2\n整理观察笔记\n↑\n↓\n3\n尝试新的绘画材料\n整理观察笔记的前置条件\n完成街景练习\n尝试新的绘画材料\n依赖与恢复策略\n修改原因*\n保存策略\n\n目标集 v5 · 当前活跃 3\n\n立即规划\n规划任务与历史\n目标记录\n等待处理\n\n2026-10-29 09:00 (北京时间)\n\n完整记录与来源\n候选与来源审查\n\n当前规划窗口暂无候选，可查看历史中的判断结果。\n\n初始化来源\n\n尚无记录\n\n来源审查与候选生命周期分别记录，不能通过删除目标消除来源。\n\n审查命令\n规划请求已受理，正在重新读取任务历史；受理不代表完成\n本次提交已保存并读回，期间的新草稿保留"
+  },
+  {
+    "scenario": "conflict",
+    "size": "mobile",
+    "checks": [
+      "normal: no document overflow",
+      "rebase preserves draft",
+      "reviewed baseline uses actual version/facts",
+      "rebased: no document overflow",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "冲突后保留草稿",
+          "idempotencyKey": "c513d638-97cc-491c-8461-bdb9e91b2d62"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 2,
+          "expectedFactsRevision": "facts-planning-2",
+          "reason": "冲突后保留草稿",
+          "idempotencyKey": "58a8b07c-5d84-45da-86f6-2d93c46eb3e7"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "passed"
+  },
+  {
+    "scenario": "readback-failure",
+    "size": "mobile",
+    "checks": [
+      "normal: no document overflow",
+      "newer draft retained",
+      "accepted recovery sends no second PUT",
+      "recovered: no document overflow",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "原提交原因",
+          "idempotencyKey": "a6fa5eb6-bbae-4572-918a-3fc24ab5f9fb"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "passed"
+  },
+  {
+    "scenario": "lost-response",
+    "size": "mobile",
+    "checks": [
+      "normal: no document overflow",
+      "newer draft retained",
+      "unknown recovery repeats equal body/key",
+      "recovered: no document overflow",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "原提交原因",
+          "idempotencyKey": "0ad99673-7e2c-4209-b028-ac670ea8b4a3"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/sidebar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/nearby",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/desires",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "PUT",
+        "body": {
+          "autoPlanningEnabled": true,
+          "orderingMode": "automatic",
+          "maxActiveGoals": 4,
+          "dependencies": {
+            "active-one": [],
+            "active-two": [],
+            "candidate-one": [],
+            "candidate-two": []
+          },
+          "recoveryPolicy": {
+            "merge_window_seconds": 5,
+            "retry_backoff_seconds": 30,
+            "max_attempts": 3,
+            "lease_seconds": 120,
+            "candidate_limit": 10
+          },
+          "expectedVersion": 1,
+          "expectedFactsRevision": "facts-planning-1",
+          "reason": "原提交原因",
+          "idempotencyKey": "0ad99673-7e2c-4209-b028-ac670ea8b4a3"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-set",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goal-planning",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "evidence": "production DomainPage/DomainPrimitives + controlled HTTP only; no Core/DB/model acceptance",
+    "status": "passed"
+  }
+]

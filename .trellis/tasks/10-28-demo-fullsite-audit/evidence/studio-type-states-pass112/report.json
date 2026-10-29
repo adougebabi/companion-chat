@@ -1,0 +1,1554 @@
+[
+  {
+    "name": "item",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "ordinary item removes wearing-slot control",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "ordinary item saves no wearing slot",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "PUT",
+        "body": {
+          "kind": "item",
+          "name": "亚麻衬衫",
+          "body": {
+            "schema": "item-definition.v1",
+            "item_kind": "object",
+            "category": "",
+            "slot": "",
+            "description": "类型字段修改 item desktop",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "d8bbd766-2f33-444a-a336-33557407c6e1"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-desktop-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "outfit",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "member saves exact immutable resource version",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "PUT",
+        "body": {
+          "kind": "outfit",
+          "name": "秋日散步",
+          "body": {
+            "schema": "outfit-definition.v1",
+            "description": "类型字段修改 outfit desktop",
+            "members": [
+              {
+                "resource_id": "studio-item",
+                "resource_version": "draft:1"
+              }
+            ],
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "1227c870-54d8-4574-b992-f2b3f9d9552e"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-desktop-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "place",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "PUT",
+        "body": {
+          "kind": "place",
+          "name": "河畔书店",
+          "body": {
+            "schema": "place-definition.v1",
+            "description": "窗外能看到缓慢的河水。",
+            "atmosphere": "类型字段修改 place desktop",
+            "layout": "书架与阅读桌",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "8d670073-adeb-463a-8373-87712af6da88"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-desktop-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "npc",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "PUT",
+        "body": {
+          "kind": "npc",
+          "name": "花店店主",
+          "body": {
+            "role": "花店经营者",
+            "background": "类型字段修改 npc desktop",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "7417c063-5662-4f07-8cc3-4989ed9c45fd"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-desktop-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "event_template",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "typed event fields preserve original condition and new effect",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "PUT",
+        "body": {
+          "kind": "event_template",
+          "name": "周末读书会",
+          "body": {
+            "schema_version": "world-event.v1",
+            "description": "类型字段修改 event_template desktop",
+            "category": "environment",
+            "intensity": "medium",
+            "duration_minutes": 30,
+            "trigger": {
+              "mode": "manual",
+              "interval_minutes": 60,
+              "cooldown_minutes": 120,
+              "probability": 1
+            },
+            "condition": {
+              "day": "daily",
+              "start": "00:00",
+              "end": "00:00",
+              "place_ids": [],
+              "require_presence": false
+            },
+            "effects": [
+              {
+                "kind": "weather",
+                "scope": "world",
+                "value": ""
+              }
+            ],
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "d3d48d38-a84f-4af7-8bd4-9627d1378c0f"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-desktop-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "persona_fragment",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "PUT",
+        "body": {
+          "kind": "persona_fragment",
+          "name": "阅读时的习惯",
+          "body": {
+            "schema": "persona-fragment.v1",
+            "changes": {
+              "identity": {
+                "interests": [
+                  "阅读"
+                ],
+                "nickname": "类型字段修改 persona_fragment desktop"
+              }
+            },
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "5ef5d7e1-8e04-48bb-b510-0918f87e1022"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-desktop-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "visual_style",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "PUT",
+        "body": {
+          "kind": "visual_style",
+          "name": "柔和水彩",
+          "body": {
+            "schema": "visual-style.v1",
+            "appearance": "自然的神情",
+            "clothing": "日常衣着",
+            "constraints": "类型字段修改 visual_style desktop",
+            "references": "水彩纸感",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "bbadd4b1-39d9-4a91-865c-8f117ba7ef77"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-desktop-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-desktop-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "item",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "ordinary item removes wearing-slot control",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "ordinary item saves no wearing slot",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "PUT",
+        "body": {
+          "kind": "item",
+          "name": "亚麻衬衫",
+          "body": {
+            "schema": "item-definition.v1",
+            "item_kind": "object",
+            "category": "",
+            "slot": "",
+            "description": "类型字段修改 item mobile",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "bef8ce73-0aaf-4cb6-b2cd-5ae8d81b79ab"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-item/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-mobile-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/item-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "outfit",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "member saves exact immutable resource version",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "PUT",
+        "body": {
+          "kind": "outfit",
+          "name": "秋日散步",
+          "body": {
+            "schema": "outfit-definition.v1",
+            "description": "类型字段修改 outfit mobile",
+            "members": [
+              {
+                "resource_id": "studio-item",
+                "resource_version": "draft:1"
+              }
+            ],
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "b9818f0e-f53d-4754-97bb-6f40b71212d8"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-outfit/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-mobile-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/outfit-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "place",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "PUT",
+        "body": {
+          "kind": "place",
+          "name": "河畔书店",
+          "body": {
+            "schema": "place-definition.v1",
+            "description": "窗外能看到缓慢的河水。",
+            "atmosphere": "类型字段修改 place mobile",
+            "layout": "书架与阅读桌",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "cfd99169-a98f-4596-94d1-01a32eab0a24"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-place/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-mobile-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/place-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "npc",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "PUT",
+        "body": {
+          "kind": "npc",
+          "name": "花店店主",
+          "body": {
+            "role": "花店经营者",
+            "background": "类型字段修改 npc mobile",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "af03dbca-3d1e-4217-bdd4-297f709ece61"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-npc/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-mobile-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/npc-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "event_template",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "typed event fields preserve original condition and new effect",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "PUT",
+        "body": {
+          "kind": "event_template",
+          "name": "周末读书会",
+          "body": {
+            "schema_version": "world-event.v1",
+            "description": "类型字段修改 event_template mobile",
+            "category": "environment",
+            "intensity": "medium",
+            "duration_minutes": 30,
+            "trigger": {
+              "mode": "manual",
+              "interval_minutes": 60,
+              "cooldown_minutes": 120,
+              "probability": 1
+            },
+            "condition": {
+              "day": "daily",
+              "start": "00:00",
+              "end": "00:00",
+              "place_ids": [],
+              "require_presence": false
+            },
+            "effects": [
+              {
+                "kind": "weather",
+                "scope": "world",
+                "value": ""
+              }
+            ],
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "fc972b53-d1f6-4cc3-82d9-278dd350261b"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-event_template/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-mobile-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/event_template-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "persona_fragment",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "PUT",
+        "body": {
+          "kind": "persona_fragment",
+          "name": "阅读时的习惯",
+          "body": {
+            "schema": "persona-fragment.v1",
+            "changes": {
+              "identity": {
+                "interests": [
+                  "阅读"
+                ],
+                "nickname": "类型字段修改 persona_fragment mobile"
+              }
+            },
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "ca68f13f-7072-4a09-ae89-417162504938"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-persona_fragment/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-mobile-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/persona_fragment-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "visual_style",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled saved resource HTTP; no publication, runtime or model success claim",
+    "checks": [
+      "normal: no horizontal overflow",
+      "invalid JSON retains exact unsent text",
+      "invalid JSON cannot write or change saved record",
+      "invalid-json: no horizontal overflow",
+      "unadopted JSON fences structured edits",
+      "adopted definition exposes editable typed field",
+      "editing: no horizontal overflow",
+      "typed field saved to exact owning definition",
+      "unknown nested extension, false and zero preserved",
+      "save remains separate from publication",
+      "refresh reopens actual confirmed typed value",
+      "saved-reopened: no horizontal overflow",
+      "one definition PUT and no automatic publish or apply",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style/versions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "PUT",
+        "body": {
+          "kind": "visual_style",
+          "name": "柔和水彩",
+          "body": {
+            "schema": "visual-style.v1",
+            "appearance": "自然的神情",
+            "clothing": "日常衣着",
+            "constraints": "类型字段修改 visual_style mobile",
+            "references": "水彩纸感",
+            "audit_extension": {
+              "nested": [
+                false,
+                0,
+                {
+                  "text": "原扩展"
+                }
+              ]
+            }
+          },
+          "expectedVersion": "draft:1",
+          "reason": "核对类型字段与完整JSON保留",
+          "idempotencyKey": "a2129a28-5d40-40fb-b78f-8ad8cf301d7f"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-visual_style/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-mobile-normal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-mobile-invalid-json.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/studio-type-states-pass112/visual_style-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  }
+]

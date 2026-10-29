@@ -1,0 +1,338 @@
+[
+  {
+    "name": "normal",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "review cancellation has no write",
+      "review preserves revision, confidence, evidence and claim",
+      "review is independent of history",
+      "review: no horizontal overflow",
+      "review: bounded dialog",
+      "forget cancellation preserves current",
+      "forgotten-full-history: no horizontal overflow",
+      "forgotten-full-history: bounded dialog",
+      "v1 rendered full snapshot and complete source",
+      "v1-source: no horizontal overflow",
+      "v1-source: bounded dialog",
+      "restore appends v4 with exact v1 claim and no old review",
+      "three intentional commands only",
+      "failure: no horizontal overflow",
+      "failure: bounded dialog"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/review",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和完整来源",
+          "idempotencyKey": "b194758e-2c20-4c06-8088-58b99b0543bf"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "停止采用，保留完整来源",
+          "idempotencyKey": "d885ae71-0ff7-4ee2-97bb-84e188809415"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/restore",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复第一版完整内容",
+          "targetRevision": 1,
+          "idempotencyKey": "501f21bb-c6ac-4f4c-b1e3-b5a4b86fbb51"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/desktop-normal-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/desktop-normal-forgotten-full-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/desktop-normal-v1-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/desktop-normal-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().locator('.lp-history-item').getByRole('heading', { name: /^第 4 版/ }) to be visible\u001b[22m\n",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n记忆\n快速前往\n⌘ K\nGROWTH / WHAT STAYS WITH US\n记忆与成长\n\n相处留下的细节，逐渐成为她理解世界的方式。\n\n关于你\n记忆\n2\n反思记录\n自我认知\n认识治理结果已读回，实际状态和来源如下。\n\n正在形成的认识\n\n这些认识来自经历与反思，会随着生活继续变化。\n\n已记录的认识\n人格快照\n自我看法\n“我想给彼此留一点倾听的空间。”\n\n已记录的认识\n\n置信度 72%\n查看依据\n这条认识从哪里来\n\n第 4 版 · 自我看法\n\n刷新当前详情\n我想给彼此留一点倾听的空间。\n当前状态\n已记录的认识\n置信度\n72%\n来源有效\n是\n有效期限\n未设置期限\n复核只是你已阅读当前版本的记录，不提高证据或置信度。认识正文由实际反思产生。\n依据与完整认识\n之前的认识与历史恢复\n所有者复核记录\n返回列表\n不再采用\n确认已核对\n关闭"
+  },
+  {
+    "name": "normal",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "review cancellation has no write",
+      "review preserves revision, confidence, evidence and claim",
+      "review is independent of history",
+      "review: no horizontal overflow",
+      "review: bounded dialog",
+      "forget cancellation preserves current",
+      "forgotten-full-history: no horizontal overflow",
+      "forgotten-full-history: bounded dialog",
+      "v1 rendered full snapshot and complete source",
+      "v1-source: no horizontal overflow",
+      "v1-source: bounded dialog",
+      "restore appends v4 with exact v1 claim and no old review",
+      "three intentional commands only",
+      "failure: no horizontal overflow",
+      "failure: bounded dialog"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/review",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和完整来源",
+          "idempotencyKey": "c3638c46-660c-4bf0-b44a-6d273c7424c5"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "停止采用，保留完整来源",
+          "idempotencyKey": "430e57bc-0598-41a5-9820-d8f7455b7e52"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/restore",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复第一版完整内容",
+          "targetRevision": 1,
+          "idempotencyKey": "0476acd8-aa4a-4ceb-9b43-c17b369a0492"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/mobile-normal-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/mobile-normal-forgotten-full-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/mobile-normal-v1-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass105/mobile-normal-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().locator('.lp-history-item').getByRole('heading', { name: /^第 4 版/ }) to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n记忆\n快速前往\nGROWTH / WHAT STAYS WITH US\n记忆与成长\n\n相处留下的细节，逐渐成为她理解世界的方式。\n\n关于你\n记忆\n2\n反思记录\n自我认知\n认识治理结果已读回，实际状态和来源如下。\n\n正在形成的认识\n\n这些认识来自经历与反思，会随着生活继续变化。\n\n已记录的认识\n人格快照\n自我看法\n“我想给彼此留一点倾听的空间。”\n\n已记录的认识\n\n置信度 72%\n查看依据\n这条认识从哪里来\n\n第 4 版 · 自我看法\n\n刷新当前详情\n我想给彼此留一点倾听的空间。\n当前状态\n已记录的认识\n置信度\n72%\n来源有效\n是\n有效期限\n未设置期限\n复核只是你已阅读当前版本的记录，不提高证据或置信度。认识正文由实际反思产生。\n依据与完整认识\n之前的认识与历史恢复\n所有者复核记录\n返回列表\n不再采用\n确认已核对\n关闭"
+  }
+]

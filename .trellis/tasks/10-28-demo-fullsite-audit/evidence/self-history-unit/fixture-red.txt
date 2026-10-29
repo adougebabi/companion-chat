@@ -1,0 +1,55 @@
+✖ self fixture preserves full snapshots, separate review ledger and append-only governance history (1.431791ms)
+✖ self unknown response replays original receipt before CAS and never appends twice (0.634333ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 34.621458
+
+✖ failing tests:
+
+test at ../../../../../../private/tmp/self-history-original-fixture.test.mjs:14:1
+✖ self fixture preserves full snapshots, separate review ledger and append-only governance history (1.431791ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  -   2,
+      1
+    ]
+  
+      at TestContext.<anonymous> (file:///private/tmp/self-history-original-fixture.test.mjs:16:10)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 1 ],
+    expected: [ 2, 1 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../../private/tmp/self-history-original-fixture.test.mjs:44:1
+✖ self unknown response replays original receipt before CAS and never appends twice (0.634333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  -   3,
+  -   2,
+      1
+    ]
+  
+      at TestContext.<anonymous> (file:///private/tmp/self-history-original-fixture.test.mjs:49:10)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 1 ],
+    expected: [ 3, 2, 1 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

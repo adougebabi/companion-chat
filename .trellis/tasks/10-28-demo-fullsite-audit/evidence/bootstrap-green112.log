@@ -1,0 +1,13 @@
+✔ approved workspace drops late reads, recovers original commands after switching, and checkpoints request observers (272.923916ms)
+✔ workspace starts an Owner-wide count without Inbox navigation and retains it through role selection (535.232959ms)
+✔ workspace logout waits for the authoritative provider, retains failed-session state and clears on confirmed logout (268.121041ms)
+✔ failed required directory read recovers bootstrap and clears only its own failure (1.99125ms)
+✔ confirmed unauthenticated session clears old startup failure without reading a directory (0.228042ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 960.154541

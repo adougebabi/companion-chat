@@ -1,0 +1,27 @@
+✔ the current revision reason wins over older merged support references (0.43925ms)
+✔ memory card scores use the actual 0–1 scale and search sends the applied scope rather than fabricating tags (309.04375ms)
+✔ memory edit cancellation preserves original; correction sends CAS body without client idempotency fields and reads real revision back (427.355625ms)
+✔ an unknown CAS-only correction requires actual current-object review, and equal confirmed prose cannot be submitted again (393.201291ms)
+✔ an acknowledged memory mutation with failed readback recovers using reads only (326.065625ms)
+✔ a validated readback stays visible when secondary refreshes cannot reread the changed record (300.65025ms)
+✔ source pagination pins the chosen revision and never marks a returned nonlive source as valid (259.404958ms)
+✔ forget cancellation does not write and historical memory restoration appends a new revision (539.636084ms)
+✔ reflection feedback preserves actual proposal/application state and follows a pending OwnerRequest (241.551875ms)
+✔ self review appends acknowledgement without changing claim revision or confidence; historical restore is a real command (421.203916ms)
+✔ failed append retries its original server query despite unsubmitted edits; a stale scope cannot admit a correction (435.76325ms)
+✔ growth route query updates close the old detail and select the requested tab/filter in the same mounted page (200.733791ms)
+✔ self adopt reconciles detail, revision history and independent reviews (381.725791ms)
+✔ self refresh reconciles detail, revision history and independent reviews (287.052ms)
+✔ self accepted forget with inconsistent same-revision status remains GET-only recoverable (294.4475ms)
+✔ self unknown recovery preserves the original command identity and confirmed revision (290.920291ms)
+✔ self readback recovery preserves the original command identity and confirmed revision (327.249625ms)
+✔ self fixture preserves full snapshots, separate review ledger and append-only governance history (2.750208ms)
+✔ self unknown response replays original receipt before CAS and never appends twice (0.205208ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7226.159958

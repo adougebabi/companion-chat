@@ -509,9 +509,18 @@ export function WorldEventsPanel({ model: m }) {
             : w.client.retryWorldEvent(fid, id, run.id, value));
         if ((!r?.id && !r?.template_id) || !Number.isSafeInteger(r.revision))
           throw Error("事件操作回执尚未完整确认。");
-        if (operation !== "toggle") {
+        if (operation === "retry") {
+          // Retry returns a command receipt, not the full execution projection.
+          // The original run is scoped by the request; onSaved verifies its GET.
+          if (
+            r.id !== run.id ||
+            r.status !== "queued" ||
+            r.revision !== body.expectedRunRevision + 1
+          )
+            throw Error("原事件执行回执范围不匹配。");
+        } else if (operation === "trigger") {
           check(r, m);
-          if (r.template_id !== id || (run && r.id !== run.id))
+          if (r.template_id !== id)
             throw Error("原事件执行回执范围不匹配。");
         }
         return r;

@@ -459,7 +459,10 @@
           "evidence/visual/library/final-pass85/reference-mobile.png",
           "evidence/visual/library/final-pass85/actual-mobile.png"
         ],
-        "interaction": [],
+        "interaction": [
+          "evidence/entry-states/report-consolidated.json",
+          "evidence/entry-states-pass115/report.json"
+        ],
         "business": []
       },
       "fixes": [],
@@ -481,6 +484,56 @@
               "evidence/visual/library/final-pass85/actual-mobile.png"
             ],
             "notes": "最新对应视口截图；标题坐标已核对，共享修复及正式契约/密度差异见fixes.md、accepted-differences.md。仍有未逐张完验细节，未将整行全部状态标通过。"
+          }
+        },
+        "interaction": {
+          "library-draft-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "draft hero uses correct creation identity; resume retains original durable slot; draft: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-activated-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "draft hero uses correct creation identity; resume retains original durable slot; draft: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-corrupt-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "corrupt draft warning preserves readable directory; warning: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-draft-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "draft hero uses correct creation identity; resume retains original durable slot; draft: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-activated-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "draft hero uses correct creation identity; resume retains original durable slot; draft: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-corrupt-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "corrupt draft warning preserves readable directory; warning: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -619,7 +672,10 @@
           "evidence/visual/library/final-pass85/reference-mobile.png",
           "evidence/visual/library/final-pass85/actual-mobile.png"
         ],
-        "interaction": [],
+        "interaction": [
+          "evidence/entry-states/report-consolidated.json",
+          "evidence/entry-states-pass115/report.json"
+        ],
         "business": [
           "evidence/real-browser/report.json"
         ]
@@ -652,6 +708,24 @@
               "evidence/real-browser/report.json"
             ],
             "notes": "现有Owner和角色；5页面实际API读取，无聊天发送/模型生成/新激活。本项不证明各页全部写操作。"
+          }
+        },
+        "interaction": {
+          "library-lifecycle-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "paused badge follows actual directory status; retired badge follows actual directory status; failed badge follows actual directory status; preparing badge follows actual directory status; lifecycle: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-lifecycle-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "paused badge follows actual directory status; retired badge follows actual directory status; failed badge follows actual directory status; preparing badge follows actual directory status; lifecycle: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -694,7 +768,10 @@
             "scope": "fixes.md named assertions; browser still pending"
           },
           "evidence/shell-deep/report-pass59.json",
-          "evidence/shell-deep/report-consolidated.json"
+          "evidence/shell-deep/report-consolidated.json",
+          "evidence/entry-states/report-consolidated.json",
+          "evidence/entry-states-pass115/report.json",
+          "evidence/entry-states-pass116/report.json"
         ],
         "business": []
       },
@@ -717,6 +794,38 @@
               "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "library-detail-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "detail loading retains real directory cards; loading: no horizontal overflow; detail failure retains existing cards; failed: no horizontal overflow; detail retry clears error and retains card identities; recovered: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-directory-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass116/report.json"
+            ],
+            "notes": "required directory failure never fabricates cards; failed: no horizontal overflow; recovered: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-detail-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "detail loading retains real directory cards; loading: no horizontal overflow; detail failure retains existing cards; failed: no horizontal overflow; detail retry clears error and retains card identities; recovered: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "library-directory-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass116/report.json"
+            ],
+            "notes": "required directory failure never fabricates cards; failed: no horizontal overflow; recovered: no horizontal overflow; library state verification performs no business write; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -758,7 +867,9 @@
         "visual": [],
         "interaction": [
           "evidence/shell-deep/report-pass59.json",
-          "evidence/shell-deep/report-consolidated.json"
+          "evidence/shell-deep/report-consolidated.json",
+          "evidence/entry-states/report-consolidated.json",
+          "evidence/entry-states-pass115/report.json"
         ],
         "business": []
       },
@@ -779,6 +890,38 @@
               "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "auth-setup-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; short token prevents POST and receives focus; short-token: no horizontal overflow; mismatch prevents POST and focuses confirmation; mismatch: no horizontal overflow; busy disables all three credential fields; busy prevents duplicate submit; busy: no horizontal overflow; acknowledged setup enters actual workspace; complete: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "auth-status-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "checking disables authentication submit; checking: no horizontal overflow; failed: no horizontal overflow; status retry recovers real setup form without auth POST; recovered: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "auth-setup-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; short token prevents POST and receives focus; short-token: no horizontal overflow; mismatch prevents POST and focuses confirmation; mismatch: no horizontal overflow; busy disables all three credential fields; busy prevents duplicate submit; busy: no horizontal overflow; acknowledged setup enters actual workspace; complete: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "auth-status-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "checking disables authentication submit; checking: no horizontal overflow; failed: no horizontal overflow; status retry recovers real setup form without auth POST; recovered: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -819,7 +962,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui-auth-validation-failure.json"
+          "evidence/interaction/settings-studio-ui-auth-validation-failure.json",
+          "evidence/entry-states/report-consolidated.json",
+          "evidence/entry-states-pass115/report.json"
         ],
         "business": []
       },
@@ -833,6 +978,38 @@
               "evidence/interaction/settings-studio-ui-auth-validation-failure.json"
             ],
             "notes": "short password does not reach authentication; validation returns focus to password; authentication failure preserves input; failure came from actual request; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "auth-setup-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; short token prevents POST and receives focus; short-token: no horizontal overflow; mismatch prevents POST and focuses confirmation; mismatch: no horizontal overflow; busy disables all three credential fields; busy prevents duplicate submit; busy: no horizontal overflow; acknowledged setup enters actual workspace; complete: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "auth-status-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "checking disables authentication submit; checking: no horizontal overflow; failed: no horizontal overflow; status retry recovers real setup form without auth POST; recovered: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "auth-setup-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; short token prevents POST and receives focus; short-token: no horizontal overflow; mismatch prevents POST and focuses confirmation; mismatch: no horizontal overflow; busy disables all three credential fields; busy prevents duplicate submit; busy: no horizontal overflow; acknowledged setup enters actual workspace; complete: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "auth-status-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/entry-states/report-consolidated.json",
+              "evidence/entry-states-pass115/report.json"
+            ],
+            "notes": "checking disables authentication submit; checking: no horizontal overflow; failed: no horizontal overflow; status retry recovers real setup form without auth POST; recovered: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -2109,7 +2286,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/workspace-ui.json"
+          "evidence/interaction/workspace-ui.json",
+          "evidence/profile-save-states-pass111/report.json"
         ],
         "business": []
       },
@@ -2123,6 +2301,34 @@
               "evidence/interaction/workspace-ui.json"
             ],
             "notes": "cancel preserved saved profile; unsaved name did not leak; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "validation-busy-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "empty name never submits and gets focus; invalid: no horizontal overflow; invalid: bounded dialog; busy blocks duplicate save and cancel; busy Escape retains editor; saving: no horizontal overflow; saving: bounded dialog; one save creates and accepts exactly one proposal; confirmed detail is authoritative; reopen reads saved name; saved: no horizontal overflow; saved: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "conflict-rebase-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "external setup truly advances revision; stale save is rejected before proposal acceptance; conflict preserves unsaved field; conflict: no horizontal overflow; conflict: bounded dialog; explicit rebase is GET-only and preserves field; rebased: no horizontal overflow; rebased: bounded dialog; rebased save uses new revision and independent new key; saved edited field retains externally confirmed other fields; saved: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "validation-busy-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "empty name never submits and gets focus; invalid: no horizontal overflow; invalid: bounded dialog; busy blocks duplicate save and cancel; busy Escape retains editor; saving: no horizontal overflow; saving: bounded dialog; one save creates and accepts exactly one proposal; confirmed detail is authoritative; reopen reads saved name; saved: no horizontal overflow; saved: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "conflict-rebase-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "external setup truly advances revision; stale save is rejected before proposal acceptance; conflict preserves unsaved field; conflict: no horizontal overflow; conflict: bounded dialog; explicit rebase is GET-only and preserves field; rebased: no horizontal overflow; rebased: bounded dialog; rebased save uses new revision and independent new key; saved edited field retains externally confirmed other fields; saved: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -2624,7 +2830,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/formal-edges/report-consolidated.json"
+          "evidence/formal-edges/report-consolidated.json",
+          "evidence/profile-save-states-pass111/report.json"
         ],
         "business": []
       },
@@ -2645,6 +2852,34 @@
               "evidence/formal-edges/report-consolidated.json"
             ],
             "notes": "accepted profile readback keeps one proposal and decision; accepted-read-failure: no document overflow; accepted-read-failure: dialog fits viewport; readback recovery performs no second proposal or accept; recovered profile is actually saved; readback-recovered: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "validation-busy-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "empty name never submits and gets focus; invalid: no horizontal overflow; invalid: bounded dialog; busy blocks duplicate save and cancel; busy Escape retains editor; saving: no horizontal overflow; saving: bounded dialog; one save creates and accepts exactly one proposal; confirmed detail is authoritative; reopen reads saved name; saved: no horizontal overflow; saved: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "conflict-rebase-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "external setup truly advances revision; stale save is rejected before proposal acceptance; conflict preserves unsaved field; conflict: no horizontal overflow; conflict: bounded dialog; explicit rebase is GET-only and preserves field; rebased: no horizontal overflow; rebased: bounded dialog; rebased save uses new revision and independent new key; saved edited field retains externally confirmed other fields; saved: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "validation-busy-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "empty name never submits and gets focus; invalid: no horizontal overflow; invalid: bounded dialog; busy blocks duplicate save and cancel; busy Escape retains editor; saving: no horizontal overflow; saving: bounded dialog; one save creates and accepts exactly one proposal; confirmed detail is authoritative; reopen reads saved name; saved: no horizontal overflow; saved: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "conflict-rebase-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/profile-save-states-pass111/report.json"
+            ],
+            "notes": "external setup truly advances revision; stale save is rejected before proposal acceptance; conflict preserves unsaved field; conflict: no horizontal overflow; conflict: bounded dialog; explicit rebase is GET-only and preserves field; rebased: no horizontal overflow; rebased: bounded dialog; rebased save uses new revision and independent new key; saved edited field retains externally confirmed other fields; saved: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -7090,7 +7325,10 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/memory-deep/report-pass26.json"
+          "evidence/memory-deep/report-pass26.json",
+          "evidence/self-history/report-consolidated.json",
+          "evidence/self-history-pass106/report.json",
+          "evidence/self-history-pass104/report.json"
         ],
         "business": []
       },
@@ -7111,6 +7349,86 @@
               "evidence/memory-deep/report-pass26.json"
             ],
             "notes": "review keeps revision and confidence; reviewed: dialog fits viewport; reviewed: no horizontal page overflow; cancel preserves active self claim; forget has confirmed new revision; forgotten: dialog fits viewport; forgotten: no horizontal page overflow; restore appends current version and clears old review; three separate governance commands; restored: dialog fits viewport; restored: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "history-normal-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass106/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; review cancellation has no write; review preserves revision, confidence, evidence and claim; review is independent of history; review: no horizontal overflow; review: bounded dialog; forget cancellation preserves current; forgotten-full-history: no horizontal overflow; forgotten-full-history: bounded dialog; v1 rendered full snapshot and complete source; v1-source: no horizontal overflow; v1-source: bounded dialog; restore appends v4 with exact v1 claim and no old review; three intentional commands only; restored-full-history: no horizontal overflow; restored-full-history: bounded dialog; refresh-history-review: no horizontal overflow; refresh-history-review: bounded dialog; formal SelfPage preserves v4/v3/v2/v1 and prior Owner review without writes; formal-self-history: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; unknown cannot adopt latest before original admission resolved; unknown: no horizontal overflow; unknown: bounded dialog; recovery preserves mutation count; original retry has identical key and body; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-adopt-refresh-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; latest adoption retains reason; adopt-cancel: no horizontal overflow; adopt-cancel: bounded dialog; adoption and cancel never mutate; refresh-secondary: no horizontal overflow; refresh-secondary: bounded dialog; manual refresh stays read-only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-status-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-normal-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass106/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; review cancellation has no write; review preserves revision, confidence, evidence and claim; review is independent of history; review: no horizontal overflow; review: bounded dialog; forget cancellation preserves current; forgotten-full-history: no horizontal overflow; forgotten-full-history: bounded dialog; v1 rendered full snapshot and complete source; v1-source: no horizontal overflow; v1-source: bounded dialog; restore appends v4 with exact v1 claim and no old review; three intentional commands only; restored-full-history: no horizontal overflow; restored-full-history: bounded dialog; refresh-history-review: no horizontal overflow; refresh-history-review: bounded dialog; formal SelfPage preserves v4/v3/v2/v1 and prior Owner review without writes; formal-self-history: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; unknown cannot adopt latest before original admission resolved; unknown: no horizontal overflow; unknown: bounded dialog; recovery preserves mutation count; original retry has identical key and body; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-adopt-refresh-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; latest adoption retains reason; adopt-cancel: no horizontal overflow; adopt-cancel: bounded dialog; adoption and cancel never mutate; refresh-secondary: no horizontal overflow; refresh-secondary: bounded dialog; manual refresh stays read-only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-status-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -10898,7 +11216,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/retained-tools/report-consolidated.json"
+          "evidence/retained-tools/report-consolidated.json",
+          "evidence/goal-planning-advanced-pass103/report.json"
         ],
         "business": []
       },
@@ -10919,6 +11238,62 @@
               "evidence/retained-tools/report-consolidated.json"
             ],
             "notes": "policy save reads confirmed auto planning; policy setting survives reload; invalid policy does not replay prior save; policy-json-invalid: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "advanced-normal-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; editing: no document overflow; all advanced policy values saved; manual active order excludes candidates; dependency saved; policy survives refresh; candidate cancel never writes; candidate acceptance is active, never completed; rejected candidate removed from current partition; candidate changes require explicit policy baseline review; source review and goal review read back; unknown extensions survive; planning sends stable original identity; reviewed-and-requested: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "advanced-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; rebase preserves draft; reviewed baseline uses actual version/facts; rebased: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "advanced-readback-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; newer draft retained; accepted recovery sends no second PUT; recovered: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "advanced-lost-response-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; newer draft retained; unknown recovery repeats equal body/key; recovered: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "advanced-normal-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; editing: no document overflow; all advanced policy values saved; manual active order excludes candidates; dependency saved; policy survives refresh; candidate cancel never writes; candidate acceptance is active, never completed; rejected candidate removed from current partition; candidate changes require explicit policy baseline review; source review and goal review read back; unknown extensions survive; planning sends stable original identity; reviewed-and-requested: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "advanced-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; rebase preserves draft; reviewed baseline uses actual version/facts; rebased: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "advanced-readback-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; newer draft retained; accepted recovery sends no second PUT; recovered: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "advanced-lost-response-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/goal-planning-advanced-pass103/report.json"
+            ],
+            "notes": "normal: no document overflow; newer draft retained; unknown recovery repeats equal body/key; recovered: no document overflow; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -11017,7 +11392,10 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/memory-deep/report-pass26.json"
+          "evidence/memory-deep/report-pass26.json",
+          "evidence/self-history/report-consolidated.json",
+          "evidence/self-history-pass106/report.json",
+          "evidence/self-history-pass104/report.json"
         ],
         "business": []
       },
@@ -11038,6 +11416,86 @@
               "evidence/memory-deep/report-pass26.json"
             ],
             "notes": "review keeps revision and confidence; reviewed: dialog fits viewport; reviewed: no horizontal page overflow; cancel preserves active self claim; forget has confirmed new revision; forgotten: dialog fits viewport; forgotten: no horizontal page overflow; restore appends current version and clears old review; three separate governance commands; restored: dialog fits viewport; restored: no horizontal page overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "history-normal-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass106/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; review cancellation has no write; review preserves revision, confidence, evidence and claim; review is independent of history; review: no horizontal overflow; review: bounded dialog; forget cancellation preserves current; forgotten-full-history: no horizontal overflow; forgotten-full-history: bounded dialog; v1 rendered full snapshot and complete source; v1-source: no horizontal overflow; v1-source: bounded dialog; restore appends v4 with exact v1 claim and no old review; three intentional commands only; restored-full-history: no horizontal overflow; restored-full-history: bounded dialog; refresh-history-review: no horizontal overflow; refresh-history-review: bounded dialog; formal SelfPage preserves v4/v3/v2/v1 and prior Owner review without writes; formal-self-history: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; unknown cannot adopt latest before original admission resolved; unknown: no horizontal overflow; unknown: bounded dialog; recovery preserves mutation count; original retry has identical key and body; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-adopt-refresh-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; latest adoption retains reason; adopt-cancel: no horizontal overflow; adopt-cancel: bounded dialog; adoption and cancel never mutate; refresh-secondary: no horizontal overflow; refresh-secondary: bounded dialog; manual refresh stays read-only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-status-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-normal-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass106/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; review cancellation has no write; review preserves revision, confidence, evidence and claim; review is independent of history; review: no horizontal overflow; review: bounded dialog; forget cancellation preserves current; forgotten-full-history: no horizontal overflow; forgotten-full-history: bounded dialog; v1 rendered full snapshot and complete source; v1-source: no horizontal overflow; v1-source: bounded dialog; restore appends v4 with exact v1 claim and no old review; three intentional commands only; restored-full-history: no horizontal overflow; restored-full-history: bounded dialog; refresh-history-review: no horizontal overflow; refresh-history-review: bounded dialog; formal SelfPage preserves v4/v3/v2/v1 and prior Owner review without writes; formal-self-history: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; unknown cannot adopt latest before original admission resolved; unknown: no horizontal overflow; unknown: bounded dialog; recovery preserves mutation count; original retry has identical key and body; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-adopt-refresh-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; latest adoption retains reason; adopt-cancel: no horizontal overflow; adopt-cancel: bounded dialog; adoption and cancel never mutate; refresh-secondary: no horizontal overflow; refresh-secondary: bounded dialog; manual refresh stays read-only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "history-status-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/self-history/report-consolidated.json",
+              "evidence/self-history-pass104/report.json"
+            ],
+            "notes": "initial full v2/v1 snapshots have matching revision; accepted-readback-pending: no horizontal overflow; accepted-readback-pending: bounded dialog; recovery preserves mutation count; recovery never appends duplicate revision; recovered: no horizontal overflow; recovered: bounded dialog; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -11484,7 +11942,9 @@
         ],
         "interaction": [
           "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json",
-          "evidence/states/read-states.json"
+          "evidence/states/read-states.json",
+          "evidence/studio-runtime-application/report.json",
+          "evidence/studio-runtime-states-pass108/report.json"
         ],
         "business": []
       },
@@ -11558,6 +12018,62 @@
               "evidence/states/read-states.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          },
+          "runtime-target-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-application/report.json"
+            ],
+            "notes": "first desktop creates; following mobile sees same runtime; preview: no document overflow; receipt: no document overflow; target directory renders exact published name/background; creation does not activate new world; target-directory: no document overflow; actual target detail renders source id and immutable version; target-settings-source: no document overflow; target-refreshed: no document overflow; same role runtime source and body survive page refresh; binding unchanged by applying and browsing; framework concrete place materialized once; other role unaffected; source references real runtime id; repreview targets same existing runtime; one apply mutation per viewport; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-target-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-application/report.json"
+            ],
+            "notes": "first desktop creates; following mobile sees same runtime; preview: no document overflow; receipt: no document overflow; target directory renders exact published name/background; creation does not activate new world; target-directory: no document overflow; actual target detail renders source id and immutable version; target-settings-source: no document overflow; target-refreshed: no document overflow; same role runtime source and body survive page refresh; binding unchanged by applying and browsing; framework concrete place materialized once; other role unaffected; source references real runtime id; repreview targets same existing runtime; one apply mutation per viewport; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-rejected-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; explicit rejection never shows acknowledged success; rejected command leaves catalogue and source references unchanged; rejected preview remains available; rejected: no document overflow; rejected: bounded dialog; known rejection releases unknown recovery identity; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; lost receipt does not show success; unknown committed once before retry; unknown: no document overflow; unknown: bounded dialog; new draft survives unknown remount; recovery: no document overflow; new draft survives original acknowledgement; retry preserves exact original body/key/CAS/choices despite newer draft; receipt: no document overflow; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-pending-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; pending disables duplicate confirmation; pending disables target and preview; pending has no receipt or target result action; actual controlled target exists once before receipt delivery; pending: no document overflow; pending: bounded dialog; receipt: no document overflow; receipt: bounded dialog; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-rejected-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; explicit rejection never shows acknowledged success; rejected command leaves catalogue and source references unchanged; rejected preview remains available; rejected: no document overflow; rejected: bounded dialog; known rejection releases unknown recovery identity; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; lost receipt does not show success; unknown committed once before retry; unknown: no document overflow; unknown: bounded dialog; new draft survives unknown remount; recovery: no document overflow; new draft survives original acknowledgement; retry preserves exact original body/key/CAS/choices despite newer draft; receipt: no document overflow; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-pending-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; pending disables duplicate confirmation; pending disables target and preview; pending has no receipt or target result action; actual controlled target exists once before receipt delivery; pending: no document overflow; pending: bounded dialog; receipt: no document overflow; receipt: bounded dialog; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -11604,7 +12120,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/retained-tools/report-consolidated.json"
+          "evidence/retained-tools/report-consolidated.json",
+          "evidence/studio-runtime-application/report.json"
         ],
         "business": []
       },
@@ -11625,6 +12142,20 @@
               "evidence/retained-tools/report-consolidated.json"
             ],
             "notes": "world cancellation does not mutate; cancel restores original background; empty name keeps native required validation; empty world name does not write; editing: no document overflow; editing: dialog fits viewport; world settings save preserves world and advances revision; saved: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "runtime-target-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-application/report.json"
+            ],
+            "notes": "first desktop creates; following mobile sees same runtime; preview: no document overflow; receipt: no document overflow; target directory renders exact published name/background; creation does not activate new world; target-directory: no document overflow; actual target detail renders source id and immutable version; target-settings-source: no document overflow; target-refreshed: no document overflow; same role runtime source and body survive page refresh; binding unchanged by applying and browsing; framework concrete place materialized once; other role unaffected; source references real runtime id; repreview targets same existing runtime; one apply mutation per viewport; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-target-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-application/report.json"
+            ],
+            "notes": "first desktop creates; following mobile sees same runtime; preview: no document overflow; receipt: no document overflow; target directory renders exact published name/background; creation does not activate new world; target-directory: no document overflow; actual target detail renders source id and immutable version; target-settings-source: no document overflow; target-refreshed: no document overflow; same role runtime source and body survive page refresh; binding unchanged by applying and browsing; framework concrete place materialized once; other role unaffected; source references real runtime id; repreview targets same existing runtime; one apply mutation per viewport; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -11674,7 +12205,8 @@
         "visual": [],
         "interaction": [
           "evidence/interaction/domain-ui-schedule-detail-date-wardrobe-search-detail-world-search-detail-studio-resource-editor.json",
-          "evidence/world-deep/report-pass31.json"
+          "evidence/world-deep/report-pass31.json",
+          "evidence/world-expansion-states/report.json"
         ],
         "business": []
       },
@@ -11702,6 +12234,62 @@
               "evidence/world-deep/report-pass31.json"
             ],
             "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "definition-baseline-expansion-normal-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; original capture body/key replay; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-readback-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "effective-baseline-expansion-effective-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "effective-definition document fits; effective-definition dialog fits; effective publication is not a fabricated saved snapshot; explicit restore records effective baseline and advances place; zero baseline revision is preserved in original command; effective-restored document fits; effective-restored dialog fits; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-normal-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; original capture body/key replay; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-readback-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "effective-baseline-expansion-effective-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "effective-definition document fits; effective-definition dialog fits; effective publication is not a fabricated saved snapshot; explicit restore records effective baseline and advances place; zero baseline revision is preserved in original command; effective-restored document fits; effective-restored dialog fits; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -11833,7 +12421,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/world-deep/report-pass31.json"
+          "evidence/world-deep/report-pass31.json",
+          "evidence/world-expansion-states/report.json"
         ],
         "business": []
       },
@@ -11854,6 +12443,62 @@
               "evidence/world-deep/report-pass31.json"
             ],
             "notes": "existing place formal name is readonly; existing category remains fixed; cancel sends no place write; editing: no horizontal overflow; editing: dialog fits viewport; place alias saved with advancing revision; untouched structured furniture and connections preserved; restore-preview: no horizontal overflow; restore-preview: dialog fits viewport; empty restore reason does not mutate; restored: no horizontal overflow; restored: dialog fits viewport; restore appends version and returns to confirmed original alias; restore preserves existing spatial links; only one edit and one explicit restore; reload retains restored place; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "definition-baseline-expansion-normal-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; original capture body/key replay; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-readback-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "effective-baseline-expansion-effective-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "effective-definition document fits; effective-definition dialog fits; effective publication is not a fabricated saved snapshot; explicit restore records effective baseline and advances place; zero baseline revision is preserved in original command; effective-restored document fits; effective-restored dialog fits; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-normal-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; original capture body/key replay; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "definition-baseline-expansion-readback-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "saved-preview document fits; saved-preview dialog fits; definition-preview document fits; definition-preview dialog fits; preview sends no mutations; recovery document fits; recovery dialog fits; capture preserves current fields; recorded baseline retains exact published source; capture only once; restored document fits; restored dialog fits; explicit restore persists across refresh within fixture; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "effective-baseline-expansion-effective-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "effective-definition document fits; effective-definition dialog fits; effective publication is not a fabricated saved snapshot; explicit restore records effective baseline and advances place; zero baseline revision is preserved in original command; effective-restored document fits; effective-restored dialog fits; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -11967,7 +12612,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/world-deep/report-pass31.json"
+          "evidence/world-deep/report-pass31.json",
+          "evidence/world-expansion-states/report.json"
         ],
         "business": []
       },
@@ -11988,6 +12634,48 @@
               "evidence/world-deep/report-pass31.json"
             ],
             "notes": "pause switch reflects confirmed disabled template; paused template cannot trigger; paused: no horizontal overflow; paused: dialog fits viewport; blank trigger reason does not enqueue; queued: no horizontal overflow; queued: dialog fits viewport; UI follows original run to applied result; only two toggles and one trigger; applied: no horizontal overflow; applied: dialog fits viewport; life-event: no horizontal overflow; life-event: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "failed-run-expansion-normal-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "failed document fits; failed dialog fits; applied document fits; applied dialog fits; same run follows actual fixture result; no trigger creates a replacement run; template and run CAS retained; one mutation including readback recovery; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "failed-run-expansion-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "failed document fits; failed dialog fits; recovery document fits; recovery dialog fits; applied document fits; applied dialog fits; same run follows actual fixture result; no trigger creates a replacement run; template and run CAS retained; original body/key replay; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "failed-run-expansion-readback-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "failed document fits; failed dialog fits; recovery document fits; recovery dialog fits; applied document fits; applied dialog fits; same run follows actual fixture result; no trigger creates a replacement run; template and run CAS retained; one mutation including readback recovery; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "failed-run-expansion-normal-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "failed document fits; failed dialog fits; applied document fits; applied dialog fits; same run follows actual fixture result; no trigger creates a replacement run; template and run CAS retained; one mutation including readback recovery; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "failed-run-expansion-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "failed document fits; failed dialog fits; recovery document fits; recovery dialog fits; applied document fits; applied dialog fits; same run follows actual fixture result; no trigger creates a replacement run; template and run CAS retained; original body/key replay; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "failed-run-expansion-readback-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/world-expansion-states/report.json"
+            ],
+            "notes": "failed document fits; failed dialog fits; recovery document fits; recovery dialog fits; applied document fits; applied dialog fits; same run follows actual fixture result; no trigger creates a replacement run; template and run CAS retained; one mutation including readback recovery; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -12520,7 +13208,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/wardrobe-deep/report-pass48.json"
+          "evidence/wardrobe-deep/report-pass48.json",
+          "evidence/wear-request-states-pass114/report.json"
         ],
         "business": []
       },
@@ -12541,6 +13230,76 @@
               "evidence/wardrobe-deep/report-pass48.json"
             ],
             "notes": "composing: no horizontal overflow; saving plan does not change confirmed wearing; cancelled edit does not PUT plan; wearing requires explicit confirmation; wear-confirmation: no horizontal overflow; wear request is accepted as pending; pending: no horizontal overflow; confirmed wearing is exact selected member set; confirmed: no horizontal overflow; Now uses same confirmed wearing; chat preview uses same confirmed wearing; chat-synced: no horizontal overflow; only plan save and explicit wear request write; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "wear-request-failed-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "failed or rejected outcome retains confirmed wearing and reason; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-denied-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "failed or rejected outcome retains confirmed wearing and reason; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-no-change-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "no-change is distinct and does not fabricate a wearing mutation; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "unknown: no horizontal overflow; confirmed member set is actually read back after original recovery; unknown retry preserves original request body/key/outfit and wearing CAS; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-readback-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "terminal readback failure retains known request result; readback-failure: no horizontal overflow; readback recovery uses GET only; confirmed member set is actually read back after original recovery; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-failed-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "failed or rejected outcome retains confirmed wearing and reason; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-denied-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "failed or rejected outcome retains confirmed wearing and reason; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-no-change-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "no-change is distinct and does not fabricate a wearing mutation; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "unknown: no horizontal overflow; confirmed member set is actually read back after original recovery; unknown retry preserves original request body/key/outfit and wearing CAS; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "wear-request-readback-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/wear-request-states-pass114/report.json"
+            ],
+            "notes": "terminal readback failure retains known request result; readback-failure: no horizontal overflow; readback recovery uses GET only; confirmed member set is actually read back after original recovery; result: no horizontal overflow; reload retains terminal result without readmission; refreshed: no horizontal overflow; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -12981,7 +13740,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-type-states-pass115/report.json"
         ],
         "business": [
           {
@@ -13001,6 +13761,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; resource title is preserved; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "typed-definition-item-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; ordinary item removes wearing-slot control; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; ordinary item saves no wearing slot; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "typed-definition-item-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; ordinary item removes wearing-slot control; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; ordinary item saves no wearing slot; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -13059,7 +13833,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-type-states-pass115/report.json"
         ],
         "business": [
           {
@@ -13079,6 +13854,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "typed-definition-outfit-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; member saves exact immutable resource version; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "typed-definition-outfit-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; member saves exact immutable resource version; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -13140,7 +13929,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-type-states-pass115/report.json"
         ],
         "business": [
           {
@@ -13160,6 +13950,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; resource title is preserved; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "typed-definition-place-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "typed-definition-place-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -13220,7 +14024,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-type-states-pass115/report.json"
         ],
         "business": [
           {
@@ -13240,6 +14045,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "typed-definition-npc-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "typed-definition-npc-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -13299,7 +14118,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-type-states-pass115/report.json"
         ],
         "business": [
           {
@@ -13319,6 +14139,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; resource title is preserved; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "typed-definition-event_template-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; typed event fields preserve original condition and new effect; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "typed-definition-event_template-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; typed event fields preserve original condition and new effect; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -13378,7 +14212,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-type-states-pass115/report.json"
         ],
         "business": [
           {
@@ -13398,6 +14233,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "typed-definition-persona_fragment-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "typed-definition-persona_fragment-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -13458,7 +14307,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/studio-type-states-pass115/report.json"
         ],
         "business": [
           {
@@ -13478,6 +14328,20 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "real editor has structured fields; complete JSON definition remains reachable; resource title is preserved; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "typed-definition-visual_style-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "typed-definition-visual_style-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-type-states-pass115/report.json"
+            ],
+            "notes": "normal: no horizontal overflow; invalid JSON retains exact unsent text; invalid JSON cannot write or change saved record; invalid-json: no horizontal overflow; unadopted JSON fences structured edits; explicit adoption clears corrected local JSON failure; adopted definition exposes editable typed field; editing: no horizontal overflow; typed field saved to exact owning definition; unknown nested extension, false and zero preserved; save remains separate from publication; refresh reopens actual confirmed typed value; saved-reopened: no horizontal overflow; one definition PUT and no automatic publish or apply; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }
@@ -13646,7 +14510,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/studio-deep/report-after-pass29.json"
+          "evidence/studio-deep/report-after-pass29.json",
+          "evidence/studio-runtime-application/report.json",
+          "evidence/studio-runtime-states-pass108/report.json"
         ],
         "business": []
       },
@@ -13681,6 +14547,62 @@
               "evidence/studio-deep/report-after-pass29.json"
             ],
             "notes": "initial-history: no horizontal overflow; unsaved definition cannot publish; editing: no horizontal overflow; save advances only draft while publication remains fixed; saved field and unrelated extensions survive; publish-review: no horizontal overflow; publication cancellation sends no publish; published exact saved version; refreshed-history: no horizontal overflow; same mounted editor history includes newly published version; old publication remains immutable; copy cancellation creates no resource; copy is independent unpublished draft from selected immutable version; apply-preview: no horizontal overflow; application preview cancellation sends no apply; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "runtime-target-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-application/report.json"
+            ],
+            "notes": "first desktop creates; following mobile sees same runtime; preview: no document overflow; receipt: no document overflow; target directory renders exact published name/background; creation does not activate new world; target-directory: no document overflow; actual target detail renders source id and immutable version; target-settings-source: no document overflow; target-refreshed: no document overflow; same role runtime source and body survive page refresh; binding unchanged by applying and browsing; framework concrete place materialized once; other role unaffected; source references real runtime id; repreview targets same existing runtime; one apply mutation per viewport; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-target-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-application/report.json"
+            ],
+            "notes": "first desktop creates; following mobile sees same runtime; preview: no document overflow; receipt: no document overflow; target directory renders exact published name/background; creation does not activate new world; target-directory: no document overflow; actual target detail renders source id and immutable version; target-settings-source: no document overflow; target-refreshed: no document overflow; same role runtime source and body survive page refresh; binding unchanged by applying and browsing; framework concrete place materialized once; other role unaffected; source references real runtime id; repreview targets same existing runtime; one apply mutation per viewport; no browser exceptions。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-rejected-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; explicit rejection never shows acknowledged success; rejected command leaves catalogue and source references unchanged; rejected preview remains available; rejected: no document overflow; rejected: bounded dialog; known rejection releases unknown recovery identity; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; lost receipt does not show success; unknown committed once before retry; unknown: no document overflow; unknown: bounded dialog; new draft survives unknown remount; recovery: no document overflow; new draft survives original acknowledgement; retry preserves exact original body/key/CAS/choices despite newer draft; receipt: no document overflow; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-pending-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; pending disables duplicate confirmation; pending disables target and preview; pending has no receipt or target result action; actual controlled target exists once before receipt delivery; pending: no document overflow; pending: bounded dialog; receipt: no document overflow; receipt: bounded dialog; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-rejected-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; explicit rejection never shows acknowledged success; rejected command leaves catalogue and source references unchanged; rejected preview remains available; rejected: no document overflow; rejected: bounded dialog; known rejection releases unknown recovery identity; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; lost receipt does not show success; unknown committed once before retry; unknown: no document overflow; unknown: bounded dialog; new draft survives unknown remount; recovery: no document overflow; new draft survives original acknowledgement; retry preserves exact original body/key/CAS/choices despite newer draft; receipt: no document overflow; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
+          },
+          "runtime-pending-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/studio-runtime-states-pass108/report.json"
+            ],
+            "notes": "fresh preview creates inactive runtime from exact publication; pending disables duplicate confirmation; pending disables target and preview; pending has no receipt or target result action; actual controlled target exists once before receipt delivery; pending: no document overflow; pending: bounded dialog; receipt: no document overflow; receipt: bounded dialog; one original runtime and unchanged active binding; exact applied snapshot remains revision one; framework created once; source references same runtime; receipt refers to originally observed target; target: no document overflow; target survives actual page refresh; other role unaffected; expected apply count only; no browser exception。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。"
           }
         }
       }

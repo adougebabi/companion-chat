@@ -1,0 +1,23 @@
+✔ profile text controls stay mounted and focused crossing 80 characters in either direction (236.462625ms)
+✔ controller inputs preserve the immediate native value and composition across background notifications (282.196584ms)
+✔ select normalization removes duplicate empty choices while preserving exact domain value types (167.806917ms)
+✔ diagnostic records use real table cells with separate actions rather than a button owning the row (147.16275ms)
+✔ malformed Studio world structure stays editable as complete JSON instead of crashing or overwriting its data (143.356625ms)
+✔ one application tree ports exact native form values, original listeners and submission while preserving a long focused draft (351.988417ms)
+✔ Collapsible keeps original nested controls and callbacks, reflects controller open state and removes ports on page replacement (180.496916ms)
+✔ nested disclosures retain original form controls when ancestor contents move into a portal (210.925375ms)
+✔ radio selection keeps the original group checked state, change listener and single FormData value (119.665ms)
+✔ controller redraw resolves the focused carrier and restores the same selection to the new React control (118.448208ms)
+✔ rich disclosure summaries retain structured labels and settings Sheets reopen the same form after Escape (196.116208ms)
+✔ datetime fields use one original form value while date and time edits keep the local datetime contract (94.704042ms)
+✔ immediate checkable changes do not reenter controller change when synchronous redraw moves focus (195.3645ms)
+✔ text, number and textarea drafts still commit change on blur and preserve carrier selection and focusout (355.153042ms)
+✔ date trigger blur preserves focusout without committing an unchanged date (98.42675ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3977.488959

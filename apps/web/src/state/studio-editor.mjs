@@ -77,7 +77,8 @@ export function createStudioEditor({
   });
   let active = false,
     readEpoch = 0,
-    previewEpoch = 0;
+    previewEpoch = 0,
+    bodyTextError = "";
   const live = () => active && ownerCurrent();
   const receiptKey = slot + ":receipt";
   function cacheReceipt(value, result, key) {
@@ -193,7 +194,8 @@ export function createStudioEditor({
       edit({ body: value, bodyText: undefined });
       return true;
     } catch (cause) {
-      state.error = errorMessage(cause, "JSON 尚未修正，输入已保留。");
+      bodyTextError = errorMessage(cause, "JSON 尚未修正，输入已保留。");
+      state.error = bodyTextError;
       return false;
     }
   }
@@ -278,6 +280,10 @@ export function createStudioEditor({
   function edit(values) {
     if (!live() || !state.draft || state.resource?.status === "archived")
       return;
+    if (Object.hasOwn(values, "bodyText") && values.bodyText === undefined) {
+      if (state.error === bodyTextError) state.error = "";
+      bodyTextError = "";
+    }
     Object.assign(state.draft, values);
     persist();
   }

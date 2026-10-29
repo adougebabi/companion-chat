@@ -87,6 +87,46 @@ for file,ids in extra_maps.items():
   name=result.get('name') or result.get('scenario');result.setdefault('checks',['rendered group fills form width','20px flex stack gap','cancel without a write','no horizontal overflow'] if file=='evidence/form-groups/report-after.json' else []);targets=[id for id in ids(name) if id in rows]
   state=name+('-'+result['size'] if isinstance(result.get('size'),str) else '')
   add(targets,'interaction',state,'已验证' if result['status']=='passed' else '发现问题',[file],'; '.join(result['checks'])+'。只证明记录的断言，不代表该矩阵整行所有状态已完成。')
+# These reports use deliberately different case identities. Preserve the World
+# kind as well as scenario; select Self normals from the corrected later run.
+bounded_reports=[
+ ('evidence/world-expansion-states/report.json','world'),
+ ('evidence/goal-planning-advanced-pass103/report.json','planning'),
+ ('evidence/studio-runtime-application/report.json','studio-runtime'),
+ ('evidence/self-history/report-consolidated.json','self-history'),
+ ('evidence/studio-runtime-states-pass108/report.json','studio-states'),
+ ('evidence/entry-states/report-consolidated.json','entry'),
+ ('evidence/profile-save-states-pass111/report.json','profile-save'),
+ ('evidence/studio-type-states-pass115/report.json','studio-types'),
+ ('evidence/wear-request-states-pass114/report.json','wear-states'),
+]
+for file,group in bounded_reports:
+ if not (root/file).exists():continue
+ for result in json.loads((root/file).read_text()):
+  size=result['size']
+  if group=='world':
+   name='-'.join([result['kind'],result['scenario'],size])
+   targets=['resources.world.events'] if result['kind']=='failed-run' else ['resources.world.venues','resources.world.place.history']
+  elif group=='planning':
+   name='advanced-'+result['scenario']+'-'+size;targets=['formal-goal-planning']
+  elif group=='studio-runtime':
+   name='runtime-target-readback-'+size;targets=['resources.studio.apply','resources.world.directory','resources.world.settings']
+  elif group=='self-history':
+   name='history-'+result['name']+'-'+size;targets=['life-self-detail','formal-self-governance']
+  elif group=='studio-states':
+   name='runtime-'+result['scenario']+'-'+size;targets=['resources.studio.apply','resources.world.directory']
+  elif group=='profile-save':
+   name=result['name']+'-'+size;targets=['profile-edit-basic','profile-formal-recovery']
+  elif group=='studio-types':
+   name='typed-definition-'+result['name']+'-'+size;targets=['resources.studio.editor.'+result['name']]
+  elif group=='wear-states':
+   name='wear-request-'+result['name']+'-'+size;targets=['resources.wardrobe.wear']
+  else:
+   case=result['name'];name=case+'-'+size
+   targets=['auth-formal-init','auth-demo-form'] if case.startswith('auth-') else ['library-hero'] if case in ['library-draft','library-activated','library-corrupt'] else ['library-cards'] if case=='library-lifecycle' else ['library-empty-errors']
+  evidence=[file]
+  if result.get('source_report'):evidence.append(result['source_report'])
+  add(targets,'interaction',name,'已验证' if result['status']=='passed' else '发现问题',evidence,'; '.join(result.get('checks',[]))+'。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。')
 real='evidence/real-browser/report.json'
 if (root/real).exists():
  report=json.loads((root/real).read_text())

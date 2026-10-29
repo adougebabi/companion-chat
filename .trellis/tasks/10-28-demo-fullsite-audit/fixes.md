@@ -112,3 +112,27 @@
 媒体测试素材最终证据：final-pass94保留同内容双视口完整原图/实现图/未遮罩diff；media-pass93额外量测同一原矢量在各自真实容器的绘制差异（包含参考图的收藏图标等允许差异），没有设置通过阈值。测试HTTP按实际img视口提供原MediaImage/Art矢量的固有尺寸，避免外部SVG默认300×150改变内联绘制；没有调整生产容器/图片逻辑或参考像素。截图外4张手机素材明确未量测。早期pass85空白素材、pass91越界/重复容器量测是验收工具问题，保留为历史，不作验收依据。
 
 F57–F59最终确认：responsive-layout/pass99四个场景通过，包含通知原绿线、移动34px图标及11/10/9px文字、记忆320px搜索、实际类型筛选、保留新草稿的刷新与显式查询；chat-inbox-avatar/pass99八个通知来源/返回/失败/分类场景通过。final-pass99已人工查看两页手机配对，桌面及手机标题坐标一致。只完成本条已列范围，不代表所有深层状态均完成视觉验收。
+
+
+## 2026-10-29 F60–F67：深层状态与原回执恢复
+
+|ID|复现的问题|修复与边界|实际验证|
+|---|---|---|---|
+|F60|世界失败执行retry真实回执只有id/status/revision，UI却要求完整run，误报角色世界不匹配|仅最小回执分支按原run、queued、精确下一版校验；随后原GET仍校验完整scope|World 29项定向；实际浏览器14/14，含未知/GET失败/有效v0定义|
+|F61|目标手动顺序混入候选/暂停ID，独立策略基线被候选审查静默推进|order只提交active；依赖仍保留全记录；候选/来源改变后显式核对策略基线|Goal规划12项定向；advanced-pass103两视口8/8|
+|F62|目标策略已接受后GET失败仍可重写；未知回执不能恢复原请求；规划历史读取失败可能再请求|持久保留原body/key/CAS/原因与accepted检查点；已接受GET-only，未知重放原身份；规划受理与完成分开|定向覆盖重开与新草稿；浏览器readback/lost-response两视口通过|
+|F63|目标旧编辑器迟到回执可能覆盖同Owner/fid的新输入，且读回缺少回执版次/字段约束|仅合并同key的ack；检查实际回执revision与投影，旧版或同版不一致保持恢复|Goal规划定向含late receipt、较旧与同版不一致、新草稿保留；全量通过|
+|F64|真实checkbox变更同步重绘，blur又发change，重入DOM替换抛NotFoundError|共享立即change分类用于commit与blur；保留focusout、selection、FormData和文字blur提交|红测2处复现、原生控件15/15；实际Goal浏览器8/8无异常|
+|F65|自我认知采用明确核对的最新基线后取消，详情/历史仍显示旧值|采用已校验详情并刷新目录、修订、Owner复核，不仅改变命令草稿版次|Self定向红绿；adopt-refresh两视口通过|
+|F66|自我认知手动刷新只读详情，已挂载修订/复核记录不刷新|仅self分支同步刷新次级reader；保持原memory/reflection行为|同版新增Owner复核后实际刷新可见，两视口通过|
+|F67|自我forget/restore回执读回同版但status不一致时错误清除恢复|同版须与回执status匹配；不一致保留GET-only；独立review和较新权威版语义保留|Self最终22项定向；实际10/10，含完整v1→v4谱系|
+
+Studio应用到运行世界、Self完整历史和World定义的fixture补齐属于验收真实性改进。Studio没有复现新的生产缺陷。Studio实际2/2通过；Self最新合并10/10。全量Web694/694、0skip，build104与生产守卫通过。上传旧测试25ms固定等待已换成有界等待实际UI状态，仍检查同一上传身份、SHA、一次POST与重开恢复；没有MediaUpload生产修改。
+
+
+|F68|首次所需目录读取失败被无session分支误显示成登录；成功重读未清旧bootstrap错误；失败卡被flex拉成整屏|优先呈现启动失败及原重读入口；成功仅清bootstrap错误，其他同Owner错误保留；提示卡self-start消除多余空白|新2项bootstrap红绿，定向5/5；实际目录失败/恢复双视口通过。Auth/Library合并16/16|
+|F69|非法完整JSON修正并明确采用/撤销后仍显示“JSON尚未修正”|私有追踪本次parser错误；仅其仍拥有显示错误时清除，不清后来独立请求/读取错误|新增Studio红绿；定向24/24，七类型双视口14/14且每例断言纠正后无旧alert|
+
+补验结果（pass108–116）：Studio运行拒绝/unknown/pending 6/6；账户/Library16/16；Profile空名/busy/实际基线冲突4/4；七类Studio14/14；换装failed/rejected/no-change/unknown/GET失败10/10。旧脚本等待失配保留：Studio恢复后应走“查看实际记录”，重开新应用会清旧回执；Profile成功后弹窗已关闭；Wear原确认未知后须先取消本地提示再点卡片原重试，成功态没有错误态的“查看原请求”按钮。没有为这些harness假设修改产品。
+
+全量pass115 **697/697、0skip**；typecheck114、build116及生产守卫通过。build114已真实五页只读通过，build116只增加启动错误卡自身对齐，待最新静态同步。剩余六组确定补验清单见verification/remaining-state-backlog.md。

@@ -566,11 +566,17 @@ export default function MemoryPage({ route }) {
         return result;
       },
       readLatest: () => readClaim(id),
-      adoptLatest: (d, row) => ({ ...d, revision: row.revision }),
+      adoptLatest: (d, current) => {
+        if (live()) void refreshSelection(current);
+        return { ...d, revision: current.revision };
+      },
       onSaved: async (result) => {
         const current = await readClaim(id);
         if (
           current.revision < result.revision ||
+          (operation !== "review" &&
+            current.revision === result.revision &&
+            current.status !== result.status) ||
           (operation === "review" &&
             current.revision === result.revision &&
             (!current.owner_review ||
@@ -1136,7 +1142,11 @@ export default function MemoryPage({ route }) {
         <ReadStatus source={detail} label="详情" />
         {selected && (
           <div className="lp-stack">
-            <Button variant="link" disabled={detail.busy} onClick={detail.load}>
+            <Button
+              variant="link"
+              disabled={detail.busy || (selection?.kind === "self" && (revisions.busy || reviews.busy))}
+              onClick={selection?.kind === "self" ? () => void refreshSelection() : detail.load}
+            >
               刷新当前详情
             </Button>
             {selection?.kind === "memory" ? (

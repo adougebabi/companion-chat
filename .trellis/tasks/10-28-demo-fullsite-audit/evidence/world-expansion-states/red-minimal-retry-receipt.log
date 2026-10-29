@@ -1,0 +1,40 @@
+✔ world events distinguish admitted queued execution from applied results; failed execution retries its original run with two revisions (619.126084ms)
+✖ failed run expansion-unknown recovery preserves original execution (354.7845ms)
+✖ failed run expansion-readback-failure recovery preserves original execution (315.381208ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3411.915834
+
+✖ failing tests:
+
+test at apps/web/test/demo-replica-world.test.mjs:679:1
+✖ failed run expansion-unknown recovery preserves original execution (354.7845ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /等待实际执行/. Input:
+  
+  '恢复这次失败执行核对当前模板与原执行版本后提交。记录不属于当前角色与世界。世界事件操作说明重试原失败执行核对或重试原提交读取最新版本并保留输入原提交内容取消恢复这次失败执行关闭'
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/demo-replica-world.test.mjs:697:12)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '恢复这次失败执行核对当前模板与原执行版本后提交。记录不属于当前角色与世界。世界事件操作说明重试原失败执行核对或重试原提交读取最新版本并保留输入原提交内容取消恢复这次失败执行关闭',
+    expected: /等待实际执行/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at apps/web/test/demo-replica-world.test.mjs:679:1
+✖ failed run expansion-readback-failure recovery preserves original execution (315.381208ms)
+  TypeError: Cannot read properties of undefined (reading 'click')
+      at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/helpers/react-dom.mjs:121:34
+      at process.env.NODE_ENV.exports.act (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/react@19.3.1/node_modules/react/cjs/react.development.js:890:22)
+      at Object.click (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/helpers/react-dom.mjs:121:13)
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/demo-replica-world.test.mjs:690:15)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)

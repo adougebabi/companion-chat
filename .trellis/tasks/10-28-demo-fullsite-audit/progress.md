@@ -1,5 +1,7 @@
 # 当前进度：全站复验仍在实施
 
+最新检查点见本文末尾“pass106”；前文各pass为保留的历史记录。
+
 活动任务10-28-demo-fullsite-audit，分支codex/demo-fullsite-audit-20261028，基线ef8e1f92。完整范围requirements.md，177行矩阵不是覆盖上限。用户已允许创建任务、直接实施及本地Playwright。主线为UI/UX；不再扩大后端回归，只处理页面暴露的问题。
 
 ## 当前实际结果
@@ -147,3 +149,25 @@ coverage.json的state_verification记录具体执行，行级状态未因单一�
 - 当前4381视觉夹具session19298；Demo4179。4412/3、4420/1、4430–3为本轮附加受控场景，均不是业务服务。任务保持in_progress：具体未验深层视觉状态与真实业务边界不自动升为完成，见visual-review.md/business-verification.md。
 
 最终记录补充：build99已同步18480，real-browser/report五页实际API读取通过；Core/Worker/PG未重启。650全量、typecheck95、build99/生产守卫通过。F57–F59最终responsive/pass99和通知来源pass99均通过；正常图inbox/memory/studio final-pass99，媒体final-pass94；checkpoints及未完成范围见visual-review.md。
+
+
+## 2026-10-29 最新继续批次：F60–F67 / pass106
+
+- 本轮生产修复已完成：World最小retry回执；Goal active顺序、原body/key恢复、accepted GET-only、回执版次与同slot迟到合并；共享FieldPort双change重入；Self采用最新基线/取消、手动次级刷新、同版status读回。
+- 实际生产浏览器最新：World14/14、Goal advanced-pass103 8/8、Studio runtime2/2、Self合并10/10。Self只选择pass106正常2组和pass104其他8组，保留早期失败报告。Studio未发现新的生产缺陷；补的是fixture应用到目录/详情/来源/刷新联动证据。
+- 主线程已看本批代表性手机与桌面截图：Goal高级编辑/GET恢复/普通态、Studio应用预览/目标来源、Self旧版完整来源/恢复详情/正式历史；World关键恢复/有效定义此前已核对。其余深层视觉不批量标通过。
+- 全量Web **694/694、0fail、0skip**，evidence/web-tests-pass106.log；build104和生产fixture排除/React-only374模块通过。上传测试固定25ms等待改成有界观察实际状态；未改上传生产逻辑。定向Goal12、Self22、native15等均通过。
+- Demo48与旧10-22无关108文件hash再次一致。coverage仍177行，174有具体浏览器state，3个纯Demo入口N/A；这些数字不是完成率。
+- build104已静态同步现有18480 Web并恢复私有runtime-config；五页真实API读取通过、无浏览器异常。未重启Core/PG/Worker、未新增模型调用。真实媒体生成链仍无本轮完整证据。
+- 下批先补Studio runtime拒绝/未知/等待的实际浏览器状态，再继续已有深层截图与Demo逐张核对。该三类此前仅组件/transport通过。未验范围以visual-review.md和每个state为准，任务保持in_progress，不归档、不发布。
+
+
+## 最新检查点：F60–F69 / pass116
+
+本轮生产修复共10条，详见fixes.md。最后两条F68为启动失败误进登录/旧错误及拉伸空白，F69为JSON纠正后旧错误。定向与独立检查通过；全量pass115 **697/697、0fail、0skip**，typecheck114、build116和374模块/fixture排除守卫通过。
+
+实际浏览器：World14、Goal8、Self10、Studio正常运行2；继续补Studio运行异常6、Auth/Library16、Profile4、Studio七类型14、Wear10。每组范围独立，未换算全站完成率。697全量包含新2项bootstrap和1项JSON回归。Demo48与旧任务108文件未变。
+
+八类此前确定缺口已补齐。新增只读抽查又定位六组分支尚未实测：Shell退出/quickjump、Chat composition/slow/settling/cancelled、People范围/只读/自填冲突、Feed未发布终态/互动scope/评论GET、Inbox批量busy/无角色、管理保存故障/备份状态/导入。清单在verification/remaining-state-backlog.md。未声称其它全部分支已验；任务继续in_progress。
+
+build114已同步隔离18480，五页真实API读取通过；build116只再改错误卡self-start。无Core/PG/Worker重启、无新增模型调用。当前task材料/代码将保存本地检查点，不推送、不归档，接着执行上述六组。

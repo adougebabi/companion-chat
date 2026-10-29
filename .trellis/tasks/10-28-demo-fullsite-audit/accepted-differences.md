@@ -9,7 +9,7 @@
 - 世界居民属于角色独立世界。正式目录只声明已实际读到的人物，不把其它角色的同名世界当作同一运行实例。Demo人物地点有的没有对应已提取World Place，尚未绑定时显示缺失，不虚构在场。
 - 媒体正式kind为image/video/audio，origin为fluctlight/studio/upload，缺少Demo portrait/scene/wardrobe分类与favorite。保留全部正式来源、隐藏/留存、上传与生命周期能力；不新增只保存在浏览器的收藏来假装业务已接入。
 - 正式衣物DTO没有独立color。类别示意图只依据描述里明确的颜色词选择原Demo的展示色调，无说明的仍为中性；实际服装名称、拥有、可用、季节和媒体来源保留。示意图不是实物照片，不把渲染色号存成衣物事实，不新增Core字段或示例ID分支。
-- 通知的failed_task归服务状态，persona/capability/studio提议归需要你决定；因此Demo“需要决定2”在正式场景中是“需要决定1+服务异常1”。已读始终不完成业务待处理。正式来源source_kind不同于Demo纯UI type，仍待按真实来源统一图标。
+- 通知的failed_task归服务状态，persona/capability/studio提议归需要你决定；因此Demo“需要决定2”在正式场景中是“需要决定1+服务异常1”。已读始终不完成业务待处理。正式来源source_kind不同于Demo纯UI type；现已按真实来源统一图标并验证未知来源中性回退。
 - 管理服务当前用正式endpoint ID作为服务标识，无单独持久化显示名。只读已保存ID与可编辑的新连接区分保留，模型目录仍可完整检索，不把本地编辑当保存成功。
 - 额外的刷新、真实任务恢复、来源JSON、治理、资源管理、模型目录、审计/版本与请求状态入口继续保留。其布局需按原Demo层级融入，不能以“正式能力”作为明显错位的借口。
 
@@ -21,6 +21,6 @@ Demo下一项runtime.nextActivity文案与其17:30日程activity并不相同，�
 
 测试场景校正：早期memoryRows把原Demo“经历/知识”漏映射而误归为自我，这是夹具错误，不是正式契约差异。现已按原种子分别映射episodic/semantic，复拍见memory-mapped-pass32；此前分类不一致的图片保留为历史发现，不能当成同内容通过。
 
-新增深层受控UI边界：Studio fixture能验证保存、发布、不可变旧版本、副本、应用预览与回执，但应用后的世界GET是固定样本，不能据此证明运行世界已更新；角色模板解析fixture没有结构化初始化产物。World fixture的queued→applied按读取次数模拟，可验阶段与详情UI，不能证明真实Worker执行；未覆盖failed-run retry与current_definition有效基准。Growth fixture支持实际HTTP对象修改和刷新读取，自我治理历史未追加每次快照，不能声称完整认识历史谱系通过。
+深层受控UI边界（2026-10-29更新）：Studio世界应用已与同fid目录/地点/绑定共享fixture实例，实际目标页面刷新/重开通过；其他资源类型不因此获得运行态联动证明。World已验证最小retry回执、原命令/GET恢复、current_definition与有效v0基准；queued→applied仍是受控模拟，不证明真实Worker。Growth自我认识已补齐初始与每次修改的完整不可变快照，v1→v4/独立复核/正式Self页实际可读；不等于Core来源依赖与到期权威引擎已验。以上修正了旧夹具不足，均不代表真实持久化或模型结论。
 
 状态图标补充：通知正式source_kind依notification_center.go的已提交事件映射，pending依5类实际来源映射。Demo模拟task/persona通知没有同名正式事件，不能以media.asset.ready或capability.requested冒充；缺真实来源字段时使用中性图标。Studio只依据已有published_version呈现发布状态，归档仍保持中性。

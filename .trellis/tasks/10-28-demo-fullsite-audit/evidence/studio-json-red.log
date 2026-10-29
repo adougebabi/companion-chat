@@ -1,0 +1,30 @@
+✖ Studio JSON validation clears after explicit adoption or withdrawal without erasing an independent failure (1.887833ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 930.32775
+
+✖ failing tests:
+
+test at apps/web/test/r11-studio.test.mjs:12:1
+✖ Studio JSON validation clears after explicit adoption or withdrawal without erasing an independent failure (1.887833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'JSON 尚未修正，输入已保留。'
+  - ''
+  
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/r11-studio.test.mjs:17:10)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'JSON 尚未修正，输入已保留。',
+    expected: '',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

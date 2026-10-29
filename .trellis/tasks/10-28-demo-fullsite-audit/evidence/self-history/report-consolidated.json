@@ -1,0 +1,1310 @@
+[
+  {
+    "name": "normal",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "review cancellation has no write",
+      "review preserves revision, confidence, evidence and claim",
+      "review is independent of history",
+      "review: no horizontal overflow",
+      "review: bounded dialog",
+      "forget cancellation preserves current",
+      "forgotten-full-history: no horizontal overflow",
+      "forgotten-full-history: bounded dialog",
+      "v1 rendered full snapshot and complete source",
+      "v1-source: no horizontal overflow",
+      "v1-source: bounded dialog",
+      "restore appends v4 with exact v1 claim and no old review",
+      "three intentional commands only",
+      "restored-full-history: no horizontal overflow",
+      "restored-full-history: bounded dialog",
+      "refresh-history-review: no horizontal overflow",
+      "refresh-history-review: bounded dialog",
+      "formal SelfPage preserves v4/v3/v2/v1 and prior Owner review without writes",
+      "formal-self-history: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/review",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和完整来源",
+          "idempotencyKey": "7230016f-dfc0-4482-b671-62837f089a80"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "停止采用，保留完整来源",
+          "idempotencyKey": "9187cfe4-ffce-4c63-a14b-6195af86d27e"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/restore",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复第一版完整内容",
+          "targetRevision": 1,
+          "idempotencyKey": "411263c2-bc48-45cd-8417-a5cb37893db1"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/desktop-normal-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/desktop-normal-forgotten-full-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/desktop-normal-v1-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/desktop-normal-restored-full-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/desktop-normal-refresh-history-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/desktop-normal-formal-self-history.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass106/report.json"
+  },
+  {
+    "name": "unknown",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "unknown cannot adopt latest before original admission resolved",
+      "unknown: no horizontal overflow",
+      "unknown: bounded dialog",
+      "recovery preserves mutation count",
+      "original retry has identical key and body",
+      "recovery never appends duplicate revision",
+      "recovered: no horizontal overflow",
+      "recovered: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "bfc98493-86fe-4faa-9387-be3a027675aa"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "bfc98493-86fe-4faa-9387-be3a027675aa"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-unknown-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-unknown-recovered.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  },
+  {
+    "name": "readback",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "accepted-readback-pending: no horizontal overflow",
+      "accepted-readback-pending: bounded dialog",
+      "recovery preserves mutation count",
+      "recovery never appends duplicate revision",
+      "recovered: no horizontal overflow",
+      "recovered: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "2d27b5d7-d21a-43a6-a149-96d31cc6db6a"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-readback-accepted-readback-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-readback-recovered.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  },
+  {
+    "name": "adopt-refresh",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "latest adoption retains reason",
+      "adopt-cancel: no horizontal overflow",
+      "adopt-cancel: bounded dialog",
+      "adoption and cancel never mutate",
+      "refresh-secondary: no horizontal overflow",
+      "refresh-secondary: bounded dialog",
+      "manual refresh stays read-only",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-adopt-refresh-adopt-cancel.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-adopt-refresh-refresh-secondary.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  },
+  {
+    "name": "status",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "accepted-readback-pending: no horizontal overflow",
+      "accepted-readback-pending: bounded dialog",
+      "recovery preserves mutation count",
+      "recovery never appends duplicate revision",
+      "recovered: no horizontal overflow",
+      "recovered: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "56695b38-8442-4a09-b88b-32d72485f28b"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-status-accepted-readback-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/desktop-status-recovered.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  },
+  {
+    "name": "normal",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "review cancellation has no write",
+      "review preserves revision, confidence, evidence and claim",
+      "review is independent of history",
+      "review: no horizontal overflow",
+      "review: bounded dialog",
+      "forget cancellation preserves current",
+      "forgotten-full-history: no horizontal overflow",
+      "forgotten-full-history: bounded dialog",
+      "v1 rendered full snapshot and complete source",
+      "v1-source: no horizontal overflow",
+      "v1-source: bounded dialog",
+      "restore appends v4 with exact v1 claim and no old review",
+      "three intentional commands only",
+      "restored-full-history: no horizontal overflow",
+      "restored-full-history: bounded dialog",
+      "refresh-history-review: no horizontal overflow",
+      "refresh-history-review: bounded dialog",
+      "formal SelfPage preserves v4/v3/v2/v1 and prior Owner review without writes",
+      "formal-self-history: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/review",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和完整来源",
+          "idempotencyKey": "4a66d588-fb6f-474b-8ad1-e9dfa0b7bee8"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "停止采用，保留完整来源",
+          "idempotencyKey": "1366634e-5a14-41bf-89a2-8dc89712d9ae"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/restore",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复第一版完整内容",
+          "targetRevision": 1,
+          "idempotencyKey": "0c3ddd6c-cfbb-4893-b58e-1f36ae84d157"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/mobile-normal-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/mobile-normal-forgotten-full-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/mobile-normal-v1-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/mobile-normal-restored-full-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/mobile-normal-refresh-history-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass106/mobile-normal-formal-self-history.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass106/report.json"
+  },
+  {
+    "name": "unknown",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "unknown cannot adopt latest before original admission resolved",
+      "unknown: no horizontal overflow",
+      "unknown: bounded dialog",
+      "recovery preserves mutation count",
+      "original retry has identical key and body",
+      "recovery never appends duplicate revision",
+      "recovered: no horizontal overflow",
+      "recovered: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "f45f320f-6f64-4dc5-a731-c40667d517f7"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "f45f320f-6f64-4dc5-a731-c40667d517f7"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-unknown-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-unknown-recovered.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  },
+  {
+    "name": "readback",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "accepted-readback-pending: no horizontal overflow",
+      "accepted-readback-pending: bounded dialog",
+      "recovery preserves mutation count",
+      "recovery never appends duplicate revision",
+      "recovered: no horizontal overflow",
+      "recovered: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "812761ec-3c21-451e-b198-507320529ebe"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-readback-accepted-readback-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-readback-recovered.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  },
+  {
+    "name": "adopt-refresh",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "latest adoption retains reason",
+      "adopt-cancel: no horizontal overflow",
+      "adopt-cancel: bounded dialog",
+      "adoption and cancel never mutate",
+      "refresh-secondary: no horizontal overflow",
+      "refresh-secondary: bounded dialog",
+      "manual refresh stays read-only",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-adopt-refresh-adopt-cancel.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-adopt-refresh-refresh-secondary.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  },
+  {
+    "name": "status",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "dpr": 1,
+    "locale": "zh-CN",
+    "timezone": "Asia/Shanghai",
+    "boundary": "production dist / fresh child-owned controlled HTTP; no live Core/DB/source dependency certification",
+    "checks": [
+      "initial full v2/v1 snapshots have matching revision",
+      "accepted-readback-pending: no horizontal overflow",
+      "accepted-readback-pending: bounded dialog",
+      "recovery preserves mutation count",
+      "recovery never appends duplicate revision",
+      "recovered: no horizontal overflow",
+      "recovered: bounded dialog",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/forget",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "验证原请求恢复",
+          "idempotencyKey": "a3ab8f17-ef94-42cf-9891-3c0a88d40d21"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/revisions",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims/fluctlight-fixture-one-claim-one/reviews",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-status-accepted-readback-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/self-history-pass104/mobile-status-recovered.png"
+    ],
+    "status": "passed",
+    "source_report": "evidence/self-history-pass104/report.json"
+  }
+]

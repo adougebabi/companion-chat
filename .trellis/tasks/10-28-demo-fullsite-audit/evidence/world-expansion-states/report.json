@@ -1,0 +1,2126 @@
+[
+  {
+    "kind": "failed-run",
+    "scenario": "expansion-normal",
+    "size": "desktop",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "failed document fits",
+      "failed dialog fits",
+      "applied document fits",
+      "applied dialog fits",
+      "same run follows actual fixture result",
+      "no trigger creates a replacement run",
+      "template and run CAS retained",
+      "one mutation including readback recovery",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "1c3ac7f5-6d16-4df5-ab0b-735bb618e50e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-normal-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-normal-desktop-applied.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "definition-baseline",
+    "scenario": "expansion-normal",
+    "size": "desktop",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "saved-preview document fits",
+      "saved-preview dialog fits",
+      "definition-preview document fits",
+      "definition-preview dialog fits",
+      "preview sends no mutations",
+      "capture preserves current fields",
+      "recorded baseline retains exact published source",
+      "capture only once",
+      "restored document fits",
+      "restored dialog fits",
+      "explicit restore persists across refresh within fixture",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "dedd6ddc-2f2b-4854-b9bd-96655deb110c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 2,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已核对定义",
+          "idempotencyKey": "9afdbd00-8972-4bf9-89bd-15f2e9832164"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-normal-desktop-saved-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-normal-desktop-definition-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-normal-desktop-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "failed-run",
+    "scenario": "expansion-unknown",
+    "size": "desktop",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "failed document fits",
+      "failed dialog fits",
+      "recovery document fits",
+      "recovery dialog fits",
+      "applied document fits",
+      "applied dialog fits",
+      "same run follows actual fixture result",
+      "no trigger creates a replacement run",
+      "template and run CAS retained",
+      "original body/key replay",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "3e51a36e-11f4-4ed7-871f-50f60499e3a1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "3e51a36e-11f4-4ed7-871f-50f60499e3a1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-unknown-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-unknown-desktop-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-unknown-desktop-applied.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "definition-baseline",
+    "scenario": "expansion-unknown",
+    "size": "desktop",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "saved-preview document fits",
+      "saved-preview dialog fits",
+      "definition-preview document fits",
+      "definition-preview dialog fits",
+      "preview sends no mutations",
+      "recovery document fits",
+      "recovery dialog fits",
+      "capture preserves current fields",
+      "recorded baseline retains exact published source",
+      "original capture body/key replay",
+      "restored document fits",
+      "restored dialog fits",
+      "explicit restore persists across refresh within fixture",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "5a532222-1f08-4e16-85ab-a1c928ebe23c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "5a532222-1f08-4e16-85ab-a1c928ebe23c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 2,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已核对定义",
+          "idempotencyKey": "c1c3497b-7993-42f2-b562-39c063d00cb6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-desktop-saved-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-desktop-definition-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-desktop-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-desktop-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "failed-run",
+    "scenario": "expansion-readback-failure",
+    "size": "desktop",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "failed document fits",
+      "failed dialog fits",
+      "recovery document fits",
+      "recovery dialog fits",
+      "applied document fits",
+      "applied dialog fits",
+      "same run follows actual fixture result",
+      "no trigger creates a replacement run",
+      "template and run CAS retained",
+      "one mutation including readback recovery",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "68862d5e-d00d-43fe-8990-41bf3263e0b7"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-readback-failure-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-readback-failure-desktop-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-readback-failure-desktop-applied.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "definition-baseline",
+    "scenario": "expansion-readback-failure",
+    "size": "desktop",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "saved-preview document fits",
+      "saved-preview dialog fits",
+      "definition-preview document fits",
+      "definition-preview dialog fits",
+      "preview sends no mutations",
+      "recovery document fits",
+      "recovery dialog fits",
+      "capture preserves current fields",
+      "recorded baseline retains exact published source",
+      "capture only once",
+      "restored document fits",
+      "restored dialog fits",
+      "explicit restore persists across refresh within fixture",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "39f698b1-e040-4842-b68a-82db9f227357"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 2,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已核对定义",
+          "idempotencyKey": "79283ef1-b22a-44ac-8cc9-77f06c1a4948"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-desktop-saved-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-desktop-definition-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-desktop-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-desktop-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "effective-baseline",
+    "scenario": "expansion-effective",
+    "size": "desktop",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "effective-definition document fits",
+      "effective-definition dialog fits",
+      "effective publication is not a fabricated saved snapshot",
+      "explicit restore records effective baseline and advances place",
+      "zero baseline revision is preserved in original command",
+      "effective-restored document fits",
+      "effective-restored dialog fits",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 0,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已验证来源的有效基准",
+          "idempotencyKey": "a88f2b64-1fc1-4f6e-be32-e159bec04596"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/effective-baseline-expansion-effective-desktop-effective-definition.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/effective-baseline-expansion-effective-desktop-effective-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "failed-run",
+    "scenario": "expansion-normal",
+    "size": "mobile",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "failed document fits",
+      "failed dialog fits",
+      "applied document fits",
+      "applied dialog fits",
+      "same run follows actual fixture result",
+      "no trigger creates a replacement run",
+      "template and run CAS retained",
+      "one mutation including readback recovery",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "82c67079-001e-472c-9f19-ebc0e59f00aa"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-normal-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-normal-mobile-applied.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "definition-baseline",
+    "scenario": "expansion-normal",
+    "size": "mobile",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "saved-preview document fits",
+      "saved-preview dialog fits",
+      "definition-preview document fits",
+      "definition-preview dialog fits",
+      "preview sends no mutations",
+      "capture preserves current fields",
+      "recorded baseline retains exact published source",
+      "capture only once",
+      "restored document fits",
+      "restored dialog fits",
+      "explicit restore persists across refresh within fixture",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "bdc74a44-7366-41fe-9063-19499815a30d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 2,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已核对定义",
+          "idempotencyKey": "d6f6130e-5747-41a8-a0e7-f3f4b902853d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-normal-mobile-saved-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-normal-mobile-definition-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-normal-mobile-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "failed-run",
+    "scenario": "expansion-unknown",
+    "size": "mobile",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "failed document fits",
+      "failed dialog fits",
+      "recovery document fits",
+      "recovery dialog fits",
+      "applied document fits",
+      "applied dialog fits",
+      "same run follows actual fixture result",
+      "no trigger creates a replacement run",
+      "template and run CAS retained",
+      "original body/key replay",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "7fc75262-af2c-4b3b-9fa9-0b02e2adc80a"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "7fc75262-af2c-4b3b-9fa9-0b02e2adc80a"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-unknown-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-unknown-mobile-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-unknown-mobile-applied.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "definition-baseline",
+    "scenario": "expansion-unknown",
+    "size": "mobile",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "saved-preview document fits",
+      "saved-preview dialog fits",
+      "definition-preview document fits",
+      "definition-preview dialog fits",
+      "preview sends no mutations",
+      "recovery document fits",
+      "recovery dialog fits",
+      "capture preserves current fields",
+      "recorded baseline retains exact published source",
+      "original capture body/key replay",
+      "restored document fits",
+      "restored dialog fits",
+      "explicit restore persists across refresh within fixture",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "d53c1ae7-85d8-47a5-b9a7-c54464b6c35e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "d53c1ae7-85d8-47a5-b9a7-c54464b6c35e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 2,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已核对定义",
+          "idempotencyKey": "8d1f4ad5-a7b8-4d14-a8a8-900064c2e711"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-mobile-saved-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-mobile-definition-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-mobile-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-unknown-mobile-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "failed-run",
+    "scenario": "expansion-readback-failure",
+    "size": "mobile",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "failed document fits",
+      "failed dialog fits",
+      "recovery document fits",
+      "recovery dialog fits",
+      "applied document fits",
+      "applied dialog fits",
+      "same run follows actual fixture result",
+      "no trigger creates a replacement run",
+      "template and run CAS retained",
+      "one mutation including readback recovery",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run/retry",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 6,
+          "reason": "恢复同一失败执行，保留原窗口",
+          "expectedRunRevision": 4,
+          "idempotencyKey": "8756d2db-2bc0-4af4-8d5c-858abd0f1a9a"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs/fluctlight-fixture-one-failed-run",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template/runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/templates/fluctlight-fixture-one-template",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/events",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-readback-failure-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-readback-failure-mobile-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/failed-run-expansion-readback-failure-mobile-applied.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "definition-baseline",
+    "scenario": "expansion-readback-failure",
+    "size": "mobile",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "saved-preview document fits",
+      "saved-preview dialog fits",
+      "definition-preview document fits",
+      "definition-preview dialog fits",
+      "preview sends no mutations",
+      "recovery document fits",
+      "recovery dialog fits",
+      "capture preserves current fields",
+      "recorded baseline retains exact published source",
+      "capture only once",
+      "restored document fits",
+      "restored dialog fits",
+      "explicit restore persists across refresh within fixture",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 1,
+          "operation": "capture",
+          "source": "current_definition",
+          "reason": "冻结真实已应用定义，保持当前地点",
+          "idempotencyKey": "a892456b-6792-4753-82b8-6bc769f08fc9"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 2,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已核对定义",
+          "idempotencyKey": "8f30b609-5afa-4477-928b-648da40769ae"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-mobile-saved-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-mobile-definition-preview.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-mobile-recovery.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/definition-baseline-expansion-readback-failure-mobile-restored.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "kind": "effective-baseline",
+    "scenario": "expansion-effective",
+    "size": "mobile",
+    "evidence": "production components / controlled HTTP fixture; no Core, DB, worker or model proof",
+    "checks": [
+      "effective-definition document fits",
+      "effective-definition dialog fits",
+      "effective publication is not a fabricated saved snapshot",
+      "explicit restore records effective baseline and advances place",
+      "zero baseline revision is preserved in original command",
+      "effective-restored document fits",
+      "effective-restored dialog fits",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "POST",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "expectedDefaultRevision": 0,
+          "operation": "restore",
+          "source": "recorded",
+          "reason": "明确恢复已验证来源的有效基准",
+          "idempotencyKey": "cd0f6f13-08b7-492b-a0d4-ff4ae8903a99"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop/defaults/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/effective-baseline-expansion-effective-mobile-effective-definition.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-expansion-states/effective-baseline-expansion-effective-mobile-effective-restored.png"
+    ],
+    "status": "passed"
+  }
+]

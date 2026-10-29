@@ -609,3 +609,171 @@ test("remounted event-toggle readback checks the originally executed target rath
     await next.dispose();
   }
 });
+
+test("applied definition preview and capture stay distinct from current saved fields; only explicit restore changes the place", async () => {
+  const f = await fixture({ scenario: "expansion-normal" });
+  try {
+    await enter(f);
+    await f.v.click(button(f.v.host, "修订记录"));
+    await f.v.click(button(dialog(), "预览已应用定义"));
+    assert.match(dialog().textContent, /地点基准/);
+    assert.ok(button(dialog(), "重新读取地点基准"));
+    assert.equal(button(dialog(), "明确保存此恢复基准"), undefined, "missing definition cannot be captured");
+    await f.v.click(button(dialog(), "关闭"));
+    const shop = f.s.places[1], before = structuredClone(shop);
+    await f.v.click(button([...f.v.host.querySelectorAll(".r-place-card")].find(n => n.textContent.includes(shop.name)), "修订记录"));
+    await f.v.click(button(dialog(), "预览当前已保存字段"));
+    assert.equal(button(dialog(), "明确保存此恢复基准").disabled, false);
+    await f.v.click(button(dialog(), "预览已应用定义"));
+    assert.match(dialog().textContent, /已应用定义中的书店/);
+    assert.match(dialog().textContent, /定义中的暖黄灯光/);
+    assert.equal(f.writes().length, 0);
+    await f.v.click(button(dialog(), "明确保存此恢复基准"));
+    await f.v.input(dialog().querySelector('[aria-label="地点基准操作说明"]'), "明确冻结已应用版本，暂不修改当前地点");
+    await f.v.click(button(dialog(), "确认保存恢复基准"));
+    assert.deepEqual(shop, before);
+    assert.equal(f.s.defaults.get(shop.id).source_kind, "published_definition");
+    assert.equal(f.s.defaults.get(shop.id).source_version, "v1");
+    assert.equal(f.writes()[0].body.source, "current_definition");
+    assert.equal(f.writes()[0].body.expectedDefaultRevision, 1);
+    await f.v.click(button(dialog(), "已记录的恢复基准"));
+    await f.v.click(button(dialog(), "恢复默认字段"));
+    await f.v.input(dialog().querySelector('[aria-label="地点基准操作说明"]'), "明确恢复刚冻结的定义字段");
+    await f.v.click(button(dialog(), "确认恢复默认字段"));
+    assert.equal(shop.desc, "已应用定义中的书店：木窗、长桌与旧书架。");
+    assert.equal(shop.name, before.name);
+    assert.deepEqual(shop.connection_place_ids, before.connection_place_ids);
+    assert.deepEqual(shop.furniture, [{ name: "旧书架", customKey: { exactValue: "保留定义扩展" } }]);
+    assert.equal(f.writes()[1].body.expectedDefaultRevision, 2);
+    assert.equal(f.writes()[1].body.expectedRevision, 1);
+    assert.equal(f.s.context.context_revision, "unchanged-context");
+  } finally { await f.dispose(); }
+});
+
+for (const scenario of ["expansion-unknown", "expansion-readback-failure"]) {
+  test("definition capture " + scenario + " preserves original command and recovers confirmed baseline", async () => {
+    const f = await fixture({ scenario });
+    try {
+      await enter(f);
+      const card = [...f.v.host.querySelectorAll(".r-place-card")].find(n => n.textContent.includes("迟山书店"));
+      await f.v.click(button(card, "修订记录"));
+      await f.v.click(button(dialog(), "预览已应用定义"));
+      await f.v.click(button(dialog(), "明确保存此恢复基准"));
+      await f.v.input(dialog().querySelector('[aria-label="地点基准操作说明"]'), "冻结原定义版本");
+      await f.v.click(button(dialog(), "确认保存恢复基准"));
+      const original = f.writes()[0];
+      assert.equal(f.s.defaults.get(f.s.places[1].id).revision, 2);
+      await f.v.click(button(dialog(), scenario.endsWith("unknown") ? "核对或重试原提交" : "只读恢复页面结果"));
+      if (scenario.endsWith("unknown")) {
+        assert.equal(f.writes().length, 2);
+        assert.deepEqual(f.writes()[1], original);
+      } else assert.equal(f.writes().length, 1);
+      assert.equal(f.s.defaults.get(f.s.places[1].id).revision, 2);
+      assert.equal(f.s.places[1].revision, 1);
+      assert.ok(button(dialog(), "已记录的恢复基准"));
+    } finally { await f.dispose(); }
+  });
+}
+
+for (const scenario of ["expansion-unknown", "expansion-readback-failure"]) {
+test("failed run " + scenario + " recovery preserves original execution", async () => {
+  const f = await fixture({ scenario });
+  try {
+    await enter(f); await tab(f.v, "世界事件");
+    await f.v.click(button(f.v.host, "详情"));
+    assert.match(dialog().textContent, /执行失败/);
+    await f.v.click(button(dialog(), "恢复这次失败执行"));
+    await f.v.input(dialog().querySelector('[aria-label="世界事件操作说明"]'), "重试原失败执行");
+    await f.v.click(button(dialog(), "恢复这次失败执行"));
+    const original = f.writes()[0];
+    assert.match(original.path, /A-failed-run\/retry$/);
+    await f.v.click(button(dialog(), scenario.endsWith("unknown") ? "核对或重试原提交" : "只读恢复页面结果"));
+    if (scenario.endsWith("unknown")) assert.deepEqual(f.writes()[1], original);
+    else assert.equal(f.writes().length, 1);
+    assert.equal(f.s.runs.length, 1);
+    assert.equal(f.s.runs[0].revision, 5);
+    assert.equal(f.s.runs[0].status, "queued");
+    assert.equal(f.s.runs[0].life_event_id, null);
+    assert.match(dialog().textContent, /等待实际执行/);
+  } finally { await f.dispose(); }
+});
+}
+
+for (const blocked of ["expired", "changed-template", "paused", "invalid-expiry"]) {
+  test("failed run recovery is disabled for " + blocked, async () => {
+    const api = worldFixture({ scenario: "expansion-normal" }), s = api.state("A");
+    if (blocked === "expired") s.runs[0].expires_at = new Date(Date.now() - 1000).toISOString();
+    if (blocked === "invalid-expiry") s.runs[0].expires_at = "unknown";
+    if (blocked === "changed-template") s.templates[0].revision++;
+    if (blocked === "paused") s.templates[0].enabled = false;
+    const f = await fixture({ api });
+    try {
+      await enter(f); await tab(f.v, "世界事件");
+      await f.v.click(button(f.v.host, "详情"));
+      assert.equal(button(dialog(), "恢复这次失败执行").disabled, true);
+      assert.equal(f.writes().length, 0);
+    } finally { await f.dispose(); }
+  });
+}
+
+for (const invalid of [{ id: "foreign-run" }, { status: "applied" }, { revision: 4 }]) {
+  test("retry rejects a mismatched minimal receipt " + JSON.stringify(invalid), async () => {
+    const api = worldFixture({ scenario: "expansion-normal" }), handler = api.handler;
+    api.handler = args => handler({ ...args, json: (res, value, status) => args.json(res,
+      args.method === "POST" && args.path.endsWith("/retry") ? { ...value, ...invalid } : value, status) });
+    const f = await fixture({ api });
+    try {
+      await enter(f); await tab(f.v, "世界事件");
+      await f.v.click(button(f.v.host, "详情"));
+      await f.v.click(button(dialog(), "恢复这次失败执行"));
+      await f.v.input(dialog().querySelector('[aria-label="世界事件操作说明"]'), "只恢复原执行");
+      await f.v.click(button(dialog(), "恢复这次失败执行"));
+      assert.match(dialog().textContent, /原事件执行回执范围不匹配/);
+      assert.ok(button(dialog(), "核对或重试原提交"));
+      assert.equal(f.writes().length, 1);
+    } finally { await f.dispose(); }
+  });
+}
+
+test("minimal retry receipt still requires scoped full run readback and recovery is GET-only", async () => {
+  const api = worldFixture({ scenario: "expansion-normal" }), handler = api.handler;
+  let foreign = true;
+  api.handler = args => handler({ ...args, json: (res, value, status) => args.json(res,
+    foreign && args.method === "GET" && args.path.endsWith("/runs/A-failed-run")
+      ? { ...value, fluctlight_id: "another-role" } : value, status) });
+  const f = await fixture({ api });
+  try {
+    await enter(f); await tab(f.v, "世界事件");
+    await f.v.click(button(f.v.host, "详情"));
+    await f.v.click(button(dialog(), "恢复这次失败执行"));
+    await f.v.input(dialog().querySelector('[aria-label="世界事件操作说明"]'), "需要同范围回读");
+    await f.v.click(button(dialog(), "恢复这次失败执行"));
+    assert.match(dialog().textContent, /原操作已有回执/);
+    assert.equal(f.writes().length, 1);
+    foreign = false;
+    await f.v.click(button(dialog(), "只读恢复页面结果"));
+    assert.equal(f.writes().length, 1);
+    assert.match(dialog().textContent, /等待实际执行/);
+  } finally { await f.dispose(); }
+});
+
+test("a legacy place without a recorded baseline uses its verified published definition as effective baseline", async () => {
+  const api = worldFixture({ scenario: "expansion-effective" }), s = api.state("A"), shop = s.places[1];
+  const f = await fixture({ api });
+  try {
+    await enter(f);
+    const card = [...f.v.host.querySelectorAll(".r-place-card")].find(n => n.textContent.includes(shop.name));
+    await f.v.click(button(card, "修订记录"));
+    assert.match(dialog().textContent, /基准 v0/);
+    assert.match(dialog().textContent, /已应用定义中的书店/);
+    assert.equal(s.defaults.has(shop.id), false, "preview does not invent a saved baseline");
+    await f.v.click(button(dialog(), "恢复默认字段"));
+    await f.v.input(dialog().querySelector('[aria-label="地点基准操作说明"]'), "明确恢复已有来源的有效基准");
+    await f.v.click(button(dialog(), "确认恢复默认字段"));
+    assert.equal(f.writes()[0].body.expectedDefaultRevision, 0);
+    assert.equal(s.defaults.get(shop.id).revision, 1);
+    assert.equal(s.defaults.get(shop.id).source_version, "v1");
+    assert.equal(shop.desc, "已应用定义中的书店：木窗、长桌与旧书架。");
+    assert.equal(shop.revision, 2);
+  } finally { await f.dispose(); }
+});

@@ -7,15 +7,16 @@ import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();env.restore();});
 const load=path=>vite.ssrLoadModule('/src/'+path),buttons=host=>[...host.querySelectorAll('button')],button=(host,text)=>buttons(host).find(n=>n.textContent.trim()===text);
+async function waitForUi(view,ready){const deadline=Date.now()+10000;while(!ready()&&Date.now()<deadline)await view.flush();assert.ok(ready(),'expected asynchronous UI state to become readable');}
 function w(){const state=proxy({session:{actorId:'r11-owner'},characters:[],operations:[]});return {state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),navigatePath(){},services:{}};}
 test('native upload verifies and restores the original accepted upload without resending bytes after remount',async()=>{
  const {default:Upload}=await load('react-app/shared/MediaUpload.tsx'),workspace=w();let uploaded=0,asset,seen;
  workspace.services.mediaClient={lookup:async()=>{if(asset)return {status:'ready',asset};throw Object.assign(Error('not found'),{status:404});},upload:async(file,desc,key)=>{uploaded++;seen={file,desc,key};asset={id:'accepted',origin:'owner_upload',sha256:desc.sha256,byte_size:desc.size,source_filename:desc.filename,status:'available',readable:true};throw Error('network unavailable');},asset:async()=>asset};
  let v=await mountReact(vite,Upload,{workspace});
- try{const file=new File([new Uint8Array([1,2,3])],'known.png',{type:'image/png'}),input=v.host.querySelector('input[type=file]');Object.defineProperty(input,'files',{configurable:true,value:[file]});act(()=>input.dispatchEvent(new window.Event('change',{bubbles:true})));await v.flush();await v.click(button(v.host,'上传素材'));assert.equal(uploaded,1);assert.ok(seen.key);assert.match(v.host.textContent,/原上传|原上传|待确认/);}finally{await v.dispose();}
+ try{const file=new File([new Uint8Array([1,2,3])],'known.png',{type:'image/png'}),input=v.host.querySelector('input[type=file]');Object.defineProperty(input,'files',{configurable:true,value:[file]});act(()=>input.dispatchEvent(new window.Event('change',{bubbles:true})));await v.flush();await v.click(button(v.host,'上传素材'));await waitForUi(v,()=>uploaded===1&&!!button(v.host,'查询或重试原上传'));assert.equal(uploaded,1);assert.ok(seen.key);assert.match(v.host.textContent,/原上传|原上传|待确认/);}finally{await v.dispose();}
  let saved;
  v=await mountReact(vite,Upload,{workspace,props:{onSaved:value=>saved=value}});
- try{await v.click(button(v.host,'查询或重试原上传'));assert.equal(uploaded,1);assert.equal(saved.id,'accepted');assert.match(v.host.textContent,/上传已保存/);}finally{await v.dispose();}
+ try{await v.click(button(v.host,'查询或重试原上传'));await waitForUi(v,()=>saved?.id==='accepted');assert.equal(uploaded,1);assert.equal(saved.id,'accepted');assert.match(v.host.textContent,/上传已保存/);}finally{await v.dispose();}
 });
 test('native task detail reads task authority and original workflow separately, retaining original recovery body and key',async()=>{
  const {default:Task}=await load('react-app/pages/TaskDetailPage.tsx'),workspace=w(),reads=[],writes=[];

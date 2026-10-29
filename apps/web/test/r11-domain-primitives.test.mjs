@@ -61,3 +61,46 @@ test('datetime fields use one original form value while date and time edits keep
  let form,inputs=0,changes=0;const html='<form>'+Field({label:'期限',name:'due',type:'datetime-local',value:'2026-10-27T10:15:30.123'})+'</form>';
  const v=await mountReact(vite,Harness,{props:{html,prepare:node=>{form=node.querySelector('form');form.elements.due.oninput=()=>inputs++;form.elements.due.onchange=()=>changes++;}}});try{assert.equal(visible(v.host,'input[type=datetime-local]').length,0);assert.equal(visible(v.host,'button[role=combobox]').length,1);const time=visible(v.host,'input').find(node=>node.getAttribute('aria-label')==='期限时间');assert.ok(time);assert.equal(time.checkValidity(),true);assert.equal(form.elements.due.value,'2026-10-27T10:15:30.123');assert.equal(form.elements.due.checkValidity(),true);await v.input(time,'11:45');assert.equal(inputs,1);assert.equal(changes,1);assert.deepEqual([...new window.FormData(form)],[['due','2026-10-27T11:45']]);}finally{await v.dispose();}
 });
+
+
+test('immediate checkable changes do not reenter controller change when synchronous redraw moves focus',async()=>{
+ for(const type of ['checkbox','radio']){
+  let source,changes=0,focusouts=0,depth=0,maxDepth=0,next,relatedTarget;
+  const html='<form><label><input data-domain-ui="field" type="'+type+'" name="dependency" value="goal-2">依赖目标</label><button type="button" data-next>重绘后的焦点</button></form>';
+  const v=await mountReact(vite,Harness,{props:{html,prepare:root=>{
+   source=root.querySelector('input');next=root.querySelector('[data-next]');
+   source.onchange=()=>{changes++;depth++;maxDepth=Math.max(maxDepth,depth);next.focus();depth--;};
+   source.addEventListener('focusout',event=>{focusouts++;relatedTarget=event.relatedTarget;});
+  }}});
+  try{
+   const control=visible(v.host,type==='checkbox'?'button[role=checkbox]':'input[type=radio]')[0];
+   await act(async()=>control.focus());await v.click(control);
+   assert.equal(changes,1,type+' commits one change even when the handler moves focus');
+   assert.equal(maxDepth,1,type+' change never reenters itself');assert.equal(focusouts,1);
+   assert.equal(relatedTarget,next);assert.equal(document.activeElement,next);assert.equal(source.checked,true);
+   assert.deepEqual([...new window.FormData(source.form)],[['dependency','goal-2']]);
+  }finally{await v.dispose();}
+ }
+});
+test('text, number and textarea drafts still commit change on blur and preserve carrier selection and focusout',async()=>{
+ for(const type of ['text','number','textarea']){
+  let source,changes=0,inputs=0,focusouts=0,next;
+  const v=await mountReact(vite,Harness,{props:{html:'<form>'+Field({label:'编辑字段',name:'draft',type,value:type==='number'?'12':'原始文字'})+'<button type="button" data-next>下一项</button></form>',prepare:root=>{
+   source=root.querySelector('[name=draft]');next=root.querySelector('[data-next]');source.onchange=()=>changes++;source.oninput=()=>inputs++;source.addEventListener('focusout',()=>focusouts++);
+  }}});
+  try{
+   const control=visible(v.host,type==='textarea'?'textarea':'input')[0];await act(async()=>control.focus());
+   await v.input(control,type==='number'?'34':'保留新的完整文字');
+   assert.equal(changes,0);assert.equal(inputs,1);assert.equal(document.activeElement,control);
+   if(type!=='number')control.setSelectionRange(2,5);
+   await act(async()=>next.focus());await v.flush();assert.equal(changes,1);assert.equal(focusouts,1);
+   assert.equal(source.value,type==='number'?'34':'保留新的完整文字');
+   if(type!=='number'){assert.equal(source.selectionStart,2);assert.equal(source.selectionEnd,5);}
+  }finally{await v.dispose();}
+ }
+});
+test('date trigger blur preserves focusout without committing an unchanged date',async()=>{
+ let source,changes=0,focusouts=0,next;
+ const v=await mountReact(vite,Harness,{props:{html:'<form>'+Field({label:'日期',name:'date',type:'date',value:'2026-10-27'})+'<button type="button" data-next>下一项</button></form>',prepare:root=>{source=root.querySelector('[name=date]');next=root.querySelector('[data-next]');source.onchange=()=>changes++;source.addEventListener('focusout',()=>focusouts++);}}});
+ try{const control=visible(v.host,'button[role=combobox]')[0];await act(async()=>control.focus());await act(async()=>next.focus());await v.flush();assert.equal(changes,0);assert.equal(focusouts,1);assert.equal(source.value,'2026-10-27');}finally{await v.dispose();}
+});

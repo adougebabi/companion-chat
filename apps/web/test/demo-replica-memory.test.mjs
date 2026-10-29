@@ -721,3 +721,126 @@ test("growth route query updates close the old detail and select the requested t
     await v.dispose();
   }
 });
+
+for (const recovery of ["adopt", "refresh"]) test(`self ${recovery} reconciles detail, revision history and independent reviews`, async () => {
+  const w = workspace();
+  let history = [{ revision: 1, status: "accepted", after_value: { ...clone(claim), revision: 1 } }], reviews = [];
+  w.client.selfClaimHistory = async (fid, id, kind) => ({ items: clone(kind === "reviews" ? reviews : history), next_cursor: "" });
+  const v = await mount(w);
+  try {
+    await tab(v, v.host, "自我认知");
+    await v.click(button(v.host, "查看依据"));
+    if (recovery === "adopt") {
+      await v.click(button(dialog(), "不再采用"));
+      await v.input(dialog().querySelector('[aria-label="认识操作说明"]'), "保留来源，停止采用");
+    }
+    w.s.revision = 3;
+    w.s.status = "forgotten";
+    history = [{ revision: 3, status: "forgotten", after_value: clone(w.s) }, ...history];
+    reviews = [{ id: "external-review", claim_revision: 2, reason: "独立复核记录", created_at: claim.created_at }];
+    if (recovery === "adopt") {
+      await v.click(button(dialog(), "读取最新版本并保留输入"));
+      await v.click(button(dialog(), "已核对，采用最新基线"));
+      await v.click(button(dialog(), "取消"));
+    } else await v.click(button(dialog(), "刷新当前详情"));
+    assert.match(dialog().textContent, /已遗忘/);
+    await v.click(button(dialog(), "之前的认识与历史恢复"));
+    assert.ok([...dialog().querySelectorAll("h4")].some(n => n.textContent.startsWith("第 3 版")));
+    await v.click(button(dialog(), "所有者复核记录"));
+    assert.match(dialog().textContent, /独立复核记录/);
+    assert.equal(w.calls.filter(c => c[0] === "self").length, 0);
+  } finally { await v.dispose(); }
+});
+
+test("self accepted forget with inconsistent same-revision status remains GET-only recoverable", async () => {
+  const w = workspace(), execute = w.client.manageSelfClaim;
+  w.client.manageSelfClaim = async (...args) => { const result = await execute(...args); w.s.status = "active"; return result; };
+  const v = await mount(w);
+  try {
+    await tab(v, v.host, "自我认知"); await v.click(button(v.host, "查看依据"));
+    await v.click(button(dialog(), "不再采用"));
+    await v.input(dialog().querySelector('[aria-label="认识操作说明"]'), "停止采用并核对状态");
+    await v.click(button(dialog(), "确认不再采用"));
+    assert.ok(button(dialog(), "只读恢复页面结果"));
+    w.s.status = "forgotten";
+    await v.click(button(dialog(), "只读恢复页面结果"));
+    assert.match(dialog().textContent, /已遗忘/);
+    assert.equal(w.calls.filter(c => c[0] === "self").length, 1);
+  } finally { await v.dispose(); }
+});
+
+for (const fault of ["unknown", "readback"]) test(`self ${fault} recovery preserves the original command identity and confirmed revision`, async () => {
+  const w = workspace(), execute = w.client.manageSelfClaim, read = w.client.selfClaim;
+  let receipt, attempts = [], failRead = false;
+  w.client.manageSelfClaim = async (...args) => {
+    attempts.push(clone(args));
+    if (receipt) return clone(receipt);
+    receipt = await execute(...args);
+    if (fault === "unknown") throw Error("回执丢失");
+    failRead = true;
+    return clone(receipt);
+  };
+  w.client.selfClaim = async () => { if (failRead) { failRead = false; throw Error("回读暂时失败"); } return read(); };
+  const v = await mount(w);
+  try {
+    await tab(v, v.host, "自我认知"); await v.click(button(v.host, "查看依据"));
+    await v.click(button(dialog(), "不再采用"));
+    await v.input(dialog().querySelector('[aria-label="认识操作说明"]'), "核对原操作");
+    await v.click(button(dialog(), "确认不再采用"));
+    if (fault === "unknown") {
+      assert.equal(button(dialog(), "读取最新版本并保留输入").disabled, true);
+      await v.click(button(dialog(), "核对或重试原提交"));
+      assert.deepEqual(attempts[1], attempts[0]);
+    } else await v.click(button(dialog(), "只读恢复页面结果"));
+    assert.match(dialog().textContent, /已遗忘/);
+    assert.match(dialog().textContent, /第 3 版/);
+    assert.equal(w.s.revision, 3);
+    assert.equal(w.calls.filter(c => c[0] === "self").length, 1);
+    assert.equal(attempts.length, fault === "unknown" ? 2 : 1);
+  } finally { await v.dispose(); }
+});
+
+test("self confirmed detail survives secondary history failure without repeating the command", async () => {
+  const w = workspace(), history = w.client.selfClaimHistory;
+  let fail = false;
+  w.client.selfClaimHistory = async (...args) => {
+    if (fail) throw Error("次级记录暂时不可读");
+    return history(...args);
+  };
+  const v = await mount(w);
+  try {
+    await tab(v, v.host, "自我认知"); await v.click(button(v.host, "查看依据"));
+    await v.click(button(dialog(), "不再采用"));
+    await v.input(dialog().querySelector('[aria-label="认识操作说明"]'), "保留已确认的遗忘结果");
+    fail = true;
+    await v.click(button(dialog(), "确认不再采用"));
+    assert.match(dialog().textContent, /已遗忘/);
+    assert.equal(button(dialog(), "只读恢复页面结果"), undefined);
+    await v.click(button(dialog(), "之前的认识与历史恢复"));
+    assert.ok(button(dialog(), "重新读取认识修订"));
+    fail = false;
+    await v.click(button(dialog(), "重新读取认识修订"));
+    assert.match(dialog().textContent, /已遗忘/);
+    assert.equal(w.calls.filter(c => c[0] === "self").length, 1);
+  } finally { await v.dispose(); }
+});
+
+for (const operation of ["review", "forget"]) test(`self ${operation} accepts independent review status or newer authoritative revision`, async () => {
+  const w = workspace(), execute = w.client.manageSelfClaim;
+  w.client.manageSelfClaim = async (...args) => {
+    const result = await execute(...args);
+    if (operation === "review") result.status = "acknowledged";
+    else { w.s.revision++; w.s.status = "active"; }
+    return result;
+  };
+  const v = await mount(w);
+  try {
+    await tab(v, v.host, "自我认知"); await v.click(button(v.host, "查看依据"));
+    await v.click(button(dialog(), operation === "review" ? "确认已核对" : "不再采用"));
+    await v.input(dialog().querySelector('[aria-label="认识操作说明"]'), "核对权威读回");
+    await v.click(button(dialog(), operation === "review" ? "确认已核对" : "确认不再采用"));
+    assert.match(dialog().textContent, /这条认识从哪里来/);
+    assert.equal(button(dialog(), "只读恢复页面结果"), undefined);
+    assert.equal(w.calls.filter(c => c[0] === "self").length, 1);
+  } finally { await v.dispose(); }
+});
