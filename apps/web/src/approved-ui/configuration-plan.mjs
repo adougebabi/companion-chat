@@ -14,10 +14,11 @@ const equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const workflowGraph=g=>g&&typeof g==='object'&&!Array.isArray(g)&&Object.keys(g).length>0&&Object.values(g).every(node=>node&&typeof node==='object'&&!Array.isArray(node)&&typeof node.class_type==='string'&&node.class_type.trim()&&node.inputs&&typeof node.inputs==='object'&&!Array.isArray(node.inputs));
 function validateComfySetting(value){
- let url;try{url=new URL(value.baseUrl||value.base_url);}catch{throw Error('ComfyUI 地址：请填写完整的 HTTP(S) 服务地址');}
- if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.search||url.hash)throw Error('ComfyUI 地址不能包含嵌入凭据、查询或片段');
- for(const [key,label] of [['workflow','默认 API 工作流'],['visual_identity_workflow','视觉身份工作流覆盖']])if((key==='workflow'||value[key]!==undefined)&&!workflowGraph(value[key]))throw Error(label+'：工作流须为非空节点对象，每个节点包含 class_type 和 inputs');
- for(const [key,label] of [['visual_identity_workflows','视觉身份分阶段覆盖'],['media_workflows','媒体分支覆盖']])if(value[key]!==undefined&&(!value[key]||typeof value[key]!=='object'||Array.isArray(value[key])||!Object.values(value[key]).every(workflowGraph)))throw Error(label+'：每个分支须包含有效的 class_type 和 inputs 节点');
+ const invalid=(key,message)=>Object.assign(Error(message),{settingField:{settingKey:'media.comfyui',key}});
+ let url;try{url=new URL(value.baseUrl||value.base_url);}catch{throw invalid('baseUrl','ComfyUI 地址：请填写完整的 HTTP(S) 服务地址');}
+ if(!['http:','https:'].includes(url.protocol)||url.username||url.password||url.search||url.hash)throw invalid('baseUrl','ComfyUI 地址不能包含嵌入凭据、查询或片段');
+ for(const [key,label] of [['workflow','默认 API 工作流'],['visual_identity_workflow','视觉身份工作流覆盖']])if((key==='workflow'||value[key]!==undefined)&&!workflowGraph(value[key]))throw invalid(key,label+'：工作流须为非空节点对象，每个节点包含 class_type 和 inputs');
+ for(const [key,label] of [['visual_identity_workflows','视觉身份分阶段覆盖'],['media_workflows','媒体分支覆盖']])if(value[key]!==undefined&&(!value[key]||typeof value[key]!=='object'||Array.isArray(value[key])||!Object.values(value[key]).every(workflowGraph)))throw invalid(key,label+'：每个分支须包含有效的 class_type 和 inputs 节点');
 }
 
 /** Validate the entire immutable form snapshot before any configuration write. */
@@ -121,6 +122,7 @@ export function configurationPlan({
   const values = {};
   for (const group of settings)
     for (const field of group.fields) {
+      try{
       let value = field.value;
       if (field._initial == null && (value === "" || value === false)) continue;
       if (field.type === "json") {
@@ -163,6 +165,7 @@ export function configurationPlan({
       );
       if (value === undefined) delete values[field._settingKey][field._key];
       else values[field._settingKey][field._key] = value;
+      }catch(cause){cause.settingField={settingKey:field._settingKey,key:field._key};throw cause;}
     }
   if(values['media.comfyui'])validateComfySetting(values['media.comfyui']);
   const kev=values.kev&&{...catalog.effective_values.kev,...values.kev};

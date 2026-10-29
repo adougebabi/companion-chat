@@ -192,17 +192,19 @@ export type FluctlightListItem = {
 const selectedFluctlightStorageKey = "fluctlight.selected-instance-id";
 const retryTurnStorageKey = "fluctlight.retry-turn.v2";
 const queuedTurnStorageKey = "fluctlight.queued-turn.v1";
+const recoveryStorageMessage='本机原请求记录暂时无法读取。请恢复浏览器存储访问后重新读取；当前输入尚未发送。';
+let recoveryStorageFailure='';
+function localRecoveryStorage():Storage|undefined{
+  try{return globalThis.localStorage;}catch{recoveryStorageFailure=recoveryStorageMessage;return undefined;}
+}
 
 function persistedSelection(): string | null {
-  if (typeof localStorage === "undefined") return null;
-  return localStorage.getItem(selectedFluctlightStorageKey);
+  try{return globalThis.localStorage?.getItem(selectedFluctlightStorageKey)||null;}catch{return null;}
 }
 
 function persistSelection(fluctlightId: string | null): void {
-  if (typeof localStorage === "undefined") return;
-  if (fluctlightId)
-    localStorage.setItem(selectedFluctlightStorageKey, fluctlightId);
-  else localStorage.removeItem(selectedFluctlightStorageKey);
+  // The selected role is an optional UI preference, separate from durable turns.
+  try{if (fluctlightId)globalThis.localStorage?.setItem(selectedFluctlightStorageKey, fluctlightId);else globalThis.localStorage?.removeItem(selectedFluctlightStorageKey);}catch{}
 }
 
 const retryArchiveKey = "fluctlight.retry-turns.v3";
@@ -230,9 +232,11 @@ function recoveryRecords(
   queued = false,
 ): Record<string, RetryTurn> {
   const records: Record<string, RetryTurn> = {};
-  if (typeof localStorage === "undefined") return records;
+  const storage=localRecoveryStorage();if(!storage)return records;
+  let archiveRaw,legacyRaw;
+  try{archiveRaw=storage.getItem(archiveKey);legacyRaw=storage.getItem(legacyKey);}catch{recoveryStorageFailure=recoveryStorageMessage;return records;}
   try {
-    const stored = JSON.parse(localStorage.getItem(archiveKey) || "{}");
+    const stored = JSON.parse(archiveRaw || "{}");
     for (const value of Object.values(stored))
       if (validRecovery(value, queued))
         records[recoveryScope(value.conversationId, value.fluctlightId)] =
@@ -241,7 +245,7 @@ function recoveryRecords(
     /* Only valid local identities can be resumed. */
   }
   try {
-    const legacy = JSON.parse(localStorage.getItem(legacyKey) || "null");
+    const legacy = JSON.parse(legacyRaw || "null");
     if (validRecovery(legacy, queued))
       records[recoveryScope(legacy.conversationId, legacy.fluctlightId)] ??=
         legacy;
@@ -270,23 +274,24 @@ function writeRecovery(
   conversationId?: string | null,
   fluctlightId?: string | null,
 ): void {
-  if (typeof localStorage === "undefined") return;
+  const storage=localRecoveryStorage();if(!storage){if(recoveryStorageFailure)throw Error(recoveryStorageMessage);return;}
   const records = recoveryRecords(archive, legacy, queued);
+  if(recoveryStorageFailure)throw Error(recoveryStorageMessage);
   if (value)
     records[recoveryScope(value.conversationId, value.fluctlightId)] = value;
   else if (conversationId && fluctlightId)
     delete records[recoveryScope(conversationId, fluctlightId)];
   else {
-    localStorage.removeItem(archive);
-    localStorage.removeItem(legacy);
+    storage.removeItem(archive);
+    storage.removeItem(legacy);
     return;
   }
   if (Object.keys(records).length)
-    localStorage.setItem(archive, JSON.stringify(records));
-  else localStorage.removeItem(archive);
+    storage.setItem(archive, JSON.stringify(records));
+  else storage.removeItem(archive);
   const current = value || Object.values(records).at(-1);
-  if (current) localStorage.setItem(legacy, JSON.stringify(current));
-  else localStorage.removeItem(legacy);
+  if (current) storage.setItem(legacy, JSON.stringify(current));
+  else storage.removeItem(legacy);
 }
 function persistedRetry(
   conversationId?: string,
@@ -470,6 +475,7 @@ export const conversationDefinition = defineDomain({
     requestEpoch: 0,
     retrying: false,
     queuedTurn: persistedQueuedTurn(),
+    recoveryStorageError: recoveryStorageFailure,
     dismissedTurnId: null as string | null,
     senderActorId: null as string | null,
   }),
@@ -539,6 +545,14 @@ export const conversationDefinition = defineDomain({
         : null,
   },
   actions: {
+    rereadLocalRecovery(){
+      recoveryStorageFailure='';
+      const retry=this.conversation&&this.fluctlightId?persistedRetry(this.conversation.id,this.fluctlightId):persistedRetry();
+      const queued=this.conversation&&this.fluctlightId?persistedQueuedTurn(this.conversation.id,this.fluctlightId):persistedQueuedTurn();
+      this.recoveryStorageError=recoveryStorageFailure;
+      if(!recoveryStorageFailure){if(retry)this.retryTurn=retry;if(queued)this.queuedTurn=queued;if(this.error===recoveryStorageMessage)this.error='';}
+      return !recoveryStorageFailure;
+    },
     async initialize() {
       this.authLoading = true;
       this.authError = "";
@@ -693,6 +707,7 @@ export const conversationDefinition = defineDomain({
           page.conversation.id,
           fluctlightId,
         );
+        this.recoveryStorageError=recoveryStorageFailure;
         this.attemptStartedAt = this.retryTurn?.attemptStartedAt ?? null;
         this.conversation = page.conversation;
         this.conversationParticipants = page.participants;
@@ -873,6 +888,7 @@ export const conversationDefinition = defineDomain({
     ): Promise<boolean> {
       const normalized = text.trim();
       if (!normalized) return false;
+      if(!this.rereadLocalRecovery()){this.error=recoveryStorageMessage;return false;}
       if (
         !retry &&
         !queuedRequest &&
@@ -913,8 +929,8 @@ export const conversationDefinition = defineDomain({
           messageId: local.id,
           createdAt: local.createdAt,
         };
+        try{persistQueuedTurn(queued);}catch{this.recoveryStorageError=recoveryStorageMessage;this.error=recoveryStorageMessage;return false;}
         this.queuedTurn = queued;
-        persistQueuedTurn(queued);
         this.messages.push({
           ...local,
           turnId: queued.turnId,
@@ -999,8 +1015,8 @@ export const conversationDefinition = defineDomain({
       this.activeTurnId = request.turnId;
       request.attemptStartedAt = Date.now();
       this.attemptStartedAt = request.attemptStartedAt;
+      try{persistRetry(request);}catch{this.recoveryStorageError=recoveryStorageMessage;this.error=recoveryStorageMessage;this.sending=false;this.abortController=null;this.activeTurnId=null;this.attemptStartedAt=null;return false;}
       this.retryTurn = request;
-      persistRetry(request);
       let optimisticMessageId = request.messageId ?? null;
       if (!retry) {
         const localAlreadyVisible =

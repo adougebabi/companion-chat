@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label, FieldInput, ChoiceSelect, Disclosure } from "../controls";
 import { useWorkspace } from "../page";
 import { useCursorPage } from "../hooks/use-cursor-page";
@@ -15,6 +14,7 @@ import { persistentCommand } from "@/v3/providers/persistent-command.mjs";
 import { studioDraftStorage } from "@/v3/proto/components/studio-draft-storage.js";
 import { confirm } from "@/v3/proto/components/overlay.js";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
+import {Feedback} from './Presentation';
 export default function StudioLifecycle({
   resource,
   onChanged,
@@ -57,6 +57,7 @@ export default function StudioLifecycle({
     [copy, setCopy] = useState<any>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
+    [notice,setNotice]=useState(''),
     [publication, setPublication] = useState<any>(null);
   const live = () =>
     active.current &&
@@ -172,7 +173,7 @@ export default function StudioLifecycle({
   async function submit(operation: string, body: any, retry = false) {
     if (busy || !live()) return;
     setBusy(true);
-    setError("");
+    setError("");setNotice('');
     try {
       await (retry ? command.retry() : command.submit({ operation, body }));
       if (live()) await readReceipt();
@@ -276,11 +277,10 @@ export default function StudioLifecycle({
         >
           {resource.status === "archived" ? "恢复资源" : "归档资源"}
         </Button>
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+        {error && !copyOpen && (
+          <Feedback kind={receipt?'action-required':pending?pending.rejection?'warning':'action-required':'error'}>{error}</Feedback>
         )}
+        {notice&&<Feedback kind="information">{notice}</Feedback>}
         {copy && (
           <Button
             type="button"
@@ -308,8 +308,7 @@ export default function StudioLifecycle({
           </Button>
         )}
         {pending && (
-          <Alert>
-            <AlertDescription>
+          <Feedback kind={pending.rejection?'warning':'action-required'}>
               <p>原管理提交仍待核对，内容和身份保持。</p>
               <JsonDetails value={pending.value} title="原管理提交" />
               {pending.rejection ? (
@@ -325,7 +324,7 @@ export default function StudioLifecycle({
                       await onChanged(value);
                       if (live()) {
                         setPending(command.pending());
-                        setError("已采用最新管理版本，当前输入仍保留。");
+                        setError('');setNotice("已采用最新管理版本，当前输入仍保留。");
                       }
                     } catch (cause) {
                       if (live()) setError(errorMessage(cause));
@@ -350,8 +349,7 @@ export default function StudioLifecycle({
                   重试原管理提交
                 </Button>
               )}
-            </AlertDescription>
-          </Alert>
+          </Feedback>
         )}
       </Card>
       <WorkspaceDialog
@@ -427,9 +425,7 @@ export default function StudioLifecycle({
               />
             </Label>
             {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <Feedback kind={receipt?'action-required':pending?pending.rejection?'warning':'action-required':'error'}>{error}</Feedback>
             )}
           </form>
         ) : (

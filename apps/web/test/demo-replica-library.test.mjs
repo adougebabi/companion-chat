@@ -9,7 +9,7 @@ const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../'
 test.after(async()=>{await vite.close();env.restore();});
 const {default:Library}=await vite.ssrLoadModule('/src/react-app/pages/LibraryPage.jsx');
 function workspace(owner='replica-owner'){
- const state=proxy({session:{actorId:owner},selectedId:'A',characters:[{id:'A',name:'林青',job:'编辑',bio:'阅读和绘画',tags:['安静'],status:'正常'},{id:'B',name:'季川',job:'摄影师',bio:'山间行走',tags:['好奇'],status:'已暂停'}],errors:{},loading:{}}),moves=[],reads=[];
+ const state=proxy({ready:true,session:{actorId:owner},selectedId:'A',characters:[{id:'A',name:'林青',job:'编辑',bio:'阅读和绘画',tags:['安静'],status:'正常'},{id:'B',name:'季川',job:'摄影师',bio:'山间行走',tags:['好奇'],status:'已暂停'}],errors:{},loading:{}}),moves=[],reads=[];
  return {state,moves,reads,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),services:{configurationClient:{read:async()=>({bindings:[]})}},select:id=>{state.selectedId=id;},navigate:page=>moves.push([page,state.selectedId]),load:async page=>reads.push(page)};
 }
 const button=(v,text)=>[...v.host.querySelectorAll('button')].find(node=>node.textContent===text);
@@ -35,7 +35,7 @@ test('library loading and failure retain confirmed cards, recover through the re
  const w=workspace('states-owner'),v=await mountReact(vite,Library,{workspace:w});
  try{
   await act(async()=>{w.state.loading.library=true;});await v.flush();assert.equal(v.host.querySelector('[aria-busy=true]')!==null,true);assert.match(v.host.textContent,/正在读取角色资料/);assert.equal(v.host.querySelectorAll('[data-testid^="library-card-"]').length,2);
-  await act(async()=>{w.state.loading.library=false;w.state.errors.library='本次请求失败';});await v.flush();assert.match(v.host.querySelector('[role=alert]').textContent,/保留当前角色列表/);assert.equal(v.host.querySelectorAll('[data-testid^="library-card-"]').length,2);await v.click(button(v,'重新读取角色资料'));assert.deepEqual(w.reads,['角色库']);
+  await act(async()=>{w.state.loading.library=false;w.state.errors.library='本次请求失败';});await v.flush();assert.match(v.host.querySelector('[data-feedback-kind=warning]').textContent,/当前列表仍可查看/);assert.equal(v.host.querySelectorAll('[data-testid^="library-card-"]').length,2);await v.click(button(v,'重新读取角色资料'));assert.deepEqual(w.reads,['角色库']);
   await act(async()=>{w.state.errors.library='';w.state.characters=[];w.state.selectedId='';});await v.flush();assert.match(v.host.textContent,/还没有一起生活的人/);assert.equal(v.host.querySelector('[data-testid=library-create-first]').getAttribute('href'),'#/library/create');assert.equal(v.host.querySelector('.library-resume'),null);
  }finally{await v.dispose();}
 });

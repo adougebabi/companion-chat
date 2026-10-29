@@ -1,0 +1,744 @@
+[
+  {
+    "name": "draft",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/draft-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "invalid-json",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/invalid-json-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "incompatible",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/incompatible-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "incomplete",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/incomplete-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "orphan",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/orphan-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "mismatch",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/mismatch-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "storage-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [
+      "Storage blocked by controlled test"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/storage-failure-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "unknown-activation",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/unknown-activation-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "history-independent",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/history-independent-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "draft",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/draft-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "invalid-json",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/invalid-json-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "incompatible",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/incompatible-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "incomplete",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/incomplete-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "orphan",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/orphan-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "mismatch",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/mismatch-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "storage-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [
+      "Storage blocked by controlled test"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/storage-failure-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "unknown-activation",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/unknown-activation-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "history-independent",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/history-independent-mobile-initial.png"
+    ],
+    "status": "captured"
+  }
+]

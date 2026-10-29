@@ -9,7 +9,7 @@ function loadComponent(file,bindings,exported){
 }
 function fakeDrawer(initial={}){
  const fields=new Map();
- const el={isConnected:true,querySelector(selector){if(!fields.has(selector))fields.set(selector,{value:initial[selector.match(/name=([^\]]+)/)?.[1]]??'',hidden:false,disabled:false,textContent:'',innerHTML:'',reportValidity:()=>true});return fields.get(selector);}};
+ const el={isConnected:true,querySelector(selector){if(!fields.has(selector))fields.set(selector,{setAttribute(){},value:initial[selector.match(/name=([^\]]+)/)?.[1]]??'',hidden:false,disabled:false,textContent:'',innerHTML:'',reportValidity:()=>true});return fields.get(selector);}};
  return {el,close(){el.isConnected=false;}};
 }
 test('explicit rebase survives closing and reopening the actual command drawer',async()=>{

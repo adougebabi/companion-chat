@@ -3,6 +3,7 @@ import {Field} from './forms.js';
 import {JsonDetails} from './records.js';
 import {confirm,esc,toast} from '../ui.js';
 import {beginDraftSubmission,settleDraftSubmission} from './draft-submission.js';
+import {errorMessage} from '../../domain-presentation.mjs';
 const drafts=new Map();subscribe(()=>{if(!get('session'))drafts.clear();});
 // Shared presentation-only form. The supplied service owns persistence, CAS and
 // command identity; this component owns unsaved inputs and response lifetimes.
@@ -18,10 +19,13 @@ export function mountVersionedFields(box,{scope,snapshot,values,fields,read,save
  const settled=(failure,saved)=>{
   if(!box.isConnected)return;submit.disabled=readOnly||!!draft.pending.save||observed!==draft.base;rebase.disabled=!!draft.pending.save;
   form.querySelector('[data-version]').textContent=`保存基线 v${draft.base} · 最近观察 v${observed}`;
-  if(failure)error.textContent=failure.message;else if(saved){if(!draft.dirty)form.elements.reason.value='';error.textContent=draft.dirty?'已保存原提交，等待期间的新输入保留，尚未保存。':'已持久保存；参考定义将在新的视觉会话中消费。';}else if(draft.pending.save)error.textContent='原提交处理中，可以继续编辑；新输入不会被本次提交清除。';else if(observed!==draft.base)error.textContent='版本已变化。草稿已保留，请核对最新内容再明确采用基线。';
+  const kind=failure?(failure.status===409?'warning':'error'):saved?(draft.dirty?'information':'success'):draft.pending.save?'progress':observed!==draft.base?'action-required':'information';
+  error.setAttribute('data-feedback-kind',kind);
+  if(failure)error.textContent=errorMessage(failure);else if(saved){if(!draft.dirty)form.elements.reason.value='';error.textContent=draft.dirty?'已保存原提交，等待期间的新输入保留，尚未保存。':'已持久保存；参考定义将在新的视觉会话中消费。';}else if(draft.pending.save)error.textContent='原提交处理中，可以继续编辑；新输入不会被本次提交清除。';else if(observed!==draft.base)error.textContent='版本已变化。草稿已保留，请核对最新内容再明确采用基线。';else error.textContent='';
+  error.hidden=!error.textContent;
  };draft.onSettled=settled;settled();
  rebase.onclick=async()=>{if(draft.pending.save||readOnly)return;rebase.disabled=true;try{const latest=await read();if(!box.isConnected)return;observed=latest.revision;form.querySelector('[data-latest]').innerHTML=JsonDetails(latest,'最新已保存定义（请对照草稿）');if(await confirm({title:'采用最新保存基线',text:`核对后以 v${latest.revision} 保存你的草稿。当前输入保留。`})&&box.isConnected){draft.base=latest.revision;error.textContent='已明确采用新基线，草稿保持。';}settled();}catch(e){settled(e);}finally{if(box.isConnected)rebase.disabled=false;}};
- form.onsubmit=async event=>{event.preventDefault();if(readOnly||draft.pending.save||!form.reportValidity())return;const submission=beginDraftSubmission(draft,'save',current());draft.onSettled?.();try{const saved=await save({...submission.value.values,expectedRevision:submission.value.expectedRevision,reason:submission.value.reason});if(drafts.get(key)!==draft)return;const result=settleDraftSubmission(draft,submission,current());if(!result)return;draft.base=saved.revision;draft.dirty=!result.unchanged;if(result.unchanged)draft.reason='';draft.onObserved?.(saved.revision);draft.onSettled?.(null,saved);toast('定义已保存');try{await onSaved(saved);}catch(e){toast(`已保存；关联数据重读失败：${e.message}`,'err');}}catch(e){if(drafts.get(key)===draft){settleDraftSubmission(draft,submission,null);draft.onSettled?.(e);}}};
+ form.onsubmit=async event=>{event.preventDefault();if(readOnly||draft.pending.save||!form.reportValidity())return;const submission=beginDraftSubmission(draft,'save',current());draft.onSettled?.();try{const saved=await save({...submission.value.values,expectedRevision:submission.value.expectedRevision,reason:submission.value.reason});if(drafts.get(key)!==draft)return;const result=settleDraftSubmission(draft,submission,current());if(!result)return;draft.base=saved.revision;draft.dirty=!result.unchanged;if(result.unchanged)draft.reason='';draft.onObserved?.(saved.revision);draft.onSettled?.(null,saved);try{await onSaved(saved);}catch(e){if(box.isConnected){error.setAttribute('data-feedback-kind','warning');error.textContent='定义已保存，关联资料暂未读全。可在原页面重新读取。';}}}catch(e){if(drafts.get(key)===draft){settleDraftSubmission(draft,submission,null);draft.onSettled?.(e);}}};
  const observe=revision=>observed=revision;draft.onObserved=observe;
  return()=>{if(draft.onSettled===settled)delete draft.onSettled;if(draft.onObserved===observe)delete draft.onObserved;};
 }

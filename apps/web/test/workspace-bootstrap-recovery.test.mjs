@@ -48,3 +48,18 @@ test('confirmed unauthenticated session clears old startup failure without readi
     assert.equal(w.state.session,null);assert.equal(w.state.errors.bootstrap,undefined);assert.equal(w.state.ready,true);assert.equal(reads,0);
   }finally{w.dispose();Object.assign(real.client,{session:old.session,listFluctlights:old.list});}
 });
+test('Now loads its real detail, schedule and wardrobe without unrelated goal, diary, memory or promise reads',async()=>{
+ const services=await vite.ssrLoadModule('/src/v3/proto/services.js'),{workspaceReadFeedback}=await vite.ssrLoadModule('/src/approved-ui/read-feedback.mjs'),oldDetail=real.client.detail;
+ const calls={detail:0,schedule:0,wardrobe:0,goals:0,diary:0,memory:0,promises:0};
+ real.client.detail=async()=>{calls.detail++;return {id:'A',identity:{name:'此刻样本',timezone:'Asia/Shanghai'},context:{activity:'阅读',location:'书房'},inner_state:{mood:'平静'}};};
+ const unrelated=key=>async()=>{calls[key]++;throw Error('unrelated optional read must not run for Now');};
+ services.configureDomainService('life',{schedules:async()=>{calls.schedule++;return {days:[],timezone:'Asia/Shanghai'};},wardrobe:async()=>{calls.wardrobe++;return {revision:1,worn_items:[],used_items:[]};},goals:unrelated('goals'),promises:unrelated('promises')});
+ services.configureDomainService('diary',{list:unrelated('diary')});services.configureDomainService('memory',{list:unrelated('memory')});
+ services.configureDomainService('inventory',{clothingCatalogue:async()=>({items:[],next_cursor:''}),outfits:async()=>({items:[],next_cursor:'',profile_id:'profile'}),tags:async()=>({tags:[]})});
+ const w=createWorkspace();store.replaceSnapshot({...store.get(),session:{actorId:'now-owner'},characters:{A:{id:'A',name:'此刻样本'}},ui:{charId:'A'}});
+ try{
+  await w.load('此刻');assert.deepEqual(calls,{detail:1,schedule:1,wardrobe:1,goals:0,diary:0,memory:0,promises:0});assert.equal(w.current.value.activity,'阅读');assert.equal(w.current.value.location,'书房');assert.ok(w.current.value._wardrobe);
+  await w.loadLife();assert.equal(calls.promises,1);assert.equal(calls.goals,1);assert.equal(calls.diary,1);assert.equal(calls.memory,1);assert.ok(w.state.errors.promises);
+  assert.ok(!workspaceReadFeedback(w.state,'此刻',w.currentScope()).errors.some(e=>e.key==='promises'));
+ }finally{w.dispose();real.client.detail=oldDetail;}
+});

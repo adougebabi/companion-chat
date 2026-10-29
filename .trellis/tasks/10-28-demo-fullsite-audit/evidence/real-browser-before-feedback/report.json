@@ -1,0 +1,197 @@
+{
+  "origin": "http://127.0.0.1:18480",
+  "layer": "latest production dist / actual isolated Core / existing PostgreSQL records",
+  "capturedAt": "2026-10-29T02:34:29.976Z",
+  "checks": [
+    "existing isolated Owner session authenticated",
+    "five latest React pages rendered actual API data without browser exception",
+    "selected real directory role matches library and chat",
+    "no chat send, model generation or new activation submitted"
+  ],
+  "reads": [
+    {
+      "method": "GET",
+      "path": "/api/fluctlights",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/unread-count",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/configuration-catalog",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_27a911d19edc837e1f32a268ece6d756/detail",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_13d4797b3e91cae8d5f0c2f57d2a1a23/detail",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_7331a1d362862513816547b7b2af8b30/detail",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/tags",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/wardrobe",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/outfits",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/conversation",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/wardrobe",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/tags",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/inventory/outfits",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/detail",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/goals",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/memories",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/diary",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/promises",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/fluctlights/fluctlight_347839e7b22d4f0003824b1c4487de07/schedules",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/studio/resources",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/pending",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations/conversation_0ff5e5cb189572a38569c827473ff493/messages",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations/conversation_1f97f9e2fd2eb3772d4d5f896f877542/messages",
+      "status": 200
+    }
+  ],
+  "pages": [
+    {
+      "name": "library",
+      "path": "/library",
+      "heading": "每一场相遇，\n都值得认真开始。",
+      "screenshot": "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-browser/library.png"
+    },
+    {
+      "name": "chat",
+      "path": "/c/fluctlight_347839e7b22d4f0003824b1c4487de07/chat",
+      "heading": "从一句话，慢慢走近。",
+      "screenshot": "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-browser/chat.png"
+    },
+    {
+      "name": "now",
+      "path": "/c/fluctlight_347839e7b22d4f0003824b1c4487de07/life/now",
+      "heading": "V3回归-f1730708-fullsite-audit的此刻",
+      "screenshot": "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-browser/now.png"
+    },
+    {
+      "name": "studio",
+      "path": "/studio",
+      "heading": "创作中心",
+      "screenshot": "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-browser/studio.png"
+    },
+    {
+      "name": "inbox",
+      "path": "/inbox",
+      "heading": "有些事，想让你知道。",
+      "screenshot": "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/real-browser/inbox.png"
+    }
+  ],
+  "errors": [],
+  "character": {
+    "id": "fluctlight_347839e7b22d4f0003824b1c4487de07",
+    "name": "V3回归-f1730708-fullsite-audit"
+  },
+  "uiEntry": "/assets/index-DedE9f9h.js",
+  "status": "passed"
+}

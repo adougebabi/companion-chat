@@ -171,7 +171,7 @@ function createDiaryGenerationController(__props, { emit: __emit }, lifecycle) {
           {"只回顾已经结束的一天；今天结束后，再整理今天的经历。"}
         </small>
         {receipt.value ? (
-          <OperationStatus variant="default" key={0} role="status">
+          <OperationStatus kind={receipt.value.status==='failed'?'error':['pending','running'].includes(receipt.value.status)?'progress':receipt.value.status==='completed'?'success':receipt.value.status==='cancelled'?'warning':'information'} key={0}>
             {displayText(readValue(diaryRequestText)(receipt.value)) + " "}
             {receipt.value.workflow_id ? (
               <ActionButton variant="ghost" asChild  key={0}>

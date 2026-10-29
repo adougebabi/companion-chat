@@ -12,6 +12,7 @@ import {
 import WorkspaceDialog from "./WorkspaceDialog";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
+import {Feedback} from './Presentation';
 import useWorkspaceRead from "./useWorkspaceRead";
 import { PeopleFact, PeopleReader } from "./PeopleParts";
 import SemanticTree from "./SemanticTree";
@@ -374,7 +375,7 @@ export default function PersonDetail({
   return (
     <>
       <WorkspaceDialog
-        className="replica-profile replica-people"
+        className="replica-profile replica-people replica-person-detail"
         open={!action && !manage}
         title={npc?.name || "人物详情"}
         description={npc?.role || "读取实际人物、来源与接触记录。"}
@@ -421,7 +422,7 @@ export default function PersonDetail({
       >
         <div className="companion-form-stack">
           <PeopleReader source={detail} label="人物详情" />
-          {error && <WorkspaceInfo>{error}</WorkspaceInfo>}
+          {error && <Feedback kind="error" title="接触资料暂未读全" actions={<Button variant="outline" disabled={m.readOnly} onClick={()=>void record()}>重新读取接触资料</Button>} details={<pre>{error}</pre>}>人物详情仍可查看，当前没有提交接触记录。</Feedback>}
           {npc && (
             <>
               <Badge variant="outline">

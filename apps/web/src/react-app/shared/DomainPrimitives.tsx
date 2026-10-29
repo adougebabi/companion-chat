@@ -32,7 +32,7 @@ import {cn} from '@/lib/utils';
  * Only explicitly marked primitives are accepted; this does not interpret page
  * HTML, execute templates or infer React components from arbitrary elements.
  */
-type Port={source:HTMLElement;target:HTMLElement;id:number;kind:string;content?:HTMLElement;summary?:HTMLElement;focused?:boolean;business?:string;generated?:Set<string>;variant?:'default'|'destructive';dispose:()=>void};
+type Port={source:HTMLElement;target:HTMLElement;id:number;kind:string;content?:HTMLElement;summary?:HTMLElement;focused?:boolean;business?:string;generated?:Set<string>;variant?:'default'|'destructive';feedbackKind?:string;declaredFeedbackKind?:string;appliedFeedbackKind?:string;dispose:()=>void};
 const presentationKinds=new Set(['card','alert','item','empty']);
 const oldShellTokens=new Set(['card','banner','lrow','statebox','chip']);
 // Pure presentation primitives apply their actual props to the ORIGINAL host.
@@ -42,7 +42,7 @@ const RetainedShell=forwardRef<HTMLElement,any>(function RetainedShell({source,p
  useLayoutEffect(()=>{
   const next=cn(className,port.business);port.generated=new Set(String(className||'').split(/\s+/).filter(token=>!port.business?.split(/\s+/).includes(token)));
   if(source.className!==next)source.className=next;
-  for(const name of ['data-slot','data-size','data-variant','role'])if(props[name]!==undefined&&source.getAttribute(name)!==String(props[name]))source.setAttribute(name,String(props[name]));
+  for(const name of ['data-slot','data-size','data-variant','data-feedback-kind','role'])if(props[name]!==undefined){if(name==='data-feedback-kind')port.appliedFeedbackKind=String(props[name]);if(source.getAttribute(name)!==String(props[name]))source.setAttribute(name,String(props[name]));}
  });
  return null;
 });
@@ -50,12 +50,16 @@ function PresentationPort({port}:{port:Port}){
  const [,refresh]=useState(0),source=port.source;
  useLayoutEffect(()=>{const observer=new MutationObserver(()=>refresh(value=>value+1));observer.observe(source,{attributes:true,childList:true,subtree:true,characterData:true});return()=>observer.disconnect();},[source]);
  const classes=source.className.split(/\s+/);
- if(!port.variant)port.variant=source.getAttribute('role')==='alert'?'destructive':'default';
- if(classes.includes('banner'))port.variant=classes.includes('err')?'destructive':'default';
+ const declared=source.getAttribute('data-feedback-kind');
+ if(declared!==port.appliedFeedbackKind&&['information','action-required','warning','error','success','progress'].includes(declared||''))port.declaredFeedbackKind=declared||undefined;
+ const legacyKind=classes.includes('err')?'error':classes.includes('warn')?'warning':classes.includes('ok')?'success':classes.includes('info')?'information':null;
+ const feedbackKind=port.declaredFeedbackKind||legacyKind||port.feedbackKind||(source.getAttribute('role')==='alert'?'error':'information');
+ port.feedbackKind=feedbackKind;
+ port.variant=feedbackKind==='error'?'destructive':'default';
  port.business=classes.filter(token=>!oldShellTokens.has(token)&&!(port.kind==='alert'&&['err','info','warn','ok'].includes(token))&&!port.generated?.has(token)).join(' ');
  const host=<RetainedShell source={source} port={port}/>;
  if(port.kind==='card')return <Card asChild className="min-w-0 gap-4 p-5">{host}</Card>;
- if(port.kind==='alert')return <Alert asChild variant={port.variant||'default'} role={source.getAttribute('role')||((port.variant==='destructive')?'alert':'status')}>{host}</Alert>;
+ if(port.kind==='alert')return <Alert asChild variant={port.variant||'default'} data-feedback-kind={feedbackKind} className="replica-feedback" role={feedbackKind==='error'?'alert':['progress','warning','success'].includes(feedbackKind||'')?'status':'note'}>{host}</Alert>;
  if(port.kind==='empty')return <Empty asChild className="border bg-card">{host}</Empty>;
  return <Item asChild variant="outline" className="min-w-0">{host}</Item>;
 }

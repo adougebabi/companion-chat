@@ -1,0 +1,110 @@
+[
+  {
+    "id": "FG01",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/Presentation.tsx",
+    "line": 17,
+    "locator": "export function Feedback"
+  },
+  {
+    "id": "FG02",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/Presentation.tsx",
+    "line": 42,
+    "locator": "export function ReaderFeedback"
+  },
+  {
+    "id": "FG03",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/creation-recovery-state.mjs",
+    "line": 15,
+    "locator": "export function inspectCreationRecovery"
+  },
+  {
+    "id": "FG04",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/creation-recovery.mjs",
+    "line": 28,
+    "locator": "export function creationRecovery"
+  },
+  {
+    "id": "FG05",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/LibraryPage.jsx",
+    "line": 100,
+    "locator": "review=progress.visual"
+  },
+  {
+    "id": "FG06",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/state/conversation.ts",
+    "line": 269,
+    "locator": "function writeRecovery"
+  },
+  {
+    "id": "FG07",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ManagementPage.jsx",
+    "line": 468,
+    "locator": "function findConfigurationRecovery"
+  },
+  {
+    "id": "FG08",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ManagementPage.jsx",
+    "line": 483,
+    "locator": "function recordConfigurationStorageProblem"
+  },
+  {
+    "id": "FG09",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/SettingsField.tsx",
+    "line": 5,
+    "locator": "export default function SettingsField"
+  },
+  {
+    "id": "FG10",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ManagementPage.jsx",
+    "line": 196,
+    "locator": "async function retryPolicy"
+  },
+  {
+    "id": "FG11",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/MediaUpload.tsx",
+    "line": 24,
+    "locator": "async function refreshList"
+  },
+  {
+    "id": "FG12",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/Presentation.tsx",
+    "line": 30,
+    "locator": "export function ResultFeedback"
+  },
+  {
+    "id": "FG13",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkflowRecovery.tsx",
+    "line": 23,
+    "locator": "const read=useCallback"
+  },
+  {
+    "id": "FG14",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/components/async-page.js",
+    "line": 10,
+    "locator": "export function asyncPage"
+  },
+  {
+    "id": "FG15",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/DomainPrimitives.tsx",
+    "line": 35,
+    "locator": "feedbackKind"
+  },
+  {
+    "id": "FG16",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/state/workspace.mjs",
+    "line": 335,
+    "locator": "async function loadLife"
+  },
+  {
+    "id": "FG17",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkspaceDialog.tsx",
+    "line": 62,
+    "locator": "DialogHeader className"
+  },
+  {
+    "id": "FG18",
+    "file": "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/components.tsx",
+    "line": 114,
+    "locator": "primary feedback precedence and retained failure reason"
+  }
+]

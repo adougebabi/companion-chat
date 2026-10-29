@@ -1,0 +1,1902 @@
+[
+  {
+    "name": "draft",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "valid draft offers exactly one continuation CTA",
+      "continuation restores actual saved input",
+      "continued: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/draft-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/draft-desktop-continued.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "invalid-json",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/invalid-json-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/invalid-json-desktop-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "incompatible",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incompatible-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incompatible-desktop-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "incomplete",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incomplete-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incomplete-desktop-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "orphan",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/orphan-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/orphan-desktop-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "mismatch",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/mismatch-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/mismatch-desktop-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "storage-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "successful storage reread clears old failure",
+      "recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/storage-failure-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/storage-failure-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "unknown-activation",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "opening unknown does not create another role",
+      "explicit recovery replays original activation body once",
+      "original-replayed: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "feedback-original-request",
+          "initializationMode": "blank_slate",
+          "initializationTimezone": "Asia/Shanghai",
+          "name": "原提交的角色"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "f20b04da-47cf-425c-a23a-c22314f644cf"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/creation-reference",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/creation-sheet",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/unknown-activation-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/unknown-activation-desktop-original-replayed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "history-independent",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "valid archived progress opens independently of corrupt current draft",
+      "current corrupt record is retained",
+      "history-progress: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/history-independent-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/history-independent-desktop-history-progress.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "stale-cleared",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "authoritative missing draft clears obsolete notice",
+      "cleared: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/stale-cleared-desktop-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/stale-cleared-desktop-cleared.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "unconfigured",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '空白创建', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feedback-entry-ui.mjs:45:125",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n新的相识\n快速前往\n⌘ K\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n已有角色的世界\n已发布的世界底稿\n日常生活世界\n复用配置，开启独立的生活\n配置来源\n已有角色的小镇\n\n书店、住处与河边小路。\n\n来自 林岚 · 验收样本\n独立复用\n配置来源\n已有角色的小镇\n\n书店、住处与河边小路。\n\n来自 季川 · 验收样本\n独立复用\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\n重新读取已有世界\nYOUR NEW CHAPTER\n故事，正在等待开始\n\n给日常一个可以发生的地方。\n\n生活世界\n待选择\n认识方式\n一段描述\n每一个细节，\n都可以成为日后相处的回声。\n草稿与原请求按当前账号保留\n草稿自动保留\n返回与切换页面，保留这次输入。\n继续，认识角色"
+  },
+  {
+    "name": "draft",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "valid draft offers exactly one continuation CTA",
+      "continuation restores actual saved input",
+      "continued: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/draft-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/draft-mobile-continued.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "invalid-json",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/invalid-json-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/invalid-json-mobile-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "incompatible",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incompatible-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incompatible-mobile-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "incomplete",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incomplete-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/incomplete-mobile-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "orphan",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/orphan-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/orphan-mobile-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "mismatch",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "invalid state has no invented continue action",
+      "export is a real download and preserves original bytes",
+      "details: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/mismatch-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/mismatch-mobile-details.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "storage-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "successful storage reread clears old failure",
+      "recovered: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/storage-failure-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/storage-failure-mobile-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "unknown-activation",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "opening unknown does not create another role",
+      "explicit recovery replays original activation body once",
+      "original-replayed: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "method": "POST",
+        "body": {
+          "requestId": "feedback-original-request",
+          "initializationMode": "blank_slate",
+          "initializationTimezone": "Asia/Shanghai",
+          "name": "原提交的角色"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "dc0a88be-69a4-4985-9162-23faa7f106fe"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/unknown-activation-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/unknown-activation-mobile-original-replayed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "history-independent",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "valid archived progress opens independently of corrupt current draft",
+      "current corrupt record is retained",
+      "history-progress: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/visual-identity",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/history-independent-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/history-independent-mobile-history-progress.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "stale-cleared",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [
+      "feedback severity follows actual recovery state",
+      "nonblocking recovery is not an assertive red error",
+      "library remains available",
+      "initial: no horizontal overflow",
+      "authoritative missing draft clears obsolete notice",
+      "cleared: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/stale-cleared-mobile-initial.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback1/stale-cleared-mobile-cleared.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "unconfigured",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '空白创建', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feedback-entry-ui.mjs:45:125",
+    "text": "Toggle Sidebar\n角色库\n新的相识\n快速前往\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n认识角色\n资料预览\n准备相遇\n已有角色的世界\n已发布的世界底稿\n日常生活世界\n复用配置，开启独立的生活\n配置来源\n已有角色的小镇\n\n书店、住处与河边小路。\n\n来自 林岚 · 验收样本\n独立复用\n配置来源\n已有角色的小镇\n\n书店、住处与河边小路。\n\n来自 季川 · 验收样本\n独立复用\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\n重新读取已有世界\n草稿自动保留\n继续，认识角色"
+  }
+]

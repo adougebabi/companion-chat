@@ -1,0 +1,916 @@
+[
+  {
+    "page": "chat",
+    "state": "loading",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "waiting: no document overflow",
+      "resolved: no document overflow",
+      "resolving a read does not issue a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "waiting",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "tag": "svg",
+            "testId": null,
+            "className": {},
+            "bounds": {
+              "x": 276,
+              "y": 342.828125,
+              "width": 16,
+              "height": 16
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "resolved",
+        "nodes": []
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-loading-desktop-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-loading-desktop-resolved.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "page": "chat",
+    "state": "failure",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "actual domain read was intercepted",
+      "failed: no document overflow",
+      "technical request identity is not ordinary copy",
+      "retry reaches original domain endpoint",
+      "recovered: no document overflow",
+      "read recovery never writes a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "failed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "无法打开该 Fluctlight 的对话。重新读取对话查看本次运行",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 276,
+              "y": 342.828125,
+              "width": 707,
+              "height": 54.421875
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取对话",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看本次运行",
+                "label": null,
+                "href": "#/diag",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "recovered",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "tag": "svg",
+            "testId": null,
+            "className": {},
+            "bounds": {
+              "x": 276,
+              "y": 342.828125,
+              "width": 16,
+              "height": 16
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-failure-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-failure-desktop-recovered.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "page": "goals",
+    "state": "loading",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "waiting: no document overflow",
+      "resolved: no document overflow",
+      "resolving a read does not issue a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "waiting",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "正在读取目标…",
+            "tag": "DIV",
+            "testId": null,
+            "className": "grid gap-3 py-4",
+            "bounds": {
+              "x": 252,
+              "y": 287.828125,
+              "width": 1062,
+              "height": 176
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "resolved",
+        "nodes": []
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-loading-desktop-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-loading-desktop-resolved.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "page": "goals",
+    "state": "failure",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "actual domain read was intercepted",
+      "failed: no document overflow",
+      "technical request identity is not ordinary copy",
+      "retry reaches original domain endpoint",
+      "recovered: no document overflow",
+      "read recovery never writes a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "failed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。\n\n重新读取当前目标",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 252,
+              "y": 287.828125,
+              "width": 1062,
+              "height": 79.1875
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取当前目标",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "recovered",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "正在读取目标…",
+            "tag": "DIV",
+            "testId": null,
+            "className": "grid gap-3 py-4",
+            "bounds": {
+              "x": 252,
+              "y": 287.828125,
+              "width": 1062,
+              "height": 176
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-failure-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-failure-desktop-recovered.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "page": "chat",
+    "state": "loading",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "waiting: no document overflow",
+      "resolved: no document overflow",
+      "resolving a read does not issue a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "waiting",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "tag": "svg",
+            "testId": null,
+            "className": {},
+            "bounds": {
+              "x": 31,
+              "y": 348.640625,
+              "width": 16,
+              "height": 16
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "resolved",
+        "nodes": []
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-loading-mobile-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-loading-mobile-resolved.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "page": "chat",
+    "state": "failure",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "actual domain read was intercepted",
+      "failed: no document overflow",
+      "technical request identity is not ordinary copy",
+      "retry reaches original domain endpoint",
+      "recovered: no document overflow",
+      "read recovery never writes a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/detail",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/wardrobe",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/outfits",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/inventory/tags",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/conversation",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-bookshop",
+        "method": "GET"
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "failed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "无法打开该 Fluctlight 的对话。重新读取对话查看本次运行",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 31,
+              "y": 348.640625,
+              "width": 328,
+              "height": 74.421875
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取对话",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看本次运行",
+                "label": null,
+                "href": "#/diag",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "recovered",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "tag": "svg",
+            "testId": null,
+            "className": {},
+            "bounds": {
+              "x": 31,
+              "y": 348.640625,
+              "width": 16,
+              "height": 16
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-failure-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/chat-failure-mobile-recovered.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "page": "goals",
+    "state": "loading",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "waiting: no document overflow",
+      "resolved: no document overflow",
+      "resolving a read does not issue a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "waiting",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "正在读取目标…",
+            "tag": "DIV",
+            "testId": null,
+            "className": "grid gap-3 py-4",
+            "bounds": {
+              "x": 17,
+              "y": 316.140625,
+              "width": 356,
+              "height": 176
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "resolved",
+        "nodes": []
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-loading-mobile-waiting.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-loading-mobile-resolved.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "page": "goals",
+    "state": "failure",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP matching Demo content; read states only, no real backend/model certification",
+    "errors": [],
+    "checks": [
+      "actual domain read was intercepted",
+      "failed: no document overflow",
+      "technical request identity is not ordinary copy",
+      "retry reaches original domain endpoint",
+      "recovered: no document overflow",
+      "read recovery never writes a command",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET"
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      },
+      {
+        "path": "/api/fluctlights/linwan/goals",
+        "method": "GET"
+      }
+    ],
+    "feedback": [
+      {
+        "label": "failed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。\n\n重新读取当前目标",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 17,
+              "y": 316.140625,
+              "width": 356,
+              "height": 79.1875
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取当前目标",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "recovered",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "正在读取目标…",
+            "tag": "DIV",
+            "testId": null,
+            "className": "grid gap-3 py-4",
+            "bounds": {
+              "x": 17,
+              "y": 316.140625,
+              "width": 356,
+              "height": 176
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-failure-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-read-before-feedback3/goals-failure-mobile-recovered.png"
+    ],
+    "status": "captured"
+  }
+]

@@ -3,6 +3,7 @@ import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {startOwnedFixture} from './owned-fixture.mjs';
+import {recordFeedbackDOM} from './feedback-dom-audit.mjs';
 const require=createRequire('/private/tmp/fluctlight-demo-audit-20261028/browser-tools/package.json'),{chromium}=require('playwright-core');
 const out=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-'+(process.env.AUDIT_PHASE||'pass113'));
 await mkdir(out,{recursive:true});const browser=await chromium.launch({channel:'chrome',headless:true}),results=[];
@@ -16,7 +17,7 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
     const api='/api/fluctlights/fluctlight-fixture-one',get=async path=>{const r=await context.request.get(server.base+path);assert.equal(r.status(),200);return r.json();};
     const check=(label,value)=>{assert.ok(value,label);record.checks.push(label);};
     const wearing=async()=>(await get(api+'/wardrobe')).worn_items.map(i=>i.id).sort();
-    const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);};
+    const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);await recordFeedbackDOM(page,record,state);};
     const before=await wearing();let admission,terminal=false,firstUnknown=true,readbackFailed=false;
     await page.route('**'+api+'/inventory/requests',async route=>{
       const response=await route.fetch();admission=await response.json();

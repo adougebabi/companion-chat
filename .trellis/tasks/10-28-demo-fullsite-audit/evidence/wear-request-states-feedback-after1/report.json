@@ -1,0 +1,2872 @@
+[
+  {
+    "name": "failed",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "failed or rejected outcome retains confirmed wearing and reason",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 failed",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "c05e3ab7-79f1-4686-a189-d25dfa2b1a47"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "03b170c0-2f39-43f3-979c-c6fc6857be44"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/failed-desktop-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/failed-desktop-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装没有确认提交结果。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 89.796875
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装没有确认提交结果。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 89.796875
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "denied",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "failed or rejected outcome retains confirmed wearing and reason",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 denied",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "d41a7a43-c73b-4e63-92a5-d24a6593a9e8"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "09eaffa5-715c-41a9-8392-6534b1f2ce96"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/denied-desktop-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/denied-desktop-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装未被采纳，继续保留当前穿着。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 89.796875
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装未被采纳，继续保留当前穿着。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 89.796875
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "no-change",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "no-change is distinct and does not fabricate a wearing mutation",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 no-change",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-0",
+            "clothing-2",
+            "clothing-3",
+            "clothing-1",
+            "clothing-4",
+            "clothing-5"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "2cac3021-788e-4482-adaa-dbd35c8d9e83"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "bf8fb9a7-3fcc-4dd5-a8cb-843c0faace84"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/no-change-desktop-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/no-change-desktop-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "已经穿着这套搭配，本次无需换装。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "已经穿着这套搭配，本次无需换装。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "unknown",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "unknown: no horizontal overflow",
+      "confirmed member set is actually read back after original recovery",
+      "unknown retry preserves original request body/key/outfit and wearing CAS",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 unknown",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "c7d60eae-be28-4512-95c8-f35c999cec52"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "7d99f3c4-e633-461a-8606-d727ce7fa643"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "7d99f3c4-e633-461a-8606-d727ce7fa643"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/unknown-desktop-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/unknown-desktop-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/unknown-desktop-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "unknown",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。 重试",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 89.796875
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重试",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "readback-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "terminal readback failure retains known request result",
+      "readback-failure: no horizontal overflow",
+      "readback recovery uses GET only",
+      "confirmed member set is actually read back after original recovery",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 readback-failure",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "ed736464-4c8c-4d82-883b-45849748835b"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "f10f0df2-047f-475c-8dd8-41bbfe0724c1"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/readback-failure-desktop-readback-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/readback-failure-desktop-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/readback-failure-desktop-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "readback-failure",
+        "nodes": [
+          {
+            "kind": "warning",
+            "role": "status",
+            "live": "polite",
+            "text": "部分内容暂未读全\n上次确认的内容仍保留。\n\n衣柜：服务暂时无法连接，请稍后重新读取。\n\n重新读取当前页面",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 mb-4",
+            "bounds": {
+              "x": 252,
+              "y": 94,
+              "width": 1062,
+              "height": 142.578125
+            },
+            "style": {
+              "color": "rgb(119, 109, 66)",
+              "background": "rgb(251, 250, 243)",
+              "border": "rgb(231, 225, 201)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重新读取当前页面",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "请求状态已确认，但页面结果读回失败：服务暂时无法连接，请稍后重新读取。\n\n重新读取页面结果",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 274,
+              "y": 1028.640625,
+              "width": 296,
+              "height": 113.1875
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重新读取页面结果",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 274,
+              "y": 803.0625,
+              "width": 296,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 274,
+              "y": 856.0625,
+              "width": 296,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "failed",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "failed or rejected outcome retains confirmed wearing and reason",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 failed",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "981ac931-1140-4860-a9af-1e7d6c1e98bf"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "b0d407e9-a059-4e99-82c3-6b15214b2c67"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/failed-mobile-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/failed-mobile-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装没有确认提交结果。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 34,
+              "y": 843.71875,
+              "width": 322,
+              "height": 73
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装没有确认提交结果。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 34,
+              "y": 923.71875,
+              "width": 322,
+              "height": 73
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "denied",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "failed or rejected outcome retains confirmed wearing and reason",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 denied",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "31c4bb35-b92d-43ef-95fc-2c51ce7a4254"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "d704c034-c2f7-4e01-a302-36094d388d61"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/denied-mobile-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/denied-mobile-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装未被采纳，继续保留当前穿着。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 34,
+              "y": 843.71875,
+              "width": 322,
+              "height": 91.140625
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次换装未被采纳，继续保留当前穿着。 查看原请求",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 34,
+              "y": 923.71875,
+              "width": 322,
+              "height": 91.140625
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "查看原请求",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "no-change",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "no-change is distinct and does not fabricate a wearing mutation",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 no-change",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-0",
+            "clothing-2",
+            "clothing-3",
+            "clothing-1",
+            "clothing-4",
+            "clothing-5"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "5203840f-c39d-44b5-afe9-b2bd87a7d5c5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "823baa3b-6953-4e81-b5a4-a865da4d2e9e"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/no-change-mobile-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/no-change-mobile-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "已经穿着这套搭配，本次无需换装。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 34,
+              "y": 843.71875,
+              "width": 322,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "已经穿着这套搭配，本次无需换装。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 34,
+              "y": 923.71875,
+              "width": 322,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "unknown",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "unknown: no horizontal overflow",
+      "confirmed member set is actually read back after original recovery",
+      "unknown retry preserves original request body/key/outfit and wearing CAS",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 unknown",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "e3c37c86-31f4-4e9b-89f0-8ac60035ec4f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "446cf816-2e30-4fd6-a0dd-092f24136a94"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "446cf816-2e30-4fd6-a0dd-092f24136a94"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/unknown-mobile-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/unknown-mobile-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/unknown-mobile-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "unknown",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。 重试",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 34,
+              "y": 843.71875,
+              "width": 322,
+              "height": 73
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重试",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 34,
+              "y": 744.375,
+              "width": 322,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 34,
+              "y": 903.375,
+              "width": 322,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  },
+  {
+    "name": "readback-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled request and wardrobe HTTP; simulated outcomes, no real model decision",
+    "checks": [
+      "terminal readback failure retains known request result",
+      "readback-failure: no horizontal overflow",
+      "readback recovery uses GET only",
+      "confirmed member set is actually read back after original recovery",
+      "result: no horizontal overflow",
+      "reload retains terminal result without readmission",
+      "refreshed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "换装结果核验 readback-failure",
+          "tags": [
+            "在家"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 3,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "7c088953-6a1e-4a05-8ab6-7a0f97abfb7f"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-1",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 4,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "eb9a169e-2fe1-4449-bc0d-35fcfa5f6b27"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/readback-failure-mobile-readback-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/readback-failure-mobile-result.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wear-request-states-feedback-after1/readback-failure-mobile-refreshed.png"
+    ],
+    "feedback": [
+      {
+        "state": "readback-failure",
+        "nodes": [
+          {
+            "kind": "warning",
+            "role": "status",
+            "live": "polite",
+            "text": "部分内容暂未读全\n上次确认的内容仍保留。\n\n衣柜：服务暂时无法连接，请稍后重新读取。\n\n重新读取当前页面",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 mb-4",
+            "bounds": {
+              "x": 17,
+              "y": -163,
+              "width": 356,
+              "height": 134.125
+            },
+            "style": {
+              "color": "rgb(119, 109, 66)",
+              "background": "rgb(251, 250, 243)",
+              "border": "rgb(231, 225, 201)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重新读取当前页面",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "请求状态已确认，但页面结果读回失败：服务暂时无法连接，请稍后重新读取。\n\n重新读取页面结果",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 34,
+              "y": 843.84375,
+              "width": 322,
+              "height": 112.59375
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重新读取页面结果",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "result",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 34,
+              "y": 744.375,
+              "width": 322,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "refreshed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "请求已完成，可核对当前记录。",
+            "tag": "DIV",
+            "testId": "request-status",
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0 muted",
+            "bounds": {
+              "x": 34,
+              "y": 903.375,
+              "width": 322,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(78, 115, 81)",
+              "background": "rgb(243, 248, 242)",
+              "border": "rgb(220, 232, 216)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed"
+  }
+]

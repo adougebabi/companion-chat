@@ -1,0 +1,39 @@
+✔ unreadable original request storage cannot crash startup or admit a fresh turn; reread restores exact identity without changing its server state (4.083583ms)
+✔ runtime archive read failure blocks a queued send and never overwrites another original record, including a write-boundary failure (30.544334ms)
+✔ library filters actual tags and text, switches views, navigates the chosen role and restores UI drafts per Owner (663.212041ms)
+✔ library loading and failure retain confirmed cards, recover through the real read action, and distinguish true empty directory (278.601042ms)
+✔ quick jump supports page and character selection and Escape closes without navigation (464.293625ms)
+✔ reading positions isolate Owners, character filters and sections while equivalent query order shares a position (11.109792ms)
+✔ configuration categories preserve a newer draft while the actual services and four roles remain independently reachable (4596.66ms)
+✔ a retained async page imports its real diagnostic renderer and creates a working original-read retry after failure (38.74625ms)
+✔ an original role policy is discovered after remount and a failed retry ends progress without allowing new configuration writes (447.333167ms)
+✔ runtime configuration storage denial blocks admission with a real readonly local-record retry (364.037625ms)
+✔ an unknown configuration blocks every new save and is rediscovered after remount without changing its identity (748.586792ms)
+✔ a restored stale connection has a reachable baseline read that preserves draft and unlocks saving only after confirmation (509.478333ms)
+✔ task records use source actions and never turn a status into numeric progress (120.739416ms)
+✔ data validation refuses a changed input after the read and failed export preserves the exact raw draft (20.989375ms)
+✔ domain field blur records carrier selection without stealing pointer or Tab focus; explicit restoration still forwards (106.511125ms)
+✔ a received durable command recovers failed readback after reopening without a second mutation (244.867417ms)
+✔ a durable command checkpoints a late receipt after close, but never after logout and same-Owner re-entry (252.183625ms)
+✔ a durable receipt readback retains input edited while submission is waiting (128.203917ms)
+✔ unreadable durable records show a real local reread and never replace the original identity with a fresh command (205.872667ms)
+✔ logout clears configuration recovery and inactive management preferences for exactly the original Owner (0.41875ms)
+✔ the native history deep route waits for its role directory, retries the original cursor and returns without losing the chat draft (521.180958ms)
+✔ native upload verifies and restores the original accepted upload without resending bytes after remount (1678.086834ms)
+✔ native task detail reads task authority and original workflow separately, retaining original recovery body and key (2408.878375ms)
+✔ calendar supports month navigation and stable civil dates; no UTC conversion changes the selected business day (209.555708ms)
+✔ wizard rereads worlds when the role directory arrives and a later successful template read cannot erase catalogue failure (776.050917ms)
+✔ native avatar recovers the original selection, preserves a newer draft, and rebases only after explicit review (352.112667ms)
+✔ native governance uses current Foundation revision, preserves stale rejection, and never accepts a stale proposal (277.694375ms)
+✔ native self claim restores only complete accepted snapshots using current claim CAS and the exact chosen historical revision (210.496917ms)
+✔ inline progress follows original request, localizes tasks, keeps state on read failure and ignores changed Owner (3.538042ms)
+✔ outfit action reads fresh wardrobe and outfit versions at click time (1.393041ms)
+✔ slow restoration of an old suggestion cannot replace a freshly submitted progress panel (1.572542ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9220.109625

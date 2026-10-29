@@ -1,5 +1,5 @@
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
-import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {InlineFeedback,Feedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import {Alert,AlertDescription} from '@/components/ui/alert';
@@ -19,6 +19,8 @@ import { ActionButton, FieldInput, Disclosure } from "./controls";
 import { useWorkspace } from "./page";
 import { renderGarmentArt } from "./renderers/GarmentArt";
 import { selector } from "../state/view-model";
+
+const announcedOperations=new WeakMap<object,Set<string>>();
 
 export function CurrentOutfit({ compact = false }: { compact?: boolean }) {
   const w = useWorkspace();
@@ -100,13 +102,18 @@ export function ActionFeedback({
           !r.operation?.startsWith(excludeOperationPrefix)),
     )
     .at(-1);
-  React.useEffect(()=>{if(latest?.requestId&&latest.status==='success'&&latest.response)toast(latest.response,'success');},[latest?.id,latest?.status,latest?.response]);
+  React.useEffect(()=>{
+    if(showStatus||!latest?.requestId||latest.restored||latest.readbackError||latest.requestUnresolved||latest.status!=='success'||!latest.response)return;
+    const key=[w.state.session?.actorId,latest.fid,latest.id,latest.response].join(':'),seen=announcedOperations.get(w)||new Set<string>();
+    if(seen.has(key))return;seen.add(key);announcedOperations.set(w,seen);
+    toast(latest.response,latest.requestStatus==='accepted'?'info':'success');
+  },[w,showStatus,latest?.id,latest?.status,latest?.response,latest?.readbackError,latest?.requestUnresolved]);
   if (!latest) return null;
   return (
     <>
-      {showStatus && latest.status !== "error" && (
-        <OperationStatus variant="default" className="muted" role="status" data-testid="request-status">
-          {latest.status === "pending"
+      {showStatus && latest.status !== "error" && !latest.readbackError && !latest.review && (
+        <OperationStatus kind={latest.status==='pending'||latest.readbackPending?'progress':latest.requestStatus==='accepted'?'information':'success'} className="muted" data-testid="request-status">
+          {latest.admissionPending?'正在提交请求，等待实际回执。':latest.readbackPending?'原操作已有回执，正在读取实际结果…':latest.status === "pending"
             ? latest.operation === "persona-switch"
               ? "人格切换请求已受理，等待处理；当前人格以实际记录为准。"
               : latest.operation?.startsWith("wear-outfit:")
@@ -115,39 +122,40 @@ export function ActionFeedback({
             : latest.response || "请求已处理，请核对实际结果。"}
         </OperationStatus>
       )}
-      {latest.status === "error" && (
-        <Alert variant="destructive"><AlertDescription>
+      {latest.status === "error" && !latest.readbackError && !latest.review && (
+        <Feedback kind={latest.outcomeUnknown||latest.requestUnresolved||latest.readbackPending?'action-required':latest.rejected?'warning':'error'} details={latest.originalInput&&<pre className="whitespace-pre-wrap break-words">{latest.originalInput}</pre>} detailsLabel="查看等待核对的原提交">
           {latest.reason}{" "}
-          <ActionButton variant="ghost"  onClick={() => latest.run?.()}>
+          {typeof latest.run==='function'&&<ActionButton variant="ghost"  onClick={() => latest.run()}>
             {latest.actionText || "重试"}
-          </ActionButton>
-        </AlertDescription></Alert>
+          </ActionButton>}
+        </Feedback>
       )}
       {latest.readbackError && (
-        <InlineFeedback  role="alert">
-          {latest.readbackError}{" "}
+        <Feedback kind={latest.status==='error'&&!latest.outcomeUnknown&&!latest.requestUnresolved&&!latest.readbackPending?'error':'action-required'} details={latest.originalInput&&<pre className="whitespace-pre-wrap break-words">{latest.originalInput}</pre>} detailsLabel="查看等待核对的原提交">
+          {latest.status==='error'&&latest.reason&&<p>{latest.reason}{typeof latest.run==='function'&&<ActionButton variant="ghost" onClick={()=>latest.run()}>{latest.actionText||'查看原请求'}</ActionButton>}</p>}
+          <p>{latest.readbackError}</p>
           <ActionButton variant="ghost"
 
             onClick={() => latest.refreshResult()}
           >
             重新读取页面结果
           </ActionButton>
-        </InlineFeedback>
+        </Feedback>
       )}
-      {latest.originalInput && (
-        <InlineFeedback>
+      {latest.originalInput && latest.status!=="error" && !latest.readbackError && !latest.review && (
+        <InlineFeedback kind="action-required">
           <Disclosure title="查看等待核对的原提交"><ScrollArea className="h-64"><pre className="whitespace-pre-wrap break-words">{latest.originalInput}</pre></ScrollArea></Disclosure>
         </InlineFeedback>
       )}
       {latest.review && (
-        <InlineFeedback >
+        <Feedback kind="warning" details={latest.originalInput&&<pre className="whitespace-pre-wrap break-words">{latest.originalInput}</pre>} detailsLabel="查看等待核对的原提交">
           <p>
             原提交已明确因版本冲突被拒绝，草稿仍保留。读取最新对象后，请重新核对变更。
           </p>
           <ActionButton variant="outline"  onClick={() => latest.release()}>
             读取最新版本并保留草稿
           </ActionButton>
-        </InlineFeedback>
+        </Feedback>
       )}
     </>
   );

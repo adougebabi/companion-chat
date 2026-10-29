@@ -308,6 +308,18 @@
   max-width: 100%;
   flex: none;
 }
+.replica-person-detail .profile-key-value {
+  display:grid;
+  grid-template-columns:116px minmax(0,1fr);
+  gap:14px;
+  padding:11px 0;
+  border-bottom:1px solid #f0f2e9;
+  font-size:12px;
+  line-height:1.8;
+}
+.replica-person-detail .profile-key-value > span { font-size:11px;color:#8b947f; }
+.replica-person-detail .profile-key-value > div { color:#2e3931; }
+@media(max-width:700px){.replica-person-detail .profile-key-value{grid-template-columns:86px minmax(0,1fr);}}
 @media (min-width: 701px) {
   .replica-people .companion-toolbar [data-slot="select-trigger"] {
     height: 39px;

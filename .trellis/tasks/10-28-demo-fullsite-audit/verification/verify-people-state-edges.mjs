@@ -3,10 +3,12 @@ import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {startOwnedFixture} from './owned-fixture.mjs';
+import {recordFeedbackDOM} from './feedback-dom-audit.mjs';
 const require=createRequire('/private/tmp/fluctlight-demo-audit-20261028/browser-tools/package.json'),{chromium}=require('playwright-core');
 const out=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-'+(process.env.AUDIT_PHASE||'pass119'));
 await mkdir(out,{recursive:true});const browser=await chromium.launch({channel:'chrome',headless:true}),results=[];
 try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])for(const name of ['incomplete','foreign-world','foreign-place','read-only','about-conflict']){
+ if(process.env.AUDIT_CASES&&!process.env.AUDIT_CASES.split(',').includes(name))continue;
  const server=await startOwnedFixture({port:Number(process.env.PEOPLE_EDGES_PORT||4467),env:{FLUCTLIGHT_UI_FIXTURE_PEOPLE:'normal',FLUCTLIGHT_UI_FIXTURE_PROFILE:'normal'}});let context,page,release;
  const record={name,size,width,height,boundary:'actual production components / controlled People and Profile HTTP; no live cognition or identity writes',checks:[],requests:[],errors:[],screenshots:[]};
  try{
@@ -14,7 +16,7 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
   page.on('pageerror',e=>record.errors.push(e.message));page.on('request',r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/'))record.requests.push({path,method:r.method(),body:r.postDataJSON()});});
   const api='/api/fluctlights/fluctlight-fixture-one',check=(label,value)=>{assert.ok(value,label);record.checks.push(label);},writes=()=>record.requests.filter(r=>!['GET','HEAD'].includes(r.method));
   const get=async path=>{const r=await context.request.get(server.base+path);assert.equal(r.status(),200,path);return r.json();};
-  const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);};
+  const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);await recordFeedbackDOM(page,record,state);};
   let invalid=true;
   if(name==='incomplete')await page.route('**'+api+'/npcs',async route=>{const response=await route.fetch(),value=await response.json();await route.fulfill({response,json:invalid?{...value,next_cursor:'unread-page'}:value});});
   if(name.startsWith('foreign-'))await page.route('**'+api+'/world',async route=>{const response=await route.fetch(),value=await response.json();if(invalid){if(name==='foreign-world')value.world.fluctlight_id='foreign-role';else value.places[0].world_id='foreign-world';}await route.fulfill({response,json:value});});
@@ -31,7 +33,7 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
    const gate=new Promise(ok=>{release=ok;});let held=true;
    await page.route('**'+api+'/actor-user-background',async route=>{if(held&&route.request().method()==='PUT'){held=false;await gate;}await route.continue();});
    const sent=page.waitForRequest(r=>new URL(r.url()).pathname===api+'/actor-user-background'&&r.method()==='PUT');await inline.getByRole('button',{name:'保存资料',exact:true}).click();await sent;await inline.getByRole('button',{name:'正在处理…',exact:true}).waitFor();check('authored save busy blocks duplicate confirmation',await inline.getByRole('button',{name:'正在处理…',exact:true}).isDisabled());await shot('saving');release();release=null;
-   await inline.getByRole('alert').waitFor();await inline.getByRole('button',{name:'读取最新版本并保留输入',exact:true}).waitFor();check('conflict retains same unsaved field',await inline.getByRole('textbox',{name:'称呼',exact:true}).inputValue()===draft);await shot('conflict');
+   await (process.env.AUDIT_VERSION==='before'?inline.getByRole('alert'):inline.locator('[data-feedback-kind="warning"]')).waitFor();await inline.getByRole('button',{name:'读取最新版本并保留输入',exact:true}).waitFor();check('conflict retains same unsaved field',await inline.getByRole('textbox',{name:'称呼',exact:true}).inputValue()===draft);await shot('conflict');
    await inline.getByRole('button',{name:'读取最新版本并保留输入',exact:true}).click();await inline.getByRole('button',{name:'已核对，采用最新基线',exact:true}).click();check('explicit rebase preserves input and makes no new PUT',await inline.getByRole('textbox',{name:'称呼',exact:true}).inputValue()===draft&&writes().length===1);await shot('rebased');await inline.getByRole('button',{name:'保存资料',exact:true}).click();await page.getByText('你的资料已保存并读回，自填来源与已有认识分别保留。',{exact:true}).waitFor();
    const after=await get(api+'/detail');check('rebased write uses latest facts and keeps external unrelated field',after.actor_user.background.name===draft&&after.actor_user.background.occupation==='外部已确认的新职业'&&writes().length===2&&writes()[0].body.expectedCurrentFactsRevision!==writes()[1].body.expectedCurrentFactsRevision);await shot('saved');
   }

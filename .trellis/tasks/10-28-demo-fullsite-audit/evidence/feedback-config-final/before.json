@@ -1,0 +1,1498 @@
+[
+  {
+    "name": "stale",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "restored: no overflow",
+      "reviewed: no overflow",
+      "baseline read preserves actual connection input",
+      "review itself sends no write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "restored",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "配置已经更新。未保存的连接草稿已恢复，请读取最新基线并核对后保存。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 769,
+              "width": 816,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": 228,
+              "y": 1149.765625,
+              "width": 1062,
+              "height": 54
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "reviewed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 648.765625,
+              "width": 816,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": 228,
+              "y": 802.765625,
+              "width": 1062,
+              "height": 54
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/stale-desktop-restored.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/stale-desktop-reviewed.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback2/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "workflow",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "invalid: no overflow",
+      "invalid structure sends no mutation",
+      "corrected: no overflow",
+      "editing never submits configuration",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "invalid",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "默认 API 工作流：工作流须为非空节点对象，每个节点包含 （详情见技术记录） 和 inputs",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 769,
+              "width": 816,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": 228,
+              "y": 1655.421875,
+              "width": 1062,
+              "height": 54
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "corrected",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "默认 API 工作流：工作流须为非空节点对象，每个节点包含 （详情见技术记录） 和 inputs",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 769,
+              "width": 816,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": 228,
+              "y": 1655.421875,
+              "width": 1062,
+              "height": 54
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/workflow-desktop-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/workflow-desktop-corrected.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback2/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "policy",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "unknown: no overflow",
+      "confirmed: no overflow",
+      "recovery sends exactly the same original policy and key",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "expectedRevision": 3,
+          "reason": "设置该角色的安静时段",
+          "idempotencyKey": "dab000f4-72cb-486c-ab16-25e7996538d8"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "expectedRevision": 3,
+          "reason": "设置该角色的安静时段",
+          "idempotencyKey": "dab000f4-72cb-486c-ab16-25e7996538d8"
+        }
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "unknown",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 769,
+              "width": 816,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "重试原角色设置读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": 228,
+              "y": 2011.8125,
+              "width": 1062,
+              "height": 54
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重试原角色设置",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "confirmed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "原角色设置已确认，当前输入保留。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 648.8125,
+              "width": 816,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": 228,
+              "y": 802.8125,
+              "width": 1062,
+              "height": 54
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/policy-desktop-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/policy-desktop-confirmed.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback2/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "stale",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "restored: no overflow",
+      "reviewed: no overflow",
+      "baseline read preserves actual connection input",
+      "review itself sends no write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "restored",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "配置已经更新。未保存的连接草稿已恢复，请读取最新基线并核对后保存。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 682,
+              "width": 330,
+              "height": 58
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": -7,
+              "y": 1318.375,
+              "width": 356,
+              "height": 62
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "reviewed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "配置已经更新。未保存的连接草稿已恢复，请读取最新基线并核对后保存。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 554.375,
+              "width": 330,
+              "height": 58
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": -7,
+              "y": 727.375,
+              "width": 356,
+              "height": 62
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/stale-mobile-restored.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/stale-mobile-reviewed.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback2/report.json",
+    "source_record_index": 3
+  },
+  {
+    "name": "workflow",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "invalid: no overflow",
+      "invalid structure sends no mutation",
+      "corrected: no overflow",
+      "editing never submits configuration",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "invalid",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "默认 API 工作流：工作流须为非空节点对象，每个节点包含 （详情见技术记录） 和 inputs",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 682,
+              "width": 330,
+              "height": 58
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": -7,
+              "y": 1878.734375,
+              "width": 356,
+              "height": 62
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "corrected",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "默认 API 工作流：工作流须为非空节点对象，每个节点包含 （详情见技术记录） 和 inputs",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 682,
+              "width": 330,
+              "height": 58
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": -7,
+              "y": 1878.734375,
+              "width": 356,
+              "height": 62
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/workflow-mobile-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/workflow-mobile-corrected.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback2/report.json",
+    "source_record_index": 4
+  },
+  {
+    "name": "policy",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "unknown: no overflow",
+      "confirmed: no overflow",
+      "recovery sends exactly the same original policy and key",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "expectedRevision": 3,
+          "reason": "设置该角色的安静时段",
+          "idempotencyKey": "c966695a-603f-46c4-932c-8c165d4de167"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "expectedRevision": 3,
+          "reason": "设置该角色的安静时段",
+          "idempotencyKey": "c966695a-603f-46c4-932c-8c165d4de167"
+        }
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "unknown",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 702,
+              "width": 330,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "重试原角色设置读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": -7,
+              "y": 2454.125,
+              "width": 356,
+              "height": 62
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重试原角色设置",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "confirmed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "原角色设置已确认，当前输入保留。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 574.125,
+              "width": 330,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "读取最新基线（保留输入）",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0 approved-recovery",
+            "bounds": {
+              "x": -7,
+              "y": 727.125,
+              "width": 356,
+              "height": 62
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(220, 228, 220)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "读取最新基线（保留输入）",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/policy-mobile-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/policy-mobile-confirmed.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback2/report.json",
+    "source_record_index": 5
+  },
+  {
+    "name": "policy-restored",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "retained: no overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "retained",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": "polite",
+            "text": "设置已同步",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback3/policy-restored-desktop-retained.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback3/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "storage-runtime",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "unavailable: no overflow",
+      "local verification sends no backend write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "unavailable",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": "polite",
+            "text": "当前设置已保存，没有新的修改。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback3/storage-runtime-desktop-unavailable.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback3/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "policy-restored",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "retained: no overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "retained",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": "polite",
+            "text": "设置已同步",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback3/policy-restored-mobile-retained.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback3/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "storage-runtime",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "unavailable: no overflow",
+      "local verification sends no backend write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "unavailable",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": "polite",
+            "text": "当前设置已保存，没有新的修改。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback3/storage-runtime-mobile-unavailable.png"
+    ],
+    "status": "captured",
+    "source_report": "evidence/feedback-config-before-feedback3/report.json",
+    "source_record_index": 3
+  }
+]

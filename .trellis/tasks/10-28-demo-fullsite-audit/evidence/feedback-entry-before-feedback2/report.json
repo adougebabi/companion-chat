@@ -1,0 +1,118 @@
+[
+  {
+    "name": "storage-getter",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [],
+    "errors": [
+      "Storage getter blocked by controlled test"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback2/storage-getter-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "legacy-orphan",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback2/legacy-orphan-desktop-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "storage-getter",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [],
+    "errors": [
+      "Storage getter blocked by controlled test"
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback2/storage-getter-mobile-initial.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "legacy-orphan",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production build before/after / controlled creation and storage only; no live model or activation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback2/legacy-orphan-mobile-initial.png"
+    ],
+    "status": "captured"
+  }
+]

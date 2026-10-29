@@ -19,9 +19,10 @@ function createWardrobePreparationController(__props, context, lifecycle) {
     reading = false,
     timer;
   const live = () => active && w.currentScope() === scope;
-  const stages = selector(() => [
-    wardrobePreparationStage(preparation.value, readError.value),
-  ]);
+  const stages = selector(() => {
+    const stage=wardrobePreparationStage(preparation.value, readError.value);
+    return [{...stage,note:readError.value?'':stage.note}];
+  });
   async function load() {
     if (!live() || reading) return;
     reading = true;

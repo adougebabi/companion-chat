@@ -6,7 +6,7 @@ import {configurationTestSummary,beijingFilterInput,diagnosticTimeFilter} from '
 
 const source=name=>readFileSync(new NodeURL(`../src/v3/proto/components/${name}.js`,import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replace(/^export /gm,'');
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
-function box(){const nodes=new Map();return {isConnected:true,innerHTML:'',insertAdjacentHTML(_where,html){this.innerHTML+=html;},querySelector(selector){if(!nodes.has(selector))nodes.set(selector,{remove(){},onclick:null});return nodes.get(selector);}};}
+function box(){const nodes=new Map();return {isConnected:true,innerHTML:'',insertAdjacentHTML(_where,html){this.innerHTML+=html;},querySelector(selector){if(!nodes.has(selector))nodes.set(selector,{attributes:{},setAttribute(key,value){this.attributes[key]=value;},remove(){},onclick:null});return nodes.get(selector);}};}
 
 test('a failed call or a nested recent error takes precedence over a healthy saved configuration',()=>{
  assert.equal(configurationTestSummary({call_status:'unavailable',error_code:'request_failed'}).state,'failed');
@@ -35,7 +35,7 @@ test('initial cursor failure removes loading and can retry, later failure retain
  fail=true;await panel.reload();assert.match(host.innerHTML,/成功记录/);assert.match(host.innerHTML,/读取失败/);panel.dispose();
 });
 test('async page error offers a business return without changing old read/paint arguments',async()=>{
- const host=box();const mount=Function('esc','errorMessage',source('async-page')+'\nreturn asyncPage;')(String,()=> '暂时无法读取');
+ const host=box();const mount=Function('esc','errorMessage','JsonDetails',source('async-page')+'\nreturn asyncPage;')(String,()=> '暂时无法读取',()=>'<details>技术详情</details>');
  mount(host,async()=>{throw Error('unavailable');},()=>{throw Error('must not paint');},{backHref:'#/inbox',backLabel:'返回收件箱'});
  await settle();assert.doesNotMatch(host.innerHTML,/正在读取/);assert.match(host.innerHTML,/href="#\/inbox"/);assert.match(host.innerHTML,/返回收件箱/);
 });
@@ -69,5 +69,6 @@ test('an original-only recovery drawer without a pending identity cannot create 
  assert.equal(host.querySelector('[data-command-send]').disabled,true);
  assert.equal(host.querySelector('[data-command-send]').hidden,true);
  assert.equal(host.querySelector('[data-command-retry]').hidden,true);
+ assert.equal(host.querySelector('[data-command-error]').attributes['data-feedback-kind'],'information');
  await host.querySelector('[data-command-send]').onclick();assert.equal(admitted,0);
 });

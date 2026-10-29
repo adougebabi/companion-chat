@@ -1,4 +1,6 @@
-import { useController } from "../page";
+import { Component } from 'react';
+import {Button} from '@/components/ui/button';
+import { useController,useWorkspace } from "../page";
 import { selector, elementRef } from "@/state/view-model";
 import { reusableWorlds } from "@/approved-ui/world-sources.mjs";
 import { directory, activationFromAnalysis } from "@/v3/providers/real.ts";
@@ -8,10 +10,12 @@ import { errorMessage } from "@/v3/domain-presentation.mjs";
 import { createCreationController } from "@/state/creation-controller.mjs";
 import { migrateCreationRecovery } from "@/approved-ui/creation-recovery.mjs";
 import CharacterWizardView from "../views/CharacterWizard";
+import CreationRecoveryFeedback from '../shared/CreationRecoveryFeedback';
+import {inspectCreationRecovery,creationRecoveryProblem} from '@/approved-ui/creation-recovery-state.mjs';
 function createCharacterWizardPageController(__props, context, lifecycle) {
   const w = lifecycle.workspace,
     owner = w.state.session?.actorId,
-    migrated = migrateCreationRecovery(owner, localStorage, sessionStorage),
+    migrated = migrateCreationRecovery(owner, localStorage, sessionStorage,{resume:new URLSearchParams(location.hash.split('?')[1]||'').get('resume')||''}),
     c = createCreationController({
       owner,
       client: w.client,
@@ -502,6 +506,21 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     );
   };
 }
-export default function CharacterWizardPage(input = {}) {
+function CharacterWizardReady(input = {}) {
   return useController(createCharacterWizardPageController, input);
+}
+class CreationEntryBoundary extends Component {
+  state={error:null,attempt:0};
+  static getDerivedStateFromError(error){return {error};}
+  render(){
+    if(!this.state.error)return <CharacterWizardReady key={this.state.attempt} {...this.props.input}/>;
+    let recovery=this.state.error.recoveryState;
+    if(!recovery){try{recovery=inspectCreationRecovery({owner:this.props.owner,storage:localStorage,resume:new URLSearchParams(location.hash.split('?')[1]||'').get('resume')||''});}catch{}}
+    if(!recovery?.blocked)recovery=creationRecoveryProblem(this.state.error,[...(recovery?.records||[]),...(this.state.error.records||[])]);
+    return <section className="companion-page"><header className="replica-page-heading"><div><div className="replica-eyebrow">CREATE / CONTINUE YOUR STORY</div><h1>创建记录暂时无法继续</h1><p>原输入和原请求会保留。当前没有发起新的创建。</p></div></header><CreationRecoveryFeedback state={recovery} onReload={()=>this.setState({error:null,attempt:this.state.attempt+1})}/><Button asChild variant="outline"><a href="#/library">返回角色库</a></Button></section>;
+  }
+}
+export default function CharacterWizardPage(input={}){
+  const w=useWorkspace();
+  return <CreationEntryBoundary key={w.state.session?.actorId} owner={w.state.session?.actorId} input={input}/>;
 }

@@ -21,7 +21,7 @@ import {wardrobeWorldFixture} from './wardrobe-world-fixture.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-const root=resolve(fileURLToPath(new URL('../../',import.meta.url)),'dist');
+const root=process.env.FLUCTLIGHT_UI_FIXTURE_DIST?resolve(process.env.FLUCTLIGHT_UI_FIXTURE_DIST):resolve(fileURLToPath(new URL('../../',import.meta.url)),'dist');
 const port=Number(process.env.FLUCTLIGHT_UI_FIXTURE_PORT ?? 4175);
 const nasAdditions=process.env.FLUCTLIGHT_UI_FIXTURE_NAS_ADDITIONS==='1';
 const pendingChat=process.env.FLUCTLIGHT_UI_FIXTURE_PENDING_CHAT==='1';

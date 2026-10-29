@@ -1,0 +1,642 @@
+[
+  {
+    "name": "policy-restored",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "retained: no overflow",
+      "restored policy blocks both save and discard",
+      "retry failure ends progress and preserves original key",
+      "retry-failed: no overflow",
+      "restored policy replays exact same body and key",
+      "confirmed: no overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "expectedRevision": 3,
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0
+            ]
+          },
+          "idempotencyKey": "feedback-retained-policy-key"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "expectedRevision": 3,
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0
+            ]
+          },
+          "idempotencyKey": "feedback-retained-policy-key"
+        }
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "retained",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "原设置提交结果待核对\n\n原设置提交仍需核对，当前输入会保留。\n\n重试原角色设置",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 690.21875,
+              "width": 816,
+              "height": 116.78125
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重试原角色设置",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "retry-failed",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "原设置提交结果待核对\n\n服务暂时无法连接，请稍后重新读取。\n\n重试原角色设置",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 690.21875,
+              "width": 816,
+              "height": 116.78125
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重试原角色设置",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "原角色设置已确认，当前输入保留。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/policy-restored-desktop-retained.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/policy-restored-desktop-retry-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/policy-restored-desktop-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "storage-runtime",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "unavailable: no overflow",
+      "runtime denial blocks every new save",
+      "real readonly recovery clears failure and preserves storage",
+      "reread: no overflow",
+      "local verification sends no backend write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "unavailable",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本机提交记录暂时无法读取\n\n暂时无法读取本机的原设置提交记录，当前输入已保留。恢复浏览器存储访问后，请重新读取原提交记录。\n\n重新读取本机提交记录\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 652.21875,
+              "width": 816,
+              "height": 154.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重新读取本机提交记录",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "reread",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "本机提交记录已重新读取，当前输入保留。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/storage-runtime-desktop-unavailable.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/storage-runtime-desktop-reread.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "policy-restored",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "retained: no overflow",
+      "restored policy blocks both save and discard",
+      "retry failure ends progress and preserves original key",
+      "retry-failed: no overflow",
+      "restored policy replays exact same body and key",
+      "confirmed: no overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "expectedRevision": 3,
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0
+            ]
+          },
+          "idempotencyKey": "feedback-retained-policy-key"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/autonomy-policy",
+        "method": "PUT",
+        "body": {
+          "policySource": "override",
+          "expectedRevision": 3,
+          "quietHours": {
+            "start": "22:00",
+            "end": "07:00",
+            "timezone": "Asia/Shanghai",
+            "days": [
+              0
+            ]
+          },
+          "idempotencyKey": "feedback-retained-policy-key"
+        }
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "retained",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "原设置提交结果待核对\n\n原设置提交仍需核对，当前输入会保留。\n\n重试原角色设置",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 622.015625,
+              "width": 330,
+              "height": 117.984375
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重试原角色设置",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "retry-failed",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "原设置提交结果待核对\n\n服务暂时无法连接，请稍后重新读取。\n\n重试原角色设置",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 622.015625,
+              "width": 330,
+              "height": 117.984375
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重试原角色设置",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "原角色设置已确认，当前输入保留。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/policy-restored-mobile-retained.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/policy-restored-mobile-retry-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/policy-restored-mobile-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "storage-runtime",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "unavailable: no overflow",
+      "runtime denial blocks every new save",
+      "real readonly recovery clears failure and preserves storage",
+      "reread: no overflow",
+      "local verification sends no backend write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "unavailable",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本机提交记录暂时无法读取\n\n暂时无法读取本机的原设置提交记录，当前输入已保留。恢复浏览器存储访问后，请重新读取原提交记录。\n\n重新读取本机提交记录\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 552.21875,
+              "width": 330,
+              "height": 187.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重新读取本机提交记录",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "reread",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "本机提交记录已重新读取，当前输入保留。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/storage-runtime-mobile-unavailable.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback3/storage-runtime-mobile-reread.png"
+    ],
+    "status": "passed"
+  }
+]

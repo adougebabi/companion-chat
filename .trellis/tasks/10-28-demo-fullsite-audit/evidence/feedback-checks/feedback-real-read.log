@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "pages": 5,
+  "checks": [
+    "existing isolated Owner session authenticated",
+    "five latest React pages rendered actual API data without browser exception",
+    "selected real directory role matches library and chat",
+    "no chat send, model generation or new activation submitted"
+  ]
+}

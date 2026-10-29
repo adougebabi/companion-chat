@@ -1,3 +1,4 @@
+import {ResultFeedback} from '../shared/Presentation';
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRightIcon,
@@ -69,7 +70,7 @@ export default function DiaryPage() {
     [watchNote, setWatchNote] = useState(""),
     [watchRefresh, setWatchRefresh] = useState(0),
     [replyPointer, setReplyPointer] = useState(null),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(null);
   const mounted = useRef(false),
     epochs = useRef({}),
     detailEpoch = useRef(0),
@@ -394,7 +395,7 @@ export default function DiaryPage() {
         if (live()) {
           const saved = adopt(row);
           if (selectedRef.current === id) setDetail(saved);
-          setNotice("批注已保存，日记原文保留。");
+          setNotice({kind:'success',text:"批注已保存，日记原文保留。"});
           await Promise.all([loadList("all"), loadList("favorite")]);
         }
       },
@@ -573,7 +574,7 @@ export default function DiaryPage() {
         setTab("diary");
         setSelectedId(row.id);
         setDetail(row);
-        setNotice("整理请求已读回，正文以实际结果为准。");
+        setNotice({kind:'information',text:"整理请求已读回，正文以实际结果为准。"});
       },
       fields: (d, edit) => (
         <>
@@ -702,7 +703,7 @@ export default function DiaryPage() {
             </div>
           )}
         </div>
-        {notice && <WorkspaceInfo>{notice}</WorkspaceInfo>}
+        <ResultFeedback notice={notice} onDismiss={value=>setNotice(current=>current===value?null:current)}/>
         {watchNote && <WorkspaceInfo>{watchNote}</WorkspaceInfo>}
         <TabsContent value="diary">
           {loading[kind] && <LoadingState label="正在读取日记…" />}

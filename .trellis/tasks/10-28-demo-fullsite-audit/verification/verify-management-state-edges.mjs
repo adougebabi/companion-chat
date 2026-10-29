@@ -3,14 +3,16 @@ import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {startOwnedFixture} from './owned-fixture.mjs';
+import {feedbackDOM} from './feedback-dom-audit.mjs';
 const require=createRequire('/private/tmp/fluctlight-demo-audit-20261028/browser-tools/package.json'),{chromium}=require('playwright-core');
+const version=process.env.AUDIT_VERSION||'after';
 const out=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-'+(process.env.AUDIT_PHASE||'pass123'));
 await mkdir(out,{recursive:true});const browser=await chromium.launch({channel:'chrome',headless:true}),results=[];
 async function bounded(promise){let timer;try{return await Promise.race([promise,new Promise((_,no)=>{timer=setTimeout(()=>no(Error('expected controlled request did not start')),12000);})]);}finally{clearTimeout(timer);}}
 const cases=['settings-busy','settings-unknown','settings-conflict','settings-rejected','settings-partial','backup-states','import-recovery'];
 try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])for(const name of cases){
  if(process.env.AUDIT_CASES&&!process.env.AUDIT_CASES.split(',').includes(name))continue;
- const server=await startOwnedFixture({port:Number(process.env.MANAGEMENT_EDGES_PORT||4471),env:{FLUCTLIGHT_UI_FIXTURE_MANAGEMENT:'normal'}});let context,page,release;
+ const server=await startOwnedFixture({port:Number(process.env.MANAGEMENT_EDGES_PORT||4471),env:{FLUCTLIGHT_UI_FIXTURE_MANAGEMENT:'normal',...(version==='before'?{FLUCTLIGHT_UI_FIXTURE_DIST:'/private/tmp/fluctlight-demo-audit-20261028/dist-before-feedback-20261029'}:{})}});let context,page,release;
  const record={name,size,width,height,boundary:'production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance',checks:[],requests:[],errors:[],screenshots:[]};
  try{
   context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,locale:'zh-CN',timezoneId:'Asia/Shanghai',reducedMotion:'reduce'});page=await context.newPage();page.setDefaultTimeout(10000);
@@ -19,7 +21,7 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
   const writes=()=>record.requests.filter(r=>!['GET','HEAD'].includes(r.method));
   const get=async path=>{const response=await context.request.get(server.base+path);assert.equal(response.status(),200,path);return response.json();};
   const go=async path=>{await page.goto(server.base+'/#'+path,{waitUntil:'networkidle'});await page.locator('h1,h2').first().waitFor();};
-  const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);};
+   const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));(record.feedback||=[]).push({state,nodes:await feedbackDOM(page)});const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);};
   if(name.startsWith('settings-')){
    const cfg=await get('/api/configuration-catalog');cfg.effective_values={'vision.understanding':{enabled:false},'product.wakeup':{enabled:false}};cfg.versions['vision.understanding']=1;cfg.versions['product.wakeup']=1;
    const receipts=new Map(),commands=[],originals=new Map();let fault=true,arrived;const received=new Promise(ok=>{arrived=ok;}),gate=new Promise(ok=>{release=ok;});
@@ -60,11 +62,11 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
    }else{
     await page.getByRole('button',{name:'核对原提交',exact:true}).waitFor();await shot('failure');
     if(name==='settings-unknown'){
-     await toWake();await page.getByRole('switch',{name:'启用定时唤醒',exact:true}).setChecked(true);await page.getByTestId('config-save').click();await page.getByRole('alert').filter({hasText:'原配置提交结果待核对'}).waitFor();check('new draft cannot overwrite unknown original command',commands.length===1);await page.getByRole('button',{name:'核对原提交',exact:true}).click();
+     await toWake();await page.getByRole('switch',{name:'启用定时唤醒',exact:true}).setChecked(true);if(version==='before'){await page.getByTestId('config-save').click();await page.getByRole('alert').filter({hasText:'原配置提交结果待核对'}).waitFor();}else{check('unknown original blocks the new-save entry',await page.getByTestId('config-save').isDisabled());await page.locator('form').evaluate(form=>form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));}check('new draft cannot overwrite unknown original command',commands.length===1);await page.getByRole('button',{name:'核对原提交',exact:true}).click();
     }else{
      check('rejected command did not mutate ordinary setting',cfg.effective_values['vision.understanding'].enabled===false);await page.getByRole('button',{name:'停止未受理提交',exact:true}).click();
     }
-    await page.getByRole('button',{name:'读取最新基线（保留输入）',exact:true}).click();await page.getByRole('alert').filter({hasText:'已读取最新基线'}).waitFor();await shot('explicit-rebase');await page.getByTestId('config-save').click();await page.getByTestId('config-save-status').filter({hasText:'设置已保存'}).waitFor();
+    if(version==='after')check('recovered original still requires explicit baseline read',await page.getByTestId('config-save').isDisabled());await page.getByRole('button',{name:'读取最新基线（保留输入）',exact:true}).click();await (version==='before'?page.getByRole('alert'):page.getByTestId('config-save-status')).filter({hasText:'已读取最新基线'}).waitFor();await shot('explicit-rebase');await page.getByTestId('config-save').click();await page.getByTestId('config-save-status').filter({hasText:'设置已保存'}).waitFor();
     const settings=commands.filter(c=>c.path==='/api/settings');check('new confirmed proposal uses an independent identity',settings.length===2&&settings[0].body.idempotencyKey!==settings[1].body.idempotencyKey);
     if(name==='settings-unknown'){check('unknown recovery only reads/recovers original receipt before new proposal',writes().filter(r=>r.path==='/api/configuration-commands/recover').length===1&&cfg.effective_values['product.wakeup'].enabled===true);}
     if(name==='settings-conflict')check('explicit conflict rebase updates actual CAS',settings[1].body.expectedVersions['vision.understanding']>settings[0].body.expectedVersions['vision.understanding']);

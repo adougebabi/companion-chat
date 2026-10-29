@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useWorkspace } from "../page";
 import { jsonValueSnapshot } from "@/state/view-model";
-import { errorMessage } from "@/v3/domain-presentation.mjs";
+import { errorMessage,feedbackDiagnostic } from "@/v3/domain-presentation.mjs";
 const blank = () => ({
   items: [],
   cursor: "",
   ready: false,
   busy: false,
   error: "",
+  failure: null,
   extra: {},
 });
 /** One scoped read source. Retry retains its original loader/cursor, never a write. */
@@ -74,6 +75,7 @@ export default function useWorkspaceRead({
           ready: true,
           busy: false,
           error: "",
+          failure:null,
         };
       });
       failed.current = null;
@@ -84,6 +86,7 @@ export default function useWorkspaceRead({
           ...old,
           busy: false,
           error: errorMessage(cause),
+          failure:feedbackDiagnostic(cause),
         }));
       }
     }
@@ -118,6 +121,7 @@ export default function useWorkspaceRead({
       ready: true,
       busy: false,
       error: "",
+      failure:null,
     };
     current.current = next;
     setState(next);

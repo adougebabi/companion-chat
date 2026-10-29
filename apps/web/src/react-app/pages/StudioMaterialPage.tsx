@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {Feedback} from "../shared/Presentation";
 import { useWorkspace } from "../page";
 import { useCursorPage } from "../hooks/use-cursor-page";
 import CursorControls from "../shared/CursorControls";
@@ -80,9 +80,7 @@ export default function StudioMaterialPage({
         </Button>
       )}
       {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <Feedback kind={data?'warning':'error'} actions={<Button type="button" variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取创作素材</Button>}>{error}</Feedback>
       )}
       {!data && !error && <LoadingState label="正在读取创作素材…" />}
       {data && (

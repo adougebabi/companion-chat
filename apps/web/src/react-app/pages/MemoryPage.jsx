@@ -1,3 +1,4 @@
+import {ResultFeedback} from '../shared/Presentation';
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRightIcon,
@@ -38,7 +39,7 @@ import RequestStatus from "../shared/RequestStatus";
 import JsonDetails from "../shared/JsonDetails";
 import LoadingState from "../shared/LoadingState";
 import useWorkspaceRead from "../shared/useWorkspaceRead";
-import { EmptyState, InlineFeedback } from "../shared/Presentation";
+import { EmptyState, InlineFeedback,ReaderFeedback } from "../shared/Presentation";
 const memoryTypes = {
   episodic: "经历",
   semantic: "知识",
@@ -145,25 +146,7 @@ function Rating({ value }) {
     </span>
   );
 }
-function ReadStatus({ source, label }) {
-  return (
-    <>
-      {source.busy && <LoadingState label={"正在读取" + label + "…"} />}{" "}
-      {source.error && (
-        <InlineFeedback role="alert">
-          {source.error}
-          <Button
-            variant="outline"
-            disabled={source.busy}
-            onClick={source.retry}
-          >
-            重新读取{label}
-          </Button>
-        </InlineFeedback>
-      )}
-    </>
-  );
-}
+function ReadStatus({source,label}){return <>{source.busy&&!source.ready&&<LoadingState label={'正在读取'+label+'…'}/>}<ReaderFeedback source={source} label={label}/></>;}
 function More({ source, label }) {
   return source.cursor ? (
     <Button variant="outline" disabled={source.busy} onClick={source.more}>
@@ -187,7 +170,7 @@ export default function MemoryPage({ route }) {
     [detailTab, setDetailTab] = useState("content"),
     [sourceRevision, setSourceRevision] = useState(null),
     [action, setAction] = useState(null),
-    [notice, setNotice] = useState(""),
+    [notice, setNotice] = useState(null),
     [feedbackPointer, setFeedbackPointer] = useState(null);
   const routeKey = route?.query?.toString() || "";
   useEffect(() => {
@@ -470,7 +453,7 @@ export default function MemoryPage({ route }) {
           throw Error("操作已有回执，当前记忆尚未完整读回。");
         if (live()) {
           setSourceRevision(current.revision);
-          setNotice("记忆治理结果已读回，旧版和来源仍可查阅。");
+          setNotice({kind:'success',text:"记忆治理结果已读回，旧版和来源仍可查阅。"});
           setDetailTab("history");
           await refreshSelection(current);
         }
@@ -587,7 +570,7 @@ export default function MemoryPage({ route }) {
         )
           throw Error("操作已有回执，当前认识或复核记录尚未读回。");
         if (live()) {
-          setNotice("认识治理结果已读回，实际状态和来源如下。");
+          setNotice({kind:'success',text:"认识治理结果已读回，实际状态和来源如下。"});
           await refreshSelection(current);
         }
       },
@@ -648,7 +631,7 @@ export default function MemoryPage({ route }) {
       onSaved: async (result) => {
         if (live()) {
           setFeedbackPointer({ reflectionId: id, request: result.request });
-          setNotice("反馈请求已受理，实际改变以处理结果为准。");
+          setNotice({kind:'information',text:"反馈请求已受理，实际改变以处理结果为准。"});
           await feedback.load();
         }
       },
@@ -694,7 +677,7 @@ export default function MemoryPage({ route }) {
           <TabsTrigger value="reflection">反思记录</TabsTrigger>
           <TabsTrigger value="self">自我认知</TabsTrigger>
         </TabsList>
-        {notice && <WorkspaceInfo>{notice}</WorkspaceInfo>}
+        <ResultFeedback notice={notice} onDismiss={value=>setNotice(current=>current===value?null:current)}/>
         <TabsContent value="memory">
           <form
             className="lp-toolbar"

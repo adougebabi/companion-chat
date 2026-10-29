@@ -107,7 +107,7 @@ function createLifePageController(props, { emit }, lifecycle) {
           idempotencyKey: key,
         }),
       {
-        onSaved: () => w.loadLife(),
+        onSaved: () => w.state.page==="此刻"?w.load("此刻"):w.loadLife(),
         success: "日程建议已提交",
       },
     );
@@ -206,7 +206,7 @@ function createLifePageController(props, { emit }, lifecycle) {
           "在记忆页面更正记录",
         ),
       {
-        onSaved: () => w.loadLife(),
+        onSaved: () => w.state.page==="此刻"?w.load("此刻"):w.loadLife(),
         success: "记忆正文已更正",
       },
     );
@@ -235,7 +235,7 @@ function createLifePageController(props, { emit }, lifecycle) {
           idempotencyKey: key,
         }),
       {
-        onSaved: () => w.loadLife(),
+        onSaved: () => w.state.page==="此刻"?w.load("此刻"):w.loadLife(),
         success: "已请求重新核对目标进展",
       },
     );
@@ -303,7 +303,7 @@ function createLifePageController(props, { emit }, lifecycle) {
       },
       (body) => memoryClient.forget(fid, body.source, "明确遗忘这段记忆"),
       {
-        onSaved: () => w.loadLife(),
+        onSaved: () => w.state.page==="此刻"?w.load("此刻"):w.loadLife(),
         success: "记忆已遗忘，原修订历史保留",
       },
     );
@@ -337,7 +337,7 @@ function createLifePageController(props, { emit }, lifecycle) {
             idempotencyKey: key,
           }),
         {
-          onSaved: () => w.loadLife(),
+          onSaved: () => w.state.page==="此刻"?w.load("此刻"):w.loadLife(),
           success: "已核对原日程任务，等待后台继续准备",
         },
       );

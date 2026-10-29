@@ -1,0 +1,2820 @@
+[
+  {
+    "name": "settings-busy",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "busy blocks repeated save and discard",
+      "busy-new-input: no horizontal overflow",
+      "accepted snapshot contains both submitted ordinary settings",
+      "late receipt preserves new input",
+      "second save submits only unacknowledged edit",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "0a8f9761-e35d-4441-b9e8-55a16b23ce22"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": false
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 2
+          },
+          "idempotencyKey": "38ab4768-015c-4958-8b20-7808aef150ff"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-busy-desktop-busy-new-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-busy-desktop-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "busy-new-input",
+        "nodes": [
+          {
+            "kind": "progress",
+            "role": "status",
+            "live": "polite",
+            "text": "正在保存设置（1 / 1），等待服务端确认…",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 595.734375,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-unknown",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "unknown original blocks the new-save entry",
+      "new draft cannot overwrite unknown original command",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "unknown recovery only reads/recovers original receipt before new proposal",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "48337f3d-e218-472e-9b10-9bc781f631c1"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-commands/recover",
+        "method": "POST",
+        "body": {
+          "key": "48337f3d-e218-472e-9b10-9bc781f631c1"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "5ecc9720-b269-407e-b1bd-713d23d5b141"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-unknown-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-unknown-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-unknown-desktop-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "原设置提交结果待核对\n\n服务暂时无法连接，请稍后重新读取。\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 652.21875,
+              "width": 816,
+              "height": 154.78125
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-conflict",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "explicit conflict rebase updates actual CAS",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "06cd814e-12f2-4a8d-94f2-293c1d50bf90"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "06cd814e-12f2-4a8d-94f2-293c1d50bf90"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "b4ff3503-b9f8-4024-b8f4-e5e9b8454d86"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-conflict-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-conflict-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-conflict-desktop-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "warning",
+            "role": "status",
+            "live": "polite",
+            "text": "设置版本已变化\n\n资料版本已变化，草稿已保留，请重新读取后核对。\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 708.21875,
+              "width": 594,
+              "height": 154.78125
+            },
+            "style": {
+              "color": "rgb(119, 109, 66)",
+              "background": "rgb(251, 250, 243)",
+              "border": "rgb(231, 225, 201)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 766.046875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 766.046875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-rejected",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "2c0f4b5e-5f80-402a-8e19-c66e2f500488"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "2c0f4b5e-5f80-402a-8e19-c66e2f500488"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "271a7e2e-a42d-4df8-8590-8aab27bd82bf"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-rejected-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-rejected-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-rejected-desktop-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "设置未能保存\n\n受控配置原提交被明确拒绝\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 652.21875,
+              "width": 816,
+              "height": 154.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 766.046875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 766.046875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-partial",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "partial success does not repeat confirmed endpoint or binding",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints",
+        "method": "PUT",
+        "body": {
+          "endpointId": "fixture-model",
+          "kind": "openai-compatible",
+          "baseUrl": "https://confirmed-fixture.invalid/v1",
+          "secretPurpose": "provider:fixture-model",
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "4f36606d-9e27-4b71-8b48-39cced8bf9b5"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/roles",
+        "method": "PUT",
+        "body": {
+          "role": "generic_llm",
+          "endpointId": "fixture-model",
+          "modelId": "fixture-model",
+          "timeoutSeconds": 120,
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "00a19be5-495c-4bbc-8076-0d7e55ed2b48"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "0094b6d0-370f-4c67-8b43-1a7d92414109"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "0094b6d0-370f-4c67-8b43-1a7d92414109"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "32b65a7c-361c-42c9-a035-a95e777a5a38"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-partial-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-partial-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-partial-desktop-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "设置未能保存\n\n受控配置原提交被明确拒绝\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 479,
+              "y": 652.21875,
+              "width": 816,
+              "height": 154.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "backup-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "running maintenance offers no cancel retry or restore",
+      "running: no horizontal overflow",
+      "cancelled readback has no new maintenance action",
+      "queued cancel uses original revision once",
+      "cancelled: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-running",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued/cancel",
+        "method": "POST",
+        "body": {
+          "reason": "只取消受控排队维护任务",
+          "expectedRevision": 2,
+          "idempotencyKey": "478c4f9a-a3bc-43bb-80d5-d33db64d4b32"
+        }
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/backup-states-desktop-running.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/backup-states-desktop-cancelled.png"
+    ],
+    "feedback": [
+      {
+        "state": "running",
+        "nodes": []
+      },
+      {
+        "state": "cancelled",
+        "nodes": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "import-recovery",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "validation busy blocks duplicate request",
+      "changed validation cannot import old snapshot",
+      "changed-during-validation: no horizontal overflow",
+      "unknown: no horizontal overflow",
+      "unknown import remount replays exact original pack/digest/reason/key",
+      "import details link to independent unpublished draft",
+      "import never publishes or applies",
+      "independent-draft: no horizontal overflow",
+      "pack detail refresh does not import again",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "受控原定义"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "a6c7d01e-72e3-46fa-81aa-4abbc83b5f81"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "a6c7d01e-72e3-46fa-81aa-4abbc83b5f81"
+        }
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/import-recovery-desktop-changed-during-validation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/import-recovery-desktop-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/import-recovery-desktop-independent-draft.png"
+    ],
+    "feedback": [
+      {
+        "state": "changed-during-validation",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": null,
+            "text": "校验期间草稿已变化，请对当前内容重新校验。",
+            "tag": "P",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback",
+            "bounds": {
+              "x": 485,
+              "y": 706.359375,
+              "width": 804,
+              "height": 48.1875
+            },
+            "style": {
+              "color": "rgb(139, 151, 128)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "unknown",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。",
+            "tag": "P",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback",
+            "bounds": {
+              "x": 833,
+              "y": 370.75,
+              "width": 491,
+              "height": 45.796875
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "independent-draft",
+        "nodes": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-busy",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "busy blocks repeated save and discard",
+      "busy-new-input: no horizontal overflow",
+      "accepted snapshot contains both submitted ordinary settings",
+      "late receipt preserves new input",
+      "second save submits only unacknowledged edit",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "9fbd5968-5bcd-479d-b620-07fe2ced29e3"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": false
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 2
+          },
+          "idempotencyKey": "2bf30c8e-d242-4ce1-bad4-22b955c2c24c"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-busy-mobile-busy-new-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-busy-mobile-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "busy-new-input",
+        "nodes": [
+          {
+            "kind": "progress",
+            "role": "status",
+            "live": "polite",
+            "text": "正在保存设置（1 / 1），等待服务端确认…",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 656.4375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 656.4375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-unknown",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "unknown original blocks the new-save entry",
+      "new draft cannot overwrite unknown original command",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "unknown recovery only reads/recovers original receipt before new proposal",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "2ddf3e88-f813-41e3-96d4-69b1279eedec"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-commands/recover",
+        "method": "POST",
+        "body": {
+          "key": "2ddf3e88-f813-41e3-96d4-69b1279eedec"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "38454be5-7b03-4778-8eb5-3e9df5b3a27e"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-unknown-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-unknown-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-unknown-mobile-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "原设置提交结果待核对\n\n服务暂时无法连接，请稍后重新读取。\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 572.015625,
+              "width": 330,
+              "height": 167.984375
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 705.71875,
+              "width": 330,
+              "height": 34.28125
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-conflict",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "explicit conflict rebase updates actual CAS",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "8c1d615d-fd1c-4975-954e-6b57e9398a36"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "8c1d615d-fd1c-4975-954e-6b57e9398a36"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "d52e3e85-3ca2-483e-936c-49e0a795984e"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-conflict-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-conflict-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-conflict-mobile-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "warning",
+            "role": "status",
+            "live": "polite",
+            "text": "设置版本已变化\n\n资料版本已变化，草稿已保留，请重新读取后核对。\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 572.015625,
+              "width": 330,
+              "height": 167.984375
+            },
+            "style": {
+              "color": "rgb(119, 109, 66)",
+              "background": "rgb(251, 250, 243)",
+              "border": "rgb(231, 225, 201)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 656.4375,
+              "width": 330,
+              "height": 34.28125
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 656.4375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-rejected",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "0b206db4-2ea2-4c42-87bc-d7d7ba034b70"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "0b206db4-2ea2-4c42-87bc-d7d7ba034b70"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "d330c98a-986c-410e-8f20-8432f24b7f6c"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-rejected-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-rejected-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-rejected-mobile-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "设置未能保存\n\n受控配置原提交被明确拒绝\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 572.015625,
+              "width": 330,
+              "height": 167.984375
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 656.4375,
+              "width": 330,
+              "height": 34.28125
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 656.4375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-partial",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "recovered original still requires explicit baseline read",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "partial success does not repeat confirmed endpoint or binding",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints",
+        "method": "PUT",
+        "body": {
+          "endpointId": "fixture-model",
+          "kind": "openai-compatible",
+          "baseUrl": "https://confirmed-fixture.invalid/v1",
+          "secretPurpose": "provider:fixture-model",
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "05cca770-5efb-4af7-8c3c-95c0e68357a5"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/roles",
+        "method": "PUT",
+        "body": {
+          "role": "generic_llm",
+          "endpointId": "fixture-model",
+          "modelId": "fixture-model",
+          "timeoutSeconds": 120,
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "4350832c-0298-45ed-a42b-caa1a82dcd3d"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "bc9718d8-0497-4475-a278-b553f9fe0257"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "bc9718d8-0497-4475-a278-b553f9fe0257"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "70fb79ec-299a-4d50-ae2d-f2ab7249d34f"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-partial-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-partial-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/settings-partial-mobile-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "设置未能保存\n\n受控配置原提交被明确拒绝\n\n核对原提交\n停止未受理提交\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 30,
+              "y": 572.015625,
+              "width": 330,
+              "height": 167.984375
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "核对原提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止未受理提交",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "explicit-rebase",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "已读取最新基线，当前输入保持不变；请核对后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 705.71875,
+              "width": 330,
+              "height": 34.28125
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "confirmed",
+        "nodes": [
+          {
+            "kind": "success",
+            "role": "status",
+            "live": "polite",
+            "text": "设置已保存；新任务使用当前有效配置。",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "backup-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "running maintenance offers no cancel retry or restore",
+      "running: no horizontal overflow",
+      "cancelled readback has no new maintenance action",
+      "queued cancel uses original revision once",
+      "cancelled: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-running",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued/cancel",
+        "method": "POST",
+        "body": {
+          "reason": "只取消受控排队维护任务",
+          "expectedRevision": 2,
+          "idempotencyKey": "cb896027-54da-4d36-a414-e25e2ae71da4"
+        }
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/backup-states-mobile-running.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/backup-states-mobile-cancelled.png"
+    ],
+    "feedback": [
+      {
+        "state": "running",
+        "nodes": []
+      },
+      {
+        "state": "cancelled",
+        "nodes": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "import-recovery",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "validation busy blocks duplicate request",
+      "changed validation cannot import old snapshot",
+      "changed-during-validation: no horizontal overflow",
+      "unknown: no horizontal overflow",
+      "unknown import remount replays exact original pack/digest/reason/key",
+      "import details link to independent unpublished draft",
+      "import never publishes or applies",
+      "independent-draft: no horizontal overflow",
+      "pack detail refresh does not import again",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "受控原定义"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "4b38e644-33c7-4300-8c07-c022fa4e0fda"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "4b38e644-33c7-4300-8c07-c022fa4e0fda"
+        }
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/import-recovery-mobile-changed-during-validation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/import-recovery-mobile-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-feedback-after2/import-recovery-mobile-independent-draft.png"
+    ],
+    "feedback": [
+      {
+        "state": "changed-during-validation",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": null,
+            "text": "校验期间草稿已变化，请对当前内容重新校验。",
+            "tag": "P",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback",
+            "bounds": {
+              "x": 36,
+              "y": 726.59375,
+              "width": 318,
+              "height": 44.1875
+            },
+            "style": {
+              "color": "rgb(139, 151, 128)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "unknown",
+        "nodes": [
+          {
+            "kind": "action-required",
+            "role": "note",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。",
+            "tag": "P",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback",
+            "bounds": {
+              "x": 39,
+              "y": 419.125,
+              "width": 329,
+              "height": 40.140625
+            },
+            "style": {
+              "color": "rgb(101, 119, 91)",
+              "background": "rgb(245, 248, 241)",
+              "border": "rgb(223, 232, 215)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "independent-draft",
+        "nodes": []
+      }
+    ],
+    "status": "passed"
+  }
+]

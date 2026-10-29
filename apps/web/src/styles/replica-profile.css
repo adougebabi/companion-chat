@@ -698,8 +698,9 @@
 .replica-profile .character-field-grid > label {
   min-width: 0;
   font-size: 12px;
-  color: #6f7c62;
-  gap: 9px;
+  font-weight: 500;
+  color: #2e3931;
+  gap: 7px;
 }
 .replica-profile .character-field-grid .full-field {
   grid-column: 1/-1;

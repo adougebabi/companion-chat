@@ -5,6 +5,7 @@ import {InventoryEffects} from './inventory-effects.js';
 import { lifeClient } from '../services.js';
 import {userInstant} from '../../presentation-time.mjs';
 import {requestDecisionText,RequestFailureLink,RequestDecisionSource} from './request-failure.js';
+import {JsonDetails} from './records.js';
 
 export function asyncPage(el, read, paint, {backHref='',backLabel='返回',errorTitle='读取失败',errorFallback='暂时无法读取，请重新尝试。'}={}) {
   let active=true, epoch=0, dispose;
@@ -15,7 +16,7 @@ export function asyncPage(el, read, paint, {backHref='',backLabel='返回',error
     dispose?.(); dispose=null;
     el.innerHTML='<div class="statebox" role="status" data-domain-ui="skeleton">正在读取…</div>';
     try {const value=await read();if(alive() && version===epoch)dispose=paint(value,reload,()=>alive()&&version===epoch);}
-    catch(error) {if(!alive() || version!==epoch)return;el.innerHTML=`<div class="statebox" role="alert"><h2>${esc(errorTitle)}</h2><p>${esc(errorMessage(error,errorFallback))}</p>${backHref?`<a data-domain-ui="button" class="btn" href="${esc(backHref)}">${esc(backLabel)}</a>`:''}<button data-domain-ui="button" class="btn" data-read-retry>重新读取</button></div>`;el.querySelector('[data-read-retry]').onclick=reload;}
+    catch(error) {if(!alive() || version!==epoch)return;el.innerHTML=`<div data-domain-ui="alert" data-feedback-kind="error" class="statebox"><h2>${esc(errorTitle)}</h2><p>${esc(errorMessage(error,errorFallback))}</p>${JsonDetails({code:error.code,message:error.message},'技术详情')}${backHref?`<a data-domain-ui="button" class="btn" href="${esc(backHref)}">${esc(backLabel)}</a>`:''}<button data-domain-ui="button" class="btn" data-read-retry>重新读取</button></div>`;el.querySelector('[data-read-retry]').onclick=reload;}
   }
   void reload();
   return()=>{active=false;epoch++;dispose?.();};
@@ -34,12 +35,12 @@ export function requestReceipt(fid,envelope,onTerminal=()=>{},options={}) {
   let request=envelope.request, timer=null, reads=0, terminalNotified=false,busy=false;
   const live=()=>active&&d.el.isConnected&&get('session')?.actorId===owner&&(options.alive?.()??true);
   const terminal=()=>!['pending','processing'].includes(request.status);
-  function paint(error='') {
+  function paint(error='',feedbackKind='warning',notify=true) {
     if(!live())return;
-    d.el.querySelector('[data-request]').innerHTML=`<p><b>${esc(options.labels?.[request.status] || (request.status==='completed'&&request.result?.disposition==='no_change'?'目标状态已满足，无新增动作':requestLabels[request.status]) || stateLabel(request.status))}</b></p><p>${esc(requestDecisionText(request))}</p>${request.result_refs?.length?`<p class="small">结果来源 ${request.result_refs.map(esc).join('、')}</p>`:''}<p class="small muted">${esc(options.note||'她会自行决定是否行动。结果会保留，也可以在通知中查看。')}</p><p><a href="#/diag/request/${encodeURIComponent(request.id)}">请求详情与关联任务</a></p>${RequestFailureLink(request)}${RequestDecisionSource(request)}${InventoryEffects(fid,request.result?.effects)}${request.tasks_state==='failed'?'<p data-domain-ui="alert" class="banner warn">关联任务读取失败，请重新查询。</p>':request.tasks?.map(t=>`<p><a href="#/diag/task/${encodeURIComponent(t.task_id)}">${esc(domainName(t.kind))} · ${esc(stateLabel(t.status))}</a></p>`).join('')||''}${error?`<p data-domain-ui="alert" class="banner err" role="alert">${esc(error)}</p>`:''}`;
+    d.el.querySelector('[data-request]').innerHTML=`<p><b>${esc(options.labels?.[request.status] || (request.status==='completed'&&request.result?.disposition==='no_change'?'目标状态已满足，无新增动作':requestLabels[request.status]) || stateLabel(request.status))}</b></p><p>${esc(requestDecisionText(request))}</p>${request.result_refs?.length?`<p class="small">结果来源 ${request.result_refs.map(esc).join('、')}</p>`:''}<p class="small muted">${esc(options.note||'她会自行决定是否行动。结果会保留，也可以在通知中查看。')}</p><p><a href="#/diag/request/${encodeURIComponent(request.id)}">请求详情与关联任务</a></p>${RequestFailureLink(request)}${RequestDecisionSource(request)}${InventoryEffects(fid,request.result?.effects)}${request.tasks_state==='failed'?'<p data-domain-ui="alert" class="banner warn">关联任务读取失败，请重新查询。</p>':request.tasks?.map(t=>`<p><a href="#/diag/task/${encodeURIComponent(t.task_id)}">${esc(domainName(t.kind))} · ${esc(stateLabel(t.status))}</a></p>`).join('')||''}${error?`<div data-domain-ui="alert" data-feedback-kind="${feedbackKind}" class="banner warn"><p>状态暂未更新，原请求和上次确认的结果仍保留。可以刷新进度继续核对。</p>${JsonDetails({message:error},'读取错误技术详情')}</div>`:''}`;
     if(request.status==='failed'&&request.result?.mutation_committed===false&&options.onRetry){const button=document.createElement('button');button.type='button';button.className='btn';button.dataset.domainUi='button';button.textContent='重试这条建议';button.onclick=async()=>{button.disabled=true;try{const latest=await lifeClient.request(fid,request.id);if(!live())return;if(latest.status!=='failed'||latest.result?.mutation_committed!==false){request=latest;paint();return;}await options.onRetry(latest);}catch(error){if(live()){paint(errorMessage(error));}}};d.el.querySelector('[data-request]').append(button);}
     if(reads>=150&&!terminal())d.el.querySelector('[data-request]').insertAdjacentHTML('beforeend','<p class="small muted">自动更新已暂停。你可以稍后回来，或点击刷新进度。</p>');
-    if(terminal()&&!terminalNotified){terminalNotified=true;Promise.resolve().then(()=>{if(live())return onTerminal(request);}).catch(error=>paint(errorMessage(error)));}
+    if(terminal()&&!terminalNotified&&notify){terminalNotified=true;Promise.resolve().then(()=>{if(live())return onTerminal(request);}).catch(error=>{terminalNotified=false;paint(errorMessage(error),'action-required',false);});}
   }
   async function query() {
     clearTimeout(timer);if(!live()||busy||globalThis.document?.hidden)return;busy=true;

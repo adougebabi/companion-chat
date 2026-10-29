@@ -9,6 +9,16 @@ const {Field}=await vite.ssrLoadModule('/src/v3/proto/components/forms.js');
 test.after(async()=>{await vite.close();env.restore();});
 function Harness({prepare,html}){const [element,setElement]=React.useState(null);return React.createElement(React.Fragment,null,React.createElement('section',{ref:React.useCallback(node=>{if(node){node.innerHTML=html;prepare(node);setElement(node);}},[])}),React.createElement(DomainPrimitives,{root:element}));}
 const visible=(host,selector)=>[...host.querySelectorAll(selector)].filter(node=>!node.closest('[data-domain-carrier]'));
+test('retained feedback follows explicit business state changes without replacing original actions',async()=>{
+ let source,actions=0;const view=await mountReact(vite,Harness,{props:{html:'<section data-domain-ui="alert" role="alert" data-feedback-kind="progress"><p>原任务正在处理</p><button data-domain-ui="button" type="button">核对原任务</button></section>',prepare:root=>{source=root.querySelector('section');source.querySelector('button').onclick=()=>actions++;}}});
+ try{
+  assert.equal(source.getAttribute('role'),'status');assert.equal(source.getAttribute('data-feedback-kind'),'progress');
+  await act(async()=>{source.setAttribute('data-feedback-kind','warning');source.querySelector('p').textContent='任务结果仍待核对';});await view.flush();assert.equal(source.getAttribute('role'),'status');assert.equal(source.dataset.feedbackKind,'warning');
+  await view.click(visible(view.host,'button').find(node=>node.textContent==='核对原任务'));assert.equal(actions,1);
+  await act(async()=>{source.setAttribute('data-feedback-kind','error');source.querySelector('p').textContent='读取实际失败';});await view.flush();assert.equal(source.getAttribute('role'),'alert');
+  await act(async()=>{source.setAttribute('data-feedback-kind','information');source.querySelector('p').textContent='已读取，原输入仍保留';});await view.flush();assert.equal(source.getAttribute('role'),'note');assert.equal(source.dataset.feedbackKind,'information');assert.equal(actions,1);
+ }finally{await view.dispose();}
+});
 test('one application tree ports exact native form values, original listeners and submission while preserving a long focused draft',async()=>{
  let form,submitted,inputs=0;const html='<form>'+Field({label:'正文',name:'text',value:'x'.repeat(79),type:'textarea'})+Field({label:'类型',name:'kind',value:'',type:'select',options:[{value:'',label:'尚未填写'},{value:'0',label:'零'},{value:'false',label:'否'}]})+'<label><input data-domain-ui="field" type="checkbox" name="favorite">收藏</label><button data-domain-ui="button" type="submit" class="btn primary">保存</button></form>';
  const view=await mountReact(vite,Harness,{props:{html,prepare:root=>{form=root.querySelector('form');form.elements.text.oninput=()=>inputs++;form.onsubmit=event=>{event.preventDefault();submitted=[...new window.FormData(form)];};}}});

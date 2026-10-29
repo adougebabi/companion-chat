@@ -1,0 +1,278 @@
+[
+  {
+    "name": "workflow",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "invalid: no overflow",
+      "invalid structure sends no mutation",
+      "field-local validation has correct accessible relation",
+      "invalid field receives focus",
+      "only one field error",
+      "corrected: no overflow",
+      "correction clears obsolete field error before resubmission",
+      "editing never submits configuration",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "invalid",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": null,
+            "text": "默认 API 工作流：工作流须为非空节点对象，每个节点包含 class_type 和 inputs",
+            "tag": "DIV",
+            "testId": null,
+            "className": "text-sm font-normal text-destructive",
+            "bounds": {
+              "x": 485,
+              "y": 718.921875,
+              "width": 804,
+              "height": 20
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "请修正标记的设置项后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "corrected",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback4/workflow-desktop-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback4/workflow-desktop-corrected.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "workflow",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist with controlled configuration reads/receipts only; no real configuration or media generation",
+    "checks": [
+      "invalid: no overflow",
+      "invalid structure sends no mutation",
+      "field-local validation has correct accessible relation",
+      "invalid field receives focus",
+      "only one field error",
+      "corrected: no overflow",
+      "correction clears obsolete field error before resubmission",
+      "editing never submits configuration",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "feedback": [
+      {
+        "label": "invalid",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": null,
+            "text": "默认 API 工作流：工作流须为非空节点对象，每个节点包含 class_type 和 inputs",
+            "tag": "DIV",
+            "testId": null,
+            "className": "text-sm font-normal text-destructive",
+            "bounds": {
+              "x": 36,
+              "y": 862.234375,
+              "width": 318,
+              "height": 40
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "请修正标记的设置项后保存。 · 有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "corrected",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback4/workflow-mobile-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback4/workflow-mobile-corrected.png"
+    ],
+    "status": "passed"
+  }
+]

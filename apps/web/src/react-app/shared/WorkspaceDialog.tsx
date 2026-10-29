@@ -59,7 +59,7 @@ export default function WorkspaceDialog({
           className
         }
       >
-        <DialogHeader>
+        <DialogHeader className="text-center sm:text-left">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {description || "查看详细信息与相关操作。"}

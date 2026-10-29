@@ -380,3 +380,33 @@
 .replica-overlay[data-slot="dialog-content"]{width:calc(100vw - 34px);max-width:590px;max-height:89dvh;padding:26px;overflow-y:auto;border-radius:15px;border-color:#dfe6da;box-shadow:0 25px 100px #1c33292b}
 .replica-overlay.product-sheet.replica-overlay-wide{width:min(860px,calc(100vw - 16px))}
 @media(max-width:700px){.replica-overlay[data-slot="dialog-content"]{max-height:92dvh;padding:22px}.replica-overlay[data-slot="sheet-content"]{padding:22px}}
+
+/* Explicit business feedback, audited independently from command variants. */
+:where(.replica-workspace,.replica-dialog,.replica-overlay) .replica-feedback { padding:12px 14px;border:1px solid #e2e7de;border-radius:9px;background:#fff;color:#556450;font-size:12px;line-height:1.65;gap:8px;box-shadow:none; }
+:where(.replica-workspace,.replica-dialog,.replica-overlay) .replica-feedback > svg { width:16px;height:16px;margin-top:1px; }
+.replica-feedback .replica-feedback-content { min-width:0;display:grid;gap:6px;overflow-wrap:anywhere; }
+.replica-feedback .replica-feedback-title { color:#344b3b;font-weight:600;font-size:12px;line-height:1.6; }
+.replica-feedback [data-slot="alert-description"] { color:inherit;font-size:inherit;line-height:inherit;text-wrap:pretty;min-width:0; }
+.replica-feedback [data-slot="alert-description"] p { margin:0; }
+.replica-feedback .replica-feedback-actions { display:flex;flex-wrap:wrap;align-items:center;gap:7px; }
+.replica-feedback .replica-feedback-details { min-width:0; }
+.replica-feedback .replica-feedback-details pre { max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;font-size:10px;line-height:1.65;padding:10px;border-radius:6px;background:#f7f8f4;color:#64715e; }
+.replica-feedback[data-feedback-kind="action-required"] { background:#f5f8f1;border-color:#dfe8d7;color:#65775b; }
+.replica-feedback[data-feedback-kind="warning"] { background:#fbfaf3;border-color:#e7e1c9;color:#776d42; }
+.replica-feedback[data-feedback-kind="error"] { background:#fff;border-color:#e8d6d0;color:#a7493d; }
+.replica-feedback[data-feedback-kind="error"] .replica-feedback-title { color:#944236; }
+.replica-feedback[data-feedback-kind="success"] { background:#f3f8f2;border-color:#dce8d8;color:#4e7351; }
+.replica-feedback[data-feedback-kind="progress"] { background:#f5f8f7;border-color:#dfe7e3;color:#567363; }
+@media(max-width:700px){
+ :where(.replica-workspace,.replica-dialog,.replica-overlay) .replica-feedback { padding:10px 12px;font-size:11px;gap:7px; }
+ .replica-feedback .replica-feedback-title { font-size:12px; }
+ .replica-feedback .replica-feedback-actions > :is(button,a) { max-width:100%;white-space:normal; }
+ .replica-library .library-recovery-feedback { margin-bottom:18px; }
+}
+.replica-feedback.replica-feedback-compact { margin-bottom:18px; }
+.replica-feedback-compact .replica-feedback-title { padding-right:68px; }
+.replica-feedback-compact .replica-feedback-details > button { position:absolute;right:7px;top:6px;min-height:28px;height:28px;padding:0 6px;font-size:10px;color:inherit; }
+.replica-feedback-compact .replica-feedback-actions > :is(button,a) { min-height:32px;height:auto;font-size:11px; }
+.replica-library .library-progress[data-unreadable] { color:#887343; }
+.replica-feedback.replica-feedback-dismissible .replica-feedback-content { padding-right:23px; }
+.replica-feedback .replica-feedback-dismiss { position:absolute;right:5px;top:5px;width:28px;min-height:28px;height:28px;padding:0;color:inherit; }

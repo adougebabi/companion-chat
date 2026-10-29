@@ -30,6 +30,7 @@ current [React shadcn Contract](./react-shadcn-contract.md).
 | [Confirmed Interactions](./pen-interaction-contract.md) | Reading state, drafts and independent configuration slots |
 | [Goal / Actor Governance](./goal-planner-governance-contract.md) | Versions, dependencies, Actor CAS and source review |
 | [Command Receipt / Draft Recovery](./command-receipt-draft-recovery.md) | Goal/World acknowledgements, late receipts, GET-only recovery and native event timing |
+| [Feedback UX](./feedback-ux-contract.md) | Six semantic kinds, field errors, diagnostics, event lifetime and real recovery actions |
 | [Quality Guidelines](./quality-guidelines.md) | Production/browser and contract verification |
 
 ## Pre-Development Checklist

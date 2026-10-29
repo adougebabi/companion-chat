@@ -136,3 +136,12 @@ Studio应用到运行世界、Self完整历史和World定义的fixture补齐属�
 补验结果（pass108–116）：Studio运行拒绝/unknown/pending 6/6；账户/Library16/16；Profile空名/busy/实际基线冲突4/4；七类Studio14/14；换装failed/rejected/no-change/unknown/GET失败10/10。旧脚本等待失配保留：Studio恢复后应走“查看实际记录”，重开新应用会清旧回执；Profile成功后弹窗已关闭；Wear原确认未知后须先取消本地提示再点卡片原重试，成功态没有错误态的“查看原请求”按钮。没有为这些harness假设修改产品。
 
 全量pass115 **697/697、0skip**；typecheck114、build116及生产守卫通过。build114已真实五页只读通过，build116只增加启动错误卡自身对齐，待最新静态同步。剩余六组确定补验清单见verification/remaining-state-backlog.md。
+
+
+## F70–F78：全站反馈治理增量（2026-10-29）
+
+F70为六类Feedback、保留错误默认与诊断/生命周期；F71为创建记录分类与精确历史/原请求；F72为聊天存储getter和运行中归档保护；F73为配置普通/角色原提交发现、全入口拦截、stale基线及存储重读；F74为字段校验、纠正清除与手机滚动；F75为普通结果去重/到期、上传代次隔离；F76为任务受理进度/缺runtime保护和保留工具实际错误重试；F77为此刻读取范围及端口显式语义；F78为手机弹窗/档案标签/人物详情键值布局。逐问题的原触发、文件拥有者、实际动作、恢复清除、测试和桌面/390证据见feedback-issues.md；精确源位置见evidence/feedback-source-locations.json。
+
+全量717及后续配置28定向、typecheck33/build18通过；新受控浏览器172条、深层配对10组与人物复拍，按实际断言记录，不能视作177行全部通过。真实Web静态更新后五页实际API只读通过；没有后端或LLM策略变更。任务仍in_progress。
+
+F79：深层反馈继续发现的同事件重复确认与聊天固定红色覆盖。命令组件压掉重复普通确认，ActionFeedback将真实失败原因和读回故障合在同一区域，保留两个真实动作和原输入披露；取消等信息按显式kind着色。全量718、类型35/构建21及深层People10/Feed8/ShellChatInbox12/Wear10通过。详见feedback-issues.md FG18。

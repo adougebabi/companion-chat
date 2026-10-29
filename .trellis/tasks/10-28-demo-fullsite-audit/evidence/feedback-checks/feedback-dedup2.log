@@ -1,0 +1,31 @@
+✔ business feedback preserves error emphasis while ordinary notices do not announce assertive failures (557.23375ms)
+✔ recovery action executes only on explicit click and diagnostic disclosure stays separate from product copy (222.613584ms)
+✔ Library adds valid historical progress links when the real role directory arrives after mounting (1993.660875ms)
+✔ expiration of an earlier ordinary result cannot clear a newer feedback event (143.819375ms)
+✔ accepted readback failure has one primary feedback and restores the real page result without another command (148.525167ms)
+✔ memory-scoped command survives close/reopen with the original value and provider key, preserving later input (3.8975ms)
+✔ post-receipt failure recovers by reading only and never repeats a mutation (0.84775ms)
+✔ cancel discards only an unsubmitted draft, preserving unknown and accepted original operations (0.553333ms)
+✔ CAS-only endpoints never invent idempotency replay; unknown results require explicit latest-object review (0.5065ms)
+✔ latest-object review cannot silently advance baseline, and a conflict after unknown admission cannot release identity (0.672459ms)
+✔ typing after an acknowledgement during slow readback keeps the dialog draft open and requires a new baseline (2.058333ms)
+✔ governance provider uses the persisted controller key after a fresh provider instance, preserving original body across refresh (14.303416ms)
+✔ an acknowledged receipt survives a fresh model and recovers only its readback, with the acknowledged draft intact (0.607833ms)
+✔ unknown CAS-only admission stays blocked across refresh until latest-object review is explicitly confirmed (0.399833ms)
+✔ closing during submission checkpoints the late receipt, preserves a reopened newer draft, and never creates a second command (1.11825ms)
+✔ late create acknowledgement durably adopts its identity into a reopened newer draft (0.907041ms)
+✔ closing an in-flight CAS command records uncertainty and an Owner change cannot recreate cleared recovery storage (1.158917ms)
+✔ React settings stay busy through receipt readback and preserve newer model input (3945.019666ms)
+✔ React world editor preserves world identity, CAS and saved category on reread (760.576625ms)
+✔ React composer retains draft and selection during updates and never sends a composing Enter (362.401042ms)
+✔ React setup confirms the exact password and focuses the mismatch without authenticating (248.369708ms)
+✔ React diagnostic detail preserves the complete original request and retains it on read failure (128.937834ms)
+✔ React resource editor rejects whitespace and preserves edits made while an original save is pending (467.797125ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6993.097916

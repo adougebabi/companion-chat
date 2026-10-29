@@ -25,6 +25,9 @@ const visualStages={session_created:'生成任务已登记',seed_requested:'正�
 export function visualStageLabel(value,fallback='生成阶段记录'){return visualStages[value]||fallback;}
 
 // A user-facing summary only. Callers retain the original value in technical details.
+export function feedbackDiagnostic(cause){
+ return {name:cause?.name,code:cause?.code,status:cause?.status,message:String(cause?.message??cause??''),requestId:cause?.requestId??cause?.details?.request_id,correlationId:cause?.correlationId??cause?.details?.correlation_id,stack:cause?.stack};
+}
 export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
  const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
  const source=code+' '+text;

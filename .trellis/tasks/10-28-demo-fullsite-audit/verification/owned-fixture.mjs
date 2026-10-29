@@ -4,6 +4,7 @@ import net from 'node:net';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 export async function startOwnedFixture({port,env={}}){
+  if(process.env.AUDIT_VERSION==='before'&&!env.FLUCTLIGHT_UI_FIXTURE_DIST)env={...env,FLUCTLIGHT_UI_FIXTURE_DIST:'/private/tmp/fluctlight-demo-audit-20261028/dist-before-feedback-20261029'};
   assert.ok(Number.isSafeInteger(port)&&port>=1024&&port<=65535);
   const base=`http://127.0.0.1:${port}`,probe=net.createServer();
   await new Promise((ok,no)=>{probe.once('error',no);probe.listen(port,'127.0.0.1',ok);});await new Promise(ok=>probe.close(ok));

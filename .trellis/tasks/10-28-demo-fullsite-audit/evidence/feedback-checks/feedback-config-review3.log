@@ -1,0 +1,36 @@
+✔ configuration categories preserve a newer draft while the actual services and four roles remain independently reachable (3251.653334ms)
+✔ a retained async page imports its real diagnostic renderer and creates a working original-read retry after failure (44.0125ms)
+✔ an original role policy is discovered after remount and a failed retry ends progress without allowing new configuration writes (424.991833ms)
+✔ runtime configuration storage denial blocks admission with a real readonly local-record retry (325.682209ms)
+✔ an unknown configuration blocks every new save and is rediscovered after remount without changing its identity (697.521709ms)
+✔ a restored stale connection has a reachable baseline read that preserves draft and unlocks saving only after confirmation (536.711291ms)
+✔ task records use source actions and never turn a status into numeric progress (120.215791ms)
+✔ data validation refuses a changed input after the read and failed export preserves the exact raw draft (21.989541ms)
+✔ domain field blur records carrier selection without stealing pointer or Tab focus; explicit restoration still forwards (105.779833ms)
+✔ a received durable command recovers failed readback after reopening without a second mutation (248.152791ms)
+✔ a durable command checkpoints a late receipt after close, but never after logout and same-Owner re-entry (264.476291ms)
+✔ a durable receipt readback retains input edited while submission is waiting (139.25325ms)
+✔ unreadable durable records show a real local reread and never replace the original identity with a fresh command (216.822917ms)
+✔ logout clears configuration recovery and inactive management preferences for exactly the original Owner (0.604708ms)
+✔ the native history deep route waits for its role directory, retries the original cursor and returns without losing the chat draft (524.344208ms)
+✔ world reads retain successful sources on failure, remove confirmed empty sources, and reject incomplete catalogs (0.848791ms)
+✔ world wizard requires an explicit real-source choice and keeps it through a failed refresh (2423.318167ms)
+✔ malformed default-world reads never admit a create command (1.263583ms)
+✔ decision-point controls preserve actual booleans and invalid maps or workflow nodes cannot produce writes (200.943542ms)
+✔ diagnostic panels preserve distinct identities and discard old panel rows; pagination uses the opaque cursor (985.086417ms)
+✔ model transcript reads provider text and structured responses and does not invent an empty JSON reply (106.328375ms)
+✔ profile presentation preserves custom English, false and zero while removing unknown-only placeholder nesting (62.657042ms)
+✔ media thumbnail opens the Demo detail in place and keeps source and management actions reachable (351.956792ms)
+✔ new creation drafts default to Beijing while a stored explicit timezone is retained (0.507583ms)
+✔ unsaved configuration has explicit dirty feedback and discard restores confirmed fields without a write (584.483833ms)
+✔ structured readers translate declared status fields without rewriting quoted user or assistant words (61.628584ms)
+✔ failed reads cannot reveal a default world; confirmed empty catalogs require an explicit source choice (169.184584ms)
+✔ workspace read failures are scoped and distinguish first failure from preserved successful data across role switches (28.806625ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7730.842208

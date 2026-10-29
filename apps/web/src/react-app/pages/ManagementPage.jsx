@@ -1,5 +1,4 @@
 import {configurationTestSummary} from '@/v3/configuration-feedback.mjs';
-import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 
 import { useController, afterPaint } from "@/react-app/page";
 import { selector } from "@/state/view-model";
@@ -24,7 +23,7 @@ import {
   restoreConnectionDraft,
   connectionIsSaved,
 } from "@/approved-ui/configuration-draft.mjs";
-import { errorMessage, domainName, stateLabel } from "@/v3/domain-presentation.mjs";
+import { errorMessage, domainName, stateLabel, feedbackDiagnostic } from "@/v3/domain-presentation.mjs";
 import { randomId } from "@/random-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import { installFieldValidation } from "@/v3/proto/components/forms.js";
@@ -120,9 +119,13 @@ function createManagementPageController(props, context, lifecycle) {
     highlight = lifecycle.cell(null),
     saving = lifecycle.cell(false),
     saveStatus = lifecycle.cell(""),
+    saveKind=lifecycle.cell('information'),recoveringConfiguration=lifecycle.cell(false),
+    needsBaselineReview=lifecycle.cell(false),
+    configurationStorageProblem=lifecycle.cell(null),
+    validationPending=lifecycle.cell(false),
     error = lifecycle.cell(""),
     reference = lifecycle.cell(""),
-    testResult = lifecycle.cell(""),testRaw=lifecycle.cell(null),
+    testResult = lifecycle.cell(""),testRaw=lifecycle.cell(null),testKind=lifecycle.cell('information'),
     currentSection=lifecycle.cell("服务地址");
   const catalogLoading=lifecycle.cell(true),catalogReady=lifecycle.cell(false);
   const settings = lifecycle.cell([]),
@@ -156,40 +159,44 @@ function createManagementPageController(props, context, lifecycle) {
   );
   const policyChannels = new Map(),
     policyRecovery = lifecycle.cell(null);
-  async function writePolicy(operation) {
-    let channel = policyChannels.get(operation.fid);
+  function policyChannel(fid) {
+    let channel = policyChannels.get(fid);
     if (!channel) {
       channel = persistentCommand({
         key:
           "fluctlight:approved-policy:" +
-          JSON.stringify([scope, operation.fid]),
+          JSON.stringify([scope, fid]),
         storage: () => sessionStorage,
         execute: async (value, key) => {
           if (!live()) throw Error("所有者已变化");
+          if(value.fid!==fid)throw Error('原角色设置与恢复入口不匹配，当前未发起新提交。');
           return w.client.saveAutonomyPolicy(value.fid, {
             ...value.body,
             idempotencyKey: key,
           });
         },
       });
-      policyChannels.set(operation.fid, channel);
+      policyChannels.set(fid, channel);
     }
+    return channel;
+  }
+  async function writePolicy(operation) {
+    const channel=policyChannel(operation.fid);
     try {
       return await channel.submit({
         fid: operation.fid,
         body: operation.body,
       });
-    } catch (error) {
-      policyRecovery.value = {
-        channel,
-        fid: operation.fid,
-      };
-      throw error;
+    } catch (cause) {
+      try{const record=channel.pending();policyRecovery.value=record?{channel,fid:operation.fid,record}:null;}
+      catch(storageCause){recordConfigurationStorageProblem(storageCause);}
+      throw cause;
     }
   }
   async function retryPolicy() {
     const original = policyRecovery.value;
-    if (!original) return;
+    if (!original||recoveringConfiguration.value) return;
+    recoveringConfiguration.value=true;error.value='';saveKind.value='progress';saveStatus.value='正在核对原角色设置，当前输入保留…';
     try {
       const pending = original.channel.pending(),
         receipt = await original.channel.retry();
@@ -211,10 +218,11 @@ function createManagementPageController(props, context, lifecycle) {
         receipt,
       );
       policyRecovery.value = null;
-      error.value = "原角色设置已确认，当前输入保留。";
-    } catch (error) {
-      if (live()) error.value = errorMessage(error);
-    }
+      error.value = '';
+      saveKind.value='success';saveStatus.value="原角色设置已确认，当前输入保留。";
+    } catch (cause) {
+      if (live()){error.value = errorMessage(cause);saveStatus.value='';}
+    } finally {if(live())recoveringConfiguration.value=false;}
   }
   const characters = selector(() => w.state.characters);
   const referenceSections = lifecycle.cell(
@@ -338,6 +346,7 @@ function createManagementPageController(props, context, lifecycle) {
     catalogLoading.value=true;
     const snapshot = await config.read();
     if (!live()) return;
+    error.value='';needsBaselineReview.value=false;
     snapshot._loadedAt = Date.now();
     catalog = snapshot;
     versions = {
@@ -387,13 +396,16 @@ function createManagementPageController(props, context, lifecycle) {
       versions = {
         ...restored.versions,
       };
-      if (restored.stale)
+      if (restored.stale){
+        needsBaselineReview.value=true;
         error.value =
           "配置已经更新。未保存的连接草稿已恢复，请读取最新基线并核对后保存。";
-      else if (restored.credentialPending)
-        error.value =
+      }else if (restored.credentialPending){
+        saveKind.value='information';saveStatus.value=
           "连接草稿已恢复。访问密钥不会保存在浏览器草稿中，请重新填写。";
+      }
     }
+    inspectConfigurationRecords();
     loaded = true;catalogReady.value=true;catalogLoading.value=false;
     const hours =
       snapshot.effective_values["product.autonomy"]?.quiet_hours || {};
@@ -408,12 +420,13 @@ function createManagementPageController(props, context, lifecycle) {
     };
     for (const e of endpoints.value.filter(connectionIsSaved)) {
       e.modelsStatus="loading";
+      const token=e.modelsEpoch=(e.modelsEpoch||0)+1,source=e._source;
       void config
         .models(e.id)
         .then((result) => {
-          if (live()&&endpoints.value.includes(e)&&connectionIsSaved(e)){e.models = result.models || [];e.modelsStatus="ready";e.modelsError="";}
+          if (live()&&endpoints.value.includes(e)&&token===e.modelsEpoch&&e._source===source&&connectionIsSaved(e)){e.models = result.models || [];e.modelsStatus="ready";e.modelsError="";}
         })
-        .catch(cause => {if(live()&&endpoints.value.includes(e)){e.modelsStatus=connectionIsSaved(e)?"error":"stale";e.modelsError=connectionIsSaved(e)?errorMessage(cause):"";}});
+        .catch(cause => {if(live()&&endpoints.value.includes(e)&&token===e.modelsEpoch&&e._source===source){e.modelsStatus=connectionIsSaved(e)?"error":"stale";e.modelsError=connectionIsSaved(e)?errorMessage(cause):"";}});
     }
     void config
       .catalog()
@@ -452,6 +465,24 @@ function createManagementPageController(props, context, lifecycle) {
   async function loadMoreDiagnostics(){const selectedKind=kind.value,state=diagnosticPages.value[selectedKind],cursor=state.cursor;if(!state.ready&&state.error){await loadDiagnostics();return;}if(state.loading||!cursor)return;state.loading=true;state.error='';try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor});if(!live())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}catch(cause){if(live())state.error=errorMessage(cause);}finally{if(live())state.loading=false;}}
   let referenceDetailEpoch=0;
   async function openReference(record,section){const token=++referenceDetailEpoch;referenceRecord.value={record,section,loading:true,error:'',detail:null};try{const detail=await diagnostics.record(section.kind,record.ref);if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:'',detail};}catch(cause){if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:errorMessage(cause),detail:null};}}
+  function findConfigurationRecovery(){
+    const prefixes=['fluctlight:approved-config-command:','fluctlight:approved-policy:'];
+    for(let i=0;i<sessionStorage.length;i++){
+      const keyName=sessionStorage.key(i),prefix=prefixes.find(prefix=>keyName?.startsWith(prefix));if(!prefix)continue;
+      let identity;try{identity=JSON.parse(keyName.slice(prefix.length));}catch{continue;}
+      if(!Array.isArray(identity)||identity.length!==2||identity[0]!==scope||typeof identity[1]!=='string')continue;
+      const key=sessionStorage.getItem(keyName);if(key===null)continue;
+      if(prefix===prefixes[0]){if(!key)throw Error('原设置提交的身份暂时无法读取，原记录已保留。');if(!recovery.value)recovery.value={key,keyName,kind:identity[1]};}
+      else if(!policyRecovery.value){
+        const fid=identity[1],channel=policyChannel(fid),record=channel.pending();
+        if(!record||record.value.fid!==fid||!record.value.body||!Number.isSafeInteger(record.value.body.expectedRevision))throw Error('原角色设置记录无法安全恢复，原记录已保留。');
+        policyRecovery.value={channel,fid,record};
+      }
+    }
+  }
+  function recordConfigurationStorageProblem(cause){configurationStorageProblem.value=feedbackDiagnostic(cause);error.value='暂时无法读取本机的原设置提交记录，当前输入已保留。恢复浏览器存储访问后，请重新读取原提交记录。';saveStatus.value='';}
+  function inspectConfigurationRecords(){try{findConfigurationRecovery();configurationStorageProblem.value=null;return true;}catch(cause){recordConfigurationStorageProblem(cause);return false;}}
+  function rereadConfigurationRecords(){if(!live()||recoveringConfiguration.value)return;error.value='';if(inspectConfigurationRecords()&&!recovery.value&&!policyRecovery.value){saveKind.value='information';saveStatus.value='本机提交记录已重新读取，当前输入保留。';}}
   async function write(kind, body, run) {
     const keyName =
       "fluctlight:approved-config-command:" + JSON.stringify([scope, kind]);
@@ -498,13 +529,16 @@ function createManagementPageController(props, context, lifecycle) {
         key: value.key,
         keyName,
         kind,
+        status:cause.status,
+        failure:feedbackDiagnostic(cause),
       };
       throw cause;
     }
   }
   async function recoverOriginal(stop = false) {
     const original = recovery.value;
-    if (!original) return;
+    if (!original||recoveringConfiguration.value) return;
+    recoveringConfiguration.value=true;error.value='';saveKind.value='progress';saveStatus.value='正在核对原设置提交，原输入和身份保持…';
     try {
       const receipt = stop
         ? await config.cancelUnaccepted(original.key)
@@ -515,25 +549,27 @@ function createManagementPageController(props, context, lifecycle) {
       pending.delete(original.kind);
       sessionStorage.removeItem(original.keyName);
       recovery.value = null;
-      error.value =
-        "原提交已核对。请点击“读取最新基线”，保留当前输入并核对后再次保存。";
+      if(!inspectConfigurationRecords())return;
+      needsBaselineReview.value=true;
+      validationPending.value=false;
+      error.value='';
+      saveStatus.value="原提交已核对。请读取最新基线，保留当前输入并核对后再次保存。";
+      saveKind.value='information';
     } catch (cause) {
       if (live()) error.value = errorMessage(cause);
-    }
+    }finally{if(live())recoveringConfiguration.value=false;}
   }
   async function rebase() {
+    if(recoveringConfiguration.value||configurationStorageProblem.value||!inspectConfigurationRecords())return;
     if (recovery.value) {
       error.value = "请先核对原提交，再读取最新基线";
       return;
     }
-    if (
-      [...policyChannels.values()].some(
-        (c) => c.pending() && !c.pending().rejection,
-      )
-    ) {
+    if (policyRecovery.value?.record&&!policyRecovery.value.record.rejection) {
       error.value = "原角色设置结果尚未确认，请先重试原角色设置";
       return;
     }
+    recoveringConfiguration.value=true;error.value='';saveKind.value='progress';saveStatus.value='正在读取最新基线，当前输入保留…';
     try {
       const next = await config.read();
       if (!live()) return;
@@ -562,16 +598,22 @@ function createManagementPageController(props, context, lifecycle) {
       for (const channel of policyChannels.values())
         if (channel.pending()?.rejection) channel.releaseRejected();
       policyRecovery.value = null;
-      error.value = "已读取最新基线，当前输入保持不变；请核对后保存。";
+      needsBaselineReview.value=false;validationPending.value=false;error.value='';
+      saveStatus.value = "已读取最新基线，当前输入保持不变；请核对后保存。";
+      saveKind.value='information';
     } catch (cause) {
       if (live()) error.value = errorMessage(cause);
-    }
+    }finally{if(live())recoveringConfiguration.value=false;}
   }
   async function save() {
-    if (saving.value || !catalog) return;
+    if (saving.value || !catalog || recovery.value||policyRecovery.value||needsBaselineReview.value||recoveringConfiguration.value||configurationStorageProblem.value) return;
+    if(!inspectConfigurationRecords()||recovery.value||policyRecovery.value)return;
     saving.value = true;
     saveStatus.value = "正在保存设置，等待服务端确认…";
+    saveKind.value='progress';
     error.value = "";
+    validationPending.value=false;
+    for(const group of settings.value)for(const field of group.fields)field.validationError='';
     const submitted = {
       settings: clone(settings.value),
       endpoints: clone(endpoints.value),
@@ -637,6 +679,7 @@ function createManagementPageController(props, context, lifecycle) {
           operation,
           result,
         );
+        testReadEpoch++;testResult.value='';testRaw.value=null;testKind.value='information';
         clearAcknowledgedCredentials(
           endpoints.value,
           submitted.endpoints,
@@ -645,15 +688,25 @@ function createManagementPageController(props, context, lifecycle) {
         completed++;
       }
       if (live()) {
+        saveKind.value=plan.length?'success':'information';
         saveStatus.value = plan.length
           ? "设置已保存；新任务使用当前有效配置。"
           : "当前设置已保存，没有新的修改。";
-        w.notify(saveStatus.value);
       }
     } catch (cause) {
       if (live()) {
         saveStatus.value = "";
-        error.value = errorMessage(
+        const group=cause.settingField&&settings.value.find(group=>group.fields.some(field=>field._settingKey===cause.settingField.settingKey&&field._key===cause.settingField.key));
+        if(group){
+          const field=group.fields.find(field=>field._settingKey===cause.settingField.settingKey&&field._key===cause.settingField.key);
+          // settingField is attached only by our local form validator. Its
+          // authored copy can name required JSON keys without diagnostic masking.
+          field.validationError=cause.message;error.value='';validationPending.value=true;saveKind.value='information';saveStatus.value='请修正标记的设置项后保存。';
+          await scrollTo(group.title,false);if(!live())return;
+          const identity=JSON.stringify([field._settingKey,field._key]),host=[...document.querySelectorAll('[data-setting-field]')].find(node=>node.getAttribute('data-setting-field')===identity);
+          host?.scrollIntoView({block:'center',behavior:'instant'});
+          const input=host?.querySelector('input:not([type=hidden]),textarea,[role=combobox]')||host?.querySelector('button');input?.focus({preventScroll:true});
+        }else error.value = errorMessage(
           cause,
           "设置未完全保存，已保存部分和当前草稿请分别核对。",
         );
@@ -665,10 +718,11 @@ function createManagementPageController(props, context, lifecycle) {
   let testReadEpoch=0;
   async function test(target) {
     const endpoint = typeof target === "object" ? target : null;
-    const name = endpoint ? endpoint.name || "新服务" : target,token=endpoint?null:++testReadEpoch;
+    const name = endpoint ? endpoint.name || "新服务" : target,token=endpoint?(endpoint.modelsEpoch=(endpoint.modelsEpoch||0)+1):++testReadEpoch;
     if(!endpoint)testRaw.value=null;
     testResult.value = endpoint ? "" : name + "：测试中…";
-    if (endpoint){endpoint.feedback = "正在读取已保存连接的模型目录…";endpoint.modelsStatus="loading";endpoint.modelsError="";}
+    if(!endpoint)testKind.value='progress';
+    if (endpoint){endpoint.feedback = "";endpoint.modelsStatus="loading";endpoint.modelsError="";}
     try {
       if (endpoint && !connectionIsSaved(endpoint)) {
         endpoint.modelsStatus="stale";
@@ -683,6 +737,7 @@ function createManagementPageController(props, context, lifecycle) {
             name === "高级" ? "kev" : name === "看图理解" ? "vision" : "media",
           );
       if (live()) {
+        if(endpoint&&token!==endpoint.modelsEpoch)return;
         if(!endpoint&&token!==testReadEpoch)return;
         if (
           endpoint &&
@@ -700,17 +755,20 @@ function createManagementPageController(props, context, lifecycle) {
           return;
         }
         testRaw.value=result;
+        const summary=configurationTestSummary(result);
+        testKind.value=summary.state==='success'?'success':summary.state==='failed'?'error':'warning';
         testResult.value =
           name +
           "：" +
           (endpoint
             ? "已读取模型目录 " + (result.models || []).length + " 项"
-            : configurationTestSummary(result).text);
+            : summary.text);
       }
     } catch (cause) {
       if (live()) {
-        if (endpoint){endpoint.feedback = errorMessage(cause);endpoint.modelsStatus="error";endpoint.modelsError=endpoint.feedback;}
-        else if(token===testReadEpoch){testRaw.value={status:"failed",reason:errorMessage(cause)};testResult.value = name + "：" + errorMessage(cause);}
+        if(endpoint&&token!==endpoint.modelsEpoch)return;
+        if (endpoint){endpoint.feedback = "";endpoint.modelsStatus="error";endpoint.modelsError=errorMessage(cause);}
+        else if(token===testReadEpoch){testRaw.value={status:"failed",reason:errorMessage(cause)};testKind.value='error';testResult.value = name + "：" + errorMessage(cause);}
       }
     }
   }
@@ -806,6 +864,12 @@ function createManagementPageController(props, context, lifecycle) {
     void readCatalog().catch((e) => {if(live()){error.value=errorMessage(e);catalogLoading.value=false;}});
     void loadDiagnostics().catch((e) => (error.value = errorMessage(e)));
   });
+  lifecycle.observe(()=>settings.value.some(group=>group.fields.some(field=>!!field.validationError)),invalid=>{if(!invalid&&validationPending.value){validationPending.value=false;saveStatus.value='';}});
+  lifecycle.observe([saveStatus,saveKind],([text,kind],_old,cleanup)=>{
+    if(!text||!['success','information'].includes(kind)||validationPending.value||needsBaselineReview.value||recovery.value||policyRecovery.value)return;
+    const timer=setTimeout(()=>{if(live()&&saveStatus.value===text&&saveKind.value===kind&&!needsBaselineReview.value&&!recovery.value&&!policyRecovery.value)saveStatus.value='';},6000);
+    cleanup(()=>clearTimeout(timer));
+  });
   lifecycle.onDispose(() => {
     active = false;
     for (const endpoint of endpoints.value) endpoint.secret = "";
@@ -828,8 +892,8 @@ function createManagementPageController(props, context, lifecycle) {
         referenceStatus:record=>record.data?.status||record.data?.payload?.status?stateLabel(record.data?.status||record.data?.payload?.status):({events:"系统事件",links:"关联记录",harm:"拦截记录"})[record.kind]||"未记录状态",
         currentSection,
         dirty:selector(()=>loaded&&confirmedEditable()!==editableConfiguration(settings.value,endpoints.value,bindings.value,quiet.value)),
-        canDiscard:selector(()=>!saving.value&&!recovery.value&&!policyRecovery.value&&!pending.size&&!Array.from(policyChannels.values()).some(channel=>channel.pending())),
-        discard:async()=>{if(saving.value||recovery.value||policyRecovery.value||pending.size||Array.from(policyChannels.values()).some(channel=>channel.pending()))return;loaded=false;sessionStorage.removeItem(connectionDraftKey(scope));try{await readCatalog();saveStatus.value="已放弃未保存修改";}catch(cause){if(live()){loaded=true;error.value=errorMessage(cause);}}},
+        canDiscard:selector(()=>!saving.value&&!recovery.value&&!policyRecovery.value&&!pending.size&&!configurationStorageProblem.value),
+        discard:async()=>{if(saving.value||recovery.value||policyRecovery.value||pending.size||configurationStorageProblem.value||!inspectConfigurationRecords()||recovery.value||policyRecovery.value)return;validationPending.value=false;loaded=false;try{sessionStorage.removeItem(connectionDraftKey(scope));await readCatalog();saveKind.value='information';saveStatus.value="已放弃未保存修改";}catch(cause){if(live()){loaded=true;error.value=errorMessage(cause);}}},
         configForm,
         tab,
         sections,
@@ -853,8 +917,10 @@ function createManagementPageController(props, context, lifecycle) {
         quiet,
         characters,
         settings,
-        testRaw,testResult,
+        testRaw,testResult,testKind,
         error,
+        recovery,policyRecovery,needsBaselineReview,configurationStorageProblem,RecoveryActions,recoveringConfiguration,saveKind,
+        hasRecovery:selector(()=>!!recovery.value||!!policyRecovery.value||needsBaselineReview.value||!!configurationStorageProblem.value),
         saving,
         saveStatus,
         kind,
@@ -931,36 +997,18 @@ function createManagementPageController(props, context, lifecycle) {
         if (w.state.managementSection) scrollTo(w.state.managementSection, false);
       }),
   );
+  function RecoveryActions(){
+    if(configurationStorageProblem.value)return <ActionButton type="button" variant="outline" onClick={rereadConfigurationRecords}>重新读取本机提交记录</ActionButton>;
+    const policy=policyRecovery.value?.record;
+    return <div className="flex flex-wrap gap-2">
+      {policy&&!policy.rejection&&<ActionButton type="button" variant="outline" disabled={recoveringConfiguration.value} onClick={retryPolicy}>重试原角色设置</ActionButton>}
+      {recovery.value&&<><ActionButton type="button" variant="outline" disabled={recoveringConfiguration.value} onClick={()=>recoverOriginal()}>核对原提交</ActionButton><ActionButton type="button" variant="outline" disabled={recoveringConfiguration.value} onClick={()=>recoverOriginal(true)}>停止未受理提交</ActionButton></>}
+      {!recovery.value&&(!policy||policy.rejection)&&<ActionButton type="button" variant="outline" disabled={recoveringConfiguration.value} onClick={rebase}>读取最新基线（保留输入）</ActionButton>}
+    </div>;
+  }
   return (context, cache) => (
     <Fragment>
       {render(context, cache)}
-      {error.value ? (
-        <OperationStatus variant="default" className="approved-recovery" role="status">
-          {policyRecovery.value &&
-          policyRecovery.value.channel.pending() &&
-          !policyRecovery.value.channel.pending().rejection ? (
-            <ActionButton variant="outline"  onClick={retryPolicy}>
-              {"重试原角色设置"}
-            </ActionButton>
-          ) : null}
-          {recovery.value ? (
-            <ActionButton variant="outline"  onClick={() => recoverOriginal()}>
-              {"核对原提交"}
-            </ActionButton>
-          ) : null}
-          {recovery.value ? (
-            <ActionButton variant="outline"
-
-              onClick={() => recoverOriginal(true)}
-            >
-              {"停止未受理提交"}
-            </ActionButton>
-          ) : null}
-          <ActionButton variant="outline"  onClick={rebase}>
-            {"读取最新基线（保留输入）"}
-          </ActionButton>
-        </OperationStatus>
-      ) : null}
     </Fragment>
   );
 }

@@ -1,0 +1,1632 @@
+[
+  {
+    "name": "incomplete",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/incomplete-desktop-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/incomplete-desktop-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "scope-failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "世界人物暂未读全\n\n人物目录尚未完整返回。\n\n重新读取世界人物\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 252,
+              "y": 313.828125,
+              "width": 1062,
+              "height": 160.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重新读取世界人物",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 582.609375,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 646.765625,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "foreign-world",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-world-desktop-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-world-desktop-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "scope-failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "世界人物暂未读全\n\n当前世界不属于此角色。\n\n重新读取世界人物\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 252,
+              "y": 313.828125,
+              "width": 1062,
+              "height": 160.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重新读取世界人物",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 582.609375,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 646.765625,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "foreign-place",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-place-desktop-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-place-desktop-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "scope-failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "世界人物暂未读全\n\n人物、地点与当前世界范围不匹配，请重新读取。\n\n重新读取世界人物\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 252,
+              "y": 313.828125,
+              "width": 1062,
+              "height": 160.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "重新读取世界人物",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 582.609375,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 646.765625,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "read-only",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "retired role disables person creation",
+      "readable detail disables editing and management",
+      "detail-read-only: no horizontal overflow",
+      "retired role also disables authored background edits",
+      "about-read-only: no horizontal overflow",
+      "read-only inspection sends no mutation",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0/encounters",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/read-only-desktop-detail-read-only.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/read-only-desktop-about-read-only.png"
+    ],
+    "feedback": [
+      {
+        "state": "detail-read-only",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 646.765625,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "目录、预计位置、在场与实际结识分别记录，浏览不会建立关系。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 406,
+              "y": 654,
+              "width": 536,
+              "height": 50.34375
+            },
+            "style": {
+              "color": "rgb(125, 143, 109)",
+              "background": "rgb(241, 245, 233)",
+              "border": "rgb(223, 232, 213)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "about-read-only",
+        "nodes": []
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 3
+  },
+  {
+    "name": "incomplete",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/incomplete-mobile-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/incomplete-mobile-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "scope-failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "世界人物暂未读全\n\n人物目录尚未完整返回。\n\n重新读取世界人物\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 17,
+              "y": 332.140625,
+              "width": 356,
+              "height": 153.984375
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重新读取世界人物",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 599.125,
+              "width": 356,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 670.640625,
+              "width": 356,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 5
+  },
+  {
+    "name": "foreign-world",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-world-mobile-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-world-mobile-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "scope-failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "世界人物暂未读全\n\n当前世界不属于此角色。\n\n重新读取世界人物\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 17,
+              "y": 332.140625,
+              "width": 356,
+              "height": 153.984375
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重新读取世界人物",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 599.125,
+              "width": 356,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 670.640625,
+              "width": 356,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 6
+  },
+  {
+    "name": "foreign-place",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-place-mobile-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/foreign-place-mobile-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "scope-failure",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "世界人物暂未读全\n\n人物、地点与当前世界范围不匹配，请重新读取。\n\n重新读取世界人物\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 17,
+              "y": 332.140625,
+              "width": 356,
+              "height": 153.984375
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "重新读取世界人物",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 599.125,
+              "width": 356,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 670.640625,
+              "width": 356,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 7
+  },
+  {
+    "name": "read-only",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "retired role disables person creation",
+      "readable detail disables editing and management",
+      "detail-read-only: no horizontal overflow",
+      "retired role also disables authored background edits",
+      "about-read-only: no horizontal overflow",
+      "read-only inspection sends no mutation",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0/encounters",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/read-only-mobile-detail-read-only.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after1/read-only-mobile-about-read-only.png"
+    ],
+    "feedback": [
+      {
+        "state": "detail-read-only",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 670.640625,
+              "width": 356,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          },
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "目录、预计位置、在场与实际结识分别记录，浏览不会建立关系。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 40,
+              "y": 658.234375,
+              "width": 310,
+              "height": 70.6875
+            },
+            "style": {
+              "color": "rgb(125, 143, 109)",
+              "background": "rgb(241, 245, 233)",
+              "border": "rgb(223, 232, 213)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "about-read-only",
+        "nodes": []
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after1/report.json",
+    "source_record_index": 8
+  },
+  {
+    "name": "about-conflict",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "blank reason prevents authored write",
+      "invalid: no horizontal overflow",
+      "authored save busy blocks duplicate confirmation",
+      "saving: no horizontal overflow",
+      "conflict retains same unsaved field",
+      "conflict: no horizontal overflow",
+      "explicit rebase preserves input and makes no new PUT",
+      "rebased: no horizontal overflow",
+      "rebased write uses latest facts and keeps external unrelated field",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "76d92d28-93ba-492d-b9ef-4edefe0a5b1b",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "b707c5d3-d654-4937-b956-a9ee15995c6a",
+          "expectedCurrentFactsRevision": "facts_gen_6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-desktop-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-desktop-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-desktop-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-desktop-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-desktop-saved.png"
+    ],
+    "feedback": [
+      {
+        "state": "invalid",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "请填写修改说明，最多500个字符。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 276,
+              "y": -369.4375,
+              "width": 590.171875,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "saving",
+        "nodes": []
+      },
+      {
+        "state": "conflict",
+        "nodes": [
+          {
+            "kind": "warning",
+            "role": "status",
+            "live": "polite",
+            "text": "资料版本已变化，草稿已保留，请重新读取后核对。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 276,
+              "y": -369.4375,
+              "width": 590.171875,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(119, 109, 66)",
+              "background": "rgb(251, 250, 243)",
+              "border": "rgb(231, 225, 201)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "rebased",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "最新基线已明确确认，当前输入仍保留。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 276,
+              "y": -369.4375,
+              "width": 590.171875,
+              "height": 53.796875
+            },
+            "style": {
+              "color": "rgb(85, 100, 80)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "saved",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "你的资料已保存并读回，自填来源与已有认识分别保留。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 61.828125,
+              "width": 1062,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after2/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "about-conflict",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "blank reason prevents authored write",
+      "invalid: no horizontal overflow",
+      "authored save busy blocks duplicate confirmation",
+      "saving: no horizontal overflow",
+      "conflict retains same unsaved field",
+      "conflict: no horizontal overflow",
+      "explicit rebase preserves input and makes no new PUT",
+      "rebased: no horizontal overflow",
+      "rebased write uses latest facts and keeps external unrelated field",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "8871969d-5482-453a-a8af-c5762c2ef049",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "65316ff4-193d-4026-8d49-fdd4f2869460",
+          "expectedCurrentFactsRevision": "facts_gen_6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-mobile-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-mobile-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-mobile-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-mobile-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-feedback-after2/about-conflict-mobile-saved.png"
+    ],
+    "feedback": [
+      {
+        "state": "invalid",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "请填写修改说明，最多500个字符。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 38,
+              "y": -1087.78125,
+              "width": 314,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "saving",
+        "nodes": []
+      },
+      {
+        "state": "conflict",
+        "nodes": [
+          {
+            "kind": "warning",
+            "role": "status",
+            "live": "polite",
+            "text": "资料版本已变化，草稿已保留，请重新读取后核对。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 38,
+              "y": -1087.78125,
+              "width": 314,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(119, 109, 66)",
+              "background": "rgb(251, 250, 243)",
+              "border": "rgb(231, 225, 201)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "rebased",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "最新基线已明确确认，当前输入仍保留。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground replica-feedback min-w-0",
+            "bounds": {
+              "x": 38,
+              "y": -1087.78125,
+              "width": 314,
+              "height": 47.140625
+            },
+            "style": {
+              "color": "rgb(85, 100, 80)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "saved",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "你的资料已保存并读回，自填来源与已有认识分别保留。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": -610.859375,
+              "width": 356,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "after",
+    "status": "passed",
+    "source_report": "evidence/people-state-edges-feedback-after2/report.json",
+    "source_record_index": 1
+  }
+]

@@ -332,26 +332,28 @@ export function createWorkspace({ observable = proxy } = {}) {
       return raw;
     });
   }
-  async function loadLife() {
+  async function loadLife({currentOnly=false}={}) {
     const fid = state.selectedId;
     if (!fid) return;
     const scope = currentScope();
     await detail();
     if (currentScope() !== scope) return;
     return read("life", async (live) => {
-      const results = await Promise.allSettled([
-        lifeClient.schedules(fid),
-        collectPages((c) => lifeClient.goals(fid, c)),
-        collectPages((c) => diaryClient.list(fid, c)),
-        collectPages((c) =>
+      const reads=[
+        ()=>lifeClient.schedules(fid),
+        ()=>collectPages((c) => lifeClient.goals(fid, c)),
+        ()=>collectPages((c) => diaryClient.list(fid, c)),
+        ()=>collectPages((c) =>
           memoryClient.list(fid, { cursor: c, status: "active", limit: 30 }),
         ),
-        collectPages((c) => lifeClient.promises(fid, c)),
-      ]);
+        ()=>collectPages((c) => lifeClient.promises(fid, c)),
+      ];
+      const results = await Promise.allSettled((currentOnly?reads.slice(0,1):reads).map(run=>run()));
       if (!live()) return;
       const c = current.value;
       const accept = (index, key, update) => {
         const result = results[index];
+        if(!result)return;
         if (result.status === "fulfilled") {
           delete state.errors[key];delete state.errorScopes[key];
           state.readSuccesses[scope]??={};state.readSuccesses[scope][key]=true;
@@ -741,6 +743,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       viewGeneration = generation;
       record.status = "pending";
       record.reason = "";
+      record.admissionPending=!acknowledged;record.outcomeUnknown=false;record.rejected=false;
       try {
         if (acknowledged) {
           await onSaved?.(acknowledgedResult, acknowledgedValue);
@@ -769,6 +772,7 @@ export function createWorkspace({ observable = proxy } = {}) {
         const result = pending
           ? await channel.retry()
           : await channel.submit(frozen);
+        record.admissionPending=false;
         const executedValue=JSON.parse(JSON.stringify(pending?pending.value:frozen));
         record.input=safeText(executedValue);
         record.originalInput = "";
@@ -782,6 +786,7 @@ export function createWorkspace({ observable = proxy } = {}) {
             ? "pending"
             : "success";
         if (request) {
+          record.requestStatus=request.status;
           record.requestId = request.id;
           record.requestUnresolved = true;
           void observeRequest(owner, fid, request.id, record, onSaved);
@@ -799,13 +804,17 @@ export function createWorkspace({ observable = proxy } = {}) {
         channels.delete(scope);
         if (live()) {
           record.status = "error";
+          record.admissionPending=false;
           record.reason = errorMessage(error);
+          let original;try{original=channel.pending();}catch{record.outcomeUnknown=true;}
+          record.outcomeUnknown=record.outcomeUnknown||!!original&&!original.rejection;
+          record.rejected=!!original?.rejection;
           if (acknowledged) {
             record.response = "原操作已有回执，页面结果尚未读回。";
             record.reason = "只读恢复页面结果：" + record.reason;
             record.actionText = "只读恢复页面结果";
           }
-          if (channel.pending()?.rejection) {
+          if (original?.rejection) {
             record.reason += "；请核对最新版本后重新提出修改。当前草稿已保留。";
             record.actionText = "核对版本";
             record.run = () => {
@@ -980,6 +989,7 @@ export function createWorkspace({ observable = proxy } = {}) {
       const record = observable({
         id: randomId(),
         requestId: pointer.id,
+        restored: true,
         fid,
         label: pointer.label,
         operation: pointer.operation,
@@ -1013,7 +1023,7 @@ export function createWorkspace({ observable = proxy } = {}) {
         await detail();
         await loadWardrobe();
       } else if (page === "此刻")
-        await Promise.allSettled([loadLife(), loadWardrobe()]);
+        await Promise.allSettled([loadLife({currentOnly:true}), loadWardrobe()]);
       else if (["日程", "目标", "日记", "记忆"].includes(page))
         await loadLife();
       else if (page === "角色详情") await detail();

@@ -1,0 +1,17 @@
+[
+  {
+    "name": "demo-source-manifest",
+    "count": 48,
+    "changed": []
+  },
+  {
+    "name": "workspace-baseline",
+    "count": 108,
+    "changed": []
+  },
+  {
+    "name": "feedback-baseline-manifest",
+    "count": 151,
+    "changed": []
+  }
+]

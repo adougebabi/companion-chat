@@ -100,10 +100,7 @@ export default function PreparationSteps(input = {}) {
                   {stage.note &&
                     stage.note !== (labels[stage.state] || "状态待确认") && (
                       <InlineFeedback
-                        variant={
-                          stage.state === "failed" ? "destructive" : "default"
-                        }
-                        role={stage.state === "failed" ? "alert" : undefined}
+                        kind={stage.state==='failed'?'error':stage.state==='unknown'?'action-required':stage.state==='running'||stage.state==='pending'?'progress':'information'}
                         className={
                           stage.state === "failed"
                             ? ""

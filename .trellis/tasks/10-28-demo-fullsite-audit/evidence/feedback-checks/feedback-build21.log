@@ -1,0 +1,140 @@
+$ vite build && node scripts/verify-product-build.mjs && node scripts/verify-react-stack.mjs
+vite v7.1.5 building for production...
+transforming...
+✓ 3227 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                     0.56 kB │ gzip:   0.38 kB
+dist/assets/index-mMAjWB6_.css                    463.49 kB │ gzip:  76.00 kB
+dist/assets/ui-mgKsFE7w.js                          0.11 kB │ gzip:   0.12 kB
+dist/assets/spinner-DK7nCpCo.js                     0.22 kB │ gzip:   0.19 kB
+dist/assets/instant-label-NjgBvuxI.js               0.24 kB │ gzip:   0.20 kB
+dist/assets/moment-reading-C3gks7N_.js              0.28 kB │ gzip:   0.27 kB
+dist/assets/source-navigation-CGGctZTQ.js           0.29 kB │ gzip:   0.23 kB
+dist/assets/WorkspaceInfo-DWEjq3M9.js               0.34 kB │ gzip:   0.24 kB
+dist/assets/arrow-right-siDNoOXM.js                 0.37 kB │ gzip:   0.29 kB
+dist/assets/arrow-left-Cpi6qhNL.js                  0.37 kB │ gzip:   0.29 kB
+dist/assets/arrow-up-right-1NCSfNwF.js              0.37 kB │ gzip:   0.28 kB
+dist/assets/check-check-DkZSs5MG.js                 0.38 kB │ gzip:   0.29 kB
+dist/assets/rotate-ccw-adBF8p5Y.js                  0.41 kB │ gzip:   0.31 kB
+dist/assets/WorkspacePageHeader-BAIc6SHm.js         0.42 kB │ gzip:   0.27 kB
+dist/assets/message-square-DuwaEgKE.js              0.44 kB │ gzip:   0.33 kB
+dist/assets/eye-Dv8RbKSD.js                         0.46 kB │ gzip:   0.32 kB
+dist/assets/ellipsis-BMogaSr8.js                    0.46 kB │ gzip:   0.31 kB
+dist/assets/map-pin-DKAUfzdl.js                     0.46 kB │ gzip:   0.35 kB
+dist/assets/rotate-ccw-clock-TLDoZYMu.js            0.47 kB │ gzip:   0.34 kB
+dist/assets/pencil-CD1tIJsE.js                      0.48 kB │ gzip:   0.35 kB
+dist/assets/send-BYs8d0wt.js                        0.50 kB │ gzip:   0.36 kB
+dist/assets/pen-line-BR3Lcp3L.js                    0.50 kB │ gzip:   0.36 kB
+dist/assets/MediaPreview-BRmH7RnD.js                0.52 kB │ gzip:   0.41 kB
+dist/assets/shield-check-CmqQhkWe.js                0.53 kB │ gzip:   0.38 kB
+dist/assets/refresh-cw-GsJPJ5wi.js                  0.53 kB │ gzip:   0.35 kB
+dist/assets/event-definition-g9T5o2be.js            0.55 kB │ gzip:   0.45 kB
+dist/assets/diary-generation-DKCz87De.js            0.56 kB │ gzip:   0.44 kB
+dist/assets/package-CyhUcLy8.js                     0.58 kB │ gzip:   0.38 kB
+dist/assets/WearingSummary-YPrZT_T6.js              0.61 kB │ gzip:   0.48 kB
+dist/assets/sliders-horizontal-CPkLLY7t.js          0.63 kB │ gzip:   0.37 kB
+dist/assets/useManagementView-yMimpAJ1.js           0.63 kB │ gzip:   0.37 kB
+dist/assets/revisions-C1vNu63j.js                   0.67 kB │ gzip:   0.47 kB
+dist/assets/wardrobe-preparation-DDylFnaN.js        0.67 kB │ gzip:   0.51 kB
+dist/assets/star-D_Mgj60T.js                        0.68 kB │ gzip:   0.43 kB
+dist/assets/sparkles-D9oeVayp.js                    0.72 kB │ gzip:   0.42 kB
+dist/assets/ConfirmationFrame-Dv6rhX5T.js           0.73 kB │ gzip:   0.49 kB
+dist/assets/render-helpers-BVgQjMPy.js              0.76 kB │ gzip:   0.47 kB
+dist/assets/goal-records-CB9xSA4l.js                0.88 kB │ gzip:   0.58 kB
+dist/assets/WorkspaceDialog-B8w1Ctvx.js             0.94 kB │ gzip:   0.59 kB
+dist/assets/use-cursor-page-BU7yxN7B.js             1.04 kB │ gzip:   0.56 kB
+dist/assets/studio-draft-storage-DbCXPByM.js        1.13 kB │ gzip:   0.39 kB
+dist/assets/overlay-7OhjJEOL.js                     1.26 kB │ gzip:   0.74 kB
+dist/assets/zoned-input-CnIUt3rY.js                 1.32 kB │ gzip:   0.83 kB
+dist/assets/ScheduleTimeline-CX_hQO5y.js            1.34 kB │ gzip:   0.74 kB
+dist/assets/world-items-q05aZBtw.js                 1.40 kB │ gzip:   0.93 kB
+dist/assets/CursorControls-BkQn7SFF.js              1.69 kB │ gzip:   0.72 kB
+dist/assets/studio-presentation-45XZ4pdV.js         1.71 kB │ gzip:   1.10 kB
+dist/assets/studio-comparison-D15ipXbD.js           1.77 kB │ gzip:   1.02 kB
+dist/assets/self-claims-B79jlcCF.js                 1.94 kB │ gzip:   1.19 kB
+dist/assets/configuration-feedback-mw_u6J88.js      1.97 kB │ gzip:   1.13 kB
+dist/assets/useWorkspaceRead-BhxxeCSa.js            1.99 kB │ gzip:   1.00 kB
+dist/assets/media-reference-grants-yAKrMX0S.js      2.05 kB │ gzip:   1.20 kB
+dist/assets/cursor-records-B6uszdep.js              2.15 kB │ gzip:   1.24 kB
+dist/assets/world-definition-DkmlHW-v.js            2.16 kB │ gzip:   1.20 kB
+dist/assets/StudioPreviewPage-CGZDjo6b.js           2.29 kB │ gzip:   1.29 kB
+dist/assets/world-events-CKpfDYA7.js                2.83 kB │ gzip:   1.65 kB
+dist/assets/WorkspaceGarmentArt-048yFQ1P.js         3.39 kB │ gzip:   1.43 kB
+dist/assets/business-backups-BXQFRp5z.js            3.41 kB │ gzip:   1.97 kB
+dist/assets/backups-IUA9wVJH.js                     3.51 kB │ gzip:   2.08 kB
+dist/assets/attachment-BMWL6Sco.js                  3.52 kB │ gzip:   1.18 kB
+dist/assets/WorkspaceCommandDialog-CtOL34dA.js      3.57 kB │ gzip:   1.71 kB
+dist/assets/world-events-CQ5cXdtt.js                3.58 kB │ gzip:   1.92 kB
+dist/assets/wardrobe-form-DF-loF0g.js               3.74 kB │ gzip:   1.31 kB
+dist/assets/world-items-B6KapKWp.js                 3.80 kB │ gzip:   2.04 kB
+dist/assets/cards-FBInFDTE.js                       3.91 kB │ gzip:   2.01 kB
+dist/assets/JsonDetails-CNMJrB4l.js                 4.13 kB │ gzip:   2.17 kB
+dist/assets/RecordEditor-Dtxffs7v.js                4.22 kB │ gzip:   2.10 kB
+dist/assets/PreparationSteps-CDeI9l5V.js            4.51 kB │ gzip:   1.91 kB
+dist/assets/TaskDetailPage-C0OawTrP.js              4.55 kB │ gzip:   2.23 kB
+dist/assets/StudioMaterialPage-4IX_BAi-.js          4.59 kB │ gzip:   2.28 kB
+dist/assets/RequestStatus-Dl4fdDEF.js               4.84 kB │ gzip:   2.42 kB
+dist/assets/AuthPage-CwVApVYm.js                    4.98 kB │ gzip:   2.02 kB
+dist/assets/MediaParts-D632I5Ws.js                  5.07 kB │ gzip:   2.57 kB
+dist/assets/DomainPage-YtAh2O7q.js                  5.28 kB │ gzip:   2.31 kB
+dist/assets/governance-command-BcIsM0CS.js          5.53 kB │ gzip:   2.67 kB
+dist/assets/place-defaults-Ctu9ZsO-.js              5.65 kB │ gzip:   2.57 kB
+dist/assets/semantic-fields-CJBgzLCf.js             5.72 kB │ gzip:   2.95 kB
+dist/assets/durable-command-drawer-_eO5qqzj.js      5.75 kB │ gzip:   2.54 kB
+dist/assets/async-page-zeP4Ht8O.js                  5.86 kB │ gzip:   2.92 kB
+dist/assets/domain-command-C5dEdscY.js              5.91 kB │ gzip:   2.44 kB
+dist/assets/life-timeline-56qKnkgi.js               5.94 kB │ gzip:   2.87 kB
+dist/assets/forms-By60jjTS.js                       6.06 kB │ gzip:   2.68 kB
+dist/assets/SemanticTree-B8uugLBg.js                7.36 kB │ gzip:   3.46 kB
+dist/assets/calendar-reading-z4cKoAV6.js            7.53 kB │ gzip:   3.30 kB
+dist/assets/WorkflowRecovery-CObOUgUl.js            8.48 kB │ gzip:   3.54 kB
+dist/assets/ProfileField-DaKBObHe.js                9.04 kB │ gzip:   4.21 kB
+dist/assets/goal-editor-TYhozOyg.js                 9.30 kB │ gzip:   3.96 kB
+dist/assets/AvatarPage-zskAFdnm.js                  9.57 kB │ gzip:   3.87 kB
+dist/assets/self-C6H8bRxo.js                       10.28 kB │ gzip:   4.31 kB
+dist/assets/reflection-f5DPFbKW.js                 10.34 kB │ gzip:   4.36 kB
+dist/assets/slider-DgkkB4fU.js                     11.44 kB │ gzip:   4.52 kB
+dist/assets/operations-C-F8-4O0.js                 11.95 kB │ gzip:   4.76 kB
+dist/assets/LibraryPage-X6QJiWNS.js                12.62 kB │ gzip:   5.12 kB
+dist/assets/memory-YmhVjD74.js                     12.66 kB │ gzip:   4.98 kB
+dist/assets/StudioPage-BbxibuIl.js                 13.07 kB │ gzip:   5.44 kB
+dist/assets/CreationRecoveryFeedback-B04kJIil.js   14.77 kB │ gzip:   5.92 kB
+dist/assets/data-tools-Cgc86EaK.js                 15.18 kB │ gzip:   6.29 kB
+dist/assets/Combobox-kmbOBV6R.js                   15.42 kB │ gzip:   6.15 kB
+dist/assets/media-generation-drawer-CJkQK4Hr.js    15.78 kB │ gzip:   6.35 kB
+dist/assets/goal-planning-bBsITwsj.js              18.26 kB │ gzip:   6.67 kB
+dist/assets/promise-catalogue-CmsmTKBS.js          18.27 kB │ gzip:   7.04 kB
+dist/assets/DiaryPage-Cizd2cmt.js                  19.80 kB │ gzip:   7.09 kB
+dist/assets/life-schedule-BZ5cQVxr.js              19.87 kB │ gzip:   7.32 kB
+dist/assets/diary-CExoOok0.js                      20.82 kB │ gzip:   7.96 kB
+dist/assets/diagnostics-CbaTqQgF.js                23.11 kB │ gzip:   8.96 kB
+dist/assets/components-hIGj2ips.js                 23.40 kB │ gzip:   8.10 kB
+dist/assets/GovernancePage-ZqBaN9CX.js             24.42 kB │ gzip:   8.03 kB
+dist/assets/world-management-B5p9m1od.js           28.27 kB │ gzip:  10.38 kB
+dist/assets/LifePage-ByTL3p2F.js                   28.39 kB │ gzip:   9.79 kB
+dist/assets/SchedulePage-D1MBGTfj.js               29.00 kB │ gzip:   9.42 kB
+dist/assets/MemoryPage-WCce-XuU.js                 29.15 kB │ gzip:   9.64 kB
+dist/assets/GoalsPage-ZZrUjENP.js                  29.20 kB │ gzip:  10.04 kB
+dist/assets/WardrobePage-BHuILe0c.js               29.61 kB │ gzip:  10.20 kB
+dist/assets/FeedPage-CcjL0hCW.js                   31.10 kB │ gzip:  11.25 kB
+dist/assets/BrowsePage-D7Rgjgcq.js                 32.05 kB │ gzip:  10.98 kB
+dist/assets/world-details-thgL3NCO.js              34.93 kB │ gzip:  12.86 kB
+dist/assets/life-wardrobe-DT68jhro.js              48.65 kB │ gzip:  16.85 kB
+dist/assets/ChatPage-CUdCqXbl.js                   50.88 kB │ gzip:  17.46 kB
+dist/assets/CharacterDetailPage-BXM1YBYQ.js        53.50 kB │ gzip:  16.88 kB
+dist/assets/WorldPage-BS0lMRi9.js                  57.71 kB │ gzip:  18.10 kB
+dist/assets/PeoplePage-C7AuAqOc.js                 60.18 kB │ gzip:  19.17 kB
+dist/assets/StudioEditorPage-h3VbI8UN.js           73.69 kB │ gzip:  23.67 kB
+dist/assets/MediaPage-BKHSUJeO.js                  76.04 kB │ gzip:  23.10 kB
+dist/assets/CharacterWizardPage-t3dpUsos.js        79.01 kB │ gzip:  26.32 kB
+dist/assets/ManagementPage-JrQOR8aW.js             89.48 kB │ gzip:  29.47 kB
+dist/assets/index-CnfNEckb.js                     862.11 kB │ gzip: 261.85 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.51s
+Verified real production bundle: no fixture store, seed, diagnostic samples, debug writers or QA page.
+Verified React-only production graph (376 local modules): no Vue, Reka, legacy pages or old router.

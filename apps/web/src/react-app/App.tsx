@@ -1,5 +1,5 @@
 import {workspaceReadFeedback} from '@/approved-ui/read-feedback.mjs';
-import {InlineFeedback} from '@/react-app/shared/Presentation';
+import {InlineFeedback,Feedback} from '@/react-app/shared/Presentation';
 import {ReadState} from "@/react-app/shared/Presentation";
 import {Surface as CardSurface} from "@/react-app/controls";
 import {configureToast} from '@/v3/proto/components/toast.js';
@@ -278,7 +278,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
             {page === "聊天" ? (
               content
             ) : (
-              <div className="page-content">{pageReadErrors.length>0&&<InlineFeedback role="alert" className="mb-4"><p>{reading.initialFailure?'当前内容尚未读到。':'本次读取未完成，保留上次已读取的内容。'}</p>{pageReadErrors.map(error=><p key={error.key}>{error.label}：{error.message}</p>)}<Button type="button" variant="outline" disabled={reading.loading} onClick={()=>void workspace.load(page)}>重新读取当前页面</Button></InlineFeedback>}<div hidden={reading.initialFailure}>{content}</div></div>
+              <div className="page-content">{pageReadErrors.length>0&&<Feedback kind={reading.initialFailure?"error":"warning"} className="mb-4" title={reading.initialFailure?"当前内容尚未读到":"部分内容暂未读全"} actions={<Button type="button" variant="outline" disabled={reading.loading} onClick={()=>void workspace.load(page)}>重新读取当前页面</Button>}>{reading.initialFailure?"需要重新读取后继续。":"上次确认的内容仍保留。"} {pageReadErrors.map(error=><p key={error.key}>{error.label}：{error.message}</p>)}</Feedback>}<div hidden={reading.initialFailure}>{content}</div></div>
             )}
           </Suspense>
         </div>

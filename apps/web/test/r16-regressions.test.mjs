@@ -40,7 +40,7 @@ test('decision-point controls preserve actual booleans and invalid maps or workf
  const options=fields=>({catalog:{versions:{},effective_values:{'media.comfyui':{baseUrl:'https://fixture.invalid',workflow:{'1':{class_type:'Model',inputs:{}}}},kev:{points},'product.autonomy':{quiet_hours:{}}}},settings:[{fields}],endpoints:[],bindings:[],quiet:{enabled:false,start:'',end:'',days:['周日','周一','周二','周三','周四','周五','周六'],character:'全部角色'},characters:[]});
  assert.throws(()=>configurationPlan(options([{...field,value:{...points,'tools.select':'true'}}])),/有效的决策场景/);
  assert.throws(()=>configurationPlan(options([{...field,value:{'tools.select':true}}])),/有效的决策场景/);
- assert.throws(()=>configurationPlan(options([{type:'json',label:'默认 API 工作流',value:'{"1":{"class_type":"Model","inputs":[]}}',_initial:undefined,_definition:{type:'workflow'},_settingKey:'media.comfyui',_key:'workflow'}])),/class_type 和 inputs/);
+ assert.throws(()=>configurationPlan(options([{type:'json',label:'默认 API 工作流',value:'{"1":{"class_type":"Model","inputs":[]}}',_initial:undefined,_definition:{type:'workflow'},_settingKey:'media.comfyui',_key:'workflow'}])),cause=>{assert.match(cause.message,/class_type 和 inputs/);assert.deepEqual(cause.settingField,{settingKey:'media.comfyui',key:'workflow'});return true;});
 });
 
 test('diagnostic panels preserve distinct identities and discard old panel rows; pagination uses the opaque cursor',async()=>{

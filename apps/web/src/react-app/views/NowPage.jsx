@@ -20,7 +20,7 @@ export default function NowPage({view}){
   <div className="lp-grid"><div className="lp-stack">
    <section className="lp-hero"><div><div className="lp-row lp-day-stamp"><span>{date}</span></div>{w.state.loading.detail&&!c.activity?<LoadingState label="正在读取此刻状态…"/>:<h2>{c.activity||'此刻状态尚未更新'}</h2>}<div className="lp-row"><span className="lp-chip"><MapPinIcon size={12}/>{c.location||'位置尚未记录'}</span><span className="lp-chip"><LeafIcon size={12}/>{c.mood||'心情尚未记录'}</span></div></div><div className="lp-hero-art" aria-hidden="true"><BookOpenIcon/></div></section>
    <Surface className="lp-pad"><div className="replica-section-heading"><div><h2>今天，慢慢走</h2><p>已确认的安排与即将到来的片刻</p></div><Button variant="link" onClick={()=>go('日程')}>完整日程<ArrowUpRightIcon size={12}/></Button></div>
-    {readingSchedule&&<LoadingState label="正在读取日程…"/>}{view.readError('schedule')&&<InlineFeedback role="alert">日程读取未完成，保留已确认的安排。{view.readError('schedule')}<Button variant="outline" onClick={()=>void w.loadLife().catch(()=>{})}>重新读取日程</Button></InlineFeedback>}
+    {readingSchedule&&<LoadingState label="正在读取日程…"/>}{view.readError('schedule')&&<InlineFeedback role="alert">日程读取未完成，保留已确认的安排。{view.readError('schedule')}<Button variant="outline" onClick={()=>void w.loadLife({currentOnly:true}).catch(()=>{})}>重新读取日程</Button></InlineFeedback>}
     {todayItems.length?<ScheduleTimeline items={todayItems.slice(-4)} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
     <Button variant="link" className="replica-timeline-link" onClick={()=>view.openTimeline()}>生活时间线<ArrowUpRightIcon size={12}/></Button>
    </Surface>

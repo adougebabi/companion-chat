@@ -16,7 +16,7 @@ import ConversationHistory from '../shared/ConversationHistory';
 import {Surface} from '../controls';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {SidebarProvider,Sidebar,SidebarContent} from '@/components/ui/sidebar';
-import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {InlineFeedback,Feedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
 import {
@@ -203,7 +203,7 @@ export default function ChatPage({
     character.name,
   );
   const error =
-    snapshot.fluctlightId === character.id && snapshot.error
+    snapshot.fluctlightId === character.id && snapshot.error&&snapshot.error!==snapshot.recoveryStorageError
       ? chatFailureText(
           snapshot.error,
           messages.some(
@@ -261,7 +261,7 @@ export default function ChatPage({
             <MessageScrollerViewport aria-label="聊天消息" className="companion-message-list">
               <MessageScrollerContent className="replica-chat-messages">
 
-                {(snapshot.loading||readLoading)&&<MessageScrollerItem messageId="loading"><Spinner/>正在读取对话…</MessageScrollerItem>}
+                {(snapshot.loading||readLoading)&&<MessageScrollerItem messageId="loading" role="status" aria-live="polite" data-feedback-kind="progress"><Spinner/>正在读取对话…</MessageScrollerItem>}
                 {!snapshot.loading&&!readLoading&&!messages.length&&!error&&!busy&&<MessageScrollerItem messageId="intro"><div className="replica-chat-empty"><LeafIcon size={24}/><p>从一句问候开始，让陪伴慢慢发生。</p></div></MessageScrollerItem>}
           {messages.map((message,index) => {
             const mine = message.kind === "user",
@@ -336,6 +336,7 @@ export default function ChatPage({
           </MessageScroller>
         </MessageScrollerProvider>
         <div className="companion-composer">
+          {snapshot.recoveryStorageError&&<Feedback kind="action-required" actions={<Button type="button" variant="outline" onClick={()=>store.rereadLocalRecovery()}>重新读取本机原请求记录</Button>}>{snapshot.recoveryStorageError}</Feedback>}
           {promptOffer&&<div className="companion-prefill-note"><span>已保留你的草稿，还有一条来自其他页面的请求。</span><Button variant="link" onClick={()=>{setDraft(current=>current.trim()?current+'\n\n'+promptOffer:promptOffer);setPromptOffer('');}}>加入草稿</Button><Button variant="ghost" size="icon" aria-label="放下这条请求" onClick={()=>setPromptOffer('')}><XIcon size={12}/></Button></div>}
           <Textarea
             aria-label="聊天消息"
@@ -364,7 +365,7 @@ export default function ChatPage({
             <span>Enter 发送 <i/> Shift + Enter 换行</span>
             <Button
               className="touch-target"
-              disabled={!draft.trim() || busy || readLoading || !snapshot.conversation}
+              disabled={!draft.trim() || busy || readLoading || !snapshot.conversation || !!snapshot.recoveryStorageError}
               onClick={() => void send()}
             >
               {busy ? "回应中" : "发送"}

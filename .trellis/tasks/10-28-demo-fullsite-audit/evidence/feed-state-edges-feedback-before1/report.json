@@ -1,0 +1,1186 @@
+[
+  {
+    "name": "suggestion-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "processing is not an actual publication",
+      "processing: no horizontal overflow",
+      "rejected: no horizontal overflow",
+      "failed-original: no horizontal overflow",
+      "refresh resumes same request and original text",
+      "recovery and state refresh never resubmit or auto-publish",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-states desktop",
+          "mediaIds": [],
+          "idempotencyKey": "3e07ae6b-6ac7-45cd-a44a-7fe07d23fea3"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-desktop-processing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-desktop-rejected.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-desktop-failed-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-desktop-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "processing",
+        "nodes": []
+      },
+      {
+        "state": "rejected",
+        "nodes": []
+      },
+      {
+        "state": "failed-original",
+        "nodes": []
+      },
+      {
+        "state": "recovered",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  },
+  {
+    "name": "suggestion-readback",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "accepted-read-failure: no horizontal overflow",
+      "processing is not an actual publication",
+      "processing: no horizontal overflow",
+      "refresh resumes same request and original text",
+      "recovery and state refresh never resubmit or auto-publish",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-readback desktop",
+          "mediaIds": [],
+          "idempotencyKey": "7051ecb4-2651-4afd-b52d-563c8a3455e7"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-readback-desktop-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-readback-desktop-processing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-readback-desktop-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "accepted-read-failure",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "原操作已有回执；结果读取尚未完成：服务暂时无法连接，请稍后重新读取。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 406,
+              "y": 190.53125,
+              "width": 536,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "原操作已有回执，请核对实际结果。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0",
+            "bounds": {
+              "x": 406,
+              "y": 248.53125,
+              "width": 536,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "processing",
+        "nodes": []
+      },
+      {
+        "state": "recovered",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  },
+  {
+    "name": "npc-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "suppressed source retains original encounter without copresence",
+      "suppressed: no horizontal overflow",
+      "completed interaction has no retry command",
+      "completed: no horizontal overflow",
+      "reading outcomes makes no NPC or relation write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/npc-states-desktop-suppressed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/npc-states-desktop-completed.png"
+    ],
+    "feedback": [
+      {
+        "state": "suppressed",
+        "nodes": []
+      },
+      {
+        "state": "completed",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  },
+  {
+    "name": "comment-read-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "comment read failure preserves post and is not a confirmed empty list",
+      "failed: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "comment retry only reads original post",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/comment-read-failure-desktop-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/comment-read-failure-desktop-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "failed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。重新读取评论",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 271,
+              "y": 858.78125,
+              "width": 806,
+              "height": 54
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取评论",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  },
+  {
+    "name": "suggestion-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "processing is not an actual publication",
+      "processing: no horizontal overflow",
+      "rejected: no horizontal overflow",
+      "failed-original: no horizontal overflow",
+      "refresh resumes same request and original text",
+      "recovery and state refresh never resubmit or auto-publish",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-states mobile",
+          "mediaIds": [],
+          "idempotencyKey": "fc3387aa-e42d-4790-bd1c-9ec516c19e04"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-mobile-processing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-mobile-rejected.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-mobile-failed-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-states-mobile-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "processing",
+        "nodes": []
+      },
+      {
+        "state": "rejected",
+        "nodes": []
+      },
+      {
+        "state": "failed-original",
+        "nodes": []
+      },
+      {
+        "state": "recovered",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  },
+  {
+    "name": "suggestion-readback",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "accepted-read-failure: no horizontal overflow",
+      "processing is not an actual publication",
+      "processing: no horizontal overflow",
+      "refresh resumes same request and original text",
+      "recovery and state refresh never resubmit or auto-publish",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-readback mobile",
+          "mediaIds": [],
+          "idempotencyKey": "a8eb109e-798d-43bd-81dc-809f5eed201b"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-readback-mobile-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-readback-mobile-processing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/suggestion-readback-mobile-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "accepted-read-failure",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "原操作已有回执；结果读取尚未完成：服务暂时无法连接，请稍后重新读取。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 40,
+              "y": 139.359375,
+              "width": 310,
+              "height": 58
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "原操作已有回执，请核对实际结果。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 bg-card text-card-foreground min-w-0",
+            "bounds": {
+              "x": 40,
+              "y": 217.359375,
+              "width": 310,
+              "height": 38
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "processing",
+        "nodes": []
+      },
+      {
+        "state": "recovered",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  },
+  {
+    "name": "npc-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "suppressed source retains original encounter without copresence",
+      "suppressed: no horizontal overflow",
+      "completed interaction has no retry command",
+      "completed: no horizontal overflow",
+      "reading outcomes makes no NPC or relation write",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/npc-states-mobile-suppressed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/npc-states-mobile-completed.png"
+    ],
+    "feedback": [
+      {
+        "state": "suppressed",
+        "nodes": []
+      },
+      {
+        "state": "completed",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  },
+  {
+    "name": "comment-read-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "comment read failure preserves post and is not a confirmed empty list",
+      "failed: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "comment retry only reads original post",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/comment-read-failure-mobile-failed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-feedback-before1/comment-read-failure-mobile-recovered.png"
+    ],
+    "feedback": [
+      {
+        "state": "failed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "服务暂时无法连接，请稍后重新读取。重新读取评论",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 40,
+              "y": 676.71875,
+              "width": 310,
+              "height": 74
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取评论",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "state": "recovered",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed"
+  }
+]

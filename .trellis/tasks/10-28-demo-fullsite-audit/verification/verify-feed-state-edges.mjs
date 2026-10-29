@@ -3,6 +3,7 @@ import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {startOwnedFixture} from './owned-fixture.mjs';
+import {recordFeedbackDOM} from './feedback-dom-audit.mjs';
 const require=createRequire('/private/tmp/fluctlight-demo-audit-20261028/browser-tools/package.json'),{chromium}=require('playwright-core');
 const out=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-'+(process.env.AUDIT_PHASE||'pass121'));
 await mkdir(out,{recursive:true});const browser=await chromium.launch({channel:'chrome',headless:true}),results=[];
@@ -13,7 +14,7 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
   context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,locale:'zh-CN',timezoneId:'Asia/Shanghai',reducedMotion:'reduce'});page=await context.newPage();page.setDefaultTimeout(10000);
   page.on('pageerror',e=>record.errors.push(e.message));page.on('request',r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/'))record.requests.push({path,method:r.method(),body:r.postDataJSON()});});
   const check=(label,value)=>{assert.ok(value,label);record.checks.push(label);},d=()=>page.getByRole('dialog').last(),writes=()=>record.requests.filter(r=>!['GET','HEAD'].includes(r.method));
-  const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);};
+  const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);await recordFeedbackDOM(page,record,state);};
   const go=()=>page.goto(server.base+'/#/feed',{waitUntil:'networkidle'});
   let openingPost=false;const openPost=async()=>{const card=page.getByTestId('feed-post-post-one');for(let n=0;n<6&&!await card.count();n++)await page.getByRole('button',{name:'加载更多动态',exact:true}).click();openingPost=true;await card.getByRole('button',{name:'查看详情',exact:true}).click();await d().waitFor();};
   const resume=async()=>{if(size==='mobile')await page.getByRole('button',{name:'你们的分享建议与原请求',exact:true}).click();await page.getByRole('button',{name:'继续查看上次分享建议',exact:true}).first().click();};

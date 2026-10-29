@@ -673,7 +673,10 @@
 .replica-chat .companion-self-avatar{border-radius:10px}
 .replica-chat .replica-message-bubble{max-width:100%;gap:0}
 .replica-chat .companion-bubble{max-width:100%;width:fit-content}
-.replica-chat .companion-message-body [data-slot="alert"]{border:0;background:transparent;padding:0;margin:6px 0 0;box-shadow:none;text-align:right;font-size:10px;color:#a15c53}
+.replica-chat .companion-message-body [data-slot="alert"]{border:0;background:transparent;padding:0;margin:6px 0 0;box-shadow:none;text-align:right;font-size:10px;color:#556450}
+.replica-chat .companion-message-body [data-feedback-kind="error"]{color:#a15c53}
+.replica-chat .companion-message-body [data-feedback-kind="warning"]{color:#776d42}
+.replica-chat .companion-message-body [data-feedback-kind="progress"]{color:#567363}
 .replica-chat .companion-message-body [data-slot="alert"] button{height:auto;padding:2px 0;font-size:10px;background:transparent;border:0;color:#67805b;gap:4px;text-decoration:underline;box-shadow:none}
 .replica-chat .companion-message-body [data-slot="alert"] button svg{width:12px;height:12px}
 .replica-chat .companion-composer textarea{field-sizing:fixed;width:100%;height:74px;border-radius:0}

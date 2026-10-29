@@ -6,7 +6,7 @@ import CursorControls from '@/react-app/shared/CursorControls';
 import {Field,FieldLabel} from '@/components/ui/field';
 import Combobox from '@/react-app/shared/Combobox';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
-import {InlineFeedback} from "@/react-app/shared/Presentation";
+import {Feedback,InlineFeedback} from "@/react-app/shared/Presentation";
 import ModelTranscript from '@/react-app/shared/ModelTranscript';
 import JsonDetails from '@/react-app/shared/JsonDetails';
 import {Table,TableBody,TableCell,TableRow} from '@/components/ui/table';
@@ -63,7 +63,7 @@ export function ManagementPageView({ view: view }) {
             >
               <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small>{view.endpoints.value.length} 个服务 · {view.bindings.value.length} 个用途</small>}</div>
               {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>view.scrollTo(value)}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
-              {view.catalogLoading.value&&<p role="status">正在读取正式配置…</p>}
+              {view.catalogLoading.value&&<p role="status" data-feedback-kind="progress">正在读取正式配置…</p>}
               {!view.catalogReady.value&&view.error.value&&<InlineFeedback role="alert">{view.error.value}<ActionButton type="button" variant="outline" onClick={view.retryCatalog}>重新读取配置</ActionButton></InlineFeedback>}
               <Surface
                 as="section"
@@ -166,11 +166,7 @@ export function ManagementPageView({ view: view }) {
                       >
                         {"同步模型目录（已保存服务）"}
                       </ActionButton>
-                      {h.feedback ? (
-                        <OperationStatus variant="default" className="muted" role="status">
-                          {h.feedback}
-                        </OperationStatus>
-                      ) : null}
+
                     </div>
                   ))}
                 </Fragment>
@@ -421,29 +417,31 @@ export function ManagementPageView({ view: view }) {
                 ))}
               </Fragment>
               {view.testResult.value ? (
-                <OperationStatus variant="default" key={0} role="status" className="muted">
+                <OperationStatus kind={view.testKind.value} key={0} className="muted">
                   {displayText(view.testResult.value)}
                 </OperationStatus>
               ) : null}
               {view.testRaw.value&&<JsonDetails value={view.testRaw.value} title="测试回执与实际状态"/>}
-              <div className="settings-save-bar" data-testid="config-save-bar">
-                {view.error.value ? (
+              {view.catalogReady.value&&<div className="settings-save-bar" data-testid="config-save-bar">
+                {view.hasRecovery.value ? <Feedback kind={view.recoveringConfiguration.value?'progress':view.configurationStorageProblem.value?'error':view.recovery.value?.status===409?'warning':[400,403,422].includes(view.recovery.value?.status)?'error':'action-required'} title={view.recoveringConfiguration.value?'正在核对设置':view.configurationStorageProblem.value?'本机提交记录暂时无法读取':view.needsBaselineReview.value&&!view.recovery.value?'请核对最新配置':view.recovery.value?.status===409?'设置版本已变化':[400,403,422].includes(view.recovery.value?.status)?'设置未能保存':'原设置提交结果待核对'} details={(view.configurationStorageProblem.value||view.recovery.value?.failure)&&<pre>{JSON.stringify(view.configurationStorageProblem.value||view.recovery.value.failure,null,2)}</pre>}>
+                  <p>{view.error.value||view.saveStatus.value||'原设置提交仍需核对，当前输入会保留。'}</p><view.RecoveryActions/>
+                </Feedback> : view.error.value ? (
                   <InlineFeedback key={0} role="alert" >
                     {displayText(view.error.value)}
                   </InlineFeedback>
                 ) : (
-                  <p className="text-sm" role="status" aria-live="polite" data-testid="config-save-status">{view.saveStatus.value||(view.dirty.value?'有未保存修改':'设置已同步')}{view.saveStatus.value&&view.dirty.value&&!view.saving.value&&' · 有未保存修改'}</p>
+                  <p className="text-sm" role="status" aria-live="polite" data-feedback-kind={view.saving.value?'progress':view.saveKind.value} data-testid="config-save-status">{view.saveStatus.value||(view.dirty.value?'有未保存修改':'当前配置已读取')}{view.saveStatus.value&&view.dirty.value&&!view.saving.value&&' · 有未保存修改'}</p>
                 )}
                 <ActionButton variant="outline" className="h-auto min-h-11 whitespace-normal" type="button" disabled={!view.dirty.value||!view.canDiscard.value} onClick={view.discard}>放弃未保存修改</ActionButton>
                 <ActionButton variant="default"
 
-                  disabled={view.saving.value||!view.catalogReady.value}
+                  disabled={view.saving.value||view.recoveringConfiguration.value||!view.catalogReady.value||view.hasRecovery.value}
                   className="h-auto min-h-11 whitespace-normal"
                   data-testid="config-save"
                 >
                   {displayText(view.saving.value ? "保存中…" : "保存设置")}
                 </ActionButton>
-              </div>
+              </div>}
             </form>
           </div>
         ) : (
@@ -473,7 +471,7 @@ export function ManagementPageView({ view: view }) {
               {displayText(view.rows.value.length) + " 条已读取记录 · 按记录顺序排列"}
             </small>
             <p className="muted">{view.kind.value === "媒体调用" ? "图片、音频和视频任务的实际生成记录。" : "模型处理请求的状态、用时和结果摘要。"}</p>
-            <>{view.diagnosticPages.value[view.kind.value].loading&&<p role="status">正在读取调用记录…</p>}{view.diagnosticPages.value[view.kind.value].error&&<InlineFeedback role="alert">{view.diagnosticPages.value[view.kind.value].error}<ActionButton variant="outline" onClick={view.loadMoreDiagnostics}>重新读取原调用页</ActionButton></InlineFeedback>}{view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={view}/>}</><CursorControls label="调用" append={{loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
+            <>{view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={view}/>}</><CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
             {view.selected.value ? (
               <view.DetailDrawer
                 key={0}

@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef, useState,useEffect } from "react";
+import {ResultFeedback} from './Presentation';
 import { Button } from "@/components/ui/button";
 import { Surface, Disclosure, FieldInput, Textarea, Badge } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
@@ -12,7 +13,7 @@ export default function AvatarWorkspace({ model: m }) {
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
     [epoch, setEpoch] = useState(0),
-    [notice, setNotice] = useState(""),
+    [notice, setNotice] = useState(null),
     freshRef = useRef(null),
     formRoot = useRef(null);
   const avatar = useWorkspaceRead({
@@ -25,6 +26,12 @@ export default function AvatarWorkspace({ model: m }) {
       return { items: [r], next_cursor: "" };
     },
   });
+  useEffect(()=>setNotice(null),[fid,m.owner]);
+  async function refreshRelated(){
+    setNotice({kind:'progress',text:'正在重新读取其他页面的头像资料…'});
+    try{await m.service.refresh();if(m.live())setNotice(null);}
+    catch{if(m.live())setNotice({kind:'warning',text:'头像已保存，其他页面资料暂未刷新。',actions:<Button type="button" variant="outline" onClick={()=>void refreshRelated()}>重新读取其他页面资料</Button>});}
+  }
   freshRef.current = avatar;
   const images = useWorkspaceRead({
     identity: ["avatar-images", fid, query],
@@ -121,13 +128,13 @@ export default function AvatarWorkspace({ model: m }) {
             throw Error("显示头像的新选择尚未完整读回。");
           if (m.live()) {
             freshRef.current.adopt({ items: [row], next_cursor: "" });
-            setNotice("显示头像已保存并读回。");
+            setNotice({kind:'success',text:"显示头像已保存并读回。"});
             await history.load();
             try {
               await m.service.refresh();
             } catch {
               if (m.live())
-                setNotice("头像已保存，其他页面资料暂未刷新，可重新读取。");
+                setNotice({kind:'warning',text:"头像已保存，其他页面资料暂未刷新。",actions:<Button type="button" variant="outline" onClick={()=>void refreshRelated()}>重新读取其他页面资料</Button>});
             }
           }
         },
@@ -336,7 +343,7 @@ export default function AvatarWorkspace({ model: m }) {
           )}
         </>
       )}
-      {notice && <WorkspaceInfo>{notice}</WorkspaceInfo>}
+      <ResultFeedback notice={notice} onDismiss={value=>setNotice(current=>current===value?null:current)}/>
       {action && (
         <WorkspaceCommandDialog
           action={action}

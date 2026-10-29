@@ -3,6 +3,7 @@ import {createRequire} from 'node:module';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {startOwnedFixture} from './owned-fixture.mjs';
+import {recordFeedbackDOM} from './feedback-dom-audit.mjs';
 const require=createRequire('/private/tmp/fluctlight-demo-audit-20261028/browser-tools/package.json'),{chromium}=require('playwright-core');
 const out=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-'+(process.env.AUDIT_PHASE||'pass117'));
 await mkdir(out,{recursive:true});const browser=await chromium.launch({channel:'chrome',headless:true}),results=[];
@@ -14,7 +15,7 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
     context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,locale:'zh-CN',timezoneId:'Asia/Shanghai',reducedMotion:'reduce'});page=await context.newPage();page.setDefaultTimeout(10000);
     page.on('pageerror',e=>record.errors.push(e.message));page.on('request',r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/')||path.startsWith('/auth/'))record.requests.push({path,method:r.method(),body:r.postDataJSON()});});
     const check=(label,value)=>{assert.ok(value,label);record.checks.push(label);};
-    const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);};
+    const shot=async state=>{await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});check(state+': no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));const file=resolve(out,name+'-'+size+'-'+state+'.png');await page.screenshot({path:file,animations:'disabled'});record.screenshots.push(file);await recordFeedbackDOM(page,record,state);};
     const go=async path=>{await page.goto(server.base+'/#'+path,{waitUntil:'networkidle'});await page.locator('h1').first().waitFor();};
     const writes=()=>record.requests.filter(r=>!['GET','HEAD'].includes(r.method));
     if(name==='logout-failure'){
@@ -43,7 +44,7 @@ try{for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])f
       await page.route('**/api/fluctlights/fluctlight-fixture-one/conversation',project);await page.route('**/api/conversations/conversation-fixture/messages?*',project);
       await go('/c/fluctlight-fixture-one/chat');await page.getByText('林岚 · 验收样本还在想…',{exact:true}).waitFor();check('long running turn exposes diagnostics and honest waiting',await page.getByRole('button',{name:'停止本次生成',exact:true}).count()===1);await shot('slow');
       state='settling';await page.reload({waitUntil:'networkidle'});await page.getByRole('button',{name:'查看状态',exact:true}).waitFor();check('settling cannot offer model retry or cancellation',await page.getByRole('button',{name:'重试原回应',exact:true}).count()===0&&await page.getByRole('button',{name:'停止本次生成',exact:true}).count()===0);await shot('settling');
-      state='cancelled';await page.reload({waitUntil:'networkidle'});await page.getByRole('button',{name:'重试原回应',exact:true}).waitFor();await page.getByRole('alert').filter({hasText:'本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。'}).waitFor();check('actual cancelled turn retains original user bubble',await page.getByText('请查看回复失败时的反馈。',{exact:true}).count()===1);await shot('cancelled');check('read-only status rotation never creates a turn',!writes().some(r=>r.path.endsWith('/turn')));
+      state='cancelled';await page.reload({waitUntil:'networkidle'});await page.getByRole('button',{name:'重试原回应',exact:true}).waitFor();await (process.env.AUDIT_VERSION==='before'?page.getByRole('alert'):page.locator('[data-feedback-kind=information]')).filter({hasText:'本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。'}).waitFor();check('actual cancelled turn retains original user bubble',await page.getByText('请查看回复失败时的反馈。',{exact:true}).count()===1);await shot('cancelled');check('read-only status rotation never creates a turn',!writes().some(r=>r.path.endsWith('/turn')));
     }
     check('no browser exception',record.errors.length===0);record.status='passed';
   }catch(e){record.status='failed';record.error=e.stack;record.text=await page?.locator('body').innerText().catch(()=>null);await page?.screenshot({path:resolve(out,name+'-'+size+'-failure.png'),animations:'disabled'}).catch(()=>{});}

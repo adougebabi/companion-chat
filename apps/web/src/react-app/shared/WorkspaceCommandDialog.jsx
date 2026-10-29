@@ -143,10 +143,10 @@ export default function WorkspaceCommandDialog({
       >
         <div className="lp-stack">
           {state.error && (
-            <InlineFeedback role="alert">{state.error}</InlineFeedback>
+            <InlineFeedback kind={state.readbackPending||state.pending&&!state.pending.rejection?'action-required':state.needsRebase||state.pending?.rejection?'warning':'error'}>{state.error}</InlineFeedback>
           )}
-          {state.notice && (
-            <InlineFeedback variant="default" role="status">
+          {state.notice && !state.error && (
+            <InlineFeedback kind="information">
               {state.notice}
             </InlineFeedback>
           )}

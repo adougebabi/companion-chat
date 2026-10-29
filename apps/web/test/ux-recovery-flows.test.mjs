@@ -72,6 +72,7 @@ test('inline progress follows original request, localizes tasks, keeps state on 
     domainName,
     stateLabel,
     errorMessage,
+    JsonDetails:(value,title)=>'<details>'+esc(title)+'<pre>'+esc(JSON.stringify(value))+'</pre></details>',
     requestDecisionText,
     RequestDecisionSource,
     RequestFailureLink,

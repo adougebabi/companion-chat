@@ -1,0 +1,1826 @@
+[
+  {
+    "name": "logout-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "busy disables another logout",
+      "busy: no horizontal overflow",
+      "failed logout retains private workspace",
+      "failure: no horizontal overflow",
+      "explicit retry exits after authoritative acknowledgement",
+      "retried: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/logout-failure-desktop-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/logout-failure-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/logout-failure-desktop-retried.png"
+    ],
+    "feedback": [
+      {
+        "state": "busy",
+        "nodes": []
+      },
+      {
+        "state": "failure",
+        "nodes": []
+      },
+      {
+        "state": "retried",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "quickjump-empty",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "no-result leaves query editable",
+      "empty: no horizontal overflow",
+      "Escape returns to original quickjump trigger",
+      "reopening clears dismissed query",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/quickjump-empty-desktop-empty.png"
+    ],
+    "feedback": [
+      {
+        "state": "empty",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "没有找到匹配的页面或角色。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 405,
+              "y": 511.703125,
+              "width": 538,
+              "height": 21.59375
+            },
+            "style": {
+              "color": "rgb(119, 129, 114)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "inbox-bulk",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "bulk busy prevents duplicate mutation",
+      "busy: no horizontal overflow",
+      "one frozen workspace read snapshot only",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/read-all",
+        "method": "POST",
+        "body": {
+          "before": "2026-10-13T01:00:00.123Z",
+          "idempotencyKey": "c68055f3-51b2-4c01-8700-8a7dbc985ee1"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/inbox-bulk-desktop-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/inbox-bulk-desktop-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "busy",
+        "nodes": []
+      },
+      {
+        "state": "confirmed",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "inbox-no-role",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "empty directory hides scoped chat return",
+      "no-role: no horizontal overflow",
+      "global inbox never sends to an invented role",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/inbox-no-role-desktop-no-role.png"
+    ],
+    "feedback": [
+      {
+        "state": "no-role",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 3
+  },
+  {
+    "name": "chat-composition",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "composition Enter does not submit a turn",
+      "composing: no horizontal overflow",
+      "after composition exactly one original text is sent",
+      "completed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/turn",
+        "method": "POST",
+        "body": {
+          "text": "输入法尚在组词",
+          "fluctlightId": "fluctlight-fixture-one",
+          "attachmentRefs": [],
+          "idempotencyKey": "turn-c3637126-9dc1-4d5e-a624-da634b1ed243",
+          "turnId": "turn_af3af58f-c9b7-4598-afaf-3cb426727c09",
+          "senderTimezone": "Asia/Shanghai",
+          "senderUtcOffsetMinutes": 480,
+          "senderSentAt": "2026-10-29T05:03:46.073Z"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-composition-desktop-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-composition-desktop-completed.png"
+    ],
+    "feedback": [
+      {
+        "state": "composing",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 1050,
+              "y": 649.015625,
+              "width": 243,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "completed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "林岚 · 验收样本 正在输入",
+            "tag": "DIV",
+            "testId": null,
+            "className": "flex w-full min-w-0 flex-col gap-2.5 wrap-break-word group-data-[align=end]/message:*:data-slot:self-end companion-typing",
+            "bounds": {
+              "x": 276,
+              "y": 684.921875,
+              "width": 707,
+              "height": 28
+            },
+            "style": {
+              "color": "rgb(156, 166, 146)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 1050,
+              "y": 649.015625,
+              "width": 243,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 4
+  },
+  {
+    "name": "chat-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "long running turn exposes diagnostics and honest waiting",
+      "slow: no horizontal overflow",
+      "settling cannot offer model retry or cancellation",
+      "settling: no horizontal overflow",
+      "actual cancelled turn retains original user bubble",
+      "cancelled: no horizontal overflow",
+      "read-only status rotation never creates a turn",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-states-desktop-slow.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-states-desktop-settling.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-states-desktop-cancelled.png"
+    ],
+    "feedback": [
+      {
+        "state": "slow",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "林岚 · 验收样本 正在输入\n林岚 · 验收样本还在想…\n查看本次运行\n停止本次生成",
+            "tag": "DIV",
+            "testId": null,
+            "className": "flex w-full min-w-0 flex-col gap-2.5 wrap-break-word group-data-[align=end]/message:*:data-slot:self-end companion-typing",
+            "bounds": {
+              "x": 276,
+              "y": 655.296875,
+              "width": 707,
+              "height": 36
+            },
+            "style": {
+              "color": "rgb(156, 166, 146)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "查看本次运行",
+                "label": null,
+                "href": "#/diag/turns?correlationId=turn%3Aturn-fixture-failed",
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止本次生成",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 1050,
+              "y": 649.015625,
+              "width": 243,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "settling",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "暂时没能回应。可以稍后再试一次。\n查看状态",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 min-w-0 mt-2 border-border bg-muted/40 text-foreground",
+            "bounds": {
+              "x": 654,
+              "y": 578.296875,
+              "width": 288,
+              "height": 20.5
+            },
+            "style": {
+              "color": "rgb(161, 92, 83)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(161, 92, 83)",
+              "fontSize": "10px"
+            },
+            "actions": [
+              {
+                "text": "查看状态",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "林岚 · 验收样本 正在输入",
+            "tag": "DIV",
+            "testId": null,
+            "className": "flex w-full min-w-0 flex-col gap-2.5 wrap-break-word group-data-[align=end]/message:*:data-slot:self-end companion-typing",
+            "bounds": {
+              "x": 276,
+              "y": 630.796875,
+              "width": 707,
+              "height": 28
+            },
+            "style": {
+              "color": "rgb(156, 166, 146)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "暂时没能回应。可以稍后再试一次。重新读取对话查看本次运行",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 276,
+              "y": 671.796875,
+              "width": 707,
+              "height": 54.421875
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取对话",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看本次运行",
+                "label": null,
+                "href": "#/diag/turns?correlationId=turn%3Aturn-fixture-failed",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 1050,
+              "y": 649.015625,
+              "width": 243,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "cancelled",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。\n重试原回应",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 min-w-0 mt-2 border-border bg-muted/40 text-foreground",
+            "bounds": {
+              "x": 397.625,
+              "y": 629.296875,
+              "width": 544.375,
+              "height": 40.5
+            },
+            "style": {
+              "color": "rgb(161, 92, 83)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(161, 92, 83)",
+              "fontSize": "10px"
+            },
+            "actions": [
+              {
+                "text": "重试原回应",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 1050,
+              "y": 649.015625,
+              "width": 243,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 5
+  },
+  {
+    "name": "logout-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "busy disables another logout",
+      "busy: no horizontal overflow",
+      "failed logout retains private workspace",
+      "failure: no horizontal overflow",
+      "explicit retry exits after authoritative acknowledgement",
+      "retried: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/logout-failure-mobile-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/logout-failure-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/logout-failure-mobile-retried.png"
+    ],
+    "feedback": [
+      {
+        "state": "busy",
+        "nodes": []
+      },
+      {
+        "state": "failure",
+        "nodes": []
+      },
+      {
+        "state": "retried",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 6
+  },
+  {
+    "name": "quickjump-empty",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "no-result leaves query editable",
+      "empty: no horizontal overflow",
+      "Escape returns to original quickjump trigger",
+      "reopening clears dismissed query",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/quickjump-empty-mobile-empty.png"
+    ],
+    "feedback": [
+      {
+        "state": "empty",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "没有找到匹配的页面或角色。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 43,
+              "y": 471.203125,
+              "width": 304,
+              "height": 21.59375
+            },
+            "style": {
+              "color": "rgb(119, 129, 114)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 7
+  },
+  {
+    "name": "inbox-bulk",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "bulk busy prevents duplicate mutation",
+      "busy: no horizontal overflow",
+      "one frozen workspace read snapshot only",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/read-all",
+        "method": "POST",
+        "body": {
+          "before": "2026-10-13T01:00:00.123Z",
+          "idempotencyKey": "5de2d823-193c-41df-958e-6289a38be13b"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/inbox-bulk-mobile-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/inbox-bulk-mobile-confirmed.png"
+    ],
+    "feedback": [
+      {
+        "state": "busy",
+        "nodes": []
+      },
+      {
+        "state": "confirmed",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 8
+  },
+  {
+    "name": "inbox-no-role",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "empty directory hides scoped chat return",
+      "no-role: no horizontal overflow",
+      "global inbox never sends to an invented role",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/inbox-no-role-mobile-no-role.png"
+    ],
+    "feedback": [
+      {
+        "state": "no-role",
+        "nodes": []
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 9
+  },
+  {
+    "name": "chat-composition",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "composition Enter does not submit a turn",
+      "composing: no horizontal overflow",
+      "after composition exactly one original text is sent",
+      "completed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/turn",
+        "method": "POST",
+        "body": {
+          "text": "输入法尚在组词",
+          "fluctlightId": "fluctlight-fixture-one",
+          "attachmentRefs": [],
+          "idempotencyKey": "turn-5be38cfc-c955-42e2-b779-01911a8beb68",
+          "turnId": "turn_b76920bc-909e-4529-b57b-942d9c1052b0",
+          "senderTimezone": "Asia/Shanghai",
+          "senderUtcOffsetMinutes": 480,
+          "senderSentAt": "2026-10-29T05:03:56.264Z"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-composition-mobile-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-composition-mobile-completed.png"
+    ],
+    "feedback": [
+      {
+        "state": "composing",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 34,
+              "y": 1295.828125,
+              "width": 322,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "completed",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "林岚 · 验收样本 正在输入",
+            "tag": "DIV",
+            "testId": null,
+            "className": "flex w-full min-w-0 flex-col gap-2.5 wrap-break-word group-data-[align=end]/message:*:data-slot:self-end companion-typing",
+            "bounds": {
+              "x": 31,
+              "y": 652.125,
+              "width": 328,
+              "height": 28
+            },
+            "style": {
+              "color": "rgb(156, 166, 146)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 34,
+              "y": 1295.828125,
+              "width": 322,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 10
+  },
+  {
+    "name": "chat-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "long running turn exposes diagnostics and honest waiting",
+      "slow: no horizontal overflow",
+      "settling cannot offer model retry or cancellation",
+      "settling: no horizontal overflow",
+      "actual cancelled turn retains original user bubble",
+      "cancelled: no horizontal overflow",
+      "read-only status rotation never creates a turn",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-states-mobile-slow.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-states-mobile-settling.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-feedback-before1/chat-states-mobile-cancelled.png"
+    ],
+    "feedback": [
+      {
+        "state": "slow",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "林岚 · 验收样本 正在输入\n林岚 · 验收样本还在想…\n查看本次运行\n停止本次生成",
+            "tag": "DIV",
+            "testId": null,
+            "className": "flex w-full min-w-0 flex-col gap-2.5 wrap-break-word group-data-[align=end]/message:*:data-slot:self-end companion-typing",
+            "bounds": {
+              "x": 31,
+              "y": 608.5,
+              "width": 328,
+              "height": 71
+            },
+            "style": {
+              "color": "rgb(156, 166, 146)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "查看本次运行",
+                "label": null,
+                "href": "#/diag/turns?correlationId=turn%3Aturn-fixture-failed",
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "停止本次生成",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 34,
+              "y": 1295.828125,
+              "width": 322,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "settling",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "暂时没能回应。可以稍后再试一次。\n查看状态",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 min-w-0 mt-2 border-border bg-muted/40 text-foreground",
+            "bounds": {
+              "x": 42.484375,
+              "y": 504.5,
+              "width": 275.515625,
+              "height": 40.5
+            },
+            "style": {
+              "color": "rgb(161, 92, 83)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(161, 92, 83)",
+              "fontSize": "10px"
+            },
+            "actions": [
+              {
+                "text": "查看状态",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "林岚 · 验收样本 正在输入",
+            "tag": "DIV",
+            "testId": null,
+            "className": "flex w-full min-w-0 flex-col gap-2.5 wrap-break-word group-data-[align=end]/message:*:data-slot:self-end companion-typing",
+            "bounds": {
+              "x": 31,
+              "y": 577,
+              "width": 328,
+              "height": 28
+            },
+            "style": {
+              "color": "rgb(156, 166, 146)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          },
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "暂时没能回应。可以稍后再试一次。重新读取对话查看本次运行",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current min-w-0",
+            "bounds": {
+              "x": 31,
+              "y": 618,
+              "width": 328,
+              "height": 74.421875
+            },
+            "style": {
+              "color": "rgb(185, 77, 72)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": [
+              {
+                "text": "重新读取对话",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看本次运行",
+                "label": null,
+                "href": "#/diag/turns?correlationId=turn%3Aturn-fixture-failed",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 34,
+              "y": 1295.828125,
+              "width": 322,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "state": "cancelled",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "alert",
+            "live": null,
+            "text": "本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。\n重试原回应",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4 min-w-0 mt-2 border-border bg-muted/40 text-foreground",
+            "bounds": {
+              "x": 42.484375,
+              "y": 608.5,
+              "width": 275.515625,
+              "height": 60.5
+            },
+            "style": {
+              "color": "rgb(161, 92, 83)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(161, 92, 83)",
+              "fontSize": "10px"
+            },
+            "actions": [
+              {
+                "text": "重试原回应",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          },
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "穿着读取未完成，保留上次确认的记录。",
+            "tag": "P",
+            "testId": null,
+            "className": "",
+            "bounds": {
+              "x": 34,
+              "y": 1295.828125,
+              "width": 322,
+              "height": 20.890625
+            },
+            "style": {
+              "color": "rgb(118, 130, 105)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "version": "before",
+    "status": "passed",
+    "source_report": "evidence/shell-chat-inbox-states-feedback-before1/report.json",
+    "source_record_index": 11
+  }
+]

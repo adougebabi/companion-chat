@@ -1,4 +1,18 @@
 import { randomId } from '../random-id.mjs';
+export const creationRecoveryChanged='fluctlight:creation-recovery-changed';
+export function notifyCreationRecovery(owner){
+  if(typeof window==='undefined'||typeof window.dispatchEvent!=='function')return;
+  window.dispatchEvent(new CustomEvent(creationRecoveryChanged,{detail:{owner}}));
+}
+export function creationRecordError(code,message,cause){return Object.assign(new Error(message,cause?{cause}:undefined),{code});}
+export function parseCreationDraft(raw){
+  let value;try{value=JSON.parse(raw);}catch(cause){throw creationRecordError('creation_draft_json','创建资料无法解析，原记录已保留。',cause);}
+  if(value?.version!==1)throw creationRecordError('creation_draft_version','这份创建资料的格式版本暂不兼容，原记录已保留。');
+  if(!value||Array.isArray(value)||!Number.isInteger(value.step)||value.step<0||value.step>3||typeof value.requestId!=='string'||!value.requestId||
+    (value.activatedId!=null&&(typeof value.activatedId!=='string'||!value.activatedId.trim())))
+    throw creationRecordError('creation_draft_invalid','创建草稿不可读取，暂时无法安全继续；原记录已保留。');
+  return value;
+}
 // Only UI drafts and original command identities live in session storage.
 // The server remains the authority for analysis freshness and activation replay.
 export function creationDraft({owner,storage,timezone='Asia/Shanghai'}) {
@@ -6,10 +20,8 @@ export function creationDraft({owner,storage,timezone='Asia/Shanghai'}) {
   const key=`fluctlight-creation:${owner}:draft`;
   function read(){
     const raw=storage.getItem(key);
-    if(!raw)return {version:1,step:0,useDefaultWorld:true,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:randomId(),timezone,analysis:null,includeGoals:true,activatedId:null};
-    const value=JSON.parse(raw);
-    if(value?.version!==1||!Number.isInteger(value.step)||value.step<0||value.step>3||typeof value.requestId!=='string'||!value.requestId)throw new Error('创建草稿不可读取，请先核对原创建请求，避免重复激活');
-    return value;
+    if(raw===null||raw===undefined)return {version:1,step:0,useDefaultWorld:true,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:randomId(),timezone,analysis:null,includeGoals:true,activatedId:null};
+    return parseCreationDraft(raw);
   }
   return {key,commandKey:`fluctlight-creation:${owner}:command`,read,save(value){
     const previous=storage.getItem(key)?read():null;
@@ -18,8 +30,9 @@ export function creationDraft({owner,storage,timezone='Asia/Shanghai'}) {
       if(!value.activatedId)return; // An older mounted page cannot erase a receipt.
       if(previous.activatedId!==value.activatedId)throw new Error('激活结果身份不一致，请保留原记录核对');
     }
-    storage.setItem(key,JSON.stringify(value));
-  },clear(){storage.removeItem(key);}};
+    const serialized=JSON.stringify(value),changed=storage.getItem(key)!==serialized;
+    storage.setItem(key,serialized);if(changed)notifyCreationRecovery(owner);
+  },clear(){storage.removeItem(key);notifyCreationRecovery(owner);}};
 }
 
 // Persist the accepted result before persistentCommand releases its pending

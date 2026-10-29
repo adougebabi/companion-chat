@@ -1,21 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Surface } from "../controls";
 import LoadingState from "./LoadingState";
-import { InlineFeedback } from "./Presentation";
-export function PeopleReader({ source, label }) {
-  return (
-    <>
-      {source.busy && <LoadingState label={"正在读取" + label + "…"} />}{" "}
-      {source.error && (
-        <InlineFeedback role="alert">
-          {source.error}
-          <Button variant="outline" onClick={source.retry}>
-            重新读取{label}
-          </Button>
-        </InlineFeedback>
-      )}
-    </>
-  );
+import { ReaderFeedback } from "./Presentation";
+export function PeopleReader({source,label}){
+ return <>{source.busy&&!source.ready&&<LoadingState label={'正在读取'+label+'…'}/>}<ReaderFeedback source={source} label={label}/></>;
 }
 export function PeopleSection({
   title,

@@ -16,3 +16,8 @@
 
 ## 产物
 coverage.json为完整数据源，coverage.md为可读索引；每行视觉/交互/业务独立状态与证据；evidence按模块/场景归档；fixes.md记录现象/根因/文件/验证；business-verification.md记录真实持久化/产物与受控测试边界；progress.md持久保存当前批次和未完成项。
+
+
+## 追加反馈治理设计边界
+
+先生成全调用点inventory（React、保留renderer、通用桥与toast），再定反馈组件显式语义与迁移表；不能全局换默认色。角色库读取使用现有creation draft/recovery/command/accepted状态，不建立第二份业务权威；恢复入口只指向真实支持的核对/阶段/配置/读取能力。共享组件负责视觉/可访问语义，页面负责业务类型、动作与生命周期。具体迁移按审计发现收敛到原拥有者，不宽泛按error字符串猜状态。新增feedback UX维度不改既有视觉/交互/业务证据状态。

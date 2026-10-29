@@ -1,20 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { InlineFeedback } from "./Presentation";
+import { ReaderFeedback } from "./Presentation";
 import LoadingState from "./LoadingState";
-export function FeedReader({ source, label }) {
-  return (
-    <>
-      {source.busy && <LoadingState label={"正在读取" + label + "…"} />}{" "}
-      {source.error && (
-        <InlineFeedback role="alert">
-          {source.error}
-          <Button variant="outline" onClick={source.retry}>
-            重新读取{label}
-          </Button>
-        </InlineFeedback>
-      )}
-    </>
-  );
+export function FeedReader({source,label}){
+ return <>{source.busy&&!source.ready&&<LoadingState label={'正在读取'+label+'…'}/>}<ReaderFeedback source={source} label={label}/></>;
 }
 export function FeedMore({ source, label }) {
   return source.cursor ? (

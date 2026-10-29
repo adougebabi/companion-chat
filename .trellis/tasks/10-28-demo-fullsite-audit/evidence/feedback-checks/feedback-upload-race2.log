@@ -1,0 +1,16 @@
+✔ native upload verifies and restores the original accepted upload without resending bytes after remount (565.243375ms)
+✔ an older media list reread cannot replace the next upload progress or result (230.855167ms)
+✔ native task detail reads task authority and original workflow separately, retaining original recovery body and key (1541.226125ms)
+✔ calendar supports month navigation and stable civil dates; no UTC conversion changes the selected business day (198.07725ms)
+✔ wizard rereads worlds when the role directory arrives and a later successful template read cannot erase catalogue failure (802.82525ms)
+✔ native avatar recovers the original selection, preserves a newer draft, and rebases only after explicit review (328.320416ms)
+✔ native governance uses current Foundation revision, preserves stale rejection, and never accepts a stale proposal (251.592958ms)
+✔ native self claim restores only complete accepted snapshots using current claim CAS and the exact chosen historical revision (193.008125ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4562.8705

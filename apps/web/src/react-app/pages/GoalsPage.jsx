@@ -30,7 +30,7 @@ import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import LoadingState from "../shared/LoadingState";
-import { EmptyState, InlineFeedback } from "../shared/Presentation";
+import { EmptyState, InlineFeedback,Feedback,ResultFeedback } from "../shared/Presentation";
 import JsonDetails from "../shared/JsonDetails";
 import { jsonValueSnapshot } from "@/state/view-model";
 import {
@@ -144,7 +144,7 @@ export default function GoalsPage({ route, onGo }) {
     [detailLoading, setDetailLoading] = useState(false),
     [detailError, setDetailError] = useState(""),
     [action, setAction] = useState(null),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(null);
   const [records, setRecords] = useState({
       evidence: { items: [], cursor: "", ready: false },
       history: { items: [], cursor: "", ready: false },
@@ -152,7 +152,7 @@ export default function GoalsPage({ route, onGo }) {
     [recordErrors, setRecordErrors] = useState({}),
     [recordLoading, setRecordLoading] = useState({});
   const [evaluationPointer, setEvaluationPointer] = useState(null),
-    [evaluationNote, setEvaluationNote] = useState(""),
+    [evaluationNote, setEvaluationNote] = useState(null),
     [evaluationRefresh, setEvaluationRefresh] = useState(0);
   const mounted = useRef(false),
     epochs = useRef({}),
@@ -383,6 +383,8 @@ export default function GoalsPage({ route, onGo }) {
     if (live()) setEvaluationPointer(value);
   }
   useEffect(() => {
+    setEvaluationNote(null);
+    setEvaluationPointer(null);
     try {
       const saved = JSON.parse(
         sessionStorage.getItem(
@@ -398,6 +400,7 @@ export default function GoalsPage({ route, onGo }) {
       timer,
       reading = false,
       count = 0;
+    const note=(kind,text,diagnostic='')=>setEvaluationNote({kind,text,diagnostic,...evaluationPointer});
     async function read() {
       if (!active || !live() || document.hidden || reading) return;
       reading = true;
@@ -410,13 +413,12 @@ export default function GoalsPage({ route, onGo }) {
         if (detailId.current === goal.id) setDetail(value);
         const request = goal.execution?.evaluation_request;
         if (request?.request_id === evaluationPointer.requestId) {
-          setEvaluationNote(
-            ["succeeded", "completed"].includes(request.status)
-              ? "本次核对已结束，完成状态与条件证据以下方真实记录为准。"
-              : request.status === "failed"
-                ? "本次核对未完成，请查看原目标和评估记录。"
-                : "正在跟进原进展核对请求。",
-          );
+          if(["succeeded", "completed"].includes(request.status)){
+            setEvaluationNote(null);
+            setNotice({kind:'information',text:'本次核对已结束，目标完成状态与条件证据以实际记录为准。'});
+          }else if(request.status==='failed')note('action-required','本次进展核对未完成，可在原目标中查看评估记录。');
+          else if(['superseded','cancelled'].includes(request.status))setEvaluationNote(null);
+          else note('progress','正在跟进原进展核对请求，尚未确认目标完成。');
           if (
             [
               "succeeded",
@@ -437,22 +439,16 @@ export default function GoalsPage({ route, onGo }) {
             return;
           }
         } else
-          setEvaluationNote(
-            "已保留原核对身份，当前读取未返回该请求的完整状态，请核对目标评估与修订记录。",
-          );
+          note('warning','原核对请求仍保留，当前状态尚未读全。可重新读取或查看原目标。');
       } catch (cause) {
         if (active && live())
-          setEvaluationNote(
-            "进展读取未完成，保留原核对身份。" + errorMessage(cause),
-          );
+          note('warning','进展状态暂时无法读取，原核对请求仍保留。',errorMessage(cause));
       } finally {
         reading = false;
         if (active && live() && !document.hidden && ++count < 100)
           timer = setTimeout(read, 3000);
         else if (active && live() && count >= 100)
-          setEvaluationNote(
-            "自动跟进已暂停，原核对身份仍保留，可以刷新核对状态继续。",
-          );
+          note('action-required','自动跟进已暂停，原核对请求仍保留。可以刷新状态继续查看。');
       }
     }
     const visible = () => {
@@ -606,7 +602,7 @@ export default function GoalsPage({ route, onGo }) {
         const alreadySelected = detailId.current === confirmed.id;
         if (!alreadySelected) openGoal(confirmed);
         else setDetail(confirmed);
-        setNotice("目标已保存并读回，完成状态仍根据实际证据确认。");
+        setNotice({kind:'success',text:"目标已保存并读回，完成状态仍根据实际证据确认。"});
         await Promise.all([readPartition("current"), readPartition("history"),
           ...(alreadySelected ? [refreshSelectedRecords(confirmed.id)] : []),
         ]);
@@ -790,11 +786,7 @@ export default function GoalsPage({ route, onGo }) {
         if (!live()) return;
         const confirmed = adopt(saved);
         if (detailId.current === goal.id) setDetail(confirmed);
-        setNotice(
-          operation === "reassess"
-            ? "进展核对请求已提交，正在跟进真实评估结果。"
-            : "目标状态已读回。",
-        );
+        if(operation!=="reassess")setNotice({kind:'success',text:"目标状态已读回。"});
         await Promise.all([readPartition("current"), readPartition("history"), refreshSelectedRecords(goal.id)]);
       },
       fields: (d, edit) =>
@@ -884,24 +876,12 @@ export default function GoalsPage({ route, onGo }) {
             </div>
           </div>
           <TabsContent value={filter}>
-            {notice && (
-              <div className="lp-notice lp-row lp-between">
-                <span>{notice}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="关闭提示"
-                  onClick={() => setNotice("")}
-                >
-                  <XIcon size={13} />
-                </Button>
-              </div>
-            )}
-            {evaluationNote && <WorkspaceInfo>{evaluationNote}</WorkspaceInfo>}
+            <ResultFeedback notice={notice} onDismiss={original=>setNotice(current=>current===original?null:current)}/>
+            {evaluationNote && <Feedback kind={evaluationNote.kind} details={evaluationNote.diagnostic&&<pre>{evaluationNote.diagnostic}</pre>} actions={<>{cache.current.has(evaluationNote.goalId)&&<Button variant="outline" onClick={event=>openGoal(cache.current.get(evaluationNote.goalId),event)}>查看原目标与核对记录</Button>}<Button variant="ghost" onClick={()=>{saveEvaluationPointer({goal_id:evaluationNote.goalId,evaluation_request_id:evaluationNote.requestId});setEvaluationRefresh(value=>value+1);}}>刷新核对状态</Button></>}>{evaluationNote.text}</Feedback>}
             {Object.entries(errors)
               .filter(([, value]) => value)
               .map(([kind, value]) => (
-                <InlineFeedback role="alert" key={kind}>
+                <InlineFeedback kind={partitions[kind].ready?'warning':'error'} key={kind}>
                   <p>{value}</p>
                   <Button
                     variant="outline"

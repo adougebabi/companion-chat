@@ -1,26 +1,14 @@
 import { useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { InlineFeedback } from "./Presentation";
+import { InlineFeedback,ReaderFeedback } from "./Presentation";
 import LoadingState from "./LoadingState";
 import MediaPreview from "./MediaPreview";
 import useWorkspaceRead from "./useWorkspaceRead";
 import { mediaReadState } from "@/approved-ui/media-presentation.mjs";
 import CursorControls from "./CursorControls";
-export function MediaReader({ source, label }) {
-  return (
-    <>
-      {source.busy && <LoadingState label={"正在读取" + label + "…"} />}{" "}
-      {source.error && (
-        <InlineFeedback role="alert">
-          {source.error}
-          <Button variant="outline" onClick={source.retry}>
-            重新读取{label}
-          </Button>
-        </InlineFeedback>
-      )}
-    </>
-  );
+export function MediaReader({source,label}){
+ return <>{source.busy&&!source.ready&&<LoadingState label={'正在读取'+label+'…'}/>}<ReaderFeedback source={source} label={label}/></>;
 }
 export function MediaMore({ source, label }) {
   return (
