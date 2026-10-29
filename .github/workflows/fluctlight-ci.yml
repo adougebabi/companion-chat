@@ -8,6 +8,7 @@ on:
       - 'codex/go-*'
       - codex/fact-only-reply-vision
       - codex/fluctlight-functional-recovery
+      - codex/demo-fullsite-audit-20261028
   pull_request:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
       - 'codex/go-*'
       - codex/fact-only-reply-vision
       - codex/fluctlight-functional-recovery
+      - codex/demo-fullsite-audit-20261028
   workflow_dispatch:
 
 permissions:
