@@ -392,3 +392,41 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Next Steps
 
 - 按已留边界逐张进行深层视觉最终签收；真实媒体模型链仍缺本轮完整证据，不以fixture代替，不扩展后端。
+
+
+## Session 78: 全站反馈UX治理检查点，继续深层验收
+<!-- trellis-session: v=2 fp=2622ba170d9a9961 -->
+
+**Date**: 2026-10-29
+**Task**: 全站反馈UX治理检查点，继续深层验收
+**Branch**: `codex/demo-fullsite-audit-20261028`
+
+### Summary
+
+六类反馈、创建与原请求恢复、全站读取及深层状态治理；718测试与212浏览器案例，任务仍在执行
+
+### Main Changes
+
+- 保留177行和已有成果，增加反馈八状态维度；当前42行具备本轮精确observations，未将整行或全站标为完成
+- 修复草稿损坏/未知/待评审、本机存储拒绝、配置原普通/角色策略、字段遮挡、重复确认、上传迟到提示、任务runtime缺失和聊天取消旧红色覆盖
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c2762dbb` | fix(web): classify feedback and preserve original recovery states |
+
+### Testing
+
+- [OK] Web718/718，typecheck35/build21与生产fixture/React-only376模块守卫通过
+- [OK] 212条受控浏览器案例与深层Demo配对；18480静态前端更新后5页真实API只读通过，Core/Worker/PG未重启
+- [OK] Demo48、旧任务无关108、before构建151文件hash未变；所有子代理只读且已终态
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 继续12批剩余反馈与深层视觉：创建七阶段、profile/people写入、日程目标、日记记忆自我、world/studio/media及诊断工具；以feedback-acceptance.md和coverage具体状态为准
+- 真实媒体生成由用户测试；不重复新建任务，不归档，不把212案例或718测试换算全站完成

@@ -38,6 +38,22 @@
 
 尚有明确差异：正式详情的额外披露与管理操作使弹窗更高；人物事实/关系摘要布局、部分表单标签/说明间距仍需继续收敛。DTO未提供的地点、最近接触、目标重要度等不能从Demo固定数据伪造。当前不宣称上述10组整窗像素一致。
 
+## 390px 代表性修改前后
+
+角色库不可解析记录：原来统一红色“需要核对”，现在明确不能自动修复，提供实际本机重读和原记录下载；不伪造继续入口。
+
+| 修改前 | 修改后 |
+| --- | --- |
+| ![损坏创建记录修改前](/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-before-feedback1/invalid-json-mobile-initial.png) | ![损坏创建记录修改后](/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-entry-after-feedback3/invalid-json-mobile-initial.png) |
+
+配置工作流结构校验：从页面级错误改成字段关联的具体原因；自动滚动确保输入与原因位于固定保存栏上方，纠正后旧错误立即清除。
+
+| 修改前 | 修改后 |
+| --- | --- |
+| ![工作流校验修改前](/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-before-feedback2/workflow-mobile-invalid.png) | ![工作流校验修改后](/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feedback-config-after-feedback5/workflow-mobile-invalid.png) |
+
+上述为代表图。其余完整状态以final报告中的具体record和截图路径为准；不以两组示例替代全站验收。
+
 ## 未完成范围
 
 按既有12批计划继续全部页面与子流程：创建七阶段完整故障/恢复、聊天流式/取消/队列/历史、人物/关于你/关系、动态评论/发布建议、日程/目标、日记生成批注、记忆反思自我治理、世界衣柜、九类创作及发布应用沙盒、媒体上传审阅头像、诊断任务与正式额外工具。每项继续覆盖适用的八种场景、桌面/390、状态恢复及返回/刷新，真实不适用时才登记理由。
