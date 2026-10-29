@@ -1,0 +1,316 @@
+[
+  {
+    "name": "settings-fields",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "roles: no horizontal overflow",
+      "four purpose rows remain editable sections",
+      "model identifiers are ordinary inputs with optional suggestions",
+      "timeout fields have no plus/minus controls",
+      "clean settings have no persistent save bar",
+      "save feedback cannot overlay the form",
+      "edited-reply: no horizontal overflow",
+      "runtime-hints: no horizontal overflow",
+      "advanced thresholds remain real sliders",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/settings-fields-desktop-roles.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/settings-fields-desktop-edited-reply.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/settings-fields-desktop-runtime-hints.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/settings-fields-desktop-failure.png"
+    ],
+    "geometry": [
+      {
+        "savebar": {
+          "position": "static",
+          "rect": {
+            "x": 460,
+            "y": 1159.8125,
+            "width": 854,
+            "height": 72,
+            "top": 1159.8125,
+            "right": 1314,
+            "bottom": 1231.8125,
+            "left": 460
+          }
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: default connection parameters are not presented as active saved settings\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:21:36)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:32:531",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n我\n正在相处\n我的空间\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n高级设置\n\n修改正式配置；保存后读取实际回执。\n\n系统默认 · 尚未保存\n辅助决策尚未启用。 连接地址和模型标识可在下方连接设置中核对；保存后才会成为工作区配置。\n辅助决策\n\n按场景补充判断，授权与实际执行分别记录。\n\n启用辅助决策服务\n启用媒体方案补充\n判断门槛\n\n调整何时接受候选判断。\n\n最低置信概率\n领先候选最小差值\n等待与重试\n请求超时（毫秒）\n阶段总预算（毫秒）\n并发\n批次大小\n选择策略\n按最高分选择\n按最高分选择\n按置信条件选择\n最大连续延期次数\n每次延期（秒）\n决策场景\n启用的决策点\n\n选择允许辅助判断的场景；未覆盖的媒体决策沿用系统默认。\n\n选择上下文\n检查目标完成条件\n补充目标规划\n准备图片拍摄方案\n选择图片主题\n规划画面视角\n判断人格切换\n判断反思时机\n判断日常唤醒\n选择可用工具\n连接和运行参数 · 系统默认，尚未保存\n服务地址\n响应字节上限\n请求字节上限\n决策记录保留（天）\n模型标识\n模型版本\n测试连接\n\n有未保存修改\n\n放弃未保存修改\n保存设置"
+  },
+  {
+    "name": "data-layout",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "overview: no horizontal overflow",
+      "data secondary navigation shares the settings header baseline",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/data-layout-desktop-overview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/data-layout-desktop-failure.png"
+    ],
+    "geometry": [
+      {
+        "settingsNav": {
+          "x": 252,
+          "y": 212.828125,
+          "width": 180,
+          "height": 387
+        },
+        "dataNav": {
+          "x": 252,
+          "y": 212.828125,
+          "width": 180,
+          "height": 406.125
+        }
+      }
+    ],
+    "dataHeaderMarkup": "<header class=\"replica-page-heading\"><div><div class=\"replica-eyebrow\">PREFERENCES / MAKE IT YOURS</div><h1 tabindex=\"-1\">管理中心</h1><p>让每一次相处，按你喜欢的方式发生。</p></div><div class=\"replica-page-actions\"><span data-domain-ui=\"badge\" class=\"badge b-plain\" data-badge=\"我的工作区\" data-domain-carrier=\"\" aria-hidden=\"true\" tabindex=\"-1\">我的工作区</span><span data-domain-react-control=\"badge\" class=\"inline-flex min-w-0\"><span data-slot=\"badge\" data-variant=\"secondary\" class=\"group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&amp;&gt;svg]:pointer-events-none [&amp;&gt;svg]:size-3! bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80\">我的工作区</span></span></div></header>",
+    "status": "failed",
+    "error": "locator.waitFor: Error: strict mode violation: locator('.replica-page-heading .replica-page-actions').getByText('我的工作区', { exact: true }) resolved to 2 elements:\n    1) <span tabindex=\"-1\" data-badge=\"我的工作区\" aria-hidden=\"true\" class=\"badge b-plain\" data-domain-ui=\"badge\" data-domain-carrier=\"\">我的工作区</span> aka getByText('我的工作区').first()\n    2) <span data-slot=\"badge\" data-variant=\"secondary\" class=\"group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 […>我的工作区</span> aka getByText('我的工作区').nth(1)\n\nCall log:\n\u001b[2m  - waiting for locator('.replica-page-heading .replica-page-actions').getByText('我的工作区', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:34:628",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n我\n正在相处\n我的空间\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n数据管理\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n数据管理\n\n保存设定文件，查看工作区备份与历史。\n\n当前工作区\n\n这里显示当前已读取的角色与分组。可分享的设定和完整业务备份分别管理。\n\n0\n位已读取角色\n0\n个已读取分组\n导出设定\n\n将已保存的作品设定、所需依赖、分组名称和通知偏好导出为文件。未发布草稿也会包含在内，分享前请先预览。文件不包含聊天、记忆、服务密钥或媒体授权。\n\n只导出指定作品\n导出设定文件\n导入设定\n\n导入为新的创作草稿；预览完整内容，再确认正式导入。\n\n选择设定文件 · JSON · 最大 3 MiB\n选择文件\n也可以将文件拖放到这里\n或粘贴设定文件内容\n清空未提交草稿\n校验\n业务数据备份\n\n聊天、记忆、日记和媒体由工作区备份保留，可在这里查看备份与恢复任务。\n\n备份范围与恢复说明\n\n创建任务后，按详情页指引执行备份。完成后才能用于恢复，进度和结果会保留在记录中。\n\n创建备份任务\n刷新任务\n\n还没有备份记录。创建任务后，可在这里查看进度和结果。\n\n历史版本与恢复\n查看历史版本 →\n角色生活恢复说明 →\n\n可在对应页面查看历史并恢复受支持的字段。当前不支持将角色的整条生活时间线退回过去。\n\n创作中心"
+  },
+  {
+    "name": "studio-form",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "new: no horizontal overflow",
+      "new form does not report an edit before interaction",
+      "required star stays on the title row",
+      "only explicit save creates a resource",
+      "saved: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "kind": "world",
+          "name": "r19 保存核验世界",
+          "body": {
+            "background": "普通河岸小镇，记录书店与住处的生活背景。",
+            "rules": ""
+          },
+          "reason": "核对新建表单及原保存行为",
+          "idempotencyKey": "063b9fbf-a74b-4473-85b4-2733fc18cf76"
+        }
+      },
+      {
+        "path": "/api/studio/resources/studio-created-1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-created-1/versions",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-created-1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-created-1/versions",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/studio-form-desktop-new.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/studio-form-desktop-saved.png"
+    ],
+    "geometry": [
+      {
+        "title": {
+          "x": 277,
+          "y": 354.828125,
+          "width": 54.796875,
+          "height": 20.390625
+        },
+        "star": {
+          "x": 326.078125,
+          "y": 356.828125,
+          "width": 5.71875,
+          "height": 15
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "media-empty",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "empty: no horizontal overflow",
+      "keyboard-focus: no horizontal overflow",
+      "keyboard focus has a visible soft indicator",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "query": {
+          "scope": "all",
+          "hidden": "false",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/media-empty-desktop-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/media-empty-desktop-keyboard-focus.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-second-after/media-empty-desktop-failure.png"
+    ],
+    "geometry": [],
+    "focus": {
+      "visible": true,
+      "outline": "rgb(51, 86, 61) none 0px",
+      "shadow": "rgb(66, 110, 55) 0px -3px 0px 0px inset",
+      "background": "rgb(237, 243, 231)"
+    },
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: query remains available without a standalone text button\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:21:36)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:43:772",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n我\n正在相处\n我的空间\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n媒体\n快速前往\n⌘ K\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n你的影像、灵感与视觉身份。\n\n请选择角色\n添加素材\n生成画面\n媒体库\n0\n视觉身份\n生成画面\n显示头像\n先选择一个角色，再查看其视觉身份。"
+  }
+]

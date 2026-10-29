@@ -10,6 +10,49 @@ file still exists. `.githooks/pre-commit` runs the staged-image guard. New check
 install it with `pnpm hooks:install`; never force-add ignored images or bypass the
 guard. This policy supersedes earlier instructions to include screenshots in Git.
 
+## r19 route, preference and configuration presentation contract
+
+Management directory actions navigate to the actual `/diag?view=tasks`,
+`/settings?section=…` and `/data` routes. `/settings` always selects configuration,
+including entry from a diagnostic view without `section`. Diagnostic URLs retain
+only `view`, `taskId`, `correlationId` and a valid `returnTo`; read the live route
+when forwarding initialization context. Ordinary entry does not fabricate a return
+banner. Explicit views/correlated links precede the Owner display preference;
+a fresh diagnostic entry defaults to tasks.
+
+Studio's main directory uses `fluctlight-studio:${owner}:directory-ui`; fixed-kind
+views append `:${fixedKind}`. These are display preferences, never business drafts.
+A new resource may be dirty for save/navigation protection while the UI calls it
+“新资源，尚未保存”. Do not weaken `dirty()` to remove an early warning.
+
+Settings use `value_sources[key] === "runtime_default"` to distinguish genuine
+runtime defaults from saved configuration. Keep the actual endpoint/model/numbers
+and unknown extensions intact. Only acknowledged values set their existing source
+to `stored`. No configuration mutation occurs merely by viewing a category.
+`scrollTo(section, focus, reveal)` leaves nested technical disclosures closed on
+ordinary navigation; explicit validation recovery can reveal the invalid control.
+Clean forms have no permanent save bar; dirty/recovery/save feedback stays in normal
+flow. Domain navigation's `.domain-rich-label` must inherit its anchor line-height,
+otherwise retained general rich-label styles enlarge every row.
+
+`CommandSyncAction` puts a real ordinary read-latest action in the secondary menu,
+exposes a direct action for an actual conflict, and is absent during unknown or
+accepted/readback recovery. `canReviewLatest(draft)` may suppress a noop reader.
+Successful review scrolls/focuses its connected heading. Keep body/key/CAS and
+GET-only accepted recovery unchanged.
+
+Chinese preview is a typed display projection. Wardrobe aliases are contextual;
+known relation `metrics` numbers use Chinese percent labels via `relationMetrics`.
+String numbers, booleans, false/zero and unknown extensions preserve their source
+values; complete JSON stays accessible. Do not normalize the submitted document.
+
+Required checks: `r19-ux-regression.test.mjs` plus current owning command/settings/
+Studio tests; production browser `verify-r19-ui.mjs` at 1920, 1348 and 390px. Assert
+settings→diagnostics→global settings, live initialization return, blank unconfigured
+roles, runtime-default→stored after receipt, isolated directory preferences, exact
+original activation count and typed JSON preservation. Fixture results certify
+only the recorded UI/HTTP behavior. Images stay outside Git.
+
 ## r18 UI state and context contract
 
 ### Scope / trigger

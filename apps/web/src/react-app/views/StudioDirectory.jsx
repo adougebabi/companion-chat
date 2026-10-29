@@ -60,12 +60,12 @@ export default function StudioDirectoryView({ model: m }) {
   return (
     <div className="replica-studio resource-page">
       <WorkspacePageHeader
-        eyebrow="STUDIO / ROOM FOR IMAGINATION"
-        title={m.fixedKind === "world" ? "世界底稿" : "创作中心"}
-        description="给想象一个落点，再让它进入生活。"
+        eyebrow={m.fixedKind==='world'?'YOUR WORLD / A PLACE TO BELONG':'STUDIO / ROOM FOR IMAGINATION'}
+        title={m.fixedKind === "world" ? "世界" : "创作中心"}
+        description={m.fixedKind==='world'?'保存背景、规则和地点设定，之后可在创建角色时使用。':'给想象一个落点，再让它进入生活。'}
         actions={
           <>
-            <DropdownMenu>
+            {m.fixedKind==='world'?<Button onClick={()=>m.create('world')}><Plus size={16}/>创建世界底稿</Button>:<DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button>
                   <Plus size={16} />
@@ -84,7 +84,7 @@ export default function StudioDirectoryView({ model: m }) {
                     </DropdownMenuItem>
                   ))}
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu>}
           </>
         }
       />
@@ -93,14 +93,14 @@ export default function StudioDirectoryView({ model: m }) {
           <Wand2 size={24} />
         </span>
         <div>
-          <h3>从一份设定，开始更大的世界</h3>
-          <p>世界、角色、物品与风格，在这里保存、完善和复用。</p>
+          <h3>{m.fixedKind==='world'?'从一份世界设定开始':'从一份设定，开始更大的世界'}</h3>
+          <p>{m.fixedKind==='world'?'这里保存可复用的世界底稿。角色的运行世界会在创建时独立建立。':'世界、角色、物品与风格，在这里保存、完善和复用。'}</p>
         </div>
         <div className="r-studio-stat">
           <strong>
             {m.list.ready ? available + (m.list.cursor ? "+" : "") : "—"}
           </strong>
-          <span>已读可用资源</span>
+          <span>{m.fixedKind==='world'?'已读可用底稿':'已读可用资源'}</span>
         </div>
       </div>
       <form

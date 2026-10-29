@@ -201,6 +201,65 @@
             "recorded_assertions": "empty directory disables role picker; empty directory disables 聊天; empty directory disables 此刻; empty directory disables 日程; empty directory disables 目标; empty directory disables 衣柜; empty directory disables 日记; empty directory disables 记忆; empty directory disables 角色详情; empty directory disables 人物关系; global library remains available; directory stays truly empty; no invented role detail request; empty-honest: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:settings-entry:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -13840,6 +13899,56 @@
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:command-actions:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "new-post: no horizontal overflow",
+              "new publication has no meaningless sync action",
+              "ordinary comment sync is secondary",
+              "review opens with a focused heading",
+              "secondary sync reads but never publishes",
+              "review: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:command-actions:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "new-post: no horizontal overflow",
+              "new publication has no meaningless sync action",
+              "ordinary comment sync is secondary",
+              "review opens with a focused heading",
+              "secondary sync reads but never publishes",
+              "review: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:command-actions:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 10,
+            "checks": [
+              "new-post: no horizontal overflow",
+              "new publication has no meaningless sync action",
+              "ordinary comment sync is secondary",
+              "review opens with a focused heading",
+              "secondary sync reads but never publishes",
+              "review: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -14058,6 +14167,56 @@
             ],
             "recorded_assertions": "empty publication cannot submit; owner global scope is explicit; publication-draft: no horizontal overflow; publication-draft: dialog fits viewport; publication keeps owner identity and exact original replay; one actual owner publication is readable; published-detail: no horizontal overflow; published-detail: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:command-actions:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "new-post: no horizontal overflow",
+              "new publication has no meaningless sync action",
+              "ordinary comment sync is secondary",
+              "review opens with a focused heading",
+              "secondary sync reads but never publishes",
+              "review: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:command-actions:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "new-post: no horizontal overflow",
+              "new publication has no meaningless sync action",
+              "ordinary comment sync is secondary",
+              "review opens with a focused heading",
+              "secondary sync reads but never publishes",
+              "review: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:command-actions:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 10,
+            "checks": [
+              "new-post: no horizontal overflow",
+              "new publication has no meaningless sync action",
+              "ordinary comment sync is secondary",
+              "review opens with a focused heading",
+              "secondary sync reads but never publishes",
+              "review: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -26215,6 +26374,110 @@
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:read-states:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "loading is not presented as confirmed empty",
+              "loading: no horizontal overflow",
+              "failed: no horizontal overflow",
+              "original config read recovers without a write",
+              "recovered: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:read-states:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 12,
+            "checks": [
+              "loading is not presented as confirmed empty",
+              "loading: no horizontal overflow",
+              "failed: no horizontal overflow",
+              "original config read recovers without a write",
+              "recovered: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:read-states:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 23,
+            "checks": [
+              "loading is not presented as confirmed empty",
+              "loading: no horizontal overflow",
+              "failed: no horizontal overflow",
+              "original config read recovers without a write",
+              "recovered: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -26761,6 +27024,53 @@
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:read-states:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "loading is not presented as confirmed empty",
+              "loading: no horizontal overflow",
+              "failed: no horizontal overflow",
+              "original config read recovers without a write",
+              "recovered: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:read-states:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 12,
+            "checks": [
+              "loading is not presented as confirmed empty",
+              "loading: no horizontal overflow",
+              "failed: no horizontal overflow",
+              "original config read recovers without a write",
+              "recovered: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:read-states:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 23,
+            "checks": [
+              "loading is not presented as confirmed empty",
+              "loading: no horizontal overflow",
+              "failed: no horizontal overflow",
+              "original config read recovers without a write",
+              "recovered: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -27025,6 +27335,77 @@
             ],
             "recorded_assertions": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:settings-fields:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 13,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 24,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -27311,6 +27692,77 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:settings-fields:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 13,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 24,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -29802,6 +30254,77 @@
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:settings-fields:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 13,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 24,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -30121,6 +30644,77 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:settings-fields:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 13,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-fields:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 24,
+            "checks": [
+              "roles: no horizontal overflow",
+              "four purpose rows remain editable sections",
+              "model identifiers are ordinary inputs with optional suggestions",
+              "timeout fields have no plus/minus controls",
+              "clean settings have no persistent save bar",
+              "category heading retains its real icon",
+              "save feedback cannot overlay the form",
+              "edited-reply: no horizontal overflow",
+              "runtime-hints: no horizontal overflow",
+              "advanced thresholds remain real sliders",
+              "default connection parameters are not presented as active saved settings",
+              "advanced-provenance: no horizontal overflow",
+              "inspection and local edits do not connect or save services",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -30542,6 +31136,65 @@
               "no uncaught browser exception"
             ],
             "boundary": "关闭返回原行焦点；不批量提升原八场景。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:settings-entry:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -31069,6 +31722,59 @@
             ],
             "boundary": "关闭返回原行焦点；不批量提升原八场景。"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:blank-initialization:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 31,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -31329,6 +32035,65 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:settings-entry:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:settings-entry:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "advanced: no horizontal overflow",
+              "diagnostic-entry: no horizontal overflow",
+              "actual directory click creates a diagnostic URL",
+              "settings parameter cannot leak into diagnostics",
+              "directory entry opens actual task tab",
+              "ordinary entry never fabricates initialization context",
+              "diagnostic tab changes retain a clean URL",
+              "global settings entry resets the diagnostic view",
+              "read-only navigation does not write",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -32018,6 +32783,56 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:data-layout:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "overview: no horizontal overflow",
+              "data secondary navigation shares the settings header baseline",
+              "data navigation row geometry remains consistent",
+              "data header retains actual workspace badge",
+              "advanced export identity is not primary page content",
+              "data inspection is read-only",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:data-layout:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 14,
+            "checks": [
+              "overview: no horizontal overflow",
+              "data secondary navigation shares the settings header baseline",
+              "data navigation row geometry remains consistent",
+              "data header retains actual workspace badge",
+              "advanced export identity is not primary page content",
+              "data inspection is read-only",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:data-layout:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 25,
+            "checks": [
+              "overview: no horizontal overflow",
+              "data secondary navigation shares the settings header baseline",
+              "data navigation row geometry remains consistent",
+              "data header retains actual workspace badge",
+              "advanced export identity is not primary page content",
+              "data inspection is read-only",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -33653,6 +34468,59 @@
             "recorded_assertions": "authority-state: no horizontal overflow; one source state does not erase all other confirmations; image failure preserves completed non-image preparation; original source reread confirms all seven stages; source recovery never repeats activation; read-recovered: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:blank-initialization:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 31,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -34548,6 +35416,59 @@
             "recorded_assertions": "authority-state: no horizontal overflow; one source state does not erase all other confirmations; image failure preserves completed non-image preparation; original source reread confirms all seven stages; source recovery never repeats activation; read-recovered: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:blank-initialization:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 31,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -34964,6 +35885,65 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:preview-chinese:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -36322,6 +37302,65 @@
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:preview-chinese:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -36645,6 +37684,65 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:preview-chinese:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -37019,6 +38117,65 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:preview-chinese:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:preview-chinese:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-preview-final-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -37768,6 +38925,59 @@
             "recorded_assertions": "authority-state: no horizontal overflow; one source state does not erase all other confirmations; image failure preserves completed non-image preparation; original source reread confirms all seven stages; source recovery never repeats activation; read-recovered: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:blank-initialization:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 31,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -38514,6 +39724,59 @@
             ],
             "recorded_assertions": "seven independent preparation rows render; later stage waits for failed wardrobe; unknown recovery reuses exact original body; completion comes from all seven read sources; refresh retains same activation; no browser exception; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:blank-initialization:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:blank-initialization:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 31,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "actual initialization link carries its return context",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -42386,6 +43649,53 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:world-studio:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "worlds: no horizontal overflow",
+              "studio: no horizontal overflow",
+              "world entry has world-specific heading and scope",
+              "world-only filter never writes the main studio preference",
+              "empty directory has no writes",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:world-studio:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "worlds: no horizontal overflow",
+              "studio: no horizontal overflow",
+              "world entry has world-specific heading and scope",
+              "world-only filter never writes the main studio preference",
+              "empty directory has no writes",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:world-studio:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 26,
+            "checks": [
+              "worlds: no horizontal overflow",
+              "studio: no horizontal overflow",
+              "world entry has world-specific heading and scope",
+              "world-only filter never writes the main studio preference",
+              "empty directory has no writes",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -46839,6 +48149,53 @@
             "recorded_assertions": "published status uses original compact green presentation; unpublished draft retains neutral state; published: no document overflow; archived resource never appears published; archived: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:world-studio:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "worlds: no horizontal overflow",
+              "studio: no horizontal overflow",
+              "world entry has world-specific heading and scope",
+              "world-only filter never writes the main studio preference",
+              "empty directory has no writes",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:world-studio:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "worlds: no horizontal overflow",
+              "studio: no horizontal overflow",
+              "world entry has world-specific heading and scope",
+              "world-only filter never writes the main studio preference",
+              "empty directory has no writes",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:world-studio:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 26,
+            "checks": [
+              "worlds: no horizontal overflow",
+              "studio: no horizontal overflow",
+              "world entry has world-specific heading and scope",
+              "world-only filter never writes the main studio preference",
+              "empty directory has no writes",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -47118,6 +48475,53 @@
               "no uncaught browser exception"
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:studio-form:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "new: no horizontal overflow",
+              "new form does not report an edit before interaction",
+              "required star stays on the title row",
+              "only explicit save creates a resource",
+              "saved: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:studio-form:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 16,
+            "checks": [
+              "new: no horizontal overflow",
+              "new form does not report an edit before interaction",
+              "required star stays on the title row",
+              "only explicit save creates a resource",
+              "saved: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:studio-form:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 27,
+            "checks": [
+              "new: no horizontal overflow",
+              "new form does not report an edit before interaction",
+              "required star stays on the title row",
+              "only explicit save creates a resource",
+              "saved: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -49831,6 +51235,53 @@
             "recorded_assertions": "text-preview: no horizontal overflow; material readback retains original job and resource; material-detail: no horizontal overflow; discard cancellation leaves original task completed; discarded status has an explicit label; discard changes only selected job; saved material stays readable; three explicit studio writes, no life mutation; discarded-material-retained: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:studio-sandbox:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "sandbox: no horizontal overflow",
+              "sandbox title and description have explicit spacing",
+              "material heading and filter cannot overlap",
+              "opening sandbox never creates a job",
+              "materials: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:studio-sandbox:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "sandbox: no horizontal overflow",
+              "sandbox title and description have explicit spacing",
+              "material heading and filter cannot overlap",
+              "opening sandbox never creates a job",
+              "materials: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:studio-sandbox:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-targeted-after/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "sandbox: no horizontal overflow",
+              "sandbox title and description have explicit spacing",
+              "material heading and filter cannot overlap",
+              "opening sandbox never creates a job",
+              "materials: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -50286,6 +51737,53 @@
             ],
             "recorded_assertions": "global visual retains target selector; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:media-empty:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 7,
+            "checks": [
+              "empty: no horizontal overflow",
+              "keyboard-focus: no horizontal overflow",
+              "keyboard focus has a visible soft indicator",
+              "query remains available without a standalone text button",
+              "empty media has a real first-creation route",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:media-empty:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 18,
+            "checks": [
+              "empty: no horizontal overflow",
+              "keyboard-focus: no horizontal overflow",
+              "keyboard focus has a visible soft indicator",
+              "query remains available without a standalone text button",
+              "empty media has a real first-creation route",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:media-empty:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 29,
+            "checks": [
+              "empty: no horizontal overflow",
+              "keyboard-focus: no horizontal overflow",
+              "keyboard focus has a visible soft indicator",
+              "query remains available without a standalone text button",
+              "empty media has a real first-creation route",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -51076,6 +52574,53 @@
             ],
             "recorded_assertions": "editing: no horizontal overflow; editing: dialog fits viewport; brief advances its own revision and preserves canonical; saved definition reopens from readback; one explicit brief write; saved: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "r19_observations": [
+          {
+            "key": "r19:media-empty:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 7,
+            "checks": [
+              "empty: no horizontal overflow",
+              "keyboard-focus: no horizontal overflow",
+              "keyboard focus has a visible soft indicator",
+              "query remains available without a standalone text button",
+              "empty media has a real first-creation route",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:media-empty:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 18,
+            "checks": [
+              "empty: no horizontal overflow",
+              "keyboard-focus: no horizontal overflow",
+              "keyboard focus has a visible soft indicator",
+              "query remains available without a standalone text button",
+              "empty media has a real first-creation route",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          },
+          {
+            "key": "r19:media-empty:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r19/r19-reviewed-after/report.json",
+            "source_record_index": 29,
+            "checks": [
+              "empty: no horizontal overflow",
+              "keyboard-focus: no horizontal overflow",
+              "keyboard focus has a visible soft indicator",
+              "query remains available without a standalone text button",
+              "empty media has a real first-creation route",
+              "no uncaught browser exceptions"
+            ],
+            "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
         ]
       }
@@ -52956,5 +54501,12 @@
     "observed_rows": 74,
     "note": "保留177行全部原状态与历史证据，新增按场景记录，不批量改为完成。",
     "image_storage_policy": "本轮图片已删除；历史路径只作追溯，文字检查结果保留，后续不提交图片。"
+  },
+  "r19_increment": {
+    "issue_report": "r19-acceptance.md",
+    "issue_records": "r19-issues.json",
+    "browser_index": "evidence/r19-browser-index.json",
+    "observed_rows": 27,
+    "note": "只追加精确观察；保留177行历史、三维状态和八场景状态。图片仅在仓库外。"
   }
 }

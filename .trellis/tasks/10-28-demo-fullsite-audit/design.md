@@ -25,3 +25,7 @@ coverage.json为完整数据源，coverage.md为可读索引；每行视觉/交�
 ## r18 修复边界
 
 先修已定位的拥有者：宽屏内容盒模型在workspace-replica；配置草稿误报在configuration-draft和Management controller；JSON输入/配置反馈在CharacterWizard视图与creation-feedback；任务事件呈现、领域恢复入口与管理上下文在TaskDetail/DiagnosticsWorkspace/WorkflowRecovery。随后将设置通用折叠表单换回Demo分卡、滑块和开关，保留全部正式字段/数值精度/CAS与原提交。只在现有Go恢复元数据里补衣柜业务入口，不扩展通用restart/reset能力，不改变模型配置或提示词。新增真实缺配置/密集诊断/宽屏和390场景，保留既有矩阵和修复。
+
+## r19 修复边界
+
+基线ea3d8e33，沿用既有业务控制器和已接受命令恢复。导航问题在App/approved routing及Management/Studio目录的实际入口收敛；新建资源提示在StudioEditor显示层区分，保留dirty/save业务不变量；设置展示在SettingsSections/SettingsField/ModelDirectory及现有字段拥有者收敛；数据页保留原导入/导出/维护能力但统一标题、次导航几何和低干扰说明；共用CommandDialog保留真实同步/冲突能力，正常表单只保留必要主要操作；媒体与全局主题根据生效CSS定位黑框/宽度/保存栏覆盖；预览使用正式语义组件处理已声明枚举和关系量表，未知扩展完整保留。涉及业务状态选择由主线程亲自实施，不扩展媒体收藏等缺失API，不改模型/提示词协议。参考70图留在/tmp，提交只含文字报告和检查数据。

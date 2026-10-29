@@ -1,0 +1,1397 @@
+[
+  {
+    "name": "settings-entry",
+    "size": "wide",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "advanced: no horizontal overflow",
+      "diagnostic-entry: no horizontal overflow",
+      "actual directory click creates a diagnostic URL",
+      "settings parameter cannot leak into diagnostics",
+      "directory entry opens actual task tab",
+      "ordinary entry never fabricates initialization context",
+      "diagnostic tab changes retain a clean URL",
+      "global settings entry resets the diagnostic view",
+      "read-only navigation does not write",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/settings-entry-wide-advanced.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/settings-entry-wide-diagnostic-entry.png"
+    ],
+    "geometry": [
+      {
+        "label": "advanced",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "diagnostic-entry",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-sandbox",
+    "size": "wide",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "sandbox: no horizontal overflow",
+      "sandbox title and description have explicit spacing",
+      "material heading and filter cannot overlap",
+      "opening sandbox never creates a job",
+      "materials: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/studio-sandbox-wide-sandbox.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/studio-sandbox-wide-materials.png"
+    ],
+    "geometry": [
+      {
+        "label": "sandbox",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "title": {
+          "x": 375,
+          "y": 299.828125,
+          "width": 524.390625,
+          "height": 24
+        },
+        "description": {
+          "x": 375,
+          "y": 331.828125,
+          "width": 524.390625,
+          "height": 22.796875
+        },
+        "heading": {
+          "x": 973.390625,
+          "y": 698.71875,
+          "width": 128,
+          "height": 24
+        },
+        "toggle": {
+          "x": 1684,
+          "y": 701.375,
+          "width": 101,
+          "height": 18.6875
+        }
+      },
+      {
+        "label": "materials",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "command-actions",
+    "size": "wide",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "new-post: no horizontal overflow",
+      "new publication has no meaningless sync action",
+      "ordinary comment sync is secondary",
+      "review opens with a focused heading",
+      "secondary sync reads but never publishes",
+      "review: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "fluctlightId": "",
+          "status": "visible",
+          "q": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "query": {
+          "fluctlightId": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/command-actions-wide-new-post.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/command-actions-wide-review.png"
+    ],
+    "geometry": [
+      {
+        "label": "new-post",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "review",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "preview-chinese",
+    "size": "wide",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "selecting a daily world never creates it",
+      "life: no horizontal overflow",
+      "wardrobe-details: no horizontal overflow",
+      "relations: no horizontal overflow",
+      "relation-details: no horizontal overflow",
+      "relation metrics are readable Chinese percentages",
+      "wardrobe metadata uses Chinese terms",
+      "display never rewrites the original field types or values",
+      "preview never activates or creates a character",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-wide-life.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-wide-wardrobe-details.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-wide-relations.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-wide-relation-details.png"
+    ],
+    "geometry": [
+      {
+        "label": "life",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "wardrobe-details",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "relations",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "relation-details",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-entry",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "advanced: no horizontal overflow",
+      "diagnostic-entry: no horizontal overflow",
+      "actual directory click creates a diagnostic URL",
+      "settings parameter cannot leak into diagnostics",
+      "directory entry opens actual task tab",
+      "ordinary entry never fabricates initialization context",
+      "diagnostic tab changes retain a clean URL",
+      "global settings entry resets the diagnostic view",
+      "read-only navigation does not write",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/settings-entry-desktop-advanced.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/settings-entry-desktop-diagnostic-entry.png"
+    ],
+    "geometry": [
+      {
+        "label": "advanced",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "diagnostic-entry",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-sandbox",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "sandbox: no horizontal overflow",
+      "sandbox title and description have explicit spacing",
+      "material heading and filter cannot overlap",
+      "opening sandbox never creates a job",
+      "materials: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/studio-sandbox-desktop-sandbox.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/studio-sandbox-desktop-materials.png"
+    ],
+    "geometry": [
+      {
+        "label": "sandbox",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "title": {
+          "x": 277,
+          "y": 291.828125,
+          "width": 365.1875,
+          "height": 24
+        },
+        "description": {
+          "x": 277,
+          "y": 323.828125,
+          "width": 365.1875,
+          "height": 22.796875
+        },
+        "heading": {
+          "x": 716.1875,
+          "y": 690.71875,
+          "width": 128,
+          "height": 24
+        },
+        "toggle": {
+          "x": 1188,
+          "y": 693.375,
+          "width": 101,
+          "height": 18.6875
+        }
+      },
+      {
+        "label": "materials",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "command-actions",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "new-post: no horizontal overflow",
+      "new publication has no meaningless sync action",
+      "ordinary comment sync is secondary",
+      "review opens with a focused heading",
+      "secondary sync reads but never publishes",
+      "review: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "fluctlightId": "",
+          "status": "visible",
+          "q": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "query": {
+          "fluctlightId": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/command-actions-desktop-new-post.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/command-actions-desktop-review.png"
+    ],
+    "geometry": [
+      {
+        "label": "new-post",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "review",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "preview-chinese",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "selecting a daily world never creates it",
+      "life: no horizontal overflow",
+      "wardrobe-details: no horizontal overflow",
+      "relations: no horizontal overflow",
+      "relation-details: no horizontal overflow",
+      "relation metrics are readable Chinese percentages",
+      "wardrobe metadata uses Chinese terms",
+      "display never rewrites the original field types or values",
+      "preview never activates or creates a character",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-desktop-life.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-desktop-wardrobe-details.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-desktop-relations.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-desktop-relation-details.png"
+    ],
+    "geometry": [
+      {
+        "label": "life",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "wardrobe-details",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "relations",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "relation-details",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-entry",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "advanced: no horizontal overflow",
+      "diagnostic-entry: no horizontal overflow",
+      "actual directory click creates a diagnostic URL",
+      "settings parameter cannot leak into diagnostics",
+      "directory entry opens actual task tab",
+      "ordinary entry never fabricates initialization context",
+      "diagnostic tab changes retain a clean URL",
+      "global settings entry resets the diagnostic view",
+      "read-only navigation does not write",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/settings-entry-mobile-advanced.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/settings-entry-mobile-diagnostic-entry.png"
+    ],
+    "geometry": [
+      {
+        "label": "advanced",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "diagnostic-entry",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "studio-sandbox",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "sandbox: no horizontal overflow",
+      "sandbox title and description have explicit spacing",
+      "material heading and filter cannot overlap",
+      "opening sandbox never creates a job",
+      "materials: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/studio-sandbox-mobile-sandbox.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/studio-sandbox-mobile-materials.png"
+    ],
+    "geometry": [
+      {
+        "label": "sandbox",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "title": {
+          "x": 42,
+          "y": 268.640625,
+          "width": 256,
+          "height": 24
+        },
+        "description": {
+          "x": 42,
+          "y": 300.640625,
+          "width": 256,
+          "height": 22.796875
+        },
+        "heading": {
+          "x": 42,
+          "y": 1315.84375,
+          "width": 128,
+          "height": 24
+        },
+        "toggle": {
+          "x": 247,
+          "y": 1318.5,
+          "width": 101,
+          "height": 18.6875
+        }
+      },
+      {
+        "label": "materials",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "command-actions",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "new-post: no horizontal overflow",
+      "new publication has no meaningless sync action",
+      "ordinary comment sync is secondary",
+      "review opens with a focused heading",
+      "secondary sync reads but never publishes",
+      "review: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "fluctlightId": "",
+          "status": "visible",
+          "q": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "query": {
+          "fluctlightId": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/command-actions-mobile-new-post.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/command-actions-mobile-review.png"
+    ],
+    "geometry": [
+      {
+        "label": "new-post",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "review",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "preview-chinese",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "selecting a daily world never creates it",
+      "life: no horizontal overflow",
+      "wardrobe-details: no horizontal overflow",
+      "relations: no horizontal overflow",
+      "relation-details: no horizontal overflow",
+      "relation metrics are readable Chinese percentages",
+      "wardrobe metadata uses Chinese terms",
+      "display never rewrites the original field types or values",
+      "preview never activates or creates a character",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-mobile-life.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-mobile-wardrobe-details.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-mobile-relations.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/preview-chinese-mobile-relation-details.png"
+    ],
+    "geometry": [
+      {
+        "label": "life",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "wardrobe-details",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "relations",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "relation-details",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      }
+    ],
+    "status": "passed"
+  }
+]

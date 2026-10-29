@@ -145,3 +145,8 @@ F70为六类Feedback、保留错误默认与诊断/生命周期；F71为创建�
 全量717及后续配置28定向、typecheck33/build18通过；新受控浏览器172条、深层配对10组与人物复拍，按实际断言记录，不能视作177行全部通过。真实Web静态更新后五页实际API只读通过；没有后端或LLM策略变更。任务仍in_progress。
 
 F79：深层反馈继续发现的同事件重复确认与聊天固定红色覆盖。命令组件压掉重复普通确认，ActionFeedback将真实失败原因和读回故障合在同一区域，保留两个真实动作和原输入披露；取消等信息按显式kind着色。全量718、类型35/构建21及深层People10/Feed8/ShellChatInbox12/Wear10通过。详见feedback-issues.md FG18。
+
+
+## r19 空库回归增量
+
+逐项原问题、文件、动作和恢复清除、三视口证据见[r19-acceptance.md](r19-acceptance.md)及[r19-issues.json](r19-issues.json)。本批34条含修复、语义确认、能力差异和未验范围，不是34个独立bug。详细检查索引evidence/r19-browser-index.json；不以受控HTTP冒充真实Core。

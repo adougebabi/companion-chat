@@ -1,0 +1,97 @@
+{
+  "image_storage": "outside Git only",
+  "reviewed": [
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-final-all-after/settings-fields-wide-roles.png",
+      "sha256": "e2d7c632118257fa207d2260ab2438f37cf7d1d87aebadd4f76acdc21dd83817",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-final-all-after/settings-fields-mobile-roles.png",
+      "sha256": "7f73ecd79e3877ae76597dcf84aa64a05854806491a95963a633e825827271b7",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-final-all-after/settings-fields-wide-advanced-provenance.png",
+      "sha256": "a5f18b33eb8b45cd05408a75c83a83a7fa518af91ce2c446ec6e45d62b12bac8",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-final-all-after/settings-fields-mobile-advanced-provenance.png",
+      "sha256": "27aaf7fc3245779acb664c0dc476979cfb44308f260660d99d104b176ca052f7",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-reviewed-after/data-layout-wide-overview.png",
+      "sha256": "bad6a336cc13d8dcd3c4c2a6e1de707b5e8f970ec3e2417b830f5aaaa84f6b20",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-reviewed-after/data-layout-mobile-overview.png",
+      "sha256": "91971ed1fbb26aa52eea27bf0189575602e6b3a93e1fc70f5d089b97ffaad736",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-reviewed-after/blank-initialization-mobile-initial-failure.png",
+      "sha256": "05c7b5b176dd4fd0b06b86a569044a88ba74c705b5bf993b75b78caeb6964f8b",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-reviewed-after/blank-initialization-wide-returned-original.png",
+      "sha256": "4765d2f13fda5374d55deafec706d909bc67c55cc5b796dada2f290be1f41357",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-reviewed-after/media-empty-mobile-keyboard-focus.png",
+      "sha256": "fc411a654ce7e5adfaeaa2090dbf3afd045293f5d29f46fa6d68f3267a0b99e9",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-reviewed-after/studio-form-mobile-new.png",
+      "sha256": "db78a0b9dc3b2fa3e2bde51e08298f5688845cde5f292e35552eab8624fcdf3b",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-targeted-after/studio-sandbox-mobile-materials.png",
+      "sha256": "1c7c94765c148016edab480b05baeac5b715c0abc8a6b485d34c6452cef43979",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-final-all-after/studio-sandbox-wide-sandbox.png",
+      "sha256": "c554e8a2f7c79df84cfe00e239cd50561630be01e8c70f36b024948496f30903",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-final-all-after/studio-sandbox-mobile-sandbox.png",
+      "sha256": "bde458f10dc2127a7873f9e3aea1427aa953565c08977883263fa0b3f6a50d12",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-mobile-relation-details.png",
+      "sha256": "367fd2ce50d9d89b32dd723d75579d9e41d4dbb3fada76dc6de225693dba529a",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-wide-wardrobe-details.png",
+      "sha256": "05b4428af2487abbf6d9b08fdf93ede6f8242b8d752552c7428cacaf3e43719e",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-baseline-before/settings-fields-wide-roles.png",
+      "sha256": "fac4f67ffb0c9bd94bb0e582f9d0871b5e34f140c6b7016ca1b9b7b959ced85b",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-baseline-before/data-layout-wide-overview.png",
+      "sha256": "fcd9c50a76dbdcd4b9765c276fafe21a894a8c57c08ca28683adaef9c68b49d6",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-baseline-before/studio-sandbox-wide-sandbox.png",
+      "sha256": "ccd8975d0b73740bc341fc65e485c6370da1004043d79759fe865d0f1d879c4d",
+      "review": "主线程实际打开查看；布局/文字/主要操作可见；不代表完整页面每个状态已签收"
+    }
+  ],
+  "reference": "reference/r19/manifest.json",
+  "unviewed_boundary": "本清单不宣称每张脚本截图均人工签收"
+}

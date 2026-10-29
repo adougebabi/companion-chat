@@ -87,6 +87,7 @@ const lifeFields = {
   recurring_commitments: "长期约定",
   character_constraints: "边界与约束",
   wardrobe_items: "初始衣物",
+  relationship_seeds: "初始关系线索",
   media_preferences: "媒体偏好",
 };
 const copy = (v) => JSON.parse(JSON.stringify(v));
@@ -250,7 +251,7 @@ export default function CharacterWizardView({ model: m }) {
           编辑内容
         </Button>
       </div>
-      <SemanticTree value={value} />
+      <SemanticTree value={value} field={path.at(-1)} />
     </Surface>
   );
   const next = () => {
@@ -555,7 +556,7 @@ export default function CharacterWizardView({ model: m }) {
                 <LoadingState label="正在读取所选世界的精确发布版本…" />
               )}
               <Button
-                variant="ghost"
+                variant="outline"
                 disabled={m.existingWorldLoading}
                 onClick={() => void m.loadExistingWorlds(true)}
               >

@@ -7,7 +7,9 @@ import {Server,MessageSquare,ImageIcon,Leaf,Bell,Activity,Database,SlidersHorizo
 import RecordView from '@/react-app/shared/RecordView';
 import CursorControls from '@/react-app/shared/CursorControls';
 import {Field,FieldLabel} from '@/components/ui/field';
-import Combobox from '@/react-app/shared/Combobox';
+import {Input} from '@/components/ui/input';
+import {MoreHorizontal} from 'lucide-react';
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator} from '@/components/ui/dropdown-menu';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {Feedback,InlineFeedback} from "@/react-app/shared/Presentation";
 import ModelTranscript from '@/react-app/shared/ModelTranscript';
@@ -49,7 +51,7 @@ export function ManagementPageView({ view: view }) {
   ];
   const category=readValue(view.tab)==='运行诊断'?'diagnostics':categories.find(c=>c.sections.includes(view.currentSection.value))?.id||'models';
   const show=title=>categories.find(c=>c.id===category)?.sections.includes(title)&&(category!=='models'||view.currentSection.value===title);
-  const choose=id=>{const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}view.tab.value=id==='diagnostics'?'运行诊断':'配置中心';if(item.sections.length)void view.scrollTo(item.sections[0],false).then(()=>{document.querySelector('.replica-page')?.scrollTo({top:0,left:0,behavior:'instant'});});};
+  const choose=id=>{const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}if(id==='diagnostics'){view.openDiagnostics();return;}view.tab.value='配置中心';view.openSettings(item.sections[0]);if(item.sections.length)void view.scrollTo(item.sections[0],false).then(()=>{document.querySelector('.replica-page')?.scrollTo({top:0,left:0,behavior:'instant'});});};
   return (
     <Tabs className="replica-management" value={view.tab.value} onValueChange={value=>view.tab.value=value}>
       <WorkspacePageHeader eyebrow="PREFERENCES / MAKE IT YOURS" title="管理中心" description="让每一次相处，按你喜欢的方式发生。" actions={view.accountActions()}/>
@@ -65,7 +67,7 @@ export function ManagementPageView({ view: view }) {
               onInvalidCapture={event=>{const target=event.target,section=target.closest(".settings-group");if(section?.dataset.section)void view.scrollTo(section.dataset.section,false).then(()=>{target.closest("[data-setting-field]")?.scrollIntoView({block:"center",behavior:"instant"});target.focus({preventScroll:true});});}}
               onSubmit={eventModifiers(view.save, ["prevent"])}
             >
-              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small>{view.endpoints.value.length} 个服务 · {view.bindings.value.length} 个用途</small>}{categories.filter(item=>item.id===category).map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
+              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small>{view.catalogReady.value?view.endpoints.value.length+' 个服务 · '+view.bindings.value.length+' 个用途':'正在读取服务与用途'}</small>}{categories.filter(item=>item.id===category).map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
               {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>void view.scrollTo(value,false).then(()=>document.querySelector('.replica-page')?.scrollTo({top:0,behavior:'instant'}))}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
               {view.catalogLoading.value&&<p role="status" data-feedback-kind="progress">正在读取正式配置…</p>}
               {!view.catalogReady.value&&view.error.value&&<InlineFeedback role="alert">{view.error.value}<ActionButton type="button" variant="outline" onClick={view.retryCatalog}>重新读取配置</ActionButton></InlineFeedback>}
@@ -180,10 +182,10 @@ export function ManagementPageView({ view: view }) {
                 id={view.sectionId("模型用途")}
                 className="settings-group"
               >
-                <h2>{"各用途对应的模型配置"}</h2>
+                <h2>{"为每种能力选择模型"}</h2>
                 <p className="muted">
                   {
-                    "可以先配置思考与通用分析、聊天回复；看图与记忆检索向量可在使用时再配置。应用不设置输入、输出 Token 上限。"
+                    "多个用途可以共用同一个服务，也可以分别配置。未使用的用途可以留空。"
                   }
                 </p>
                 <Fragment>
@@ -195,18 +197,14 @@ export function ManagementPageView({ view: view }) {
                       !!h.model ||
                       (h.timeout != null && h.timeout !== "");
                     return (
-                      <Disclosure
-                        key={h.name}
-                        className="management-block replica-model-role"
-                        open
-                        title={<>{h.name}</>}
-                      >
+                      <section key={h.role} className="management-block replica-model-role" aria-label={h.name}>
+                        <div className="replica-role-heading"><h3>{h.name}</h3><p>{({generic_llm:'规划日程、理解描述、整理记忆',conversation_reply:'组织语言，回应每次对话',vision_understanding:'理解聊天中分享的照片',embedding:'检索已经保存的记忆'})[h.role]||'为这项能力选择已连接的模型服务。'}</p></div>
                         <div className="form-grid">
                           <label>
-                            {"使用服务"}
+                            {"模型服务"}
                             <ChoiceSelect
                               required={required}
-                              aria-label="使用服务"
+                              aria-label="模型服务"
                               value={h.endpoint}
                               onChange={(event) => {
                                 ((value) => (h.endpoint = value))(
@@ -232,16 +230,17 @@ export function ManagementPageView({ view: view }) {
                             </ChoiceSelect>
                           </label>
                           <label>
-                            {"模型 ID"}
-                            <Combobox label="模型 ID" required={required} value={h.model} allowCustom options={[{value:'',label:'尚未配置'},...(view.endpoints.value.find(endpoint=>endpoint.id===h.endpoint)?.models||[]).map(model=>typeof model==='string'?model:model.id||model.name).filter(Boolean)]} onChange={value=>h.model=value}/>
+                            {"模型标识"}
+                            <Input aria-label="模型标识" required={required} list={'role-models-'+h.role} value={h.model} placeholder="填写模型标识" onChange={event=>h.model=event.target.value}/>
+                            <datalist id={'role-models-'+h.role}>{(view.endpoints.value.find(endpoint=>endpoint.id===h.endpoint)?.models||[]).map(model=>typeof model==='string'?model:model.id||model.name).filter(Boolean).map(model=><option key={model} value={model}/>)}</datalist>
                           </label>
                           <label>
-                            {"超时（秒，可选）"}
-                            <FieldInput
+                            {"请求超时（秒，可选）"}
+                            <Input
                               type="number"
                               min="1"
                               placeholder="默认 120 秒"
-                              aria-label="超时（秒，可选）"
+                              aria-label="请求超时（秒，可选）"
                               value={h.timeout}
                               onChange={(event) => {
                                 ((value) => (h.timeout = value))(
@@ -254,7 +253,7 @@ export function ManagementPageView({ view: view }) {
                             </small>
                           </label>
                         </div>
-                      </Disclosure>
+                      </section>
                     );
                   })}
                 </Fragment>
@@ -380,7 +379,7 @@ export function ManagementPageView({ view: view }) {
                 </OperationStatus>
               ) : null}
               {view.testRaw.value&&<JsonDetails value={view.testRaw.value} title="测试回执与实际状态"/>}
-              {view.catalogReady.value&&<div className="settings-save-bar" data-testid="config-save-bar">
+              {view.catalogReady.value&&(view.dirty.value||view.hasRecovery.value||view.saving.value||view.saveStatus.value||view.error.value)&&<div className="settings-save-bar" data-testid="config-save-bar">
                 {view.hasRecovery.value ? <Feedback kind={view.recoveringConfiguration.value?'progress':view.configurationStorageProblem.value?'error':view.recovery.value?.status===409?'warning':[400,403,422].includes(view.recovery.value?.status)?'error':'action-required'} title={view.recoveringConfiguration.value?'正在核对设置':view.configurationStorageProblem.value?'本机提交记录暂时无法读取':view.needsBaselineReview.value&&!view.recovery.value?'请核对最新配置':view.recovery.value?.status===409?'设置版本已变化':[400,403,422].includes(view.recovery.value?.status)?'设置未能保存':'原设置提交结果待核对'} details={(view.configurationStorageProblem.value||view.recovery.value?.failure)&&<pre>{JSON.stringify(view.configurationStorageProblem.value||view.recovery.value.failure,null,2)}</pre>}>
                   <p>{view.error.value||view.saveStatus.value||'原设置提交仍需核对，当前输入会保留。'}</p><view.RecoveryActions/>
                 </Feedback> : view.error.value ? (
@@ -409,8 +408,7 @@ export function ManagementPageView({ view: view }) {
             </p>
             <label className="replica-diagnostic-kind-filter">调用类型<ChoiceSelect aria-label="调用类型" value={view.kind.value} onChange={event=>view.selectKind(event.target.value)}>{['模型调用','媒体调用'].map(kind=><option key={kind} value={kind}>{kind}</option>)}</ChoiceSelect></label>
             <div className="diagnostic-navigation grid gap-4">
-              <ActionButton variant="outline" onClick={view.openTaskDiagnostics}>查看待处理事项与原任务恢复</ActionButton>
-              <label className="grid max-w-md gap-2 text-sm">查看其它运行记录<ChoiceSelect aria-label="其它运行记录" value={view.reference.value} onChange={event=>view.selectReference(event.target.value)}><option value="">模型与媒体调用</option>{readValue(view.referenceSections).map(section=><option key={section.title} value={section.title}>{section.title}</option>)}</ChoiceSelect></label>
+              <DropdownMenu><DropdownMenuTrigger asChild><ActionButton type="button" variant="ghost" aria-label="更多运行记录"><MoreHorizontal size={16}/>{view.reference.value||'更多运行记录'}</ActionButton></DropdownMenuTrigger><DropdownMenuContent align="start"><DropdownMenuItem onSelect={()=>view.selectReference('')}>模型与媒体调用</DropdownMenuItem>{readValue(view.referenceSections).map(section=><DropdownMenuItem key={section.title} onSelect={()=>view.selectReference(section.title)}>{section.title}</DropdownMenuItem>)}<DropdownMenuSeparator/><DropdownMenuItem onSelect={view.openTaskDiagnostics}>待处理事项与原任务恢复</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
 
               {view.referenceSection.value ? <Surface as="section" key={view.referenceSection.value.kind+view.referenceSection.value.title} className="grid gap-4"><div className="row"><h3>{view.referenceSection.value.title}</h3><span className="spacer"/><ActionButton variant="outline" type="button" onClick={()=>view.reference.value=''}>收起面板</ActionButton></div>{view.referenceSection.value.loading&&<p role="status">正在读取记录…</p>}{view.referenceSection.value.error&&<InlineFeedback role="alert">{view.referenceSection.value.error}<ActionButton variant="outline" onClick={view.retryReference}>重新读取原记录页</ActionButton></InlineFeedback>}{!view.referenceSection.value.rows.length&&!view.referenceSection.value.loading&&!view.referenceSection.value.error&&<p className="text-sm text-muted-foreground">当前没有对应记录。</p>}{view.referenceSection.value.rows.map(record=><ActionButton key={view.referenceSection.value.kind+':'+record.ref} variant="outline" className="h-auto min-h-14 w-full justify-between whitespace-normal text-left" onClick={()=>view.openReference(record,view.referenceSection.value)}><span className="grid min-w-0 gap-1"><b>{view.referenceTitle(record)}</b><small>{record.occurred_at?view.userInstant(record.occurred_at):'时间未记录'}</small></span><Badge>{view.referenceStatus(record)}</Badge><span>查看详情</span></ActionButton>)}<CursorControls label="诊断记录" append={{loading:view.referenceSection.value.loading,hasMore:!!view.referenceSection.value.nextCursor,loadMore:view.loadMoreReference}}/></Surface>:null}
               {view.referenceRecord.value&&<view.DetailDrawer title={view.referenceRecord.value.section.title+' · 记录详情'} testId="reference-drawer" onClose={()=>view.referenceRecord.value=null}>{view.referenceRecord.value.loading?<p role="status">正在读取详情…</p>:view.referenceRecord.value.error?<InlineFeedback role="alert">{view.referenceRecord.value.error}<ActionButton variant="outline" onClick={()=>view.openReference(view.referenceRecord.value.record,view.referenceRecord.value.section)}>重新读取</ActionButton></InlineFeedback>:<RecordView value={view.referenceRecord.value.detail?.data||view.referenceRecord.value.detail} technical/>}</view.DetailDrawer>}

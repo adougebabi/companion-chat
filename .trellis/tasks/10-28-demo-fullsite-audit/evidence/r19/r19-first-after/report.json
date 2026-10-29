@@ -1,0 +1,691 @@
+[
+  {
+    "name": "settings-entry",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "advanced: no horizontal overflow",
+      "diagnostic-entry: no horizontal overflow",
+      "actual directory click creates a diagnostic URL",
+      "settings parameter cannot leak into diagnostics",
+      "directory entry opens actual task tab",
+      "ordinary entry never fabricates initialization context",
+      "diagnostic tab changes retain a clean URL",
+      "read-only navigation does not write",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/settings-entry-desktop-advanced.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/settings-entry-desktop-diagnostic-entry.png"
+    ],
+    "geometry": [],
+    "status": "passed"
+  },
+  {
+    "name": "settings-fields",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "roles: no horizontal overflow",
+      "four purpose rows remain editable sections",
+      "model identifiers are ordinary inputs with optional suggestions",
+      "timeout fields have no plus/minus controls",
+      "clean settings have no persistent save bar",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/settings-fields-desktop-roles.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/settings-fields-desktop-failure.png"
+    ],
+    "geometry": [
+      {
+        "savebar": {
+          "position": "sticky",
+          "rect": {
+            "x": 460,
+            "y": 805,
+            "width": 854,
+            "height": 72,
+            "top": 805,
+            "right": 1314,
+            "bottom": 877,
+            "left": 460
+          }
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: save feedback cannot overlay the form\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:21:36)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:31:504\n    at runNextTicks (node:internal/process/task_queues:64:5)\n    at process.processImmediate (node:internal/timers:472:9)",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n我\n正在相处\n我的空间\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n聊天与视觉\n\n修改正式配置；保存后读取实际回执。\n\n回复方式\n\n选择回复方式，调整表达的变化程度和采样范围。\n\n回复模式\n独立回复模型\n兼容模式\n独立回复模型\n表达版本\n请选择\n自然交流 · 当前协议\n自然交流 · 兼容协议\n表达温度\nTop P\n总超时（秒，含排队）\n同时回复数量\n可恢复错误重试次数\n媒体动作回交上限\n回复失败策略\n请选择\n明确返回失败\n显式由认知模型独立表达\n图片理解\n\n开启后使用独立视觉模型理解收到的图片。\n\n启用视觉理解\n测试看图（使用已保存配置）\n\n有未保存修改\n\n放弃未保存修改\n保存设置"
+  },
+  {
+    "name": "data-layout",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "overview: no horizontal overflow",
+      "data secondary navigation shares the settings header baseline",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/data-layout-desktop-overview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/data-layout-desktop-failure.png"
+    ],
+    "geometry": [
+      {
+        "settingsNav": {
+          "x": 252,
+          "y": 212.828125,
+          "width": 180,
+          "height": 387
+        },
+        "dataNav": {
+          "x": 252,
+          "y": 212.828125,
+          "width": 180,
+          "height": 406.125
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: data header retains actual workspace badge\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:21:36)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:34:437",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n我\n正在相处\n我的空间\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n数据管理\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n数据管理\n\n保存设定文件，查看工作区备份与历史。\n\n当前工作区\n\n这里显示当前已读取的角色与分组。可分享的设定和完整业务备份分别管理。\n\n0\n位已读取角色\n0\n个已读取分组\n导出设定\n\n将已保存的作品设定、所需依赖、分组名称和通知偏好导出为文件。未发布草稿也会包含在内，分享前请先预览。文件不包含聊天、记忆、服务密钥或媒体授权。\n\n只导出指定作品\n导出设定文件\n导入设定\n\n导入为新的创作草稿；预览完整内容，再确认正式导入。\n\n选择设定文件 · JSON · 最大 3 MiB\n选择文件\n也可以将文件拖放到这里\n或粘贴设定文件内容\n清空未提交草稿\n校验\n业务数据备份\n\n聊天、记忆、日记和媒体由工作区备份保留，可在这里查看备份与恢复任务。\n\n备份范围与恢复说明\n\n先创建持久维护任务，再由有部署权限的本地工具执行。任务保留实际阶段、产物摘要、失败和隔离恢复结果。私有配置不会随公开定义包导出。\n\n创建业务备份维护任务\n刷新任务\n\n当前没有维护任务。创建首个备份任务后，按任务页指引执行真实维护工具。\n\n历史版本与恢复\n查看历史版本 →\n角色生活恢复说明 →\n\n可在对应页面查看历史并恢复受支持的字段。当前不支持将角色的整条生活时间线退回过去。\n\n创作中心"
+  },
+  {
+    "name": "world-studio",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "worlds: no horizontal overflow",
+      "studio: no horizontal overflow",
+      "world entry has world-specific heading and scope",
+      "world-only filter never writes the main studio preference",
+      "empty directory has no writes",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/world-studio-desktop-worlds.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/world-studio-desktop-studio.png"
+    ],
+    "geometry": [],
+    "status": "passed"
+  },
+  {
+    "name": "studio-form",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "new: no horizontal overflow",
+      "new form does not report an edit before interaction",
+      "required star stays on the title row",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/studio-form-desktop-new.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/studio-form-desktop-failure.png"
+    ],
+    "geometry": [
+      {
+        "title": {
+          "x": 277,
+          "y": 354.828125,
+          "width": 54.796875,
+          "height": 20.390625
+        },
+        "star": {
+          "x": 326.078125,
+          "y": 356.828125,
+          "width": 5.71875,
+          "height": 15
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "page.waitForURL: Timeout 10000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n============================================================\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:39:864",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n我\n正在相处\n我的空间\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n编辑创作资源\n快速前往\n⌘ K\n创作中心\n新建世界底稿\nSTUDIO / MAKE IT YOUR OWN\n新的世界底稿\n\n把想法慢慢补全，保存，再选择何时使用。\n\n创作沙盒\n保存草稿\n请填写世界背景或规则，不能保存或发布空世界底稿重新读取资源并保留草稿\n资源设定\n新资源，尚未保存\n资源名称 *\n资源类型\n世界底稿\n世界底稿\n角色模板\n地点\n物品\n服装方案\n世界人物\n事件\n人格资料\n视觉参考\n世界背景\n基础规则\n场地与具体地点 · 0 类\n保存原因 *\n完整 JSON 定义\n保存与发布\n保存版本\n尚未保存\n当前可用版本\n尚未发布\n保存草稿\n发布版本\n用于生活\n\n先保存当前修改，再发布明确的保存版本。\n\n发布已保存版本"
+  },
+  {
+    "name": "studio-sandbox",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "sandbox: no horizontal overflow",
+      "sandbox title and description have explicit spacing",
+      "material heading and filter cannot overlap",
+      "opening sandbox never creates a job",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/studio-sandbox-desktop-sandbox.png"
+    ],
+    "geometry": [
+      {
+        "title": {
+          "x": 277,
+          "y": 291.828125,
+          "width": 365.1875,
+          "height": 24
+        },
+        "description": {
+          "x": 277,
+          "y": 323.828125,
+          "width": 365.1875,
+          "height": 22.796875
+        },
+        "heading": {
+          "x": 716.1875,
+          "y": 690.71875,
+          "width": 128,
+          "height": 24
+        },
+        "toggle": {
+          "x": 1188,
+          "y": 693.375,
+          "width": 101,
+          "height": 18.6875
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "media-empty",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "empty: no horizontal overflow",
+      "keyboard-focus: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "query": {
+          "scope": "all",
+          "hidden": "false",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/media-empty-desktop-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/media-empty-desktop-keyboard-focus.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/media-empty-desktop-failure.png"
+    ],
+    "geometry": [],
+    "focus": {
+      "visible": false,
+      "outline": "rgb(125, 136, 114) none 0px",
+      "shadow": "none",
+      "background": "rgba(0, 0, 0, 0)"
+    },
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: keyboard focus has a visible soft indicator\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:21:36)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r19-ui.mjs:43:568",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n我\n正在相处\n我的空间\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n媒体\n快速前往\n⌘ K\nMEDIA / MOMENTS IN PICTURES\n把生活，留在画面里\n\n你的影像、灵感与视觉身份。\n\n添加素材\n生成画面\n媒体库\n0\n视觉身份\n生成画面\n显示头像\n全部画面\n全部画面\n图片\n视频\n音频\n保存的素材 · 画面不改变生活状态\n来源、角色与库中展示\n还没有这样的画面\n\n先创建一个角色，再把想象留在画面里。\n\n开始创作\n清除筛选"
+  },
+  {
+    "name": "command-actions",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "new-post: no horizontal overflow",
+      "new publication has no meaningless sync action",
+      "ordinary comment sync is secondary",
+      "secondary sync reads but never publishes",
+      "review: no horizontal overflow",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "fluctlightId": "",
+          "status": "visible",
+          "q": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "query": {
+          "fluctlightId": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/command-actions-desktop-new-post.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/command-actions-desktop-review.png"
+    ],
+    "geometry": [],
+    "status": "passed"
+  },
+  {
+    "name": "preview-chinese",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "selecting a daily world never creates it",
+      "life: no horizontal overflow",
+      "relations: no horizontal overflow",
+      "relation metrics are readable Chinese percentages",
+      "wardrobe metadata uses Chinese terms",
+      "display never rewrites the original field types or values",
+      "preview never activates or creates a character",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/preview-chinese-desktop-life.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-first-after/preview-chinese-desktop-relations.png"
+    ],
+    "geometry": [],
+    "status": "passed"
+  }
+]

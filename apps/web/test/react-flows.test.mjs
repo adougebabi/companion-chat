@@ -83,21 +83,8 @@ test("React settings stay busy through receipt readback and preserve newer model
   };
   const view = await mountReact(vite, Management, { workspace: w });
   try {
-    const model = view.host.querySelector(
-      '[role="combobox"][aria-label="模型 ID"]',
-    );
-    const choose = async (value) => {
-      await view.click(model);
-      await view.input(
-        document.querySelector('input[aria-label="搜索模型 ID"]'),
-        value,
-      );
-      await view.click(
-        [...document.querySelectorAll("[cmdk-item]")].find((item) =>
-          item.textContent.includes("采用「" + value + "」"),
-        ),
-      );
-    };
+    const model = view.host.querySelector('input[aria-label="模型标识"]');
+    const choose = async value => view.input(model,value);
     assert.ok(model);
     await choose("new");
     const form = view.host.querySelector("form");
@@ -127,7 +114,7 @@ test("React settings stay busy through receipt readback and preserve newer model
     await view.flush();
     assert.equal(save().disabled, false);
     assert.match(status().textContent, /已保存/);
-    assert.match(model.textContent, /newer-unsaved/);
+    assert.equal(model.value, "newer-unsaved");
   } finally {
     await view.dispose();
   }

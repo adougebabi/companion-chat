@@ -206,3 +206,10 @@
 @media(max-width:700px){.replica-management .settings-save-bar{bottom:calc(8px - var(--replica-page-bottom,35px))}}
 .replica-call-row[data-status=pending] .replica-call-main>[data-slot=badge]{background:#edf3f5;color:#6b8793;border-color:#e0e9ec}
 .replica-call-row[data-status=success] .replica-call-main>[data-slot=badge]{background:#edf4e9;color:#7f9c65;border-color:#dce8d4}
+
+/* r19: save feedback stays in normal flow and never covers editable fields. */
+.react-workspace .replica-management .settings-save-bar{position:static;bottom:auto;z-index:auto;background:#fff;backdrop-filter:none}.replica-management .replica-settings-form{padding-bottom:0}.replica-data{gap:0}.replica-management .replica-model-role{border:0;border-top:1px solid #e5eadf;border-radius:0;padding:20px 0;grid-template-columns:160px minmax(0,1fr);gap:18px}.replica-role-heading h3{font-size:13px;font-weight:600;color:#4c6241}.replica-role-heading p,.settings-field-hint{font-size:11px;line-height:1.8;color:#93a085;margin-top:6px}.replica-role-heading p{font-weight:400}@media(max-width:700px){.replica-management .replica-model-role{grid-template-columns:minmax(0,1fr);gap:14px}}
+
+.replica-data-domain .replica-management-nav a{line-height:1.5}
+.react-workspace .replica-data-domain .replica-management-nav .domain-rich-label{line-height:inherit}
+@media(max-width:950px){.replica-data-domain .replica-management-nav>[data-domain-react-control]{flex:none}.replica-data-domain .replica-management-nav a{width:auto;white-space:nowrap;font-size:11px!important;padding:9px 12px}}

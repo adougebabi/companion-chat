@@ -1,0 +1,37 @@
+{
+  "web_tests": {
+    "command": "pnpm --filter @fluctlight/web test",
+    "passed": 740,
+    "failed": 0,
+    "skipped": 0,
+    "log": "web-tests.log"
+  },
+  "focused": {
+    "command": "node --test apps/web/test/r19-ux-regression.test.mjs apps/web/test/demo-replica-creation-ui.test.mjs scripts/check-no-images-in-commit.test.mjs",
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0,
+    "log": "focused-and-image-guard.log"
+  },
+  "typecheck": {
+    "passed": true,
+    "log": "typecheck.log"
+  },
+  "production_build": {
+    "passed": true,
+    "local_modules": 382,
+    "fixture_guard": "passed",
+    "react_only_guard": "passed",
+    "log": "build.log"
+  },
+  "browser": {
+    "passed": 33,
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "index": "../r19-browser-index.json"
+  },
+  "boundary": "UI/HTTP evidence only; images outside Git; original task remains in_progress"
+}

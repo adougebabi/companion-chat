@@ -18,6 +18,7 @@ import {
   portraitPresentation,
 } from "@/approved-ui/profile-presentation.mjs";
 import { bodyFieldVisible } from "@/lib/body-field-presentation.mjs";
+import {relationMetrics} from '@/approved-ui/people-presentation.mjs';
 const technicalSemanticKey = k => /^(?:id|schema_version|provenance|extensions|evidence_refs|source|source_kind|source_ref|source_verified|revision|instant|update_policy|owner_switch_targets|owner_switch_status|hash|source_hash)$/.test(k) || /_(?:id|ids|revision|version|at)$/.test(k);
 export function hasVisibleSemanticValue(value,field='',identity={}) {
  if(technicalSemanticKey(field)||!bodyFieldVisible(field,value,identity))return false;
@@ -37,6 +38,9 @@ export default function SemanticTree(input = {}) {
   const props = __props;
   const technical = technicalSemanticKey;
   function categoryLabel(value) {
+    if(value==='upper')return '上装';
+    if(value==='lower')return '下装';
+    if(value==='full')return '连身服装';
     const category = wardrobeCategoryLabel(value);
     if (category !== value || !/^[a-z\d_.-]+$/i.test(category)) return category;
     const slot = wardrobeSlotLabel(value);
@@ -76,6 +80,8 @@ export default function SemanticTree(input = {}) {
       /^\d+(?:\.\d+)?$/.test(props.value)
         ? Number(props.value)
         : props.value;
+    if(props.field==='seasons'&&typeof value==='string')return ({spring:'春',summer:'夏',autumn:'秋',winter:'冬'})[value]||value;
+    if(props.field==='clothing_type'&&typeof value==='string')return wardrobeSlotLabel(value);
     if (typeof value === "boolean") return value ? "是" : "否";
     if (typeof value === "number") {
       if (dimensions[props.field] && value >= 0 && value <= 1)
@@ -109,6 +115,10 @@ export default function SemanticTree(input = {}) {
   });
   const _component_SemanticTree = SemanticTree;
   if(props.value&&typeof props.value==='object'&&!Array.isArray(props.value)&&Object.hasOwn(props.value,'value')&&props.value.value!=null&&Object.keys(props.value).every(key=>['value','status'].includes(key)||technical(key)))return <SemanticTree value={props.value.value} field={props.field} depth={props.depth+1} identity={props.identity}/>;
+  if(props.field==='metrics'&&props.value&&typeof props.value==='object'&&!Array.isArray(props.value)){
+    const known=new Map(relationMetrics({metrics:props.value}).map(row=>[row.key,row]));
+    return <dl className="approved-facts creation-relation-metrics">{Object.entries(props.value).filter(([key,value])=>hasVisibleSemanticValue(value,key,props.identity)).map(([key,value])=>{const metric=known.get(key);return <div key={key}><dt>{metric?.label||(semanticLabel(key)==='自定义字段'?key:semanticLabel(key))}</dt><dd>{metric?<span>{new Intl.NumberFormat('zh-CN',{style:'percent',maximumFractionDigits:2}).format(metric.value)}</span>:<SemanticTree value={value} field={key} depth={props.depth+1} identity={props.identity}/>}</dd></div>;})}</dl>;
+  }
   return __props.value == null || __props.value === "" ? (
     <span key={0} className="muted">
       {"尚未记录"}
@@ -151,6 +161,8 @@ export default function SemanticTree(input = {}) {
     <ul key={4} className="semantic-list">
       <Fragment>
         {listValues(__props.value).map((item, index) => {
+          const used=new Set(['slot','ownership',typeof item?.available==='boolean'?'available':'availability',item?.description?'description':'name',item?.category?'category':item?.clothing_type?'clothing_type':'type']);
+          const extra=item&&typeof item==='object'?Object.fromEntries(Object.entries(item).filter(([key])=>!used.has(key))):{};
           return (
             <li key={index}>
               {item && typeof item === "object" ? (
@@ -163,8 +175,8 @@ export default function SemanticTree(input = {}) {
                   <p className="muted">
                     {displayText(
                       [
-                        categoryLabel(item.category),
-                        item.slot && categoryLabel(item.category)!==readValue(wardrobeSlotLabel)(item.slot)&&!(String(item.category)==='shoes'&&item.slot==='feet')&&readValue(wardrobeSlotLabel)(item.slot),
+                        (item.category||item.clothing_type||item.type)&&categoryLabel(item.category||item.clothing_type||item.type),
+                        item.slot && categoryLabel(item.category||item.clothing_type||item.type)!==readValue(wardrobeSlotLabel)(item.slot)&&!(String(item.category)==='shoes'&&item.slot==='feet')&&readValue(wardrobeSlotLabel)(item.slot),
                         readValue(wardrobeOwnershipLabel)(item.ownership),
                         typeof item.available === "boolean"
                           ? item.available
@@ -178,6 +190,7 @@ export default function SemanticTree(input = {}) {
                         .join(" · "),
                     )}
                   </p>
+                  {hasVisibleSemanticValue(extra,'',props.identity)&&<SemanticTree value={extra} depth={props.depth+1} identity={props.identity}/>}
                 </Fragment>
               ) : (
                 <Fragment key={1}>{displayText(item)}</Fragment>

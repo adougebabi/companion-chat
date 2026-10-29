@@ -53,7 +53,7 @@ export default function StudioJobsView({ model: m }) {
     <div className="r-sandbox-layout">
       <div className="r-form-stack">
         <Surface className="panel r-padded r-form-stack">
-          <div>
+          <div className="r-sandbox-title-group">
             <h2 className="r-inline-title">试着丰富这个想法</h2>
             <p className="r-muted">
               当前工作草稿 · {m.readDraft()?.name || "未命名资源"}
@@ -404,7 +404,7 @@ export default function StudioJobsView({ model: m }) {
           )}
         </Surface>
         <Surface className="panel r-padded">
-          <h2 className="r-inline-title">已保存的创作素材</h2>
+          <div className="r-sandbox-material-heading"><h2 className="r-inline-title">已保存的创作素材</h2>
           {ui && (
             <Label className="r-inline-check">
               <FieldInput
@@ -417,7 +417,7 @@ export default function StudioJobsView({ model: m }) {
               查看已取消保留
             </Label>
           )}
-          <div className="r-material-grid">
+          </div><div className="r-material-grid">
             {materials.items.map((item) => (
               <div className="r-material-card" key={item.id}>
                 <button

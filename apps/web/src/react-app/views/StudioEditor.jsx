@@ -143,14 +143,18 @@ export default function StudioEditorView({ model: m }) {
                       data-status={
                         readOnly
                           ? "archived"
-                          : c.dirty()
+                          : !r?.id
+                            ? "draft"
+                            : c.dirty()
                             ? "pending"
                             : "completed"
                       }
                     >
                       {readOnly
                         ? "已归档"
-                        : c.dirty()
+                        : !r?.id
+                          ? "新资源，尚未保存"
+                          : c.dirty()
                           ? "有未保存修改"
                           : "已保存"}
                     </Badge>
@@ -164,7 +168,7 @@ export default function StudioEditorView({ model: m }) {
                   >
                     <fieldset disabled={readOnly} className="r-form-stack">
                       <Label htmlFor="resource-name">
-                        资源名称 <span className="replica-required" aria-hidden="true">*</span>
+                        <span>资源名称 <span className="replica-required" aria-hidden="true">*</span></span>
                         <FieldInput
                           id="resource-name"
                           required
@@ -203,7 +207,7 @@ export default function StudioEditorView({ model: m }) {
                         onChange={(body) => c.edit({ body })}
                       />
                       <Label htmlFor="resource-reason">
-                        保存原因 <span className="replica-required" aria-hidden="true">*</span>
+                        <span>保存原因 <span className="replica-required" aria-hidden="true">*</span></span>
                         <FieldInput
                           id="resource-reason"
                           aria-label="保存原因"

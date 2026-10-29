@@ -1,4 +1,5 @@
 import test from "node:test";
+import {reviewCommand} from "./helpers/command-sync.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
@@ -739,7 +740,7 @@ for (const recovery of ["adopt", "refresh"]) test(`self ${recovery} reconciles d
     history = [{ revision: 3, status: "forgotten", after_value: clone(w.s) }, ...history];
     reviews = [{ id: "external-review", claim_revision: 2, reason: "独立复核记录", created_at: claim.created_at }];
     if (recovery === "adopt") {
-      await v.click(button(dialog(), "同步资料，保留输入"));
+      await reviewCommand(v,dialog());
       await v.click(button(dialog(), "已核对，采用最新基线"));
       await v.click(button(dialog(), "取消"));
     } else await v.click(button(dialog(), "刷新当前详情"));
@@ -788,7 +789,8 @@ for (const fault of ["unknown", "readback"]) test(`self ${fault} recovery preser
     await v.input(dialog().querySelector('[aria-label="认识操作说明"]'), "核对原操作");
     await v.click(button(dialog(), "确认不再采用"));
     if (fault === "unknown") {
-      assert.equal(button(dialog(), "同步资料，保留输入").disabled, true);
+      assert.equal(button(dialog(), "同步资料，保留输入"),undefined);
+      assert.ok(!dialog().querySelector('[aria-label="更多表单操作"]'));
       await v.click(button(dialog(), "核对或重试原提交"));
       assert.deepEqual(attempts[1], attempts[0]);
     } else await v.click(button(dialog(), "只读恢复页面结果"));

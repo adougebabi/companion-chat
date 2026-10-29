@@ -7,11 +7,12 @@ import { studioDraftStorage } from "@/v3/proto/components/studio-draft-storage.j
 export default function StudioDirectory({ kind: fixedKind = "", route } = {}) {
   const w = useWorkspace();
   useSyncExternalStore(w.subscribe, w.getSnapshot, w.getSnapshot);
-  const owner = w.state.session.actorId;
+  const owner = w.state.session.actorId,
+    preferenceKey=`fluctlight-studio:${owner}:${fixedKind?'directory-ui:'+fixedKind:'directory-ui'}`;
   const [preferences] = useState(() => {
     try {
       return JSON.parse(
-        sessionStorage.getItem(`fluctlight-studio:${owner}:directory-ui`) ||
+        sessionStorage.getItem(preferenceKey) ||
           "{}",
       );
     } catch {
@@ -43,11 +44,11 @@ export default function StudioDirectory({ kind: fixedKind = "", route } = {}) {
   useEffect(() => {
     try {
       sessionStorage.setItem(
-        `fluctlight-studio:${owner}:directory-ui`,
+        preferenceKey,
         JSON.stringify({ search, query, kind, archived }),
       );
     } catch {}
-  }, [owner, search, query, kind, archived]);
+  }, [owner, preferenceKey, search, query, kind, archived]);
   useEffect(() => {
     active.current = true;
     return () => {

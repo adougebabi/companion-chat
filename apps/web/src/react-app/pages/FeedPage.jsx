@@ -324,6 +324,7 @@ export default function FeedPage({ route, initialPostId } = {}) {
         lastId: mode === "suggest" ? r.request.id : r.id,
         ...(mode === "suggest" ? { lastFid: r.request.fluctlight_id } : {}),
       }),
+      canReviewLatest:d=>!!d?.lastId,
       readLatest: async (d) =>
         d.lastId
           ? mode === "suggest"

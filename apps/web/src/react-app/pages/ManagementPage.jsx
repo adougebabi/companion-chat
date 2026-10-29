@@ -307,11 +307,11 @@ function createManagementPageController(props, context, lifecycle) {
     ...settings.value.map((g) => g.title),
   ]);
   const sectionId = (value) => "config-" + value;
-  const scrollTo = async (value, focus = true) => {
+  const scrollTo = async (value, focus = true, reveal = false) => {
     currentSection.value=value;
     const node = document.getElementById(sectionId(value));
     const trigger = node?.querySelector("[data-slot=collapsible-trigger]");
-    if (trigger?.getAttribute("aria-expanded") === "false") trigger.click();
+    if (reveal && trigger?.getAttribute("aria-expanded") === "false") trigger.click();
     await afterPaint();
     if(focus)node?.scrollIntoView({
       behavior: "smooth",
@@ -325,7 +325,7 @@ function createManagementPageController(props, context, lifecycle) {
       });
     }
   };
-  lifecycle.observe(()=>w.state.managementSection,section=>{if(section&&tab.value==='配置中心')void afterPaint(()=>{if(live())scrollTo(section);});});
+  lifecycle.observe(()=>w.state.managementSection,section=>{if(section&&tab.value==='配置中心')void afterPaint(()=>{if(live())scrollTo(section,false);});});
   const sharedScenarios = selector(() =>
     (w.state.runtimeCatalog?.agents || [])
       .filter((a) =>
@@ -358,6 +358,7 @@ function createManagementPageController(props, context, lifecycle) {
     w.state.configuration = snapshot;
     settings.value = groupSpecs.map(([title, keys]) => ({
       title,
+      valueSources:Object.fromEntries(keys.map(key=>[key,snapshot.value_sources?.[key]||'unknown'])),
       fields: keys.flatMap((key) =>
         (configurationFields[key] || [])
           .filter((f) => !["model_ref", "quiet_hours"].includes(f.key))
@@ -717,7 +718,7 @@ function createManagementPageController(props, context, lifecycle) {
           // settingField is attached only by our local form validator. Its
           // authored copy can name required JSON keys without diagnostic masking.
           field.validationError=cause.message;error.value='';validationPending.value=true;saveKind.value='information';saveStatus.value='请修正标记的设置项后保存。';
-          await scrollTo(group.title,false);if(!live())return;
+          await scrollTo(group.title,false,true);if(!live())return;
           const identity=JSON.stringify([field._settingKey,field._key]),host=[...document.querySelectorAll('[data-setting-field]')].find(node=>node.getAttribute('data-setting-field')===identity);
           host?.scrollIntoView({block:'center',behavior:'instant'});
           const input=host?.querySelector('input:not([type=hidden]),textarea,[role=combobox]')||host?.querySelector('button');input?.focus({preventScroll:true});
@@ -884,13 +885,16 @@ function createManagementPageController(props, context, lifecycle) {
     active = false;
     for (const endpoint of endpoints.value) endpoint.secret = "";
   });
-  const returnTo = new URLSearchParams((globalThis.location?.hash || "").split("?")[1] || "").get("returnTo") || "";
+  const currentReturnTo=()=>new URLSearchParams((globalThis.location?.hash || "").split("?")[1] || "").get("returnTo") || "";
+  const navigationQuery=initial=>{const query=new URLSearchParams(initial),returnTo=currentReturnTo();if(/^#?\/(?!\/)/.test(returnTo))query.set('returnTo',returnTo);return query;};
   const render = () => (
     <ManagementPageView
       view={{
-        accountActions:()=>(<div className="flex flex-wrap items-center justify-end gap-3">{ /^#?\/(?!\/)/.test(returnTo) && <ActionButton variant="outline" type="button" onClick={()=>w.navigatePath(returnTo.replace(/^#/,''))}><ArrowLeft size={14}/>{returnTo.replace(/^#/,'').startsWith('/library/create')?'返回初始化流程':/^#?\/c\/[^/]+\/chat/.test(returnTo)?'返回聊天':'返回来源页'}</ActionButton>}<Badge variant="outline">我的工作区</Badge></div>),
+        accountActions:()=>{const returnTo=currentReturnTo();return <div className="flex flex-wrap items-center justify-end gap-3">{ tab.value!=='运行诊断'&&/^#?\/(?!\/)/.test(returnTo) && <ActionButton variant="outline" type="button" onClick={()=>w.navigatePath(returnTo.replace(/^#/,''))}><ArrowLeft size={14}/>{returnTo.replace(/^#/,'').startsWith('/library/create')?'返回初始化流程':/^#?\/c\/[^/]+\/chat/.test(returnTo)?'返回聊天':'返回来源页'}</ActionButton>}<Badge variant="outline">我的工作区</Badge></div>;},
         catalogLoading,catalogReady,retryCatalog:()=>{void readCatalog().catch(cause=>{if(live()){catalogLoading.value=false;error.value=errorMessage(cause);}});},
         openData:()=>w.navigatePath("/data"),
+        openDiagnostics:()=>w.navigatePath('/diag?'+navigationQuery({view:'tasks'})),
+        openSettings:section=>w.navigatePath('/settings?'+navigationQuery({section})),
         sectionLabel:value=>({"聊天回复":"回复行为","看图理解":"图片理解设置"})[value]||value,
         userInstant,diagnosticPages,loadMoreDiagnostics,referenceRecord,openReference,
         selectReference:value=>{reference.value=value;selectedId.value=null;referenceRecord.value=null;},

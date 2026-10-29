@@ -16,14 +16,14 @@ import {domainName,stateLabel} from '@/v3/domain-presentation.mjs';
 import {diagnosticInstant} from '@/approved-ui/task-presentation.mjs';
 export default function DiagnosticsWorkspace({view,children}){
  const taskTrigger=useRef(null),w=useWorkspace(),hash=useWorkspaceHash(),params=new URLSearchParams(hash.split('?')[1]||''),requested=params.get('view'),taskId=params.get('taskId'),returnTo=params.get('returnTo'),back=/^#?\/(?!\/)/.test(returnTo||'')?returnTo.replace(/^#/,''):'',initialization=back.startsWith('/library/create');
- const [preferences,setPreferences]=useManagementView('diagnostics',{mode:requested==='tasks'?'tasks':'calls',query:'',status:''});
+ const [preferences,setPreferences]=useManagementView('diagnostics',{mode:['tasks','calls','health'].includes(requested)?requested:params.has('correlationId')?'calls':'tasks',query:'',status:''});
  const {mode,query,status}=preferences,setMode=mode=>setPreferences({mode}),setQuery=query=>setPreferences({query}),setStatus=status=>setPreferences({status});
  useEffect(()=>{if(['tasks','calls','health'].includes(requested))setMode(requested);},[hash]);
  const tasks=useWorkspaceRead({identity:'diagnostic-tasks',characterScoped:false,enabled:mode==='tasks',keyOf:row=>row.ref,read:cursor=>w.services.diagnosticsClient.page('workflow-intents',{limit:20,...(cursor?{cursor}:{})})});
  const health=useWorkspaceRead({identity:'diagnostic-readiness',characterScoped:false,enabled:mode==='health',read:async()=>({items:[],result:await w.services.operationsClient.health(),next_cursor:''})});
  const rows=tasks.items.filter(row=>(!status||row.data?.status===status)&&(!query.trim()||JSON.stringify([row.data?.title,row.data?.intent_type,row.data?.fluctlight_id,row.ref]).toLowerCase().includes(query.trim().toLowerCase())));
  const failures=tasks.items.filter(r=>['failed','dead_letter','paused'].includes(r.data?.status)).length,running=tasks.items.filter(r=>['running','processing'].includes(r.data?.status)).length,completed=tasks.items.filter(r=>['completed','succeeded'].includes(r.data?.status)).length;
- const navigate=next=>{const query=new URLSearchParams(params);for(const [key,value] of Object.entries(next)){if(value===null)query.delete(key);else query.set(key,String(value));}w.navigatePath('/diag?'+query);};
+ const navigate=next=>{const query=new URLSearchParams([...params].filter(([key])=>['view','taskId','correlationId','returnTo'].includes(key)));for(const [key,value] of Object.entries(next)){if(value===null)query.delete(key);else query.set(key,String(value));}w.navigatePath('/diag?'+query);};
  return <div className="replica-diagnostics"><div className="replica-settings-head"><div><h2>诊断与任务</h2><p>查看执行到了哪里，在需要时继续原任务。</p></div><Activity size={25}/></div>
  {back&&<Surface className="replica-diagnostic-context"><div><h3>{initialization?'新相识 · 初始化任务':'来自业务页面的任务记录'}</h3><p>已有资料和原任务会保留，配置与恢复操作在实际业务入口完成。</p></div><Button variant="outline" onClick={()=>w.navigatePath(back)}><ArrowLeft size={14}/>{initialization?'返回初始化流程':'返回来源页'}</Button></Surface>}
  <Tabs value={mode} onValueChange={value=>{setMode(value);navigate({view:value,taskId:null});}}><TabsList variant="line"><TabsTrigger value="tasks">任务中心</TabsTrigger><TabsTrigger value="calls">模型调用记录</TabsTrigger><TabsTrigger value="health">服务诊断</TabsTrigger></TabsList></Tabs>

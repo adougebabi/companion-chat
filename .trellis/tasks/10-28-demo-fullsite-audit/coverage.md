@@ -200,3 +200,8 @@
 ## r18增量
 
 逐条结果见[r18-acceptance.md](r18-acceptance.md)；[64条处置](r18-issues.json)与[90条受控浏览器记录](evidence/r18-browser-index.json)已追加到coverage.json的74行具体观察中。原177行所有未验收状态与历史证据保留，没有批量提升整行或真实业务状态。
+
+
+## r19 增量
+
+[r19逐项结果](r19-acceptance.md) / [33条三视口受控浏览器证据](evidence/r19-browser-index.json)。coverage.json给27行增加精确r19_observations；保留177行历史与全部未验收状态。本批不构成全站完成。图片仅本地，不提交。

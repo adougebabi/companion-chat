@@ -2,7 +2,8 @@ import {Checkbox} from '@/components/ui/checkbox';
 import {FieldError} from '@/components/ui/field';
 import {useId} from 'react';
 import {Button} from '@/components/ui/button';
-import {Surface} from '../controls';
+import {Surface,Disclosure} from '../controls';
+import {Feedback} from './Presentation';
 import {autonomyActionChoices} from '@/v3/proto/components/configuration-fields.js';
 
 function ActionCards({allowed,confirmed}){
@@ -27,7 +28,10 @@ export default function SettingsSections({group,view,visible=true}){
  }else if(title==='通知')content=card('想收到的通知',fields,'关闭某一类提醒后仍保留通知记录。');
  else if(title==='作息与后台节奏')content=<>{card('后台节奏',[...bySetting('product.wakeup'),...bySetting('product.summary')],'定时唤醒与对话摘要分别按已保存的设置运行。')}{card('目标失败后的重试',bySetting('product.goal_retry'),'调整重试次数和等待间隔，实际状态以原任务记录为准。')}</>;
  else if(title==='资源与预算')content=card('模型并发',fields,'生成与记忆检索使用各自的排队设置。');
- else if(title==='高级')content=<>{card('辅助决策服务',fields.filter(f=>['enabled','media_enabled','endpoint','model','model_revision'].includes(f._key)),'按场景补充判断，实际授权和执行结果保持独立。',test())}{card('判定与等待',fields.filter(f=>['timeout_ms','budget_ms','concurrency','batch_size','strategy','min_probability','min_margin','max_deferrals','deferral_seconds'].includes(f._key)),'保留当前服务支持的范围和精度。')}{card('场景与记录',fields.filter(f=>!['enabled','media_enabled','endpoint','model','model_revision','timeout_ms','budget_ms','concurrency','batch_size','strategy','min_probability','min_margin','max_deferrals','deferral_seconds'].includes(f._key)))}</>;
+ else if(title==='高级'){
+  const systemDefault=group.valueSources?.kev==='runtime_default',connection=['endpoint','model','model_revision','retention_days','request_bytes','response_bytes'];
+  content=<>{systemDefault&&<Feedback kind="information" title="系统默认 · 尚未保存">{field('enabled')?.value?'以下是当前系统默认参数。':'辅助决策尚未启用。'} 连接地址和模型标识可在下方连接设置中核对；保存后才会成为工作区配置。</Feedback>}{card('辅助决策',fields.filter(f=>['enabled','media_enabled'].includes(f._key)),'按场景补充判断，授权与实际执行分别记录。')}{card('判断门槛',fields.filter(f=>['min_probability','min_margin'].includes(f._key)),'调整何时接受候选判断。')}{card('等待与重试',fields.filter(f=>['timeout_ms','budget_ms','concurrency','batch_size','strategy','max_deferrals','deferral_seconds'].includes(f._key)))}{card('决策场景',fields.filter(f=>!['enabled','media_enabled','min_probability','min_margin','timeout_ms','budget_ms','concurrency','batch_size','strategy','max_deferrals','deferral_seconds',...connection].includes(f._key)))}<Surface className="settings-card"><Disclosure title={systemDefault?'连接和运行参数 · 系统默认，尚未保存':'连接和运行参数'}>{input(fields.filter(f=>connection.includes(f._key)))}{test()}</Disclosure></Surface></>;
+ }
  else content=card(view.sectionLabel(title),fields);
  return <section hidden={!visible||!view.catalogReady.value} data-section={title} id={view.sectionId(title)} className="settings-group replica-settings-section">{content}</section>;
 }

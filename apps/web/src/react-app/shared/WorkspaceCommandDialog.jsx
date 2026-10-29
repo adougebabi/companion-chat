@@ -4,6 +4,7 @@ import {
   useSyncExternalStore,
   useId,
   useState,
+  useRef,
 } from "react";
 import { Button } from "@/components/ui/button";
 import { createDomainCommand } from "@/state/domain-command.mjs";
@@ -12,6 +13,7 @@ import WorkspaceDialog from "./WorkspaceDialog";
 import { InlineFeedback } from "./Presentation";
 import JsonDetails from "./JsonDetails";
 import ConfirmationFrame from "./ConfirmationFrame";
+import CommandSyncAction from './CommandSyncAction';
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -52,7 +54,9 @@ export default function WorkspaceCommandDialog({
     model.getSnapshot,
     model.getSnapshot,
   );
-  const [discardOpen, setDiscardOpen] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false),reviewHeading=useRef(null);
+  useEffect(()=>{if(state.review)void afterPaint(()=>{if(reviewHeading.current?.isConnected){reviewHeading.current.scrollIntoView({block:'nearest'});reviewHeading.current.focus({preventScroll:true});}});},[state.review]);
+  const syncAvailable=action.readLatest&&(!action.canReviewLatest||action.canReviewLatest(state.draft));
   useEffect(() => {
     model.start();
     return () => model.dispose();
@@ -120,6 +124,7 @@ export default function WorkspaceCommandDialog({
         }
         footer={
           <>
+            {syncAvailable&&<CommandSyncAction state={state} onReview={model.reviewLatest}/>}
             <Button variant="outline" onClick={dismiss}>
               {action.cancelLabel || "取消"}
             </Button>
@@ -172,19 +177,7 @@ export default function WorkspaceCommandDialog({
                 核对或重试原提交
               </Button>
             )}
-            {action.readLatest && (
-              <Button
-                variant="outline"
-                disabled={
-                  state.busy ||
-                  state.readbackPending ||
-                  (!!state.pending && !state.pending.rejection)
-                }
-                onClick={() => void model.reviewLatest()}
-              >
-                同步资料，保留输入
-              </Button>
-            )}
+            {syncAvailable&&<CommandSyncAction state={state} onReview={model.reviewLatest} placement="recovery"/>}
             {state.readbackPending && (
               <Button
                 variant="outline"
@@ -200,7 +193,7 @@ export default function WorkspaceCommandDialog({
           )}
           {state.review && (
             <section className="lp-stack">
-              <h3>核对最新对象与版本</h3>
+              <h3 ref={reviewHeading} tabIndex={-1}>核对最新对象与版本</h3>
               <JsonDetails value={state.review.object} title="最新对象与来源" />
               <Button
                 disabled={state.busy}

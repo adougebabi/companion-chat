@@ -1,0 +1,16 @@
+{
+  "reviews": [
+    {
+      "scope": "navigation/configuration/provenance/sync command fences",
+      "finding": "P2 App.tsx:149: /diag→global /settings could inherit diagnostics when section absent",
+      "resolution": "App routes /settings to config unconditionally; three viewport actual-click regression passes",
+      "other_blocking_findings": []
+    },
+    {
+      "scope": "Studio/preferences/typed preview/media/data layout and behavior",
+      "blocking_findings": [],
+      "limits": "read-only source review; no browser or real backend certification"
+    }
+  ],
+  "owner": "all edits and final checks by main agent"
+}

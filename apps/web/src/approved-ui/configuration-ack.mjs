@@ -55,6 +55,8 @@ export function acknowledgeConfiguration(
   }
   for (const [key, value] of Object.entries(body.values || {})) {
     catalog.effective_values[key] = clone(value);
+    if(catalog.value_sources)catalog.value_sources[key]='stored';
+    for(const group of settings)if(group.valueSources&&group.fields.some(field=>field._settingKey===key))group.valueSources[key]='stored';
     for (const group of settings)
       for (const field of group.fields)
         if (field._settingKey === key) field._initial = value[field._key];

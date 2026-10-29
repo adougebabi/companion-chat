@@ -95,7 +95,7 @@ export default function MediaWorkspaceView({ model: m }) {
             }}
           >
             <div className="r-search">
-              <Search size={15} />
+              <Button type="submit" variant="ghost" size="icon" aria-label="查询媒体"><Search size={15}/></Button>
               <FieldInput
                 id="media-query"
                 aria-label="搜索喜欢的画面"
@@ -117,9 +117,6 @@ export default function MediaWorkspaceView({ model: m }) {
               <option value="video">视频</option>
               <option value="audio">音频</option>
             </ChoiceSelect>
-            <Button variant="outline" type="submit">
-              查询
-            </Button>
             <span className="r-fineprint">保存的素材 · 画面不改变生活状态</span>
             <Disclosure className="media-options" title="来源、角色与库中展示">
               <div className="media-filter-details">
@@ -216,7 +213,8 @@ export default function MediaWorkspaceView({ model: m }) {
           {m.library.ready && !m.library.items.length && (
             <Surface className="panel r-padded media-empty">
               <h2>还没有这样的画面</h2>
-              <p>试试其他筛选，或上传、生成一张新的画面。</p>
+              <p>{m.w.state.characters.length?'上传或创作一张新的画面，慢慢收集生活的片刻。':'先创建一个角色，再把想象留在画面里。'}</p>
+              <Button onClick={()=>m.w.state.characters.length?m.setTab('generate'):m.w.navigatePath('/library/create')}>开始创作</Button>
               <Button
                 variant="outline"
                 onClick={() => {

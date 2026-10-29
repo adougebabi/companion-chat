@@ -1,0 +1,766 @@
+[
+  {
+    "id": "R19-001",
+    "area": "设置→诊断",
+    "trigger": "点击实际设置目录",
+    "original_defect": "只切本地Tab，URL和页面身份不一致",
+    "result": "进入/diag?view=tasks；新偏好默认任务中心；显式view和真实关联入口优先",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx",
+      "apps/web/src/react-app/shared/DiagnosticsWorkspace.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "任务中心/模型调用记录/服务诊断",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-entry"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-002",
+    "area": "诊断URL",
+    "trigger": "从高级设置进入诊断或切Tab",
+    "original_defect": "section等设置参数泄漏到诊断",
+    "result": "仅保留view/taskId/correlationId/有效returnTo；按当前路由读取来源",
+    "files": [
+      "apps/web/src/react-app/shared/DiagnosticsWorkspace.jsx",
+      "apps/web/src/react-app/pages/ManagementPage.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-entry"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-003",
+    "area": "诊断筛选",
+    "trigger": "浏览调用记录",
+    "original_defect": "第二个常驻下拉占据主区域",
+    "result": "辅助记录收进“更多运行记录”菜单，保留全部实际来源及关联筛选",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "菜单选择原记录来源；已有r16及r18关联回归验证",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [],
+    "viewports": [],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-004",
+    "area": "初始化返回上下文",
+    "trigger": "普通进入诊断/从初始化进入",
+    "original_defect": "报告期望所有进入均有初始化横幅",
+    "result": "普通入口无虚构横幅；真实初始化任务进入保留来源、去配置通用模型及返回原初始化",
+    "files": [
+      "apps/web/src/react-app/pages/ManagementPage.jsx"
+    ],
+    "status": "语义确认",
+    "executable_action": "查看任务记录→去配置通用模型→返回初始化流程",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-entry",
+      "blank-initialization"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-005",
+    "area": "诊断侧栏高亮",
+    "trigger": "进入诊断",
+    "original_defect": "报告怀疑管理中心高亮错误",
+    "result": "Demo诊断同属管理中心；保留同样导航归属",
+    "files": [
+      "apps/web/src/react-app/shared/WorkspaceNavigation.tsx"
+    ],
+    "status": "符合Demo",
+    "executable_action": "原管理导航",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-entry"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-006",
+    "area": "全局管理入口",
+    "trigger": "诊断→点击全局管理中心",
+    "original_defect": "无section的/settings继承诊断Tab",
+    "result": "正式/settings路由始终选择配置；允许记住有效配置分区",
+    "files": [
+      "apps/web/src/react-app/App.tsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-entry"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-007",
+    "area": "用途分配",
+    "trigger": "打开用途页",
+    "original_defect": "四个用途每行有折叠箭头",
+    "result": "用途为常驻语义区块，直接呈现服务/模型/超时",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-008",
+    "area": "用途模型输入",
+    "trigger": "填写模型标识",
+    "original_defect": "强制模型下拉",
+    "result": "普通文本框+datalist建议；允许任意手工模型标识，不自动选模型",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "直接输入真实模型标识",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-009",
+    "area": "用途超时",
+    "trigger": "填写超时",
+    "original_defect": "自定义步进器与Demo不符",
+    "result": "普通number输入；未配置用途保持空值，默认只作placeholder说明",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-010",
+    "area": "设置标题/标签/提示",
+    "trigger": "聊天视觉、通知后台",
+    "original_defect": "已迁移卡片的标签与范围提示仍不一致",
+    "result": "保留真实图标；统一表达版本/温度/Top P等文案；增加300–600秒及512–4096字符提示，不改正式约束",
+    "files": [
+      "apps/web/src/react-app/shared/SettingsField.tsx",
+      "apps/web/src/v3/proto/components/configuration-fields.js"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-011",
+    "area": "高级设置结构",
+    "trigger": "打开高级",
+    "original_defect": "长表单缺少主要概率滑块",
+    "result": "决策开关/两个真实概率Slider/等待重试/决策点分卡；技术连接和记录参数可展开",
+    "files": [
+      "apps/web/src/react-app/shared/SettingsSections.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-012",
+    "area": "高级默认来源",
+    "trigger": "空库返回KEV runtime_default",
+    "original_defect": "看似已经保存实际服务",
+    "result": "信息提示“系统默认·尚未保存”；真实端点/模型不清空；确认保存后只更新被确认配置的来源为stored",
+    "files": [
+      "apps/web/src/react-app/shared/SettingsSections.jsx",
+      "apps/web/src/approved-ui/configuration-ack.mjs"
+    ],
+    "status": "修复",
+    "executable_action": "展开连接设置核对或编辑→保存设置",
+    "recovery_lifetime": "实际保存确认后来源转stored，过期默认提示消失；CAS及扩展保留",
+    "browser_cases": [
+      "settings-fields"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-013",
+    "area": "设置保存条",
+    "trigger": "进入干净设置、编辑或恢复",
+    "original_defect": "每页悬浮条长期占位遮挡",
+    "result": "干净表单不显示；dirty/保存/恢复反馈留在正常文档流，末字段可达",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx",
+      "apps/web/src/styles/replica-management.css"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-014",
+    "area": "数据页布局",
+    "trigger": "设置目录进入数据页",
+    "original_defect": "额外28px gap造成次导航下移；内部富文本行高又扩大导航行；徽章缺失",
+    "result": "去除额外gap；导航文字继承行高；同基线同高度；恢复工作区徽章及移动横向导航",
+    "files": [
+      "apps/web/src/styles/replica-management.css",
+      "apps/web/src/v3-domain/data-tools.js"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "data-layout"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-015",
+    "area": "数据页文案",
+    "trigger": "查看概况和导入导出",
+    "original_defect": "技术说明成为主内容",
+    "result": "业务标题、实际已读取角色/分组数字、设定文件范围；可选作品ID和完整校验记录放技术详情，真实导入/备份限制保留",
+    "files": [
+      "apps/web/src/v3-domain/data-tools.js",
+      "apps/web/src/v3/proto/components/business-backups.js"
+    ],
+    "status": "修复",
+    "executable_action": "导出设定文件/校验/原导入恢复/原备份任务；只重排呈现",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "data-layout"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-016",
+    "area": "世界入口",
+    "trigger": "无角色时点世界",
+    "original_defect": "世界底稿标题和STUDIO页眉混同创作目录",
+    "result": "标题世界，独立世界说明与创建世界底稿入口；不虚构运行中世界",
+    "files": [
+      "apps/web/src/react-app/views/StudioDirectory.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "world-studio"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-017",
+    "area": "目录偏好",
+    "trigger": "世界→创作中心",
+    "original_defect": "世界固定类型污染主创作目录筛选",
+    "result": "Owner下主目录及fixedKind使用不同display preference key",
+    "files": [
+      "apps/web/src/react-app/pages/StudioDirectory.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "各目录重新挂载只读取自己的偏好；草稿/命令存储不变",
+    "browser_cases": [
+      "world-studio"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-018",
+    "area": "新建资源提示",
+    "trigger": "首次打开新资源",
+    "original_defect": "未操作便显示有未保存修改",
+    "result": "改为中性“新资源，尚未保存”；业务dirty/save/navigation保护保持",
+    "files": [
+      "apps/web/src/react-app/views/StudioEditor.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "保存草稿→实际新资源地址",
+    "recovery_lifetime": "成功保存后采用原控制器的已保存状态",
+    "browser_cases": [
+      "studio-form"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-019",
+    "area": "创作必填标记",
+    "trigger": "新建表单",
+    "original_defect": "星号掉到标签下一行",
+    "result": "名称/原因标题与星号同一span；真实required保留",
+    "files": [
+      "apps/web/src/react-app/views/StudioEditor.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "studio-form"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-020",
+    "area": "创作沙盒",
+    "trigger": "打开沙盒",
+    "original_defect": "标题副标题粘连；素材标题和已取消筛选重叠",
+    "result": "标题组8px间距；素材头部flex-wrap和明确gap；Checkbox横向排列",
+    "files": [
+      "apps/web/src/react-app/views/StudioJobs.jsx",
+      "apps/web/src/styles/replica-studio.css"
+    ],
+    "status": "修复",
+    "executable_action": "原筛选及创作动作；仅打开未创建任务",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "studio-sandbox"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-021",
+    "area": "共用同步动作",
+    "trigger": "新发动态、普通评论或冲突",
+    "original_defect": "同步资料始终占主按钮区，某些表单读不到真实对象",
+    "result": "有实际能力时收进更多表单操作；真正冲突露出恢复；新发动态无noop同步；未知/已接受保持原恢复围栏",
+    "files": [
+      "apps/web/src/react-app/shared/CommandSyncAction.tsx",
+      "apps/web/src/react-app/shared/WorkspaceCommandDialog.jsx",
+      "apps/web/src/react-app/shared/CommandDialog.tsx",
+      "apps/web/src/react-app/pages/FeedPage.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "更多表单操作→同步资料→聚焦核对标题→确认最新基线",
+    "recovery_lifetime": "核对展开后去除重复同步；原body/key/CAS和GET-only恢复不变",
+    "browser_cases": [
+      "command-actions"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-022",
+    "area": "媒体Tab焦点",
+    "trigger": "键盘Tab/Shift+Tab或切页签",
+    "original_defect": "选中/焦点重黑框",
+    "result": "局部柔和背景+绿色底线；forced-colors保留可见原生边框",
+    "files": [
+      "apps/web/src/styles/replica-media.css"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "media-empty"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-023",
+    "area": "文字按钮",
+    "trigger": "媒体附件/已有世界重读",
+    "original_defect": "实际入口像普通文本",
+    "result": "使用真实outline Button/链接，不改变原回调",
+    "files": [
+      "apps/web/src/react-app/shared/FeedMediaPicker.jsx",
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "上传或管理素材/重新读取已有世界；全量组件回归",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [],
+    "viewports": [],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-024",
+    "area": "媒体查询",
+    "trigger": "媒体库过滤",
+    "original_defect": "独立查询文字按钮",
+    "result": "搜索图标为真实submit；Enter和原筛选请求保留",
+    "files": [
+      "apps/web/src/react-app/views/MediaWorkspace.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "media-empty"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-025",
+    "area": "媒体空态",
+    "trigger": "库无匹配图片",
+    "original_defect": "没有开始创作入口",
+    "result": "有角色转生成；无角色转真实创建角色入口",
+    "files": [
+      "apps/web/src/react-app/views/MediaWorkspace.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "开始创作→/library/create（本轮实际验证无角色分支）",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "media-empty"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-026",
+    "area": "媒体喜欢",
+    "trigger": "只看喜欢",
+    "original_defect": "Demo有喜欢而正式持久化API缺失",
+    "result": "不新增假收藏开关；保留已登记API能力差异",
+    "files": [
+      "apps/web/src/react-app/views/MediaWorkspace.jsx"
+    ],
+    "status": "能力差异",
+    "executable_action": "无正式收藏写入能力，不能伪装保存",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [],
+    "viewports": [],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-027",
+    "area": "空白创建与原任务",
+    "trigger": "选择日常世界→准备相遇失败→诊断/配置/返回",
+    "original_defect": "r19未点激活，后半程未验证",
+    "result": "受控浏览器补验选择无写；空白激活一次且不分析；失败原因/原任务/配置返回保持，不重复激活",
+    "files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx",
+      "apps/web/src/approved-ui/creation-progress.mjs"
+    ],
+    "status": "补验",
+    "executable_action": "查看任务记录→配置→返回原流程；未执行真实模型恢复",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "blank-initialization"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-028",
+    "area": "中文资料预览",
+    "trigger": "JSON预览生活和关系",
+    "original_defect": "英文枚举/布尔与关系JSON直出",
+    "result": "衣物上装/已拥有/可用、季节中文；已知关系量表中文百分比；初始关系线索标题；完整源类型和值不改",
+    "files": [
+      "apps/web/src/react-app/shared/SemanticTree.jsx",
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "status": "修复",
+    "executable_action": "语义阅读/原编辑内容/完整JSON",
+    "recovery_lifetime": "显示是投影；false/0/字符串/未知扩展保留，读写不归一化",
+    "browser_cases": [
+      "preview-chinese"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-029",
+    "area": "全局宽度",
+    "trigger": "1920宽屏对比",
+    "original_defect": "报告认为内容仍偏宽贴左",
+    "result": "当前净内容1460px、x=350与Demo净宽匹配；滚动条占位可造成约7px横向差异，未任意缩小全局宽度",
+    "files": [
+      "apps/web/src/styles/workspace-replica.css"
+    ],
+    "status": "符合Demo",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields",
+      "data-layout"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-030",
+    "area": "折叠与完整JSON",
+    "trigger": "创作/媒体/诊断/用途",
+    "original_defect": "报告将折叠容器整体视为不符",
+    "result": "用途业务字段已展开；完整结构/请求/技术连接保留可展开，Demo也折叠完整定义；不将原始JSON推为主要内容",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx",
+      "apps/web/src/react-app/views/StudioEditor.jsx"
+    ],
+    "status": "按用途保留",
+    "executable_action": "展开真实技术详情；不隐藏业务主要操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "settings-fields",
+      "studio-form"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-031",
+    "area": "初始化步骤条",
+    "trigger": "创建四步骤",
+    "original_defect": "报告认为自行绘制本身是问题",
+    "result": "Demo也使用业务步骤导航；保留正式四步骤及真实七阶段进度，不用生命周期伪造完成",
+    "files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "status": "符合Demo",
+    "executable_action": "沿用该区域真实操作",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [
+      "blank-initialization"
+    ],
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-032",
+    "area": "模型服务删除",
+    "trigger": "添加已保存服务后查看",
+    "original_defect": "Demo有删除图标",
+    "result": "当前服务API无DELETE；仅原有未保存草稿可移除，不新增假删除",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "status": "能力差异",
+    "executable_action": "原添加/编辑/目录读取；没有已保存删除入口",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [],
+    "viewports": [],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-033",
+    "area": "空库未验页面",
+    "trigger": "无角色及关闭模型服务",
+    "original_defect": "聊天/生活/档案等无法按本次数据库验证",
+    "result": "保留既有全站证据与待验状态；r19未将这些页面、角色模板、真实测试连接、实际失败调用详情标通过",
+    "files": [
+      "coverage.json"
+    ],
+    "status": "未在本轮实测",
+    "executable_action": "真实媒体链由用户测试；其余场景仍按原矩阵逐项验收",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [],
+    "viewports": [],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  },
+  {
+    "id": "R19-034",
+    "area": "r18已修复复查",
+    "trigger": "r19第一节列出的已修复项",
+    "original_defect": "时区/配置入口/动态默认/创建恢复等",
+    "result": "保留上一轮成果，不重开任务，不把原已实现重复记新修复",
+    "files": [
+      "r18-acceptance.md"
+    ],
+    "status": "保留既有结论",
+    "executable_action": "沿用原实际入口和既有证据",
+    "recovery_lifetime": "随实际路由、草稿或读取状态更新",
+    "browser_cases": [],
+    "viewports": [],
+    "backend_change": false,
+    "evidence_boundary": "正式production dist + 受控HTTP；未接通或修改真实模型；不证明实时Core/数据库/生成链。"
+  }
+]

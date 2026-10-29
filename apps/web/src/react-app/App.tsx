@@ -146,7 +146,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     workspace.state.page = page;
     workspace.state.managementSection = route.query?.get("section") || "";
     if (route.diagnostics) workspace.state.managementTab = "运行诊断";
-    else if(page==="管理中心"&&route.query?.get("section"))workspace.state.managementTab="配置中心";
+    else if(page==="管理中心")workspace.state.managementTab="配置中心";
     workspace.state.feedScope = route.query?.get("fid") || null;
     setPreview(
       !chatSummaryPreference({

@@ -1,0 +1,22 @@
+✔ opening and applying a nullable structured extension preserves null without manufacturing an empty collection (292.755833ms)
+✔ cancelling a structured edit leaves its original scalar type and value unchanged (227.766542ms)
+✔ legacy creation without a local world checkpoint exposes meeting after actual world readiness and keeps unresolved binding review reachable (138.101292ms)
+✔ retrying an unreadable publication page retains its original cursor and updates existing cards without appending duplicates (272.678583ms)
+✔ r19 real settings menu navigates to tasks and diagnostic URLs drop configuration-only state (1779.461584ms)
+✔ r19 purpose cards keep empty values and allow manual model identifiers without per-role disclosures or steppers (181.7575ms)
+✔ r19 runtime defaults remain truthful, unchanged values do not become edits and saving a threshold preserves defaults and extensions (233.211833ms)
+✔ r19 world directory preferences cannot overwrite the Owner studio directory filter (174.9795ms)
+✔ r19 synchronization is secondary normally, explicit for a conflict and absent during an unknown submission (215.478584ms)
+✔ r19 preview renders wardrobe enums, booleans and relation metrics in Chinese without rewriting the source (92.706ms)
+✔ text-only changes are allowed (64.18575ms)
+✔ new images are rejected regardless of case or filename whitespace (63.756834ms)
+✔ tracked image modifications are rejected and deletions are allowed (149.025458ms)
+✔ renaming a tracked file to an image is rejected (98.40025ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3274.898834

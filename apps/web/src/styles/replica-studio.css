@@ -980,3 +980,5 @@
   width: auto;
   flex: none;
 }
+
+.replica-studio .r-sandbox-title-group{display:grid;gap:8px}.replica-studio .r-sandbox-material-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px}.replica-studio .r-sandbox-material-heading .r-inline-check{display:flex;flex-direction:row;align-items:center;gap:8px;margin:0}.replica-studio .r-sandbox-material-heading .r-inline-check [data-slot=field]{margin:0}

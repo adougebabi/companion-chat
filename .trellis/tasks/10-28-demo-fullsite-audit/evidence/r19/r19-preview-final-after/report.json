@@ -1,0 +1,506 @@
+[
+  {
+    "name": "preview-chinese",
+    "size": "wide",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "selecting a daily world never creates it",
+      "life: no horizontal overflow",
+      "wardrobe-details: no horizontal overflow",
+      "relations: no horizontal overflow",
+      "relation-details: no horizontal overflow",
+      "relation metrics are readable Chinese percentages",
+      "wardrobe metadata uses Chinese terms",
+      "display never rewrites the original field types or values",
+      "preview never activates or creates a character",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-wide-life.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-wide-wardrobe-details.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-wide-relations.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-wide-relation-details.png"
+    ],
+    "geometry": [
+      {
+        "label": "life",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "wardrobe-details",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "relations",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      },
+      {
+        "label": "relation-details",
+        "page": {
+          "x": 350,
+          "width": 1460,
+          "pageClientWidth": 1680,
+          "pageOffsetWidth": 1680
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "preview-chinese",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "selecting a daily world never creates it",
+      "life: no horizontal overflow",
+      "wardrobe-details: no horizontal overflow",
+      "relations: no horizontal overflow",
+      "relation-details: no horizontal overflow",
+      "relation metrics are readable Chinese percentages",
+      "wardrobe metadata uses Chinese terms",
+      "display never rewrites the original field types or values",
+      "preview never activates or creates a character",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-desktop-life.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-desktop-wardrobe-details.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-desktop-relations.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-desktop-relation-details.png"
+    ],
+    "geometry": [
+      {
+        "label": "life",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "wardrobe-details",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "relations",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      },
+      {
+        "label": "relation-details",
+        "page": {
+          "x": 252,
+          "width": 1062,
+          "pageClientWidth": 1130,
+          "pageOffsetWidth": 1130
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "preview-chinese",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP; model services remain untouched; images outside repository",
+    "checks": [
+      "selecting a daily world never creates it",
+      "life: no horizontal overflow",
+      "wardrobe-details: no horizontal overflow",
+      "relations: no horizontal overflow",
+      "relation-details: no horizontal overflow",
+      "relation metrics are readable Chinese percentages",
+      "wardrobe metadata uses Chinese terms",
+      "display never rewrites the original field types or values",
+      "preview never activates or creates a character",
+      "no uncaught browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-mobile-life.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-mobile-wardrobe-details.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-mobile-relations.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r19-shots/r19-preview-final-after/preview-chinese-mobile-relation-details.png"
+    ],
+    "geometry": [
+      {
+        "label": "life",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "wardrobe-details",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "relations",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      },
+      {
+        "label": "relation-details",
+        "page": {
+          "x": 17,
+          "width": 356,
+          "pageClientWidth": 390,
+          "pageOffsetWidth": 390
+        }
+      }
+    ],
+    "status": "passed"
+  }
+]

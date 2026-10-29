@@ -82,7 +82,7 @@ export default function FeedMediaPicker({ model: m, ids, onChange }) {
         <FeedMore source={source} label="素材" />
       </Disclosure>
       {error && <p role="alert">{error}</p>}
-      <a href="#/studio/media">上传或管理素材</a>
+      <Button asChild variant="outline"><a href="#/studio/media">上传或管理素材</a></Button>
       <p className="companion-caption">
         附件保留原来源，不证明画面中的事件实际发生。每条最多8项。
       </p>
