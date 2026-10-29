@@ -1,6 +1,7 @@
 import { useRef, useState,useEffect } from "react";
 import {ResultFeedback} from './Presentation';
 import { Button } from "@/components/ui/button";
+import {RadioGroup,RadioGroupItem} from "@/components/ui/radio-group";
 import { Surface, Disclosure, FieldInput, Textarea, Badge } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
@@ -216,7 +217,7 @@ export default function AvatarWorkspace({ model: m }) {
                     明确选择链接中的图片
                   </Button>
                 )}
-                <div className="r-avatar-modes">
+                <RadioGroup className="r-avatar-modes" aria-label="显示头像方式" value={d.mode} onValueChange={mode=>edit({mode})} disabled={m.readOnly}>
                   {[
                     [
                       "canonical",
@@ -229,25 +230,15 @@ export default function AvatarWorkspace({ model: m }) {
                       "明确选择已有可读图片及其版本。",
                     ],
                   ].map(([id, title, desc]) => (
-                    <Button
-                      key={id}
-                      variant="ghost"
-                      type="button"
-                      disabled={m.readOnly}
-                      aria-pressed={d.mode === id}
-                      className={d.mode === id ? "selected" : ""}
-                      onClick={() => edit({ mode: id })}
-                    >
-                      <span className="r-radio-dot">
-                        {d.mode === id && <i />}
-                      </span>
+                    <label key={id} className={"r-avatar-option"+(d.mode===id?" selected":"")}>
+                      <RadioGroupItem value={id} aria-label={title}/>
                       <span>
                         <b>{title}</b>
                         <small>{desc}</small>
                       </span>
-                    </Button>
+                    </label>
                   ))}
-                </div>
+                </RadioGroup>
                 {d.mode === "asset" && (
                   <>
                     <p className="r-muted">

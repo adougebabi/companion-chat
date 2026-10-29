@@ -31,6 +31,12 @@ export function feedbackDiagnostic(cause){
 export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
  const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
  const source=code+' '+text;
+ const providerRole=source.match(/provider role ([\w.-]+) (unavailable|preflight failed)/);
+ if(/initialization_role_unconfigured|wardrobe_provider_unconfigured/.test(source)||providerRole){
+  const model=({generic_llm:'通用模型',cognitive_assessment:'通用模型',initialization:'通用模型',conversation_reply:'聊天回复模型',vision_understanding:'视觉理解模型',embedding:'记忆检索模型'})[providerRole?.[1]]||'任务需要的通用模型';
+  const reason=providerRole?.[2]==='preflight failed'?/timeout|deadline exceeded/.test(source)?'连接检查超时':'连接检查未通过':'尚未就绪';
+  return model+reason+'。请核对模型用途和服务连接，原资料与已完成步骤会保留。';
+ }
  if(/media_subject_not_authorized/.test(source))return '图片中的人物范围未通过校验，生成尚未开始。请核对原任务中的人物引用后恢复。';
  if(/memory_embedding_unconfigured/.test(source))return '记忆正文已保存；尚未配置记忆检索向量模型，向量索引未完成。请到模型用途配置后恢复原任务。';
  if(/structured_response_truncated/.test(source))return '模型以长度终止状态结束了本次处理，完整结果尚未确认，请查看原任务后重试。';

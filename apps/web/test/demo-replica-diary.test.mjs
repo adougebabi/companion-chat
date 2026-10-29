@@ -226,17 +226,17 @@ test("changing favorite keeps both previously loaded directory caches consistent
     v = await mount(w);
   try {
     await v.click(
-      v.host.querySelector(".replica-diary-options [role=checkbox]"),
+      v.host.querySelector(".replica-diary-options [role=switch]"),
     );
     assert.match(v.host.textContent, /日记本还是空的/);
     await v.click(
-      v.host.querySelector(".replica-diary-options [role=checkbox]"),
+      v.host.querySelector(".replica-diary-options [role=switch]"),
     );
     await v.click(button(v.host, "修改批注"));
     await v.click(dialog().querySelector("[role=checkbox]"));
     await v.click(button(dialog(), "保存批注"));
     await v.click(
-      v.host.querySelector(".replica-diary-options [role=checkbox]"),
+      v.host.querySelector(".replica-diary-options [role=switch]"),
     );
     assert.equal(v.host.querySelectorAll(".lp-diary-date").length, 1);
     assert.match(
@@ -252,8 +252,8 @@ test('compact diary filter uses the same favorite reader and preserves the searc
   const field=v.host.querySelector('[aria-label="搜索日记"]');await v.input(field,'未提交的阅读条件');
   await act(async()=>v.host.querySelector('[aria-label="日记筛选"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await v.flush();
   const item=document.querySelector('[role=menuitemcheckbox]');assert.ok(item);assert.equal(item.getAttribute('aria-checked'),'false');await v.click(item);await v.flush();
-  assert.equal(v.host.querySelector('.replica-diary-options [role=checkbox]').getAttribute('aria-checked'),'true');assert.equal(field.value,'未提交的阅读条件');assert.ok(w.calls.some(c=>c[0]==='list'&&c[3]?.favorite===true));
-  await act(async()=>v.host.querySelector('[aria-label="日记筛选"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=menuitemcheckbox]').getAttribute('aria-checked'),'true');await v.click(document.querySelector('[role=menuitemcheckbox]'));assert.equal(v.host.querySelector('.replica-diary-options [role=checkbox]').getAttribute('aria-checked'),'false');
+  assert.equal(v.host.querySelector('.replica-diary-options [role=switch]').getAttribute('aria-checked'),'true');assert.equal(field.value,'未提交的阅读条件');assert.ok(w.calls.some(c=>c[0]==='list'&&c[3]?.favorite===true));
+  await act(async()=>v.host.querySelector('[aria-label="日记筛选"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=menuitemcheckbox]').getAttribute('aria-checked'),'true');await v.click(document.querySelector('[role=menuitemcheckbox]'));assert.equal(v.host.querySelector('.replica-diary-options [role=switch]').getAttribute('aria-checked'),'false');
  }finally{await v.dispose();}
 });
 test("annotation conflict requires explicit latest baseline review while preserving draft and a new reviewed key", async () => {
@@ -279,7 +279,7 @@ test("annotation conflict requires explicit latest baseline review while preserv
       "保留我的批注",
     );
     await v.click(button(dialog(), "保存批注"));
-    await v.click(button(dialog(), "读取最新版本并保留输入"));
+    await v.click(button(dialog(), "同步资料，保留输入"));
     await v.click(button(dialog(), "已核对，采用最新基线"));
     await v.click(button(dialog(), "保存批注"));
     const sent = w.calls.find((c) => c[0] === "annotation")[3];
@@ -323,7 +323,9 @@ test("reply uses diary day revision and displays the real pending request withou
   const w = workspace(),
     v = await mount(w);
   try {
+    assert.ok(v.host.querySelector('section[aria-label="留言与实际处理记录"]'));
     await v.click(button(v.host, "读完后，想对林青说"));
+    assert.equal(document.querySelectorAll('[role=dialog]').length,0);
     await v.input(
       dialog().querySelector('[aria-label="日记留言"]'),
       "我也喜欢这段平常的日子。",
@@ -419,7 +421,7 @@ test("favorite and shared pagination retry their own saved cursors, and a late d
   const v = await mount(w);
   try {
     await v.click(
-      v.host.querySelector(".replica-diary-options [role=checkbox]"),
+      v.host.querySelector(".replica-diary-options [role=switch]"),
     );
     await v.click(button(v.host, "加载更早日记"));
     assert.match(v.host.textContent, /收藏翻页暂不可读/);
@@ -430,7 +432,7 @@ test("favorite and shared pagination retry their own saved cursors, and a late d
       ["favorite-next", "favorite-next"],
     );
     await v.click(
-      v.host.querySelector(".replica-diary-options [role=checkbox]"),
+      v.host.querySelector(".replica-diary-options [role=switch]"),
     );
     const dates = v.host.querySelectorAll(".lp-diary-date");
     await v.click(dates[1]);

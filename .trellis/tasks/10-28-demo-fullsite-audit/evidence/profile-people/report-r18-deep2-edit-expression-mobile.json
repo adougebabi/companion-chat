@@ -1,0 +1,81 @@
+[
+  {
+    "name": "edit-expression",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "keep editing retains unsaved group value",
+      "discard has no proposal or acceptance write",
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "selected group saves actual typed field",
+      "life extension and runtime wearing remain independent",
+      "save creates then explicitly accepts one definition proposal",
+      "editor reopens confirmed saved group",
+      "saved-reopened: no horizontal overflow",
+      "saved-reopened: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "behavioral_policy": {
+              "response_style": "温和细腻"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "b0d051bd-742e-4646-a054-d64c874a4463"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-expression-mobile-edit-expression-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-expression-mobile-edit-expression-mobile-saved-reopened.png"
+    ],
+    "status": "passed"
+  }
+]

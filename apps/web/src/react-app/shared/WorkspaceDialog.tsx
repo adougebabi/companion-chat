@@ -18,6 +18,7 @@ export default function WorkspaceDialog({
   returnFocus,
   busy = false,
   className = "",
+  testId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -29,10 +30,12 @@ export default function WorkspaceDialog({
   returnFocus?: () => HTMLElement | null;
   busy?: boolean;
   className?: string;
+  testId?:string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        data-testid={testId}
         showCloseButton={!busy}
         onEscapeKeyDown={(event) => {
           if (busy) event.preventDefault();

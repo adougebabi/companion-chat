@@ -1,0 +1,190 @@
+[
+  {
+    "name": "goal-state",
+    "size": "mobile",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "goal status reads back paused",
+      "goal status reads back active",
+      "evaluation-request: no horizontal overflow",
+      "evaluation-request: dialog fits viewport",
+      "reassessment does not imply goal completion",
+      "pause resume and reassess are separate explicit commands",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/pause",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 1,
+          "reason": "显式核对目标状态 paused r18-deep2-goal-state-mobile mobile goal-state",
+          "idempotencyKey": "4d4cdcfc-1b6d-4ca9-a62b-6e471a0f1512"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/resume",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "显式核对目标状态 active r18-deep2-goal-state-mobile mobile goal-state",
+          "idempotencyKey": "3675c701-8933-4445-b9c4-34e505226a1c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/reassess",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "跟进原评估，不手动宣布目标完成",
+          "idempotencyKey": "31b260d1-6265-4037-8c9f-d329a8e2b9d5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-state-mobile-goal-state-mobile-evaluation-request.png"
+    ],
+    "status": "passed"
+  }
+]

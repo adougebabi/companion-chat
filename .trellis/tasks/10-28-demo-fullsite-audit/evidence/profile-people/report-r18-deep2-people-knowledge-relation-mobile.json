@@ -1,0 +1,77 @@
+[
+  {
+    "name": "people-knowledge-relation",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "known-fact: no horizontal overflow",
+      "known-fact: dialog fits viewport",
+      "relationship-basis: no horizontal overflow",
+      "relationship-basis: dialog fits viewport",
+      "relationship metrics remain actual sunny perspective",
+      "relationship-metrics: no horizontal overflow",
+      "reading cognitive facts and relationship sources sends no write",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-mobile-people-knowledge-relation-mobile-known-fact.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-mobile-people-knowledge-relation-mobile-relationship-basis.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-mobile-people-knowledge-relation-mobile-relationship-metrics.png"
+    ],
+    "status": "passed"
+  }
+]

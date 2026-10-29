@@ -21,6 +21,31 @@ apps/*/.gocache-*/
 apps/*/.gomodcache/
 
 # Test artifacts and audit evidence
+# Images are local-only. Existing tracked product assets remain untouched.
+# The commit hook also rejects modifications/renames of tracked images.
+*.[pP][nN][gG]
+*.[aA][pP][nN][gG]
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[jJ][fF][iI][fF]
+*.[gG][iI][fF]
+*.[wW][eE][bB][pP]
+*.[aA][vV][iI][fF]
+*.[bB][mM][pP]
+*.[tT][iI][fF]
+*.[tT][iI][fF][fF]
+*.[iI][cC][oO]
+*.[iI][cC][nN][sS]
+*.[sS][vV][gG]
+*.[sS][vV][gG][zZ]
+*.[hH][eE][iI][cC]
+*.[hH][eE][iI][fF]
+*.[pP][sS][dD]
+*.[xX][cC][fF]
+*.[tT][gG][aA]
+*.[dD][dD][sS]
+*.[eE][xX][rR]
+*.[hH][dD][rR]
 image.png
 docs/verification/phase-8/
 .trellis/tasks/**/runs/

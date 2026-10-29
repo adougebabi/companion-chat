@@ -5,7 +5,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import assert from 'node:assert/strict';
 const require=createRequire('/private/tmp/fluctlight-demo-audit-20261028/browser-tools/package.json'),{chromium}=require('playwright-core');
-const base='http://127.0.0.1:4387';
+const base=process.env.AUDIT_BASE_URL||'http://127.0.0.1:4387';
 const out=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep');await mkdir(out,{recursive:true});
 const phase=process.env.AUDIT_PHASE||'pass23',results=[];
 const selected=process.env.AUDIT_CASES?.split(',');
@@ -63,7 +63,7 @@ try{
    await page.route('**/api/memories/'+id,async route=>{const method=route.request().method();if(method==='PUT'){const response=await route.fetch();changed=true;if(fault==='unknown'&&!injected){injected=true;await route.fulfill({status:503,json:{code:'request_failed',message:'受控验收：已执行但回执丢失'}});return;}await route.fulfill({response});return;}if(method==='GET'&&changed&&fault==='readback'&&!injected){injected=true;await route.fulfill({status:503,json:{code:'request_failed',message:'受控验收：保存后首次回读失败'}});return;}await route.continue();});
    record.injectedFault=fault==='unknown'?'server executed PUT; replace its response with503':'accepted PUT; first subsequent object GET503';await go();await open();await detail().getByRole('button',{name:'记错了，纠正一下',exact:true}).click();await detail().getByRole('textbox',{name:'记忆修正正文',exact:true}).fill(revised);await detail().getByRole('textbox',{name:'记忆操作说明',exact:true}).fill('验证原状态恢复');await detail().getByRole('button',{name:'保存纠正',exact:true}).click();
    if(fault==='readback'){await detail().getByRole('button',{name:'只读恢复页面结果',exact:true}).waitFor();await shot('readback-failed');await detail().getByRole('button',{name:'只读恢复页面结果',exact:true}).click();await page.getByRole('heading',{name:'记忆详情',exact:true}).waitFor();await detail().getByRole('heading',{name:'第 3 版 · 当前版本',exact:true}).waitFor();}
-   else{await detail().getByRole('button',{name:'读取最新版本并保留输入',exact:true}).waitFor();await shot('unknown-response');await detail().getByRole('button',{name:'读取最新版本并保留输入',exact:true}).click();await detail().getByRole('button',{name:'已核对，采用最新基线',exact:true}).waitFor();await shot('current-review');await detail().getByRole('button',{name:'已核对，采用最新基线',exact:true}).click();check('latest review retains edited text',await detail().getByRole('textbox',{name:'记忆修正正文',exact:true}).inputValue()===revised);await cancel(page);await detail().getByRole('tab',{name:'这段记忆',exact:true}).click();await detail().getByText(revised,{exact:true}).waitFor();}
+   else{await detail().getByRole('button',{name:'同步资料，保留输入',exact:true}).waitFor();await shot('unknown-response');await detail().getByRole('button',{name:'同步资料，保留输入',exact:true}).click();await detail().getByRole('button',{name:'已核对，采用最新基线',exact:true}).waitFor();await shot('current-review');await detail().getByRole('button',{name:'已核对，采用最新基线',exact:true}).click();check('latest review retains edited text',await detail().getByRole('textbox',{name:'记忆修正正文',exact:true}).inputValue()===revised);await cancel(page);await detail().getByRole('tab',{name:'这段记忆',exact:true}).click();await detail().getByText(revised,{exact:true}).waitFor();}
    check('original operation executed once',writes().filter(r=>r.method==='PUT').length===1);check('confirmed object uses corrected content and new revision',(await get('/api/memories/'+id)).revision===3&&(await get('/api/memories/'+id)).content===revised);await shot('recovered');
   });
  }

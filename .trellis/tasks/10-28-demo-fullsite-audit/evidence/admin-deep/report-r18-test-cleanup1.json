@@ -1,0 +1,560 @@
+[
+  {
+    "name": "task-dialog-context",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "directory: no horizontal overflow",
+      "directory: single current shell",
+      "task dialog retains the source directory",
+      "task shows actual completed and failed source stages",
+      "recorded-events: no horizontal overflow",
+      "recorded-events: single current shell",
+      "task keeps original source information",
+      "closing only clears selected task",
+      "directory-return: no horizontal overflow",
+      "directory-return: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-dialog-context-desktop-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-dialog-context-desktop-recorded-events.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-dialog-context-desktop-directory-return.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "directory",
+        "portals": []
+      },
+      {
+        "state": "recorded-events",
+        "portals": []
+      },
+      {
+        "state": "directory-return",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-control-submit",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "form footer submits the original workflow command",
+      "workflow command retains run/revision/reason/key",
+      "accepted receipt does not pretend task completion",
+      "accepted-original-task: no horizontal overflow",
+      "accepted-original-task: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "受控UI核对原任务输入，不宣称执行完成",
+          "idempotencyKey": "6642bceb-91c0-4b62-ac60-bb6a2ae491be"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-control-submit-desktop-accepted-original-task.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "accepted-original-task",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diagnostic-modes",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "call-detail: no horizontal overflow",
+      "call-detail: single current shell",
+      "media-empty: no horizontal overflow",
+      "media-empty: single current shell",
+      "readiness displays actual returned status",
+      "call dialog does not leak into another diagnostic mode",
+      "readiness: no horizontal overflow",
+      "readiness: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-diagnostic-modes-desktop-call-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-diagnostic-modes-desktop-media-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-diagnostic-modes-desktop-readiness.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "call-detail",
+        "portals": []
+      },
+      {
+        "state": "media-empty",
+        "portals": []
+      },
+      {
+        "state": "readiness",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-empty",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "empty returned steps remain honest empty",
+      "empty-stages: no horizontal overflow",
+      "empty-stages: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-read-empty-desktop-empty-stages.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "empty-stages",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-dialog-context",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "directory: no horizontal overflow",
+      "directory: single current shell",
+      "task dialog retains the source directory",
+      "task shows actual completed and failed source stages",
+      "recorded-events: no horizontal overflow",
+      "recorded-events: single current shell",
+      "task keeps original source information",
+      "closing only clears selected task",
+      "directory-return: no horizontal overflow",
+      "directory-return: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-dialog-context-mobile-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-dialog-context-mobile-recorded-events.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-dialog-context-mobile-directory-return.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "directory",
+        "portals": []
+      },
+      {
+        "state": "recorded-events",
+        "portals": []
+      },
+      {
+        "state": "directory-return",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-control-submit",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "form footer submits the original workflow command",
+      "workflow command retains run/revision/reason/key",
+      "accepted receipt does not pretend task completion",
+      "accepted-original-task: no horizontal overflow",
+      "accepted-original-task: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture/restart",
+        "method": "POST",
+        "body": {
+          "sourceRunId": "run-fixture",
+          "expectedRevision": 3,
+          "reason": "受控UI核对原任务输入，不宣称执行完成",
+          "idempotencyKey": "1e5d218e-1a87-48bf-b74d-c999c3421db7"
+        }
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-control-submit-mobile-accepted-original-task.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "accepted-original-task",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "diagnostic-modes",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "call-detail: no horizontal overflow",
+      "call-detail: single current shell",
+      "media-empty: no horizontal overflow",
+      "media-empty: single current shell",
+      "readiness displays actual returned status",
+      "call dialog does not leak into another diagnostic mode",
+      "readiness: no horizontal overflow",
+      "readiness: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-diagnostic-modes-mobile-call-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-diagnostic-modes-mobile-media-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-diagnostic-modes-mobile-readiness.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "call-detail",
+        "portals": []
+      },
+      {
+        "state": "media-empty",
+        "portals": []
+      },
+      {
+        "state": "readiness",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-read-empty",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "empty returned steps remain honest empty",
+      "empty-stages: no horizontal overflow",
+      "empty-stages: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-test-cleanup1-task-read-empty-mobile-empty-stages.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "empty-stages",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  }
+]

@@ -182,7 +182,7 @@ export default function WorkspaceCommandDialog({
                 }
                 onClick={() => void model.reviewLatest()}
               >
-                读取最新版本并保留输入
+                同步资料，保留输入
               </Button>
             )}
             {state.readbackPending && (

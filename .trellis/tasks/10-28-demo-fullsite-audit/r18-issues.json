@@ -1,0 +1,1000 @@
+{
+  "schema": "r18-issue-disposition.v1",
+  "baseline": "7149a69e",
+  "items": [
+    {
+      "id": "R18-001",
+      "area": "诊断/初始化",
+      "original_state_and_defect": "初始衣柜失败只写原因已记录",
+      "result": "显示实际模型配置失败原因、配置入口和保留结果说明",
+      "status": "修复",
+      "source": [
+        "shared/PreparationSteps.jsx",
+        "pages/TaskDetailPage.tsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-002",
+      "area": "诊断/初始化",
+      "original_state_and_defect": "任务记录跳出初始化且缺返回上下文",
+      "result": "诊断任务Dialog、上下文卡与返回初始化入口",
+      "status": "修复",
+      "source": [
+        "shared/DiagnosticsWorkspace.jsx",
+        "shared/TaskRecordDialog.tsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-003",
+      "area": "诊断/任务",
+      "original_state_and_defect": "生命周期事件冒充执行阶段、同分钟无法辨别",
+      "result": "仅实际阶段归并；真实事件按秒/毫秒显示",
+      "status": "修复",
+      "source": [
+        "approved-ui/task-presentation.mjs",
+        "pages/TaskDetailPage.tsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-004",
+      "area": "诊断/恢复",
+      "original_state_and_defect": "恢复入口与通用恢复文案互相矛盾",
+      "result": "衣柜领域恢复入口；不扩大allowed_actions",
+      "status": "修复",
+      "source": [
+        "shared/WorkflowRecovery.tsx",
+        "core/workflow_controls.go"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-005",
+      "area": "诊断/调用",
+      "original_state_and_defect": "嵌套调用Tabs、宽表裁切、英文摘要",
+      "result": "调用类型选择、响应式记录列表、中文操作摘要",
+      "status": "修复",
+      "source": [
+        "shared/DiagnosticRecords.tsx",
+        "views/ManagementPage.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-006",
+      "area": "诊断/调用",
+      "original_state_and_defect": "详情缺请求摘要、返回内容和实际来源",
+      "result": "同页Dialog呈现输入输出；没有正文时明确说明",
+      "status": "修复",
+      "source": [
+        "shared/ModelTranscript.tsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-007",
+      "area": "诊断/上下文",
+      "original_state_and_defect": "其它运行记录丢失关联条件",
+      "result": "辅助读取/分页带correlationId，切换清空旧记录并拒绝迟到结果",
+      "status": "修复",
+      "source": [
+        "pages/ManagementPage.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-008",
+      "area": "诊断/服务",
+      "original_state_and_defect": "Core readiness及原回执直接占正文",
+      "result": "工作区连接摘要，完整回执放明确技术详情",
+      "status": "修复",
+      "source": [
+        "shared/DiagnosticsWorkspace.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-009",
+      "area": "诊断/密集列表",
+      "original_state_and_defect": "多个独立规划任务无法区分",
+      "result": "角色、精确时间与短引用；保留真实任务ID",
+      "status": "修复",
+      "source": [
+        "shared/DiagnosticsWorkspace.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-010",
+      "area": "设置/模型服务",
+      "original_state_and_defect": "目录信息缺失、失败整行强调",
+      "result": "模型标签、读取时间、单一同步动作及紧凑失败反馈",
+      "status": "修复",
+      "source": [
+        "shared/ModelDirectory.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-011",
+      "area": "设置/服务删除",
+      "original_state_and_defect": "Demo允许删除已保存服务",
+      "result": "正式契约没有DELETE；仅保留真实未保存草稿移除",
+      "status": "能力差异",
+      "source": [
+        "shared/ModelDirectory.jsx",
+        "packages/browser-client"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "正式接口不支持；未新增伪操作。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-012",
+      "area": "设置/聊天视觉",
+      "original_state_and_defect": "整段折叠、步进器和重复范围说明",
+      "result": "按Demo分卡，温度/Top P滑块和精确值输入",
+      "status": "修复",
+      "source": [
+        "shared/SettingsSections.jsx",
+        "shared/SettingsField.tsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-013",
+      "area": "设置/图片生成",
+      "original_state_and_defect": "折叠表头及技术导语",
+      "result": "直接分卡；保留实际工作流JSON字段",
+      "status": "修复",
+      "source": [
+        "shared/SettingsSections.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-014",
+      "area": "设置/自主与安静",
+      "original_state_and_defect": "卡片交互与顺序不符",
+      "result": "自主行动卡、允许/确认控件；安静时段保留正式角色范围",
+      "status": "修复",
+      "source": [
+        "shared/SettingsSections.jsx",
+        "views/ManagementPage.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-015",
+      "area": "设置/通知后台",
+      "original_state_and_defect": "缺三种通知开关",
+      "result": "连接正式messages/goals/media开关，后台参数分卡",
+      "status": "修复",
+      "source": [
+        "shared/SettingsSections.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-016",
+      "area": "设置/数据",
+      "original_state_and_defect": "文字冒充大字号统计、说明偏技术",
+      "result": "仅真实数字计数；导出设定/导入设定/历史版本与恢复",
+      "status": "修复",
+      "source": [
+        "v3-domain/data-tools.js"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-017",
+      "area": "设置/高级",
+      "original_state_and_defect": "KEV长表单和范围重复",
+      "result": "决策开关卡、真实概率滑块和精确输入",
+      "status": "修复",
+      "source": [
+        "shared/SettingsSections.jsx",
+        "shared/SettingsField.tsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-018",
+      "area": "设置/顶部",
+      "original_state_and_defect": "退出登录与侧栏重复",
+      "result": "顶部工作区标识，保留侧栏实际退出",
+      "status": "修复",
+      "source": [
+        "pages/ManagementPage.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-019",
+      "area": "设置/草稿",
+      "original_state_and_defect": "未编辑却显示草稿已恢复",
+      "result": "只比较可编辑连接/用途字段；目录读态不形成草稿",
+      "status": "修复",
+      "source": [
+        "approved-ui/configuration-draft.mjs",
+        "pages/ManagementPage.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-020",
+      "area": "全局/布局",
+      "original_state_and_defect": "内容偏宽贴左",
+      "result": "1560包含页面padding，保持Demo各断点边距",
+      "status": "修复",
+      "source": [
+        "styles/workspace-replica.css"
+      ],
+      "evidence_group": "normal",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "浏览、搜索、筛选和进入已有详情；缺资料可从现有编辑入口补充。",
+      "authoritative_clearing": "布局无持久状态；列表取真实读面，不用示例填空。"
+    },
+    {
+      "id": "R18-021",
+      "area": "全局/焦点",
+      "original_state_and_defect": "选中Tabs与关闭按钮黑粗框",
+      "result": "分离选中和键盘焦点；可见绿色outline",
+      "status": "修复",
+      "source": [
+        "components/ui/tabs.tsx",
+        "styles/workspace-replica.css"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-022",
+      "area": "全局/版本核对",
+      "original_state_and_defect": "读取最新版本并保留输入按钮偏技术",
+      "result": "文案改为同步资料，保留输入，真实CAS审阅能力保留",
+      "status": "修复",
+      "source": [
+        "shared/WorkspaceCommandDialog.jsx",
+        "shared/CommandDialog.tsx"
+      ],
+      "evidence_group": "deep",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "保留原核对、版本审阅、暂停/继续、修订恢复与保存回读入口。",
+      "authoritative_clearing": "以原命令实际回执/版本确认清理，失败保留输入；accepted回读恢复不再写。"
+    },
+    {
+      "id": "R18-023",
+      "area": "全局/保存栏",
+      "original_state_and_defect": "悬浮条遮挡最后字段",
+      "result": "按内部页面底部padding定位；实际滚到底部核验末字段",
+      "status": "修复",
+      "source": [
+        "styles/replica-management.css"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-024",
+      "area": "全局/技术记录",
+      "original_state_and_defect": "动态/通知/媒体JSON直接作为主要阅读内容",
+      "result": "普通信息先语义呈现，完整记录放明确可展开的技术来源",
+      "status": "修复",
+      "source": [
+        "shared/FeedPost.jsx",
+        "pages/InboxPage.jsx",
+        "shared/MediaDetail.jsx"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-025",
+      "area": "全局/折叠与详情",
+      "original_state_and_defect": "读者常用内容大量折叠、详情类型待确定",
+      "result": "设置分卡、留言/日程入口常驻；Dialog与Demo一致，完整来源保留折叠",
+      "status": "修复",
+      "source": [
+        "pages/DiaryPage.jsx",
+        "pages/SchedulePage.jsx",
+        "shared/SettingsSections.jsx"
+      ],
+      "evidence_group": "deep",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "保留原核对、版本审阅、暂停/继续、修订恢复与保存回读入口。",
+      "authoritative_clearing": "以原命令实际回执/版本确认清理，失败保留输入；accepted回读恢复不再写。"
+    },
+    {
+      "id": "R18-026",
+      "area": "聊天",
+      "original_state_and_defect": "状态长文且查看状态无反应",
+      "result": "紧凑具体原因、真实状态结果；有目标的核对不推进队列",
+      "status": "修复",
+      "source": [
+        "components/ChatTurnFeedback.tsx",
+        "state/conversation.ts"
+      ],
+      "evidence_group": "chat",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "点击有原turn身份的查看状态，只读同一会话并展示该turn结果。",
+      "authoritative_clearing": "本次核对说明短暂显示；原消息/队列保持，不以核对动作重试发送。"
+    },
+    {
+      "id": "R18-027",
+      "area": "聊天/历史",
+      "original_state_and_defect": "没有turn身份仍可点核对",
+      "result": "无可执行目标时说明历史记录限制，不调用通用队列观察器",
+      "status": "修复",
+      "source": [
+        "components/ChatTurnFeedback.tsx"
+      ],
+      "evidence_group": "unit",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "原输入错误允许实际修正；配置错误引导实际配置；缺turn身份不显示假核对按钮。",
+      "authoritative_clearing": "文件/关联/队列由身份与epoch约束；失败/迟到结果不覆盖新输入。"
+    },
+    {
+      "id": "R18-028",
+      "area": "此刻",
+      "original_state_and_defect": "文字空态及日程入口重复",
+      "result": "Demo叶片图示；无日程只留一个日程入口，独立时间线保留",
+      "status": "修复",
+      "source": [
+        "views/NowPage.jsx"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-029",
+      "area": "日程",
+      "original_state_and_defect": "业务入口折叠、日期框样式",
+      "result": "约定/意向和场景字段常驻；沿用现有shadcn Calendar并核对尺寸",
+      "status": "修复",
+      "source": [
+        "pages/SchedulePage.jsx",
+        "styles/replica-life.css"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-030",
+      "area": "目标",
+      "original_state_and_defect": "放下与取消为不易辨认文字",
+      "result": "明确outline按钮，沿用原实际命令",
+      "status": "修复",
+      "source": [
+        "pages/GoalsPage.jsx"
+      ],
+      "evidence_group": "deep",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "保留原核对、版本审阅、暂停/继续、修订恢复与保存回读入口。",
+      "authoritative_clearing": "以原命令实际回执/版本确认清理，失败保留输入；accepted回读恢复不再写。"
+    },
+    {
+      "id": "R18-031",
+      "area": "衣柜",
+      "original_state_and_defect": "多余页头刷新",
+      "result": "移除重复刷新；失败原读取恢复入口保留",
+      "status": "修复",
+      "source": [
+        "views/WardrobePage.jsx"
+      ],
+      "evidence_group": "normal",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "浏览、搜索、筛选和进入已有详情；缺资料可从现有编辑入口补充。",
+      "authoritative_clearing": "布局无持久状态；列表取真实读面，不用示例填空。"
+    },
+    {
+      "id": "R18-032",
+      "area": "日记",
+      "original_state_and_defect": "留言折叠、编辑灰色且跳弹窗",
+      "result": "常驻留言、就地输入；缺正文/attempt时说明真实限制",
+      "status": "修复",
+      "source": [
+        "pages/DiaryPage.jsx"
+      ],
+      "evidence_group": "diary",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "常驻留言区就地输入，明确发送；批注和收藏走原独立版本。",
+      "authoritative_clearing": "留言跟进实际request；原正文不覆盖，返回/刷新恢复对应日记范围。"
+    },
+    {
+      "id": "R18-033",
+      "area": "日记",
+      "original_state_and_defect": "未形成正文重复、收藏不像开关",
+      "result": "目录短状态；一次正文原因；真实收藏Switch；恢复后清除旧提示",
+      "status": "修复",
+      "source": [
+        "pages/DiaryPage.jsx"
+      ],
+      "evidence_group": "unwritten",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "无有效正文时说明限制；有正文后提供原留言动作。",
+      "authoritative_clearing": "重新读到正文时自动移除无正文提示并恢复入口，不改后端任务。"
+    },
+    {
+      "id": "R18-034",
+      "area": "记忆",
+      "original_state_and_defect": "搜索多余右箭头",
+      "result": "提交动作置于搜索图标；保留Enter及原搜索请求",
+      "status": "修复",
+      "source": [
+        "pages/MemoryPage.jsx"
+      ],
+      "evidence_group": "deep",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "保留原核对、版本审阅、暂停/继续、修订恢复与保存回读入口。",
+      "authoritative_clearing": "以原命令实际回执/版本确认清理，失败保留输入；accepted回读恢复不再写。"
+    },
+    {
+      "id": "R18-035",
+      "area": "记忆/呈现",
+      "original_state_and_defect": "真实标签未展示、日期过密",
+      "result": "展示实际标签，日期紧凑；完整北京时间和修订仍保留",
+      "status": "修复",
+      "source": [
+        "pages/MemoryPage.jsx"
+      ],
+      "evidence_group": "normal",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "浏览、搜索、筛选和进入已有详情；缺资料可从现有编辑入口补充。",
+      "authoritative_clearing": "布局无持久状态；列表取真实读面，不用示例填空。"
+    },
+    {
+      "id": "R18-036",
+      "area": "档案",
+      "original_state_and_defect": "尚未提供重复九次",
+      "result": "按区汇总缺失字段，保留实际值和编辑入口",
+      "status": "修复",
+      "source": [
+        "views/CharacterDetailPage.jsx"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-037",
+      "area": "档案/性格",
+      "original_state_and_defect": "缺进度条",
+      "result": "当前已有真实Progress；有分数显示，无分数不虚构",
+      "status": "已有实现",
+      "source": [
+        "views/CharacterDetailPage.jsx"
+      ],
+      "evidence_group": "profile",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "有数值显示Progress；使用原资料编辑/提议接受和人格切换入口。",
+      "authoritative_clearing": "字段和人格以实际读回更新；缺数值不显示假进度。"
+    },
+    {
+      "id": "R18-038",
+      "area": "世界/卡片物品",
+      "original_state_and_defect": "缺类型或暴露dress/full_body",
+      "result": "保留实际世界类型；服饰枚举复用既有中文标签",
+      "status": "修复",
+      "source": [
+        "shared/WorldRuntimePanels.jsx",
+        "views/WorldPage.jsx"
+      ],
+      "evidence_group": "world",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "地点逐项编辑或完整结构核对；明确切换世界、配置物品或启停事件。",
+      "authoritative_clearing": "验证对应世界/地点/事件版本并回读；绑定后的资料读失败只GET恢复。"
+    },
+    {
+      "id": "R18-039",
+      "area": "世界/地点",
+      "original_state_and_defect": "编辑露出JSON数组",
+      "result": "字符串列表逐项编辑；复杂数组可读展示及完整结构编辑，未知扩展保留",
+      "status": "修复",
+      "source": [
+        "shared/WorldFields.jsx",
+        "approved-ui/world-fields.mjs"
+      ],
+      "evidence_group": "world",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "地点逐项编辑或完整结构核对；明确切换世界、配置物品或启停事件。",
+      "authoritative_clearing": "验证对应世界/地点/事件版本并回读；绑定后的资料读失败只GET恢复。"
+    },
+    {
+      "id": "R18-040",
+      "area": "世界/场景印象",
+      "original_state_and_defect": "Demo有city/forest/space选择",
+      "result": "正式world写契约无插画kind字段，不假装保存",
+      "status": "能力差异",
+      "source": [
+        "shared/WorldFields.jsx",
+        "packages/browser-client/scripts/world-contract.mjs"
+      ],
+      "evidence_group": "source",
+      "backend_boundary": "正式接口不支持；未新增伪操作。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "当前接口无该能力时不提供伪持久化按钮；已有媒体类型按实际kind显示。",
+      "authoritative_clearing": "无新增任务或保存状态；未实现能力不标成功。"
+    },
+    {
+      "id": "R18-041",
+      "area": "世界/事件",
+      "original_state_and_defect": "缺Switch和详情",
+      "result": "当前均有正式实现；补跑暂停/启用/触发/详情实际样本流程",
+      "status": "已有实现",
+      "source": [
+        "shared/WorldRuntimePanels.jsx"
+      ],
+      "evidence_group": "world",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "地点逐项编辑或完整结构核对；明确切换世界、配置物品或启停事件。",
+      "authoritative_clearing": "验证对应世界/地点/事件版本并回读；绑定后的资料读失败只GET恢复。"
+    },
+    {
+      "id": "R18-042",
+      "area": "世界/选择P0",
+      "original_state_and_defect": "切换后共享角色投影可能仍旧",
+      "result": "验证绑定回读后刷新共享detail；读失败只GET恢复，不重放选择",
+      "status": "修复",
+      "source": [
+        "pages/WorldPage.jsx"
+      ],
+      "evidence_group": "world",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "地点逐项编辑或完整结构核对；明确切换世界、配置物品或启停事件。",
+      "authoritative_clearing": "验证对应世界/地点/事件版本并回读；绑定后的资料读失败只GET恢复。"
+    },
+    {
+      "id": "R18-043",
+      "area": "媒体/图片黑边",
+      "original_state_and_defect": "详情图片外黑描边",
+      "result": "当前桌面/390图片computed border为0、outline none、shadow none；不伪称找到原根因",
+      "status": "当前未复现",
+      "source": [
+        "shared/MediaPreview.tsx",
+        "styles/replica-media.css"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-044",
+      "area": "媒体/编辑",
+      "original_state_and_defect": "编辑库信息再叠一层弹窗",
+      "result": "一次一个活动Dialog，取消/保存回原详情，保留原命令与CAS",
+      "status": "修复",
+      "source": [
+        "shared/MediaDetail.jsx"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-045",
+      "area": "媒体/喜欢",
+      "original_state_and_defect": "Demo有喜欢和收藏筛选",
+      "result": "正式资产与元数据没有favorite持久化能力",
+      "status": "能力差异",
+      "source": [
+        "packages/browser-client/src/index.ts",
+        "core/owner_media_library.go"
+      ],
+      "evidence_group": "source",
+      "backend_boundary": "正式接口不支持；未新增伪操作。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "当前接口无该能力时不提供伪持久化按钮；已有媒体类型按实际kind显示。",
+      "authoritative_clearing": "无新增任务或保存状态；未实现能力不标成功。"
+    },
+    {
+      "id": "R18-046",
+      "area": "媒体/类别",
+      "original_state_and_defect": "列表缺类别名",
+      "result": "当前已有图片/视频/音频类型；无独立内容category契约，不造类别",
+      "status": "已有实现",
+      "source": [
+        "views/MediaWorkspace.jsx"
+      ],
+      "evidence_group": "source",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "当前接口无该能力时不提供伪持久化按钮；已有媒体类型按实际kind显示。",
+      "authoritative_clearing": "无新增任务或保存状态；未实现能力不标成功。"
+    },
+    {
+      "id": "R18-047",
+      "area": "媒体/视觉",
+      "original_state_and_defect": "Visual Identity英文",
+      "result": "已知视觉记录摘要本地化，完整原记录保留",
+      "status": "修复",
+      "source": [
+        "shared/VisualWorkspace.jsx"
+      ],
+      "evidence_group": "media",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "选择真实头像模式并明确保存；已知视觉摘要仅展示本地化。",
+      "authoritative_clearing": "头像选择按独立revision回读，原规范图不变；未知回执沿原key恢复。"
+    },
+    {
+      "id": "R18-048",
+      "area": "媒体/必填",
+      "original_state_and_defect": "画面描述/原因无标记",
+      "result": "可见星号及required，与实际提交校验一致",
+      "status": "修复",
+      "source": [
+        "shared/MediaGeneration.jsx"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-049",
+      "area": "媒体/头像",
+      "original_state_and_defect": "模式没有RadioGroup",
+      "result": "真实canonical/asset模式用RadioGroup，支持键盘",
+      "status": "修复",
+      "source": [
+        "shared/AvatarWorkspace.jsx"
+      ],
+      "evidence_group": "media",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "选择真实头像模式并明确保存；已知视觉摘要仅展示本地化。",
+      "authoritative_clearing": "头像选择按独立revision回读，原规范图不变；未知回执沿原key恢复。"
+    },
+    {
+      "id": "R18-050",
+      "area": "媒体/名字头像",
+      "original_state_and_defect": "缺用名字代表自己",
+      "result": "正式保存仅asset/canonical；名字首字是不可读图片的fallback，不伪造initial模式",
+      "status": "能力差异",
+      "source": [
+        "shared/AvatarWorkspace.jsx",
+        "packages/browser-client/src/index.ts"
+      ],
+      "evidence_group": "source",
+      "backend_boundary": "正式接口不支持；未新增伪操作。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "当前接口无该能力时不提供伪持久化按钮；已有媒体类型按实际kind显示。",
+      "authoritative_clearing": "无新增任务或保存状态；未实现能力不标成功。"
+    },
+    {
+      "id": "R18-051",
+      "area": "动态",
+      "original_state_and_defect": "默认当前角色、评论入口重复、输入半宽",
+      "result": "侧栏默认所有人；详情保留一个评论编辑器；修正内部两列表单",
+      "status": "修复",
+      "source": [
+        "approved-ui/routing.mjs",
+        "shared/FeedPost.jsx",
+        "styles/replica-feed.css"
+      ],
+      "evidence_group": "feed",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "全局入口浏览所有人；显式角色链接继续筛选；评论在唯一编辑器中明确发布。",
+      "authoritative_clearing": "按原动态revision/回执回读；读失败不再次发布，关闭保留列表上下文。"
+    },
+    {
+      "id": "R18-052",
+      "area": "通知",
+      "original_state_and_defect": "需要决定空大卡、英文任务类型、类型图标单一",
+      "result": "确认空态紧凑；已知任务名中文；按真实source_kind给图标和低强调色",
+      "status": "修复",
+      "source": [
+        "pages/InboxPage.jsx"
+      ],
+      "evidence_group": "priority",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "按记录打开配置、原业务恢复或调用详情；设置只有明确保存才提交。",
+      "authoritative_clearing": "提示根据真实任务/目录/保存回执更新；关闭窗口只改变查看上下文。"
+    },
+    {
+      "id": "R18-053",
+      "area": "角色库",
+      "original_state_and_defect": "无标签筛选、简介占位、封面/头像重复",
+      "result": "已有真实标签筛选和头像来源；无简介明确空白；插画按实际世界，不能虚构肖像",
+      "status": "修复",
+      "source": [
+        "pages/LibraryPage.jsx",
+        "state/workspace.mjs"
+      ],
+      "evidence_group": "normal",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "浏览、搜索、筛选和进入已有详情；缺资料可从现有编辑入口补充。",
+      "authoritative_clearing": "布局无持久状态；列表取真实读面，不用示例填空。"
+    },
+    {
+      "id": "R18-054",
+      "area": "向导/JSON",
+      "original_state_and_defect": "布局错乱、模型提示被压、缺示例",
+      "result": "紧凑文件入口、可用高度、前置模型说明、真实模板填入示例",
+      "status": "修复",
+      "source": [
+        "views/CharacterWizard.jsx"
+      ],
+      "evidence_group": "wizard",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "选择文件/填入示例只改输入；明确整理预览后才发分析，激活另行确认。",
+      "authoritative_clearing": "最新文件/分析身份胜出；已接受请求与显式时区保留，不能改成新提交。"
+    },
+    {
+      "id": "R18-055",
+      "area": "向导/时区",
+      "original_state_and_defect": "默认America/Los_Angeles",
+      "result": "新草稿上海；有效显式旧时区与已接受请求不覆盖",
+      "status": "修复",
+      "source": [
+        "state/creation-controller.mjs"
+      ],
+      "evidence_group": "wizard",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "选择文件/填入示例只改输入；明确整理预览后才发分析，激活另行确认。",
+      "authoritative_clearing": "最新文件/分析身份胜出；已接受请求与显式时区保留，不能改成新提交。"
+    },
+    {
+      "id": "R18-056",
+      "area": "向导/步骤",
+      "original_state_and_defect": "自制步骤条",
+      "result": "按Demo步骤视觉，实际Button承载；禁用/返回/锁定仍由原controller决定",
+      "status": "修复",
+      "source": [
+        "views/CharacterWizard.jsx",
+        "styles/replica-creation.css"
+      ],
+      "evidence_group": "wizard",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "选择文件/填入示例只改输入；明确整理预览后才发分析，激活另行确认。",
+      "authoritative_clearing": "最新文件/分析身份胜出；已接受请求与显式时区保留，不能改成新提交。"
+    },
+    {
+      "id": "R18-057",
+      "area": "向导/错误",
+      "original_state_and_defect": "provider_response出现在修正输入提示",
+      "result": "配置/输出故障与真实输入校验分开；技术路径收详情",
+      "status": "修复",
+      "source": [
+        "v3/creation-feedback.mjs"
+      ],
+      "evidence_group": "unit",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "原输入错误允许实际修正；配置错误引导实际配置；缺turn身份不显示假核对按钮。",
+      "authoritative_clearing": "文件/关联/队列由身份与epoch约束；失败/迟到结果不覆盖新输入。"
+    },
+    {
+      "id": "R18-058",
+      "area": "向导/文件并发",
+      "original_state_and_defect": "迟到文件可能改分析或抢占后选文件",
+      "result": "请求/模式/busy/生命周期加文件选择epoch，最新文件选择生效",
+      "status": "修复",
+      "source": [
+        "state/creation-controller.mjs"
+      ],
+      "evidence_group": "unit",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "原输入错误允许实际修正；配置错误引导实际配置；缺turn身份不显示假核对按钮。",
+      "authoritative_clearing": "文件/关联/队列由身份与epoch约束；失败/迟到结果不覆盖新输入。"
+    },
+    {
+      "id": "R18-059",
+      "area": "创作",
+      "original_state_and_defect": "标题重叠、必填无星号",
+      "result": "长词可换行不碰主操作；真实必填字段加标记",
+      "status": "修复",
+      "source": [
+        "views/StudioEditor.jsx",
+        "styles/replica-chat.css"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-060",
+      "area": "创作/重名与JSON",
+      "original_state_and_defect": "重名资源、JSON折叠",
+      "result": "按真实ID保留不同资源，类型/版本/时间辨认；Demo同样折叠完整JSON",
+      "status": "已有实现",
+      "source": [
+        "views/StudioDirectory.jsx",
+        "views/StudioEditor.jsx"
+      ],
+      "evidence_group": "normal",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "浏览、搜索、筛选和进入已有详情；缺资料可从现有编辑入口补充。",
+      "authoritative_clearing": "布局无持久状态；列表取真实读面，不用示例填空。"
+    },
+    {
+      "id": "R18-061",
+      "area": "命令面板",
+      "original_state_and_defect": "缺搜索图标、粗青焦点",
+      "result": "搜索图标、轻量可见键盘焦点，原筛选导航/Escape保留",
+      "status": "修复",
+      "source": [
+        "shared/WorkspaceQuickJump.tsx"
+      ],
+      "evidence_group": "modules",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "使用对应区域的打开、编辑、取消、保存或重新读取入口；布局本身不提交请求。",
+      "authoritative_clearing": "取消回原上下文；保存按实际回读更新；已确认正文恢复后移除旧空态。"
+    },
+    {
+      "id": "R18-062",
+      "area": "预览补测",
+      "original_state_and_defect": "生活设定及人格关系无法进入",
+      "result": "用明确受控分析DTO补验生活/关系/完整设定，不伪造生产分析凭据",
+      "status": "补测",
+      "source": [
+        "views/CharacterWizard.jsx"
+      ],
+      "evidence_group": "wizard",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "选择文件/填入示例只改输入；明确整理预览后才发分析，激活另行确认。",
+      "authoritative_clearing": "最新文件/分析身份胜出；已接受请求与显式时区保留，不能改成新提交。"
+    },
+    {
+      "id": "R18-063",
+      "area": "详情补测",
+      "original_state_and_defect": "记忆/人物/目标/衣柜/共同经历无数据",
+      "result": "补跑受控有数据详情、编辑/取消/保存/返回及来源流程",
+      "status": "补测",
+      "source": [
+        "pages/MemoryPage.jsx",
+        "pages/GoalsPage.jsx",
+        "views/WardrobePage.jsx"
+      ],
+      "evidence_group": "deep",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "保留原核对、版本审阅、暂停/继续、修订恢复与保存回读入口。",
+      "authoritative_clearing": "以原命令实际回执/版本确认清理，失败保留输入；accepted回读恢复不再写。"
+    },
+    {
+      "id": "R18-064",
+      "area": "入口补测",
+      "original_state_and_defect": "通知自动已读、角色切换及卡片菜单未查",
+      "result": "已读仅一次且不处理任务；角色切换/焦点补验；Demo角色库卡片没有省略号菜单，不新增假菜单",
+      "status": "补测",
+      "source": [
+        "pages/InboxPage.jsx",
+        "shared/WorkspaceNavigation.tsx",
+        "pages/LibraryPage.jsx"
+      ],
+      "evidence_group": "shell",
+      "backend_boundary": "现有真实客户端/权限/CAS/原请求保持；本轮浏览器为受控HTTP，不认证真实Core/模型。",
+      "scope": "桌面/390；priority另含1920。原177行八场景状态分别保留，不由本条批量升为通过。",
+      "executable_actions": "切换实际角色、Escape关闭导航，通知查看与已读各有真实入口。",
+      "authoritative_clearing": "恢复原按钮焦点/角色范围；已读不处理业务任务；不伪造不存在的卡片菜单。"
+    }
+  ]
+}

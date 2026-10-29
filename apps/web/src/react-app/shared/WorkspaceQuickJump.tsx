@@ -14,7 +14,7 @@ export default function WorkspaceQuickJump({characters,hasCharacter,onNavigate,o
  return <Dialog open={open} onOpenChange={next=>{setOpen(next);if(!next)setQuery('');}}>
   <DialogTrigger asChild><Button variant="ghost" className="replica-quick-trigger"><span><SearchIcon size={12}/>快速前往</span><kbd>⌘ K</kbd></Button></DialogTrigger>
   <DialogContent className="react-workspace replica-quick-dialog"><DialogHeader><DialogTitle>你想去哪里？</DialogTitle><DialogDescription>搜索页面，快速回到正在发生的日常。</DialogDescription></DialogHeader>
-   <Input autoFocus aria-label="搜索页面或角色名字" placeholder="搜索页面或角色名字" value={query} onChange={event=>setQuery(event.target.value)}/>
+   <div className="replica-quick-search"><SearchIcon size={15} aria-hidden="true"/><Input autoFocus aria-label="搜索页面或角色名字" placeholder="搜索页面或角色名字" value={query} onChange={event=>setQuery(event.target.value)}/></div>
    <div className="replica-command-results">{pages.map(([value,label])=><Button variant="ghost" key={value} onClick={()=>{onNavigate(value);close();}}><span>{label}</span><ChevronRightIcon size={14}/></Button>)}{matches.map(character=><Button variant="ghost" key={character.id} onClick={()=>{onCharacter(character.id);close();}}><span>{character.name}</span><small>进入聊天</small></Button>)}{!pages.length&&!matches.length&&<p role="status">没有找到匹配的页面或角色。</p>}</div>
   </DialogContent>
  </Dialog>;

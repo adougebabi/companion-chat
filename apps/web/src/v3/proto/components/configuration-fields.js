@@ -15,7 +15,7 @@ export const configurationFields={
  'media.comfyui':[f('baseUrl','ComfyUI 地址','url'),f('generation_timeout_seconds','单次媒体处理上限（秒；受工作流总期限约束）','number',{min:30,max:1200}),f('workflow','默认 API 工作流','workflow'),f('visual_identity_workflow','视觉身份工作流覆盖（空白即跟随默认）','workflow',{optional:true}),f('visual_identity_workflows','视觉身份分阶段覆盖（JSON；空白清除）','json',{optional:true}),f('media_workflows','人物／风景／物品等分支覆盖（JSON；空白清除）','json',{optional:true})],
  'product.autonomy':[f('mode','全局自治模式','select',{options:autonomyModes}),f('allowed_actions','允许的行动类型','action-types'),f('confirm_action_types','需要明确用户指令的行动类型','action-types'),f('budget_remaining','授予行动预算（不是模型 Token 或虚拟货币）','number',{min:0}),f('concurrency_limit','行动并发上限','number',{min:1}),f('cooldown_seconds','新行动冷却（秒）','number',{min:0}),f('outreach_paused','暂停主动联系','boolean'),f('notifications_muted','静音通知，保留通知记录','boolean'),f('quiet_hours','安静时段','quiet-hours')],
  'product.wakeup':[f('enabled','启用定时唤醒','boolean'),f('interval_seconds','唤醒间隔（秒）','number',{min:1})],
- 'llm.queue':[f('generated_concurrency','生成模型并发','number',{min:1,max:8}),f('embedding_concurrency','Embedding 并发','number',{min:1,max:8})],
+ 'llm.queue':[f('generated_concurrency','生成模型并发','number',{min:1,max:8}),f('embedding_concurrency','记忆检索并发','number',{min:1,max:8})],
  'product.summary':[f('interval_seconds','摘要维护间隔（秒）','number',{min:300,max:600}),f('max_runes','摘要字符预算','number',{min:512,max:4096})],
  'product.goal_retry':[f('max_attempts','意向重试上限','number',{min:1,max:20}),f('base_seconds','首次重试等待（秒）','number',{min:30,max:3600}),f('max_seconds','重试间隔上限（秒）','number',{min:30,max:86400})],
  'product.notifications':[f('messages','新消息通知','boolean'),f('goals','目标与请求结果提醒','boolean'),f('media','媒体结果通知','boolean')],

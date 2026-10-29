@@ -179,7 +179,7 @@ function createLibraryPageController(__props, context, lifecycle) {
           <div className="library-card-art" aria-hidden="true"><WorldArt kind={worldArtworkKind(character.detail?.world)}/></div>
           <span className={"library-status "+(w.state.selectedId===character.id?"status-current":"")}>{w.state.selectedId===character.id?"当前相处":({active:"生活中",正常:"生活中",paused:"已暂停",已暂停:"已暂停",retired:"已退休",已退休:"已退休",failed:"需要处理",异常:"需要处理"}[character.status] || "准备中")}</span>
           <div className="library-card-content"><div className="library-card-title"><CharacterAvatar className="library-avatar" name={character.name} initial={character.initial} color={character.color} src={character._directory?.avatar}/><div className="library-card-name"><h3>{character.name}</h3><p>{subtitle(character) || "生活资料待补充"}</p></div></div>
-          <p>{character.detail?.identity?.tagline || character.bio || "生活细节会在相处中慢慢补充。"}</p>
+          <p>{character.detail?.identity?.tagline || character.bio || "简介尚未填写"}</p>
           <div className="library-chips">{(character.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
           <div className="library-card-bottom"><span>{lastConversation(character)}</span><div className="library-actions"><Button variant="ghost" onClick={()=>details(character.id)}>角色档案</Button><Button variant="secondary" onClick={()=>choose(character.id)}>进入聊天<ArrowRightIcon/></Button></div></div>
           {progressHref(character.id)&&<a className="library-progress" data-unreadable={historyLinks.value[character.id]?.unreadable||undefined} href={progressHref(character.id)}>{historyLinks.value[character.id].label}<ChevronRightIcon size={12}/></a>}

@@ -9,6 +9,7 @@ const {chromium}=require('playwright-core'),{PNG}=require('pngjs');
 const pixelmatch=(await import(require.resolve('pixelmatch'))).default;
 const root=resolve('.trellis/tasks/10-28-demo-fullsite-audit/evidence/visual');
 const phase=process.env.AUDIT_CAPTURE_PHASE||'before';
+const referenceBase=process.env.AUDIT_REFERENCE_BASE||'http://127.0.0.1:4179',actualBase=process.env.AUDIT_ACTUAL_BASE||'http://127.0.0.1:4381';
 const selected=(process.argv[2]||'library,chat,now,schedule,wardrobe').split(',');
 const referenceRoutes={media:'/media',visual:'/media?tab=identity',generation:'/media?tab=generate',avatar:'/media?tab=avatar'};
 const routes={visual:'/c/linwan/media?tab=identity',generation:'/c/linwan/media?tab=generate',avatar:'/c/linwan/media?tab=avatar',library:'/library',chat:'/c/linwan/chat',now:'/c/linwan/life/now',schedule:'/c/linwan/life/schedule',wardrobe:'/c/linwan/life/wardrobe',goals:'/c/linwan/life/goals',diary:'/c/linwan/life/diary',memory:'/c/linwan/growth',profile:'/c/linwan/profile',world:'/c/linwan/world',people:'/c/linwan/people',feed:'/feed',media:'/c/linwan/media',studio:'/studio',inbox:'/inbox',settings:'/settings',creation:'/library/create',auth:'/auth'};
@@ -18,10 +19,10 @@ try{
  for(const size of [{name:'desktop',width:1348,height:925},{name:'mobile',width:390,height:844}]){
   const context=await browser.newContext({viewport:{width:size.width,height:size.height},deviceScaleFactor:1,locale:'zh-CN',timezoneId:'Asia/Shanghai',colorScheme:'light',reducedMotion:'reduce'});
   const reference=await context.newPage(),actual=await context.newPage();
-  const referenceScene=selected.some(name=>['chat','now','wardrobe'].includes(name))?await primeReferenceWearing(reference):[];
+  const referenceScene=selected.some(name=>['chat','now','wardrobe'].includes(name))?await primeReferenceWearing(reference,{base:referenceBase}):[];
   for(const name of selected){
    const out=resolve(root,name,phase);await mkdir(out,{recursive:true});
-   const record={page:name,size,phase,referenceScene,browser:browser.version(),referenceUrl:'http://127.0.0.1:4179/fluctlight-offline.html#'+(referenceRoutes[name]||routes[name]),actualUrl:'http://127.0.0.1:4381/#'+routes[name],errors:{reference:[],actual:[]}};
+   const record={page:name,size,phase,referenceScene,browser:browser.version(),referenceUrl:referenceBase+'/fluctlight-offline.html#'+(referenceRoutes[name]||routes[name]),actualUrl:actualBase+'/#'+routes[name],errors:{reference:[],actual:[]}};
    const inspect=async(page,url,kind)=>{
     const listener=error=>record.errors[kind].push(error.message);page.on('pageerror',listener);
     // Demo media is an inline responsive SVG. Its HTTP test image must have

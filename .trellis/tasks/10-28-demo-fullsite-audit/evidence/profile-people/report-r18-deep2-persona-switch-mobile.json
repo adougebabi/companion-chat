@@ -1,0 +1,123 @@
+[
+  {
+    "name": "persona-switch",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "incomplete switch remains disabled",
+      "reason alone does not imply switch confirmation",
+      "confirmed-draft: no horizontal overflow",
+      "confirmed-draft: dialog fits viewport",
+      "current persona comes from actual runtime after receipt",
+      "one explicit persona request only",
+      "runtime-readback: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/persona-switch",
+        "method": "POST",
+        "body": {
+          "targetPersonaId": "focused",
+          "expectedRevision": 4,
+          "expectedRuntimeRevision": 2,
+          "reason": "核对一次真实请求和人格运行读面",
+          "confirm": true,
+          "idempotencyKey": "7db3a16d-daa9-47d1-9bd3-4601066a802d"
+        }
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-persona-switch-mobile-persona-switch-mobile-confirmed-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-persona-switch-mobile-persona-switch-mobile-runtime-readback.png"
+    ],
+    "receipt": {
+      "request_id": "profile-persona-1",
+      "status": "pending",
+      "status_url": "/api/owner-requests/profile-persona-1",
+      "disposition": "assessment_pending",
+      "revision": 4,
+      "runtime_revision": 2,
+      "active_profile_id": "sunny",
+      "previous_profile_id": "sunny",
+      "audit_id": "switch-audit-profile-persona-1",
+      "persona_action_audit_id": null,
+      "request": {
+        "id": "profile-persona-1",
+        "kind": "persona_switch",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "status": "pending",
+        "revision": 1,
+        "payload": {
+          "target_persona_id": "focused",
+          "expected_revision": 4,
+          "expected_runtime_revision": 2,
+          "reason": "核对一次真实请求和人格运行读面"
+        },
+        "result": {
+          "request_id": "profile-persona-1",
+          "status": "pending",
+          "status_url": "/api/owner-requests/profile-persona-1",
+          "disposition": "assessment_pending",
+          "revision": 4,
+          "runtime_revision": 2,
+          "active_profile_id": "sunny",
+          "previous_profile_id": "sunny",
+          "audit_id": "switch-audit-profile-persona-1",
+          "persona_action_audit_id": null
+        },
+        "result_refs": [],
+        "created_at": "2026-10-26T12:00:00Z",
+        "_reads": 0
+      }
+    },
+    "status": "passed"
+  }
+]

@@ -2,7 +2,8 @@ import {configurationTestSummary} from '@/v3/configuration-feedback.mjs';
 
 import { useController, afterPaint } from "@/react-app/page";
 import { selector } from "@/state/view-model";
-import { ActionButton } from "@/react-app/controls";
+import { ActionButton,Badge } from "@/react-app/controls";
+import {ArrowLeft} from "lucide-react";
 import { Fragment } from "@/react-app/render-helpers";
 import { ManagementPageView } from "@/react-app/views/ManagementPage";
 import { FilterChips, DetailDrawer } from "@/react-app/components";
@@ -20,12 +21,14 @@ import { configurationPlan } from "@/approved-ui/configuration-plan.mjs";
 import {
   connectionDraftKey,
   connectionDraft,
+  connectionDraftDirty,
   restoreConnectionDraft,
   connectionIsSaved,
 } from "@/approved-ui/configuration-draft.mjs";
 import { errorMessage, domainName, stateLabel, feedbackDiagnostic } from "@/v3/domain-presentation.mjs";
 import { randomId } from "@/random-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import {diagnosticInstant} from "@/approved-ui/task-presentation.mjs";
 import { installFieldValidation } from "@/v3/proto/components/forms.js";
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const groupSpecs = [
@@ -387,7 +390,7 @@ function createManagementPageController(props, context, lifecycle) {
       sessionStorage.getItem(connectionDraftKey(scope)),
       snapshot,
     );
-    if (restored) {
+    if (restored?.dirty) {
       endpoints.value = restored.endpoints;
       for (const binding of bindings.value) {
         const saved = restored.bindings.find((b) => b.role === binding.role);
@@ -404,7 +407,7 @@ function createManagementPageController(props, context, lifecycle) {
         saveKind.value='information';saveStatus.value=
           "连接草稿已恢复。访问密钥不会保存在浏览器草稿中，请重新填写。";
       }
-    }
+    }else if(restored)sessionStorage.removeItem(connectionDraftKey(scope));
     inspectConfigurationRecords();
     loaded = true;catalogReady.value=true;catalogLoading.value=false;
     const hours =
@@ -424,7 +427,7 @@ function createManagementPageController(props, context, lifecycle) {
       void config
         .models(e.id)
         .then((result) => {
-          if (live()&&endpoints.value.includes(e)&&token===e.modelsEpoch&&e._source===source&&connectionIsSaved(e)){e.models = result.models || [];e.modelsStatus="ready";e.modelsError="";}
+          if (live()&&endpoints.value.includes(e)&&token===e.modelsEpoch&&e._source===source&&connectionIsSaved(e)){e.models = result.models || [];e.modelsStatus="ready";e.modelsError="";e.modelsReadAt=new Date().toISOString();}
         })
         .catch(cause => {if(live()&&endpoints.value.includes(e)&&token===e.modelsEpoch&&e._source===source){e.modelsStatus=connectionIsSaved(e)?"error":"stale";e.modelsError=connectionIsSaved(e)?errorMessage(cause):"";}});
     }
@@ -437,16 +440,19 @@ function createManagementPageController(props, context, lifecycle) {
     await afterPaint();
     if (live()){observeSections();scrollTo(w.state.managementSection || "服务地址", false);}
   }
+  const diagnosticCorrelation=lifecycle.cell(new URLSearchParams((globalThis.location?.hash||" ").split("?")[1]||"").get("correlationId")||"");
+  let diagnosticEpoch=0;
   async function loadDiagnostics() {
+    const token=++diagnosticEpoch,correlationId=diagnosticCorrelation.value,filter=correlationId?{correlationId}:{};
     const [models, media] = await Promise.allSettled([
       diagnostics.page("model-runs", {
-        limit: 20,
+        ...filter,limit: 20,
       }),
       diagnostics.page("media-prompts", {
-        limit: 20,
+        ...filter,limit: 20,
       }),
     ]);
-    if (!live()) return;
+    if (!live()||token!==diagnosticEpoch||correlationId!==diagnosticCorrelation.value) return;
     const projected = [];
     for (const [index, result] of [models, media].entries()) {
       if (result.status === "rejected") {
@@ -462,7 +468,16 @@ function createManagementPageController(props, context, lifecycle) {
     records.value = projected;
     w.state.diagnostics = projected;
   }
-  async function loadMoreDiagnostics(){const selectedKind=kind.value,state=diagnosticPages.value[selectedKind],cursor=state.cursor;if(!state.ready&&state.error){await loadDiagnostics();return;}if(state.loading||!cursor)return;state.loading=true;state.error='';try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor});if(!live())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}catch(cause){if(live())state.error=errorMessage(cause);}finally{if(live())state.loading=false;}}
+  async function loadMoreDiagnostics(){
+    const selectedKind=kind.value,state=diagnosticPages.value[selectedKind],cursor=state.cursor,correlationId=diagnosticCorrelation.value,token=diagnosticEpoch;
+    if(!state.ready&&state.error){await loadDiagnostics();return;}if(state.loading||!cursor)return;state.loading=true;state.error='';
+    const current=()=>live()&&token===diagnosticEpoch&&correlationId===diagnosticCorrelation.value;
+    try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor,...(correlationId?{correlationId}:{})});if(!current())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}
+    catch(cause){if(current())state.error=errorMessage(cause);}finally{if(current())state.loading=false;}
+  }
+  function diagnosticRouteChanged(){const value=new URLSearchParams((globalThis.location?.hash||'').split('?')[1]||'').get('correlationId')||'';if(value===diagnosticCorrelation.value)return;diagnosticCorrelation.value=value;selectedId.value=null;reference.value='';referenceEpoch++;referenceDetailEpoch++;referenceRecord.value=null;for(const section of referenceSections.value)Object.assign(section,{rows:[],nextCursor:'',loading:false,error:'',failedMore:false});records.value=[];clear();for(const state of Object.values(diagnosticPages.value))Object.assign(state,{loading:true,ready:false,error:'',cursor:''});void loadDiagnostics();}
+  lifecycle.onStart(()=>window.addEventListener('hashchange',diagnosticRouteChanged));
+  lifecycle.onDispose(()=>window.removeEventListener('hashchange',diagnosticRouteChanged));
   let referenceDetailEpoch=0;
   async function openReference(record,section){const token=++referenceDetailEpoch;referenceRecord.value={record,section,loading:true,error:'',detail:null};try{const detail=await diagnostics.record(section.kind,record.ref);if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:'',detail};}catch(cause){if(live()&&token===referenceDetailEpoch&&referenceRecord.value)referenceRecord.value={record,section,loading:false,error:errorMessage(cause),detail:null};}}
   function findConfigurationRecovery(){
@@ -749,7 +764,7 @@ function createManagementPageController(props, context, lifecycle) {
         }
         if (endpoint) {
           endpoint.models = result.models || [];
-          endpoint.modelsStatus="ready";
+          endpoint.modelsStatus="ready";endpoint.modelsReadAt=new Date().toISOString();
           endpoint.feedback =
             "已读取模型目录 " + endpoint.models.length + " 项";
           return;
@@ -829,11 +844,12 @@ function createManagementPageController(props, context, lifecycle) {
   );
   let referenceEpoch=0;
   async function readReference(title,more=false){
-    const section=referenceSections.value.find(s=>s.title===title);if(!section){referenceEpoch++;return;}if(more&&(section.loading||!section.nextCursor))return;const token=++referenceEpoch;
+    const section=referenceSections.value.find(s=>s.title===title);if(!section){referenceEpoch++;return;}if(more&&(section.loading||!section.nextCursor))return;const token=++referenceEpoch,correlationId=diagnosticCorrelation.value;
+    const current=()=>live()&&reference.value===title&&token===referenceEpoch&&correlationId===diagnosticCorrelation.value;
     section.loading=true;section.error='';
-    try{const page=await diagnostics.page(section.kind,{limit:20,...(more?{cursor:section.nextCursor}:{}),...(title==='重试耗尽的后台任务'?{status:'dead_letter'}:{})});if(!live()||reference.value!==title||token!==referenceEpoch)return;section.rows=[...new Map([...(more?section.rows:[]),...page.items].map(record=>[record.ref,record])).values()];section.nextCursor=page.next_cursor||'';}
-    catch(cause){if(live()&&reference.value===title&&token===referenceEpoch){section.error=errorMessage(cause);section.failedMore=more;}}
-    finally{if(live()&&token===referenceEpoch)section.loading=false;}
+    try{const page=await diagnostics.page(section.kind,{limit:20,...(correlationId?{correlationId}:{}),...(more?{cursor:section.nextCursor}:{}),...(title==='重试耗尽的后台任务'?{status:'dead_letter'}:{})});if(!current())return;section.rows=[...new Map([...(more?section.rows:[]),...page.items].map(record=>[record.ref,record])).values()];section.nextCursor=page.next_cursor||'';}
+    catch(cause){if(current()){section.error=errorMessage(cause);section.failedMore=more;}}
+    finally{if(current())section.loading=false;}
   }
   lifecycle.observe(reference,title=>void readReference(title));
   lifecycle.observe(
@@ -844,17 +860,11 @@ function createManagementPageController(props, context, lifecycle) {
           if(endpoint.models?.length)endpoint.models=[];
           if(endpoint._source)endpoint.modelsStatus="stale";
         }
-      if (live() && loaded)
-        sessionStorage.setItem(
-          connectionDraftKey(scope),
-          JSON.stringify(
-            connectionDraft({
-              endpoints: endpoints.value,
-              bindings: bindings.value,
-              versions,
-            }),
-          ),
-        );
+      if (live() && loaded){
+        const draft=connectionDraft({endpoints:endpoints.value,bindings:bindings.value,versions});
+        try{if(connectionDraftDirty(draft,catalog))sessionStorage.setItem(connectionDraftKey(scope),JSON.stringify(draft));else sessionStorage.removeItem(connectionDraftKey(scope));}
+        catch(cause){recordConfigurationStorageProblem(cause);}
+      }
     },
     {
       deep: true,
@@ -875,12 +885,10 @@ function createManagementPageController(props, context, lifecycle) {
     for (const endpoint of endpoints.value) endpoint.secret = "";
   });
   const returnTo = new URLSearchParams((globalThis.location?.hash || "").split("?")[1] || "").get("returnTo") || "";
-  const logoutBusy=lifecycle.cell(false);
-  async function logout(){if(logoutBusy.value)return;logoutBusy.value=true;try{await w.logout();}catch(cause){if(live())w.notify(errorMessage(cause,"退出登录未能确认，请重试。"));}finally{if(live())logoutBusy.value=false;}}
   const render = () => (
     <ManagementPageView
       view={{
-        accountActions:()=>(<div className="flex flex-wrap items-center justify-end gap-3" aria-label="账户">{ /^#\/c\/[^/]+\/chat$/.test(returnTo) && <ActionButton variant="ghost" type="button"  onClick={()=>w.navigatePath(returnTo.slice(1))}>返回聊天</ActionButton> }<ActionButton variant="outline" type="button"  disabled={logoutBusy.value} onClick={()=>void logout()}>{logoutBusy.value?"正在退出…":"退出登录"}</ActionButton></div>),
+        accountActions:()=>(<div className="flex flex-wrap items-center justify-end gap-3">{ /^#?\/(?!\/)/.test(returnTo) && <ActionButton variant="outline" type="button" onClick={()=>w.navigatePath(returnTo.replace(/^#/,''))}><ArrowLeft size={14}/>{returnTo.replace(/^#/,'').startsWith('/library/create')?'返回初始化流程':/^#?\/c\/[^/]+\/chat/.test(returnTo)?'返回聊天':'返回来源页'}</ActionButton>}<Badge variant="outline">我的工作区</Badge></div>),
         catalogLoading,catalogReady,retryCatalog:()=>{void readCatalog().catch(cause=>{if(live()){catalogLoading.value=false;error.value=errorMessage(cause);}});},
         openData:()=>w.navigatePath("/data"),
         sectionLabel:value=>({"聊天回复":"回复行为","看图理解":"图片理解设置"})[value]||value,
@@ -944,7 +952,7 @@ function createManagementPageController(props, context, lifecycle) {
         openMediaAsset: id=>w.navigatePath('/media/'+encodeURIComponent(id)),
         recordTime: (record) =>
           record.start
-            ? userInstant(new Date(record.start).toISOString())
+            ? diagnosticInstant(new Date(record.start).toISOString())
             : "时间未记录",
         statusLabel,
         retry,

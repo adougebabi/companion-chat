@@ -1,0 +1,1070 @@
+[
+  {
+    "name": "garment-save",
+    "size": "desktop",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "cancel preserves actual clothing name",
+      "ownership and availability reopen from actual readback",
+      "create plus two explicit corrections",
+      "saved: no horizontal overflow",
+      "clothing registration never implies wearing",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-save desktop",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "499b79f4-e9db-40c9-a825-fb84d8a4e687"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 1,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-save desktop",
+            "ownership": "borrowed",
+            "availability": "unavailable",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "18cace67-8b60-41ca-bc29-a7e5b85a8a03"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-1",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 2,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-save desktop",
+            "ownership": "borrowed",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "7e68a656-e33e-43cf-b025-4d8a17b44aa6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-desktop-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "outfit-wear",
+    "size": "desktop",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "composing: no horizontal overflow",
+      "saving plan does not change confirmed wearing",
+      "cancelled edit does not PUT plan",
+      "wearing requires explicit confirmation",
+      "wear-confirmation: no horizontal overflow",
+      "wear request is accepted as pending",
+      "pending: no horizontal overflow",
+      "confirmed wearing is exact selected member set",
+      "confirmed: no horizontal overflow",
+      "Now uses same confirmed wearing",
+      "chat preview uses same confirmed wearing",
+      "chat-synced: no horizontal overflow",
+      "only plan save and explicit wear request write",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "穿搭核验 r18-deep1 desktop",
+          "tags": [
+            "外出"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 6,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "c974b343-234e-49b0-a052-eb90e48d5a36"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits/plan-2/revisions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-2",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 7,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "3a2c7c36-19d9-4026-99ab-ecec9406e380"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-wear-confirmation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-confirmed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-chat-synced.png"
+    ],
+    "planId": "plan-2",
+    "status": "passed"
+  },
+  {
+    "name": "garment-unknown",
+    "size": "desktop",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "unknown-new-draft: no horizontal overflow",
+      "unknown-new-draft: dialog fits viewport",
+      "new garment draft survives original retry",
+      "same original payload/key replayed once",
+      "unknown replay creates one original item",
+      "recovered: no horizontal overflow",
+      "recovered: dialog fits viewport",
+      "clothing registration never implies wearing",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-unknown desktop",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "45eb6a2b-5b05-4f79-83cb-94bc2daae498"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-unknown desktop",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "45eb6a2b-5b05-4f79-83cb-94bc2daae498"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-desktop-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-desktop-unknown-new-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-desktop-recovered.png"
+    ],
+    "acceptedStatus": 200,
+    "status": "passed"
+  },
+  {
+    "name": "garment-save",
+    "size": "mobile",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "cancel preserves actual clothing name",
+      "ownership and availability reopen from actual readback",
+      "create plus two explicit corrections",
+      "saved: no horizontal overflow",
+      "clothing registration never implies wearing",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 8,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-save mobile",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "5e9811f7-e030-45b4-8c53-cdd436d49a63"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-4/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-4/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-4",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 9,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 1,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-save mobile",
+            "ownership": "borrowed",
+            "availability": "unavailable",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "991ece6b-b0ff-4778-9e03-124ef3f9ddcb"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-4/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items/added-4",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 10,
+          "reason": "更正服装登记",
+          "expectedItemRevision": 2,
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-save mobile",
+            "ownership": "borrowed",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "910f7e7f-976b-4534-87cc-6fe9d7bae60d"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-mobile-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-mobile-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "outfit-wear",
+    "size": "mobile",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "composing: no horizontal overflow",
+      "saving plan does not change confirmed wearing",
+      "cancelled edit does not PUT plan",
+      "wearing requires explicit confirmation",
+      "wear-confirmation: no horizontal overflow",
+      "wear request is accepted as pending",
+      "pending: no horizontal overflow",
+      "confirmed wearing is exact selected member set",
+      "confirmed: no horizontal overflow",
+      "Now uses same confirmed wearing",
+      "chat preview uses same confirmed wearing",
+      "chat-synced: no horizontal overflow",
+      "only plan save and explicit wear request write",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "POST",
+        "body": {
+          "name": "穿搭核验 r18-deep1 mobile",
+          "tags": [
+            "外出"
+          ],
+          "itemIds": [
+            "clothing-8",
+            "clothing-6",
+            "clothing-7"
+          ],
+          "profileId": "sunny",
+          "expectedRevision": 11,
+          "expectedOutfitRevision": 0,
+          "reason": "保存穿搭方案",
+          "idempotencyKey": "02f58a95-1cd0-43c9-bad2-cb740a1e6d72"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits/plan-5/revisions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/requests",
+        "method": "POST",
+        "body": {
+          "outfitId": "plan-5",
+          "expectedOutfitRevision": 1,
+          "profileId": "sunny",
+          "expectedRevision": 12,
+          "kind": "outfit",
+          "reason": "想请你试试这套搭配",
+          "idempotencyKey": "2883f779-5fe7-4116-b437-644ddca2fb69"
+        }
+      },
+      {
+        "path": "/api/owner-requests/request-wardrobe-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-wear-confirmation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-pending.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-confirmed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-chat-synced.png"
+    ],
+    "planId": "plan-5",
+    "status": "passed"
+  },
+  {
+    "name": "garment-unknown",
+    "size": "mobile",
+    "kind": "production dist / mutable wardrobe fixture; owner-request outcome is simulated",
+    "checks": [
+      "create: no horizontal overflow",
+      "create: dialog fits viewport",
+      "unknown-new-draft: no horizontal overflow",
+      "unknown-new-draft: dialog fits viewport",
+      "new garment draft survives original retry",
+      "same original payload/key replayed once",
+      "unknown replay creates one original item",
+      "recovered: no horizontal overflow",
+      "recovered: dialog fits viewport",
+      "clothing registration never implies wearing",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 12,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-unknown mobile",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "8875c6b2-1d65-494e-8921-dfc89ca31ead"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/items",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 12,
+          "reason": "补录已知服装",
+          "item": {
+            "itemKind": "wearable",
+            "category": "upper_body",
+            "slot": "upper_body",
+            "description": "新增服装 r18-deep1 garment-unknown mobile",
+            "ownership": "unknown",
+            "availability": "available",
+            "clothingType": "upper_body",
+            "seasons": []
+          },
+          "idempotencyKey": "8875c6b2-1d65-494e-8921-dfc89ca31ead"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-mobile-create.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-mobile-unknown-new-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-mobile-recovered.png"
+    ],
+    "acceptedStatus": 200,
+    "status": "passed"
+  }
+]

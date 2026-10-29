@@ -146,13 +146,13 @@ export default function MediaDetail({ model: m, id, onClose }) {
   return (
     <>
       <WorkspaceDialog
-        open
+        open={!action}
         title={asset?.title || "画面详情"}
         description="保存的画面、实际来源与库中管理"
         wide
         returnFocus={() => m.trigger.current}
         onOpenChange={(v) => {
-          if (!v) onClose();
+          if (!v && !action) onClose();
         }}
         footer={
           asset && (
@@ -160,6 +160,7 @@ export default function MediaDetail({ model: m, id, onClose }) {
               <Button
                 variant="outline"
                 disabled={asset.status === "deleted"}
+                ref={source}
                 onClick={edit}
               >
                 编辑库信息
@@ -256,13 +257,8 @@ export default function MediaDetail({ model: m, id, onClose }) {
           )}
         </div>
       </WorkspaceDialog>
-      {action && (
-        <WorkspaceCommandDialog
-          action={action}
-          onClose={() => setAction(null)}
-          returnFocus={() => source.current}
-        />
-      )}
+      {action&&<WorkspaceCommandDialog action={action} onClose={()=>setAction(null)} returnFocus={()=>source.current}/>}
+
     </>
   );
 }

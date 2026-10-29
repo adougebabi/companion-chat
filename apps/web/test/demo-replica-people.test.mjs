@@ -341,7 +341,7 @@ test("unknown Owner save resumes the same body/key after remount and retains new
       next.v.host.querySelector('[aria-label="称呼"]').value,
       "后续草稿 B",
     );
-    await next.v.click(button(next.v.host, "读取最新版本并保留输入"));
+    await next.v.click(button(next.v.host, "同步资料，保留输入"));
     await next.v.click(button(next.v.host, "已核对，采用最新基线"));
     await next.v.click(button(next.v.host, "保存资料"));
     assert.equal(

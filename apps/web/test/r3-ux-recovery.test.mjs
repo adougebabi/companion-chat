@@ -67,7 +67,7 @@ test('diagnostic previews keep raw formatting in detail rather than leaking it i
  }
  const record={ref:'run',data:{status:'completed',metrics:{scenario:'conversation_segment'},response:{content:'```json\n{}\n```'}}};
  const view=diagnosticProjection(record,0,[]);
- assert.equal(view.label,'对话片段归纳');assert.equal(view.character,'尚未关联角色');
+ assert.equal(view.label,'对话片段归纳');assert.equal(view.character,'未记录角色来源');
  assert.doesNotMatch(view.summary,/```|English/);
  assert.match(view.response,/```/);
 });

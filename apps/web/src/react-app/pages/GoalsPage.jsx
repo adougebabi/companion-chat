@@ -1217,7 +1217,7 @@ export default function GoalsPage({ route, onGo }) {
             {!selectedTerminal && (
               <div className="lp-action-row">
                 <Button
-                  variant="link"
+                  variant="outline"
                   disabled={readonly}
                   onClick={() => command(selected, "abandon")}
                 >
@@ -1225,7 +1225,7 @@ export default function GoalsPage({ route, onGo }) {
                   <ArrowUpRightIcon size={12} />
                 </Button>
                 <Button
-                  variant="link"
+                  variant="outline"
                   disabled={readonly}
                   onClick={() => command(selected, "cancel")}
                 >

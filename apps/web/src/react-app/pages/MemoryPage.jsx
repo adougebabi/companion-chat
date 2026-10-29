@@ -687,21 +687,13 @@ export default function MemoryPage({ route }) {
             }}
           >
             <div className="replica-memory-search">
-              <SearchIcon size={15} />
+              <Button type="submit" variant="ghost" size="icon" aria-label="应用记忆搜索"><SearchIcon size={15}/></Button>
               <Input
                 aria-label="搜索记忆正文"
                 placeholder="搜索记忆正文…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <Button
-                type="submit"
-                variant="ghost"
-                size="icon"
-                aria-label="应用记忆搜索"
-              >
-                <ChevronRightIcon size={15} />
-              </Button>
             </div>
             <div className="lp-row">
               <ChoiceSelect
@@ -771,17 +763,13 @@ export default function MemoryPage({ route }) {
                     <span className="lp-chip">
                       {memoryTypes[row.type] || row.type}
                     </span>
-                    <span className="lp-muted">
-                      {userInstant(row.created_at)}
-                    </span>
+                    <time className="lp-muted" dateTime={row.created_at} title={userInstant(row.created_at)}>{userInstant(row.created_at).split(' ')[0]}</time>
                   </div>
                   <p>{row.content}</p>
                   <div className="lp-row lp-between">
-                    <div className="lp-tag-row">
-                      <span className="lp-muted">
-                        {memoryStatuses[row.status] || row.status} · 第{" "}
-                        {row.revision} 版
-                      </span>
+                    <div className="lp-tag-row" title={(memoryStatuses[row.status]||row.status)+' · 第'+row.revision+'版'}>
+                      {(row.tags||[]).filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=><span className="lp-muted" key={tag}>#{tag}</span>)}
+                      {row.status!=='active'&&<span className="lp-muted">{memoryStatuses[row.status]||row.status}</span>}
                       {["invalid", "pending"].includes(
                         row.provenance_status,
                       ) && <span className="lp-muted">来源待核对</span>}

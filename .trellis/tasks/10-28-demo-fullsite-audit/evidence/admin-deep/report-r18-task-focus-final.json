@@ -1,0 +1,188 @@
+[
+  {
+    "name": "task-dialog-context",
+    "size": "desktop",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "directory: no horizontal overflow",
+      "directory: single current shell",
+      "task dialog retains the source directory",
+      "task shows actual completed and failed source stages",
+      "recorded-events: no horizontal overflow",
+      "recorded-events: single current shell",
+      "task keeps original source information",
+      "closing only clears selected task",
+      "closing restores the original task row focus",
+      "directory-return: no horizontal overflow",
+      "directory-return: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-desktop-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-desktop-recorded-events.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-desktop-directory-return.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "directory",
+        "portals": []
+      },
+      {
+        "state": "recorded-events",
+        "portals": []
+      },
+      {
+        "state": "directory-return",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "task-dialog-context",
+    "size": "mobile",
+    "kind": "production dist / controlled management HTTP; no real backup/restore/workflow action performed",
+    "checks": [
+      "directory: no horizontal overflow",
+      "directory: single current shell",
+      "task dialog retains the source directory",
+      "task shows actual completed and failed source stages",
+      "recorded-events: no horizontal overflow",
+      "recorded-events: single current shell",
+      "task keeps original source information",
+      "closing only clears selected task",
+      "closing restores the original task row focus",
+      "directory-return: no horizontal overflow",
+      "directory-return: single current shell",
+      "no operational write beyond explicit pack validation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-mobile-directory.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-mobile-recorded-events.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-mobile-directory-return.png"
+    ],
+    "portalGeometry": [
+      {
+        "state": "directory",
+        "portals": []
+      },
+      {
+        "state": "recorded-events",
+        "portals": []
+      },
+      {
+        "state": "directory-return",
+        "portals": []
+      }
+    ],
+    "status": "passed"
+  }
+]

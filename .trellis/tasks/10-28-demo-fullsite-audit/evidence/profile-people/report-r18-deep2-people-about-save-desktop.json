@@ -1,0 +1,84 @@
+[
+  {
+    "name": "people-about-save",
+    "size": "desktop",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "about-you cancel sends no background update",
+      "about-edit: no horizontal overflow",
+      "authored name saves to actual Owner context",
+      "updating self-defined data retains observed fact",
+      "about-history: no horizontal overflow",
+      "about-history: dialog fits viewport",
+      "only one explicit authored-background PUT",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "你的自填称呼 r18-deep2-people-about-save-desktop desktop"
+          },
+          "operation": "change",
+          "reason": "目前情况有更新，保留角色已经形成的认识",
+          "idempotencyKey": "b3c9e7c8-d2a2-470c-9606-b199cb02273a",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-about-save-desktop-people-about-save-desktop-about-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-about-save-desktop-people-about-save-desktop-about-history.png"
+    ],
+    "status": "passed"
+  }
+]

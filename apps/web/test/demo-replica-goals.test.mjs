@@ -363,7 +363,7 @@ test("unknown create survives reopen with equal body/key, and newer fields becom
     await v.dispose();
     v = await mount(w);
     await v.click(button(v.host, "添加目标"));
-    await v.click(button(dialog(), "读取最新版本并保留输入"));
+    await v.click(button(dialog(), "同步资料，保留输入"));
     assert.match(dialog().textContent, /核对最新对象与版本/);
     await v.click(button(dialog(), "已核对，采用最新基线"));
     await v.click(button(dialog(), "保存目标"));

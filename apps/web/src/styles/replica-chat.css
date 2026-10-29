@@ -641,6 +641,7 @@
   bottom: 13px;
 }
 .replica-page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:27px}
+.replica-page-heading>div:first-child{min-width:0}.replica-page-heading h1{overflow-wrap:anywhere}
 .replica-eyebrow{font-size:9px;letter-spacing:1.8px;color:#869077;font-weight:600}
 .react-workspace .replica-page-heading h1{font-size:27px;line-height:1.45;font-weight:600;letter-spacing:.3px;margin:9px 0 0;outline:none}
 .replica-page-heading p{font-size:12px;color:#778170;line-height:1.85;margin:8px 0 0}

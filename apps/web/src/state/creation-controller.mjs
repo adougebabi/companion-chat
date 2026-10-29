@@ -68,6 +68,7 @@ export function createCreationController({
   let active = true,
     readEpoch = 0,
     analysisEpoch = 0,
+    fileReadEpoch = 0,
     analysisAbort = null;
   const live = () => active && ownerCurrent(),
     savedCurrent = (requestId) =>
@@ -159,9 +160,8 @@ export function createCreationController({
   }
   if (draft.activatedId && !draft.activationDate)
     draft.activationDate = today(draft.timezone);
-  if (!draft.timezone?.trim() && !draft.previewDefinitionEdited)
-    draft.timezone =
-      Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai";
+  if (!draft.timezone?.trim() && !draft.previewDefinitionEdited && !draft.timezoneEdited && !draft.activatedId && !pending.value)
+    draft.timezone = "Asia/Shanghai";
   initializePreview();
   persist();
   syncRecoveryPending();
@@ -330,22 +330,26 @@ export function createCreationController({
     }
   }
   async function importFile(file) {
-    if (!file) return;
+    if (!file||!live()||busy.value||pending.value||draft.activatedId) return;
+    const mode=draft.mode,attempt=++fileReadEpoch;
+    let expectedRequest=draft.requestId;
     try {
       if (file.size > 60000) throw Error("JSON 文件超过 60000 UTF-8 字节上限");
       const raw = await file.text();
-      if (!live() || pending.value || draft.activatedId) return;
+      if (!live() || attempt!==fileReadEpoch||busy.value||pending.value || draft.activatedId||draft.mode!==mode||draft.requestId!==expectedRequest) return;
       draft.json = raw;
       draft.fileName = file.name;
       invalidate();
+      expectedRequest=draft.requestId;
       parseCreationInput(raw);
       draft.jsonValid = true;
       persist();
       error.value = "";
     } catch (cause) {
-      if (live()) {
+      if (live()&&attempt===fileReadEpoch&&!busy.value&&!pending.value&&!draft.activatedId&&draft.mode===mode&&draft.requestId===expectedRequest) {
         draft.jsonValid = false;
         fail(cause);
+        persist();
       }
     }
   }

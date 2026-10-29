@@ -5,7 +5,6 @@ import {
   Edit3Icon,
   EyeIcon,
   PlusIcon,
-  RefreshCwIcon,
   SearchIcon,
   ShirtIcon,
   SlidersHorizontalIcon,
@@ -302,15 +301,6 @@ export function WardrobePageView({ view, route }) {
         description="喜欢的衣服，合适的搭配，还有今天的自己。"
         actions={
           <>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="刷新衣柜"
-              disabled={w.state.loading.wardrobe}
-              onClick={() => void w.loadWardrobe().catch(() => {})}
-            >
-              <RefreshCwIcon size={15} />
-            </Button>
             <Button
               variant="outline"
               onClick={() =>

@@ -86,6 +86,11 @@ function Fact({ label, value, field, identity }) {
     </div>
   );
 }
+function OverviewFacts({entries,identity}) {
+  const visible=entries.filter(([label,key,value])=>hasVisibleSemanticValue(value,key,identity));
+  const missing=entries.filter(([label,key,value])=>!hasVisibleSemanticValue(value,key,identity));
+  return <>{visible.length>0&&<div className="companion-fact-grid">{visible.map(([label,key,value])=><Fact key={key} label={label} value={value} field={key} identity={identity}/>)}</div>}{missing.length>0&&<p className="profile-empty-value">尚未填写：{missing.map(([label])=>label).join("、")}。可以通过本区编辑入口补充。</p>}</>;
+}
 function Section({ title, description, action, children, className = "" }) {
   return (
     <Surface className={"companion-profile-section " + className}>
@@ -451,29 +456,8 @@ export default function CharacterDetailPageView({ model: m }) {
                     </Button>
                   }
                 >
-                  <div className="companion-fact-grid">
-                    {[
-                      ["称呼", "nickname"],
-                      ["年龄", "age"],
-                      ["职业", "occupation"],
-                      ["居住地", "residence"],
-                      ["生活时区", "timezone"],
-                      ["出生地", "birthplace"],
-                    ].map(([label, key]) => (
-                      <Fact
-                        key={key}
-                        label={label}
-                        value={identity[key]}
-                        field={key}
-                        identity={identity}
-                      />
-                    ))}
-                  </div>
-                  <Block
-                    title="简介与经历"
-                    value={biography}
-                    identity={identity}
-                  />
+                  <OverviewFacts identity={identity} entries={[["称呼","nickname",identity.nickname],["年龄","age",identity.age],["职业","occupation",identity.occupation],["居住地","residence",identity.residence],["生活时区","timezone",identity.timezone],["出生地","birthplace",identity.birthplace]]}/>
+                  {hasVisibleSemanticValue(biography)&&<Block title="简介与经历" value={biography} identity={identity}/>}
                   {hasVisibleSemanticValue(identity.biography) &&
                     identity.biography !== biography && (
                       <Block
@@ -497,27 +481,8 @@ export default function CharacterDetailPageView({ model: m }) {
                     </Button>
                   }
                 >
-                  <div className="companion-fact-grid">
-                    {[
-                      ["回复风格", "response_style"],
-                      ["消息长短", "message_length"],
-                      ["分歧处理", "conflict_style"],
-                      ["拒绝方式", "refusal_style"],
-                    ].map(([label, key]) => (
-                      <Fact
-                        key={key}
-                        label={label}
-                        value={policyFact(key)}
-                        field={key}
-                        identity={identity}
-                      />
-                    ))}
-                  </div>
-                  <Block
-                    title="核心价值观"
-                    value={identity.core_values}
-                    identity={identity}
-                  />
+                  <OverviewFacts identity={identity} entries={[["回复风格","response_style",policyFact("response_style")],["消息长短","message_length",policyFact("message_length")],["分歧处理","conflict_style",policyFact("conflict_style")],["拒绝方式","refusal_style",policyFact("refusal_style")]]}/>
+                  {hasVisibleSemanticValue(identity.core_values)&&<Block title="核心价值观" value={identity.core_values} identity={identity}/>}
                   <Disclosure title="完整表达与相处设定">
                     <SemanticTree
                       value={core.behavioral_policy}

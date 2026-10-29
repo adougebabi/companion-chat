@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect,useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -151,6 +151,19 @@ export default function CharacterWizardView({ model: m }) {
     recoveryTrigger = useRef(null),
     resetTrigger = useRef(null),
     structuredTrigger = useRef(null);
+  const errorRef=useRef(null);
+  useEffect(()=>{if(!m.error)return;const key=Object.keys(m.fieldErrors)[0],id=({name:'create-name',timezone:'create-timezone',bio:'create-bio'})[key],input=id?document.getElementById(id):null;const node=input?.closest('label')||errorRef.current;node?.scrollIntoView({block:'center',behavior:'instant'});input?.focus({preventScroll:true});},[m.error]);
+  const jsonFileInput=useRef(null);
+  const exampleScope=useRef(null);exampleScope.current={c,busy,locked,mode:d.mode};
+  useEffect(()=>()=>{exampleScope.current=null;},[]);
+  const [exampleError,setExampleError]=useState('');
+  async function fillJsonExample(){
+    if(busy||locked)return;
+    const original=d.json;
+    setExampleError('');
+    try{const response=await fetch('/templates/yaoguang-character-init-template.v2.json');if(!response.ok)throw Error('example_read_failed');const value=await response.json(),current=exampleScope.current;if(!current||current.c!==c||current.busy||current.locked||current.mode!=='json'||d.json!==original)return;value.core_persona.identity.timezone=d.timezone||'Asia/Shanghai';await c.importFile(new File([JSON.stringify(value,null,2)],'人物完整示例.json',{type:'application/json'}));}
+    catch{if(exampleScope.current?.c===c)setExampleError('示例暂时无法读取，原输入已保留。可以重试或下载模板。');}
+  }
   let definition = null,
     definitionError = "";
   try {
@@ -181,6 +194,7 @@ export default function CharacterWizardView({ model: m }) {
       m.progress?.stages.some((s) => s.key === "world" && s.state === "ready");
   const edit = (key, value) => {
     if (busy || locked) return;
+    if(key==='timezone')d.timezoneEdited=true;
     d[key] = value;
     c.invalidate();
   };
@@ -282,7 +296,8 @@ export default function CharacterWizardView({ model: m }) {
       />
       <nav className="creation-steps" aria-label="创建步骤">
         {steps.map(([label, note, Icon], i) => (
-          <button
+          <Button
+            variant="ghost"
             type="button"
             key={label}
             className={
@@ -305,28 +320,11 @@ export default function CharacterWizardView({ model: m }) {
             {i < 3 && (
               <ChevronRight className="creation-step-arrow" size={14} />
             )}
-          </button>
+          </Button>
         ))}
       </nav>
-      {m.error && (
-        <InlineFeedback role="alert">
-          {m.error}
-          {m.feedback?.type === "configuration" && (
-            <Button variant="ghost" asChild>
-              <a href={m.configHref("模型用途")}>去配置中心</a>
-            </Button>
-          )}
-        </InlineFeedback>
-      )}
-      {Object.keys(m.fieldErrors).length > 0 && (
-        <InlineFeedback role="alert">
-          <ul>
-            {Object.values(m.fieldErrors).map((text) => (
-              <li key={text}>{text}</li>
-            ))}
-          </ul>
-        </InlineFeedback>
-      )}
+      {m.error&&Object.keys(m.fieldErrors).length===0&&<div ref={errorRef}><InlineFeedback role="alert">{m.error}{m.feedback?.type==='configuration'&&<Button variant="outline" asChild><a href={m.configHref('模型用途')}>去配置中心</a></Button>}</InlineFeedback>{m.feedback&&<JsonDetails value={m.feedback} title="本次分析的技术详情"/>}{m.feedback?.correlationId&&<Button variant="ghost" asChild><a href={'#/diag?view=calls&correlationId='+encodeURIComponent(m.feedback.correlationId)+'&returnTo='+encodeURIComponent(globalThis.location?.hash||'#/library/create')}>查看本次关联运行记录</a></Button>}</div>}
+      {Object.entries(m.fieldErrors).filter(([key])=>!['name','timezone','bio'].includes(key)).map(([key,text])=><InlineFeedback key={key}>{text}</InlineFeedback>)}
       {pending && (
         <WorkspaceInfo>
           <p>原激活结果尚未确认，当前资料和请求身份已保留。请先核对原提交。</p>
@@ -634,6 +632,7 @@ export default function CharacterWizardView({ model: m }) {
                   </button>
                 ))}
               </div>
+              {m.configured===false&&!(m.error&&m.feedback?.type==='configuration')&&['description','json','template'].includes(d.mode)&&<WorkspaceInfo className="creation-model-guidance"><strong>尚未配置通用模型</strong><p>{d.mode==='description'?'描述整理需要模型服务，原输入会保留。也可以选择从空白开始。':'完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。'}</p><Button variant="outline" asChild><a href={m.configHref('模型用途')}>配置通用模型</a></Button></WorkspaceInfo>}
               <Surface className="creation-input-panel">
                 <fieldset disabled={busy || locked} className="creation-stack">
                   <div className="creation-form-grid">
@@ -641,6 +640,8 @@ export default function CharacterWizardView({ model: m }) {
                       {d.mode === "blank" ? "角色名字 *" : "角色名字（可选）"}
                       <FieldInput
                         id="create-name"
+                        aria-invalid={!!m.fieldErrors.name}
+                        aria-describedby={m.fieldErrors.name?'create-name-error':undefined}
                         aria-label="角色名字"
                         data-testid="wizard-name"
                         maxLength={200}
@@ -648,6 +649,7 @@ export default function CharacterWizardView({ model: m }) {
                         onChange={(e) => edit("name", e.target.value)}
                         placeholder="你想怎么称呼对方？"
                       />
+                      {m.fieldErrors.name&&<span id="create-name-error" className="creation-field-error" role="alert">{m.fieldErrors.name}</span>}
                       <small>
                         {d.mode === "blank"
                           ? "空白角色需要一个名字。"
@@ -658,6 +660,8 @@ export default function CharacterWizardView({ model: m }) {
                       生活时区 *
                       <Combobox
                         id="create-timezone"
+                        invalid={!!m.fieldErrors.timezone}
+                        describedBy={m.fieldErrors.timezone?'create-timezone-error':undefined}
                         label="生活时区"
                         value={d.timezone}
                         disabled={busy || locked}
@@ -674,6 +678,7 @@ export default function CharacterWizardView({ model: m }) {
                         ]}
                         onChange={(value) => edit("timezone", value)}
                       />
+                      {m.fieldErrors.timezone&&<span id="create-timezone-error" className="creation-field-error" role="alert">{m.fieldErrors.timezone}</span>}
                       <small>日程与生活节奏都以这个时区为准。</small>
                     </Label>
                     <Label className="full-field">
@@ -732,15 +737,20 @@ export default function CharacterWizardView({ model: m }) {
                     <>
                       <div className="creation-section-heading">
                         <h2>说说这个人</h2>
+                        <Button type="button" variant="ghost" size="sm" onClick={()=>edit('bio','雨禾在城里经营一家小书店，喜欢阅读和散步。她说话自然温和，重视彼此的边界，也愿意慢慢分享日常。')}>填入示例</Button>
                       </div>
                       <Textarea
+                        id="create-bio"
                         aria-label="角色描述"
+                        aria-invalid={!!m.fieldErrors.bio}
+                        aria-describedby={m.fieldErrors.bio?'create-bio-error':undefined}
                         data-testid="wizard-description"
                         rows={8}
                         value={d.bio}
                         onChange={(e) => edit("bio", e.target.value)}
                         placeholder="TA 是谁，在哪里生活？有什么经历、性格、习惯，或者不愿被触碰的边界？"
                       />
+                      {m.fieldErrors.bio&&<span id="create-bio-error" className="creation-field-error" role="alert">{m.fieldErrors.bio}</span>}
                       <div className="creation-field-foot">
                         <span>
                           可以写身份、性格、经历、生活偏好与相处方式。
@@ -785,6 +795,7 @@ export default function CharacterWizardView({ model: m }) {
                     <>
                       <div className="creation-section-heading">
                         <h2>结构化的角色设定</h2>
+                        <div className="creation-action-row">
                         <Button variant="ghost" size="sm" asChild>
                           <a
                             href="/templates/yaoguang-character-init-template.v2.json"
@@ -793,9 +804,10 @@ export default function CharacterWizardView({ model: m }) {
                             下载模板
                           </a>
                         </Button>
-                        <Label>
-                          选择文件
-                          <FieldInput
+                        <Button type="button" variant="outline" size="sm" onClick={()=>jsonFileInput.current?.click()}>选择文件</Button>
+                          <input
+                            ref={jsonFileInput}
+                            hidden
                             aria-label="选择 JSON 文件"
                             type="file"
                             accept="application/json,.json"
@@ -803,7 +815,7 @@ export default function CharacterWizardView({ model: m }) {
                               void c.importFile(e.target.files?.[0])
                             }
                           />
-                        </Label>
+                        </div>
                       </div>
                       <Textarea
                         className="creation-json"
@@ -826,6 +838,8 @@ export default function CharacterWizardView({ model: m }) {
                       <p className="creation-muted">
                         填写已知的人物资料，保留模板结构；不要导入聊天存档或分析凭证。
                       </p>
+                      <Button type="button" variant="ghost" onClick={()=>void fillJsonExample()}>填入完整示例</Button>
+                      {exampleError&&<InlineFeedback>{exampleError}</InlineFeedback>}
                     </>
                   )}
                   {d.mode === "template" && (
@@ -911,14 +925,6 @@ export default function CharacterWizardView({ model: m }) {
                   )}
                 </fieldset>
               </Surface>
-              {m.configured === false && d.mode === "description" && (
-                <WorkspaceInfo>
-                  尚未配置通用模型。请连接模型服务后整理资料。
-                  <Button variant="outline" asChild>
-                    <a href={m.configHref("模型用途")}>先连接模型</a>
-                  </Button>
-                </WorkspaceInfo>
-              )}
               {step === "analysis" && (
                 <Surface className="creation-analyzing">
                   <LoaderCircle className="animate-spin" size={24} />

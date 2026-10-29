@@ -1,0 +1,716 @@
+[
+  {
+    "name": "avatar-save",
+    "size": "desktop",
+    "fid": "media-r18-modules1-avatar-save-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-r18-modules1-avatar-save-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-desktop/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "a9eb6a23-cd22-44a9-9e8a-d7ce9d53b5c9"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-save-desktop-saved-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-unknown",
+    "size": "desktop",
+    "fid": "media-r18-modules1-avatar-unknown-desktop",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "unknown-original: no horizontal overflow",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-r18-modules1-avatar-unknown-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "eafd23cb-0c04-4b1c-93a8-e2fafa6ce514"
+        }
+      },
+      {
+        "path": "/api/media/media-r18-modules1-avatar-unknown-desktop-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "eafd23cb-0c04-4b1c-93a8-e2fafa6ce514"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-desktop/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-desktop-unknown-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-desktop-saved-history.png"
+    ],
+    "injectedFault": "replace accepted first response with503; server keeps original idempotent record",
+    "acceptedStatus": 200,
+    "status": "passed"
+  },
+  {
+    "name": "avatar-save",
+    "size": "mobile",
+    "fid": "media-r18-modules1-avatar-save-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-r18-modules1-avatar-save-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-mobile/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "b29f942d-2f69-4b51-b667-b4e5f3a249b3"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-save-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-save-mobile-saved-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "avatar-unknown",
+    "size": "mobile",
+    "fid": "media-r18-modules1-avatar-unknown-mobile",
+    "kind": "production dist / controlled media HTTP; synthetic candidate and generated images, no model image judgment certified",
+    "checks": [
+      "selecting preview has no mutation",
+      "unknown-original: no horizontal overflow",
+      "avatar independently saves actual selected revision",
+      "canonical identity remains independent",
+      "avatar recovery retains exact original key/body",
+      "saved-history: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/media-r18-modules1-avatar-unknown-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "9b29dd86-f2ec-465f-a896-93a626366ab8"
+        }
+      },
+      {
+        "path": "/api/media/media-r18-modules1-avatar-unknown-mobile-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar",
+        "method": "PUT",
+        "body": {
+          "mode": "asset",
+          "expectedRevision": 1,
+          "reason": "明确选择隔离样本媒体作为显示头像",
+          "assetId": "replica-landscape",
+          "expectedAssetRevision": 3,
+          "idempotencyKey": "9b29dd86-f2ec-465f-a896-93a626366ab8"
+        }
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/media-r18-modules1-avatar-unknown-mobile/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-mobile-unknown-original.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-mobile-saved-history.png"
+    ],
+    "injectedFault": "replace accepted first response with503; server keeps original idempotent record",
+    "acceptedStatus": 200,
+    "status": "passed"
+  }
+]

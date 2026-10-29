@@ -57,7 +57,7 @@ async function fixture({
   intercept,
 } = {}) {
   if (!retainStorage) sessionStorage.clear();
-  api ||= worldFixture({ owner: "world-owner", scenario });
+  api ||= worldFixture({ owner: "world-owner", scenario,projectionReads:true });
   const w = createWorkspace();
   store.replaceSnapshot({
     ...store.get(),
@@ -172,6 +172,11 @@ test("world create cancellation never writes and an accepted create does not bin
     await f.dispose();
   }
 });
+test('world selection readback retries the current projection with GET only after a confirmed binding write',async()=>{
+ let fail=true;
+ const f=await fixture({intercept:async({url,api})=>{if(fail&&url.pathname==='/api/fluctlights/A/detail'&&api.calls.some(c=>c.method==='PUT'&&c.path.endsWith('/world/active'))){throw Error('已切换世界，当前资料首次读取失败');}}});
+ try{await enter(f,'远山森林');await f.v.click(button(f.v.host,'切换到此世界'));await f.v.click(button(dialog(),'切换世界'));assert.ok(button(dialog(),'只读恢复页面结果'));assert.equal(f.writes().length,1);fail=false;await f.v.click(button(dialog(),'只读恢复页面结果'));assert.equal(f.writes().length,1);assert.equal(f.w.current.value.world,'远山森林');assert.equal(f.s.context.context_revision,'unchanged-context');}finally{await f.dispose();}
+});
 test("place edit preserves immutable name/category and omits unchanged nested arrays while reading the actual revision back", async () => {
   const f = await fixture();
   try {
@@ -267,7 +272,7 @@ test("a lost world-create receipt resumes the same body and key after remount; n
       dialog().querySelector('[aria-label="世界名称"]').value,
       "后续草稿 B",
     );
-    await next.v.click(button(dialog(), "读取最新版本并保留输入"));
+    await next.v.click(button(dialog(), "同步资料，保留输入"));
     await next.v.click(button(dialog(), "已核对，采用最新基线"));
     await next.v.click(button(dialog(), "保存世界"));
     assert.equal(next.s.worlds.length, 3);
@@ -308,6 +313,9 @@ test("world binding uses its own revision and preserves the existing life contex
     assert.equal(f.s.binding.revision, 5);
     assert.equal(f.s.worlds[1].revision, 7);
     assert.equal(f.s.context.context_revision, "unchanged-context");
+    assert.equal(f.w.current.value.world,"远山森林");
+    assert.equal(f.w.current.value.location,"原有生活位置");
+    assert.ok(f.api.calls.some(c=>c.method==='GET'&&c.path==='/api/fluctlights/A/detail'));
     assert.match(f.v.host.textContent, /世界绑定已读回/);
   } finally {
     await f.dispose();
@@ -509,7 +517,7 @@ test("category conflict review preserves the externally updated world name rathe
       "河岸街区",
     );
     await f.v.click(button(dialog(), "添加分类"));
-    await f.v.click(button(dialog(), "读取最新版本并保留输入"));
+    await f.v.click(button(dialog(), "同步资料，保留输入"));
     await f.v.click(button(dialog(), "已核对，采用最新基线"));
     await f.v.click(button(dialog(), "添加分类"));
     assert.equal(f.s.worlds[0].name, "另一会话的新名字");
@@ -553,7 +561,7 @@ test("recovering an unknown place create records the saved immutable identity an
       dialog().querySelector('[aria-label="别名"]').value,
       "保留的后续别名",
     );
-    await f.v.click(button(dialog(), "读取最新版本并保留输入"));
+    await f.v.click(button(dialog(), "同步资料，保留输入"));
     await f.v.click(button(dialog(), "已核对，采用最新基线"));
     await f.v.click(button(dialog(), "保存地点"));
     assert.equal(f.s.places.length, 3);

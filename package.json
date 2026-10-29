@@ -7,6 +7,9 @@
     "node": ">=24.12.0"
   },
   "scripts": {
+    "hooks:install": "git config core.hooksPath .githooks",
+    "check:commit-images": "node scripts/check-no-images-in-commit.mjs",
+    "test:commit-images": "node --test scripts/check-no-images-in-commit.test.mjs",
     "dev": "go -C apps/core-go run ./cmd/api",
     "build": "pnpm -r build",
     "test": "pnpm -r test",

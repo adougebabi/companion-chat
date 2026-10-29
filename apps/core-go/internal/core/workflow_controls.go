@@ -70,6 +70,10 @@ func workflowRecovery(kind string, input map[string]any) map[string]any {
 		return map[string]any{"href": href, "label": label, "mode": "domain_recovery", "reason": "领域恢复保留原结果、attempt、版本和副作用围栏；工作流命令不代表业务已成功"}
 	}
 	switch kind {
+	case "wardrobe.initialize":
+		if fid != "" {
+			return link(root+"/life/wardrobe", "恢复初始衣柜准备")
+		}
 	case "schedule.current_day":
 		return link(root+"/life/schedule?recoverInitial=1", "恢复原日程任务")
 	case "studio.generate":

@@ -235,6 +235,12 @@
   overflow: hidden;
 }
 .replica-creation .creation-step {
+  border: 0;
+  height: auto;
+  justify-content: flex-start;
+  white-space: normal;
+  border-radius: 0;
+  font-weight: 400;
   position: relative;
   display: flex;
   text-align: left;
@@ -247,6 +253,7 @@
   background: #edf3e7;
 }
 .replica-creation .creation-step:disabled {
+  opacity: 1;
   cursor: default;
 }
 .replica-creation .creation-step:not(:disabled):hover {
@@ -1265,8 +1272,11 @@
   box-shadow: none;
 }
 .replica-creation .creation-input-panel > fieldset.creation-stack {
-  gap: 0;
+  gap: 20px;
 }
+.replica-creation .creation-json { min-height:300px;field-sizing:fixed;resize:vertical; }
+.replica-creation .creation-section-heading > .creation-action-row { display:flex;flex-wrap:wrap;gap:8px; }
+.replica-creation .creation-model-guidance { margin-bottom:20px; }
 .replica-creation .creation-input-panel [data-slot="collapsible"] {
   margin-top: 18px;
 }
@@ -1340,3 +1350,6 @@
     bottom: calc(8px - 35px);
   }
 }
+.replica-creation .creation-field-error{font-size:11px;color:#a1584c;line-height:1.8}
+.replica-creation .creation-model-guidance{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px 12px;padding:12px 14px}
+.creation-model-guidance>strong{grid-column:1;font-size:12px}.creation-model-guidance>p{grid-column:1;line-height:1.7}.creation-model-guidance>[data-slot=button]{grid-column:2;grid-row:1/span 2;min-height:32px;height:auto;font-size:11px;padding:6px 10px}

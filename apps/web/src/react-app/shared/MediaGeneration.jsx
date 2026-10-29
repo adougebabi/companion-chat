@@ -73,9 +73,10 @@ function GenerationFields({ model: m, draft: d, edit }) {
   return (
     <div className="r-form-stack">
       <label className="replica-field">
-        <span>画面描述</span>
+        <span>画面描述 <span className="replica-required" aria-hidden="true">*</span></span>
         <Textarea
           aria-label="画面描述"
+          required
           placeholder="例如：想看看你在书店窗边看书的样子，午后的光线轻轻落在书页上。"
           rows={5}
           value={d.prompt}
@@ -230,9 +231,10 @@ function GenerationFields({ model: m, draft: d, edit }) {
         </>
       )}
       <label className="replica-field">
-        <span>请求原因</span>
+        <span>请求原因 <span className="replica-required" aria-hidden="true">*</span></span>
         <Textarea
           aria-label="请求原因"
+          required
           value={d.reason}
           onChange={(e) => edit({ reason: e.target.value })}
         />

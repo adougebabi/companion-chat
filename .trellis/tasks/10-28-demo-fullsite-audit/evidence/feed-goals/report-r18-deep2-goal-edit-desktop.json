@@ -1,0 +1,105 @@
+[
+  {
+    "name": "goal-edit",
+    "size": "desktop",
+    "kind": "production dist / mutable controlled feed or goal HTTP; no real autonomous publishing or evidence evaluation claim",
+    "checks": [
+      "cancel does not write goal",
+      "editing-goal: no horizontal overflow",
+      "editing-goal: dialog fits viewport",
+      "full definition reads actual saved title criteria and protection",
+      "new definition stays separate from confirmed completion",
+      "goal correction preserves original identity across unknown receipt",
+      "saved-goal: no horizontal overflow",
+      "saved-goal: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 1,
+          "desiredOutcome": "目标修改 r18-deep2-goal-edit-desktop goal-edit desktop",
+          "motivation": "保留完整定义和可追溯的条件。",
+          "successCriteria": [
+            "完成街景草图",
+            "保存最终画作",
+            "核对实际产物"
+          ],
+          "deadlinePolicy": "soft",
+          "ownerProtected": true,
+          "reason": "核对完整定义字段与保存回读",
+          "clearDeadline": true,
+          "idempotencyKey": "ed7eb0e4-d157-4d65-b2f5-c44ac68c80bc"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/evidence",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals/goal-fixture-one/history",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-edit-desktop-goal-edit-desktop-editing-goal.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-edit-desktop-goal-edit-desktop-saved-goal.png"
+    ],
+    "status": "passed"
+  }
+]

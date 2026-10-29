@@ -749,7 +749,7 @@ export default function VisualWorkspace({ model: m }) {
           <MediaReader source={timeline} label="视觉记录" />
           {timeline.items.map((row, index) => (
             <div className="r-timeline-entry" key={row.id || index}>
-              <b>{row.summary || stateLabel(row.stage) || "视觉记录"}</b>
+              <b>{typeof row.summary === "string" ? row.summary.replace(/Visual Identity/g,"形象准备") : stateLabel(row.stage) || "视觉记录"}</b>
               <small>
                 {row.occurred_at ? userInstant(row.occurred_at) : "时间未记录"}
               </small>

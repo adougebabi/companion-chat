@@ -20,6 +20,14 @@ Managed by Trellis. Edits outside this block are preserved; edits inside may be 
 
 <!-- TRELLIS:END -->
 
+## 禁止提交图片
+
+- 用户明确要求：不再向 Git 提交图片，包括回归截图、参考截图、生成图和 SVG 等图片文件。
+- 图片只用于本地验证，放在 Git 忽略范围或仓库外；报告只提交文字、检查结果和必要的几何数据。
+- 既有已跟踪图片也不得修改后提交；删除图片允许提交。只有用户后续明确授权提交特定图片时才能例外。
+- 不使用 `git add -f`、跳过提交钩子或其他包装方式规避此要求。
+- 当前仓库使用 `.githooks/pre-commit` 执行 `scripts/check-no-images-in-commit.mjs`。新检出后运行 `pnpm hooks:install` 安装钩子，提交前可运行 `pnpm check:commit-images`。
+
 ## LLM 提示词修改必读
 
 修改任何 Agent、Writer、媒体/视觉任务、Kev 或模型修复请求前，先读

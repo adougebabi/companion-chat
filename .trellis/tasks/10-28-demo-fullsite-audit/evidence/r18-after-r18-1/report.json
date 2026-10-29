@@ -1,0 +1,1750 @@
+[
+  {
+    "name": "settings",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "模型服务与用途: no horizontal overflow",
+      "聊天与视觉: no horizontal overflow",
+      "temperature and Top P use real sliders",
+      "图片生成: no horizontal overflow",
+      "自主性与安静时段: no horizontal overflow",
+      "通知与后台: no horizontal overflow",
+      "real notification switch 新消息通知",
+      "real notification switch 目标与请求结果提醒",
+      "real notification switch 媒体结果通知",
+      "高级设置: no horizontal overflow",
+      "directory reads did not persist a clean connection draft",
+      "loaded and edited range retains exact numeric value",
+      "range-edit: no horizontal overflow",
+      "ordinary inspection and draft edit do not write",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-reference-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-reference-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-reference-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-reference-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-reference-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-reference-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-wide-range-edit.png"
+    ],
+    "feedback": [
+      {
+        "label": "模型服务与用途",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 577,
+              "y": 1013.421875,
+              "width": 992,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "聊天与视觉",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 577,
+              "y": 979.234375,
+              "width": 992,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "图片生成",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 577,
+              "y": 1013.421875,
+              "width": 992,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "自主性与安静时段",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 577,
+              "y": 1013.421875,
+              "width": 992,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "通知与后台",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 577,
+              "y": 1013.421875,
+              "width": 992,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "高级设置",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 577,
+              "y": 1013.421875,
+              "width": 992,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "range-edit",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 577,
+              "y": 977.234375,
+              "width": 992,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "模型服务与用途",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "聊天与视觉",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "图片生成",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "自主性与安静时段",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "通知与后台",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "高级设置",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "range-edit",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wizard-json",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "fresh timezone is Shanghai despite LA browser timezone",
+      "JSON editor has a usable initial height",
+      "file picker is a compact action",
+      "example is input only, without a manufactured analysis"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/wizard-json-wide-input.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 350,
+              "y": 468.625,
+              "width": 1150,
+              "height": 104.140625
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: example preserves original draft request identity\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:20:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:34:521",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n新的相识\n快速前往\n⌘ K\nA NEW BEGINNING / 新的相识\n你想怎样认识这个人？\n\n不必一次写完所有细节，预览时还可以继续调整。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n从空白开始\n名字之外，留给相处\n一段描述\n用文字勾勒这个人\n导入 JSON\n带来已有的完整设定\n角色模板\n从发布的底稿出发\n尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型\n角色名字（可选）\n填写后将作为这次创建的名字。\n生活时区 *\nAsia/Shanghai\n日程与生活节奏都以这个时区为准。\n角色分组\n未分组\n结构化的角色设定\n下载模板\n选择文件\n人物完整示例.json\n881 / 60,000 字节\n\n填写已知的人物资料，保留模板结构；不要导入聊天存档或分析凭证。\n\n填入完整示例\nYOUR NEW CHAPTER\n日常生活世界\n\n给日常一个可以发生的地方。\n\n生活世界\n日常生活世界\n认识方式\n导入 JSON\n生活时区\nAsia/Shanghai\n每一个细节，\n都可以成为日后相处的回声。\n草稿与原请求按当前账号保留\n草稿自动保留\n返回与切换页面，保留这次输入。\n上一步\n整理并预览"
+  },
+  {
+    "name": "diagnostics-context",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "task-context: no horizontal overflow",
+      "one contextual task dialog",
+      "failure reason identifies the model configuration"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r18-wardrobe-task",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r18-wardrobe-workflow",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/diagnostics-context-wide-task-context.png"
+    ],
+    "feedback": [
+      {
+        "label": "task-context",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次任务未完成\n通用模型尚未就绪。请核对模型用途和服务连接，原资料与已完成步骤会保留。 已有角色、世界与准备记录会保留。\n去配置通用模型\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 715,
+              "y": 279.9453125,
+              "width": 475,
+              "height": 178.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "去配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94&returnTo=%23%2Flibrary%2Fcreate%3Fresume%3Dfluctlight-fixture-one",
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "task-context",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: no invented generic restart reset controls\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:20:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:45:282",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n运行诊断\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n返回初始化流程\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n诊断与任务\n\n查看执行到了哪里，在需要时继续原任务。\n\n新相识 · 初始化任务\n\n已有资料和原任务会保留，配置与恢复操作在实际业务入口完成。\n\n返回初始化流程\n任务中心\n模型调用记录\n服务诊断\n需要处理\n1\n已读取的失败或暂停任务\n正在执行\n0\n以服务端记录为准\n已经完成\n0\n已读取的完成记录\n所有状态\n林岚 · 验收样本 · 形象准备\n\n2026-10-13 09:00:00（北京时间） · 记录 -fixture\n\n执行失败\n查看完整待处理事项与来源\n任务记录\n\n失败原因、实际执行记录和原业务恢复入口会分别保留。\n\n初始穿搭准备\n执行失败\n\n已尝试 1 次 · 用时 30 秒\n\n本次任务未完成\n通用模型尚未就绪。请核对模型用途和服务连接，原资料与已完成步骤会保留。 已有角色、世界与准备记录会保留。\n去配置通用模型\n查看技术详情\n任务概况\n执行记录\n3\n来源与调用\n\n本任务尚未提供独立的阶段进度；实际状态变化保留在执行记录中。\n\n仅显示已记录的环节状态，排队和已受理不表示完成。\n\n任务恢复\n重新读取恢复状态\n任务：执行失败\n执行器：执行失败\n查看初始衣柜与恢复\n重试任务\n从检查点重新执行\n执行历史与检查点\n管理命令与技术详情\n关闭"
+  },
+  {
+    "name": "settings",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "模型服务与用途: no horizontal overflow",
+      "聊天与视觉: no horizontal overflow",
+      "temperature and Top P use real sliders",
+      "图片生成: no horizontal overflow",
+      "自主性与安静时段: no horizontal overflow",
+      "通知与后台: no horizontal overflow",
+      "real notification switch 新消息通知",
+      "real notification switch 目标与请求结果提醒",
+      "real notification switch 媒体结果通知",
+      "高级设置: no horizontal overflow",
+      "directory reads did not persist a clean connection draft",
+      "loaded and edited range retains exact numeric value",
+      "range-edit: no horizontal overflow",
+      "ordinary inspection and draft edit do not write",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-reference-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-reference-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-reference-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-reference-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-reference-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-reference-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-desktop-range-edit.png"
+    ],
+    "feedback": [
+      {
+        "label": "模型服务与用途",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "聊天与视觉",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "图片生成",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "自主性与安静时段",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "通知与后台",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "高级设置",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "range-edit",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "模型服务与用途",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "聊天与视觉",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "图片生成",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "自主性与安静时段",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "通知与后台",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "高级设置",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "range-edit",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wizard-json",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "fresh timezone is Shanghai despite LA browser timezone",
+      "JSON editor has a usable initial height",
+      "file picker is a compact action",
+      "example is input only, without a manufactured analysis"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/wizard-json-desktop-input.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 456.625,
+              "width": 789,
+              "height": 104.140625
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: example preserves original draft request identity\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:20:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:34:521",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n新的相识\n快速前往\n⌘ K\nA NEW BEGINNING / 新的相识\n你想怎样认识这个人？\n\n不必一次写完所有细节，预览时还可以继续调整。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n从空白开始\n名字之外，留给相处\n一段描述\n用文字勾勒这个人\n导入 JSON\n带来已有的完整设定\n角色模板\n从发布的底稿出发\n尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型\n角色名字（可选）\n填写后将作为这次创建的名字。\n生活时区 *\nAsia/Shanghai\n日程与生活节奏都以这个时区为准。\n角色分组\n未分组\n结构化的角色设定\n下载模板\n选择文件\n人物完整示例.json\n881 / 60,000 字节\n\n填写已知的人物资料，保留模板结构；不要导入聊天存档或分析凭证。\n\n填入完整示例\nYOUR NEW CHAPTER\n日常生活世界\n\n给日常一个可以发生的地方。\n\n生活世界\n日常生活世界\n认识方式\n导入 JSON\n生活时区\nAsia/Shanghai\n每一个细节，\n都可以成为日后相处的回声。\n草稿与原请求按当前账号保留\n草稿自动保留\n返回与切换页面，保留这次输入。\n上一步\n整理并预览"
+  },
+  {
+    "name": "diagnostics-context",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "task-context: no horizontal overflow",
+      "one contextual task dialog",
+      "failure reason identifies the model configuration"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r18-wardrobe-task",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r18-wardrobe-workflow",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/diagnostics-context-desktop-task-context.png"
+    ],
+    "feedback": [
+      {
+        "label": "task-context",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次任务未完成\n通用模型尚未就绪。请核对模型用途和服务连接，原资料与已完成步骤会保留。 已有角色、世界与准备记录会保留。\n去配置通用模型\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 429,
+              "y": 254.140625,
+              "width": 475,
+              "height": 178.78125
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "12px"
+            },
+            "actions": [
+              {
+                "text": "去配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94&returnTo=%23%2Flibrary%2Fcreate%3Fresume%3Dfluctlight-fixture-one",
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "task-context",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: no invented generic restart reset controls\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:20:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:45:282",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n运行诊断\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n返回初始化流程\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n诊断与任务\n\n查看执行到了哪里，在需要时继续原任务。\n\n新相识 · 初始化任务\n\n已有资料和原任务会保留，配置与恢复操作在实际业务入口完成。\n\n返回初始化流程\n任务中心\n模型调用记录\n服务诊断\n需要处理\n1\n已读取的失败或暂停任务\n正在执行\n0\n以服务端记录为准\n已经完成\n0\n已读取的完成记录\n所有状态\n林岚 · 验收样本 · 形象准备\n\n2026-10-13 09:00:00（北京时间） · 记录 -fixture\n\n执行失败\n查看完整待处理事项与来源\n任务记录\n\n失败原因、实际执行记录和原业务恢复入口会分别保留。\n\n初始穿搭准备\n执行失败\n\n已尝试 1 次 · 用时 30 秒\n\n本次任务未完成\n通用模型尚未就绪。请核对模型用途和服务连接，原资料与已完成步骤会保留。 已有角色、世界与准备记录会保留。\n去配置通用模型\n查看技术详情\n任务概况\n执行记录\n3\n来源与调用\n\n本任务尚未提供独立的阶段进度；实际状态变化保留在执行记录中。\n\n仅显示已记录的环节状态，排队和已受理不表示完成。\n\n任务恢复\n重新读取恢复状态\n任务：执行失败\n执行器：执行失败\n查看初始衣柜与恢复\n重试任务\n从检查点重新执行\n执行历史与检查点\n管理命令与技术详情\n关闭"
+  },
+  {
+    "name": "settings",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "模型服务与用途: no horizontal overflow",
+      "聊天与视觉: no horizontal overflow",
+      "temperature and Top P use real sliders",
+      "图片生成: no horizontal overflow",
+      "自主性与安静时段: no horizontal overflow",
+      "通知与后台: no horizontal overflow",
+      "real notification switch 新消息通知",
+      "real notification switch 目标与请求结果提醒",
+      "real notification switch 媒体结果通知",
+      "高级设置: no horizontal overflow",
+      "directory reads did not persist a clean connection draft",
+      "loaded and edited range retains exact numeric value",
+      "range-edit: no horizontal overflow",
+      "ordinary inspection and draft edit do not write",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-reference-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-reference-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-reference-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-reference-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-reference-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-reference-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/settings-mobile-range-edit.png"
+    ],
+    "feedback": [
+      {
+        "label": "模型服务与用途",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "聊天与视觉",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "图片生成",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "自主性与安静时段",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "通知与后台",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "高级设置",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "range-edit",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "有未保存修改",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "模型服务与用途",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "聊天与视觉",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "图片生成",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "自主性与安静时段",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "通知与后台",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "高级设置",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "range-edit",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wizard-json",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "fresh timezone is Shanghai despite LA browser timezone",
+      "JSON editor has a usable initial height",
+      "file picker is a compact action",
+      "example is input only, without a manufactured analysis"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/wizard-json-mobile-input.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 598.640625,
+              "width": 356,
+              "height": 123.9375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: example preserves original draft request identity\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:20:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:34:521",
+    "text": "Toggle Sidebar\n角色库\n新的相识\n快速前往\nA NEW BEGINNING / 新的相识\n你想怎样认识这个人？\n\n不必一次写完所有细节，预览时还可以继续调整。\n\n返回角色库\n生活世界\n认识角色\n资料预览\n准备相遇\n从空白开始\n名字之外，留给相处\n一段描述\n用文字勾勒这个人\n导入 JSON\n带来已有的完整设定\n角色模板\n从发布的底稿出发\n尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型\n角色名字（可选）\n填写后将作为这次创建的名字。\n生活时区 *\nAsia/Shanghai\n日程与生活节奏都以这个时区为准。\n角色分组\n未分组\n结构化的角色设定\n下载模板\n选择文件\n人物完整示例.json\n881 / 60,000 字节\n\n填写已知的人物资料，保留模板结构；不要导入聊天存档或分析凭证。\n\n填入完整示例\n草稿自动保留\n上一步\n整理并预览"
+  },
+  {
+    "name": "diagnostics-context",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "task-context: no horizontal overflow",
+      "one contextual task dialog",
+      "failure reason identifies the model configuration"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r18-wardrobe-task",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r18-wardrobe-workflow",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-1/diagnostics-context-mobile-task-context.png"
+    ],
+    "feedback": [
+      {
+        "label": "task-context",
+        "nodes": [
+          {
+            "kind": "error",
+            "role": "alert",
+            "live": "assertive",
+            "text": "本次任务未完成\n通用模型尚未就绪。请核对模型用途和服务连接，原资料与已完成步骤会保留。 已有角色、世界与准备记录会保留。\n去配置通用模型\n查看技术详情",
+            "tag": "DIV",
+            "testId": null,
+            "className": "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg:not([class*='size-'])]:size-4 bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current replica-feedback min-w-0",
+            "bounds": {
+              "x": 58,
+              "y": 249.625,
+              "width": 259,
+              "height": 200.609375
+            },
+            "style": {
+              "color": "rgb(167, 73, 61)",
+              "background": "rgb(255, 255, 255)",
+              "border": "rgb(232, 214, 208)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "去配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94&returnTo=%23%2Flibrary%2Fcreate%3Fresume%3Dfluctlight-fixture-one",
+                "disabled": false,
+                "expanded": null
+              },
+              {
+                "text": "查看技术详情",
+                "label": null,
+                "href": null,
+                "disabled": false,
+                "expanded": "false"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "task-context",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      }
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: no invented generic restart reset controls\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:20:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-priority-ui.mjs:45:282",
+    "text": "Toggle Sidebar\n创作与管理\n运行诊断\n快速前往\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n返回初始化流程\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n诊断与任务\n\n查看执行到了哪里，在需要时继续原任务。\n\n新相识 · 初始化任务\n\n已有资料和原任务会保留，配置与恢复操作在实际业务入口完成。\n\n返回初始化流程\n任务中心\n模型调用记录\n服务诊断\n需要处理\n1\n已读取的失败或暂停任务\n正在执行\n0\n以服务端记录为准\n已经完成\n0\n已读取的完成记录\n所有状态\n林岚 · 验收样本 · 形象准备\n\n2026-10-13 09:00:00（北京时间） · 记录 -fixture\n\n执行失败\n查看完整待处理事项与来源\n任务记录\n\n失败原因、实际执行记录和原业务恢复入口会分别保留。\n\n初始穿搭准备\n执行失败\n\n已尝试 1 次 · 用时 30 秒\n\n本次任务未完成\n通用模型尚未就绪。请核对模型用途和服务连接，原资料与已完成步骤会保留。 已有角色、世界与准备记录会保留。\n去配置通用模型\n查看技术详情\n任务概况\n执行记录\n3\n来源与调用\n\n本任务尚未提供独立的阶段进度；实际状态变化保留在执行记录中。\n\n仅显示已记录的环节状态，排队和已受理不表示完成。\n\n任务恢复\n重新读取恢复状态\n任务：执行失败\n执行器：执行失败\n查看初始衣柜与恢复\n重试任务\n从检查点重新执行\n执行历史与检查点\n管理命令与技术详情\n关闭"
+  }
+]

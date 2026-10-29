@@ -1,0 +1,22 @@
+life-empty desktop passed 9
+diary-unwritten desktop failed AssertionError [ERR_ASSERTION]: unwritten diary explains disabled reply
+    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:14:37)
+    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:22:26
+profile-empty desktop passed 5
+media-metadata desktop passed 10
+media-forms desktop passed 8
+world-fields-binding desktop passed 10
+feed-layout desktop passed 5
+studio-title desktop passed 5
+data-summary desktop passed 3
+life-empty mobile passed 9
+diary-unwritten mobile failed AssertionError [ERR_ASSERTION]: unwritten diary explains disabled reply
+    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:14:37)
+    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:22:26
+profile-empty mobile passed 5
+media-metadata mobile passed 10
+media-forms mobile passed 8
+world-fields-binding mobile passed 10
+feed-layout mobile passed 5
+studio-title mobile passed 5
+data-summary mobile passed 3

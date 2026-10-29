@@ -1,5 +1,6 @@
 import {ArrowUpRightIcon,BookOpenIcon,Clock3Icon,HeartIcon,LeafIcon,MapPinIcon,MessageSquareIcon,SunIcon} from 'lucide-react';
 import {Button} from '@/components/ui/button';
+import {EmptyMedia} from '@/components/ui/empty';
 import {Surface} from '../controls';
 import WorkspacePageHeader from '../shared/WorkspacePageHeader';
 import ScheduleTimeline from '../shared/ScheduleTimeline';
@@ -19,9 +20,9 @@ export default function NowPage({view}){
  return <div className="replica-life replica-now"><WorkspacePageHeader eyebrow="LIFE / RIGHT NOW" title={c.name+'的此刻'} description="生活正在发生。这里收着今天的状态和接下来的小事。" actions={<Button variant="outline" onClick={()=>go('聊天')}><MessageSquareIcon size={15}/>和{c.name}聊聊</Button>}/>
   <div className="lp-grid"><div className="lp-stack">
    <section className="lp-hero"><div><div className="lp-row lp-day-stamp"><span>{date}</span></div>{w.state.loading.detail&&!c.activity?<LoadingState label="正在读取此刻状态…"/>:<h2>{c.activity||'此刻状态尚未更新'}</h2>}<div className="lp-row"><span className="lp-chip"><MapPinIcon size={12}/>{c.location||'位置尚未记录'}</span><span className="lp-chip"><LeafIcon size={12}/>{c.mood||'心情尚未记录'}</span></div></div><div className="lp-hero-art" aria-hidden="true"><BookOpenIcon/></div></section>
-   <Surface className="lp-pad"><div className="replica-section-heading"><div><h2>今天，慢慢走</h2><p>已确认的安排与即将到来的片刻</p></div><Button variant="link" onClick={()=>go('日程')}>完整日程<ArrowUpRightIcon size={12}/></Button></div>
+   <Surface className="lp-pad"><div className="replica-section-heading"><div><h2>今天，慢慢走</h2><p>已确认的安排与即将到来的片刻</p></div>{todayItems.length>0&&<Button variant="link" onClick={()=>go('日程')}>完整日程<ArrowUpRightIcon size={12}/></Button>}</div>
     {readingSchedule&&<LoadingState label="正在读取日程…"/>}{view.readError('schedule')&&<InlineFeedback role="alert">日程读取未完成，保留已确认的安排。{view.readError('schedule')}<Button variant="outline" onClick={()=>void w.loadLife({currentOnly:true}).catch(()=>{})}>重新读取日程</Button></InlineFeedback>}
-    {todayItems.length?<ScheduleTimeline items={todayItems.slice(-4)} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
+    {todayItems.length?<ScheduleTimeline items={todayItems.slice(-4)} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState className="replica-now-empty"><EmptyMedia><LeafIcon size={25} aria-hidden="true"/></EmptyMedia><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
     <Button variant="link" className="replica-timeline-link" onClick={()=>view.openTimeline()}>生活时间线<ArrowUpRightIcon size={12}/></Button>
    </Surface>
   </div><div className="lp-stack"><Surface className="lp-pad"><div className="replica-section-heading"><h2>生活切片</h2></div>

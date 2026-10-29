@@ -174,6 +174,10 @@ export default function WorldPage({ initialWorldId = "" } = {}) {
         throw Error("世界保存版本尚未读回。");
     }
     catalogRef.current.adopt(page);
+    if(selectedWorld){
+      await w.detail();
+      if(!live())return;
+    }
     setNotice(
       selectedWorld
         ? "世界绑定已读回，角色的实际地点仍以生活记录为准。"

@@ -1,0 +1,302 @@
+[
+  {
+    "name": "annotation-search",
+    "size": "desktop",
+    "fid": "diary-r18-modules1-annotation-search-desktop",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "search retains already confirmed diary prose",
+      "cancel sends no annotation",
+      "cancelled note does not reappear",
+      "editing: no horizontal overflow",
+      "annotation saved independently from diary original",
+      "refresh retains saved note",
+      "favorite list reads both actual saved favorites",
+      "saved-favorite: no horizontal overflow",
+      "one explicit annotation write only",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary/diary-fixture-one/annotation",
+        "method": "PUT",
+        "body": {
+          "note": "读完这一天，想把安静的片刻留下。",
+          "favorite": true,
+          "expectedRevision": 0,
+          "idempotencyKey": "f77a2fcc-3a09-4c9c-81b1-7ce33bc7aea5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-desktop/diary",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-desktop-saved-favorite.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "reply-request",
+    "size": "desktop",
+    "fid": "diary-r18-modules1-reply-request-desktop",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "reply edits in place without a modal",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-reply-request-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-reply-request-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-reply-request-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "inline is not defined",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n日\n正在相处\n日记核验样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日记\n快速前往\n⌘ K\nLIFE / LITTLE PAGES\n日记\n\n那些没有说出口的日常，被认真地写在这里。\n\n整理一篇日记\n日记核验样本的日记\n2\n共同经历\n只看收藏\n2026-10-26\n这是一篇隔离验收日记。\n2026-10-25\n这是一篇隔离验收日记。\n2026 / 10 / 26\n已经写下\n2026-10-26的日记\n这是一篇隔离验收日记。\n\n今天读到一段平常的故事，也把手边的画作慢慢整理好。\n\n日子里有许多小事，认真记下来，之后还可以回来看看。\n日记核验样本的主观记录\n写一点批注\n留言\n刷新留言记录\n\n还没有读到这篇日记的留言请求。\n\n留言内容\n读取最新版本并保留输入\n取消\n发送留言\n\n留言会进入处理流程，是否有回应以实际交流记录为准。\n\n生成尝试、素材与来源"
+  },
+  {
+    "name": "annotation-search",
+    "size": "mobile",
+    "fid": "diary-r18-modules1-annotation-search-mobile",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "search retains already confirmed diary prose",
+      "cancel sends no annotation",
+      "cancelled note does not reappear",
+      "editing: no horizontal overflow",
+      "annotation saved independently from diary original",
+      "refresh retains saved note",
+      "favorite list reads both actual saved favorites",
+      "saved-favorite: no horizontal overflow",
+      "one explicit annotation write only",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary/diary-fixture-one/annotation",
+        "method": "PUT",
+        "body": {
+          "note": "读完这一天，想把安静的片刻留下。",
+          "favorite": true,
+          "expectedRevision": 0,
+          "idempotencyKey": "69417a9b-ec0d-4eab-ac88-650aca4e6f64"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-annotation-search-mobile/diary",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-mobile-saved-favorite.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "reply-request",
+    "size": "mobile",
+    "fid": "diary-r18-modules1-reply-request-mobile",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "reply edits in place without a modal",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-reply-request-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-reply-request-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules1-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-reply-request-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "inline is not defined",
+    "text": "Toggle Sidebar\n日常相处\n日记\n快速前往\nLIFE / LITTLE PAGES\n日记\n\n那些没有说出口的日常，被认真地写在这里。\n\n整理一篇日记\n日记核验样本的日记\n2\n共同经历\n2026-10-26\n这是一篇隔离验收日记。\n2026-10-25\n这是一篇隔离验收日记。\n2026 / 10 / 26\n已经写下\n2026-10-26的日记\n这是一篇隔离验收日记。\n\n今天读到一段平常的故事，也把手边的画作慢慢整理好。\n\n日子里有许多小事，认真记下来，之后还可以回来看看。\n日记核验样本的主观记录\n写一点批注\n留言\n刷新留言记录\n\n还没有读到这篇日记的留言请求。\n\n留言内容\n读取最新版本并保留输入\n取消\n发送留言\n\n留言会进入处理流程，是否有回应以实际交流记录为准。\n\n生成尝试、素材与来源"
+  }
+]

@@ -98,6 +98,7 @@ export async function readApprovedCreationProgress(client, draft) {
       (d) => d.local_date === draft.activationDate,
     )?.schedule;
   const preparation = wardrobe.value;
+  const wardrobeTask=preparation?.task_id&&typeof client.diagnosticTask==='function'&&(['failed','cancelled','dead_letter'].includes(preparation.status)||preparation.can_recover)?await part(async()=>{const value=await client.diagnosticTask(preparation.task_id);if(value.task_id!==preparation.task_id||value.fluctlight_id&&value.fluctlight_id!==fid)throw Error('任务记录与当前初始衣柜范围不匹配。');return value;}):null;
   const persona=detail.value?.persona_preparation;
   const worldConfirmed =
     typeof draft.worldRuntimeId === "string" &&
@@ -136,7 +137,7 @@ export async function readApprovedCreationProgress(client, draft) {
         worldConfirmed && draft.groupConfirmed
       ),
     },
-    wardrobePreparationStage(preparation,wardrobe.errorMessage),
+    wardrobePreparationStage(preparation,wardrobe.errorMessage,wardrobeTask?.value),
     imageStage("reference", "形象参考图", reference),
     imageStage("sheet", "角色设定图", sheet),
     {
@@ -201,6 +202,7 @@ export async function readApprovedCreationProgress(client, draft) {
     blocker,
     visual,
     wardrobe,
+    wardrobeTask,
     schedule,
     world,
   };

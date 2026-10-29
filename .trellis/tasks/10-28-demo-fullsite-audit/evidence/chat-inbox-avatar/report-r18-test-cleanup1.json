@@ -1,0 +1,234 @@
+[
+  {
+    "name": "inbox-task-context",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "notification-detail: no document overflow",
+      "notification-detail: dialog within viewport",
+      "task is read in the notification context",
+      "original-task-review: no document overflow",
+      "original-task-review: dialog within viewport",
+      "return restores notification content without navigation",
+      "view and return do not acknowledge the same notice twice",
+      "reviewing original failed task never restarts it",
+      "notification-return: no document overflow",
+      "notification-return: dialog within viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/inbox-fixture-one/read",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "c0f03363-daf2-4543-b80e-6a2af70d7422"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-task-context-desktop-notification-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-task-context-desktop-original-task-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-task-context-desktop-notification-return.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "inbox-invalid-source",
+    "size": "desktop",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "invalid source leaves user in notification dialog",
+      "failed mark retains unread marker",
+      "invalid-source-and-read-failure: no document overflow",
+      "invalid-source-and-read-failure: dialog within viewport",
+      "invalid source offers a real notification reread",
+      "rereading source never controls a task",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/inbox-fixture-one/read",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "87ae61a5-4133-4870-aa54-45ab83b5ed39"
+        }
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-invalid-source-desktop-invalid-source-and-read-failure.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "inbox-task-context",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "notification-detail: no document overflow",
+      "notification-detail: dialog within viewport",
+      "task is read in the notification context",
+      "original-task-review: no document overflow",
+      "original-task-review: dialog within viewport",
+      "return restores notification content without navigation",
+      "view and return do not acknowledge the same notice twice",
+      "reviewing original failed task never restarts it",
+      "notification-return: no document overflow",
+      "notification-return: dialog within viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/task-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/workflow-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-task-context-mobile-notification-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-task-context-mobile-original-task-review.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-task-context-mobile-notification-return.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "inbox-invalid-source",
+    "size": "mobile",
+    "kind": "production dist / controlled HTTP; no live model, workflow or image identity proof",
+    "checks": [
+      "invalid source leaves user in notification dialog",
+      "failed mark retains unread marker",
+      "invalid-source-and-read-failure: no document overflow",
+      "invalid-source-and-read-failure: dialog within viewport",
+      "invalid source offers a real notification reread",
+      "rereading source never controls a task",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/inbox-fixture-one/read",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "aed2cf14-787f-45c9-888c-7100a18d22e2"
+        }
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/chat-inbox-avatar/r18-test-cleanup1-inbox-invalid-source-mobile-invalid-source-and-read-failure.png"
+    ],
+    "status": "passed"
+  }
+]

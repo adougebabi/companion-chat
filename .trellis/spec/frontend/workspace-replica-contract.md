@@ -1,5 +1,100 @@
 # Supplied workspace Demo contract (2026-10-27)
 
+## Image storage and commit policy (Owner request, 2026-10-29)
+
+Images, screenshots and reference-image copies are local verification artifacts.
+Do not add or modify image files in Git, including tracked images and SVG files.
+Image deletions are allowed. Preserve text reports, request/check results, geometry
+and historical paths; after cleanup a historical image path is not proof that its
+file still exists. `.githooks/pre-commit` runs the staged-image guard. New checkouts
+install it with `pnpm hooks:install`; never force-add ignored images or bypass the
+guard. This policy supersedes earlier instructions to include screenshots in Git.
+
+## r18 UI state and context contract
+
+### Scope / trigger
+
+The r18 regression continues `10-28-demo-fullsite-audit`. Keep the immutable
+Demo as the visual source and current formal DTOs as business authority.
+All report items require individual findings; a passing build or normal-page
+capture does not accept the entire fullsite matrix.
+
+### Signatures
+
+- `refreshActiveTurn(explicit, targetTurnId?)`: an explicit target reads that
+  turn's observed state and never drains `queuedTurn`. The existing untargeted
+  observer retains its authorized queue-drain behavior after confirmed completion.
+- `creationController.importFile(file)` uses both a per-invocation file epoch
+  and the existing request/mode/busy/Owner/lifecycle fences.
+- Diagnostic `page(kind, {correlationId, cursor, limit})` includes the current
+  correlation for main and auxiliary record kinds. Selection details and cursors
+  are invalidated when the route correlation changes.
+
+### Contracts
+
+Task lifecycle events are not a declared phase model. Wardrobe phase derivation
+requires the same task and fid plus actual committed preparation facts; missing
+phase timestamps remain missing. Domain recovery metadata does not grant generic
+restart/reset actions. Notifications can show tasks in their existing dialog;
+reading, marking read, and controlling a task remain separate operations.
+
+Settings directory reads never create a dirty connection draft. Compare editable
+connection/binding values, not fetched model lists or read timestamps. Preserve
+CAS, precise numeric values, credentials-pending markers and unknown autonomy
+action strings. Standard JSON creation remains usable without an LLM when Core
+supports direct validation; configuration failures must not blame provider paths
+on editable user fields.
+
+Place collection controls retain plain strings and string arrays as distinct
+types. Object/mixed arrays have a readable view and explicit full-structure
+editing. Unchanged nested collections are omitted from writes, preserving unknown
+extensions. After an accepted world binding, read its catalog and shared role
+detail; never infer that the role physically moved.
+
+Media metadata has one active dialog at a time and uses the original command
+controller, CAS, frozen request and readback rules. Avatar RadioGroup exposes only
+`canonical` and `asset`. Saved model-service deletion, media favorites, explicit
+initial-avatar mode and Demo world-art `kind` are absent from the current APIs;
+do not create pretend persisted controls for them.
+
+### Validation and error matrix
+
+| Trigger | Required behavior |
+| --- | --- |
+| File A, then B selected; A resolves or rejects first | Ignore A; only current B can adopt input or report its failure |
+| A file resolves after analysis, mode change or activation | Keep the newer request/input and accepted identity |
+| Targeted chat state inspection with a queued follow-up | GET only; queued body/key and persisted record remain unchanged |
+| Correlation changes during auxiliary pagination/detail | Clear the old panel/cursor and reject its late response |
+| World binding accepted but shared detail read fails | Preserve receipt; recovery reads only, without another binding command |
+| Diary has no available body/attempt | Compact ordinary explanation and disabled reply; no fabricated prose |
+| Confirmed body returns | Remove obsolete no-body guidance and enable the actual reply entry |
+
+### Good / base / bad cases
+
+Good: metadata cancel returns to its original detail with one dialog; confirmed
+save reads actual new revisions. Base: empty profile fields are grouped once per
+section, while real values, false, zero and edit entries remain available. Bad:
+copying Demo's local favorite toggle into a production page with no save API.
+
+### Required tests
+
+Use `r18-ux-regression`, `demo-replica-creation`, `conversation-delivery`,
+`r16-regressions`, and owning diary/media/world/profile tests. Assert the newest
+file selection, GET-only targeted status checks, exact correlation on auxiliary
+pagination, stale-response rejection, one active metadata dialog, and original
+binding/command recovery without a second mutation.
+
+Browser evidence uses production dist at 1348×925 and 390×844, with 1920×1113
+for settings/diagnostic density. Each mutating scenario needs its own fixture
+state; desktop edits must not seed a mobile case which assumes original values.
+Reference screenshots remain immutable and their source hashes must be checked.
+
+### Wrong versus correct
+
+Wrong: a historical-response status button calls the general queue observer and
+silently sends another message. Correct: supply its target turn, read actual
+state, and keep queue advancement in the original untargeted observer.
+
 The Owner's `初始化流程演示.zip` supersedes older visual/layout references for
 pages migrated under `10-27-demo-workspace-replica`. Its original REPLICA.md,
 SOURCE_MAP.md and screenshots are preserved in that task's `reference/`.

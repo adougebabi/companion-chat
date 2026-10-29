@@ -28,11 +28,11 @@ test('select normalization removes duplicate empty choices while preserving exac
  function View(){return React.createElement(ChoiceSelect,{value:'',onChange:e=>chosen=e.target.value},['','',false,0].map((value,index)=>React.createElement('option',{key:index,value},String(value)||'尚未填写')));}
  const v=await mountReact(vite,View);try{await v.click(v.host.querySelector('[role=combobox]'));const options=[...document.querySelectorAll('[role=option]')];assert.equal(options.filter(n=>n.textContent==='尚未填写').length,1);await v.click(options.find(n=>n.textContent==='0'));assert.equal(chosen,0);}finally{await v.dispose();}
 });
-test('diagnostic records use real table cells with separate actions rather than a button owning the row',async()=>{
+test('diagnostic call rows retain separate detail and recovery actions without nested buttons',async()=>{
  const {default:Records}=await load('react-app/shared/DiagnosticRecords.tsx');let selected,retired;
  const record={id:'run',label:'模型调用',character:'尚未关联角色',status:'error',summary:'保留的失败原因'.repeat(25),durationLabel:'120 秒',start:Date.now()};
  const view={rows:{value:[record]},recordTime:()=> '完整时间',statusLabel:()=> '失败',selectRecord:r=>selected=r.id,retry:r=>retired=r.id,clear(){}};
- const v=await mountReact(vite,Records,{props:{view}});try{const row=v.host.querySelector('tbody tr');assert.ok(row);assert.equal(row.querySelectorAll('td').length,7);assert.equal(row.querySelector('.diagnostic-summary').closest('button'),null);assert.match(row.textContent,/120 秒/);assert.match(row.textContent,/尚未关联角色/);await v.click(v.host.querySelector('[data-testid=diag-open-run]'));assert.equal(selected,'run');await v.click(v.host.querySelector('[data-testid=diag-retry-run]'));assert.equal(retired,'run');}finally{await v.dispose();}
+ const v=await mountReact(vite,Records,{props:{view}});try{const row=v.host.querySelector('[data-testid=diag-record-run]');assert.ok(row);assert.equal(row.querySelectorAll('button button').length,0);assert.ok(row.querySelector('.diagnostic-summary'));assert.match(row.textContent,/120 秒/);assert.match(row.textContent,/尚未关联角色/);await v.click(v.host.querySelector('[data-testid=diag-open-run]'));assert.equal(selected,'run');await v.click(v.host.querySelector('[data-testid=diag-retry-run]'));assert.equal(retired,'run');}finally{await v.dispose();}
 });
 test('malformed Studio world structure stays editable as complete JSON instead of crashing or overwriting its data',async()=>{
  const {default:Definition}=await vite.ssrLoadModule('/src/react-app/shared/StudioDefinitionForm.tsx');const original={schema:'world-definition.v1',background:'原背景',framework:{venues:[null]}};let changed;

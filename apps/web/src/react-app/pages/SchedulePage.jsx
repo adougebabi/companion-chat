@@ -1124,7 +1124,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
             </div>
           )}
         </TabsContent>
-        <Disclosure title="约定、意向与日程来源">
+        <section className="lp-source-card" aria-label="约定、意向与日程来源"><h3 className="lp-title">约定与意向</h3>
           <p className="lp-muted">
             计划与实际执行分别记录，约定是否履行需要实际证据。
           </p>
@@ -1146,7 +1146,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
               </a>
             </Button>
           </div>
-        </Disclosure>
+        </section>
       </Tabs>
       <WorkspaceDialog
         open={!!selected}
@@ -1269,7 +1269,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                 </Field>
               </div>
               {!draft.cancel && (
-                <Disclosure title="场景与精确地点">
+                <section className="lp-form" aria-label="场景与精确地点">
                   <Field label="场景">
                     <FieldInput
                       value={draft.scene}
@@ -1284,7 +1284,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                       onChange={(event) => field("placeId", event.target.value)}
                     />
                   </Field>
-                </Disclosure>
+                </section>
               )}
               <WorkspaceInfo>
                 提交后会显示待处理建议，当前日程保持原样，直到建议被实际采纳。
@@ -1329,6 +1329,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                 <pre className="replica-source-record">
                   {JSON.stringify(selected.item._source, null, 2)}
                 </pre>
+              </Disclosure>
                 <Button
                   variant="outline"
                   disabled={
@@ -1344,7 +1345,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                 >
                   建议取消这段安排
                 </Button>
-              </Disclosure>
+
             </div>
           ))}
       </WorkspaceDialog>

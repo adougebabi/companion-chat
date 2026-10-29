@@ -1,4 +1,7 @@
+import SettingsSections from '../shared/SettingsSections';
 import DiagnosticsWorkspace from "@/react-app/shared/DiagnosticsWorkspace";
+import {useRef} from 'react';
+import WorkspaceDialog from '../shared/WorkspaceDialog';
 import WorkspacePageHeader from "@/react-app/shared/WorkspacePageHeader";
 import {Server,MessageSquare,ImageIcon,Leaf,Bell,Activity,Database,SlidersHorizontal} from "lucide-react";
 import RecordView from '@/react-app/shared/RecordView';
@@ -33,19 +36,20 @@ import {
 } from "@/react-app/render-helpers";
 const Yi = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 export function ManagementPageView({ view: view }) {
+  const recordTrigger=useRef(null);
   const categories = [
     {id:'models',label:'模型服务与用途',icon:Server,sections:['服务地址','模型用途']},
     {id:'conversation',label:'聊天与视觉',icon:MessageSquare,sections:['聊天回复','看图理解']},
     {id:'media',label:'图片生成',icon:ImageIcon,sections:['图片（ComfyUI）']},
     {id:'autonomy',label:'自主性与安静时段',icon:Leaf,sections:['角色自主与主动联系','安静时段']},
-    {id:'runtime',label:'通知与后台',icon:Bell,sections:['作息与后台节奏','资源与预算','通知']},
+    {id:'runtime',label:'通知与后台',icon:Bell,sections:['通知','作息与后台节奏','资源与预算']},
     {id:'diagnostics',label:'诊断与任务',icon:Activity,sections:[]},
     {id:'data',label:'数据管理',icon:Database,sections:[]},
     {id:'advanced',label:'高级设置',icon:SlidersHorizontal,sections:['高级']},
   ];
   const category=readValue(view.tab)==='运行诊断'?'diagnostics':categories.find(c=>c.sections.includes(view.currentSection.value))?.id||'models';
   const show=title=>categories.find(c=>c.id===category)?.sections.includes(title)&&(category!=='models'||view.currentSection.value===title);
-  const choose=id=>{const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}view.tab.value=id==='diagnostics'?'运行诊断':'配置中心';if(item.sections.length)view.scrollTo(item.sections[0]);};
+  const choose=id=>{const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}view.tab.value=id==='diagnostics'?'运行诊断':'配置中心';if(item.sections.length)void view.scrollTo(item.sections[0],false).then(()=>{document.querySelector('.replica-page')?.scrollTo({top:0,left:0,behavior:'instant'});});};
   return (
     <Tabs className="replica-management" value={view.tab.value} onValueChange={value=>view.tab.value=value}>
       <WorkspacePageHeader eyebrow="PREFERENCES / MAKE IT YOURS" title="管理中心" description="让每一次相处，按你喜欢的方式发生。" actions={view.accountActions()}/>
@@ -58,11 +62,11 @@ export function ManagementPageView({ view: view }) {
             <form
               ref={elementRef(view.configForm)}
               className="settings-form management-form replica-settings-form"
-              onInvalidCapture={event=>{const section=event.target.closest(".settings-group");if(section?.dataset.section)view.scrollTo(section.dataset.section);}}
+              onInvalidCapture={event=>{const target=event.target,section=target.closest(".settings-group");if(section?.dataset.section)void view.scrollTo(section.dataset.section,false).then(()=>{target.closest("[data-setting-field]")?.scrollIntoView({block:"center",behavior:"instant"});target.focus({preventScroll:true});});}}
               onSubmit={eventModifiers(view.save, ["prevent"])}
             >
-              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small>{view.endpoints.value.length} 个服务 · {view.bindings.value.length} 个用途</small>}</div>
-              {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>view.scrollTo(value)}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
+              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small>{view.endpoints.value.length} 个服务 · {view.bindings.value.length} 个用途</small>}{categories.filter(item=>item.id===category).map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
+              {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>void view.scrollTo(value,false).then(()=>document.querySelector('.replica-page')?.scrollTo({top:0,behavior:'instant'}))}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
               {view.catalogLoading.value&&<p role="status" data-feedback-kind="progress">正在读取正式配置…</p>}
               {!view.catalogReady.value&&view.error.value&&<InlineFeedback role="alert">{view.error.value}<ActionButton type="button" variant="outline" onClick={view.retryCatalog}>重新读取配置</ActionButton></InlineFeedback>}
               <Surface
@@ -158,14 +162,8 @@ export function ManagementPageView({ view: view }) {
                           <Field orientation="horizontal" className="full-field min-h-11 rounded-lg border border-border p-3"><FieldInput id={'clear-secret-'+h.id} type="checkbox" modelValue={h.clearSecret} onModelChange={value=>h.clearSecret=value}/><FieldLabel htmlFor={'clear-secret-'+h.id}>清除已存密钥</FieldLabel></Field>
                         ) : null}
                       </div>
-                      <view.ModelDirectory models={h.models} status={h.modelsStatus} error={h.modelsError} onRetry={()=>view.test(h)}/>
-                      <ActionButton variant="outline"
-                        type="button"
+                      <view.ModelDirectory models={h.models} status={h.modelsStatus} error={h.modelsError} readAt={h.modelsReadAt} onRetry={()=>view.test(h)}/>
 
-                        onClick={(k) => view.test(h)}
-                      >
-                        {"同步模型目录（已保存服务）"}
-                      </ActionButton>
 
                     </div>
                   ))}
@@ -285,11 +283,12 @@ export function ManagementPageView({ view: view }) {
                   </Fragment>
                 </Disclosure>
               </Surface>
+              {[...view.settings.value].sort((a,b)=>category==='runtime'?(['通知','作息与后台节奏','资源与预算'].indexOf(a.title)+1||9)-(['通知','作息与后台节奏','资源与预算'].indexOf(b.title)+1||9):0).map(group=><SettingsSections key={group.title} group={group} view={view} visible={show(group.title)}/>)}
               <Surface
                 as="section"
                 hidden={!show("安静时段")||!view.catalogReady.value} data-section="安静时段"
                 id={view.sectionId("安静时段")}
-                className="settings-group"
+                className="settings-group replica-quiet-card"
               >
                 <h2>{"安静时段"}</h2>
                 <div className="form-grid">
@@ -375,47 +374,6 @@ export function ManagementPageView({ view: view }) {
                   <ToggleGroup type="multiple" variant="outline" disabled={!view.quiet.value.enabled} aria-label="安静时段生效星期" value={view.quiet.value.days} onValueChange={values=>view.quiet.value.days=values} className="max-w-full flex-wrap justify-start">{readValue(Yi).map(day=><ToggleGroupItem key={day} value={day}>{day}</ToggleGroupItem>)}</ToggleGroup>
                 </fieldset>
               </Surface>
-              <Fragment>
-                {listValues(view.settings.value).map((h) => (
-                  <Surface as="section"
-                    key={h.title}
-                    hidden={!show(h.title)||!view.catalogReady.value} data-section={h.title}
-                    id={view.sectionId(h.title)}
-                    className="settings-group"
-                  >
-                    <Disclosure open title={h.title === "高级" ? "高级 · 辅助决策服务" : view.sectionLabel(h.title)}>
-                    {h.title === "图片（ComfyUI）" ? (
-                      <p key={2} className="muted">
-                        {"图片使用 ComfyUI；需要图片功能时再展开配置。"}
-                      </p>
-                    ) : null}
-                    <div className="form-grid">
-                      <Fragment>
-                        {listValues(h.fields).map((b) => (
-                          <view.SettingsField key={b.label} field={b} />
-                        ))}
-                      </Fragment>
-                    </div>
-                    {["图片（ComfyUI）", "高级", "看图理解"].includes(
-                      h.title,
-                    ) ? (
-                      <ActionButton variant="outline" className="mt-4"
-                        key={3}
-                        type="button"
-
-                        onClick={(b) => view.test(h.title)}
-                      >
-                        {displayText(
-                          h.title === "看图理解"
-                            ? "测试看图（使用已保存配置）"
-                            : "测试连接",
-                        )}
-                      </ActionButton>
-                    ) : null}
-                    </Disclosure>
-                  </Surface>
-                ))}
-              </Fragment>
               {view.testResult.value ? (
                 <OperationStatus kind={view.testKind.value} key={0} className="muted">
                   {displayText(view.testResult.value)}
@@ -449,7 +407,7 @@ export function ManagementPageView({ view: view }) {
             <p className="muted">
               {"每次回应背后的记录。模型与媒体的运行情况，都在这里。"}
             </p>
-            <Tabs value={view.kind.value} onValueChange={view.selectKind}><TabsList>{['模型调用','媒体调用'].map(kind=><TabsTrigger key={kind} value={kind} data-testid={'diag-tab-'+kind}>{kind}</TabsTrigger>)}</TabsList></Tabs>
+            <label className="replica-diagnostic-kind-filter">调用类型<ChoiceSelect aria-label="调用类型" value={view.kind.value} onChange={event=>view.selectKind(event.target.value)}>{['模型调用','媒体调用'].map(kind=><option key={kind} value={kind}>{kind}</option>)}</ChoiceSelect></label>
             <div className="diagnostic-navigation grid gap-4">
               <ActionButton variant="outline" onClick={view.openTaskDiagnostics}>查看待处理事项与原任务恢复</ActionButton>
               <label className="grid max-w-md gap-2 text-sm">查看其它运行记录<ChoiceSelect aria-label="其它运行记录" value={view.reference.value} onChange={event=>view.selectReference(event.target.value)}><option value="">模型与媒体调用</option>{readValue(view.referenceSections).map(section=><option key={section.title} value={section.title}>{section.title}</option>)}</ChoiceSelect></label>
@@ -471,13 +429,15 @@ export function ManagementPageView({ view: view }) {
               {displayText(view.rows.value.length) + " 条已读取记录 · 按记录顺序排列"}
             </small>
             <p className="muted">{view.kind.value === "媒体调用" ? "图片、音频和视频任务的实际生成记录。" : "模型处理请求的状态、用时和结果摘要。"}</p>
-            <>{view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={view}/>}</><CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
+            <>{view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={{...view,selectRecord:(record,trigger)=>{recordTrigger.current=trigger;view.selectRecord(record);}}}/>}</><CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
             {view.selected.value ? (
-              <view.DetailDrawer
+              <WorkspaceDialog
+                open
                 key={0}
                 title={view.selected.value.label + " · 调用详情"}
                 testId="diagnostic-drawer"
-                onClose={(h) => (view.selectedId.value = null)}
+                returnFocus={()=>recordTrigger.current}
+                onOpenChange={open=>{if(!open)view.selectedId.value=null;}}
               >
                 <div className="detail-meta">
                   <Badge >
@@ -572,7 +532,7 @@ export function ManagementPageView({ view: view }) {
                   </Fragment>
                 )}
                 <JsonDetails value={view.selected.value._record} title="技术详情与关联标识"/>
-              </view.DetailDrawer>
+              </WorkspaceDialog>
             ) : null}
             </Fragment>}
 

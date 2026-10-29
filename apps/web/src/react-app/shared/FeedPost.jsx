@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Heart, MessageCircle, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge, Disclosure } from "../controls";
+import JsonDetails from './JsonDetails';
 import MediaPreview from "./MediaPreview";
 import CharacterAvatar from "./CharacterAvatar";
 import useWorkspaceRead from "./useWorkspaceRead";
@@ -185,13 +186,13 @@ export default function FeedPost({
           />
           {momentCount(post.like_count)}
         </Button>
-        <Button
+        {!full&&<Button
           variant="ghost"
           onClick={(event) => onOpen?.(post.id, event.currentTarget)}
         >
           <MessageCircle size={17} />
           {post.comment_count ? momentCount(post.comment_count) : "评论"}
-        </Button>
+        </Button>}
         {!full && (
           <Button
             variant="ghost"
@@ -243,9 +244,7 @@ export default function FeedPost({
               原发布建议与处理结果
             </a>
           )}
-          <pre className="replica-source-record">
-            {JSON.stringify(post, null, 2)}
-          </pre>
+          <JsonDetails value={post} title="动态的完整技术记录"/>
         </Disclosure>
       ) : (
         <CommentPreview post={post} model={m} />

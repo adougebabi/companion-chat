@@ -115,14 +115,14 @@ try {for(const [size,width,height] of [['desktop',1348,925],['mobile',390,844]])
     } else if(name==='adopt-refresh'){
       await enter('不再采用','保留未提交说明');
       const external=await context.request.post(base+path+'/forget',{data:{expectedRevision:2,reason:'外部已确认遗忘',idempotencyKey:'external-forget'}});assert.equal(external.status(),200);
-      await button('读取最新版本并保留输入').click();await button('已核对，采用最新基线').click();check('latest adoption retains reason',await detail().getByRole('textbox',{name:'认识操作说明',exact:true}).inputValue()==='保留未提交说明');await button('取消').click();
+      await button('同步资料，保留输入').click();await button('已核对，采用最新基线').click();check('latest adoption retains reason',await detail().getByRole('textbox',{name:'认识操作说明',exact:true}).inputValue()==='保留未提交说明');await button('取消').click();
       await detail().getByText('已遗忘',{exact:true}).waitFor();await history([3,2,1]);await shot('adopt-cancel');check('adoption and cancel never mutate',writes().length===0);
       const review=await context.request.post(base+path+'/review',{data:{expectedRevision:3,reason:'外部新复核记录',idempotencyKey:'external-review'}});assert.equal(review.status(),200);
       await button('刷新当前详情').click();await button('所有者复核记录').click();await detail().getByText('外部新复核记录',{exact:true}).waitFor();await shot('refresh-secondary');check('manual refresh stays read-only',writes().length===0);
     } else {
       await enter('不再采用','验证原请求恢复');await button('确认不再采用').click();
       if(name==='unknown'){
-        await button('核对或重试原提交').waitFor();check('unknown cannot adopt latest before original admission resolved',await button('读取最新版本并保留输入').isDisabled());await shot('unknown');await button('核对或重试原提交').click();
+        await button('核对或重试原提交').waitFor();check('unknown cannot adopt latest before original admission resolved',await button('同步资料，保留输入').isDisabled());await shot('unknown');await button('核对或重试原提交').click();
       } else {await button('只读恢复页面结果').waitFor();await shot('accepted-readback-pending');await button('只读恢复页面结果').click();}
       await page.getByRole('heading',{name:'这条认识从哪里来',exact:true}).waitFor();await detail().getByText('已遗忘',{exact:true}).waitFor();await history([3,2,1]);
       const attempts=writes();check('recovery preserves mutation count',attempts.length===(name==='unknown'?2:1));if(name==='unknown')check('original retry has identical key and body',JSON.stringify(attempts[0].body)===JSON.stringify(attempts[1].body));check('recovery never appends duplicate revision',(await get('/revisions')).items.length===3);await shot('recovered');

@@ -1,8 +1,8 @@
 // Reproducible reference UI precondition, never editing source/store/DOM.
 // Demo's initial worn array has four items while its runtime caption has three.
 // Applying its existing first plan synchronizes both through the native UI.
-export async function primeReferenceWearing(page){
- await page.goto('http://127.0.0.1:4179/fluctlight-offline.html#/c/linwan/life/wardrobe',{waitUntil:'networkidle'});
+export async function primeReferenceWearing(page,{base='http://127.0.0.1:4179'}={}){
+ await page.goto(base+'/fluctlight-offline.html#/c/linwan/life/wardrobe',{waitUntil:'networkidle'});
  await page.getByRole('tab',{name:/穿搭方案/}).click();
  await page.locator('.r-outfit-card').first().getByRole('button',{name:'请换上这套',exact:true}).click();
  await page.getByRole('button',{name:'发送换装请求',exact:true}).click();

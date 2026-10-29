@@ -1,0 +1,855 @@
+[
+  {
+    "name": "profile-read",
+    "size": "desktop",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "personality: no horizontal overflow",
+      "life definition is visible independently of current wearing",
+      "life: no horizontal overflow",
+      "source: no horizontal overflow",
+      "source: dialog fits viewport",
+      "reading tabs and full source never mutates",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-profile-read-desktop-personality.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-profile-read-desktop-life.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-profile-read-desktop-source.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "edit-expression",
+    "size": "desktop",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "keep editing retains unsaved group value",
+      "discard has no proposal or acceptance write",
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "selected group saves actual typed field",
+      "life extension and runtime wearing remain independent",
+      "save creates then explicitly accepts one definition proposal",
+      "editor reopens confirmed saved group",
+      "saved-reopened: no horizontal overflow",
+      "saved-reopened: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "behavioral_policy": {
+              "response_style": "温和细腻"
+            }
+          },
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "ec11133e-8f30-481d-917b-2e12953d3c1e"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-1/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 4,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-edit-expression-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-edit-expression-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "edit-life",
+    "size": "desktop",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "keep editing retains unsaved group value",
+      "discard has no proposal or acceptance write",
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "selected group saves actual typed field",
+      "life extension and runtime wearing remain independent",
+      "save creates then explicitly accepts one definition proposal",
+      "editor reopens confirmed saved group",
+      "saved-reopened: no horizontal overflow",
+      "saved-reopened: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions",
+        "method": "POST",
+        "body": {
+          "changes": {
+            "life_profile": {
+              "life_habits": "睡前阅读。 r18-deep1 desktop"
+            }
+          },
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料",
+          "idempotencyKey": "8db8ef12-b288-4d8e-b425-74f8bad12aac"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/foundation-revisions/fluctlight-fixture-one-proposal-3/accept",
+        "method": "POST",
+        "body": {
+          "expectedRevision": 5,
+          "reason": "所有者编辑角色设定资料"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-edit-life-desktop-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-edit-life-desktop-saved-reopened.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "persona-switch",
+    "size": "desktop",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "incomplete switch remains disabled",
+      "reason alone does not imply switch confirmation",
+      "confirmed-draft: no horizontal overflow",
+      "confirmed-draft: dialog fits viewport",
+      "current persona comes from actual runtime after receipt",
+      "one explicit persona request only",
+      "runtime-readback: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/persona-switch",
+        "method": "POST",
+        "body": {
+          "targetPersonaId": "focused",
+          "expectedRevision": 6,
+          "expectedRuntimeRevision": 2,
+          "reason": "核对一次真实请求和人格运行读面",
+          "confirm": true,
+          "idempotencyKey": "4c9b73cf-ffb6-46b5-b9c4-d8edc47d4fd8"
+        }
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-5",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/profile-persona-5",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-persona-switch-desktop-confirmed-draft.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-persona-switch-desktop-runtime-readback.png"
+    ],
+    "receipt": {
+      "request_id": "profile-persona-5",
+      "status": "pending",
+      "status_url": "/api/owner-requests/profile-persona-5",
+      "disposition": "assessment_pending",
+      "revision": 6,
+      "runtime_revision": 2,
+      "active_profile_id": "sunny",
+      "previous_profile_id": "sunny",
+      "audit_id": "switch-audit-profile-persona-5",
+      "persona_action_audit_id": null,
+      "request": {
+        "id": "profile-persona-5",
+        "kind": "persona_switch",
+        "fluctlight_id": "fluctlight-fixture-one",
+        "status": "pending",
+        "revision": 1,
+        "payload": {
+          "target_persona_id": "focused",
+          "expected_revision": 6,
+          "expected_runtime_revision": 2,
+          "reason": "核对一次真实请求和人格运行读面"
+        },
+        "result": {
+          "request_id": "profile-persona-5",
+          "status": "pending",
+          "status_url": "/api/owner-requests/profile-persona-5",
+          "disposition": "assessment_pending",
+          "revision": 6,
+          "runtime_revision": 2,
+          "active_profile_id": "sunny",
+          "previous_profile_id": "sunny",
+          "audit_id": "switch-audit-profile-persona-5",
+          "persona_action_audit_id": null
+        },
+        "result_refs": [],
+        "created_at": "2026-10-26T12:00:00Z",
+        "_reads": 0
+      }
+    },
+    "status": "passed"
+  },
+  {
+    "name": "people-about-save",
+    "size": "desktop",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "about-you cancel sends no background update",
+      "about-edit: no horizontal overflow",
+      "authored name saves to actual Owner context",
+      "updating self-defined data retains observed fact",
+      "about-history: no horizontal overflow",
+      "about-history: dialog fits viewport",
+      "only one explicit authored-background PUT",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "你的自填称呼 r18-deep1 desktop"
+          },
+          "operation": "change",
+          "reason": "目前情况有更新，保留角色已经形成的认识",
+          "idempotencyKey": "9c54cc92-4d2d-4a90-a239-6be77393e8a8",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-about-save-desktop-about-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-about-save-desktop-about-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "people-knowledge-relation",
+    "size": "desktop",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "known-fact: no horizontal overflow",
+      "known-fact: dialog fits viewport",
+      "relationship-basis: no horizontal overflow",
+      "relationship-basis: dialog fits viewport",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-knowledge-relation-desktop-known-fact.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-knowledge-relation-desktop-relationship-basis.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-knowledge-relation-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "relationship metrics remain actual sunny perspective",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n人物关系\n快速前往\n⌘ K\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n青岚小城里的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n3\n关于你\n你们的关系\n你\n本\n朋友\n\n另一人格范围的关系。\n\n信任\n91%\n熟悉程度\n64%\n相处的舒适度\n78%\n这是角色视角下的关系记录，自填资料不会直接改写这些指标。\n当前关系、指标与来源\nid\nfluctlight-fixture-one-owner-focused\nowner fluctlight id\nfluctlight-fixture-one\ntarget actor id\nhuman-fixture-owner\nprofile id\nfocused\n消息角色\nlabel\n朋友\nmetrics\ntrust\n0.91\nfamiliarity\n0.64\ncomfort\n0.78\n摘要\n另一人格范围的关系。\n版本\n2\n变化趋势（记录量表）\nstable\n来源说明\n来源\nfixture_recorded\nupdated at\n2026-10-29T10:05:04.799Z\n下载原始记录\n相处留下的记录\n2026-10-29 18:05 (北京时间)\n另一人格范围的关系。\n描述\n朋友\n这次变化与依据\n继续聊聊\n关系修订与历史恢复"
+  },
+  {
+    "name": "profile-read",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "personality: no horizontal overflow",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-profile-read-mobile-personality.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-profile-read-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('睡前阅读。', { exact: true }).first() to be visible\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n角色档案\n快速前往\nLIFE / A PERSON WITH A STORY\n认识更完整的林岚 · 验收样本。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n林\nA PERSON, NOT JUST A PROFILE\n林岚 · 验收样本小青\n\n26 岁 · 书籍编辑 · 运行中\n\n青岚小城\n\n这是用于资料分层验收的角色背景。\n\n专注人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n1\n生活设定\n编辑\n兴趣与偏好\n喜欢\n小说\n绘画\n稳定偏好\n留出独处时间\n日常习惯\n睡前阅读。 r18-deep1 desktop\n相处边界\n尊重彼此的选择。\n外貌特征\n说明\n齐肩长发，偏好简单舒适的穿搭。\n外貌特征\n发色\nblack\n生活设定的其他记录\n1\n2\n此刻状态\n所在世界\n青岚小城\n此刻地点\n家中\n正在做\n阅读\n心情\n描述\n平静\n强度\n0.5\n当前穿着\n\n正式登记的白色衬衫\n\n实际外观与状态记录\n查看此刻\n查看衣柜\n\n这里展示实际状态，编辑设定不会直接覆盖它们。\n\n发展中的自我\n\n当前还没有读到已记录的认识。\n\n档案中的发展记录\n查看认识与来源\n完整能力申请与历史\n发展中的自我"
+  },
+  {
+    "name": "edit-expression",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "keep editing retains unsaved group value",
+      "discard has no proposal or acceptance write",
+      "editing: no horizontal overflow",
+      "editing: dialog fits viewport",
+      "selected group saves actual typed field",
+      "life extension and runtime wearing remain independent",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-edit-expression-mobile-editing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-edit-expression-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "save creates then explicitly accepts one definition proposal",
+    "text": "Toggle Sidebar\n日常相处\n角色档案\n快速前往\nLIFE / A PERSON WITH A STORY\n认识更完整的林岚 · 验收样本。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n林\nA PERSON, NOT JUST A PROFILE\n林岚 · 验收样本小青\n\n26 岁 · 书籍编辑 · 运行中\n\n青岚小城\n\n这是用于资料分层验收的角色背景。\n\n专注人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n1\n身份与背景\n编辑\n称呼\n小青\n年龄\n26\n职业\n书籍编辑\n居住地\n青岚\n生活时区\nAsia/Shanghai\n出生地\n南方小城\n简介与经历\n这是用于资料分层验收的角色背景。\n表达与相处\n调整表达\n回复风格\n温和细腻\n消息长短\n适中\n分歧处理\n温和协商\n拒绝方式\n温和而坚定\n核心价值观\n诚实\n尊重\n完整表达与相处设定\n共同性格\n\n这些倾向构成了相处时的底色。\n\n开放性\n82%\n尽责性\n72%\n亲和性\n74%\n完整性格与来源\nWORKING PERSONA\n当前表达画像\n\n开放性：愿意探索新事物\n\n愿意听完日常里的细节。\n\n表达画像完整记录与来源\n人格设定与最近生活共同影响此刻的表达\n完整能力申请与历史\n发展中的自我"
+  },
+  {
+    "name": "edit-life",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-edit-life-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "No editable field with expected confirmed value: 睡前阅读。",
+    "text": "Toggle Sidebar\n日常相处\n角色档案\n快速前往\nLIFE / A PERSON WITH A STORY\n认识更完整的林岚 · 验收样本。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n林\nA PERSON, NOT JUST A PROFILE\n林岚 · 验收样本小青\n\n26 岁 · 书籍编辑 · 运行中\n\n青岚小城\n\n这是用于资料分层验收的角色背景。\n\n专注人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n1\n身份与背景\n编辑\n称呼\n小青\n年龄\n26\n职业\n书籍编辑\n居住地\n青岚\n生活时区\nAsia/Shanghai\n出生地\n南方小城\n简介与经历\n这是用于资料分层验收的角色背景。\n表达与相处\n调整表达\n回复风格\n温和细腻\n消息长短\n适中\n分歧处理\n温和协商\n拒绝方式\n温和而坚定\n核心价值观\n诚实\n尊重\n完整表达与相处设定\n共同性格\n\n这些倾向构成了相处时的底色。\n\n开放性\n82%\n尽责性\n72%\n亲和性\n74%\n完整性格与来源\nWORKING PERSONA\n当前表达画像\n\n开放性：愿意探索新事物\n\n愿意听完日常里的细节。\n\n表达画像完整记录与来源\n人格设定与最近生活共同影响此刻的表达\n完整能力申请与历史\n发展中的自我\n编辑林岚 · 验收样本的资料\n\n编辑稳定设定。穿着、位置和已经发生的事情，继续以生活记录为准。\n\n基本资料\n性格与表达\n生活设定\n更多设定\n简介与经历\n生平\n生活习惯\n偏好 · 喜欢\n偏好 · 稳定偏好\n性格边界\n外貌 · 说明\n外貌 · 外貌特征 · 发色\n补充说明 · 补充说明\n取消\n保存资料\n关闭"
+  },
+  {
+    "name": "persona-switch",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "incomplete switch remains disabled",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-persona-switch-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('option', { name: '专注人格', exact: true })\u001b[22m\n",
+    "text": "Toggle Sidebar\n日常相处\n角色档案\n快速前往\nLIFE / A PERSON WITH A STORY\n认识更完整的林岚 · 验收样本。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n林\nA PERSON, NOT JUST A PROFILE\n林岚 · 验收样本小青\n\n26 岁 · 书籍编辑 · 运行中\n\n青岚小城\n\n这是用于资料分层验收的角色背景。\n\n专注人格\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n1\n人格档案\n\n共同设定之上，每个人格保留自己的表达与边界。\n\n切换人格\n日常人格\n人格档案\n名称\n日常人格\n说明\n日常的交流方式。\n表达与相处\n回复风格\n自然随和\n专注人格\n当前人格\n名称\n专注人格\n说明\n认真讨论时保留清晰的表达。\n表达与相处\n回复风格\n简洁直接\n人格之间的关系与协作\n\n人格切换和生活事实分别记录，实际穿着、所在世界和已经发生的经历继续以对应读面为准。\n\n尚未提供\n人格切换记录\n\n每次实际切换的目标、原因和版本可在这里查阅。\n\n2026-10-26 20:00 (北京时间)\n日常人格\n专注人格\n\n核对一次真实请求和人格运行读面\n\n完整切换与版本记录\n完整能力申请与历史\n发展中的自我\n切换当前人格\n\n现在是「专注人格」。提出请求后，以实际处理结果为准。\n\n目标人格\n请选择\n请选择\n日常人格\n切换原因\n我确认向当前角色提出这次人格切换\n取消\n确认切换\n关闭\n请选择\n日常人格"
+  },
+  {
+    "name": "people-about-save",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "about-you cancel sends no background update",
+      "about-edit: no horizontal overflow",
+      "authored name saves to actual Owner context",
+      "updating self-defined data retains observed fact",
+      "about-history: no horizontal overflow",
+      "about-history: dialog fits viewport",
+      "only one explicit authored-background PUT",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "你的自填称呼 r18-deep1 mobile"
+          },
+          "operation": "change",
+          "reason": "目前情况有更新，保留角色已经形成的认识",
+          "idempotencyKey": "678c0a15-ed67-46d5-9149-f3889adb0691",
+          "expectedCurrentFactsRevision": "facts_gen_6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-about-save-mobile-about-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-about-save-mobile-about-history.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "people-knowledge-relation",
+    "size": "mobile",
+    "fid": "fluctlight-fixture-one",
+    "kind": "production dist / controlled profile or people HTTP; no live cognition, identity or capability authorization claim",
+    "checks": [
+      "known-fact: no horizontal overflow",
+      "known-fact: dialog fits viewport",
+      "relationship-basis: no horizontal overflow",
+      "relationship-basis: dialog fits viewport",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-knowledge-relation-mobile-known-fact.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-knowledge-relation-mobile-relationship-basis.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep1-people-knowledge-relation-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "relationship metrics remain actual sunny perspective",
+    "text": "Toggle Sidebar\n世界与联系\n人物关系\n快速前往\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n青岚小城里的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n3\n关于你\n你们的关系\n你\n本\n朋友\n\n另一人格范围的关系。\n\n信任\n91%\n熟悉程度\n64%\n相处的舒适度\n78%\n这是角色视角下的关系记录，自填资料不会直接改写这些指标。\n当前关系、指标与来源\nid\nfluctlight-fixture-one-owner-focused\nowner fluctlight id\nfluctlight-fixture-one\ntarget actor id\nhuman-fixture-owner\nprofile id\nfocused\n消息角色\nlabel\n朋友\nmetrics\ntrust\n0.91\nfamiliarity\n0.64\ncomfort\n0.78\n摘要\n另一人格范围的关系。\n版本\n2\n变化趋势（记录量表）\nstable\n来源说明\n来源\nfixture_recorded\nupdated at\n2026-10-29T10:05:04.799Z\n下载原始记录\n相处留下的记录\n2026-10-29 18:05 (北京时间)\n另一人格范围的关系。\n描述\n朋友\n这次变化与依据\n继续聊聊\n关系修订与历史恢复"
+  }
+]

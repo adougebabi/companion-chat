@@ -1,0 +1,379 @@
+{
+  "report_sha256": "a83be6e027561ea2d44fc6f90abf461b59b4d4cfa7421681695446a769b84c90",
+  "screenshots": [
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/04ba9b8967f634478efbebfdf748297c2a273e015074a8b1473ff872b9cc7784.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/04ba9b8967f634478efbebfdf748297c2a273e015074a8b1473ff872b9cc7784.png",
+      "sha256": "04ba9b8967f634478efbebfdf748297c2a273e015074a8b1473ff872b9cc7784",
+      "bytes": 240147
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/06743afbda21dbb8d5ad28515d27a58bbeb6f71cea74587bc8a47b5e7d7281c2.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/06743afbda21dbb8d5ad28515d27a58bbeb6f71cea74587bc8a47b5e7d7281c2.png",
+      "sha256": "06743afbda21dbb8d5ad28515d27a58bbeb6f71cea74587bc8a47b5e7d7281c2",
+      "bytes": 204689
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/07b0a9b5daba57bcecb8b5f864f203109b0af2736790b7419a9c3fcd91bf72ec.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/07b0a9b5daba57bcecb8b5f864f203109b0af2736790b7419a9c3fcd91bf72ec.png",
+      "sha256": "07b0a9b5daba57bcecb8b5f864f203109b0af2736790b7419a9c3fcd91bf72ec",
+      "bytes": 170359
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/0db56a511ad08150bb34724366b331efbca80a8e3fb1464973015a087033c9ee.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/0db56a511ad08150bb34724366b331efbca80a8e3fb1464973015a087033c9ee.png",
+      "sha256": "0db56a511ad08150bb34724366b331efbca80a8e3fb1464973015a087033c9ee",
+      "bytes": 162598
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/14eab53bd5ecf7d76ab528d58fad4f6c6ebc49bde01feba2419cb896ccb7cdb5.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/14eab53bd5ecf7d76ab528d58fad4f6c6ebc49bde01feba2419cb896ccb7cdb5.png",
+      "sha256": "14eab53bd5ecf7d76ab528d58fad4f6c6ebc49bde01feba2419cb896ccb7cdb5",
+      "bytes": 147485
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/153503fbb556aa438baf1ce1f9aa4080b70af78f7d8cae34788803474836c7af.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/153503fbb556aa438baf1ce1f9aa4080b70af78f7d8cae34788803474836c7af.png",
+      "sha256": "153503fbb556aa438baf1ce1f9aa4080b70af78f7d8cae34788803474836c7af",
+      "bytes": 146616
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/17b75cf78e72dae795eb17474d0bd0b3cfc1d643686725ad43af087ca3f6e919.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/17b75cf78e72dae795eb17474d0bd0b3cfc1d643686725ad43af087ca3f6e919.png",
+      "sha256": "17b75cf78e72dae795eb17474d0bd0b3cfc1d643686725ad43af087ca3f6e919",
+      "bytes": 253647
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/18f6b01eeb2152893304a79ce3933e604d6d2049cd64a85df61229eea6f2509e.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/18f6b01eeb2152893304a79ce3933e604d6d2049cd64a85df61229eea6f2509e.png",
+      "sha256": "18f6b01eeb2152893304a79ce3933e604d6d2049cd64a85df61229eea6f2509e",
+      "bytes": 240818
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/1aeec5a5da9d0dc51691bf6083ab0876e5a7c3d544e53a7b318b3e1b32efe103.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/1aeec5a5da9d0dc51691bf6083ab0876e5a7c3d544e53a7b318b3e1b32efe103.png",
+      "sha256": "1aeec5a5da9d0dc51691bf6083ab0876e5a7c3d544e53a7b318b3e1b32efe103",
+      "bytes": 123940
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/1cfd46e6c5fbf4f104cb3fe49f07aae7f74c05ecf078a4791050258945241fea.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/1cfd46e6c5fbf4f104cb3fe49f07aae7f74c05ecf078a4791050258945241fea.png",
+      "sha256": "1cfd46e6c5fbf4f104cb3fe49f07aae7f74c05ecf078a4791050258945241fea",
+      "bytes": 157462
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/21a1400ba108305979acc442dcf52f3bcf570fa336811044fda67e8f86740336.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/21a1400ba108305979acc442dcf52f3bcf570fa336811044fda67e8f86740336.png",
+      "sha256": "21a1400ba108305979acc442dcf52f3bcf570fa336811044fda67e8f86740336",
+      "bytes": 106399
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/22e0fbb2d20292c2af81d7b419d313d0814d506627d5b94a5f74ba367c3a898c.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/22e0fbb2d20292c2af81d7b419d313d0814d506627d5b94a5f74ba367c3a898c.png",
+      "sha256": "22e0fbb2d20292c2af81d7b419d313d0814d506627d5b94a5f74ba367c3a898c",
+      "bytes": 175685
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/22fb83efe1a4364f633800b2a858f39457d35975efa8028cbc3d9a4fbac6f395.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/22fb83efe1a4364f633800b2a858f39457d35975efa8028cbc3d9a4fbac6f395.png",
+      "sha256": "22fb83efe1a4364f633800b2a858f39457d35975efa8028cbc3d9a4fbac6f395",
+      "bytes": 125666
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/24d09d5be7e401eafb1b1b3f59bc62d16535d7b943654297239f7fa9b639f9d0.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/24d09d5be7e401eafb1b1b3f59bc62d16535d7b943654297239f7fa9b639f9d0.png",
+      "sha256": "24d09d5be7e401eafb1b1b3f59bc62d16535d7b943654297239f7fa9b639f9d0",
+      "bytes": 160187
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/296a770d57e20dc33d21bd856c28ff14af35b45b1820528e7a5deb61e6cff364.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/296a770d57e20dc33d21bd856c28ff14af35b45b1820528e7a5deb61e6cff364.png",
+      "sha256": "296a770d57e20dc33d21bd856c28ff14af35b45b1820528e7a5deb61e6cff364",
+      "bytes": 207430
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/2a99ac69c2bb1dccab8e66b705aa7486836d087e8f0c73d613cb0434a85265a7.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/2a99ac69c2bb1dccab8e66b705aa7486836d087e8f0c73d613cb0434a85265a7.png",
+      "sha256": "2a99ac69c2bb1dccab8e66b705aa7486836d087e8f0c73d613cb0434a85265a7",
+      "bytes": 232917
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/2e45a316b6611e841d41e6e799e57b4bf6755b3acdf80c47529c32285b7fe739.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/2e45a316b6611e841d41e6e799e57b4bf6755b3acdf80c47529c32285b7fe739.png",
+      "sha256": "2e45a316b6611e841d41e6e799e57b4bf6755b3acdf80c47529c32285b7fe739",
+      "bytes": 135493
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/3139bb6c9d5c2d48d8eff099afd73566efd8a21eb51399524e835494935b947d.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/3139bb6c9d5c2d48d8eff099afd73566efd8a21eb51399524e835494935b947d.png",
+      "sha256": "3139bb6c9d5c2d48d8eff099afd73566efd8a21eb51399524e835494935b947d",
+      "bytes": 151915
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/425fda45f98fe80fe84b63a739437d316947f66e866012fdc08c109e7af67f28.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/425fda45f98fe80fe84b63a739437d316947f66e866012fdc08c109e7af67f28.png",
+      "sha256": "425fda45f98fe80fe84b63a739437d316947f66e866012fdc08c109e7af67f28",
+      "bytes": 174675
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/441ca8afc536d72b1f8171a8504c1e7cd9b0293c9eb01c8dd2abd5869ecfeaed.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/441ca8afc536d72b1f8171a8504c1e7cd9b0293c9eb01c8dd2abd5869ecfeaed.png",
+      "sha256": "441ca8afc536d72b1f8171a8504c1e7cd9b0293c9eb01c8dd2abd5869ecfeaed",
+      "bytes": 122833
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/49baadbd391c9cc00029e9a43dcbe79e6562e2ccf9082d8de039d00211d3ba66.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/49baadbd391c9cc00029e9a43dcbe79e6562e2ccf9082d8de039d00211d3ba66.png",
+      "sha256": "49baadbd391c9cc00029e9a43dcbe79e6562e2ccf9082d8de039d00211d3ba66",
+      "bytes": 240344
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/4ca7d8036463da1f758d357432769d7fc1ab7c085fb4c8942d8caca7141450c3.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/4ca7d8036463da1f758d357432769d7fc1ab7c085fb4c8942d8caca7141450c3.png",
+      "sha256": "4ca7d8036463da1f758d357432769d7fc1ab7c085fb4c8942d8caca7141450c3",
+      "bytes": 91891
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/53318a4e1d1b39c538da13d16773bf19ef2f4ac220a36bfbb8aec88d05a2fe67.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/53318a4e1d1b39c538da13d16773bf19ef2f4ac220a36bfbb8aec88d05a2fe67.png",
+      "sha256": "53318a4e1d1b39c538da13d16773bf19ef2f4ac220a36bfbb8aec88d05a2fe67",
+      "bytes": 135293
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/5372da94ea30eecac6917e78f81be1140e12fb5ebc5e4d680bc95a93401471e7.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/5372da94ea30eecac6917e78f81be1140e12fb5ebc5e4d680bc95a93401471e7.png",
+      "sha256": "5372da94ea30eecac6917e78f81be1140e12fb5ebc5e4d680bc95a93401471e7",
+      "bytes": 138893
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/53daa98265617470aa9ba107bed99e2c77a29029a5de685aa196190e9675068d.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/53daa98265617470aa9ba107bed99e2c77a29029a5de685aa196190e9675068d.png",
+      "sha256": "53daa98265617470aa9ba107bed99e2c77a29029a5de685aa196190e9675068d",
+      "bytes": 145021
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/5914a844a0ab5735edba77e20bdf3919b2439384d63aac9a8c6beb428eb66e9c.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/5914a844a0ab5735edba77e20bdf3919b2439384d63aac9a8c6beb428eb66e9c.png",
+      "sha256": "5914a844a0ab5735edba77e20bdf3919b2439384d63aac9a8c6beb428eb66e9c",
+      "bytes": 135760
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/5dbe7e52a24030191a92d5b21c95b05bb2d4aaeee4265e3c10dbebe77a7302c1.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/5dbe7e52a24030191a92d5b21c95b05bb2d4aaeee4265e3c10dbebe77a7302c1.png",
+      "sha256": "5dbe7e52a24030191a92d5b21c95b05bb2d4aaeee4265e3c10dbebe77a7302c1",
+      "bytes": 102288
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/5f7b631405478b8695ef7abec56272f1e98cfdbbed98679b462debce93ac4d72.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/5f7b631405478b8695ef7abec56272f1e98cfdbbed98679b462debce93ac4d72.png",
+      "sha256": "5f7b631405478b8695ef7abec56272f1e98cfdbbed98679b462debce93ac4d72",
+      "bytes": 110244
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/68472807931583126247e9085e1622835205f9e2255378b228742fa988fd672d.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/68472807931583126247e9085e1622835205f9e2255378b228742fa988fd672d.png",
+      "sha256": "68472807931583126247e9085e1622835205f9e2255378b228742fa988fd672d",
+      "bytes": 118466
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/69d42cbaa119b43205500ff2fff5ad14439a85194e7167e0f980981b3eb59f21.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/69d42cbaa119b43205500ff2fff5ad14439a85194e7167e0f980981b3eb59f21.png",
+      "sha256": "69d42cbaa119b43205500ff2fff5ad14439a85194e7167e0f980981b3eb59f21",
+      "bytes": 177526
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/6e3fffcecbc48a92b8d4fb780b9dd1fffea831205a3c9eab66c085c46976f36a.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/6e3fffcecbc48a92b8d4fb780b9dd1fffea831205a3c9eab66c085c46976f36a.png",
+      "sha256": "6e3fffcecbc48a92b8d4fb780b9dd1fffea831205a3c9eab66c085c46976f36a",
+      "bytes": 139521
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/71979e97a22b7cb2b751d37725a26e2088ce1520288ce0e0ce18b0fe3c2be9e4.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/71979e97a22b7cb2b751d37725a26e2088ce1520288ce0e0ce18b0fe3c2be9e4.png",
+      "sha256": "71979e97a22b7cb2b751d37725a26e2088ce1520288ce0e0ce18b0fe3c2be9e4",
+      "bytes": 194733
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/73e26d4e72f4d769bae63f55deafb9f362b232f3b454bd78f431da5c6561f889.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/73e26d4e72f4d769bae63f55deafb9f362b232f3b454bd78f431da5c6561f889.png",
+      "sha256": "73e26d4e72f4d769bae63f55deafb9f362b232f3b454bd78f431da5c6561f889",
+      "bytes": 278962
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/78d43f043e903df5296e7e79cb9722a2e35fb88573bcc83792fae9ec10678c51.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/78d43f043e903df5296e7e79cb9722a2e35fb88573bcc83792fae9ec10678c51.png",
+      "sha256": "78d43f043e903df5296e7e79cb9722a2e35fb88573bcc83792fae9ec10678c51",
+      "bytes": 253913
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/80a11441978fc58818dd607895ec4d36dafabf8ecda854c024115c0bacc0c00c.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/80a11441978fc58818dd607895ec4d36dafabf8ecda854c024115c0bacc0c00c.png",
+      "sha256": "80a11441978fc58818dd607895ec4d36dafabf8ecda854c024115c0bacc0c00c",
+      "bytes": 125391
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/838fdcf18aae46ea6781727695140929db23af7f99df5308531e53c97de91637.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/838fdcf18aae46ea6781727695140929db23af7f99df5308531e53c97de91637.png",
+      "sha256": "838fdcf18aae46ea6781727695140929db23af7f99df5308531e53c97de91637",
+      "bytes": 285548
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/88d289c244c7c774fcaa25bb442b638ff2eec974aced89d56014313000649af5.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/88d289c244c7c774fcaa25bb442b638ff2eec974aced89d56014313000649af5.png",
+      "sha256": "88d289c244c7c774fcaa25bb442b638ff2eec974aced89d56014313000649af5",
+      "bytes": 142934
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/96bcf68c0102cc9bf57710693984a84151717774e9dbdf5e83a7823bcd1ecd90.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/96bcf68c0102cc9bf57710693984a84151717774e9dbdf5e83a7823bcd1ecd90.png",
+      "sha256": "96bcf68c0102cc9bf57710693984a84151717774e9dbdf5e83a7823bcd1ecd90",
+      "bytes": 197591
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/9cdb94e496eeb459a30553fdc0b79601e4cc5dff20ad312b0445452dfaa22de6.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/9cdb94e496eeb459a30553fdc0b79601e4cc5dff20ad312b0445452dfaa22de6.png",
+      "sha256": "9cdb94e496eeb459a30553fdc0b79601e4cc5dff20ad312b0445452dfaa22de6",
+      "bytes": 161046
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/9f16085cef3d49df3dcb6aa4c6605081bb703fb6754fc5cab68a876b16568b63.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/9f16085cef3d49df3dcb6aa4c6605081bb703fb6754fc5cab68a876b16568b63.png",
+      "sha256": "9f16085cef3d49df3dcb6aa4c6605081bb703fb6754fc5cab68a876b16568b63",
+      "bytes": 136265
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/a4d84f12ad331e7bf23e9b44c3054fc9cc924aaef93c7cd4bf1342a5be336cf3.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/a4d84f12ad331e7bf23e9b44c3054fc9cc924aaef93c7cd4bf1342a5be336cf3.png",
+      "sha256": "a4d84f12ad331e7bf23e9b44c3054fc9cc924aaef93c7cd4bf1342a5be336cf3",
+      "bytes": 90505
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/a6e7cbdd0ed5598eb4aa2b955ad042d533bb208b912ba72a9c2c4d5d318f13c9.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/a6e7cbdd0ed5598eb4aa2b955ad042d533bb208b912ba72a9c2c4d5d318f13c9.png",
+      "sha256": "a6e7cbdd0ed5598eb4aa2b955ad042d533bb208b912ba72a9c2c4d5d318f13c9",
+      "bytes": 95086
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/a70d0b014d7e01540b389596e26e66c1cf5d2f4a0b891f3a9820e42af1a1c304.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/a70d0b014d7e01540b389596e26e66c1cf5d2f4a0b891f3a9820e42af1a1c304.png",
+      "sha256": "a70d0b014d7e01540b389596e26e66c1cf5d2f4a0b891f3a9820e42af1a1c304",
+      "bytes": 135515
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/ae86c5ecfd3c3257ebaaf6ccbac179403ec24374ff4e1ce2adfe85247c8cca1e.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/ae86c5ecfd3c3257ebaaf6ccbac179403ec24374ff4e1ce2adfe85247c8cca1e.png",
+      "sha256": "ae86c5ecfd3c3257ebaaf6ccbac179403ec24374ff4e1ce2adfe85247c8cca1e",
+      "bytes": 241271
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/b0190258f8b0504a6efb6a94ffd59ae9ac8d3977cf4feec55afdce499fd5b3b6.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/b0190258f8b0504a6efb6a94ffd59ae9ac8d3977cf4feec55afdce499fd5b3b6.png",
+      "sha256": "b0190258f8b0504a6efb6a94ffd59ae9ac8d3977cf4feec55afdce499fd5b3b6",
+      "bytes": 222204
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/b01d2a1e4ea05ee5d405598dd0cdb21f5fb7903c5a182c2b57b643282864c37d.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/b01d2a1e4ea05ee5d405598dd0cdb21f5fb7903c5a182c2b57b643282864c37d.png",
+      "sha256": "b01d2a1e4ea05ee5d405598dd0cdb21f5fb7903c5a182c2b57b643282864c37d",
+      "bytes": 145926
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/b0d4201db3fa1e95117d006e7680ac5e2a94bd2a706e168478f3fa762793d28f.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/b0d4201db3fa1e95117d006e7680ac5e2a94bd2a706e168478f3fa762793d28f.png",
+      "sha256": "b0d4201db3fa1e95117d006e7680ac5e2a94bd2a706e168478f3fa762793d28f",
+      "bytes": 212653
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/b3e662be5bb91b8e898aaa2d7c4d4d9950bc026e2840fe860b987928095076f7.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/b3e662be5bb91b8e898aaa2d7c4d4d9950bc026e2840fe860b987928095076f7.png",
+      "sha256": "b3e662be5bb91b8e898aaa2d7c4d4d9950bc026e2840fe860b987928095076f7",
+      "bytes": 185307
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/b8dbb37abd29f4176fd006e62a1fc4f97d6dc1a4cc9954ad1fd409d00f171b90.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/b8dbb37abd29f4176fd006e62a1fc4f97d6dc1a4cc9954ad1fd409d00f171b90.png",
+      "sha256": "b8dbb37abd29f4176fd006e62a1fc4f97d6dc1a4cc9954ad1fd409d00f171b90",
+      "bytes": 253657
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/c35c9e6feb42979b348476a0473dab072fa8d1af8879d31a3be34b782d1d6c60.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/c35c9e6feb42979b348476a0473dab072fa8d1af8879d31a3be34b782d1d6c60.png",
+      "sha256": "c35c9e6feb42979b348476a0473dab072fa8d1af8879d31a3be34b782d1d6c60",
+      "bytes": 121925
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/c63be950d9266a29d407507714198753988863b3bd91e5660759500ef63605a8.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/c63be950d9266a29d407507714198753988863b3bd91e5660759500ef63605a8.png",
+      "sha256": "c63be950d9266a29d407507714198753988863b3bd91e5660759500ef63605a8",
+      "bytes": 165314
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/d3e90bc5318c7b17edf257d6896ab1b0b329a80f4b7584524f59fad18412011a.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/d3e90bc5318c7b17edf257d6896ab1b0b329a80f4b7584524f59fad18412011a.png",
+      "sha256": "d3e90bc5318c7b17edf257d6896ab1b0b329a80f4b7584524f59fad18412011a",
+      "bytes": 114705
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/d4e48b47c942b97aed4220d169a2a91c902112936c1eb10ba7a4c237f29542a3.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/d4e48b47c942b97aed4220d169a2a91c902112936c1eb10ba7a4c237f29542a3.png",
+      "sha256": "d4e48b47c942b97aed4220d169a2a91c902112936c1eb10ba7a4c237f29542a3",
+      "bytes": 140623
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/d7dd0523c4561bc76847467c8b9c60511665f51cea1ce0d0dc451d12a83626ad.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/d7dd0523c4561bc76847467c8b9c60511665f51cea1ce0d0dc451d12a83626ad.png",
+      "sha256": "d7dd0523c4561bc76847467c8b9c60511665f51cea1ce0d0dc451d12a83626ad",
+      "bytes": 144319
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/d93fed192a56a05a54733b19f66fed71dd34543098feb155a401702eeca56e2b.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/d93fed192a56a05a54733b19f66fed71dd34543098feb155a401702eeca56e2b.png",
+      "sha256": "d93fed192a56a05a54733b19f66fed71dd34543098feb155a401702eeca56e2b",
+      "bytes": 174955
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/da4324948e725aa61e0af686ce57115c3010a86fa31ffeece41e71a6965b9d64.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/da4324948e725aa61e0af686ce57115c3010a86fa31ffeece41e71a6965b9d64.png",
+      "sha256": "da4324948e725aa61e0af686ce57115c3010a86fa31ffeece41e71a6965b9d64",
+      "bytes": 180542
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/e5ec85449778ca88f94c7f0b2cbf83804a27082e42cd13ba269ce882defa2d1d.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/e5ec85449778ca88f94c7f0b2cbf83804a27082e42cd13ba269ce882defa2d1d.png",
+      "sha256": "e5ec85449778ca88f94c7f0b2cbf83804a27082e42cd13ba269ce882defa2d1d",
+      "bytes": 238105
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/e971ba7defd019c7c663b75edf80ec8887c828b93d9cbb010a25bd59b8af8949.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/e971ba7defd019c7c663b75edf80ec8887c828b93d9cbb010a25bd59b8af8949.png",
+      "sha256": "e971ba7defd019c7c663b75edf80ec8887c828b93d9cbb010a25bd59b8af8949",
+      "bytes": 125390
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/ea7ea1e94a85fc27c10b6a810a8764488a568e61c7a0e19b9c6d8b3861bc369d.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/ea7ea1e94a85fc27c10b6a810a8764488a568e61c7a0e19b9c6d8b3861bc369d.png",
+      "sha256": "ea7ea1e94a85fc27c10b6a810a8764488a568e61c7a0e19b9c6d8b3861bc369d",
+      "bytes": 157238
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/f0b5a7e958d94dafa4b9e2ab6345cedc5f24e9248856584f88d37842c1a431f8.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/f0b5a7e958d94dafa4b9e2ab6345cedc5f24e9248856584f88d37842c1a431f8.png",
+      "sha256": "f0b5a7e958d94dafa4b9e2ab6345cedc5f24e9248856584f88d37842c1a431f8",
+      "bytes": 140627
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/fa9ca55e27140b668fa500319e9a7873019ba2f1a91264a54241fb320e534726.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/fa9ca55e27140b668fa500319e9a7873019ba2f1a91264a54241fb320e534726.png",
+      "sha256": "fa9ca55e27140b668fa500319e9a7873019ba2f1a91264a54241fb320e534726",
+      "bytes": 145670
+    },
+    {
+      "archive_path": "cursor/stores/store-df3ba923-16ac-40d8-bc37-c0122d660ba5/grok-bot/agents/3dd5c4fc-6797-4036-9d47-011d0af5dba2/assets/ffdcf7c5541d0e6f1c5303d8524163a72a8edfcfedd9ed23b05bea6732063b4f.png",
+      "path": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r18/screenshots/ffdcf7c5541d0e6f1c5303d8524163a72a8edfcfedd9ed23b05bea6732063b4f.png",
+      "sha256": "ffdcf7c5541d0e6f1c5303d8524163a72a8edfcfedd9ed23b05bea6732063b4f",
+      "bytes": 122361
+    }
+  ],
+  "image_files_removed": true,
+  "image_removal_policy": "用户要求删除图片副本且不再提交图片；原附件未改动，原hash及文件名仅用于历史追溯。"
+}

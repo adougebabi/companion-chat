@@ -100,7 +100,7 @@ export function approvedHref(page, fid) {
     return fid ? "#/c/" + encodeURIComponent(fid) + "/" + module : "#/library";
   return (
     {
-      动态: "#/feed" + (fid ? "?fid=" + encodeURIComponent(fid) : ""),
+      动态: "#/feed",
       通知与待处理: "#/inbox",
       角色库: "#/library",
       初始化角色: "#/library/create",

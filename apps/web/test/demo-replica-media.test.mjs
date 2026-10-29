@@ -185,6 +185,7 @@ test("metadata cancel never writes, saving uses both versions and hide removes t
   try {
     await openAsset(f);
     await f.v.click(button(dialog(), "编辑库信息"));
+    assert.equal(document.querySelectorAll('[role=dialog]').length,1);
     await f.v.input(
       dialog().querySelector('[aria-label="素材名称"]'),
       "不保存的新名字",
@@ -388,9 +389,7 @@ test("avatar selection saves its own revision and actual asset version without r
   try {
     const old = f.api.state().visual.canonical_asset_id;
     await f.v.click(
-      [...f.v.host.querySelectorAll(".r-avatar-modes button")].find((b) =>
-        b.textContent.includes("选择一张媒体图片"),
-      ),
+      f.v.host.querySelector('[role=radio][aria-label="选择一张媒体图片"]'),
     );
     await f.v.click(
       f.v.host.querySelector('[aria-label="选择头像 午后的窗边"]'),
@@ -760,7 +759,7 @@ test("metadata CAS review adopts untouched current fields while preserving actua
     );
     await f.v.click(button(dialog(), "保存库信息"));
     f.api.assets.get("replica-landscape").hidden = true;
-    await f.v.click(button(dialog(), "读取最新版本并保留输入"));
+    await f.v.click(button(dialog(), "同步资料，保留输入"));
     await f.v.click(button(dialog(), "已核对，采用最新基线"));
     assert.equal(
       dialog().querySelector('[aria-label="素材名称"]').value,

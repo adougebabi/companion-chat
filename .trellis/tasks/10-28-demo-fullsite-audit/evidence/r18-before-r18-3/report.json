@@ -1,0 +1,1612 @@
+[
+  {
+    "name": "settings",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "模型服务与用途: no horizontal overflow",
+      "聊天与视觉: no horizontal overflow",
+      "图片生成: no horizontal overflow",
+      "自主性与安静时段: no horizontal overflow",
+      "通知与后台: no horizontal overflow",
+      "高级设置: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-reference-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-reference-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-reference-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-reference-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-reference-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-wide-reference-高级设置.png"
+    ],
+    "feedback": [
+      {
+        "label": "模型服务与用途",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 527,
+              "y": 1013.421875,
+              "width": 1092,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "聊天与视觉",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 527,
+              "y": 1013.421875,
+              "width": 1092,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "图片生成",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 527,
+              "y": 1013.421875,
+              "width": 1092,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "自主性与安静时段",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 527,
+              "y": 1013.421875,
+              "width": 1092,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "通知与后台",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 527,
+              "y": 1013.421875,
+              "width": 1092,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "高级设置",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 527,
+              "y": 1013.421875,
+              "width": 1092,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "模型服务与用途",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      },
+      {
+        "label": "聊天与视觉",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      },
+      {
+        "label": "图片生成",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      },
+      {
+        "label": "自主性与安静时段",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      },
+      {
+        "label": "通知与后台",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      },
+      {
+        "label": "高级设置",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "wizard-json",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/wizard-json-wide-input.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": []
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "diagnostics-context",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "task-context: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/diagnostics-context-wide-task-context.png"
+    ],
+    "feedback": [
+      {
+        "label": "task-context",
+        "nodes": []
+      }
+    ],
+    "geometry": [
+      {
+        "label": "task-context",
+        "data": {
+          "x": 300,
+          "width": 1560
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "inbox-task",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "notification-task: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/r18-notice/read",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "59cb2bff-1960-4288-a4b9-4ecea60cd864"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/inbox-task-wide-notification-task.png"
+    ],
+    "feedback": [
+      {
+        "label": "notification-task",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "正在读取页面…",
+            "tag": "DIV",
+            "testId": null,
+            "className": "grid gap-3 py-4",
+            "bounds": {
+              "x": 290,
+              "y": 102,
+              "width": 1580,
+              "height": 176
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "notification-task",
+        "data": {
+          "x": 0,
+          "width": 0
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "settings",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "模型服务与用途: no horizontal overflow",
+      "聊天与视觉: no horizontal overflow",
+      "图片生成: no horizontal overflow",
+      "自主性与安静时段: no horizontal overflow",
+      "通知与后台: no horizontal overflow",
+      "高级设置: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/parity-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-reference-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-reference-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-reference-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-reference-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-reference-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-desktop-reference-高级设置.png"
+    ],
+    "feedback": [
+      {
+        "label": "模型服务与用途",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "聊天与视觉",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "图片生成",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "自主性与安静时段",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "通知与后台",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "高级设置",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 479,
+              "y": 832.421875,
+              "width": 594,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "模型服务与用途",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "聊天与视觉",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "图片生成",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "自主性与安静时段",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "通知与后台",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "高级设置",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "wizard-json",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/wizard-json-desktop-input.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": []
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "diagnostics-context",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "task-context: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/diagnostics-context-desktop-task-context.png"
+    ],
+    "feedback": [
+      {
+        "label": "task-context",
+        "nodes": []
+      }
+    ],
+    "geometry": [
+      {
+        "label": "task-context",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "inbox-task",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "notification-task: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/r18-notice/read",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "380b034d-2810-4227-b823-ed052b29e578"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/inbox-task-desktop-notification-task.png"
+    ],
+    "feedback": [
+      {
+        "label": "notification-task",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "正在读取页面…",
+            "tag": "DIV",
+            "testId": null,
+            "className": "grid gap-3 py-4",
+            "bounds": {
+              "x": 252,
+              "y": 94,
+              "width": 1062,
+              "height": 176
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "notification-task",
+        "data": {
+          "x": 0,
+          "width": 0
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "settings",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "模型服务与用途: no horizontal overflow",
+      "聊天与视觉: no horizontal overflow",
+      "图片生成: no horizontal overflow",
+      "自主性与安静时段: no horizontal overflow",
+      "通知与后台: no horizontal overflow",
+      "高级设置: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/lm-studio/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/remote-demo/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-reference-模型服务与用途.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-reference-聊天与视觉.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-reference-图片生成.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-reference-自主性与安静时段.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-reference-通知与后台.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-高级设置.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/settings-mobile-reference-高级设置.png"
+    ],
+    "feedback": [
+      {
+        "label": "模型服务与用途",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "聊天与视觉",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "图片生成",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "自主性与安静时段",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "通知与后台",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      },
+      {
+        "label": "高级设置",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "status",
+            "live": "polite",
+            "text": "当前配置已读取",
+            "tag": "P",
+            "testId": "config-save-status",
+            "className": "text-sm",
+            "bounds": {
+              "x": 30,
+              "y": 722.859375,
+              "width": 330,
+              "height": 17.140625
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "12px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "模型服务与用途",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "聊天与视觉",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "图片生成",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "自主性与安静时段",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "通知与后台",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "高级设置",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "wizard-json",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/wizard-json-mobile-input.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": []
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "diagnostics-context",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "task-context: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/diagnostics-context-mobile-task-context.png"
+    ],
+    "feedback": [
+      {
+        "label": "task-context",
+        "nodes": []
+      }
+    ],
+    "geometry": [
+      {
+        "label": "task-context",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "inbox-task",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "before",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "notification-task: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/r18-notice/read",
+        "method": "POST",
+        "body": {
+          "idempotencyKey": "d5969086-1513-42f5-8571-514ea54e2a46"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-before-r18-3/inbox-task-mobile-notification-task.png"
+    ],
+    "feedback": [
+      {
+        "label": "notification-task",
+        "nodes": [
+          {
+            "kind": null,
+            "role": "status",
+            "live": null,
+            "text": "正在读取页面…",
+            "tag": "DIV",
+            "testId": null,
+            "className": "grid gap-3 py-4",
+            "bounds": {
+              "x": 17,
+              "y": 81,
+              "width": 356,
+              "height": 176
+            },
+            "style": {
+              "color": "rgb(46, 57, 49)",
+              "background": "rgba(0, 0, 0, 0)",
+              "border": "rgb(226, 231, 222)",
+              "fontSize": "14px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "notification-task",
+        "data": {
+          "x": 0,
+          "width": 0
+        }
+      }
+    ],
+    "status": "captured"
+  }
+]

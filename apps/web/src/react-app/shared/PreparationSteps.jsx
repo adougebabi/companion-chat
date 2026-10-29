@@ -129,16 +129,16 @@ export default function PreparationSteps(input = {}) {
                         </a>
                       </ActionButton>
                     ) : null}
-                    {stage.retryable ? (
+                    {stage.retryable && typeof __props.onRecover==='function' ? (
                       <ActionButton
-                        variant="outline"
+                        variant={stage.state==='failed'?'default':'outline'}
                         key={1}
                         type="button"
 
                         disabled={__props.busy}
                         onClick={($event) => __props.onRecover?.(stage)}
                       >
-                        {displayText(__props.busy ? "处理中…" : "恢复此环节")}
+                        {displayText(__props.busy ? "处理中…" : "恢复原任务")}
                       </ActionButton>
                     ) : null}
                     {stage.href ? (
@@ -146,15 +146,15 @@ export default function PreparationSteps(input = {}) {
                         <a
                           key={2}
                           href={
-                            stage.href +
-                            (stage.href.includes("?") ? "&" : "?") +
+                            (stage.href.startsWith('#/diag/task/')?'#/diag?view=tasks&taskId='+encodeURIComponent(stage.href.slice('#/diag/task/'.length)):stage.href) +
+                            (stage.href.includes("?")||stage.href.startsWith('#/diag/task/') ? "&" : "?") +
                             "returnTo=" +
                             encodeURIComponent(
                               globalThis.location?.hash || "#/library",
                             )
                           }
                         >
-                          {stage.linkLabel || "查看技术详情"}
+                          {stage.linkLabel || (stage.href.startsWith('#/diag/task/')?'查看任务记录':'查看准备记录')}
                         </a>
                       </ActionButton>
                     ) : null}

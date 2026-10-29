@@ -1,0 +1,878 @@
+[
+  {
+    "name": "wizard-json",
+    "size": "wide",
+    "width": 1920,
+    "height": 1113,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "fresh timezone is Shanghai despite LA browser timezone",
+      "JSON editor has a usable initial height",
+      "file picker is a compact action",
+      "example is input only, without a manufactured analysis",
+      "example follows normal unsent draft invalidation without an accepted request",
+      "example: no horizontal overflow",
+      "explicit preview uses actual analysis endpoint once",
+      "preview-生活设定: no horizontal overflow",
+      "preview-人格与关系: no horizontal overflow",
+      "preview-完整设定: no horizontal overflow",
+      "preview and examples never activate a role",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-example.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-preview-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-preview-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-preview-完整设定.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 350,
+              "y": 468.625,
+              "width": 1150,
+              "height": 104.140625
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "example",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 350,
+              "y": -2.375,
+              "width": 1150,
+              "height": 104.140625
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "preview-生活设定",
+        "nodes": []
+      },
+      {
+        "label": "preview-人格与关系",
+        "nodes": []
+      },
+      {
+        "label": "preview-完整设定",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "这是本次预览的完整嵌套设定。未知扩展保留，分析来源由原记录维护。明确应用后同步各主题。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 374,
+              "y": 408.828125,
+              "width": 1102,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "example",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "preview-生活设定",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "preview-人格与关系",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      },
+      {
+        "label": "preview-完整设定",
+        "data": {
+          "x": 350,
+          "width": 1460
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wizard-json",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "fresh timezone is Shanghai despite LA browser timezone",
+      "JSON editor has a usable initial height",
+      "file picker is a compact action",
+      "example is input only, without a manufactured analysis",
+      "example follows normal unsent draft invalidation without an accepted request",
+      "example: no horizontal overflow",
+      "explicit preview uses actual analysis endpoint once",
+      "preview-生活设定: no horizontal overflow",
+      "preview-人格与关系: no horizontal overflow",
+      "preview-完整设定: no horizontal overflow",
+      "preview and examples never activate a role",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-example.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-preview-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-preview-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-preview-完整设定.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": 456.625,
+              "width": 789,
+              "height": 104.140625
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "example",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 252,
+              "y": -183.375,
+              "width": 789,
+              "height": 104.140625
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "preview-生活设定",
+        "nodes": []
+      },
+      {
+        "label": "preview-人格与关系",
+        "nodes": []
+      },
+      {
+        "label": "preview-完整设定",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "这是本次预览的完整嵌套设定。未知扩展保留，分析来源由原记录维护。明确应用后同步各主题。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 276,
+              "y": 396.828125,
+              "width": 741,
+              "height": 48.34375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "example",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "preview-生活设定",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "preview-人格与关系",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      },
+      {
+        "label": "preview-完整设定",
+        "data": {
+          "x": 252,
+          "width": 1062
+        }
+      }
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "wizard-json",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "version": "after",
+    "boundary": "production dist / exact pushed-before snapshot or current source; controlled HTTP, readonly immutable Demo; no real model/Core write certification",
+    "checks": [
+      "input: no horizontal overflow",
+      "fresh timezone is Shanghai despite LA browser timezone",
+      "JSON editor has a usable initial height",
+      "file picker is a compact action",
+      "example is input only, without a manufactured analysis",
+      "example follows normal unsent draft invalidation without an accepted request",
+      "example: no horizontal overflow",
+      "explicit preview uses actual analysis endpoint once",
+      "preview-生活设定: no horizontal overflow",
+      "preview-人格与关系: no horizontal overflow",
+      "preview-完整设定: no horizontal overflow",
+      "preview and examples never activate a role",
+      "no uncaught browser exception"
+    ],
+    "errors": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-example.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-preview-生活设定.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-preview-人格与关系.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-preview-完整设定.png"
+    ],
+    "feedback": [
+      {
+        "label": "input",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": 598.640625,
+              "width": 356,
+              "height": 123.9375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "example",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "尚未配置通用模型\n\n完整标准资料可以直接校验；需要补全或整理其他格式时，请先配置模型。\n\n配置通用模型",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 17,
+              "y": -398.359375,
+              "width": 356,
+              "height": 123.9375
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": [
+              {
+                "text": "配置通用模型",
+                "label": null,
+                "href": "#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94",
+                "disabled": false,
+                "expanded": null
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "preview-生活设定",
+        "nodes": []
+      },
+      {
+        "label": "preview-人格与关系",
+        "nodes": []
+      },
+      {
+        "label": "preview-完整设定",
+        "nodes": [
+          {
+            "kind": "information",
+            "role": "note",
+            "live": null,
+            "text": "这是本次预览的完整嵌套设定。未知扩展保留，分析来源由原记录维护。明确应用后同步各主题。",
+            "tag": "DIV",
+            "testId": null,
+            "className": "replica-info",
+            "bounds": {
+              "x": 38,
+              "y": 415.140625,
+              "width": 314,
+              "height": 68.6875
+            },
+            "style": {
+              "color": "rgb(116, 135, 104)",
+              "background": "rgb(241, 245, 236)",
+              "border": "rgb(227, 235, 217)",
+              "fontSize": "11px"
+            },
+            "actions": []
+          }
+        ]
+      }
+    ],
+    "geometry": [
+      {
+        "label": "input",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "example",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "preview-生活设定",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "preview-人格与关系",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      },
+      {
+        "label": "preview-完整设定",
+        "data": {
+          "x": 17,
+          "width": 356
+        }
+      }
+    ],
+    "status": "passed"
+  }
+]

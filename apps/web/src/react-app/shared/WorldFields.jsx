@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import LoadingState from "./LoadingState";
 import { InlineFeedback } from "./Presentation";
 import WorkspaceInfo from "./WorkspaceInfo";
+import SemanticTree from './SemanticTree';
 export default function WorldField({
   label,
   value,
@@ -14,7 +15,7 @@ export default function WorldField({
   const Input = multiline ? Textarea : FieldInput;
   return (
     <label className="replica-field">
-      <span>{label}</span>
+      <span>{label}{props.required&&<span className="replica-required" aria-hidden="true"> *</span>}</span>
       <Input
         aria-label={label}
         value={value ?? ""}
@@ -23,6 +24,18 @@ export default function WorldField({
       />
     </label>
   );
+}
+function WorldCollectionField({label,value,onChange}){
+  let entries=null,invalid=false;
+  if(typeof value==='string'&&value.trim().startsWith('[')){
+    try{const parsed=JSON.parse(value);if(Array.isArray(parsed))entries=parsed;else invalid=true;}
+    catch{invalid=true;}
+  }
+  if(invalid)return <div className="r-form-stack"><p className="r-muted">{label}的列表格式尚未读懂，原内容已保留，请核对完整结构。</p><WorldField label={label+'完整结构'} value={value} onChange={onChange} multiline/></div>;
+  if(!entries)return <WorldField label={label} value={value} onChange={onChange} multiline/>;
+  if(entries.some(entry=>typeof entry!=='string'))return <section className="r-form-stack" aria-label={label}><h3 className="r-field-label">{label}</h3><SemanticTree value={entries}/><Disclosure title={'编辑'+label+'的完整结构'}><WorldField label={label+'完整结构'} value={value} onChange={onChange} multiline/></Disclosure></section>;
+  const update=next=>onChange(JSON.stringify(next,null,2));
+  return <section className="r-form-stack" aria-label={label}><h3 className="r-field-label">{label}</h3>{entries.map((entry,index)=><div className="r-inline-actions" key={index}><FieldInput aria-label={label+'第'+(index+1)+'项'} value={entry} onChange={event=>update(entries.map((before,i)=>i===index?event.target.value:before))}/><Button type="button" variant="ghost" aria-label={'移除'+label+'第'+(index+1)+'项'} onClick={()=>update(entries.filter((_,i)=>i!==index))}>移除</Button></div>)}{!entries.length&&<p className="r-muted">尚未登记。</p>}<Button type="button" variant="outline" disabled={entries.length>=200} onClick={()=>update([...entries,''])}>添加{label}</Button></section>;
 }
 export function WorldForm({ children }) {
   return <div className="replica-world r-form-stack lp-wide">{children}</div>;
@@ -79,9 +92,8 @@ export function WorldEditFields({ draft: d, edit }) {
           value={d.description}
           onChange={(description) => edit({ description })}
         />
-        <WorldField
-          label="世界物品池（文本或JSON数组）"
-          multiline
+        <WorldCollectionField
+          label="世界物品池"
           value={d.itemPool}
           onChange={(itemPool) => edit({ itemPool })}
         />
@@ -162,9 +174,8 @@ export function PlaceEditFields({
           value={d.atmosphere}
           onChange={(atmosphere) => edit({ atmosphere })}
         />
-        <WorldField
-          label="固定陈设（文本或JSON数组）"
-          multiline
+        <WorldCollectionField
+          label="固定陈设"
           value={d.furniture}
           onChange={(furniture) => edit({ furniture })}
         />
@@ -218,15 +229,13 @@ export function PlaceEditFields({
               </label>
             ))}
         </div>
-        <WorldField
-          label="其他连接说明（文本或JSON数组）"
-          multiline
+        <WorldCollectionField
+          label="其他连接说明"
           value={d.connections}
           onChange={(connections) => edit({ connections })}
         />
-        <WorldField
-          label="房内物品（文本或JSON数组）"
-          multiline
+        <WorldCollectionField
+          label="房内物品"
           value={d.roomItems}
           onChange={(roomItems) => edit({ roomItems })}
         />

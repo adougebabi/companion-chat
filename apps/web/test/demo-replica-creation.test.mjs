@@ -2,6 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { creationFixture, validAnalysis } from "./support/creation-fixture.mjs";
 const clone = (v) => JSON.parse(JSON.stringify(v));
+for(const firstResult of ['success','failure'])test('r18 the newest selected JSON file wins when an older read finishes first: '+firstResult,async()=>{
+ let completeA,failA,completeB;const f=creationFixture(async()=>validAnalysis());
+ try{f.c.changeMode('json');const a=f.c.importFile({name:'old.json',size:12,text:()=>new Promise((resolve,reject)=>{completeA=resolve;failA=reject;})}),b=f.c.importFile({name:'new.json',size:12,text:()=>new Promise(resolve=>completeB=resolve)});if(firstResult==='success')completeA('{"name":"旧文件"}');else failA(Error('旧文件读取失败'));await a;assert.notEqual(f.c.draft.fileName,'old.json');completeB('{"name":"新文件"}');await b;assert.equal(f.c.draft.fileName,'new.json');assert.equal(f.c.draft.json,'{"name":"新文件"}');assert.equal(f.c.draft.jsonValid,true);assert.equal(f.c.error.value,'');}finally{f.c.dispose();}
+});
+test('r18 a late JSON file read cannot invalidate a newer running analysis or replace its input',async()=>{
+ let readFile,complete;const f=creationFixture(()=>new Promise(resolve=>complete=resolve));
+ try{f.c.draft.bio='本次需要分析的描述';f.c.draft.json='原来的 JSON 草稿';const reading=f.c.importFile({name:'late.json',size:2,text:()=>new Promise(resolve=>readFile=resolve)}),original=f.c.draft.requestId,analysis=f.c.analyze();assert.equal(f.c.busy.value,true);readFile('{}');await reading;assert.equal(f.c.draft.json,'原来的 JSON 草稿');assert.equal(f.c.draft.requestId,original);complete(validAnalysis());await analysis;assert.equal(f.c.step.value,'preview');}finally{f.c.dispose();}
+});
 async function analyzed() {
   const value = validAnalysis();
   value.core_persona.identity = {

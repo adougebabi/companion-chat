@@ -1,0 +1,2221 @@
+{
+  "schema": "r18-controlled-browser-index.v1",
+  "boundary": "controlled HTTP production dist; not real Core/Provider/media certification",
+  "case_count": 90,
+  "records": [
+    {
+      "group": "r18-after-r18-final",
+      "name": "settings",
+      "size": "wide",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 0,
+      "checks": [
+        "模型服务与用途: no horizontal overflow",
+        "模型服务与用途: same Demo content geometry",
+        "聊天与视觉: no horizontal overflow",
+        "聊天与视觉: same Demo content geometry",
+        "temperature and Top P use real sliders",
+        "图片生成: no horizontal overflow",
+        "图片生成: same Demo content geometry",
+        "自主性与安静时段: no horizontal overflow",
+        "自主性与安静时段: same Demo content geometry",
+        "通知与后台: no horizontal overflow",
+        "通知与后台: same Demo content geometry",
+        "real notification switch 新消息通知",
+        "real notification switch 目标与请求结果提醒",
+        "real notification switch 媒体结果通知",
+        "last settings field is readable above save bar",
+        "runtime-end: no horizontal overflow",
+        "高级设置: no horizontal overflow",
+        "高级设置: same Demo content geometry",
+        "directory reads did not persist a clean connection draft",
+        "loaded and edited range retains exact numeric value",
+        "range-edit: no horizontal overflow",
+        "ordinary inspection and draft edit do not write",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-模型服务与用途.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-reference-模型服务与用途.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-聊天与视觉.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-reference-聊天与视觉.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-图片生成.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-reference-图片生成.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-自主性与安静时段.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-reference-自主性与安静时段.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-通知与后台.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-reference-通知与后台.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-runtime-end.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-高级设置.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-reference-高级设置.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-wide-range-edit.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "diagnostics-context",
+      "size": "wide",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 2,
+      "checks": [
+        "task-context: no horizontal overflow",
+        "one contextual task dialog",
+        "failure reason identifies the model configuration",
+        "no invented generic restart reset controls",
+        "records are not fabricated as repeated execution stages",
+        "record times preserve seconds",
+        "records: no horizontal overflow",
+        "correlation reaches actual diagnostic HTTP",
+        "calls: no horizontal overflow",
+        "model dialog exposes request and truthful absent response",
+        "model-dialog: no horizontal overflow",
+        "keyboard close focus has an explicit nonblack outline",
+        "auxiliary records retain the original task correlation",
+        "associated-logical-records: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-wide-task-context.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-wide-records.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-wide-calls.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-wide-model-dialog.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-wide-associated-logical-records.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "inbox-task",
+      "size": "wide",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 3,
+      "checks": [
+        "notification-task: no horizontal overflow",
+        "notification task stays in inbox context",
+        "source view marks notice read once and never handles task",
+        "notification-return: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/inbox-task-wide-notification-task.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/inbox-task-wide-notification-return.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "settings",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 4,
+      "checks": [
+        "模型服务与用途: no horizontal overflow",
+        "模型服务与用途: same Demo content geometry",
+        "聊天与视觉: no horizontal overflow",
+        "聊天与视觉: same Demo content geometry",
+        "temperature and Top P use real sliders",
+        "图片生成: no horizontal overflow",
+        "图片生成: same Demo content geometry",
+        "自主性与安静时段: no horizontal overflow",
+        "自主性与安静时段: same Demo content geometry",
+        "通知与后台: no horizontal overflow",
+        "通知与后台: same Demo content geometry",
+        "real notification switch 新消息通知",
+        "real notification switch 目标与请求结果提醒",
+        "real notification switch 媒体结果通知",
+        "last settings field is readable above save bar",
+        "runtime-end: no horizontal overflow",
+        "高级设置: no horizontal overflow",
+        "高级设置: same Demo content geometry",
+        "directory reads did not persist a clean connection draft",
+        "loaded and edited range retains exact numeric value",
+        "range-edit: no horizontal overflow",
+        "ordinary inspection and draft edit do not write",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-模型服务与用途.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-reference-模型服务与用途.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-聊天与视觉.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-reference-聊天与视觉.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-图片生成.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-reference-图片生成.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-自主性与安静时段.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-reference-自主性与安静时段.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-通知与后台.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-reference-通知与后台.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-runtime-end.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-高级设置.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-reference-高级设置.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-desktop-range-edit.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "diagnostics-context",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 6,
+      "checks": [
+        "task-context: no horizontal overflow",
+        "one contextual task dialog",
+        "failure reason identifies the model configuration",
+        "no invented generic restart reset controls",
+        "records are not fabricated as repeated execution stages",
+        "record times preserve seconds",
+        "records: no horizontal overflow",
+        "correlation reaches actual diagnostic HTTP",
+        "calls: no horizontal overflow",
+        "model dialog exposes request and truthful absent response",
+        "model-dialog: no horizontal overflow",
+        "keyboard close focus has an explicit nonblack outline",
+        "auxiliary records retain the original task correlation",
+        "associated-logical-records: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-desktop-task-context.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-desktop-records.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-desktop-calls.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-desktop-model-dialog.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-desktop-associated-logical-records.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "inbox-task",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 7,
+      "checks": [
+        "notification-task: no horizontal overflow",
+        "notification task stays in inbox context",
+        "source view marks notice read once and never handles task",
+        "notification-return: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/inbox-task-desktop-notification-task.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/inbox-task-desktop-notification-return.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "settings",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 8,
+      "checks": [
+        "模型服务与用途: no horizontal overflow",
+        "模型服务与用途: same Demo content geometry",
+        "聊天与视觉: no horizontal overflow",
+        "聊天与视觉: same Demo content geometry",
+        "temperature and Top P use real sliders",
+        "图片生成: no horizontal overflow",
+        "图片生成: same Demo content geometry",
+        "自主性与安静时段: no horizontal overflow",
+        "自主性与安静时段: same Demo content geometry",
+        "通知与后台: no horizontal overflow",
+        "通知与后台: same Demo content geometry",
+        "real notification switch 新消息通知",
+        "real notification switch 目标与请求结果提醒",
+        "real notification switch 媒体结果通知",
+        "last settings field is readable above save bar",
+        "runtime-end: no horizontal overflow",
+        "高级设置: no horizontal overflow",
+        "高级设置: same Demo content geometry",
+        "directory reads did not persist a clean connection draft",
+        "loaded and edited range retains exact numeric value",
+        "range-edit: no horizontal overflow",
+        "ordinary inspection and draft edit do not write",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-模型服务与用途.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-reference-模型服务与用途.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-聊天与视觉.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-reference-聊天与视觉.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-图片生成.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-reference-图片生成.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-自主性与安静时段.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-reference-自主性与安静时段.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-通知与后台.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-reference-通知与后台.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-runtime-end.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-高级设置.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-reference-高级设置.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/settings-mobile-range-edit.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "diagnostics-context",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 10,
+      "checks": [
+        "task-context: no horizontal overflow",
+        "one contextual task dialog",
+        "failure reason identifies the model configuration",
+        "no invented generic restart reset controls",
+        "records are not fabricated as repeated execution stages",
+        "record times preserve seconds",
+        "records: no horizontal overflow",
+        "correlation reaches actual diagnostic HTTP",
+        "calls: no horizontal overflow",
+        "model dialog exposes request and truthful absent response",
+        "model-dialog: no horizontal overflow",
+        "keyboard close focus has an explicit nonblack outline",
+        "auxiliary records retain the original task correlation",
+        "associated-logical-records: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-mobile-task-context.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-mobile-records.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-mobile-calls.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-mobile-model-dialog.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/diagnostics-context-mobile-associated-logical-records.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final",
+      "name": "inbox-task",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final/report.json",
+      "source_record_index": 11,
+      "checks": [
+        "notification-task: no horizontal overflow",
+        "notification task stays in inbox context",
+        "source view marks notice read once and never handles task",
+        "notification-return: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/inbox-task-mobile-notification-task.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final/inbox-task-mobile-notification-return.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final-stepper",
+      "name": "wizard-json",
+      "size": "wide",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final-stepper/report.json",
+      "source_record_index": 0,
+      "checks": [
+        "input: no horizontal overflow",
+        "fresh timezone is Shanghai despite LA browser timezone",
+        "JSON editor has a usable initial height",
+        "file picker is a compact action",
+        "example is input only, without a manufactured analysis",
+        "example follows normal unsent draft invalidation without an accepted request",
+        "example: no horizontal overflow",
+        "explicit preview uses actual analysis endpoint once",
+        "preview-生活设定: no horizontal overflow",
+        "preview-人格与关系: no horizontal overflow",
+        "preview-完整设定: no horizontal overflow",
+        "preview and examples never activate a role",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-input.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-example.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-preview-生活设定.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-preview-人格与关系.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-wide-preview-完整设定.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final-stepper",
+      "name": "wizard-json",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final-stepper/report.json",
+      "source_record_index": 1,
+      "checks": [
+        "input: no horizontal overflow",
+        "fresh timezone is Shanghai despite LA browser timezone",
+        "JSON editor has a usable initial height",
+        "file picker is a compact action",
+        "example is input only, without a manufactured analysis",
+        "example follows normal unsent draft invalidation without an accepted request",
+        "example: no horizontal overflow",
+        "explicit preview uses actual analysis endpoint once",
+        "preview-生活设定: no horizontal overflow",
+        "preview-人格与关系: no horizontal overflow",
+        "preview-完整设定: no horizontal overflow",
+        "preview and examples never activate a role",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-input.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-example.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-preview-生活设定.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-preview-人格与关系.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-desktop-preview-完整设定.png"
+      ]
+    },
+    {
+      "group": "r18-after-r18-final-stepper",
+      "name": "wizard-json",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-after-r18-final-stepper/report.json",
+      "source_record_index": 2,
+      "checks": [
+        "input: no horizontal overflow",
+        "fresh timezone is Shanghai despite LA browser timezone",
+        "JSON editor has a usable initial height",
+        "file picker is a compact action",
+        "example is input only, without a manufactured analysis",
+        "example follows normal unsent draft invalidation without an accepted request",
+        "example: no horizontal overflow",
+        "explicit preview uses actual analysis endpoint once",
+        "preview-生活设定: no horizontal overflow",
+        "preview-人格与关系: no horizontal overflow",
+        "preview-完整设定: no horizontal overflow",
+        "preview and examples never activate a role",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-input.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-example.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-preview-生活设定.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-preview-人格与关系.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-after-r18-final-stepper/wizard-json-mobile-preview-完整设定.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "life-empty",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 0,
+      "checks": [
+        "empty: no horizontal overflow",
+        "empty schedule has Demo leaf art",
+        "empty schedule has one schedule action",
+        "ordinary source links remain visible",
+        "quick search icon and focus retained",
+        "quick-search: no horizontal overflow",
+        "quick-search: dialog fits viewport",
+        "reading empty state never writes",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/life-empty-desktop-empty.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/life-empty-desktop-quick-search.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "profile-empty",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 2,
+      "checks": [
+        "overview: no horizontal overflow",
+        "missing facts are grouped by section",
+        "no fabricated personality scores",
+        "profile editing entry retained",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/profile-empty-desktop-overview.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "media-metadata",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 3,
+      "checks": [
+        "detail: no horizontal overflow",
+        "detail: dialog fits viewport",
+        "edit: no horizontal overflow",
+        "edit: dialog fits viewport",
+        "metadata has exactly one active dialog",
+        "cancel returns to same detail without writing",
+        "saved metadata reads back with original CAS",
+        "saved: no horizontal overflow",
+        "saved: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-metadata-desktop-detail.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-metadata-desktop-edit.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-metadata-desktop-saved.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "media-forms",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 4,
+      "checks": [
+        "generation: no horizontal overflow",
+        "画面描述 announces required input",
+        "请求原因 announces required input",
+        "avatar exposes only two supported modes",
+        "avatar keyboard selection follows RadioGroup",
+        "avatar: no horizontal overflow",
+        "form inspection never generates or saves",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-forms-desktop-generation.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-forms-desktop-avatar.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "world-fields-binding",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 5,
+      "checks": [
+        "structured-place: no horizontal overflow",
+        "structured-place: dialog fits viewport",
+        "list-edit: no horizontal overflow",
+        "list-edit: dialog fits viewport",
+        "string list preserves its array type",
+        "world selection refreshes shared role projection",
+        "world change preserves actual position",
+        "only explicit place edit and binding mutate",
+        "world-return: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/world-fields-binding-desktop-structured-place.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/world-fields-binding-desktop-list-edit.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/world-fields-binding-desktop-world-return.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "feed-layout",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 6,
+      "checks": [
+        "detail: no horizontal overflow",
+        "detail: dialog fits viewport",
+        "detail has one comment composer and no repeated footer action",
+        "comment input uses available content width",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/feed-layout-desktop-detail.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "studio-title",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 7,
+      "checks": [
+        "long-title: no horizontal overflow",
+        "long title does not overlap actions",
+        "required fields have visible markers",
+        "editing title does not save",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/studio-title-desktop-long-title.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "data-summary",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 8,
+      "checks": [
+        "overview: no horizontal overflow",
+        "overview contains only actual numeric counts",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/data-summary-desktop-overview.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "life-empty",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 9,
+      "checks": [
+        "empty: no horizontal overflow",
+        "empty schedule has Demo leaf art",
+        "empty schedule has one schedule action",
+        "ordinary source links remain visible",
+        "quick search icon and focus retained",
+        "quick-search: no horizontal overflow",
+        "quick-search: dialog fits viewport",
+        "reading empty state never writes",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/life-empty-mobile-empty.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/life-empty-mobile-quick-search.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "profile-empty",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 11,
+      "checks": [
+        "overview: no horizontal overflow",
+        "missing facts are grouped by section",
+        "no fabricated personality scores",
+        "profile editing entry retained",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/profile-empty-mobile-overview.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "media-metadata",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 12,
+      "checks": [
+        "detail: no horizontal overflow",
+        "detail: dialog fits viewport",
+        "edit: no horizontal overflow",
+        "edit: dialog fits viewport",
+        "metadata has exactly one active dialog",
+        "cancel returns to same detail without writing",
+        "saved metadata reads back with original CAS",
+        "saved: no horizontal overflow",
+        "saved: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-metadata-mobile-detail.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-metadata-mobile-edit.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-metadata-mobile-saved.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "media-forms",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 13,
+      "checks": [
+        "generation: no horizontal overflow",
+        "画面描述 announces required input",
+        "请求原因 announces required input",
+        "avatar exposes only two supported modes",
+        "avatar keyboard selection follows RadioGroup",
+        "avatar: no horizontal overflow",
+        "form inspection never generates or saves",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-forms-mobile-generation.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/media-forms-mobile-avatar.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "world-fields-binding",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 14,
+      "checks": [
+        "structured-place: no horizontal overflow",
+        "structured-place: dialog fits viewport",
+        "list-edit: no horizontal overflow",
+        "list-edit: dialog fits viewport",
+        "string list preserves its array type",
+        "world selection refreshes shared role projection",
+        "world change preserves actual position",
+        "only explicit place edit and binding mutate",
+        "world-return: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/world-fields-binding-mobile-structured-place.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/world-fields-binding-mobile-list-edit.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/world-fields-binding-mobile-world-return.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "feed-layout",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 15,
+      "checks": [
+        "detail: no horizontal overflow",
+        "detail: dialog fits viewport",
+        "detail has one comment composer and no repeated footer action",
+        "comment input uses available content width",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/feed-layout-mobile-detail.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "studio-title",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 16,
+      "checks": [
+        "long-title: no horizontal overflow",
+        "long title does not overlap actions",
+        "required fields have visible markers",
+        "editing title does not save",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/studio-title-mobile-long-title.png"
+      ]
+    },
+    {
+      "group": "r18-module-final2-after",
+      "name": "data-summary",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-module-final2-after/report.json",
+      "source_record_index": 17,
+      "checks": [
+        "overview: no horizontal overflow",
+        "overview contains only actual numeric counts",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-after/data-summary-mobile-overview.png"
+      ]
+    },
+    {
+      "group": "r18-unwritten3-after",
+      "name": "diary-unwritten",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-unwritten3-after/report.json",
+      "source_record_index": 0,
+      "checks": [
+        "no-prose: no horizontal overflow",
+        "unwritten diary explains disabled reply",
+        "ordinary no-content state is not a red error",
+        "confirmed prose clears obsolete no-content guidance",
+        "prose-restored: no horizontal overflow",
+        "state rereads do not mutate diary",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-unwritten3-after/diary-unwritten-desktop-no-prose.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-unwritten3-after/diary-unwritten-desktop-prose-restored.png"
+      ]
+    },
+    {
+      "group": "r18-unwritten3-after",
+      "name": "diary-unwritten",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-unwritten3-after/report.json",
+      "source_record_index": 1,
+      "checks": [
+        "no-prose: no horizontal overflow",
+        "unwritten diary explains disabled reply",
+        "ordinary no-content state is not a red error",
+        "confirmed prose clears obsolete no-content guidance",
+        "prose-restored: no horizontal overflow",
+        "state rereads do not mutate diary",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-unwritten3-after/diary-unwritten-mobile-no-prose.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-unwritten3-after/diary-unwritten-mobile-prose-restored.png"
+      ]
+    },
+    {
+      "group": "r18-chat-final-after",
+      "name": "chat-status",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/r18-chat-final-after/report.json",
+      "source_record_index": 0,
+      "checks": [
+        "status click reads actual response without sending",
+        "checked-original: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-chat-final-after/chat-status-desktop-checked-original.png"
+      ]
+    },
+    {
+      "group": "r18-chat-final-after",
+      "name": "chat-status",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/r18-chat-final-after/report.json",
+      "source_record_index": 1,
+      "checks": [
+        "status click reads actual response without sending",
+        "checked-original: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-chat-final-after/chat-status-mobile-checked-original.png"
+      ]
+    },
+    {
+      "group": "diary-deep",
+      "name": "annotation-search",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/diary-deep/report-r18-modules1.json",
+      "source_record_index": 0,
+      "checks": [
+        "search retains already confirmed diary prose",
+        "cancel sends no annotation",
+        "cancelled note does not reappear",
+        "editing: no horizontal overflow",
+        "annotation saved independently from diary original",
+        "refresh retains saved note",
+        "favorite list reads both actual saved favorites",
+        "saved-favorite: no horizontal overflow",
+        "one explicit annotation write only",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-desktop-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-desktop-saved-favorite.png"
+      ]
+    },
+    {
+      "group": "diary-deep",
+      "name": "annotation-search",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/diary-deep/report-r18-modules1.json",
+      "source_record_index": 2,
+      "checks": [
+        "search retains already confirmed diary prose",
+        "cancel sends no annotation",
+        "cancelled note does not reappear",
+        "editing: no horizontal overflow",
+        "annotation saved independently from diary original",
+        "refresh retains saved note",
+        "favorite list reads both actual saved favorites",
+        "saved-favorite: no horizontal overflow",
+        "one explicit annotation write only",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-mobile-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules1-annotation-search-mobile-saved-favorite.png"
+      ]
+    },
+    {
+      "group": "diary-deep",
+      "name": "reply-request",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/diary-deep/report-r18-modules2.json",
+      "source_record_index": 0,
+      "checks": [
+        "reply edits in place without a modal",
+        "blank reply does not submit",
+        "accepted: no horizontal overflow",
+        "request-completed: no horizontal overflow",
+        "one durable reply request and one write",
+        "request completion does not submit a chat send",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-desktop-accepted.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-desktop-request-completed.png"
+      ]
+    },
+    {
+      "group": "diary-deep",
+      "name": "reply-request",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/diary-deep/report-r18-modules2.json",
+      "source_record_index": 1,
+      "checks": [
+        "reply edits in place without a modal",
+        "blank reply does not submit",
+        "accepted: no horizontal overflow",
+        "request-completed: no horizontal overflow",
+        "one durable reply request and one write",
+        "request completion does not submit a chat send",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-mobile-accepted.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-mobile-request-completed.png"
+      ]
+    },
+    {
+      "group": "diary-deep",
+      "name": "shared-source",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/diary-deep/report-r18-extra1.json",
+      "source_record_index": 0,
+      "checks": [
+        "remote-source: no horizontal overflow",
+        "source opens exact recorded message",
+        "source reading does not resume/send a conversation",
+        "source-message: no horizontal overflow",
+        "source-message: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-extra1-shared-source-desktop-remote-source.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-extra1-shared-source-desktop-source-message.png"
+      ]
+    },
+    {
+      "group": "diary-deep",
+      "name": "shared-source",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/diary-deep/report-r18-extra1.json",
+      "source_record_index": 1,
+      "checks": [
+        "remote-source: no horizontal overflow",
+        "source opens exact recorded message",
+        "source reading does not resume/send a conversation",
+        "source-message: no horizontal overflow",
+        "source-message: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-extra1-shared-source-mobile-remote-source.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-extra1-shared-source-mobile-source-message.png"
+      ]
+    },
+    {
+      "group": "media-deep",
+      "name": "avatar-save",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/media-deep/report-r18-modules1.json",
+      "source_record_index": 0,
+      "checks": [
+        "selecting preview has no mutation",
+        "avatar independently saves actual selected revision",
+        "canonical identity remains independent",
+        "avatar recovery retains exact original key/body",
+        "saved-history: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-save-desktop-saved-history.png"
+      ]
+    },
+    {
+      "group": "media-deep",
+      "name": "avatar-unknown",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/media-deep/report-r18-modules1.json",
+      "source_record_index": 1,
+      "checks": [
+        "selecting preview has no mutation",
+        "unknown-original: no horizontal overflow",
+        "avatar independently saves actual selected revision",
+        "canonical identity remains independent",
+        "avatar recovery retains exact original key/body",
+        "saved-history: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-desktop-unknown-original.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-desktop-saved-history.png"
+      ]
+    },
+    {
+      "group": "media-deep",
+      "name": "avatar-save",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/media-deep/report-r18-modules1.json",
+      "source_record_index": 2,
+      "checks": [
+        "selecting preview has no mutation",
+        "avatar independently saves actual selected revision",
+        "canonical identity remains independent",
+        "avatar recovery retains exact original key/body",
+        "saved-history: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-save-mobile-saved-history.png"
+      ]
+    },
+    {
+      "group": "media-deep",
+      "name": "avatar-unknown",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/media-deep/report-r18-modules1.json",
+      "source_record_index": 3,
+      "checks": [
+        "selecting preview has no mutation",
+        "unknown-original: no horizontal overflow",
+        "avatar independently saves actual selected revision",
+        "canonical identity remains independent",
+        "avatar recovery retains exact original key/body",
+        "saved-history: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-mobile-unknown-original.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/media-deep/r18-modules1-avatar-unknown-mobile-saved-history.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "filter-sources",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 0,
+      "checks": [
+        "search draft does not prematurely replace results",
+        "empty-search: no horizontal page overflow",
+        "relationship filter excludes pending semantic record",
+        "current-source: dialog fits viewport",
+        "current-source: no horizontal page overflow",
+        "historical-source: dialog fits viewport",
+        "historical-source: no horizontal page overflow",
+        "Escape restores originating memory card focus",
+        "filter remains selected after closing detail",
+        "pending-provenance: dialog fits viewport",
+        "pending-provenance: no horizontal page overflow",
+        "viewing/search/cancel sent no mutation",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-empty-search.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-current-source.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-historical-source.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-pending-provenance.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "memory-governance",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 1,
+      "checks": [
+        "empty reason does not mutate",
+        "empty-reason: dialog fits viewport",
+        "empty-reason: no horizontal page overflow",
+        "empty-reason: explanatory form note spans full form",
+        "cancel preserves confirmed memory",
+        "cancel does not mutate",
+        "unchanged content does not mutate",
+        "revised-history: dialog fits viewport",
+        "revised-history: no horizontal page overflow",
+        "correction readback has new content/revision",
+        "forget cancellation remains active",
+        "forgotten-history: dialog fits viewport",
+        "forgotten-history: no horizontal page overflow",
+        "forget appends a revision",
+        "compensated-history: dialog fits viewport",
+        "compensated-history: no horizontal page overflow",
+        "rollback appends active revision instead of deleting history",
+        "three explicit commands only",
+        "all prior versions remain readable",
+        "refresh reads confirmed compensated record",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-empty-reason.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-revised-history.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-forgotten-history.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-compensated-history.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "reflection-feedback",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 2,
+      "checks": [
+        "expanded: dialog fits viewport",
+        "expanded: no horizontal page overflow",
+        "cancel sends no feedback",
+        "accepted: dialog fits viewport",
+        "accepted: no horizontal page overflow",
+        "one feedback request with stance and stable key",
+        "feedback does not fabricate immediate reflection/persona adoption",
+        "request-completed: dialog fits viewport",
+        "request-completed: no horizontal page overflow",
+        "feedback follows its original request until terminal read",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-desktop-expanded.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-desktop-accepted.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-desktop-request-completed.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "self-governance",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 3,
+      "checks": [
+        "review keeps revision and confidence",
+        "reviewed: dialog fits viewport",
+        "reviewed: no horizontal page overflow",
+        "cancel preserves active self claim",
+        "forget has confirmed new revision",
+        "forgotten: dialog fits viewport",
+        "forgotten: no horizontal page overflow",
+        "restore appends current version and clears old review",
+        "three separate governance commands",
+        "restored: dialog fits viewport",
+        "restored: no horizontal page overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-desktop-reviewed.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-desktop-forgotten.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-desktop-restored.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "filter-sources",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 4,
+      "checks": [
+        "search draft does not prematurely replace results",
+        "empty-search: no horizontal page overflow",
+        "relationship filter excludes pending semantic record",
+        "current-source: dialog fits viewport",
+        "current-source: no horizontal page overflow",
+        "historical-source: dialog fits viewport",
+        "historical-source: no horizontal page overflow",
+        "Escape restores originating memory card focus",
+        "filter remains selected after closing detail",
+        "pending-provenance: dialog fits viewport",
+        "pending-provenance: no horizontal page overflow",
+        "viewing/search/cancel sent no mutation",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-empty-search.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-current-source.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-historical-source.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-pending-provenance.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "memory-governance",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 5,
+      "checks": [
+        "empty reason does not mutate",
+        "empty-reason: dialog fits viewport",
+        "empty-reason: no horizontal page overflow",
+        "empty-reason: explanatory form note spans full form",
+        "cancel preserves confirmed memory",
+        "cancel does not mutate",
+        "unchanged content does not mutate",
+        "revised-history: dialog fits viewport",
+        "revised-history: no horizontal page overflow",
+        "correction readback has new content/revision",
+        "forget cancellation remains active",
+        "forgotten-history: dialog fits viewport",
+        "forgotten-history: no horizontal page overflow",
+        "forget appends a revision",
+        "compensated-history: dialog fits viewport",
+        "compensated-history: no horizontal page overflow",
+        "rollback appends active revision instead of deleting history",
+        "three explicit commands only",
+        "all prior versions remain readable",
+        "refresh reads confirmed compensated record",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-empty-reason.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-revised-history.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-forgotten-history.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-compensated-history.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "reflection-feedback",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 6,
+      "checks": [
+        "expanded: dialog fits viewport",
+        "expanded: no horizontal page overflow",
+        "cancel sends no feedback",
+        "accepted: dialog fits viewport",
+        "accepted: no horizontal page overflow",
+        "one feedback request with stance and stable key",
+        "feedback does not fabricate immediate reflection/persona adoption",
+        "request-completed: dialog fits viewport",
+        "request-completed: no horizontal page overflow",
+        "feedback follows its original request until terminal read",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-mobile-expanded.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-mobile-accepted.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-mobile-request-completed.png"
+      ]
+    },
+    {
+      "group": "memory-deep",
+      "name": "self-governance",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/memory-deep/report-r18-deep1.json",
+      "source_record_index": 7,
+      "checks": [
+        "review keeps revision and confidence",
+        "reviewed: dialog fits viewport",
+        "reviewed: no horizontal page overflow",
+        "cancel preserves active self claim",
+        "forget has confirmed new revision",
+        "forgotten: dialog fits viewport",
+        "forgotten: no horizontal page overflow",
+        "restore appends current version and clears old review",
+        "three separate governance commands",
+        "restored: dialog fits viewport",
+        "restored: no horizontal page overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-mobile-reviewed.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-mobile-forgotten.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-mobile-restored.png"
+      ]
+    },
+    {
+      "group": "wardrobe-deep",
+      "name": "garment-save",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/wardrobe-deep/report-r18-deep1.json",
+      "source_record_index": 0,
+      "checks": [
+        "create: no horizontal overflow",
+        "create: dialog fits viewport",
+        "cancel preserves actual clothing name",
+        "ownership and availability reopen from actual readback",
+        "create plus two explicit corrections",
+        "saved: no horizontal overflow",
+        "clothing registration never implies wearing",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-desktop-create.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-desktop-saved.png"
+      ]
+    },
+    {
+      "group": "wardrobe-deep",
+      "name": "outfit-wear",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/wardrobe-deep/report-r18-deep1.json",
+      "source_record_index": 1,
+      "checks": [
+        "composing: no horizontal overflow",
+        "saving plan does not change confirmed wearing",
+        "cancelled edit does not PUT plan",
+        "wearing requires explicit confirmation",
+        "wear-confirmation: no horizontal overflow",
+        "wear request is accepted as pending",
+        "pending: no horizontal overflow",
+        "confirmed wearing is exact selected member set",
+        "confirmed: no horizontal overflow",
+        "Now uses same confirmed wearing",
+        "chat preview uses same confirmed wearing",
+        "chat-synced: no horizontal overflow",
+        "only plan save and explicit wear request write",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-composing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-wear-confirmation.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-pending.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-confirmed.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-desktop-chat-synced.png"
+      ]
+    },
+    {
+      "group": "wardrobe-deep",
+      "name": "garment-unknown",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/wardrobe-deep/report-r18-deep1.json",
+      "source_record_index": 2,
+      "checks": [
+        "create: no horizontal overflow",
+        "create: dialog fits viewport",
+        "unknown-new-draft: no horizontal overflow",
+        "unknown-new-draft: dialog fits viewport",
+        "new garment draft survives original retry",
+        "same original payload/key replayed once",
+        "unknown replay creates one original item",
+        "recovered: no horizontal overflow",
+        "recovered: dialog fits viewport",
+        "clothing registration never implies wearing",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-desktop-create.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-desktop-unknown-new-draft.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-desktop-recovered.png"
+      ]
+    },
+    {
+      "group": "wardrobe-deep",
+      "name": "garment-save",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/wardrobe-deep/report-r18-deep1.json",
+      "source_record_index": 3,
+      "checks": [
+        "create: no horizontal overflow",
+        "create: dialog fits viewport",
+        "cancel preserves actual clothing name",
+        "ownership and availability reopen from actual readback",
+        "create plus two explicit corrections",
+        "saved: no horizontal overflow",
+        "clothing registration never implies wearing",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-mobile-create.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-save-mobile-saved.png"
+      ]
+    },
+    {
+      "group": "wardrobe-deep",
+      "name": "outfit-wear",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/wardrobe-deep/report-r18-deep1.json",
+      "source_record_index": 4,
+      "checks": [
+        "composing: no horizontal overflow",
+        "saving plan does not change confirmed wearing",
+        "cancelled edit does not PUT plan",
+        "wearing requires explicit confirmation",
+        "wear-confirmation: no horizontal overflow",
+        "wear request is accepted as pending",
+        "pending: no horizontal overflow",
+        "confirmed wearing is exact selected member set",
+        "confirmed: no horizontal overflow",
+        "Now uses same confirmed wearing",
+        "chat preview uses same confirmed wearing",
+        "chat-synced: no horizontal overflow",
+        "only plan save and explicit wear request write",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-composing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-wear-confirmation.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-pending.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-confirmed.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-outfit-wear-mobile-chat-synced.png"
+      ]
+    },
+    {
+      "group": "wardrobe-deep",
+      "name": "garment-unknown",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/wardrobe-deep/report-r18-deep1.json",
+      "source_record_index": 5,
+      "checks": [
+        "create: no horizontal overflow",
+        "create: dialog fits viewport",
+        "unknown-new-draft: no horizontal overflow",
+        "unknown-new-draft: dialog fits viewport",
+        "new garment draft survives original retry",
+        "same original payload/key replayed once",
+        "unknown replay creates one original item",
+        "recovered: no horizontal overflow",
+        "recovered: dialog fits viewport",
+        "clothing registration never implies wearing",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-mobile-create.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-mobile-unknown-new-draft.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/wardrobe-deep/r18-deep1-garment-unknown-mobile-recovered.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "edit-expression",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-edit-expression-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "keep editing retains unsaved group value",
+        "discard has no proposal or acceptance write",
+        "editing: no horizontal overflow",
+        "editing: dialog fits viewport",
+        "selected group saves actual typed field",
+        "life extension and runtime wearing remain independent",
+        "save creates then explicitly accepts one definition proposal",
+        "editor reopens confirmed saved group",
+        "saved-reopened: no horizontal overflow",
+        "saved-reopened: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-expression-desktop-edit-expression-desktop-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-expression-desktop-edit-expression-desktop-saved-reopened.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "edit-expression",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-edit-expression-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "keep editing retains unsaved group value",
+        "discard has no proposal or acceptance write",
+        "editing: no horizontal overflow",
+        "editing: dialog fits viewport",
+        "selected group saves actual typed field",
+        "life extension and runtime wearing remain independent",
+        "save creates then explicitly accepts one definition proposal",
+        "editor reopens confirmed saved group",
+        "saved-reopened: no horizontal overflow",
+        "saved-reopened: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-expression-mobile-edit-expression-mobile-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-expression-mobile-edit-expression-mobile-saved-reopened.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "edit-life",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-edit-life-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "keep editing retains unsaved group value",
+        "discard has no proposal or acceptance write",
+        "editing: no horizontal overflow",
+        "editing: dialog fits viewport",
+        "selected group saves actual typed field",
+        "life extension and runtime wearing remain independent",
+        "save creates then explicitly accepts one definition proposal",
+        "editor reopens confirmed saved group",
+        "saved-reopened: no horizontal overflow",
+        "saved-reopened: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-life-desktop-edit-life-desktop-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-life-desktop-edit-life-desktop-saved-reopened.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "edit-life",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-edit-life-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "keep editing retains unsaved group value",
+        "discard has no proposal or acceptance write",
+        "editing: no horizontal overflow",
+        "editing: dialog fits viewport",
+        "selected group saves actual typed field",
+        "life extension and runtime wearing remain independent",
+        "save creates then explicitly accepts one definition proposal",
+        "editor reopens confirmed saved group",
+        "saved-reopened: no horizontal overflow",
+        "saved-reopened: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-life-mobile-edit-life-mobile-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-edit-life-mobile-edit-life-mobile-saved-reopened.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "people-about-save",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-people-about-save-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "about-you cancel sends no background update",
+        "about-edit: no horizontal overflow",
+        "authored name saves to actual Owner context",
+        "updating self-defined data retains observed fact",
+        "about-history: no horizontal overflow",
+        "about-history: dialog fits viewport",
+        "only one explicit authored-background PUT",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-about-save-desktop-people-about-save-desktop-about-edit.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-about-save-desktop-people-about-save-desktop-about-history.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "people-about-save",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-people-about-save-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "about-you cancel sends no background update",
+        "about-edit: no horizontal overflow",
+        "authored name saves to actual Owner context",
+        "updating self-defined data retains observed fact",
+        "about-history: no horizontal overflow",
+        "about-history: dialog fits viewport",
+        "only one explicit authored-background PUT",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-about-save-mobile-people-about-save-mobile-about-edit.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-about-save-mobile-people-about-save-mobile-about-history.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "people-knowledge-relation",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-people-knowledge-relation-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "known-fact: no horizontal overflow",
+        "known-fact: dialog fits viewport",
+        "relationship-basis: no horizontal overflow",
+        "relationship-basis: dialog fits viewport",
+        "relationship metrics remain actual sunny perspective",
+        "relationship-metrics: no horizontal overflow",
+        "reading cognitive facts and relationship sources sends no write",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-desktop-people-knowledge-relation-desktop-known-fact.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-desktop-people-knowledge-relation-desktop-relationship-basis.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-desktop-people-knowledge-relation-desktop-relationship-metrics.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "people-knowledge-relation",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-people-knowledge-relation-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "known-fact: no horizontal overflow",
+        "known-fact: dialog fits viewport",
+        "relationship-basis: no horizontal overflow",
+        "relationship-basis: dialog fits viewport",
+        "relationship metrics remain actual sunny perspective",
+        "relationship-metrics: no horizontal overflow",
+        "reading cognitive facts and relationship sources sends no write",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-mobile-people-knowledge-relation-mobile-known-fact.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-mobile-people-knowledge-relation-mobile-relationship-basis.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-people-knowledge-relation-mobile-people-knowledge-relation-mobile-relationship-metrics.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "persona-switch",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-persona-switch-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "incomplete switch remains disabled",
+        "reason alone does not imply switch confirmation",
+        "confirmed-draft: no horizontal overflow",
+        "confirmed-draft: dialog fits viewport",
+        "current persona comes from actual runtime after receipt",
+        "one explicit persona request only",
+        "runtime-readback: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-persona-switch-desktop-persona-switch-desktop-confirmed-draft.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-persona-switch-desktop-persona-switch-desktop-runtime-readback.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "persona-switch",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-persona-switch-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "incomplete switch remains disabled",
+        "reason alone does not imply switch confirmation",
+        "confirmed-draft: no horizontal overflow",
+        "confirmed-draft: dialog fits viewport",
+        "current persona comes from actual runtime after receipt",
+        "one explicit persona request only",
+        "runtime-readback: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-persona-switch-mobile-persona-switch-mobile-confirmed-draft.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-persona-switch-mobile-persona-switch-mobile-runtime-readback.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "profile-read",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-profile-read-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "personality: no horizontal overflow",
+        "life definition is visible independently of current wearing",
+        "life: no horizontal overflow",
+        "source: no horizontal overflow",
+        "source: dialog fits viewport",
+        "reading tabs and full source never mutates",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-profile-read-desktop-profile-read-desktop-personality.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-profile-read-desktop-profile-read-desktop-life.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-profile-read-desktop-profile-read-desktop-source.png"
+      ]
+    },
+    {
+      "group": "profile-people",
+      "name": "profile-read",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/profile-people/report-r18-deep2-profile-read-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "personality: no horizontal overflow",
+        "life definition is visible independently of current wearing",
+        "life: no horizontal overflow",
+        "source: no horizontal overflow",
+        "source: dialog fits viewport",
+        "reading tabs and full source never mutates",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-profile-read-mobile-profile-read-mobile-personality.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-profile-read-mobile-profile-read-mobile-life.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/profile-people/r18-deep2-profile-read-mobile-profile-read-mobile-source.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "goal-edit",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep2-goal-edit-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "cancel does not write goal",
+        "editing-goal: no horizontal overflow",
+        "editing-goal: dialog fits viewport",
+        "full definition reads actual saved title criteria and protection",
+        "new definition stays separate from confirmed completion",
+        "goal correction preserves original identity across unknown receipt",
+        "saved-goal: no horizontal overflow",
+        "saved-goal: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-edit-desktop-goal-edit-desktop-editing-goal.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-edit-desktop-goal-edit-desktop-saved-goal.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "goal-edit",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep2-goal-edit-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "cancel does not write goal",
+        "editing-goal: no horizontal overflow",
+        "editing-goal: dialog fits viewport",
+        "full definition reads actual saved title criteria and protection",
+        "new definition stays separate from confirmed completion",
+        "goal correction preserves original identity across unknown receipt",
+        "saved-goal: no horizontal overflow",
+        "saved-goal: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-edit-mobile-goal-edit-mobile-editing-goal.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-edit-mobile-goal-edit-mobile-saved-goal.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "goal-read",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep2-goal-read-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "evidence-history: no horizontal overflow",
+        "evidence-history: dialog fits viewport",
+        "reading evidence never marks goal complete",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-read-desktop-goal-read-desktop-evidence-history.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "goal-read",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep2-goal-read-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "evidence-history: no horizontal overflow",
+        "evidence-history: dialog fits viewport",
+        "reading evidence never marks goal complete",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-read-mobile-goal-read-mobile-evidence-history.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "goal-state",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep2-goal-state-desktop.json",
+      "source_record_index": 0,
+      "checks": [
+        "goal status reads back paused",
+        "goal status reads back active",
+        "evaluation-request: no horizontal overflow",
+        "evaluation-request: dialog fits viewport",
+        "reassessment does not imply goal completion",
+        "pause resume and reassess are separate explicit commands",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-state-desktop-goal-state-desktop-evaluation-request.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "goal-state",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep2-goal-state-mobile.json",
+      "source_record_index": 0,
+      "checks": [
+        "goal status reads back paused",
+        "goal status reads back active",
+        "evaluation-request: no horizontal overflow",
+        "evaluation-request: dialog fits viewport",
+        "reassessment does not imply goal completion",
+        "pause resume and reassess are separate explicit commands",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep2-goal-state-mobile-goal-state-mobile-evaluation-request.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "feed-comment-actions",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep1.json",
+      "source_record_index": 0,
+      "checks": [
+        "comment uses one original mutation",
+        "comment-saved: no horizontal overflow",
+        "comment-saved: dialog fits viewport",
+        "care reaction reads actual viewer state",
+        "hidden post disables reactions",
+        "hidden: no horizontal overflow",
+        "hidden: dialog fits viewport",
+        "restore preserves original comment and no active reaction",
+        "restored: no horizontal overflow",
+        "restored: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-actions-desktop-comment-saved.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-actions-desktop-hidden.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-actions-desktop-restored.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "feed-comment-readback",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep1.json",
+      "source_record_index": 1,
+      "checks": [
+        "comment-readback-failed: no horizontal overflow",
+        "comment-readback-failed: dialog fits viewport",
+        "comment uses one original mutation",
+        "comment-saved: no horizontal overflow",
+        "comment-saved: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-readback-desktop-comment-readback-failed.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-readback-desktop-comment-saved.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "feed-comment-actions",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep1.json",
+      "source_record_index": 5,
+      "checks": [
+        "comment uses one original mutation",
+        "comment-saved: no horizontal overflow",
+        "comment-saved: dialog fits viewport",
+        "care reaction reads actual viewer state",
+        "hidden post disables reactions",
+        "hidden: no horizontal overflow",
+        "hidden: dialog fits viewport",
+        "restore preserves original comment and no active reaction",
+        "restored: no horizontal overflow",
+        "restored: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-actions-mobile-comment-saved.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-actions-mobile-hidden.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-actions-mobile-restored.png"
+      ]
+    },
+    {
+      "group": "feed-goals",
+      "name": "feed-comment-readback",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/feed-goals/report-r18-deep1.json",
+      "source_record_index": 6,
+      "checks": [
+        "comment-readback-failed: no horizontal overflow",
+        "comment-readback-failed: dialog fits viewport",
+        "comment uses one original mutation",
+        "comment-saved: no horizontal overflow",
+        "comment-saved: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-readback-mobile-comment-readback-failed.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-goals/r18-deep1-feed-comment-readback-mobile-comment-saved.png"
+      ]
+    },
+    {
+      "group": "world-deep",
+      "name": "place-history-restore",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/world-deep/report-r18-extra1.json",
+      "source_record_index": 0,
+      "checks": [
+        "existing place formal name is readonly",
+        "existing category remains fixed",
+        "cancel sends no place write",
+        "editing: no horizontal overflow",
+        "editing: dialog fits viewport",
+        "place alias saved with advancing revision",
+        "untouched structured furniture and connections preserved",
+        "restore-preview: no horizontal overflow",
+        "restore-preview: dialog fits viewport",
+        "empty restore reason does not mutate",
+        "restored: no horizontal overflow",
+        "restored: dialog fits viewport",
+        "restore appends version and returns to confirmed original alias",
+        "restore preserves existing spatial links",
+        "only one edit and one explicit restore",
+        "reload retains restored place",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-place-history-restore-desktop-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-place-history-restore-desktop-restore-preview.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-place-history-restore-desktop-restored.png"
+      ]
+    },
+    {
+      "group": "world-deep",
+      "name": "item-availability",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/world-deep/report-r18-extra1.json",
+      "source_record_index": 1,
+      "checks": [
+        "unavailable item request is disabled",
+        "unavailable: no horizontal overflow",
+        "unavailable: dialog fits viewport",
+        "unavailable and unrestricted place read back",
+        "availability returns only after confirmed read",
+        "available: no horizontal overflow",
+        "available: dialog fits viewport",
+        "only two explicit item configurations",
+        "item suggestion enters chat draft without sending",
+        "chat-draft: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-item-availability-desktop-unavailable.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-item-availability-desktop-available.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-item-availability-desktop-chat-draft.png"
+      ]
+    },
+    {
+      "group": "world-deep",
+      "name": "event-toggle-trigger",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/world-deep/report-r18-extra1.json",
+      "source_record_index": 2,
+      "checks": [
+        "pause switch reflects confirmed disabled template",
+        "paused template cannot trigger",
+        "paused: no horizontal overflow",
+        "paused: dialog fits viewport",
+        "blank trigger reason does not enqueue",
+        "queued: no horizontal overflow",
+        "queued: dialog fits viewport",
+        "UI follows original run to applied result",
+        "only two toggles and one trigger",
+        "applied: no horizontal overflow",
+        "applied: dialog fits viewport",
+        "life-event: no horizontal overflow",
+        "life-event: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-desktop-paused.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-desktop-queued.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-desktop-applied.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-desktop-life-event.png"
+      ]
+    },
+    {
+      "group": "world-deep",
+      "name": "place-history-restore",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/world-deep/report-r18-extra1.json",
+      "source_record_index": 3,
+      "checks": [
+        "existing place formal name is readonly",
+        "existing category remains fixed",
+        "cancel sends no place write",
+        "editing: no horizontal overflow",
+        "editing: dialog fits viewport",
+        "place alias saved with advancing revision",
+        "untouched structured furniture and connections preserved",
+        "restore-preview: no horizontal overflow",
+        "restore-preview: dialog fits viewport",
+        "empty restore reason does not mutate",
+        "restored: no horizontal overflow",
+        "restored: dialog fits viewport",
+        "restore appends version and returns to confirmed original alias",
+        "restore preserves existing spatial links",
+        "only one edit and one explicit restore",
+        "reload retains restored place",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-place-history-restore-mobile-editing.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-place-history-restore-mobile-restore-preview.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-place-history-restore-mobile-restored.png"
+      ]
+    },
+    {
+      "group": "world-deep",
+      "name": "item-availability",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/world-deep/report-r18-extra1.json",
+      "source_record_index": 4,
+      "checks": [
+        "unavailable item request is disabled",
+        "unavailable: no horizontal overflow",
+        "unavailable: dialog fits viewport",
+        "unavailable and unrestricted place read back",
+        "availability returns only after confirmed read",
+        "available: no horizontal overflow",
+        "available: dialog fits viewport",
+        "only two explicit item configurations",
+        "item suggestion enters chat draft without sending",
+        "chat-draft: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-item-availability-mobile-unavailable.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-item-availability-mobile-available.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-item-availability-mobile-chat-draft.png"
+      ]
+    },
+    {
+      "group": "world-deep",
+      "name": "event-toggle-trigger",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/world-deep/report-r18-extra1.json",
+      "source_record_index": 5,
+      "checks": [
+        "pause switch reflects confirmed disabled template",
+        "paused template cannot trigger",
+        "paused: no horizontal overflow",
+        "paused: dialog fits viewport",
+        "blank trigger reason does not enqueue",
+        "queued: no horizontal overflow",
+        "queued: dialog fits viewport",
+        "UI follows original run to applied result",
+        "only two toggles and one trigger",
+        "applied: no horizontal overflow",
+        "applied: dialog fits viewport",
+        "life-event: no horizontal overflow",
+        "life-event: dialog fits viewport",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-mobile-paused.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-mobile-queued.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-mobile-applied.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/world-deep/r18-extra1-event-toggle-trigger-mobile-life-event.png"
+      ]
+    },
+    {
+      "group": "shell-deep",
+      "name": "character-switch",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/shell-deep/report-r18-extra1.json",
+      "source_record_index": 0,
+      "checks": [
+        "selected role keeps its full display copy",
+        "menu retains actual occupation",
+        "role switch retains current page",
+        "new role uses actual scoped schedule read",
+        "switched: no horizontal overflow",
+        "selected role name is actually projected",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/r18-extra1-character-switch-desktop-switched.png"
+      ]
+    },
+    {
+      "group": "shell-deep",
+      "name": "sidebar-focus",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/shell-deep/report-r18-extra1.json",
+      "source_record_index": 1,
+      "checks": [
+        "collapsed icon stays labelled 聊天",
+        "collapsed icon stays labelled 此刻",
+        "collapsed icon stays labelled 日程",
+        "collapsed icon stays labelled 目标",
+        "collapsed icon stays labelled 衣柜",
+        "collapsed icon stays labelled 日记",
+        "collapsed icon stays labelled 记忆",
+        "collapsed icon stays labelled 角色详情",
+        "collapsed icon stays labelled 世界",
+        "collapsed icon stays labelled 动态",
+        "collapsed icon stays labelled 人物关系",
+        "collapsed icon stays labelled 媒体",
+        "collapsed icon stays labelled 角色库",
+        "collapsed icon stays labelled 创作中心",
+        "collapsed icon stays labelled 通知与待处理",
+        "collapsed icon stays labelled 管理中心",
+        "collapsed: no horizontal overflow",
+        "main shortcut preserves independent chat preview",
+        "focus-and-width: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/r18-extra1-sidebar-focus-desktop-collapsed.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/r18-extra1-sidebar-focus-desktop-focus-and-width.png"
+      ]
+    },
+    {
+      "group": "shell-deep",
+      "name": "character-switch",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/shell-deep/report-r18-extra1.json",
+      "source_record_index": 2,
+      "checks": [
+        "selected role keeps its full display copy",
+        "menu retains actual occupation",
+        "role switch retains current page",
+        "new role uses actual scoped schedule read",
+        "switched: no horizontal overflow",
+        "selected role name is actually projected",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/r18-extra1-character-switch-mobile-switched.png"
+      ]
+    },
+    {
+      "group": "shell-deep",
+      "name": "sidebar-focus",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/shell-deep/report-r18-extra1.json",
+      "source_record_index": 3,
+      "checks": [
+        "mobile Escape restores connected navigation trigger",
+        "focus-and-width: no horizontal overflow",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-deep/r18-extra1-sidebar-focus-mobile-focus-and-width.png"
+      ]
+    },
+    {
+      "group": "admin-deep",
+      "name": "task-dialog-context",
+      "size": "desktop",
+      "status": "passed",
+      "source_report": "evidence/admin-deep/report-r18-task-focus-final.json",
+      "source_record_index": 0,
+      "checks": [
+        "directory: no horizontal overflow",
+        "directory: single current shell",
+        "task dialog retains the source directory",
+        "task shows actual completed and failed source stages",
+        "recorded-events: no horizontal overflow",
+        "recorded-events: single current shell",
+        "task keeps original source information",
+        "closing only clears selected task",
+        "closing restores the original task row focus",
+        "directory-return: no horizontal overflow",
+        "directory-return: single current shell",
+        "no operational write beyond explicit pack validation",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-desktop-directory.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-desktop-recorded-events.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-desktop-directory-return.png"
+      ]
+    },
+    {
+      "group": "admin-deep",
+      "name": "task-dialog-context",
+      "size": "mobile",
+      "status": "passed",
+      "source_report": "evidence/admin-deep/report-r18-task-focus-final.json",
+      "source_record_index": 1,
+      "checks": [
+        "directory: no horizontal overflow",
+        "directory: single current shell",
+        "task dialog retains the source directory",
+        "task shows actual completed and failed source stages",
+        "recorded-events: no horizontal overflow",
+        "recorded-events: single current shell",
+        "task keeps original source information",
+        "closing only clears selected task",
+        "closing restores the original task row focus",
+        "directory-return: no horizontal overflow",
+        "directory-return: single current shell",
+        "no operational write beyond explicit pack validation",
+        "no uncaught browser exception"
+      ],
+      "screenshots": [
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-mobile-directory.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-mobile-recorded-events.png",
+        "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/admin-deep/r18-task-focus-final-task-dialog-context-mobile-directory-return.png"
+      ]
+    }
+  ],
+  "image_files_removed": true,
+  "image_storage_policy": "图片已按用户要求删除并移出Git；screenshots字段只保留历史路径，后续图片仅作本地验证。"
+}

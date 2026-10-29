@@ -21,3 +21,7 @@ coverage.json为完整数据源，coverage.md为可读索引；每行视觉/交�
 ## 追加反馈治理设计边界
 
 先生成全调用点inventory（React、保留renderer、通用桥与toast），再定反馈组件显式语义与迁移表；不能全局换默认色。角色库读取使用现有creation draft/recovery/command/accepted状态，不建立第二份业务权威；恢复入口只指向真实支持的核对/阶段/配置/读取能力。共享组件负责视觉/可访问语义，页面负责业务类型、动作与生命周期。具体迁移按审计发现收敛到原拥有者，不宽泛按error字符串猜状态。新增feedback UX维度不改既有视觉/交互/业务证据状态。
+
+## r18 修复边界
+
+先修已定位的拥有者：宽屏内容盒模型在workspace-replica；配置草稿误报在configuration-draft和Management controller；JSON输入/配置反馈在CharacterWizard视图与creation-feedback；任务事件呈现、领域恢复入口与管理上下文在TaskDetail/DiagnosticsWorkspace/WorkflowRecovery。随后将设置通用折叠表单换回Demo分卡、滑块和开关，保留全部正式字段/数值精度/CAS与原提交。只在现有Go恢复元数据里补衣柜业务入口，不扩展通用restart/reset能力，不改变模型配置或提示词。新增真实缺配置/密集诊断/宽屏和390场景，保留既有矩阵和修复。

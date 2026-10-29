@@ -1,0 +1,1604 @@
+[
+  {
+    "name": "filter-sources",
+    "size": "desktop",
+    "fid": "audit-r18-deep1-filter-sources-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "search draft does not prematurely replace results",
+      "empty-search: no horizontal page overflow",
+      "relationship filter excludes pending semantic record",
+      "current-source: dialog fits viewport",
+      "current-source: no horizontal page overflow",
+      "historical-source: dialog fits viewport",
+      "historical-source: no horizontal page overflow",
+      "Escape restores originating memory card focus",
+      "filter remains selected after closing detail",
+      "pending-provenance: dialog fits viewport",
+      "pending-provenance: no horizontal page overflow",
+      "viewing/search/cancel sent no mutation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-desktop/memories",
+        "query": "?q=%E4%B8%8D%E5%AD%98%E5%9C%A8%E7%9A%84%E8%AE%B0%E5%BF%86&status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-desktop/memories",
+        "query": "?type=relationship&status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-one/sources",
+        "query": "?revision=0&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-two",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-two",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-two",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-two/sources",
+        "query": "?revision=1&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-desktop-memory-two/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-empty-search.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-current-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-historical-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-desktop-pending-provenance.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "memory-governance",
+    "size": "desktop",
+    "fid": "audit-r18-deep1-memory-governance-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "empty reason does not mutate",
+      "empty-reason: dialog fits viewport",
+      "empty-reason: no horizontal page overflow",
+      "empty-reason: explanatory form note spans full form",
+      "cancel preserves confirmed memory",
+      "cancel does not mutate",
+      "unchanged content does not mutate",
+      "revised-history: dialog fits viewport",
+      "revised-history: no horizontal page overflow",
+      "correction readback has new content/revision",
+      "forget cancellation remains active",
+      "forgotten-history: dialog fits viewport",
+      "forgotten-history: no horizontal page overflow",
+      "forget appends a revision",
+      "compensated-history: dialog fits viewport",
+      "compensated-history: no horizontal page overflow",
+      "rollback appends active revision instead of deleting history",
+      "three explicit commands only",
+      "all prior versions remain readable",
+      "refresh reads confirmed compensated record",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:明确喜好而非每天固定安排"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:不再作为当前认识"
+          ]
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/rollback",
+        "query": "",
+        "body": {
+          "expectedRevision": 4,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:按可追溯旧版追加补偿"
+          ],
+          "targetRevision": 0
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/sources",
+        "query": "?revision=5&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-desktop-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-empty-reason.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-revised-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-forgotten-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-desktop-compensated-history.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "reflection-feedback",
+    "size": "desktop",
+    "fid": "audit-r18-deep1-reflection-feedback-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "expanded: dialog fits viewport",
+      "expanded: no horizontal page overflow",
+      "cancel sends no feedback",
+      "accepted: dialog fits viewport",
+      "accepted: no horizontal page overflow",
+      "one feedback request with stance and stable key",
+      "feedback does not fabricate immediate reflection/persona adoption",
+      "request-completed: dialog fits viewport",
+      "request-completed: no horizontal page overflow",
+      "feedback follows its original request until terminal read",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections/audit-r18-deep1-reflection-feedback-desktop-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections/audit-r18-deep1-reflection-feedback-desktop-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections/audit-r18-deep1-reflection-feedback-desktop-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections/audit-r18-deep1-reflection-feedback-desktop-reflection-one/feedback",
+        "query": "",
+        "body": {
+          "text": "赞同认真听完再表达。",
+          "stance": "agree",
+          "idempotencyKey": "2bd14295-26d2-492e-849d-7b87ac4443fc"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections/audit-r18-deep1-reflection-feedback-desktop-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-1",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-1",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-1",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections/audit-r18-deep1-reflection-feedback-desktop-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/reflections/audit-r18-deep1-reflection-feedback-desktop-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-desktop-expanded.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-desktop-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-desktop-request-completed.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "self-governance",
+    "size": "desktop",
+    "fid": "audit-r18-deep1-self-governance-desktop",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "review keeps revision and confidence",
+      "reviewed: dialog fits viewport",
+      "reviewed: no horizontal page overflow",
+      "cancel preserves active self claim",
+      "forget has confirmed new revision",
+      "forgotten: dialog fits viewport",
+      "forgotten: no horizontal page overflow",
+      "restore appends current version and clears old review",
+      "three separate governance commands",
+      "restored: dialog fits viewport",
+      "restored: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/review",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和依据",
+          "idempotencyKey": "035ab07c-3779-4249-8544-3cb0cf029714"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "先停止采用，保留来源",
+          "idempotencyKey": "992c2728-6b9c-422c-afe6-9df15442e9cc"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/restore",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复已核对历史来源的内容",
+          "targetRevision": 1,
+          "idempotencyKey": "43b34455-7bc3-4f59-a8c1-f94565536851"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-desktop/self-claims/audit-r18-deep1-self-governance-desktop-claim-one/reviews",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-desktop-reviewed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-desktop-forgotten.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-desktop-restored.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "filter-sources",
+    "size": "mobile",
+    "fid": "audit-r18-deep1-filter-sources-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "search draft does not prematurely replace results",
+      "empty-search: no horizontal page overflow",
+      "relationship filter excludes pending semantic record",
+      "current-source: dialog fits viewport",
+      "current-source: no horizontal page overflow",
+      "historical-source: dialog fits viewport",
+      "historical-source: no horizontal page overflow",
+      "Escape restores originating memory card focus",
+      "filter remains selected after closing detail",
+      "pending-provenance: dialog fits viewport",
+      "pending-provenance: no horizontal page overflow",
+      "viewing/search/cancel sent no mutation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-mobile/memories",
+        "query": "?q=%E4%B8%8D%E5%AD%98%E5%9C%A8%E7%9A%84%E8%AE%B0%E5%BF%86&status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-mobile/memories",
+        "query": "?type=relationship&status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-one/sources",
+        "query": "?revision=0&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-filter-sources-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-two",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-two",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-two",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-two/sources",
+        "query": "?revision=1&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-filter-sources-mobile-memory-two/revisions",
+        "query": "?limit=20",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-empty-search.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-current-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-historical-source.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-filter-sources-mobile-pending-provenance.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "memory-governance",
+    "size": "mobile",
+    "fid": "audit-r18-deep1-memory-governance-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "empty reason does not mutate",
+      "empty-reason: dialog fits viewport",
+      "empty-reason: no horizontal page overflow",
+      "empty-reason: explanatory form note spans full form",
+      "cancel preserves confirmed memory",
+      "cancel does not mutate",
+      "unchanged content does not mutate",
+      "revised-history: dialog fits viewport",
+      "revised-history: no horizontal page overflow",
+      "correction readback has new content/revision",
+      "forget cancellation remains active",
+      "forgotten-history: dialog fits viewport",
+      "forgotten-history: no horizontal page overflow",
+      "forget appends a revision",
+      "compensated-history: dialog fits viewport",
+      "compensated-history: no horizontal page overflow",
+      "rollback appends active revision instead of deleting history",
+      "three explicit commands only",
+      "all prior versions remain readable",
+      "refresh reads confirmed compensated record",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=2&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "PUT",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:明确喜好而非每天固定安排"
+          ],
+          "content": "你喜欢安静的雨天，在窗边读诗。"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=3&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:不再作为当前认识"
+          ]
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=4&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/rollback",
+        "query": "",
+        "body": {
+          "expectedRevision": 4,
+          "evidenceRefs": [
+            "owner:human-fixture-owner:按可追溯旧版追加补偿"
+          ],
+          "targetRevision": 0
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/memories",
+        "query": "?status=forgotten&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/sources",
+        "query": "?revision=5&limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/memories/audit-r18-deep1-memory-governance-mobile-memory-one/revisions",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-memory-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-empty-reason.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-revised-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-forgotten-history.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-memory-governance-mobile-compensated-history.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "reflection-feedback",
+    "size": "mobile",
+    "fid": "audit-r18-deep1-reflection-feedback-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "expanded: dialog fits viewport",
+      "expanded: no horizontal page overflow",
+      "cancel sends no feedback",
+      "accepted: dialog fits viewport",
+      "accepted: no horizontal page overflow",
+      "one feedback request with stance and stable key",
+      "feedback does not fabricate immediate reflection/persona adoption",
+      "request-completed: dialog fits viewport",
+      "request-completed: no horizontal page overflow",
+      "feedback follows its original request until terminal read",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections/audit-r18-deep1-reflection-feedback-mobile-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections/audit-r18-deep1-reflection-feedback-mobile-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections/audit-r18-deep1-reflection-feedback-mobile-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections/audit-r18-deep1-reflection-feedback-mobile-reflection-one/feedback",
+        "query": "",
+        "body": {
+          "text": "赞同认真听完再表达。",
+          "stance": "agree",
+          "idempotencyKey": "5adbdca0-0cff-485b-8d9f-02b26c4ab439"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections/audit-r18-deep1-reflection-feedback-mobile-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-5",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-5",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/owner-requests/growth-feedback-5",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections/audit-r18-deep1-reflection-feedback-mobile-reflection-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/reflections/audit-r18-deep1-reflection-feedback-mobile-reflection-one/feedback",
+        "query": "?limit=20",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-reflection-feedback-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-mobile-expanded.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-mobile-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-reflection-feedback-mobile-request-completed.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  },
+  {
+    "name": "self-governance",
+    "size": "mobile",
+    "fid": "audit-r18-deep1-self-governance-mobile",
+    "kind": "production dist / mutable controlled HTTP",
+    "checks": [
+      "review keeps revision and confidence",
+      "reviewed: dialog fits viewport",
+      "reviewed: no horizontal page overflow",
+      "cancel preserves active self claim",
+      "forget has confirmed new revision",
+      "forgotten: dialog fits viewport",
+      "forgotten: no horizontal page overflow",
+      "restore appends current version and clears old review",
+      "three separate governance commands",
+      "restored: dialog fits viewport",
+      "restored: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/memories",
+        "query": "?status=active&aboutOwner=false&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/reflections",
+        "query": "?limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/review",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "已阅读当前认识和依据",
+          "idempotencyKey": "835a1ba2-86a2-42a6-aa0a-8925be4f744d"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/forget",
+        "query": "",
+        "body": {
+          "expectedRevision": 2,
+          "reason": "先停止采用，保留来源",
+          "idempotencyKey": "9b1fc0ed-e02f-4ecf-bb59-4f5fd31e747b"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/restore",
+        "query": "",
+        "body": {
+          "expectedRevision": 3,
+          "reason": "恢复已核对历史来源的内容",
+          "targetRevision": 1,
+          "idempotencyKey": "a5e4fefb-ec73-4a87-bb68-eae5aa4b334c"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims",
+        "query": "?status=active&limit=30",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/revisions",
+        "query": "",
+        "body": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/audit-r18-deep1-self-governance-mobile/self-claims/audit-r18-deep1-self-governance-mobile-claim-one/reviews",
+        "query": "",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-mobile-reviewed.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-mobile-forgotten.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/memory-deep/r18-deep1-self-governance-mobile-restored.png"
+    ],
+    "sceneSetup": "Fresh fictional character added to controlled directory; mutable growth fixture owns its independent records.",
+    "status": "passed"
+  }
+]

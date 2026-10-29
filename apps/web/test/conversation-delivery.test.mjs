@@ -669,6 +669,14 @@ test('a failed original reply cannot replace an existing follow-up with a third 
  });
 });
 
+test('targeted status inspection never sends an already queued follow-up',async()=>{
+ await withRetryFixture({},async({store,user,requests,values})=>{
+  store.dismissRetry();user.turnStatus='completed';store.messages=[{...user}];
+  store.sending=true;await store.send('保留的排队消息');store.sending=false;const queued=JSON.parse(JSON.stringify(store.queuedTurn)),persisted=values.get('fluctlight.queued-turn.v1');
+  assert.equal(await store.refreshActiveTurn(true,user.turnId),'completed');
+  assert.equal(requests.length,0);assert.deepEqual(JSON.parse(JSON.stringify(store.queuedTurn)),queued);assert.equal(values.get('fluctlight.queued-turn.v1'),persisted);
+ });
+});
 test('explicit refresh confirming completion sends the exact queued follow-up before the old observer closes',async()=>{
  await withRetryFixture({},async({store,user,requests,setTurnResponse})=>{
   store.dismissRetry();user.turnStatus='completed';store.messages=[{...user}];

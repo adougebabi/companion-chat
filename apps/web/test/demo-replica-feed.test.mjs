@@ -228,12 +228,12 @@ test("comment CAS conflict retains input and requires explicit latest-version co
       "保留我的评论",
     );
     await f.v.click(button(dialog(), "发布评论"));
-    assert.ok(button(dialog(), "读取最新版本并保留输入"));
+    assert.ok(button(dialog(), "同步资料，保留输入"));
     assert.equal(
       dialog().querySelector('[aria-label="评论内容"]').value,
       "保留我的评论",
     );
-    await f.v.click(button(dialog(), "读取最新版本并保留输入"));
+    await f.v.click(button(dialog(), "同步资料，保留输入"));
     await f.v.click(button(dialog(), "已核对，采用最新基线"));
     await f.v.click(button(dialog(), "发布评论"));
     const writes = f.writes();
@@ -498,7 +498,7 @@ test("a late accepted publication retains newer text separately from the confirm
       dialog().querySelector('[aria-label="动态正文"]').value,
       "等待时想到的另一段话",
     );
-    assert.ok(button(dialog(), "读取最新版本并保留输入"));
+    assert.ok(button(dialog(), "同步资料，保留输入"));
     assert.equal(button(dialog(), "发布动态").disabled, true);
   } finally {
     release();

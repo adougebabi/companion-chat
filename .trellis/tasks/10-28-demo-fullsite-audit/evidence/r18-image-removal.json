@@ -1,0 +1,9 @@
+{
+  "request": "删除本轮图片，以后禁止提交图片",
+  "removed_image_count": 1042,
+  "removed_bytes": 130927624,
+  "scope": "70126715新增的任务截图和r18参考图片副本",
+  "original_user_attachments_modified": false,
+  "product_assets_modified": false,
+  "policy": "本地验证可生成图片；Git只保留文字、请求、检查与几何数据。历史图片路径不再代表文件可用。"
+}

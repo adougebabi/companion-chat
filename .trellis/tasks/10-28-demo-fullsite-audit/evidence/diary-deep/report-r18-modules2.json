@@ -1,0 +1,166 @@
+[
+  {
+    "name": "reply-request",
+    "size": "desktop",
+    "fid": "diary-r18-modules2-reply-request-desktop",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "reply edits in place without a modal",
+      "blank reply does not submit",
+      "accepted: no horizontal overflow",
+      "request-completed: no horizontal overflow",
+      "one durable reply request and one write",
+      "request completion does not submit a chat send",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-desktop/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-desktop/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "POST",
+        "body": {
+          "text": "看到你认真记录日常，我也想慢慢分享今天。",
+          "expectedRevision": 1,
+          "idempotencyKey": "d9ed66b8-2a64-459a-bf43-6e4363d4fb5c"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-1",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-desktop/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-desktop-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-desktop-request-completed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "reply-request",
+    "size": "mobile",
+    "fid": "diary-r18-modules2-reply-request-mobile",
+    "kind": "production dist / controlled mutable diary HTTP; generated text and request processing are fixture outputs",
+    "checks": [
+      "reply edits in place without a modal",
+      "blank reply does not submit",
+      "accepted: no horizontal overflow",
+      "request-completed: no horizontal overflow",
+      "one durable reply request and one write",
+      "request completion does not submit a chat send",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-mobile/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-mobile/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "POST",
+        "body": {
+          "text": "看到你认真记录日常，我也想慢慢分享今天。",
+          "expectedRevision": 1,
+          "idempotencyKey": "117ac6e7-0e3d-4e3a-90d2-e59145618d01"
+        }
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/diary-reply-2",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/diary-r18-modules2-reply-request-mobile/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-mobile-accepted.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/diary-deep/r18-modules2-reply-request-mobile-request-completed.png"
+    ],
+    "status": "passed"
+  }
+]

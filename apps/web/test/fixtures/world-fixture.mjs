@@ -3,6 +3,7 @@ export function worldFixture({
   owner = "world-owner",
   scenario = "normal",
   autoRuns = false,
+  projectionReads = false,
 } = {}) {
   const expansion = scenario.startsWith("expansion-"),
     commandScenario = expansion ? scenario.slice("expansion-".length) : scenario;
@@ -276,9 +277,10 @@ export function worldFixture({
     res,
   }) {
     const match = path.match(
-      /^\/api\/fluctlights\/([^/]+)\/(world(?:\/.*)?|nearby)$/,
+      /^\/api\/fluctlights\/([^/]+)\/(world(?:\/.*)?|nearby|detail)$/,
     );
     if (!match) return false;
+    if(match[2]==='detail'&&!projectionReads)return false;
     const [, fid, end] = match,
       s = state(fid);
     calls.push({
@@ -301,6 +303,7 @@ export function worldFixture({
     const missing = () =>
       reply({ code: "not_found", message: "当前范围没有这个对象" }, 404);
     const world = s.worlds.find((row) => row.id === s.binding?.world_id);
+    if(end==='detail')return reply({id:fid,status:'active',identity:{name:'世界核验角色',timezone:'Asia/Shanghai'},world:world||null,context:clone(s.context),core_persona:{},schedule:{items:[]}});
     const view = (row) => ({
       available: true,
       world: row || null,

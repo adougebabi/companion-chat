@@ -28,6 +28,7 @@ import { EmptyState, InlineFeedback } from "./Presentation";
 import { WorldItemSuggestion } from "@/v3/proto/components/world-items.js";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import { stateLabel, errorMessage } from "@/v3/domain-presentation.mjs";
+import {wardrobeCategoryLabel,wardrobeSlotLabel} from '@/lib/wardrobe-form';
 const check = (row, m, id) => {
   if (
     !row?.id ||
@@ -257,8 +258,8 @@ export function WorldItemsPanel({ model: m }) {
             <div className="r-card-body">
               <span className="r-tiny-label">
                 {item.definition.item_kind === "wearable" ? "服饰" : "普通物品"}{" "}
-                · {item.definition.category}
-                {item.definition.slot ? " / " + item.definition.slot : ""}
+                · {wardrobeCategoryLabel(item.definition.category)}
+                {item.definition.slot ? " / " + wardrobeSlotLabel(item.definition.slot) : ""}
               </span>
               <h3>{item.name}</h3>
               <p>{item.definition.description}</p>

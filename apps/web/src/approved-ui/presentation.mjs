@@ -149,7 +149,7 @@ export function diagnosticProjection(
     fid = d.fluctlight_id || d.metrics?.fluctlight_id,
     character =
       characters.find((c) => c.id === fid)?.name ||
-      (fid ? "角色名称未读取" : ['initialization','persona_compilation'].includes(scenario)?"创建中的人物":"尚未关联角色"),
+      (fid ? "角色名称未读取" : ['initialization','persona_compilation'].includes(scenario)?"创建中的人物":"未记录角色来源"),
     start = Date.parse(d.started_at || d.queued_at || record.occurred_at) || 0,
     queued = Date.parse(d.queued_at) || start,
     completed = Date.parse(d.completed_at || ""),
@@ -208,7 +208,7 @@ export function diagnosticProjection(
               stateLabel(d.status),
               elapsed == null ? "" : `已等待 ${elapsed} 秒`,
             )
-          : readableSummary(d.response, label + "已完成，详情中可查看结果"),
+          : label + "已完成，详情中可查看实际返回内容。",
     reason: d.error_code
       ? errorMessage({ code: d.error_code }, "本次调用未完成，可查看原记录。")
       : "",

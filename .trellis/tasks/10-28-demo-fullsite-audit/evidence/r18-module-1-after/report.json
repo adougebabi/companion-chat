@@ -1,0 +1,1186 @@
+[
+  {
+    "name": "life-empty",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "empty: no horizontal overflow",
+      "empty schedule has Demo leaf art",
+      "empty schedule has one schedule action",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/life-empty-desktop-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/life-empty-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: ordinary source links remain visible\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:14:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:19:437",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n日程\n快速前往\n⌘ K\n正在读取页面…"
+  },
+  {
+    "name": "profile-empty",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "overview: no horizontal overflow",
+      "missing facts are grouped by section",
+      "no fabricated personality scores",
+      "profile editing entry retained",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/profile-empty-desktop-overview.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "media-metadata",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "detail: no horizontal overflow",
+      "detail: dialog fits viewport",
+      "edit: no horizontal overflow",
+      "edit: dialog fits viewport",
+      "metadata has exactly one active dialog",
+      "cancel returns to same detail without writing",
+      "saved metadata reads back with original CAS",
+      "saved: no horizontal overflow",
+      "saved: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "PUT",
+        "body": {
+          "title": "窗边的阅读时光",
+          "hidden": false,
+          "reason": "r18 核对素材名称",
+          "expectedAssetRevision": 3,
+          "expectedMetadataRevision": 1,
+          "idempotencyKey": "8b6b9d79-da4d-462b-aa2d-e68e4b41cbec"
+        }
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-metadata-desktop-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-metadata-desktop-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-metadata-desktop-saved.png"
+    ],
+    "imageStyle": {
+      "border": "0px solid rgb(226, 231, 222)",
+      "outline": "rgb(46, 57, 49) none 0px",
+      "boxShadow": "none"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "media-forms",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "generation: no horizontal overflow",
+      "画面描述 announces required input",
+      "请求原因 announces required input",
+      "avatar exposes only two supported modes",
+      "avatar keyboard selection follows RadioGroup",
+      "avatar: no horizontal overflow",
+      "form inspection never generates or saves",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-forms-desktop-generation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-forms-desktop-avatar.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "world-fields-binding",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "structured-place: no horizontal overflow",
+      "structured-place: dialog fits viewport",
+      "list-edit: no horizontal overflow",
+      "list-edit: dialog fits viewport",
+      "string list preserves its array type",
+      "world selection refreshes shared role projection",
+      "world change preserves actual position",
+      "only explicit place edit and binding mutate",
+      "world-return: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop",
+        "method": "PUT",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "name": "迟山书店",
+          "description": "出售书籍与文具的小店。",
+          "alias": "",
+          "group": "",
+          "floor": "一层",
+          "scene": "",
+          "atmosphere": "安静",
+          "layout": "中间留出走道。",
+          "status": "active",
+          "reason": "所有者保存世界中的具体地点",
+          "venueCategoryId": "shops",
+          "furniture": [
+            "靠窗书架",
+            "柜台"
+          ],
+          "idempotencyKey": "008d26eb-3954-4469-b287-21871a2724ea"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/active",
+        "method": "PUT",
+        "body": {
+          "worldId": "fixture-world-other",
+          "expectedRevision": 4,
+          "reason": "所有者显式切换世界",
+          "idempotencyKey": "c7f65a47-e072-4458-8522-bc0bcac09ecc"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/world-fields-binding-desktop-structured-place.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/world-fields-binding-desktop-list-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/world-fields-binding-desktop-world-return.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-layout",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "detail: no horizontal overflow",
+      "detail: dialog fits viewport",
+      "detail has one comment composer and no repeated footer action",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/feed-layout-desktop-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/feed-layout-desktop-failure.png"
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: comment input uses available content width\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:14:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:31:589",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n查看媒体来源\n2\n更多回应与实际来源\n评论 · 2\n我\n我2026-10-28 11:00 (北京时间)\n\n这一句读起来很温柔。\n\n禾\n苏禾2026-10-28 11:00 (北京时间)\n\n我也想读读这本书。\n\n来自已保存的人物互动\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：林青 · 角色生活分享\n关闭"
+  },
+  {
+    "name": "studio-title",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "long-title: no horizontal overflow",
+      "long title does not overlap actions",
+      "required fields have visible markers",
+      "editing title does not save",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/studio-title-desktop-long-title.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "data-summary",
+    "size": "desktop",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "overview: no horizontal overflow",
+      "overview contains only actual numeric counts",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/data-summary-desktop-overview.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "life-empty",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "empty: no horizontal overflow",
+      "empty schedule has Demo leaf art",
+      "empty schedule has one schedule action",
+      "failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/life-empty-mobile-empty.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/life-empty-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: ordinary source links remain visible\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:14:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:19:437",
+    "text": "Toggle Sidebar\n日常相处\n日程\n快速前往\n正在读取页面…"
+  },
+  {
+    "name": "profile-empty",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "overview: no horizontal overflow",
+      "missing facts are grouped by section",
+      "no fabricated personality scores",
+      "profile editing entry retained",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/profile-empty-mobile-overview.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "media-metadata",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "detail: no horizontal overflow",
+      "detail: dialog fits viewport",
+      "edit: no horizontal overflow",
+      "edit: dialog fits viewport",
+      "metadata has exactly one active dialog",
+      "cancel returns to same detail without writing",
+      "saved metadata reads back with original CAS",
+      "saved: no horizontal overflow",
+      "saved: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "PUT",
+        "body": {
+          "title": "窗边的阅读时光",
+          "hidden": false,
+          "reason": "r18 核对素材名称",
+          "expectedAssetRevision": 3,
+          "expectedMetadataRevision": 1,
+          "idempotencyKey": "5e54e7a9-982a-48f0-a3b2-999d85fdce9a"
+        }
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-metadata-mobile-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-metadata-mobile-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-metadata-mobile-saved.png"
+    ],
+    "imageStyle": {
+      "border": "0px solid rgb(226, 231, 222)",
+      "outline": "rgb(46, 57, 49) none 0px",
+      "boxShadow": "none"
+    },
+    "status": "passed"
+  },
+  {
+    "name": "media-forms",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "generation: no horizontal overflow",
+      "画面描述 announces required input",
+      "请求原因 announces required input",
+      "avatar exposes only two supported modes",
+      "avatar keyboard selection follows RadioGroup",
+      "avatar: no horizontal overflow",
+      "form inspection never generates or saves",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-reference-grants",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/media-generations",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/display-avatar/history",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-unused",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-forest",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-forms-mobile-generation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/media-forms-mobile-avatar.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "world-fields-binding",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "structured-place: no horizontal overflow",
+      "structured-place: dialog fits viewport",
+      "list-edit: no horizontal overflow",
+      "list-edit: dialog fits viewport",
+      "string list preserves its array type",
+      "world selection refreshes shared role projection",
+      "world change preserves actual position",
+      "only explicit place edit and binding mutate",
+      "world-return: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/places/fluctlight-fixture-one-shop",
+        "method": "PUT",
+        "body": {
+          "worldId": "fixture-world",
+          "expectedRevision": 1,
+          "name": "迟山书店",
+          "description": "出售书籍与文具的小店。",
+          "alias": "",
+          "group": "",
+          "floor": "一层",
+          "scene": "",
+          "atmosphere": "安静",
+          "layout": "中间留出走道。",
+          "status": "active",
+          "reason": "所有者保存世界中的具体地点",
+          "venueCategoryId": "shops",
+          "furniture": [
+            "靠窗书架",
+            "柜台"
+          ],
+          "idempotencyKey": "015d3e12-e705-4a1d-a572-75fb03d086a2"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/active",
+        "method": "PUT",
+        "body": {
+          "worldId": "fixture-world-other",
+          "expectedRevision": 4,
+          "reason": "所有者显式切换世界",
+          "idempotencyKey": "7da05181-ac70-45fb-b257-e2ad63fb66ac"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/world-fields-binding-mobile-structured-place.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/world-fields-binding-mobile-list-edit.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/world-fields-binding-mobile-world-return.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "feed-layout",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "detail: no horizontal overflow",
+      "detail: dialog fits viewport",
+      "detail has one comment composer and no repeated footer action",
+      "failure: no horizontal overflow",
+      "failure: dialog fits viewport"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/feed-layout-mobile-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/feed-layout-mobile-failure.png"
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: comment input uses available content width\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:14:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r18-module-states.mjs:31:589",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n你们的分享建议与原请求\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n查看媒体来源\n2\n更多回应与实际来源\n评论 · 2\n我\n我2026-10-28 11:00 (北京时间)\n\n这一句读起来很温柔。\n\n禾\n苏禾2026-10-28 11:00 (北京时间)\n\n我也想读读这本书。\n\n来自已保存的人物互动\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：林青 · 角色生活分享\n关闭"
+  },
+  {
+    "name": "studio-title",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "long-title: no horizontal overflow",
+      "long title does not overlap actions",
+      "required fields have visible markers",
+      "editing title does not save",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/studio-world/versions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/studio-title-mobile-long-title.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "data-summary",
+    "size": "mobile",
+    "version": "after",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "overview: no horizontal overflow",
+      "overview contains only actual numeric counts",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-1-after/data-summary-mobile-overview.png"
+    ],
+    "status": "passed"
+  }
+]

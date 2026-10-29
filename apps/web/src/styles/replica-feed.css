@@ -405,6 +405,7 @@
 .replica-feed .companion-comment-composer {
   display: block;
 }
+.replica-feed .companion-comment-composer form.lp-form{grid-template-columns:minmax(0,1fr)}
 .replica-feed .companion-comment-composer textarea {
   font-size: 12px;
   min-height: 72px;

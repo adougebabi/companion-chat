@@ -1,0 +1,208 @@
+[
+  {
+    "name": "diary-unwritten",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "no-prose: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-before/diary-unwritten-desktop-no-prose.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "media-metadata",
+    "size": "desktop",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "detail: no horizontal overflow",
+      "detail: dialog fits viewport",
+      "edit: no horizontal overflow",
+      "edit: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-before/media-metadata-desktop-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-before/media-metadata-desktop-edit.png"
+    ],
+    "imageStyle": {
+      "border": "0px solid rgb(226, 231, 222)",
+      "outline": "rgb(46, 57, 49) none 0px",
+      "boxShadow": "none"
+    },
+    "status": "captured"
+  },
+  {
+    "name": "diary-unwritten",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "no-prose: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary/diary-fixture-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary/diary-fixture-one/replies",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-before/diary-unwritten-mobile-no-prose.png"
+    ],
+    "status": "captured"
+  },
+  {
+    "name": "media-metadata",
+    "size": "mobile",
+    "version": "before",
+    "boundary": "production dist and controlled HTTP only; no real model, generation or backend certification",
+    "checks": [
+      "detail: no horizontal overflow",
+      "detail: dialog fits viewport",
+      "edit: no horizontal overflow",
+      "edit: dialog fits viewport",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-assets/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/replica-landscape",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-canonical",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/fluctlight-fixture-one-replica-candidate",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-before/media-metadata-mobile-detail.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/r18-module-final2-before/media-metadata-mobile-edit.png"
+    ],
+    "imageStyle": {
+      "border": "0px solid rgb(226, 231, 222)",
+      "outline": "rgb(46, 57, 49) none 0px",
+      "boxShadow": "none"
+    },
+    "status": "captured"
+  }
+]

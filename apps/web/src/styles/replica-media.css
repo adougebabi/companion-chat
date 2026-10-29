@@ -249,7 +249,7 @@
   height: 105px;
   object-fit: cover;
 }
-.replica-media .r-avatar-modes > button {
+.replica-media .r-avatar-modes > .r-avatar-option {
   height: auto;
   white-space: normal;
 }
@@ -589,7 +589,7 @@
   flex-direction: column;
   gap: 13px;
 }
-.replica-media .r-avatar-modes > button {
+.replica-media .r-avatar-modes > .r-avatar-option {
   display: flex;
   align-items: flex-start;
   gap: 13px;
@@ -598,8 +598,12 @@
   border-radius: 8px;
   padding: 17px;
   background: #fff;
+  cursor: pointer;
 }
-.replica-media .r-avatar-modes > button.selected {
+.replica-media .r-avatar-option [data-slot="radio-group-item"]{margin-top:1px;flex-shrink:0}
+.replica-media .r-avatar-option:has([data-disabled]){cursor:default;opacity:.6}
+.replica-media .r-avatar-option [data-slot="radio-group-item"]:focus-visible{outline:2px solid #92aa85;outline-offset:3px;box-shadow:none}
+.replica-media .r-avatar-modes > .r-avatar-option.selected {
   border-color: #afc69a;
   background: #f3f8eb;
 }

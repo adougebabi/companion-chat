@@ -814,7 +814,7 @@ export const conversationDefinition = defineDomain({
       }
       this.error = "";
     },
-    async refreshActiveTurn(explicit = false) {
+    async refreshActiveTurn(explicit = false, targetTurnId?: string) {
       const conversationId = this.conversation?.id;
       const fluctlightId = this.fluctlightId,
         epoch = this.requestEpoch,
@@ -865,6 +865,7 @@ export const conversationDefinition = defineDomain({
           (message) => message.kind === "user",
         )?.turnStatus;
         if (
+          !targetTurnId &&
           status === "completed" &&
           this.queuedTurn &&
           !this.sending &&
@@ -874,7 +875,7 @@ export const conversationDefinition = defineDomain({
           !this.retrying
         )
           await this.sendQueuedTurn();
-        return status;
+        return targetTurnId?page.messages.findLast(message=>message.kind==='user'&&message.turnId===targetTurnId)?.turnStatus:status;
       } catch (error) {
         // A read failure cannot change an accepted turn's server state.
         if (explicit) throw error;

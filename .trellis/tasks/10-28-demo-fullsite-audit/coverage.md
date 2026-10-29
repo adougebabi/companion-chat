@@ -195,3 +195,8 @@
 - [12批后续验收计划](research/feedback-coverage-plan.md)
 
 任务继续in_progress，真实媒体生成由用户测试。
+
+
+## r18增量
+
+逐条结果见[r18-acceptance.md](r18-acceptance.md)；[64条处置](r18-issues.json)与[90条受控浏览器记录](evidence/r18-browser-index.json)已追加到coverage.json的74行具体观察中。原177行所有未验收状态与历史证据保留，没有批量提升整行或真实业务状态。

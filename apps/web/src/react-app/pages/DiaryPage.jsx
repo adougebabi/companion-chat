@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuCheckboxItem} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Surface, FieldInput, Textarea, Disclosure, Badge } from "../controls";
@@ -31,7 +32,7 @@ const statuses = {
   pending: "等待整理",
   running: "正在回顾",
   ready: "已经写下",
-  no_content: "这次未形成正文",
+  no_content: "无正文",
   failed: "整理未完成",
   inactive: "尚未运行",
 };
@@ -79,6 +80,7 @@ export default function DiaryPage() {
     cache = useRef(new Map()),
     retry = useRef({}),
     trigger = useRef(null),
+    replyTrigger = useRef(null),
     pinned = useRef(""),
     sequence = useRef(0),
     stamps = useRef(new Map());
@@ -428,6 +430,8 @@ export default function DiaryPage() {
       id = entry.id;
     setAction({
       identity: "diary-reply:" + id,
+      presentation: "inline",
+      diaryId: id,
       scope: ["diary-reply", fid, id],
       storageKey: "fluctlight-diary:" + owner + ":" + fid + ":reply:" + id,
       initial: { text: "", revision: entry.revision },
@@ -655,7 +659,8 @@ export default function DiaryPage() {
             <div className="replica-diary-controls">
               <div className="replica-diary-options">
                 <label className="lp-row">
-                  <Checkbox
+                  <Switch
+                    aria-label="只看收藏"
                     checked={favorite}
                     onCheckedChange={(v) => {
                       pinned.current = "";
@@ -795,14 +800,14 @@ export default function DiaryPage() {
                     <p className="lp-muted">已收藏</p>
                   )}
                   {selected.annotation.note &&
-                    action?.presentation !== "inline" && (
+                    action?.identity !== "diary-note:" + selected.id && (
                       <div className="lp-annotation">
                         <span className="lp-label">你的批注</span>
                         <p>{selected.annotation.note}</p>
                       </div>
                     )}
                   {action?.presentation === "inline" &&
-                    action.diaryId === selected.id && (
+                    action.diaryId === selected.id && action.identity !== "diary-reply:" + selected.id && (
                       <WorkspaceCommandDialog
                         key={action.identity}
                         action={action}
@@ -811,13 +816,6 @@ export default function DiaryPage() {
                       />
                     )}
                   <div className="lp-action-row">
-                    <Button
-                      disabled={readonly || !selected.active_attempt_id}
-                      variant="outline"
-                      onClick={replyEditor}
-                    >
-                      读完后，想对{c.name}说
-                    </Button>
                     {["failed", "inactive"].includes(selected.status) && (
                       <Button
                         variant="outline"
@@ -837,7 +835,8 @@ export default function DiaryPage() {
                       onTerminal={() => void readReplies(selected.id)}
                     />
                   )}
-                  <Disclosure title="留言与实际处理记录">
+                  <section className="replica-diary-replies" aria-label="留言与实际处理记录">
+                    <h3 className="lp-title">留言</h3>
                     <Button
                       variant="link"
                       disabled={replyBusy}
@@ -889,10 +888,10 @@ export default function DiaryPage() {
                         加载更多留言
                       </Button>
                     )}
-                    <p className="lp-muted">
-                      处理请求不代表已经产生回复，交流内容以实际会话记录为准。
-                    </p>
-                  </Disclosure>
+                    {action?.identity === "diary-reply:" + selected.id ? <WorkspaceCommandDialog key={action.identity} action={action} onClose={()=>setAction(null)} returnFocus={()=>replyTrigger.current}/> : <Button ref={replyTrigger} disabled={readonly || !selected.active_attempt_id} variant="outline" onClick={replyEditor}>读完后，想对{c.name}说</Button>}
+                    {!selected.active_attempt_id&&<p className="lp-muted">这篇日记尚无可留言的正文，形成正文后可以留下回应。</p>}
+                    <p className="lp-muted">留言会进入处理流程，是否有回应以实际交流记录为准。</p>
+                  </section>
                   <Disclosure title="生成尝试、素材与来源">
                     <JsonDetails value={selected} title="完整日记与来源" />
                     {selected.attempts?.map((attempt) => (
