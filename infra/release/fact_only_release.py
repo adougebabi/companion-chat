@@ -13,6 +13,7 @@ SOURCE_REF = "refs/heads/codex/fact-only-reply-vision"
 CHANNELS = {
     SOURCE_REF: "fact-only",
     "refs/heads/codex/fluctlight-functional-recovery": "functional-recovery",
+    "refs/heads/codex/demo-fullsite-audit-20261028": "demo-fullsite-audit",
 }
 COMPONENTS = {"core": "fluctlight-core-go", "web": "fluctlight-web"}
 

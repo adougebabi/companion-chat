@@ -96,6 +96,30 @@ class ReleaseTest(unittest.TestCase):
             self.assertEqual(selection["CORE_GO_IMAGE"], "example/fluctlight-core-go@sha256:" + "a" * 64)
             self.assertEqual(selection["WEB_IMAGE"], "example/fluctlight-web@sha256:" + "b" * 64)
 
+    def test_demo_fullsite_audit_publishes_only_its_own_tags(self):
+        with tempfile.TemporaryDirectory() as folder:
+            manifest = self.records(folder, "refs/heads/codex/demo-fullsite-audit-20261028")
+            self.assertEqual(manifest["channel"], "demo-fullsite-audit")
+            self.assertTrue(all(item["tag"] == "demo-fullsite-audit-" + "c" * 40 + "-42-2" for item in manifest["images"]))
+            commands = []
+            def run(args):
+                commands.append(args)
+                if "inspect" in args:
+                    return json.dumps({"digest": "sha256:" + ("a" if "core-go" in args[4] else "b") * 64})
+                return ""
+            with patch.object(release, "current_head", return_value="c" * 40) as head:
+                result = release.promote(manifest, Path(folder) / "result.json", run=run)
+            self.assertEqual(result["status"], "published")
+            self.assertEqual(head.call_count, 2)
+            head.assert_called_with("refs/heads/codex/demo-fullsite-audit-20261028")
+            self.assertTrue(all("demo-fullsite-audit-latest" in " ".join(args) for args in commands))
+            self.assertTrue(all("fact-only-latest" not in " ".join(args) and "functional-recovery-latest" not in " ".join(args) and ":latest" not in " ".join(args) for args in commands))
+            args = Namespace(manifest=str(Path(folder) / "result.json"))
+            selection = switch_images.selection(args)
+            self.assertEqual(selection["TEMPORAL_WORKER_BUILD_ID"], "demo-fullsite-audit-" + "c" * 40 + "-42-2")
+            self.assertEqual(selection["CORE_GO_IMAGE"], "example/fluctlight-core-go@sha256:" + "a" * 64)
+            self.assertEqual(selection["WEB_IMAGE"], "example/fluctlight-web@sha256:" + "b" * 64)
+
     def test_cross_channel_and_unapproved_sources_are_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             manifest = self.records(folder)
