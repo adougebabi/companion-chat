@@ -183,3 +183,15 @@
 |resources.formal.studio.packs|Demo 无资源包完整工作流|待检查|待检查|待检查|4|
 
 完整字段、状态、调用链、问题及证据路径见 [coverage.json](coverage.json)。
+
+
+## 追加：反馈与异常状态UX维度（2026-10-29）
+
+原177行与既有视觉/交互/业务记录保持；coverage.json每行feedback_ux含正常、空/首次、配置缺失、草稿恢复、读取/提交失败、异步进行中、失败/未知恢复、完成返回/刷新八场景。当前42行新增精确observations，212条受控浏览器实例；每行完整状态仍逐项验收，不批量标通过或N/A。
+
+- [反馈增量验收报告与代表性前后截图](feedback-acceptance.md)
+- [问题、实际恢复操作及验证台账](feedback-issues.md)
+- [完整矩阵数据](coverage.json)
+- [12批后续验收计划](research/feedback-coverage-plan.md)
+
+任务继续in_progress，真实媒体生成由用户测试。
