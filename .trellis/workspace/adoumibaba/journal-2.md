@@ -356,3 +356,39 @@ Removed the retired app, shell, registries and proto/pages; retained unique doma
 ### Next Steps
 
 - 继续visual-review.md中逐项未验的深层视觉状态及业务边界，不将受控HTTP和真实模型/存储混为完成。
+
+
+## Session 77: Demo复验F60–F69与收敛状态检查
+<!-- trellis-session: v=2 fp=37dbe9aaf6d575d1 -->
+
+**Date**: 2026-10-29
+**Task**: Demo复验F60–F69与收敛状态检查
+**Branch**: `codex/demo-fullsite-audit-20261028`
+
+### Summary
+
+修复回执/草稿/详情同步与启动/JSON反馈，补完已收敛异常交互清单；任务保持进行中。
+
+### Main Changes
+
+- F60–F69已保存；原请求身份、已接受GET恢复与新草稿保留，未修改后端或模型配置。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `687534c1` | fix(web): preserve original receipts and complete nested state recovery |
+| `7bda752c` | test(web): close bounded workspace recovery state checks |
+
+### Testing
+
+- [OK] Web697/697、0skip；typecheck114、build116及生产守卫通过；六组新增44条浏览器状态通过。
+- [OK] build116同步隔离18480，五页真实API只读通过；Demo48和旧任务108文件hash未变。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 按已留边界逐张进行深层视觉最终签收；真实媒体模型链仍缺本轮完整证据，不以fixture代替，不扩展后端。
