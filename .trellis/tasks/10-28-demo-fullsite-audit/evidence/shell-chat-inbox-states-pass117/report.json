@@ -1,0 +1,1086 @@
+[
+  {
+    "name": "logout-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "busy disables another logout",
+      "busy: no horizontal overflow",
+      "failed logout retains private workspace",
+      "failure: no horizontal overflow",
+      "explicit retry exits after authoritative acknowledgement",
+      "retried: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/logout-failure-desktop-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/logout-failure-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/logout-failure-desktop-retried.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "quickjump-empty",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '快速前往', exact: true })\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-shell-chat-inbox-states.mjs:29:106",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n角色库\n快速前往\n⌘ K\nA LITTLE WORLD, A MEANINGFUL CONNECTION\n每一场相遇，\n都值得认真开始。\n\n在自己的世界里生活，也在日常里慢慢靠近。\n这里，收藏着你们的每一个故事。\n\n开启新的相识\nCONTINUE YOUR STORY\n林\n林岚 · 验收样本\n\n你的上一次相遇，还在这里。\n\n继续相处\n我的角色 2 位相识\n全部\n当前相处\n林\n林岚 · 验收样本\n\n书籍编辑\n\n这是用于资料分层验收的角色背景。\n\n最近相处：2026-10-13\n角色档案\n进入聊天\n已暂停\n季\n季川 · 验收样本\n\n书籍编辑\n\n这是用于资料分层验收的角色背景。\n\n最近相处：2026-10-13\n角色档案\n进入聊天\n角色资料来自当前工作区\n去创作中心寻找灵感"
+  },
+  {
+    "name": "inbox-bulk",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "bulk busy prevents duplicate mutation",
+      "busy: no horizontal overflow",
+      "one frozen workspace read snapshot only",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/read-all",
+        "method": "POST",
+        "body": {
+          "before": "2026-10-13T01:00:00.123Z",
+          "idempotencyKey": "7ff9aa56-09ea-40b6-9013-8fdb0d05f9df"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/inbox-bulk-desktop-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/inbox-bulk-desktop-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "inbox-no-role",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "empty directory hides scoped chat return",
+      "no-role: no horizontal overflow",
+      "global inbox never sends to an invented role",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/inbox-no-role-desktop-no-role.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "chat-composition",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "composition Enter does not submit a turn",
+      "composing: no horizontal overflow",
+      "after composition exactly one original text is sent",
+      "completed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/turn",
+        "method": "POST",
+        "body": {
+          "text": "输入法尚在组词",
+          "fluctlightId": "fluctlight-fixture-one",
+          "attachmentRefs": [],
+          "idempotencyKey": "turn-c88bc613-2ca0-4e77-b351-3f86022da0b7",
+          "turnId": "turn_5c222618-ca69-4627-9e58-56951aff66bc",
+          "senderTimezone": "Asia/Shanghai",
+          "senderUtcOffsetMinutes": 480,
+          "senderSentAt": "2026-10-29T02:20:38.808Z"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-composition-desktop-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-composition-desktop-completed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "chat-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "long running turn exposes diagnostics and honest waiting",
+      "slow: no horizontal overflow",
+      "settling cannot offer model retry or cancellation",
+      "settling: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-states-desktop-slow.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-states-desktop-settling.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-shell-chat-inbox-states.mjs:46:209",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本 · 书籍编辑\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n聊天\n快速前往\n⌘ K\nDAILY / A LITTLE CONVERSATION\n从一句话，慢慢走近。\n\n分享今天的小事，也留一点安静相处的时间。\n\n会话历史\n收起此刻\n林\n林岚 · 验收样本\n生活进行中\n· 书籍编辑\n林岚 · 验收样本\n只属于你们的对话\n2026年10月13日\n林\n林岚 · 验收样本\n09:00\n这是一条用于版式验收的示例消息。所有内容均为隔离样本。\n2026年10月1日\n我\n我\n09:00\n请查看回复失败时的反馈。\n本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。\n重试原回应\nScroll to end\nEnter 发送\nShift + Enter 换行\n发送\n林岚 · 验收样本的此刻\n实时预览\nA LITTLE MOMENT\n把时间，留给喜欢的事。\n家中\n阅读\n\n平静\n\n今天的穿着\n\n穿着读取未完成，保留上次确认的记录。\n\n实际穿着尚未读到。\n\n去衣柜看看\n接下来的安排\n查看全部\n12:00\n\n自由安排\n\n日程安排\n\n生活在继续，故事也在慢慢生长。\n这里是 林岚 · 验收样本 的小小世界。"
+  },
+  {
+    "name": "logout-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "busy disables another logout",
+      "busy: no horizontal overflow",
+      "failed logout retains private workspace",
+      "failure: no horizontal overflow",
+      "explicit retry exits after authoritative acknowledgement",
+      "retried: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/logout",
+        "method": "POST",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/setup-status",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/logout-failure-mobile-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/logout-failure-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/logout-failure-mobile-retried.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "quickjump-empty",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "no-result leaves query editable",
+      "empty: no horizontal overflow",
+      "Escape returns to original quickjump trigger",
+      "reopening clears dismissed query",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/quickjump-empty-mobile-empty.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "inbox-bulk",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "bulk busy prevents duplicate mutation",
+      "busy: no horizontal overflow",
+      "one frozen workspace read snapshot only",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/read-all",
+        "method": "POST",
+        "body": {
+          "before": "2026-10-13T01:00:00.123Z",
+          "idempotencyKey": "8293181a-bb6e-4129-84bc-b3b9819f8186"
+        }
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/inbox-bulk-mobile-busy.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/inbox-bulk-mobile-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "inbox-no-role",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "empty directory hides scoped chat return",
+      "no-role: no horizontal overflow",
+      "global inbox never sends to an invented role",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/inbox-no-role-mobile-no-role.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "chat-composition",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "composition Enter does not submit a turn",
+      "composing: no horizontal overflow",
+      "after composition exactly one original text is sent",
+      "completed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/turn",
+        "method": "POST",
+        "body": {
+          "text": "输入法尚在组词",
+          "fluctlightId": "fluctlight-fixture-one",
+          "attachmentRefs": [],
+          "idempotencyKey": "turn-e2a6efbc-70d6-46b6-b9e5-c9eb91377802",
+          "turnId": "turn_790ee502-5bf2-4bfe-be88-3c32a569817f",
+          "senderTimezone": "Asia/Shanghai",
+          "senderUtcOffsetMinutes": 480,
+          "senderSentAt": "2026-10-29T02:20:59.177Z"
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-composition-mobile-composing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-composition-mobile-completed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "chat-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / fresh controlled HTTP / no real logout, chat/model or notification mutation",
+    "checks": [
+      "long running turn exposes diagnostics and honest waiting",
+      "slow: no horizontal overflow",
+      "settling cannot offer model retry or cancellation",
+      "settling: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/auth/session",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/conversations/conversation-fixture/messages",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-states-mobile-slow.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/shell-chat-inbox-states-pass117/chat-states-mobile-settling.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-shell-chat-inbox-states.mjs:46:209",
+    "text": "Toggle Sidebar\n日常相处\n聊天\n快速前往\nDAILY / A LITTLE CONVERSATION\n从一句话，慢慢走近。\n\n分享今天的小事，也留一点安静相处的时间。\n\n会话历史\n收起此刻\n林\n林岚 · 验收样本\n生活进行中\n· 书籍编辑\n林岚 · 验收样本\n2026年10月13日\n林\n林岚 · 验收样本\n09:00\n这是一条用于版式验收的示例消息。所有内容均为隔离样本。\n2026年10月1日\n我\n我\n09:00\n请查看回复失败时的反馈。\n本次处理被中断，消息已保留。这不一定是手动取消，可查看本次运行记录。\n重试原回应\nScroll to end\nEnter 发送\nShift + Enter 换行\n发送\n林岚 · 验收样本的此刻\n实时预览\nA LITTLE MOMENT\n把时间，留给喜欢的事。\n家中\n阅读\n\n平静\n\n今天的穿着\n\n穿着读取未完成，保留上次确认的记录。\n\n实际穿着尚未读到。\n\n去衣柜看看\n接下来的安排\n查看全部\n12:00\n\n自由安排\n\n日程安排"
+  }
+]

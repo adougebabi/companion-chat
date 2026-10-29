@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-10-29T02:39:02.839694+00:00",
+  "layer": "actual production dist / controlled HTTP only",
+  "groups": [
+    {
+      "report": "evidence/shell-chat-inbox-states/report-consolidated.json",
+      "cases": 12,
+      "passed": 12
+    },
+    {
+      "report": "evidence/people-state-edges-pass120/report.json",
+      "cases": 10,
+      "passed": 10
+    },
+    {
+      "report": "evidence/feed-state-edges-pass122/report.json",
+      "cases": 8,
+      "passed": 8
+    },
+    {
+      "report": "evidence/management-state-edges/report-consolidated.json",
+      "cases": 14,
+      "passed": 14
+    }
+  ],
+  "total": 44,
+  "status": "passed",
+  "not_fullsite_completion": true
+}

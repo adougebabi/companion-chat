@@ -1,0 +1,1646 @@
+[
+  {
+    "name": "settings-busy",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "busy blocks repeated save and discard",
+      "busy-new-input: no horizontal overflow",
+      "accepted snapshot contains both submitted ordinary settings",
+      "late receipt preserves new input",
+      "second save submits only unacknowledged edit",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "5f6f44ea-d7c6-4682-902f-100d84ff6a68"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": false
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 2
+          },
+          "idempotencyKey": "cb3e9c70-b9d8-4afa-aa3b-44ccc0a03e5e"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-busy-desktop-busy-new-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-busy-desktop-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-unknown",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "new draft cannot overwrite unknown original command",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "unknown recovery only reads/recovers original receipt before new proposal",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "4b54ad4d-fe90-4b59-87e2-cb835ccc7d7c"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-commands/recover",
+        "method": "POST",
+        "body": {
+          "key": "4b54ad4d-fe90-4b59-87e2-cb835ccc7d7c"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "00a78566-18ad-4781-af03-fbda1e21114a"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-unknown-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-unknown-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-unknown-desktop-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-conflict",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "explicit conflict rebase updates actual CAS",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "26daa74c-e5d9-4b81-b5d3-c22a6016b644"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "26daa74c-e5d9-4b81-b5d3-c22a6016b644"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "2473f1aa-7f64-4af6-9736-261b52f464ae"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-conflict-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-conflict-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-conflict-desktop-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-rejected",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "05a3f8b2-6cb0-4796-946f-d56f05a51e6b"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "05a3f8b2-6cb0-4796-946f-d56f05a51e6b"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "669e3fc8-ab70-43ca-b7cd-3963d1334cf1"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-rejected-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-rejected-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-rejected-desktop-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-partial",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "partial success does not repeat confirmed endpoint or binding",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints",
+        "method": "PUT",
+        "body": {
+          "endpointId": "fixture-model",
+          "kind": "openai-compatible",
+          "baseUrl": "https://confirmed-fixture.invalid/v1",
+          "secretPurpose": "provider:fixture-model",
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "8737cfcd-946c-4787-9512-28b22b50b58d"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/roles",
+        "method": "PUT",
+        "body": {
+          "role": "generic_llm",
+          "endpointId": "fixture-model",
+          "modelId": "fixture-model",
+          "timeoutSeconds": 120,
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "92f597c7-294c-4e2e-8ca1-02a276a3024d"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "fc38ec74-4e98-4b59-9f32-8c292b153bb3"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "fc38ec74-4e98-4b59-9f32-8c292b153bb3"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "f8071b1a-fb1f-441f-b04c-a46949613e87"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-partial-desktop-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-partial-desktop-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-partial-desktop-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "backup-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-running",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Error: strict mode violation: getByText('维护进行中', { exact: true }) resolved to 2 elements:\n    1) <span tabindex=\"-1\" data-badge=\"维护进行中\" aria-hidden=\"true\" class=\"badge b-plain\" data-domain-ui=\"badge\" data-domain-carrier=\"\">维护进行中</span> aka getByText('维护进行中').first()\n    2) <span data-slot=\"badge\" data-variant=\"secondary\" class=\"group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 […>维护进行中</span> aka getByText('维护进行中').nth(1)\n\nCall log:\n\u001b[2m  - waiting for getByText('维护进行中', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-management-state-edges.mjs:77:134",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n备份与恢复记录\n快速前往\n⌘ K\n备份与恢复记录\n返回数据工具\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 1 次 · 维护阶段已记录\n\n维护进行中\n创建\n2026-10-13 09:00 (北京时间)\n开始\n2026-10-13 09:00 (北京时间)\n完成\n未记录\n\n理由：隔离维护样本\n\n目标：业务备份产物\n\n重新读取\n任务标识与原始状态\n真实维护阶段\n实际核验结果与产物摘要\n\n只有任务已完成且通过实际核验，才表示维护完成。排队、处理中、失败或结果未知，都不表示已经生成可恢复副本。外部模型服务的瞬时状态不在备份内，原任务与服务请求标识保留。\n\n在部署主机执行维护 · 操作说明"
+  },
+  {
+    "name": "import-recovery",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "validation busy blocks duplicate request",
+      "changed validation cannot import old snapshot",
+      "changed-during-validation: no horizontal overflow",
+      "unknown: no horizontal overflow",
+      "unknown import remount replays exact original pack/digest/reason/key"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "受控原定义"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "beded1fb-667f-4fd7-996f-ba47135a5016"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "beded1fb-667f-4fd7-996f-ba47135a5016"
+        }
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/import-recovery-desktop-changed-during-validation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/import-recovery-desktop-unknown.png"
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: import details link to independent unpublished draft\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-management-state-edges.mjs:18:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-management-state-edges.mjs:83:1977",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n导入草稿\n快速前往\n⌘ K\n导入草稿\n返回数据工具\n已导入的定义草稿 \n尚未发布\n重新读取\n\n包 pack-fixture · fixture-exact-digest · 2026-10-13 09:00 (北京时间)\n\n先发布独立依赖，再发布引用它们的定义。运行世界引用请在对应编辑器重新核对；定义不代表已应用或已结识。\n\n窗边书签\n\nresource-fixture → resource-fixture vdraft:1\n\n独立草稿\n原包的依赖发布顺序\n需按目标世界重新核对的引用\n分组建议草稿\n\n明确采用后创建缺失的分组；已有同名分组会复用，不移动任何角色。\n\n导入建议分组\n核对并采用\n角色库分组\n通知偏好建议草稿\n包内公开偏好\n\n包内没有已保存通知偏好；没有填入默认值。\n\n采用到草稿后仍须在当前设置版本上明确保存。"
+  },
+  {
+    "name": "settings-busy",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "busy blocks repeated save and discard",
+      "busy-new-input: no horizontal overflow",
+      "accepted snapshot contains both submitted ordinary settings",
+      "late receipt preserves new input",
+      "second save submits only unacknowledged edit",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "cfad829c-a607-4943-9211-d812659feec4"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": false
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 2
+          },
+          "idempotencyKey": "729bf90e-5169-4a90-b950-7930d7aae80d"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-busy-mobile-busy-new-input.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-busy-mobile-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-unknown",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "new draft cannot overwrite unknown original command",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "unknown recovery only reads/recovers original receipt before new proposal",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "93cbf95e-16ee-4e22-bbad-ab23b74e2029"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-commands/recover",
+        "method": "POST",
+        "body": {
+          "key": "93cbf95e-16ee-4e22-bbad-ab23b74e2029"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "d202a40a-76e8-4941-b1cf-5cc87f348e00"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-unknown-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-unknown-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-unknown-mobile-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-conflict",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "explicit conflict rebase updates actual CAS",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "2997d0e8-41e0-4615-9978-b2187b86e381"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "2997d0e8-41e0-4615-9978-b2187b86e381"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 2,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "46794c58-2eac-43c0-a6ec-0d90e19d7e9c"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-conflict-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-conflict-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-conflict-mobile-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-rejected",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "708287be-1def-4b73-9112-d06f2ba3f5db"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "708287be-1def-4b73-9112-d06f2ba3f5db"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "40955a56-3b67-4923-8193-f2243a48ccb6"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-rejected-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-rejected-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-rejected-mobile-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "settings-partial",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "failure: no horizontal overflow",
+      "rejected command did not mutate ordinary setting",
+      "explicit-rebase: no horizontal overflow",
+      "new confirmed proposal uses an independent identity",
+      "partial success does not repeat confirmed endpoint or binding",
+      "final ordinary settings are actually committed",
+      "confirmed: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints",
+        "method": "PUT",
+        "body": {
+          "endpointId": "fixture-model",
+          "kind": "openai-compatible",
+          "baseUrl": "https://confirmed-fixture.invalid/v1",
+          "secretPurpose": "provider:fixture-model",
+          "expectedVersions": {
+            "endpoint:fixture-model": 1,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "8ad41deb-2ecf-4324-a29a-337d12b0ccdf"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/roles",
+        "method": "PUT",
+        "body": {
+          "role": "generic_llm",
+          "endpointId": "fixture-model",
+          "modelId": "fixture-model",
+          "timeoutSeconds": 120,
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 1,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "7787930f-6b88-4fff-be2a-8de58e7f8d7f"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "f7bde8a1-5d5a-4f50-94e2-99f041c29fbb"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/cancel-unaccepted",
+        "method": "POST",
+        "body": {
+          "key": "f7bde8a1-5d5a-4f50-94e2-99f041c29fbb"
+        }
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "method": "PUT",
+        "body": {
+          "values": {
+            "conversation.reply": {
+              "mode": "fact_only"
+            },
+            "vision.understanding": {
+              "enabled": true
+            },
+            "product.wakeup": {
+              "enabled": true
+            }
+          },
+          "expectedVersions": {
+            "endpoint:fixture-model": 2,
+            "binding:generic_llm": 2,
+            "vision.understanding": 1,
+            "product.wakeup": 1
+          },
+          "idempotencyKey": "8a0fdf89-df80-4802-8fb0-697d58351e7e"
+        }
+      },
+      {
+        "path": "/api/configuration-commands/by-key",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-partial-mobile-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-partial-mobile-explicit-rebase.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/settings-partial-mobile-confirmed.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "backup-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-running",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Error: strict mode violation: getByText('维护进行中', { exact: true }) resolved to 2 elements:\n    1) <span tabindex=\"-1\" data-badge=\"维护进行中\" aria-hidden=\"true\" class=\"badge b-plain\" data-domain-ui=\"badge\" data-domain-carrier=\"\">维护进行中</span> aka getByText('维护进行中').first()\n    2) <span data-slot=\"badge\" data-variant=\"secondary\" class=\"group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 […>维护进行中</span> aka getByText('维护进行中').nth(1)\n\nCall log:\n\u001b[2m  - waiting for getByText('维护进行中', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-management-state-edges.mjs:77:134",
+    "text": "Toggle Sidebar\n创作与管理\n备份与恢复记录\n快速前往\n备份与恢复记录\n返回数据工具\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 1 次 · 维护阶段已记录\n\n维护进行中\n创建\n2026-10-13 09:00 (北京时间)\n开始\n2026-10-13 09:00 (北京时间)\n完成\n未记录\n\n理由：隔离维护样本\n\n目标：业务备份产物\n\n重新读取\n任务标识与原始状态\n真实维护阶段\n实际核验结果与产物摘要\n\n只有任务已完成且通过实际核验，才表示维护完成。排队、处理中、失败或结果未知，都不表示已经生成可恢复副本。外部模型服务的瞬时状态不在备份内，原任务与服务请求标识保留。\n\n在部署主机执行维护 · 操作说明"
+  },
+  {
+    "name": "import-recovery",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "validation busy blocks duplicate request",
+      "changed validation cannot import old snapshot",
+      "changed-during-validation: no horizontal overflow",
+      "unknown: no horizontal overflow",
+      "unknown import remount replays exact original pack/digest/reason/key"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "受控原定义"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "5d25786b-fc2a-4571-93f2-31b5cd75c9b7"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "5d25786b-fc2a-4571-93f2-31b5cd75c9b7"
+        }
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/import-recovery-mobile-changed-during-validation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass124/import-recovery-mobile-unknown.png"
+    ],
+    "status": "failed",
+    "error": "AssertionError [ERR_ASSERTION]: import details link to independent unpublished draft\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-management-state-edges.mjs:18:38)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-management-state-edges.mjs:83:1977",
+    "text": "Toggle Sidebar\n创作与管理\n导入草稿\n快速前往\n导入草稿\n返回数据工具\n已导入的定义草稿 \n尚未发布\n重新读取\n\n包 pack-fixture · fixture-exact-digest · 2026-10-13 09:00 (北京时间)\n\n先发布独立依赖，再发布引用它们的定义。运行世界引用请在对应编辑器重新核对；定义不代表已应用或已结识。\n\n窗边书签\n\nresource-fixture → resource-fixture vdraft:1\n\n独立草稿\n原包的依赖发布顺序\n需按目标世界重新核对的引用\n分组建议草稿\n\n明确采用后创建缺失的分组；已有同名分组会复用，不移动任何角色。\n\n导入建议分组\n核对并采用\n角色库分组\n通知偏好建议草稿\n包内公开偏好\n\n包内没有已保存通知偏好；没有填入默认值。\n\n采用到草稿后仍须在当前设置版本上明确保存。"
+  }
+]

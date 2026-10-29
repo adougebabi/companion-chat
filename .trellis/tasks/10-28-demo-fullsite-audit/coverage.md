@@ -7,9 +7,9 @@
 |shell-navigation|全部页面 / 侧栏与品牌|待检查|待检查|待检查|4|
 |shell-switch|侧栏正在相处角色选择|待检查|待检查|待检查|4|
 |shell-sidebar|顶栏收起/展开与移动遮罩|待检查|待检查|待检查|8|
-|shell-jump|快速前往 / Cmd或Ctrl K|待检查|已修复待验证|待检查|1|
+|shell-jump|快速前往 / Cmd或Ctrl K|待检查|已修复待验证|待检查|3|
 |shell-help-reset|交互演示/演示说明 → 帮助 → 重置演示数据|明确不适用|明确不适用|明确不适用|0|
-|shell-account|侧栏账户与登录|待检查|待检查|待检查|2|
+|shell-account|侧栏账户与登录|待检查|待检查|待检查|4|
 |library-hero|角色库 / 开启新的相识与继续相处|待检查|待检查|待检查|8|
 |library-search-view|角色库 / 搜索、标签、网格列表|待检查|待检查|待检查|3|
 |library-cards|角色库 / 角色卡片|待检查|待检查|待检查|5|
@@ -17,9 +17,9 @@
 |auth-demo-form|账户 / 登录或注册|待检查|待检查|待检查|6|
 |auth-formal-init|Demo不适用：纯前端演示无需部署初始化|待检查|待检查|待检查|5|
 |chat-room|聊天 / 页首与角色栏|待检查|待检查|待检查|9|
-|chat-send|聊天 / 消息输入|待检查|待检查|待检查|5|
-|chat-message-cards|聊天 / 消息流与图片|待检查|已修复待验证|待检查|8|
-|chat-turn-recovery|聊天 / 原回应重试、停止与运行状态|待检查|待检查|待检查|4|
+|chat-send|聊天 / 消息输入|待检查|待检查|待检查|7|
+|chat-message-cards|聊天 / 消息流与图片|待检查|已修复待验证|待检查|10|
+|chat-turn-recovery|聊天 / 原回应重试、停止与运行状态|待检查|待检查|待检查|6|
 |chat-say-prefill|由其他页面say参数进入聊天 / 草稿冲突提示|待检查|已修复待验证|待检查|2|
 |chat-now-preview|聊天 / 此刻侧栏|待检查|待检查|待检查|3|
 |chat-history|会话历史 / 目录与阅读|待检查|待检查|待检查|3|
@@ -39,27 +39,27 @@
 |profile-capabilities|身份与能力 / 能力申请|待检查|待检查|待检查|2|
 |profile-self-claims|身份与能力 / 发展中的自我|待检查|待检查|待检查|2|
 |profile-formal-recovery|Demo不适用：本地同步编辑没有真实提交恢复|待检查|待检查|待检查|6|
-|people-directory|人物关系 / 世界中的人|待检查|待检查|待检查|11|
-|people-detail|人物详情弹窗|待检查|待检查|待检查|5|
-|people-create|新增世界人物 / 编辑世界人物|待检查|待检查|待检查|1|
-|people-about-display|关于你 / 自填资料|待检查|待检查|待检查|3|
-|people-about-edit|关于你 / 编辑与修订|待检查|待检查|待检查|2|
+|people-directory|人物关系 / 世界中的人|待检查|待检查|待检查|19|
+|people-detail|人物详情弹窗|待检查|待检查|待检查|7|
+|people-create|新增世界人物 / 编辑世界人物|待检查|待检查|待检查|3|
+|people-about-display|关于你 / 自填资料|待检查|待检查|待检查|5|
+|people-about-edit|关于你 / 编辑与修订|待检查|待检查|待检查|6|
 |people-knowledge|关于你 / 对你的了解弹窗|待检查|待检查|待检查|2|
 |people-relation-basis|关于你 / 关系与交往依据弹窗|待检查|待检查|待检查|2|
-|people-authored-history|你的资料修订历史弹窗|待检查|待检查|待检查|2|
+|people-authored-history|你的资料修订历史弹窗|待检查|待检查|待检查|4|
 |people-relationship-tab|你们的关系 / 指标与共同片刻|待检查|待检查|待检查|2|
 |people-formal-management|Demo不适用：仅人物定义编辑，没有真实接触与治理|待检查|待检查|待检查|2|
 |feed-filter-list|动态 / 作者范围、搜索、展示状态|待检查|待检查|待检查|8|
 |feed-post-actions|动态卡 / 回应与隐藏恢复|待检查|待检查|待检查|2|
-|feed-detail-comments|动态详情 / 正文评论与来源|待检查|待检查|待检查|9|
+|feed-detail-comments|动态详情 / 正文评论与来源|待检查|待检查|待检查|11|
 |feed-publish|我来发动态 / 发布弹窗|待检查|待检查|待检查|5|
-|feed-suggest|邀请分享近况 / 建议输入和结果|待检查|待检查|待检查|3|
-|feed-formal-npc|Demo不适用：没有世界人物在动态中的真实互动|待检查|待检查|待检查|2|
-|inbox-list-read|通知 / 全部未读、角色过滤与已读|待检查|待检查|待检查|14|
+|feed-suggest|邀请分享近况 / 建议输入和结果|待检查|待检查|待检查|7|
+|feed-formal-npc|Demo不适用：没有世界人物在动态中的真实互动|待检查|待检查|待检查|4|
+|inbox-list-read|通知 / 全部未读、角色过滤与已读|待检查|待检查|待检查|16|
 |inbox-detail-source|通知详情 / 返回与来源链接|待检查|待检查|待检查|4|
 |inbox-pending|需要你决定 / 待处理卡|待检查|待检查|待检查|5|
 |inbox-task-recover|失败任务通知 / 原任务恢复轨迹|待检查|待检查|待检查|2|
-|inbox-back-chat|通知 / 回到日常|待检查|待检查|待检查|2|
+|inbox-back-chat|通知 / 回到日常|待检查|待检查|待检查|4|
 |inbox-formal-groups|Demo不适用：只模拟几条通知与pending，没有真实多来源运行态|待检查|待检查|待检查|4|
 |avatar-source-all|侧栏/角色库/聊天/档案/关系/动态头像|待检查|已修复待验证|待检查|2|
 |shell-formal-routing|Demo不适用：Demo始终有本地种子角色与可用页面|待检查|待检查|待检查|2|
@@ -88,15 +88,15 @@
 |life-reflection-detail|memory → 反思详情|待检查|待检查|待检查|2|
 |life-self-list|memory?tab=self|待检查|待检查|待检查|3|
 |life-self-detail|memory → 这条认识从哪里来|待检查|待检查|待检查|12|
-|management-navigation|settings?tab=|待检查|待检查|待检查|12|
-|management-model-services|settings?tab=models → services|待检查|待检查|待检查|10|
-|management-model-roles|settings?tab=models → roles|待检查|待检查|待检查|2|
+|management-navigation|settings?tab=|待检查|待检查|待检查|22|
+|management-model-services|settings?tab=models → services|待检查|待检查|待检查|12|
+|management-model-roles|settings?tab=models → roles|待检查|待检查|待检查|4|
 |management-conversation|settings?tab=conversation|待检查|待检查|待检查|2|
-|management-vision|settings?tab=conversation → 图片理解|待检查|待检查|待检查|2|
+|management-vision|settings?tab=conversation → 图片理解|待检查|待检查|待检查|12|
 |management-media|settings?tab=media|待检查|待检查|待检查|2|
 |management-autonomy|settings?tab=autonomy|待检查|待检查|待检查|2|
 |management-quiet|settings?tab=autonomy → quiet|待检查|待检查|待检查|2|
-|management-notifications|settings?tab=runtime → notifications|待检查|待检查|待检查|2|
+|management-notifications|settings?tab=runtime → notifications|待检查|待检查|待检查|12|
 |management-runtime|settings?tab=runtime|待检查|待检查|待检查|2|
 |management-advanced|settings?tab=advanced|待检查|待检查|待检查|4|
 |management-diagnostic-tasks|settings?tab=diagnostics → tasks|待检查|待检查|待检查|8|
@@ -105,9 +105,9 @@
 |management-diagnostic-health|diagnostics → health|待检查|待检查|待检查|2|
 |management-diagnostic-action-form|diagnostics → recovery confirmation|待检查|待检查|待检查|6|
 |management-data-overview|settings?tab=data → 当前工作区|待检查|待检查|待检查|2|
-|management-data-import|data → 导入工作区/合并确认|待检查|待检查|待检查|2|
-|management-data-backups|data → 本地备份/为此刻留备份|待检查|待检查|待检查|2|
-|management-data-restore|data → 恢复备份|待检查|待检查|待检查|2|
+|management-data-import|data → 导入工作区/合并确认|待检查|待检查|待检查|4|
+|management-data-backups|data → 本地备份/为此刻留备份|待检查|待检查|待检查|4|
+|management-data-restore|data → 恢复备份|待检查|待检查|待检查|4|
 |management-data-demo-reset|data → 恢复最初演示状态|明确不适用|明确不适用|明确不适用|0|
 |creation-world-existing|create → 生活世界 → 已有角色的世界|待检查|待检查|待检查|2|
 |creation-world-published|create?worldResourceId=&worldVersion=|待检查|待检查|待检查|4|
@@ -138,10 +138,10 @@
 |formal-self-governance|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|12|
 |formal-config-extra|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
 |formal-diagnostic-export-clear|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
-|formal-data-import-pack|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
+|formal-data-import-pack|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|4|
 |formal-data-revisions|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
 |formal-data-rollback-boundary|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
-|formal-backup-isolated-detail|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
+|formal-backup-isolated-detail|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|4|
 |formal-creation-rejected-copy|Demo不适用：正式已有能力，必须保留可达性|待检查|待检查|待检查|2|
 |resources.world.directory|world → 世界目录|待检查|待检查|待检查|17|
 |resources.world.settings|world → 详情 → 世界设定|待检查|待检查|待检查|4|
@@ -180,6 +180,6 @@
 |resources.media.generation|media?tab=generate → 表单/任务记录/结果|待检查|待检查|待检查|8|
 |resources.media.avatar|media?tab=avatar → 显示头像|待检查|待检查|待检查|6|
 |resources.formal.media.lifecycle|Demo 无完整媒体生命周期界面|待检查|待检查|待检查|6|
-|resources.formal.studio.packs|Demo 无资源包完整工作流|待检查|待检查|待检查|2|
+|resources.formal.studio.packs|Demo 无资源包完整工作流|待检查|待检查|待检查|4|
 
 完整字段、状态、调用链、问题及证据路径见 [coverage.json](coverage.json)。

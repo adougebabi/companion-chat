@@ -1,0 +1,706 @@
+[
+  {
+    "name": "incomplete",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/incomplete-desktop-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/incomplete-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "foreign-world",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-world-desktop-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-world-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "foreign-place",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-place-desktop-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-place-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "read-only",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "retired role disables person creation",
+      "readable detail disables editing and management",
+      "detail-read-only: no horizontal overflow",
+      "retired role also disables authored background edits",
+      "about-read-only: no horizontal overflow",
+      "read-only inspection sends no mutation",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0/encounters",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/read-only-desktop-detail-read-only.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/read-only-desktop-about-read-only.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "about-conflict",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "blank reason prevents authored write",
+      "invalid: no horizontal overflow",
+      "authored save busy blocks duplicate confirmation",
+      "saving: no horizontal overflow",
+      "conflict retains same unsaved field",
+      "conflict: no horizontal overflow",
+      "explicit rebase preserves input and makes no new PUT",
+      "rebased: no horizontal overflow",
+      "rebased write uses latest facts and keeps external unrelated field",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "5f73d361-88f1-41ca-9d01-0b943650e5ad",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "67be79ee-53d9-4d09-9cc3-b7cd42679caf",
+          "expectedCurrentFactsRevision": "facts_gen_6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-desktop-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-desktop-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-desktop-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-desktop-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "incomplete",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/incomplete-mobile-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/incomplete-mobile-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "foreign-world",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-world-mobile-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-world-mobile-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "foreign-place",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow",
+      "recovered: no horizontal overflow",
+      "scope retry never mutates a person",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-place-mobile-scope-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/foreign-place-mobile-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "read-only",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "retired role disables person creation",
+      "readable detail disables editing and management",
+      "detail-read-only: no horizontal overflow",
+      "retired role also disables authored background edits",
+      "about-read-only: no horizontal overflow",
+      "read-only inspection sends no mutation",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0/encounters",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/read-only-mobile-detail-read-only.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/read-only-mobile-about-read-only.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "about-conflict",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "blank reason prevents authored write",
+      "invalid: no horizontal overflow",
+      "authored save busy blocks duplicate confirmation",
+      "saving: no horizontal overflow",
+      "conflict retains same unsaved field",
+      "conflict: no horizontal overflow",
+      "explicit rebase preserves input and makes no new PUT",
+      "rebased: no horizontal overflow",
+      "rebased write uses latest facts and keeps external unrelated field",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "720ad2ce-f7c3-4fa9-bd3f-ab93e01d9b53",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "b3438611-b669-4a68-b3b5-940999de7d10",
+          "expectedCurrentFactsRevision": "facts_gen_6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-mobile-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-mobile-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-mobile-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-mobile-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass120/about-conflict-mobile-saved.png"
+    ],
+    "status": "passed"
+  }
+]

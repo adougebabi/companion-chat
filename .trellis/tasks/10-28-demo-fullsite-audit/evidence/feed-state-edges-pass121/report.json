@@ -1,0 +1,738 @@
+[
+  {
+    "name": "suggestion-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "processing is not an actual publication",
+      "processing: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-states desktop",
+          "mediaIds": [],
+          "idempotencyKey": "ff80d68e-b2a7-45c6-9026-51cedabdacdd"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-states-desktop-processing.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Error: strict mode violation: getByRole('dialog').last().getByText('暂时不想分享，原建议仍保留。', { exact: true }) resolved to 2 elements:\n    1) <p>暂时不想分享，原建议仍保留。</p> aka getByText('暂时不想分享，原建议仍保留。').first()\n    2) <p class=\"lp-small\">暂时不想分享，原建议仍保留。</p> aka getByTestId('request-status').getByText('暂时不想分享，原建议仍保留。')\n\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('暂时不想分享，原建议仍保留。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feed-state-edges.mjs:42:200",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n分享建议已受理，实际判断和发布结果分别显示。\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n\n原分享建议 suggestion-states desktop\n\n2026-10-28 11:00 (北京时间) · 等待处理\n继续查看上次分享建议\n这次分享建议\n\n建议、角色判断和实际发布分别保留\n\n原分享建议 suggestion-states desktop\n\n暂时不想分享，原建议仍保留。\n\n暂未采纳\n\n暂时不想分享，原建议仍保留。\n\n建议由角色判断，受理回执与实际行动结果分别记录。\n\n查看原请求与关联任务\n原请求与运行记录\n刷新原请求\n关闭"
+  },
+  {
+    "name": "suggestion-readback",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "accepted-read-failure: no horizontal overflow",
+      "processing is not an actual publication",
+      "processing: no horizontal overflow",
+      "refresh resumes same request and original text",
+      "recovery and state refresh never resubmit or auto-publish",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-readback desktop",
+          "mediaIds": [],
+          "idempotencyKey": "3c317cb3-8a19-4202-bdb2-c01dd126aac1"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-readback-desktop-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-readback-desktop-processing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-readback-desktop-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "npc-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('来源变化，未产生互动', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feed-state-edges.mjs:48:138",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n查看媒体来源\n2\n2\n更多回应与实际来源\n评论 · 2\n我\n我2026-10-28 11:00 (北京时间)\n\n这一句读起来很温柔。\n\n禾\n苏禾2026-10-28 11:00 (北京时间)\n\n我也想读读这本书。\n\n来自已保存的人物互动\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n已有结识来源的人物可以独立判断是否回应。远程互动不表示同场，也不会新建关系。\n执行失败\n\n上次读取未完成。\n\n重试本次互动\n原结识、来源与互动记录\n作者：林青 · 角色生活分享\n关闭"
+  },
+  {
+    "name": "comment-read-failure",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByRole('button', { name: '重新读取评论', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feed-state-edges.mjs:50:78",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n动态\n快速前往\n⌘ K\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n服务暂时无法连接，请稍后重新读取。重新读取评论预览\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n普通的一天，\n也有值得留下的事。\n\n不必想好一个特别的故事。分享一阵雨、一束光，或刚读过的一句话就很好。\n\n你们的分享建议\n\n想不想分享窗边阅读的近况？\n\n2026-10-28 11:00 (北京时间) · 执行失败\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n查看媒体来源\n2\n2\n更多回应与实际来源\n评论 · 2\n我\n我2026-10-28 11:00 (北京时间)\n\n这一句读起来很温柔。\n\n禾\n苏禾2026-10-28 11:00 (北京时间)\n\n我也想读读这本书。\n\n来自已保存的人物互动\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：林青 · 角色生活分享\n关闭"
+  },
+  {
+    "name": "suggestion-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "processing is not an actual publication",
+      "processing: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-states mobile",
+          "mediaIds": [],
+          "idempotencyKey": "c5a10fa4-ddbc-424d-94a2-a39c5aa199f0"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-states-mobile-processing.png"
+    ],
+    "status": "failed",
+    "error": "locator.waitFor: Error: strict mode violation: getByRole('dialog').last().getByText('暂时不想分享，原建议仍保留。', { exact: true }) resolved to 2 elements:\n    1) <p>暂时不想分享，原建议仍保留。</p> aka getByText('暂时不想分享，原建议仍保留。').first()\n    2) <p class=\"lp-small\">暂时不想分享，原建议仍保留。</p> aka getByTestId('request-status').getByText('暂时不想分享，原建议仍保留。')\n\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('暂时不想分享，原建议仍保留。', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feed-state-edges.mjs:42:200",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n分享建议已受理，实际判断和发布结果分别显示。\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n你们的分享建议与原请求\n这次分享建议\n\n建议、角色判断和实际发布分别保留\n\n原分享建议 suggestion-states mobile\n\n暂时不想分享，原建议仍保留。\n\n暂未采纳\n\n暂时不想分享，原建议仍保留。\n\n建议由角色判断，受理回执与实际行动结果分别记录。\n\n查看原请求与关联任务\n原请求与运行记录\n刷新原请求\n关闭"
+  },
+  {
+    "name": "suggestion-readback",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [
+      "accepted-read-failure: no horizontal overflow",
+      "processing is not an actual publication",
+      "processing: no horizontal overflow",
+      "refresh resumes same request and original text",
+      "recovery and state refresh never resubmit or auto-publish",
+      "recovered: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/moment-suggestions",
+        "method": "POST",
+        "body": {
+          "text": "原分享建议 suggestion-readback mobile",
+          "mediaIds": [],
+          "idempotencyKey": "44c82f4e-943f-4d43-80a8-2b5f5fb323f3"
+        }
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/owner-requests/suggestion-11",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-readback-mobile-accepted-read-failure.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-readback-mobile-processing.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/feed-state-edges-pass121/suggestion-readback-mobile-recovered.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "npc-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByText('来源变化，未产生互动', { exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feed-state-edges.mjs:48:138",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n\n我：这一句读起来很温柔。\n\n苏禾：我也想读读这本书。\n\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n你们的分享建议与原请求\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n查看媒体来源\n2\n2\n更多回应与实际来源\n评论 · 2\n我\n我2026-10-28 11:00 (北京时间)\n\n这一句读起来很温柔。\n\n禾\n苏禾2026-10-28 11:00 (北京时间)\n\n我也想读读这本书。\n\n来自已保存的人物互动\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n已有结识来源的人物可以独立判断是否回应。远程互动不表示同场，也不会新建关系。\n执行失败\n\n上次读取未完成。\n\n重试本次互动\n原结识、来源与互动记录\n作者：林青 · 角色生活分享\n关闭"
+  },
+  {
+    "name": "comment-read-failure",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled HTTP request outcomes; no live model publication or encounter proof",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/comments",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media/feed-image",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed/post-one/npc-interactions",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [],
+    "status": "failed",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').last().getByRole('button', { name: '重新读取评论', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-feed-state-edges.mjs:50:78",
+    "text": "Toggle Sidebar\n世界与联系\n动态\n快速前往\nWORLD / SMALL MOMENTS\n日子里的小小回响。\n\n一些想分享的事，和那些愿意回应的人。\n\n邀请分享近况\n我来发动态\n所有人的动态\n所有人的动态\n我发布的\n林岚 · 验收样本\n季川 · 验收样本\n可见动态\n可见动态\n已隐藏\n全部动态\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n2\n2\n查看详情\n服务暂时无法连接，请稍后重新读取。重新读取评论预览\n我\n我\n昨天 · 11:00\n\n把雨后的街角留在这里。\n\n2\n评论\n查看详情\n你们的分享建议与原请求\n一个生活片刻\n\n动态正文、回应与实际来源\n\n刷新动态与评论\n林\n林青\n昨天 · 11:00\n\n今天在窗边读到一句很喜欢的话。\n\n停下来看看普通的一刻。\n\n查看媒体来源\n2\n2\n更多回应与实际来源\n评论 · 2\n我\n我2026-10-28 11:00 (北京时间)\n\n这一句读起来很温柔。\n\n禾\n苏禾2026-10-28 11:00 (北京时间)\n\n我也想读读这本书。\n\n来自已保存的人物互动\n读取最新版本并保留输入\n收起评论\n发布评论\n世界人物互动与实际来源\n作者：林青 · 角色生活分享\n关闭"
+  }
+]

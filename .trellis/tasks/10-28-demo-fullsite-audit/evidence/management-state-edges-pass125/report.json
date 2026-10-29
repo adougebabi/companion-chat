@@ -1,0 +1,458 @@
+[
+  {
+    "name": "backup-states",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "running maintenance offers no cancel retry or restore",
+      "running: no horizontal overflow",
+      "cancelled readback has no new maintenance action",
+      "queued cancel uses original revision once",
+      "cancelled: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-running",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued/cancel",
+        "method": "POST",
+        "body": {
+          "reason": "只取消受控排队维护任务",
+          "expectedRevision": 2,
+          "idempotencyKey": "7c4767d6-5f6b-48e0-8dca-aa334d668078"
+        }
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/backup-states-desktop-running.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/backup-states-desktop-cancelled.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "import-recovery",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "validation busy blocks duplicate request",
+      "changed validation cannot import old snapshot",
+      "changed-during-validation: no horizontal overflow",
+      "unknown: no horizontal overflow",
+      "unknown import remount replays exact original pack/digest/reason/key",
+      "import details link to independent unpublished draft",
+      "import never publishes or applies",
+      "independent-draft: no horizontal overflow",
+      "pack detail refresh does not import again",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "受控原定义"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "4b1b679f-a6a6-4aa6-977e-4d470e122d73"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "4b1b679f-a6a6-4aa6-977e-4d470e122d73"
+        }
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/import-recovery-desktop-changed-during-validation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/import-recovery-desktop-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/import-recovery-desktop-independent-draft.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "backup-states",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "running maintenance offers no cancel retry or restore",
+      "running: no horizontal overflow",
+      "cancelled readback has no new maintenance action",
+      "queued cancel uses original revision once",
+      "cancelled: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-running",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups/backup-queued/cancel",
+        "method": "POST",
+        "body": {
+          "reason": "只取消受控排队维护任务",
+          "expectedRevision": 2,
+          "idempotencyKey": "db5f70a9-7f07-4986-bf2f-990827215024"
+        }
+      },
+      {
+        "path": "/api/ops/backups/backup-queued",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/backup-states-mobile-running.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/backup-states-mobile-cancelled.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "import-recovery",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "production dist / controlled configuration receipts, in-memory jobs and pack HTTP; no real settings, import or maintenance",
+    "checks": [
+      "validation busy blocks duplicate request",
+      "changed validation cannot import old snapshot",
+      "changed-during-validation: no horizontal overflow",
+      "unknown: no horizontal overflow",
+      "unknown import remount replays exact original pack/digest/reason/key",
+      "import details link to independent unpublished draft",
+      "import never publishes or applies",
+      "independent-draft: no horizontal overflow",
+      "pack detail refresh does not import again",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "受控原定义"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs/validate",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          }
+        }
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "15e3b423-52bc-4470-90ea-996141f51496"
+        }
+      },
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs",
+        "method": "POST",
+        "body": {
+          "pack": {
+            "schema": "fluctlight.resource-pack.v1",
+            "created_at": "2026-10-27T00:00:00Z",
+            "checksum": "fixture-checksum",
+            "resources": [
+              {
+                "key": "resource-fixture",
+                "kind": "item",
+                "name": "窗边书签",
+                "body": {
+                  "description": "校验期间的新草稿"
+                }
+              }
+            ],
+            "groups": [],
+            "preferences": {}
+          },
+          "expectedDigest": "fixture-exact-digest",
+          "reason": "仅导入为独立测试草稿",
+          "idempotencyKey": "15e3b423-52bc-4470-90ea-996141f51496"
+        }
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/packs/pack-fixture",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/import-recovery-mobile-changed-during-validation.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/import-recovery-mobile-unknown.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/management-state-edges-pass125/import-recovery-mobile-independent-draft.png"
+    ],
+    "status": "passed"
+  }
+]

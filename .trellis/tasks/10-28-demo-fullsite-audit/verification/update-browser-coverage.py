@@ -127,6 +127,17 @@ for file,group in bounded_reports:
   evidence=[file]
   if result.get('source_report'):evidence.append(result['source_report'])
   add(targets,'interaction',name,'已验证' if result['status']=='passed' else '发现问题',evidence,'; '.join(result.get('checks',[]))+'。本轮生产构建实际浏览器及受控HTTP；仅证明所列断言，不代表真实Core/PG/Worker/模型或整行全部视觉状态。')
+closure_reports={
+ 'evidence/shell-chat-inbox-states/report-consolidated.json':lambda name: ['shell-account'] if name=='logout-failure' else ['shell-jump'] if name=='quickjump-empty' else ['inbox-list-read'] if name=='inbox-bulk' else ['inbox-back-chat'] if name=='inbox-no-role' else ['chat-send'] if name=='chat-composition' else ['chat-turn-recovery','chat-message-cards'],
+ 'evidence/people-state-edges-pass120/report.json':lambda name: ['people-about-edit','people-about-display','people-authored-history'] if name=='about-conflict' else ['people-directory','people-detail','people-create','people-about-edit'] if name=='read-only' else ['people-directory'],
+ 'evidence/feed-state-edges-pass122/report.json':lambda name: ['feed-suggest'] if name.startswith('suggestion') else ['feed-formal-npc'] if name=='npc-states' else ['feed-detail-comments'],
+ 'evidence/management-state-edges/report-consolidated.json':lambda name: ['management-data-backups','management-data-restore','formal-backup-isolated-detail'] if name=='backup-states' else ['management-data-import','formal-data-import-pack','resources.formal.studio.packs'] if name=='import-recovery' else ['management-navigation','management-vision','management-notifications']+(['management-model-services','management-model-roles'] if name=='settings-partial' else []),
+}
+for file,targets in closure_reports.items():
+ if not (root/file).exists():continue
+ for result in json.loads((root/file).read_text()):
+  evidence=[file]+([result['source_report']] if result.get('source_report') else [])
+  add([id for id in targets(result['name']) if id in rows],'interaction',result['name']+'-'+result['size'],'已验证' if result['status']=='passed' else '发现问题',evidence,'; '.join(result['checks'])+'。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。')
 real='evidence/real-browser/report.json'
 if (root/real).exists():
  report=json.loads((root/real).read_text())

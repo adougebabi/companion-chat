@@ -171,3 +171,14 @@ coverage.json的state_verification记录具体执行，行级状态未因单一�
 八类此前确定缺口已补齐。新增只读抽查又定位六组分支尚未实测：Shell退出/quickjump、Chat composition/slow/settling/cancelled、People范围/只读/自填冲突、Feed未发布终态/互动scope/评论GET、Inbox批量busy/无角色、管理保存故障/备份状态/导入。清单在verification/remaining-state-backlog.md。未声称其它全部分支已验；任务继续in_progress。
 
 build114已同步隔离18480，五页真实API读取通过；build116只再改错误卡self-start。无Core/PG/Worker重启、无新增模型调用。当前task材料/代码将保存本地检查点，不推送、不归档，接着执行上述六组。
+
+
+## 2026-10-29 最新收尾：pass125，已完成收敛清单
+
+本地代码检查点687534c1保存F60–F69。本轮之后没有再改生产代码，后续697全量和build116继续对应当前产品源码。build116已同步隔离18480并恢复原runtime配置，五页真实API读取再次通过，Core/PG/Worker未动。
+
+六组确定交互缺口已全部补完：Shell/Chat/Inbox12、People10、Feed8、Management14，共44条通过。覆盖退出busy/失败、quickjump空结果、composition/slow/settling/cancelled、人物范围不完整/只读/事实冲突、动态processing/rejected/failed/accepted恢复/NPC来源/评论重读、通知批量busy/无角色、设置busy/unknown/conflict/422/部分成功、备份running/cancelled、导入草稿变化与原key恢复。索引evidence/bounded-closure-pass125.json，coverage按具体state记录。
+
+主线程亲看手机慢回应/取消、AboutYou基线恢复、建议accepted GET失败、管理保存等待/unknown与部分保存等代表图；脚本均有overflow/pageerror守卫。普通配置只改测试服务，未触碰实际模型/Comfy配置。Demo48及旧任务108文件hash仍一致。
+
+不再从本轮扩展新审计分支。当前确定代码修复和这份异常交互清单均已收尾，任务保持in_progress的原因是全站深层截图逐张最终视觉签收尚未完成、真实媒体模型链没有本轮完整证据；不能据697测试或174行有state就声明全站验收完成。没有推送或发布。

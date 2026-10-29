@@ -295,7 +295,9 @@
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
           },
-          "evidence/interaction/workspace-ui.json"
+          "evidence/interaction/workspace-ui.json",
+          "evidence/shell-chat-inbox-states/report-consolidated.json",
+          "evidence/shell-chat-inbox-states-pass118/report.json"
         ],
         "business": []
       },
@@ -311,6 +313,22 @@
               "evidence/interaction/workspace-ui.json"
             ],
             "notes": "desktop sidebar collapses; quickjump receives keyboard focus; creation entry found; Escape closes quickjump; quickjump navigates to real page; no uncaught browser exception。仅限该脚本明确执行的状态，受控HTTP，不是实时Core。"
+          },
+          "quickjump-empty-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass118/report.json"
+            ],
+            "notes": "no-result leaves query editable; empty: no horizontal overflow; Escape returns to original quickjump trigger; reopening clears dismissed query; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "quickjump-empty-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass118/report.json"
+            ],
+            "notes": "no-result leaves query editable; empty: no horizontal overflow; Escape returns to original quickjump trigger; reopening clears dismissed query; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -387,7 +405,9 @@
         "visual": [],
         "interaction": [
           "evidence/shell-deep/report-pass59.json",
-          "evidence/shell-deep/report-consolidated.json"
+          "evidence/shell-deep/report-consolidated.json",
+          "evidence/shell-chat-inbox-states/report-consolidated.json",
+          "evidence/shell-chat-inbox-states-pass117/report.json"
         ],
         "business": []
       },
@@ -408,6 +428,22 @@
               "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "confirmed logout replaces private shell; one explicit logout call only; logged-out: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "logout-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "busy disables another logout; busy: no horizontal overflow; failed logout retains private workspace; failure: no horizontal overflow; explicit retry exits after authoritative acknowledgement; retried: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "logout-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "busy disables another logout; busy: no horizontal overflow; failed logout retains private workspace; failure: no horizontal overflow; explicit retry exits after authoritative acknowledgement; retried: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -1198,7 +1234,9 @@
         "interaction": [
           "evidence/interaction/workspace-ui.json",
           "evidence/shell-deep/report-pass59.json",
-          "evidence/shell-deep/report-consolidated.json"
+          "evidence/shell-deep/report-consolidated.json",
+          "evidence/shell-chat-inbox-states/report-consolidated.json",
+          "evidence/shell-chat-inbox-states-pass117/report.json"
         ],
         "business": [
           {
@@ -1250,6 +1288,22 @@
               "evidence/shell-deep/report-consolidated.json"
             ],
             "notes": "external request preserves existing draft; dismissal leaves composer unchanged; explicit append retains both texts; prefill never automatically sends a turn; joined-draft: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "chat-composition-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "composition Enter does not submit a turn; composing: no horizontal overflow; after composition exactly one original text is sent; completed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "chat-composition-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "composition Enter does not submit a turn; composing: no horizontal overflow; after composition exactly one original text is sent; completed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -1311,7 +1365,9 @@
             "result": "passed",
             "scope": "fixes.md named assertions; browser still pending"
           },
-          "evidence/states/read-states-chat.json"
+          "evidence/states/read-states-chat.json",
+          "evidence/shell-chat-inbox-states/report-consolidated.json",
+          "evidence/shell-chat-inbox-states-pass118/report.json"
         ],
         "business": []
       },
@@ -1380,6 +1436,22 @@
               "evidence/states/read-states-chat.json"
             ],
             "notes": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception"
+          },
+          "chat-states-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass118/report.json"
+            ],
+            "notes": "long running turn exposes diagnostics and honest waiting; slow: no horizontal overflow; settling cannot offer model retry or cancellation; settling: no horizontal overflow; actual cancelled turn retains original user bubble; cancelled: no horizontal overflow; read-only status rotation never creates a turn; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "chat-states-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass118/report.json"
+            ],
+            "notes": "long running turn exposes diagnostics and honest waiting; slow: no horizontal overflow; settling cannot offer model retry or cancellation; settling: no horizontal overflow; actual cancelled turn retains original user bubble; cancelled: no horizontal overflow; read-only status rotation never creates a turn; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -1423,7 +1495,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/chat-inbox-avatar/report-consolidated.json"
+          "evidence/chat-inbox-avatar/report-consolidated.json",
+          "evidence/shell-chat-inbox-states/report-consolidated.json",
+          "evidence/shell-chat-inbox-states-pass118/report.json"
         ],
         "business": []
       },
@@ -1458,6 +1532,22 @@
               "evidence/chat-inbox-avatar/report-consolidated.json"
             ],
             "notes": "stop uses the current original turn URL; stop failure preserves original user message; unconfirmed stop does not send another turn; unconfirmed-stop: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "chat-states-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass118/report.json"
+            ],
+            "notes": "long running turn exposes diagnostics and honest waiting; slow: no horizontal overflow; settling cannot offer model retry or cancellation; settling: no horizontal overflow; actual cancelled turn retains original user bubble; cancelled: no horizontal overflow; read-only status rotation never creates a turn; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "chat-states-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass118/report.json"
+            ],
+            "notes": "long running turn exposes diagnostics and honest waiting; slow: no horizontal overflow; settling cannot offer model retry or cancellation; settling: no horizontal overflow; actual cancelled turn retains original user bubble; cancelled: no horizontal overflow; read-only status rotation never creates a turn; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -2938,7 +3028,8 @@
         "interaction": [
           "evidence/interaction/domain-ui.json",
           "evidence/states/read-states.json",
-          "evidence/responsive-layout/report-consolidated.json"
+          "evidence/responsive-layout/report-consolidated.json",
+          "evidence/people-state-edges-pass120/report.json"
         ],
         "business": []
       },
@@ -3026,6 +3117,62 @@
               "evidence/responsive-layout/report-consolidated.json"
             ],
             "notes": "person card uses original responsive padding; person card uses original compact badge size; person-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "incomplete-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "invalid successful HTTP projection is not confirmed empty; scope-failure: no horizontal overflow; recovered: no horizontal overflow; scope retry never mutates a person; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "foreign-world-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "invalid successful HTTP projection is not confirmed empty; scope-failure: no horizontal overflow; recovered: no horizontal overflow; scope retry never mutates a person; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "foreign-place-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "invalid successful HTTP projection is not confirmed empty; scope-failure: no horizontal overflow; recovered: no horizontal overflow; scope retry never mutates a person; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "read-only-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "incomplete-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "invalid successful HTTP projection is not confirmed empty; scope-failure: no horizontal overflow; recovered: no horizontal overflow; scope retry never mutates a person; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "foreign-world-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "invalid successful HTTP projection is not confirmed empty; scope-failure: no horizontal overflow; recovered: no horizontal overflow; scope retry never mutates a person; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "foreign-place-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "invalid successful HTTP projection is not confirmed empty; scope-failure: no horizontal overflow; recovered: no horizontal overflow; scope retry never mutates a person; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "read-only-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -3069,7 +3216,8 @@
         "interaction": [
           "evidence/interaction/domain-ui.json",
           "evidence/form-groups/report-after.json",
-          "evidence/responsive-layout/report-consolidated.json"
+          "evidence/responsive-layout/report-consolidated.json",
+          "evidence/people-state-edges-pass120/report.json"
         ],
         "business": []
       },
@@ -3111,6 +3259,20 @@
               "evidence/responsive-layout/report-consolidated.json"
             ],
             "notes": "person card uses original responsive padding; person card uses original compact badge size; person-detail: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "read-only-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "read-only-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -3152,7 +3314,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/form-groups/report-after.json"
+          "evidence/form-groups/report-after.json",
+          "evidence/people-state-edges-pass120/report.json"
         ],
         "business": []
       },
@@ -3166,6 +3329,20 @@
               "evidence/form-groups/report-after.json"
             ],
             "notes": "rendered group fills form width; 20px flex stack gap; cancel without a write; no horizontal overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "read-only-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "read-only-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -3212,7 +3389,8 @@
         "visual": [],
         "interaction": [
           "evidence/interaction/domain-ui.json",
-          "evidence/profile-people/report-consolidated.json"
+          "evidence/profile-people/report-consolidated.json",
+          "evidence/people-state-edges-pass120/report.json"
         ],
         "business": []
       },
@@ -3240,6 +3418,20 @@
               "evidence/profile-people/report-consolidated.json"
             ],
             "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "about-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "blank reason prevents authored write; invalid: no horizontal overflow; authored save busy blocks duplicate confirmation; saving: no horizontal overflow; conflict retains same unsaved field; conflict: no horizontal overflow; explicit rebase preserves input and makes no new PUT; rebased: no horizontal overflow; rebased write uses latest facts and keeps external unrelated field; saved: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "about-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "blank reason prevents authored write; invalid: no horizontal overflow; authored save busy blocks duplicate confirmation; saving: no horizontal overflow; conflict retains same unsaved field; conflict: no horizontal overflow; explicit rebase preserves input and makes no new PUT; rebased: no horizontal overflow; rebased write uses latest facts and keeps external unrelated field; saved: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -3282,7 +3474,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/profile-people/report-consolidated.json"
+          "evidence/profile-people/report-consolidated.json",
+          "evidence/people-state-edges-pass120/report.json"
         ],
         "business": []
       },
@@ -3303,6 +3496,34 @@
               "evidence/profile-people/report-consolidated.json"
             ],
             "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "read-only-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "about-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "blank reason prevents authored write; invalid: no horizontal overflow; authored save busy blocks duplicate confirmation; saving: no horizontal overflow; conflict retains same unsaved field; conflict: no horizontal overflow; explicit rebase preserves input and makes no new PUT; rebased: no horizontal overflow; rebased write uses latest facts and keeps external unrelated field; saved: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "read-only-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "retired role disables person creation; readable detail disables editing and management; detail-read-only: no horizontal overflow; retired role also disables authored background edits; about-read-only: no horizontal overflow; read-only inspection sends no mutation; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "about-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "blank reason prevents authored write; invalid: no horizontal overflow; authored save busy blocks duplicate confirmation; saving: no horizontal overflow; conflict retains same unsaved field; conflict: no horizontal overflow; explicit rebase preserves input and makes no new PUT; rebased: no horizontal overflow; rebased write uses latest facts and keeps external unrelated field; saved: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -3458,7 +3679,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/profile-people/report-consolidated.json"
+          "evidence/profile-people/report-consolidated.json",
+          "evidence/people-state-edges-pass120/report.json"
         ],
         "business": []
       },
@@ -3479,6 +3701,20 @@
               "evidence/profile-people/report-consolidated.json"
             ],
             "notes": "about-you cancel sends no background update; about-edit: no horizontal overflow; authored name saves to actual Owner context; updating self-defined data retains observed fact; about-history: no horizontal overflow; about-history: dialog fits viewport; only one explicit authored-background PUT; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "about-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "blank reason prevents authored write; invalid: no horizontal overflow; authored save busy blocks duplicate confirmation; saving: no horizontal overflow; conflict retains same unsaved field; conflict: no horizontal overflow; explicit rebase preserves input and makes no new PUT; rebased: no horizontal overflow; rebased write uses latest facts and keeps external unrelated field; saved: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "about-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/people-state-edges-pass120/report.json"
+            ],
+            "notes": "blank reason prevents authored write; invalid: no horizontal overflow; authored save busy blocks duplicate confirmation; saving: no horizontal overflow; conflict retains same unsaved field; conflict: no horizontal overflow; explicit rebase preserves input and makes no new PUT; rebased: no horizontal overflow; rebased write uses latest facts and keeps external unrelated field; saved: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -3843,7 +4079,8 @@
         "visual": [],
         "interaction": [
           "evidence/interaction/domain-ui.json",
-          "evidence/feed-goals/report-consolidated.json"
+          "evidence/feed-goals/report-consolidated.json",
+          "evidence/feed-state-edges-pass122/report.json"
         ],
         "business": []
       },
@@ -3913,6 +4150,20 @@
               "evidence/feed-goals/report-consolidated.json"
             ],
             "notes": "cursor appends older actual feed records; cursor appends older actual feed records; comment-readback-failed: no horizontal overflow; comment-readback-failed: dialog fits viewport; comment uses one original mutation; comment-saved: no horizontal overflow; comment-saved: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "comment-read-failure-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "comment read failure preserves post and is not a confirmed empty list; failed: no horizontal overflow; recovered: no horizontal overflow; comment retry only reads original post; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "comment-read-failure-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "comment read failure preserves post and is not a confirmed empty list; failed: no horizontal overflow; recovered: no horizontal overflow; comment retry only reads original post; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -4038,7 +4289,8 @@
         "visual": [],
         "interaction": [
           "evidence/form-groups/report-after.json",
-          "evidence/feed-goals/report-consolidated.json"
+          "evidence/feed-goals/report-consolidated.json",
+          "evidence/feed-state-edges-pass122/report.json"
         ],
         "business": []
       },
@@ -4066,6 +4318,34 @@
               "evidence/feed-goals/report-consolidated.json"
             ],
             "notes": "suggestion is a request instead of immediate publication; processed-request: no horizontal overflow; processed-request: dialog fits viewport; request follows actual published result; actual-published-result: no horizontal overflow; actual-published-result: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "suggestion-states-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "processing is not an actual publication; processing: no horizontal overflow; rejected: no horizontal overflow; failed-original: no horizontal overflow; refresh resumes same request and original text; recovery and state refresh never resubmit or auto-publish; recovered: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "suggestion-readback-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "accepted-read-failure: no horizontal overflow; processing is not an actual publication; processing: no horizontal overflow; refresh resumes same request and original text; recovery and state refresh never resubmit or auto-publish; recovered: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "suggestion-states-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "processing is not an actual publication; processing: no horizontal overflow; rejected: no horizontal overflow; failed-original: no horizontal overflow; refresh resumes same request and original text; recovery and state refresh never resubmit or auto-publish; recovered: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "suggestion-readback-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "accepted-read-failure: no horizontal overflow; processing is not an actual publication; processing: no horizontal overflow; refresh resumes same request and original text; recovery and state refresh never resubmit or auto-publish; recovered: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -4106,7 +4386,8 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/formal-edges/report-consolidated.json"
+          "evidence/formal-edges/report-consolidated.json",
+          "evidence/feed-state-edges-pass122/report.json"
         ],
         "business": []
       },
@@ -4127,6 +4408,20 @@
               "evidence/formal-edges/report-consolidated.json"
             ],
             "notes": "remote interaction keeps actual encounter without implying copresence; recorded-source: no document overflow; recorded-source: dialog fits viewport; cancelled interaction review does not retry; retry remains pending and retains encounter source; one retry uses original interaction URL; same-interaction-pending: no document overflow; same-interaction-pending: dialog fits viewport; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "npc-states-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "suppressed source retains original encounter without copresence; suppressed: no horizontal overflow; completed interaction has no retry command; completed: no horizontal overflow; reading outcomes makes no NPC or relation write; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "npc-states-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/feed-state-edges-pass122/report.json"
+            ],
+            "notes": "suppressed source retains original encounter without copresence; suppressed: no horizontal overflow; completed interaction has no retry command; completed: no horizontal overflow; reading outcomes makes no NPC or relation write; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -4195,7 +4490,9 @@
           "evidence/interaction/domain-ui.json",
           "evidence/states/read-states.json",
           "evidence/responsive-layout/report-consolidated.json",
-          "evidence/status-presentation/report-consolidated.json"
+          "evidence/status-presentation/report-consolidated.json",
+          "evidence/shell-chat-inbox-states/report-consolidated.json",
+          "evidence/shell-chat-inbox-states-pass117/report.json"
         ],
         "business": [
           "evidence/real-browser/report.json"
@@ -4299,6 +4596,22 @@
               "evidence/status-presentation/report-consolidated.json"
             ],
             "notes": "explicit notification source selects conversation.reply.published; explicit notification source selects moment.published; explicit notification source selects moment.comment.created; explicit notification source selects moment.reaction.created; explicit notification source selects capability.requested; explicit notification source selects owner.request.settled; explicit notification source selects media.asset.ready; explicit notification source selects world.npc.encountered; explicit notification source selects diary.generated; explicit notification source selects goal.evaluated; explicit notification source selects fixture.future-source; explicit notification source selects constructor; explicit notification source selects __proto__; decision, progress and service sources keep their own icons; source-types: no document overflow; pending-types: no document overflow; presentation checks send no business mutation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-bulk-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "bulk busy prevents duplicate mutation; busy: no horizontal overflow; one frozen workspace read snapshot only; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "inbox-bulk-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "bulk busy prevents duplicate mutation; busy: no horizontal overflow; one frozen workspace read snapshot only; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         },
         "business": {
@@ -4579,7 +4892,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/chat-inbox-avatar/report-consolidated.json"
+          "evidence/chat-inbox-avatar/report-consolidated.json",
+          "evidence/shell-chat-inbox-states/report-consolidated.json",
+          "evidence/shell-chat-inbox-states-pass117/report.json"
         ],
         "business": []
       },
@@ -4600,6 +4915,22 @@
               "evidence/chat-inbox-avatar/report-consolidated.json"
             ],
             "notes": "return to daily chat targets current character; return link never sends a chat turn; back-to-chat: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "inbox-no-role-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "empty directory hides scoped chat return; no-role: no horizontal overflow; global inbox never sends to an invented role; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "inbox-no-role-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/shell-chat-inbox-states/report-consolidated.json",
+              "evidence/shell-chat-inbox-states-pass117/report.json"
+            ],
+            "notes": "empty directory hides scoped chat return; no-role: no horizontal overflow; global inbox never sends to an invented role; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -7483,7 +7814,9 @@
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json",
           "evidence/interaction/settings-studio-ui.json",
-          "evidence/responsive-layout/report-consolidated.json"
+          "evidence/responsive-layout/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass124/report.json"
         ],
         "business": []
       },
@@ -7578,6 +7911,86 @@
               "evidence/responsive-layout/report-consolidated.json"
             ],
             "notes": "mobile secondary navigation stays on one scrollable row; last horizontal navigation section remains reachable; last-section: no document overflow; no business mutation during layout checks; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "settings-busy-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "busy blocks repeated save and discard; busy-new-input: no horizontal overflow; accepted snapshot contains both submitted ordinary settings; late receipt preserves new input; second save submits only unacknowledged edit; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; new draft cannot overwrite unknown original command; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; unknown recovery only reads/recovers original receipt before new proposal; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; explicit conflict rebase updates actual CAS; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-rejected-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-busy-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "busy blocks repeated save and discard; busy-new-input: no horizontal overflow; accepted snapshot contains both submitted ordinary settings; late receipt preserves new input; second save submits only unacknowledged edit; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; new draft cannot overwrite unknown original command; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; unknown recovery only reads/recovers original receipt before new proposal; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; explicit conflict rebase updates actual CAS; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-rejected-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -7633,7 +8046,9 @@
         ],
         "interaction": [
           "evidence/states/read-states-now-wardrobe-profile-settings.json",
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass124/report.json"
         ],
         "business": [
           {
@@ -7720,6 +8135,22 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "聊天与视觉 exposes only its own sections; 图片生成 exposes only its own sections; 自主性与安静时段 exposes only its own sections; 通知与后台 exposes only its own sections; 高级设置 exposes only its own sections; connection draft survives section changes; four real purpose slots render; discard returns to confirmed connection; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "settings-partial-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -7756,7 +8187,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/interaction/settings-studio-ui.json"
+          "evidence/interaction/settings-studio-ui.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass124/report.json"
         ],
         "business": [
           {
@@ -7783,6 +8216,22 @@
               "evidence/interaction/settings-studio-ui.json"
             ],
             "notes": "聊天与视觉 exposes only its own sections; 图片生成 exposes only its own sections; 自主性与安静时段 exposes only its own sections; 通知与后台 exposes only its own sections; 高级设置 exposes only its own sections; connection draft survives section changes; four real purpose slots render; discard returns to confirmed connection; no browser exception; no document overflow。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "settings-partial-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -7876,7 +8325,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/retained-tools/report-consolidated.json"
+          "evidence/retained-tools/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass124/report.json"
         ],
         "business": []
       },
@@ -7897,6 +8348,86 @@
               "evidence/retained-tools/report-consolidated.json"
             ],
             "notes": "discard restores confirmed settings; discard has no mutation; editing: no document overflow; settings readback contains explicit choice; setting persists through reload; vision test calls saved-config endpoint; saved-and-test: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "settings-busy-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "busy blocks repeated save and discard; busy-new-input: no horizontal overflow; accepted snapshot contains both submitted ordinary settings; late receipt preserves new input; second save submits only unacknowledged edit; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; new draft cannot overwrite unknown original command; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; unknown recovery only reads/recovers original receipt before new proposal; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; explicit conflict rebase updates actual CAS; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-rejected-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-busy-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "busy blocks repeated save and discard; busy-new-input: no horizontal overflow; accepted snapshot contains both submitted ordinary settings; late receipt preserves new input; second save submits only unacknowledged edit; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; new draft cannot overwrite unknown original command; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; unknown recovery only reads/recovers original receipt before new proposal; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; explicit conflict rebase updates actual CAS; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-rejected-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -8103,7 +8634,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/retained-tools/report-consolidated.json"
+          "evidence/retained-tools/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass124/report.json"
         ],
         "business": []
       },
@@ -8124,6 +8657,86 @@
               "evidence/retained-tools/report-consolidated.json"
             ],
             "notes": "discard restores confirmed settings; discard has no mutation; editing: no document overflow; settings readback contains explicit choice; setting persists through reload; saved-and-test: no document overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "settings-busy-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "busy blocks repeated save and discard; busy-new-input: no horizontal overflow; accepted snapshot contains both submitted ordinary settings; late receipt preserves new input; second save submits only unacknowledged edit; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-unknown-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; new draft cannot overwrite unknown original command; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; unknown recovery only reads/recovers original receipt before new proposal; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-conflict-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; explicit conflict rebase updates actual CAS; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-rejected-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-busy-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "busy blocks repeated save and discard; busy-new-input: no horizontal overflow; accepted snapshot contains both submitted ordinary settings; late receipt preserves new input; second save submits only unacknowledged edit; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-unknown-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; new draft cannot overwrite unknown original command; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; unknown recovery only reads/recovers original receipt before new proposal; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-conflict-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; explicit conflict rebase updates actual CAS; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-rejected-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "settings-partial-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass124/report.json"
+            ],
+            "notes": "failure: no horizontal overflow; rejected command did not mutate ordinary setting; explicit-rebase: no horizontal overflow; new confirmed proposal uses an independent identity; partial success does not repeat confirmed endpoint or binding; final ordinary settings are actually committed; confirmed: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -8798,7 +9411,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/admin-deep/report-consolidated.json"
+          "evidence/admin-deep/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass125/report.json"
         ],
         "business": []
       },
@@ -8819,6 +9434,22 @@
               "evidence/admin-deep/report-consolidated.json"
             ],
             "notes": "invalid JSON stays in editable draft; invalid JSON does not call validate/import; validated-draft: no horizontal overflow; validated-draft: single current shell; independent import uses ordinary primary confirmation; import-review: no horizontal overflow; import-review: single current shell; import-review: portal uses14px theme; import-review: mobile sheet uses available width; import-review: input has13px/400 typography; review cancellation never imports definitions; explicit validation cancellation removes import confirmation; no operational write beyond explicit pack validation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "import-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "validation busy blocks duplicate request; changed validation cannot import old snapshot; changed-during-validation: no horizontal overflow; unknown: no horizontal overflow; unknown import remount replays exact original pack/digest/reason/key; import details link to independent unpublished draft; import never publishes or applies; independent-draft: no horizontal overflow; pack detail refresh does not import again; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "import-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "validation busy blocks duplicate request; changed validation cannot import old snapshot; changed-during-validation: no horizontal overflow; unknown: no horizontal overflow; unknown import remount replays exact original pack/digest/reason/key; import details link to independent unpublished draft; import never publishes or applies; independent-draft: no horizontal overflow; pack detail refresh does not import again; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -8854,7 +9485,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/admin-deep/report-consolidated.json"
+          "evidence/admin-deep/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass125/report.json"
         ],
         "business": []
       },
@@ -8875,6 +9508,22 @@
               "evidence/admin-deep/report-consolidated.json"
             ],
             "notes": "completed-detail: no horizontal overflow; completed-detail: single current shell; restore-review: no horizontal overflow; restore-review: single current shell; restore-review: portal uses14px theme; restore-review: mobile sheet uses available width; restore-review: input has13px/400 typography; restore-review: input has13px/400 typography; cancel does not create restore job; failed-detail: no horizontal overflow; failed-detail: single current shell; queued-detail: no horizontal overflow; queued-detail: single current shell; no operational write beyond explicit pack validation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "backup-states-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "running maintenance offers no cancel retry or restore; running: no horizontal overflow; cancelled readback has no new maintenance action; queued cancel uses original revision once; cancelled: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "backup-states-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "running maintenance offers no cancel retry or restore; running: no horizontal overflow; cancelled readback has no new maintenance action; queued cancel uses original revision once; cancelled: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -8911,7 +9560,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/admin-deep/report-consolidated.json"
+          "evidence/admin-deep/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass125/report.json"
         ],
         "business": []
       },
@@ -8932,6 +9583,22 @@
               "evidence/admin-deep/report-consolidated.json"
             ],
             "notes": "completed-detail: no horizontal overflow; completed-detail: single current shell; restore-review: no horizontal overflow; restore-review: single current shell; restore-review: portal uses14px theme; restore-review: mobile sheet uses available width; restore-review: input has13px/400 typography; restore-review: input has13px/400 typography; cancel does not create restore job; failed-detail: no horizontal overflow; failed-detail: single current shell; queued-detail: no horizontal overflow; queued-detail: single current shell; no operational write beyond explicit pack validation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "backup-states-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "running maintenance offers no cancel retry or restore; running: no horizontal overflow; cancelled readback has no new maintenance action; queued cancel uses original revision once; cancelled: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "backup-states-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "running maintenance offers no cancel retry or restore; running: no horizontal overflow; cancelled readback has no new maintenance action; queued cancel uses original revision once; cancelled: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -11643,7 +12310,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/admin-deep/report-consolidated.json"
+          "evidence/admin-deep/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass125/report.json"
         ],
         "business": []
       },
@@ -11664,6 +12333,22 @@
               "evidence/admin-deep/report-consolidated.json"
             ],
             "notes": "invalid JSON stays in editable draft; invalid JSON does not call validate/import; validated-draft: no horizontal overflow; validated-draft: single current shell; independent import uses ordinary primary confirmation; import-review: no horizontal overflow; import-review: single current shell; import-review: portal uses14px theme; import-review: mobile sheet uses available width; import-review: input has13px/400 typography; review cancellation never imports definitions; explicit validation cancellation removes import confirmation; no operational write beyond explicit pack validation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "import-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "validation busy blocks duplicate request; changed validation cannot import old snapshot; changed-during-validation: no horizontal overflow; unknown: no horizontal overflow; unknown import remount replays exact original pack/digest/reason/key; import details link to independent unpublished draft; import never publishes or applies; independent-draft: no horizontal overflow; pack detail refresh does not import again; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "import-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "validation busy blocks duplicate request; changed validation cannot import old snapshot; changed-during-validation: no horizontal overflow; unknown: no horizontal overflow; unknown import remount replays exact original pack/digest/reason/key; import details link to independent unpublished draft; import never publishes or applies; independent-draft: no horizontal overflow; pack detail refresh does not import again; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -11804,7 +12489,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/admin-deep/report-consolidated.json"
+          "evidence/admin-deep/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass125/report.json"
         ],
         "business": []
       },
@@ -11825,6 +12512,22 @@
               "evidence/admin-deep/report-consolidated.json"
             ],
             "notes": "completed-detail: no horizontal overflow; completed-detail: single current shell; restore-review: no horizontal overflow; restore-review: single current shell; restore-review: portal uses14px theme; restore-review: mobile sheet uses available width; restore-review: input has13px/400 typography; restore-review: input has13px/400 typography; cancel does not create restore job; failed-detail: no horizontal overflow; failed-detail: single current shell; queued-detail: no horizontal overflow; queued-detail: single current shell; no operational write beyond explicit pack validation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "backup-states-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "running maintenance offers no cancel retry or restore; running: no horizontal overflow; cancelled readback has no new maintenance action; queued cancel uses original revision once; cancelled: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "backup-states-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "running maintenance offers no cancel retry or restore; running: no horizontal overflow; cancelled readback has no new maintenance action; queued cancel uses original revision once; cancelled: no horizontal overflow; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }
@@ -15914,7 +16617,9 @@
       "evidence": {
         "visual": [],
         "interaction": [
-          "evidence/admin-deep/report-consolidated.json"
+          "evidence/admin-deep/report-consolidated.json",
+          "evidence/management-state-edges/report-consolidated.json",
+          "evidence/management-state-edges-pass125/report.json"
         ],
         "business": []
       },
@@ -15935,6 +16640,22 @@
               "evidence/admin-deep/report-consolidated.json"
             ],
             "notes": "invalid JSON stays in editable draft; invalid JSON does not call validate/import; validated-draft: no horizontal overflow; validated-draft: single current shell; independent import uses ordinary primary confirmation; import-review: no horizontal overflow; import-review: single current shell; import-review: portal uses14px theme; import-review: mobile sheet uses available width; import-review: input has13px/400 typography; review cancellation never imports definitions; explicit validation cancellation removes import confirmation; no operational write beyond explicit pack validation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。"
+          },
+          "import-recovery-desktop": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "validation busy blocks duplicate request; changed validation cannot import old snapshot; changed-during-validation: no horizontal overflow; unknown: no horizontal overflow; unknown import remount replays exact original pack/digest/reason/key; import details link to independent unpublished draft; import never publishes or applies; independent-draft: no horizontal overflow; pack detail refresh does not import again; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
+          },
+          "import-recovery-mobile": {
+            "status": "已验证",
+            "evidence": [
+              "evidence/management-state-edges/report-consolidated.json",
+              "evidence/management-state-edges-pass125/report.json"
+            ],
+            "notes": "validation busy blocks duplicate request; changed validation cannot import old snapshot; changed-during-validation: no horizontal overflow; unknown: no horizontal overflow; unknown import remount replays exact original pack/digest/reason/key; import details link to independent unpublished draft; import never publishes or applies; independent-draft: no horizontal overflow; pack detail refresh does not import again; no browser exception。本轮收敛清单的实际生产浏览器/受控HTTP，不代表真实模型判断、维护执行或整行所有视觉状态。"
           }
         }
       }

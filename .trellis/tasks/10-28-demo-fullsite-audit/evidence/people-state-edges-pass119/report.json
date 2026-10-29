@@ -1,0 +1,634 @@
+[
+  {
+    "name": "incomplete",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/incomplete-desktop-scope-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '重新读取人物目录', exact: true })\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-people-state-edges.mjs:25:309",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n人物关系\n快速前往\n⌘ K\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n世界中的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n…\n关于你\n你们的关系\n人物目录尚未完整返回。重新读取世界人物\n全部人物\n加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。"
+  },
+  {
+    "name": "foreign-world",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/foreign-world-desktop-scope-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '重新读取人物目录', exact: true })\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-people-state-edges.mjs:25:309",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n人物关系\n快速前往\n⌘ K\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n世界中的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n…\n关于你\n你们的关系\n当前世界不属于此角色。重新读取世界人物\n全部人物\n加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。"
+  },
+  {
+    "name": "foreign-place",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/foreign-place-desktop-scope-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '重新读取人物目录', exact: true })\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-people-state-edges.mjs:25:309",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n人物关系\n快速前往\n⌘ K\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n世界中的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n…\n关于你\n你们的关系\n人物、地点与当前世界范围不匹配，请重新读取。重新读取世界人物\n全部人物\n加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。"
+  },
+  {
+    "name": "read-only",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "retired role disables person creation",
+      "readable detail disables editing and management",
+      "detail-read-only: no horizontal overflow",
+      "retired role also disables authored background edits",
+      "about-read-only: no horizontal overflow",
+      "read-only inspection sends no mutation",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0/encounters",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/read-only-desktop-detail-read-only.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/read-only-desktop-about-read-only.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "about-conflict",
+    "size": "desktop",
+    "width": 1348,
+    "height": 925,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "blank reason prevents authored write",
+      "invalid: no horizontal overflow",
+      "authored save busy blocks duplicate confirmation",
+      "saving: no horizontal overflow",
+      "conflict retains same unsaved field",
+      "conflict: no horizontal overflow",
+      "explicit rebase preserves input and makes no new PUT",
+      "rebased: no horizontal overflow",
+      "rebased write uses latest facts and keeps external unrelated field",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "b432a068-1cea-41e6-ad21-e2953a2dd0ec",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "8e3e22f9-e53a-4e0a-b8cb-ec0fe66a4c96",
+          "expectedCurrentFactsRevision": "facts_gen_6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-desktop-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-desktop-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-desktop-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-desktop-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-desktop-saved.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "incomplete",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/incomplete-mobile-scope-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '重新读取人物目录', exact: true })\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-people-state-edges.mjs:25:309",
+    "text": "Toggle Sidebar\n世界与联系\n人物关系\n快速前往\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n世界中的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n…\n关于你\n你们的关系\n人物目录尚未完整返回。重新读取世界人物\n全部人物\n加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。"
+  },
+  {
+    "name": "foreign-world",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/foreign-world-mobile-scope-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '重新读取人物目录', exact: true })\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-people-state-edges.mjs:25:309",
+    "text": "Toggle Sidebar\n世界与联系\n人物关系\n快速前往\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n世界中的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n…\n关于你\n你们的关系\n当前世界不属于此角色。重新读取世界人物\n全部人物\n加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。"
+  },
+  {
+    "name": "foreign-place",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "invalid successful HTTP projection is not confirmed empty",
+      "scope-failure: no horizontal overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/foreign-place-mobile-scope-failure.png"
+    ],
+    "status": "failed",
+    "error": "locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '重新读取人物目录', exact: true })\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-people-state-edges.mjs:25:309",
+    "text": "Toggle Sidebar\n世界与联系\n人物关系\n快速前往\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n世界中的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n…\n关于你\n你们的关系\n人物、地点与当前世界范围不匹配，请重新读取。重新读取世界人物\n全部人物\n加入人物目录不代表已经相识。关系与接触记录以实际保存的来源为准，预计地点也不等于实际在场。"
+  },
+  {
+    "name": "read-only",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "retired role disables person creation",
+      "readable detail disables editing and management",
+      "detail-read-only: no horizontal overflow",
+      "retired role also disables authored background edits",
+      "about-read-only: no horizontal overflow",
+      "read-only inspection sends no mutation",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs/fluctlight-fixture-one-npc-0/encounters",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/read-only-mobile-detail-read-only.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/read-only-mobile-about-read-only.png"
+    ],
+    "status": "passed"
+  },
+  {
+    "name": "about-conflict",
+    "size": "mobile",
+    "width": 390,
+    "height": 844,
+    "boundary": "actual production components / controlled People and Profile HTTP; no live cognition or identity writes",
+    "checks": [
+      "blank reason prevents authored write",
+      "invalid: no horizontal overflow",
+      "authored save busy blocks duplicate confirmation",
+      "saving: no horizontal overflow",
+      "conflict retains same unsaved field",
+      "conflict: no horizontal overflow",
+      "explicit rebase preserves input and makes no new PUT",
+      "rebased: no horizontal overflow",
+      "rebased write uses latest facts and keeps external unrelated field",
+      "saved: no horizontal overflow",
+      "no browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "d4835643-a4fb-4aa6-acee-d81232842517",
+          "expectedCurrentFactsRevision": "facts_gen_5"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-user-background",
+        "method": "PUT",
+        "body": {
+          "background": {
+            "name": "事实冲突后保留的自填称呼"
+          },
+          "operation": "change",
+          "reason": "核对最新事实基线后保留这次自填修改",
+          "idempotencyKey": "8a25628a-3a93-42fb-9de3-f5eddf274230",
+          "expectedCurrentFactsRevision": "facts_gen_6"
+        }
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-mobile-invalid.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-mobile-saving.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-mobile-conflict.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-mobile-rebased.png",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/evidence/people-state-edges-pass119/about-conflict-mobile-saved.png"
+    ],
+    "status": "passed"
+  }
+]

@@ -56,3 +56,8 @@ media-pass93记录了额外的对齐图像区域量测，没有通过阈值；�
 Studio运行异常6、Auth/Library16、Profile保存4、Studio七类型14、Wear结果10全部实际生产浏览器通过。主线程亲看了手机应用等待/未知/拒绝、初始化normal/busy、损坏草稿、目录失败、Profile冲突，以及七种类型的编辑代表图。Studio新JSON错误已定位并在pass115改正；item纠正后无旧alert截图已看。Profile冲突恢复动作在滚动体内，页脚保存/取消保持可达。
 
 目录错误卡旧图pass115被flex拉成多余空白；pass116在同一错误卡使用self-start，交互再次双视口通过。没有调整业务数据或参考Demo。其它新增图仍按各自截图/断言范围记录；六组确定未验分支见verification/remaining-state-backlog.md，不能宣布仅剩视觉复核。
+
+
+## pass125交互收尾的人工样本
+
+新增44条浏览器状态均通过，并已亲看聊天slow/cancelled、AboutYou显式恢复、分享建议已受理读回失败、管理保存期间新输入/unknown/部分成功的手机图。管理/数据仍使用正式原生节点与Radix端口，测试只选择实际可访问控件，隐藏载体不作为重复UI问题。六组清单已补完，未扩展新的审计分支。各行全状态视觉不因此整体改通过。

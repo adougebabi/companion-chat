@@ -46,3 +46,8 @@ World最小retry回执、Goal原请求恢复、Self详情/次级历史刷新均�
 
 
 pass116更新：F68首次目录读取失败与F69修正JSON后旧错误均为UI状态缺陷；没有改变认证协议、Core或提示词。新增受控应用异常、账户、目录、Profile、七资源类型、换装的50条浏览器结果通过，分别记录在coverage。换装no-change使用与当前穿着相同的目标，未用互相矛盾的fixture制造“已经穿着”。未知POST严格保留原body/key，accepted GET失败不新发请求。真实五页读取的最新报告来自build114，后续build116仅错误卡对齐。
+
+
+## pass125收敛清单结果
+
+新增44条受控生产浏览器检查通过，没有新增生产代码修复。管理配置按实际PUT端点，通过有界测试receipt/CAS状态验证等待、新输入保留、unknown原回执恢复、明确拒绝后停止未受理、显式重基线、endpoint/binding部分已确认不重复写；没有改真实部署配置。备份只对内存queued job执行取消，running只读，未运行维护工具。定义包只进受控fixture，保持原pack/digest/reason/key恢复且仅独立草稿，未发布/应用。动态使用正式processing/rejected状态，不注入不存在的running/declined owner-request枚举；不把这些模拟结果当模型判断。真实18480最新build116五页只读通过。
