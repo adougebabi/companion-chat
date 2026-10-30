@@ -29,16 +29,19 @@ export function workingPersonaPresentation(value,depth=0){
   if(Object.keys(body).some(key=>Object.hasOwn(metadata,key)&&!equal(metadata[key],body[key])))return value;
   return {...metadata,...body};
 }
-const portraitKeys=new Set(['openness','conscientiousness','extraversion','agreeableness','neuroticism','curiosity','independence','patience','empathy','assertiveness','humor','sociability','risk_tolerance','message_length','emoji_frequency','sarcasm_tendency','directness','initiative','topic_initiation','silence_tolerance','response_delay','emotional_expression']);
+const portraitKeys=new Set(['openness','conscientiousness','extraversion','agreeableness','neuroticism','curiosity','independence','patience','empathy','assertiveness','humor','sociability','risk_tolerance','message_length','emoji_frequency','sarcasm_tendency','directness','initiative','topic_initiation','silence_tolerance','response_delay','emotional_expression','response_style','punctuation_style','humor_style','conflict_style','refusal_style','intimacy_expression']);
 // Blank portraits persist Core's `key: value` lines. Interpret only declared
 // scalar keys, leaving model/user prose intact and never changing stored text.
-export function portraitPresentation(text){
-  const seen=new Set();
+// Optional counts describe equal rows within this one text, never shared sources.
+export function portraitPresentation(text,{includeOccurrences=false}={}){
+  const seen=new Map();
   return String(text).split('\n').flatMap(line=>{
     const match=/^([a-z_]+): (.+)$/.exec(line);
     if(!match||!portraitKeys.has(match[1]))return [{text:line}];
     const raw=match[2],value=/^\d+(?:\.\d+)?$/.test(raw)?Number(raw):raw;
-    const key=JSON.stringify([match[1],value]);if(seen.has(key))return [];
-    seen.add(key);return [{field:match[1],value}];
+    const key=JSON.stringify([match[1],value]);
+    if(seen.has(key)){if(includeOccurrences)seen.get(key).occurrences++;return [];}
+    const row=includeOccurrences?{field:match[1],value,occurrences:1}:{field:match[1],value};
+    seen.set(key,row);return [row];
   });
 }

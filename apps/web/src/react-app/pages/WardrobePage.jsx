@@ -1,6 +1,5 @@
 import { useController } from "@/react-app/page";
 import { selector } from "@/state/view-model";
-import { Fragment } from "@/react-app/render-helpers";
 import { slots, seasonNames } from "@/state/workspace.mjs";
 import WardrobePreparation from "@/react-app/shared/WardrobePreparation";
 import { WardrobePageView } from "@/react-app/views/WardrobePage";
@@ -413,6 +412,7 @@ function createWardrobePageController(props, context, lifecycle) {
   }
   const render = () => (
     <WardrobePageView
+      preparation={<WardrobePreparation />}
       route={props.route}
       view={{
         character,
@@ -463,12 +463,7 @@ function createWardrobePageController(props, context, lifecycle) {
       }}
     />
   );
-  return (context, cache) => (
-    <Fragment>
-      <WardrobePreparation />
-      {render(context, cache)}
-    </Fragment>
-  );
+  return render;
 }
 /** @param {{route?: {query?: URLSearchParams}}} [input] */
 export default function WardrobePage(input = {}) {

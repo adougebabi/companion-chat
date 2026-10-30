@@ -146,7 +146,7 @@ function RecordHistory({ fid, id, kind }) {
     </Disclosure>
   );
 }
-export function WardrobePageView({ view, route }) {
+export function WardrobePageView({ view, route, preparation = null }) {
   const w = useWorkspace(),
     c = readValue(view.character),
     fid = c.id,
@@ -322,6 +322,7 @@ export function WardrobePageView({ view, route }) {
           </>
         }
       />
+      {preparation}
       {w.state.loading.wardrobe && <LoadingState label="正在读取衣柜…" />}
       <Surface className="r-wearing-strip">
         <div className="r-wearing-icon">

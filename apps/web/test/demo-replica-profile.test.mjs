@@ -491,3 +491,19 @@ test('current expression emphasizes the actual portrait text and never promotes 
   assert.ok(button(note,'表达画像完整记录与来源'));
  }finally{await f.dispose();}
 });
+
+test('r20 current portrait translates declared scalar rows and shows same-value occurrence count with unchanged full source',async()=>{
+  const f=await fixture();
+  try{
+    const original='response_style: warm\npunctuation_style: natural\nhumor_style: gentle\nconflict_style: direct\nrefusal_style: clear\nintimacy_expression: reserved\nconflict_style: direct\nconflict_style: gentle\nunknown_portrait: custom\n用户原文 conflict_style: direct';
+    f.api.state('A').detail.persona_compilation.working_persona.portrait_text=original;
+    await act(async()=>f.c.read());await f.v.flush();
+    const portrait=f.v.host.querySelector('[data-testid=current-working-portrait]');
+    assert.ok(portrait);assert.match(portrait.textContent,/回复风格/);assert.match(portrait.textContent,/标点风格/);assert.match(portrait.textContent,/幽默风格/);assert.match(portrait.textContent,/冲突风格/);assert.match(portrait.textContent,/拒绝风格/);assert.match(portrait.textContent,/亲密表达/);
+    assert.match(portrait.textContent,/原文出现 2 次/);assert.match(portrait.textContent,/unknown_portrait: custom/);assert.match(portrait.textContent,/用户原文 conflict_style: direct/);
+    assert.equal(portrait.querySelectorAll('p').length,9);
+    assert.equal(f.api.state('A').detail.persona_compilation.working_persona.portrait_text,original);
+    await f.v.click(button(f.v.host,'表达画像完整记录与来源'));
+    assert.ok([...document.querySelectorAll('.record-facts .readable-prose')].some(node=>node.textContent===original));
+  }finally{await f.dispose();}
+});

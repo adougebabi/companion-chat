@@ -224,3 +224,7 @@
 .replica-task-wire-value{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;min-width:0;margin:0;padding:12px;border-radius:8px;background:#f4f6ef;font-size:12px;line-height:1.7;max-height:360px;overflow:auto}
 .replica-task-call-error{color:#9f3e36}
 @media(max-width:700px){.replica-task-model-call{padding:12px}.replica-task-wire-value{padding:10px;font-size:11px;max-height:280px}.replica-task-call-payloads{grid-template-columns:minmax(0,1fr)}}
+.replica-task-call-summary{display:flex;flex-wrap:wrap;gap:10px 24px;min-width:0;margin:0;font-size:12px}
+.replica-task-call-summary>div{display:grid;gap:3px;min-width:0;max-width:100%}
+.replica-task-call-summary dt{font-size:11px;color:#839078}.replica-task-call-summary dd{margin:0;overflow-wrap:anywhere;color:#405839}
+.replica-task-call-source{min-width:0}.replica-task-call-source [data-slot=collapsible-content]{padding-top:8px}

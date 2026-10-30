@@ -1,0 +1,44 @@
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/unassigned
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/invalid_role
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/role_preflight
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/wire_budget
+=== RUN   TestProviderPreflightErrorsHaveStableCategoryAndRetryability/store
+--- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/unassigned (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/invalid_role (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/role_preflight (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/wire_budget (0.00s)
+    --- PASS: TestProviderPreflightErrorsHaveStableCategoryAndRetryability/store (0.00s)
+=== RUN   TestR20ProviderRoleLookupPreservesExactMissingBindingCause
+--- PASS: TestR20ProviderRoleLookupPreservesExactMissingBindingCause (0.00s)
+=== RUN   TestR20ProviderLookupDeadlineIsNotModelTimeout
+--- PASS: TestR20ProviderLookupDeadlineIsNotModelTimeout (0.00s)
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/effective_profile
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/persona_detail
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/life_snapshot
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/wardrobe_items
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/wardrobe_revision
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/wardrobe_plans
+=== RUN   TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/resource
+--- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause (0.00s)
+    --- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/effective_profile (0.00s)
+    --- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/persona_detail (0.00s)
+    --- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/life_snapshot (0.00s)
+    --- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/wardrobe_items (0.00s)
+    --- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/wardrobe_revision (0.00s)
+    --- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/wardrobe_plans (0.00s)
+    --- PASS: TestR20WardrobeContextFailureKeepsStageWithoutGuessingCause/resource (0.00s)
+=== RUN   TestR20WardrobeUnknownAndExistingFailuresRemainDistinct
+--- PASS: TestR20WardrobeUnknownAndExistingFailuresRemainDistinct (0.00s)
+=== RUN   TestR5WardrobeRepairUsesSchemaAndPreservesEmptyRefsThroughRealWear
+    r5_wardrobe_contract_test.go:18: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestR5WardrobeRepairUsesSchemaAndPreservesEmptyRefsThroughRealWear (0.00s)
+=== RUN   TestR5WardrobeFailureReasonsDistinguishActualCauses
+--- PASS: TestR5WardrobeFailureReasonsDistinguishActualCauses (0.00s)
+=== RUN   TestR5WardrobeEmptyPlanIsBusinessFailureWithoutFabricatedInventory
+    r5_wardrobe_contract_test.go:116: GO_CORE_TEST_DATABASE_URL is not set
+--- SKIP: TestR5WardrobeEmptyPlanIsBusinessFailureWithoutFabricatedInventory (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	1.971s

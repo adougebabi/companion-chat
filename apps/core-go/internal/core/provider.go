@@ -99,6 +99,36 @@ func providerAssignmentForScenario(assignment providerAssignment, scenario strin
 	return assignment, nil
 }
 
+// providerRoleUnassignedError identifies a missing binding at the role lookup,
+// rather than interpreting an arbitrary downstream database no-rows error.
+type providerRoleUnassignedError struct {
+	role  string
+	cause error
+}
+
+func (e *providerRoleUnassignedError) Error() string {
+	return fmt.Sprintf("provider role %s unavailable: %v", e.role, e.cause)
+}
+
+func (e *providerRoleUnassignedError) Unwrap() error { return e.cause }
+
+type providerRoleLookupReadError struct {
+	role  string
+	cause error
+}
+
+func (e *providerRoleLookupReadError) Error() string {
+	return fmt.Sprintf("provider role %s unavailable: %v", e.role, e.cause)
+}
+func (e *providerRoleLookupReadError) Unwrap() error { return e.cause }
+
+func providerAssignmentLookupError(role string, err error) error {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return &providerRoleUnassignedError{role: role, cause: err}
+	}
+	return &providerRoleLookupReadError{role: role, cause: err}
+}
+
 func (p *ProviderClient) assignment(ctx context.Context, role string) (providerAssignment, error) {
 	if !validProviderRole(role) {
 		return providerAssignment{}, fmt.Errorf("provider role %s invalid", role)
@@ -120,7 +150,7 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 		LIMIT 1
 	`, bindingRole).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion)
 	if err != nil {
-		return providerAssignment{}, fmt.Errorf("provider role %s unavailable: %w", bindingRole, err)
+		return providerAssignment{}, providerAssignmentLookupError(bindingRole, err)
 	}
 	if strings.EqualFold(capabilityStatus, "failed") {
 		return providerAssignment{}, fmt.Errorf("provider role %s preflight failed", bindingRole)

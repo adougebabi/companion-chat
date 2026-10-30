@@ -70,6 +70,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     templateLoading = lifecycle.cell(false),
     configured = lifecycle.cell(null),
     worldsConfirmed = lifecycle.cell(false),
+    publishedWorldsConfirmed = lifecycle.cell(false),
     worldReadNotice = lifecycle.cell("");
   if (!draft.activatedId && !pending.value && !worldChoice.value)
     step.value = "world";
@@ -232,6 +233,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           : templateCursor.value
         : "");
     loading.value = true;
+    if (kind === "world") publishedWorldsConfirmed.value = false;
     try {
       const result = await w.client.listStudioResources({
         kind,
@@ -278,6 +280,8 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
             ]
           : rows;
         worldCursor.value = result.next_cursor || "";
+        publishedWorldsConfirmed.value = !more && !cursor &&
+          result.available !== false && !result.next_cursor && unavailable === 0;
       } else {
         templates.value = more
           ? [
@@ -459,6 +463,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
           templateLoading: templateLoading.value,
           configured: configured.value,
           worldsConfirmed: worldsConfirmed.value,
+          publishedWorldsConfirmed: publishedWorldsConfirmed.value,
           worldReadNotice: worldReadNotice.value,
           selectedPublication: selectedPublication.value,
           selectedPublicationError: selectedPublicationError.value,

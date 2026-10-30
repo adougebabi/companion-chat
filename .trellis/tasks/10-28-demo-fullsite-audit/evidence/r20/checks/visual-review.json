@@ -1,0 +1,35 @@
+{
+  "image_policy": "local-only, no image files staged",
+  "reviewed": [
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-final/world-empty-mobile-empty-daily.png",
+      "sha256": "c525e514d0c1d2d2f65b615321f296ef7085b399a4efd7d8dd9ff96ab6459faf"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-final/creation-context-wide-local-task-sheet.png",
+      "sha256": "340bb44c60d538bf68aa9ffd5b549c06e3be66d795c30fd6a6361b2c0a214692"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-second/creation-rounds-mobile-local-task-sheet.png",
+      "sha256": "232316102a479f7186de26d6aa9fa2307a60eef91c5aaa0af90d263646f362a1"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-second/profile-mobile-chinese-portrait.png",
+      "sha256": "9b17cfb6ef86cada5b51058c0c482354fb2e6e3f7fc86258a5b49255c82b2d66"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-final/wardrobe-desktop-heading-before-preparation.png",
+      "sha256": "25fd1ffe71c0002b52f332827708b328ce71f5914994f70c2a363610043c6b3d"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-final/studio-mobile-fresh-entry.png",
+      "sha256": "6d156470dd6276542eb0f097103bb634cf6ac118be852b3cb6cc95ce40f77425"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-final/creation-rounds-wide-local-task-sheet.png",
+      "sha256": "8fcf3d0a60eac63cddb92644e61e2f82d22a7c280146ab644453f5088e91d15c"
+    }
+  ],
+  "reference": "reference/r20/manifest.json",
+  "boundary": "main agent opened these representative screenshots; not every screenshot individually certified"
+}

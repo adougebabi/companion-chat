@@ -122,7 +122,16 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
   );
   useEffect(() => {
     workspace.navigate = navigate;
-    const parse = () => {setMobileOpen(false);setRoute(approvedRoute(location.hash));};
+    const parse = () => {
+      const next=approvedRoute(location.hash),visitState:{session:{actorId:string}|null}=workspace.state,owner=visitState.session?.actorId;
+      // The directory is already unmounted while an editor is open. End its UI
+      // visit here too, so editor → another module → Studio cannot restore it.
+      if(owner)try{
+        if(next.page!=="创作中心")sessionStorage.removeItem(`fluctlight-studio:${owner}:directory-ui`);
+        if(next.page!=="创作中心"&&next.path!=="/worlds")sessionStorage.removeItem(`fluctlight-studio:${owner}:directory-ui:world`);
+      }catch{}
+      setMobileOpen(false);setRoute(next);
+    };
     window.addEventListener("hashchange", parse);
     void workspace.bootstrap().catch(() => {});
     return () => window.removeEventListener("hashchange", parse);

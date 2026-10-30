@@ -205,3 +205,8 @@
 ## r19 增量
 
 [r19逐项结果](r19-acceptance.md) / [33条三视口受控浏览器证据](evidence/r19-browser-index.json)。coverage.json给27行增加精确r19_observations；保留177行历史与全部未验收状态。本批不构成全站完成。图片仅本地，不提交。
+
+
+## r20 增量
+
+[r20逐项结果](r20-acceptance.md) / [24条三视口浏览器](evidence/r20-browser-index.json) / [6条JSON预览及配置返回](evidence/r19/r20-preview-return2-after/report.json)。覆盖矩阵只给14行追加观察，未提升原状态；12组修改前本地截图另存文本索引。

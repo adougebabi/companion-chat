@@ -10,6 +10,52 @@ file still exists. `.githooks/pre-commit` runs the staged-image guard. New check
 install it with `pnpm hooks:install`; never force-add ignored images or bypass the
 guard. This policy supersedes earlier instructions to include screenshots in Git.
 
+## r20 creation sources, local diagnostics and reading contract
+
+Hide an existing-world or published-world source only after a complete successful
+empty read. Loading, errors, partial publication reads, unread cursors and a saved
+exact selected source keep their entry/recovery reachable. A presentation fallback
+to daily-world never calls choose/persist/create. Track explicit tab choice apart
+from automatic fallback, so newly arriving roles and directory failures can restore
+the relevant source without overriding a deliberate tab choice.
+
+`PreparationSteps.onOpenTask(taskId, trigger)` handles only safely decoded exact
+`#/diag/task/:id` entries; other links retain their own behavior. Creation opens
+`TaskRecordDialog(presentation="sheet")` without changing hash, preserves current
+return context, and restores its connected trigger (or heading if replaced).
+Default diagnostics still use the 860px Dialog. Both use Request/Response-first
+TaskDetail. Sheet has one scrolling body and a fixed header; no fake workflow
+retry/skip controls. Failed supported recovery calls the original dispatcher via
+“重试此环节”; blocked unstarted phases have no independent retry. Ready role/world
+reachability does not mean all initialization finished; failed/blocking progress
+must state what remains to process without duplicating the full failure reason.
+
+Studio ends only its Owner/fixedKind directory display preference when navigation
+leaves that visit. Hash parsing also handles editor→other module→Studio because
+the directory is already unmounted. Editor/detail return within the same Studio
+visit preserves filters and unsubmitted search. Never delete working drafts,
+commands or accepted receipts while clearing these display keys.
+
+`portraitPresentation(text, {includeOccurrences:true})` interprets declared scalar
+lines only; counts represent identical rows in this one stored text, not merged
+business facts or inferred shared sources. Different values/prose/unknowns and
+complete raw source remain. Wardrobe preparation is a view slot after its heading,
+not CSS-reordered before it. KEV child-option guidance describes actual master-gate
+semantics without coercing values, and unmeasured local-storage health stays absent.
+
+Model-call summaries use actual sequence/round_count/stage/timestamps or recorded
+latency. List position is labelled reading order, never a fabricated round. Missing
+sequence/time stays missing, counts say 已读取 when only loaded rows are known, and
+physical rows/unknown payload fields remain intact. Request/Response stays directly
+readable; complete-call disclosure preserves references. Stable wardrobe failure
+codes/reasons outrank legacy strings; arbitrary provider/SQL errors do not imply
+an unassigned model or justify a configuration action.
+
+Required checks: r20-creation, r20-reading-regression, r20-failure-presentation,
+profile/wardrobe/Studio consumers, task-llm-detail and earlier scope/recovery tests.
+Production `verify-r20-ui.mjs` covers 24 three-viewport cases; JSON preview and
+initialization return are separate exact cases. No screenshots enter Git.
+
 ## r19 route, preference and configuration presentation contract
 
 Management directory actions navigate to the actual `/diag?view=tasks`,

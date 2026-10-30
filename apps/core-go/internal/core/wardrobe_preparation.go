@@ -219,44 +219,44 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 	}
 	resource, err := a.DB.GetFluctlight(ctx, fid, owner)
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("resource", err)
 	}
 	if resource.Status != "active" {
 		return map[string]any{"status": "awaiting_wear", "reason": "角色当前未处于活动状态"}, nil
 	}
 	profile, err := newWardrobeService(a).effectiveProfileID(ctx, a.DB.Pool(), fid, "")
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("effective_profile", err)
 	}
 	sections, _, _, _, err := newPersonaDetailService(a).read(ctx, fid, owner, profile)
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("persona_detail", err)
 	}
 	_, life, err := a.readLifeContextSnapshotAt(ctx, fid, a.now())
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("life_snapshot", err)
 	}
 	rows, err := a.DB.Pool().Query(ctx, `SELECT to_jsonb(i)||jsonb_build_object('source_verified',`+inventorySourceVerifiedSQL+`) FROM public.fluctlight_wardrobe_items i WHERE fluctlight_id=$1 AND item_kind='wearable' AND archived_at IS NULL ORDER BY id`, fid)
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("wardrobe_items", err)
 	}
 	items := []map[string]any{}
 	for rows.Next() {
 		var item []byte
 		if err = rows.Scan(&item); err != nil {
 			rows.Close()
-			return nil, err
+			return nil, wardrobeContextReadFailure("wardrobe_items", err)
 		}
 		items = append(items, decodeObject(item))
 	}
 	err = rows.Err()
 	rows.Close()
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("wardrobe_items", err)
 	}
 	var revision int
 	if err = a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, fid).Scan(&revision); err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("wardrobe_revision", err)
 	}
 	saved := mapValue(state["result"])
 	selectOnly := saved["inventory_committed"] == true
@@ -270,21 +270,21 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 	}
 	planRows, err := a.DB.Pool().Query(ctx, `SELECT `+inventoryOutfitProjection+` FROM public.fluctlight_wardrobe_outfits o WHERE o.fluctlight_id=$1 AND (o.profile_id='' OR o.profile_id=$2) ORDER BY o.id`, fid, profile)
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("wardrobe_plans", err)
 	}
 	plans := []map[string]any{}
 	for planRows.Next() {
 		var plan []byte
 		if err = planRows.Scan(&plan); err != nil {
 			planRows.Close()
-			return nil, err
+			return nil, wardrobeContextReadFailure("wardrobe_plans", err)
 		}
 		plans = append(plans, decodeObject(plan))
 	}
 	err = planRows.Err()
 	planRows.Close()
 	if err != nil {
-		return nil, err
+		return nil, wardrobeContextReadFailure("wardrobe_plans", err)
 	}
 	if _, err = a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations SET status=$2,error_code=NULL,updated_at=now() WHERE id=$1`, id, map[bool]string{true: "awaiting_wear", false: "generating"}[selectOnly]); err != nil {
 		return nil, err

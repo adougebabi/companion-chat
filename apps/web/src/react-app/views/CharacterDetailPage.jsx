@@ -528,7 +528,7 @@ export default function CharacterDetailPageView({ model: m }) {
                 <Surface className="companion-portrait-note">
                   <span className="companion-eyebrow">WORKING PERSONA</span>
                   <div className="companion-row-between"><h3>当前表达画像</h3>{typeof working?.status==="string"&&working.status&&<Badge variant="outline">{stateLabel(working.status)}</Badge>}</div>
-                  {workingProfileMismatch?<p>当前人格的表达画像尚未读回，可核对保留的完整记录。</p>:workingPortrait?<div data-testid="current-working-portrait">{portraitPresentation(workingPortrait).map((line,index)=><p key={index}>{line.field?<><b>{semanticLabel(line.field)}：</b><Value value={line.value} field={line.field} identity={identity}/></>:line.text||'\u00a0'}</p>)}</div>:<Value value={working} identity={identity} />}
+                  {workingProfileMismatch?<p>当前人格的表达画像尚未读回，可核对保留的完整记录。</p>:workingPortrait?<div data-testid="current-working-portrait">{portraitPresentation(workingPortrait,{includeOccurrences:true}).map((line,index)=><p key={index}>{line.field?<><b>{semanticLabel(line.field)}：</b><Value value={line.value} field={line.field} identity={identity}/>{line.occurrences>1&&<small className="r-muted">（原文出现 {line.occurrences} 次）</small>}</>:line.text||'\u00a0'}</p>)}</div>:<Value value={working} identity={identity} />}
                   {(workingPortrait||workingProfileMismatch)&&<JsonDetails value={working} title="表达画像完整记录与来源"/>}
                   <span>人格设定与最近生活共同影响此刻的表达</span>
                 </Surface>

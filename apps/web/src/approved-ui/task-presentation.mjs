@@ -24,14 +24,23 @@ export function taskStageRecords(task,preparation){
  return [{id:'inventory',name:'整理衣物与穿搭方案',status:committed?'completed':cancelled?'cancelled':failed?'failed':['generating','running'].includes(preparation.status)?'running':'pending',source},{id:'wear',name:'确认初始穿着',status:preparation.status==='completed'&&committed?'completed':failed&&committed?'failed':cancelled&&committed?'cancelled':failed||cancelled?'blocked':preparation.status==='awaiting_wear'&&committed?'running':'pending',source}];
 }
 export function taskNeedsModelConfiguration(task,preparation){
- return /initialization_role_unconfigured|wardrobe_provider_unconfigured|provider role [\w.-]+ (?:unavailable|preflight failed)/.test([task?.source?.last_error,task?.last_error,preparation?.error_code].filter(Boolean).join(' '));
+ const code=preparation?.error_code||task?.error_code;
+ if(['wardrobe_preparation_context_failed','wardrobe_provider_assignment_unavailable'].includes(code))return false;
+ if(['initialization_role_unconfigured','wardrobe_provider_unconfigured'].includes(code))return true;
+ const cause=[task?.source?.last_error,task?.last_error].filter(Boolean).join(' ');
+ return /initialization_role_unconfigured|wardrobe_provider_unconfigured|provider role [\w.-]+ preflight failed|provider role [\w.-]+ unavailable:[^\n]*no rows in result set/.test(cause);
 }
 export function taskFailureReason(task,preparation){
  const current=preparation?.task_id===task?.task_id?preparation:null;
  const raw=task?.source?.last_error||task?.last_error;
+ if(['wardrobe_preparation_context_failed','wardrobe_provider_assignment_unavailable','wardrobe_provider_unconfigured'].includes(current?.error_code)&&current?.result?.failure_reason)return current.result.failure_reason;
  if(taskNeedsModelConfiguration(task,current)){const reason=errorMessage({code:current?.error_code,message:raw}).replace('原资料与已完成步骤会保留。','已有角色、世界与准备记录会保留。');return reason.includes('已有角色、世界')?reason:reason+' 已有角色、世界与准备记录会保留。';}
  if(current?.result?.failure_reason)return current.result.failure_reason;
- return errorMessage(raw,'本次任务未完成，原资料和已确认的结果仍保留。请查看执行记录与业务恢复入口。');
+ const fallback='本次任务未完成，原资料和已确认的结果仍保留。请查看执行记录与业务恢复入口。';
+ // A legacy assignment-read wrapper can contain a DB/connection failure. Do not
+ // let the general message formatter turn it back into an unassigned-model claim.
+ if(/provider role [\w.-]+ unavailable:/.test(String(raw||'')))return fallback;
+ return errorMessage(raw,fallback);
 }
 export function taskSourceHref(task){
  if(!task?.fluctlight_id)return '';

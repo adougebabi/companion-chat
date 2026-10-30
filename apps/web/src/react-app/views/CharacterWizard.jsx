@@ -39,6 +39,7 @@ import { InlineFeedback } from "../shared/Presentation";
 import LoadingState from "../shared/LoadingState";
 import ProfileField from "../shared/ProfileField";
 import PreparationSteps from "../shared/PreparationSteps";
+import TaskRecordDialog from "../shared/TaskRecordDialog";
 import SemanticTree from "../shared/SemanticTree";
 import JsonDetails from "../shared/JsonDetails";
 import Combobox from "../shared/Combobox";
@@ -145,13 +146,31 @@ export default function CharacterWizardView({ model: m }) {
     [search, setSearch] = useState(""),
     [reviewTab, setReviewTab] = useState("identity"),
     [snapshotOpen, setSnapshotOpen] = useState(false),
+    [selectedTask, setSelectedTask] = useState(null),
     [resetOpen, setResetOpen] = useState(false),
     [structured, setStructured] = useState(null),
     [structuredError, setStructuredError] = useState("");
-  const snapshotTrigger = useRef(null),
+  const worldTabChosen = useRef(false),
+    taskTrigger = useRef(null),
+    snapshotTrigger = useRef(null),
     recoveryTrigger = useRef(null),
     resetTrigger = useRef(null),
     structuredTrigger = useRef(null);
+  const showExistingWorlds = !!d.worldSource || !m.worldsConfirmed ||
+    !!m.existingWorldLoading || !!m.existingWorldError || m.existingWorlds.length > 0;
+  const showPublishedWorlds = !!d.worldResourceId || !m.publishedWorldsConfirmed ||
+    !!m.sourceLoading || !!m.sourceError || !!m.worldCursor || m.worlds.length > 0;
+  const worldTabs = [
+    ...(showExistingWorlds ? [["existing", "已有角色的世界"]] : []),
+    ...(showPublishedWorlds ? [["resource", "已发布的世界底稿"]] : []),
+    ["daily", "日常生活世界"],
+  ];
+  const preferredWorldTab = worldTabChosen.current ? worldTab : d.worldSource ? "existing"
+    : d.worldResourceId ? "resource" : d.worldChoiceConfirmed && d.useDefaultWorld ? "daily" : worldTabs[0][0];
+  const visibleWorldTab = worldTabs.some(([key]) => key === preferredWorldTab)
+    ? preferredWorldTab : worldTabs[0][0];
+  // A source disappearing only changes the view; it never selects or persists a world.
+  useEffect(() => { if (worldTab !== visibleWorldTab) setWorldTab(visibleWorldTab); }, [worldTab, visibleWorldTab]);
   const errorRef=useRef(null);
   useEffect(()=>{if(!m.error)return;const key=Object.keys(m.fieldErrors)[0],id=({name:'create-name',timezone:'create-timezone',bio:'create-bio'})[key],input=id?document.getElementById(id):null;const node=input?.closest('label')||errorRef.current;node?.scrollIntoView({block:'center',behavior:'instant'});input?.focus({preventScroll:true});},[m.error]);
   const jsonFileInput=useRef(null);
@@ -193,6 +212,8 @@ export default function CharacterWizardView({ model: m }) {
     worldBindingConfirmed =
       !!d.worldSelectionConfirmed ||
       m.progress?.stages.some((s) => s.key === "world" && s.state === "ready");
+  const preparationBlocker = m.progress?.stages.find((stage) => stage.state === "failed") ||
+    m.progress?.stages.find((stage) => stage.state === "blocked");
   const edit = (key, value) => {
     if (busy || locked) return;
     if(key==='timezone')d.timezoneEdited=true;
@@ -259,9 +280,18 @@ export default function CharacterWizardView({ model: m }) {
     else if (index === 1) m.canContinue && c.analyze();
     else if (index === 2) m.canContinue && c.activate();
   };
-  const worldRows = (
-    worldTab === "resource" ? m.worlds : m.existingWorlds
-  ).filter((row) =>
+  const sourceRows = visibleWorldTab === "resource" ? m.worlds : m.existingWorlds;
+  const retainedSelection = visibleWorldTab === "resource" && d.worldResourceId &&
+    !sourceRows.some((row) => row.id === d.worldResourceId && row.published_version === d.worldResourceVersion)
+      ? { id: d.worldResourceId, published_version: d.worldResourceVersion,
+          name: m.selectedPublication?.name || d.worldName || "所选世界底稿",
+          publication: m.selectedPublication, publicationError: m.selectedPublication ? "" : "所选精确发布版本尚未读到" }
+      : visibleWorldTab === "existing" && d.worldSource && !selectedWorld
+        ? { id: d.worldSource.worldId, fluctlightId: d.worldSource.fluctlightId,
+            name: d.worldSource.name || "所选已有世界", unavailable: true,
+            description: "所选世界尚未读到，请重新读取后核对。" }
+        : null;
+  const worldRows = (retainedSelection ? [retainedSelection, ...sourceRows] : sourceRows).filter((row) =>
     [row.name, row.characterName].some((t) => String(t || "").includes(search)),
   );
   return (
@@ -353,17 +383,13 @@ export default function CharacterWizardView({ model: m }) {
         <div className="creation-main">
           {index === 0 && (
             <>
-              <Segment
+              {worldTabs.length > 1 && <Segment
                 label="生活世界来源"
-                value={worldTab}
-                onChange={setWorldTab}
-                items={[
-                  ["existing", "已有角色的世界"],
-                  ["resource", "已发布的世界底稿"],
-                  ["daily", "日常生活世界"],
-                ]}
-              />
-              {worldTab === "daily" ? (
+                value={visibleWorldTab}
+                onChange={value => { worldTabChosen.current = true; setWorldTab(value); }}
+                items={worldTabs}
+              />}
+              {visibleWorldTab === "daily" ? (
                 <Surface
                   className={
                     "creation-daily" +
@@ -396,7 +422,7 @@ export default function CharacterWizardView({ model: m }) {
                 <>
                   <div className="creation-world-toolbar">
                     <span>
-                      {worldTab === "existing"
+                      {visibleWorldTab === "existing"
                         ? "复用配置，开启独立的生活"
                         : "采用明确的已发布版本"}
                     </span>
@@ -411,24 +437,24 @@ export default function CharacterWizardView({ model: m }) {
                       />
                     </div>
                   </div>
-                  {worldTab === "existing" && m.existingWorldLoading && (
+                  {visibleWorldTab === "existing" && m.existingWorldLoading && (
                     <LoadingState label="正在读取已有世界…" />
                   )}
-                  {worldTab === "resource" && m.sourceLoading && (
+                  {visibleWorldTab === "resource" && m.sourceLoading && (
                     <LoadingState label="正在读取已发布的世界底稿…" />
                   )}
-                  {(worldTab === "existing"
+                  {(visibleWorldTab === "existing"
                     ? m.existingWorldError
                     : m.sourceError) && (
                     <InlineFeedback role="alert">
-                      {worldTab === "existing"
+                      {visibleWorldTab === "existing"
                         ? m.existingWorldError
                         : m.sourceError}
                       <Button
                         variant="outline"
                         disabled={m.existingWorldLoading}
                         onClick={() =>
-                          void (worldTab === "existing"
+                          void (visibleWorldTab === "existing"
                             ? m.loadExistingWorlds(true)
                             : m.retrySources("world"))
                         }
@@ -437,7 +463,7 @@ export default function CharacterWizardView({ model: m }) {
                       </Button>
                     </InlineFeedback>
                   )}
-                  {worldTab === "existing" &&
+                  {visibleWorldTab === "existing" &&
                     !m.existingWorldLoading &&
                     m.worldsConfirmed &&
                     !m.existingWorlds.length && (
@@ -447,7 +473,7 @@ export default function CharacterWizardView({ model: m }) {
                     )}
                   <div className="creation-world-grid">
                     {worldRows.map((row) => {
-                      const existing = worldTab === "existing",
+                      const existing = visibleWorldTab === "existing",
                         selected = existing
                           ? d.worldSource?.worldId === row.id &&
                             d.worldSource?.fluctlightId === row.fluctlightId
@@ -461,9 +487,10 @@ export default function CharacterWizardView({ model: m }) {
                             (selected ? " selected" : "")
                           }
                           aria-pressed={selected}
-                          key={(row.fluctlightId || "resource") + ":" + row.id}
+                          key={(row.fluctlightId || "resource") + ":" + row.id +
+                            (existing ? "" : ":" + row.published_version)}
                           disabled={
-                            busy || locked || (!existing && !row.publication)
+                            busy || locked || row.unavailable || (!existing && !row.publication)
                           }
                           onClick={() =>
                             existing
@@ -525,7 +552,7 @@ export default function CharacterWizardView({ model: m }) {
                       </span>
                     </a>
                   </div>
-                  {worldTab === "resource" && m.worldCursor && (
+                  {visibleWorldTab === "resource" && m.worldCursor && (
                     <Button
                       variant="outline"
                       onClick={() => void m.loadSources("world", true)}
@@ -535,6 +562,9 @@ export default function CharacterWizardView({ model: m }) {
                   )}
                 </>
               )}
+              {visibleWorldTab === "daily" && <Button variant="ghost" asChild>
+                <a href="#/studio/edit/new?kind=world"><Plus size={15} />创建新的世界底稿</a>
+              </Button>}
               {d.worldChoiceConfirmed && (
                 <WorkspaceInfo>
                   {d.worldSource
@@ -1308,6 +1338,10 @@ export default function CharacterWizardView({ model: m }) {
                     busy={busy}
                     onRecover={c.recoverStage}
                     replica
+                    onOpenTask={(taskId, trigger) => {
+                      taskTrigger.current = trigger;
+                      setSelectedTask({ taskId, returnTo: globalThis.location?.hash || "#/library/create" });
+                    }}
                   />
                 ) : pending && !busy ? (
                   <WorkspaceInfo>
@@ -1353,12 +1387,16 @@ export default function CharacterWizardView({ model: m }) {
                       <strong>
                         {m.progress?.complete
                           ? "这一次，换你说你好。"
-                          : "已经可以开始相处了。"}
+                          : preparationBlocker
+                            ? "角色与世界已建立，初始化仍需处理"
+                            : "角色与世界已建立，可以先前往聊天"}
                       </strong>
                       <p>
                         {m.progress?.complete
                           ? "你的第一句话，会成为这个故事的一部分。"
-                          : "剩余的生活与视觉准备会保留实际进度。"}
+                          : preparationBlocker
+                            ? `当前需要处理「${preparationBlocker.title}」；后续初始化将在恢复后继续。`
+                            : "其余初始化环节仍在准备，实际进度会继续保留。"}
                       </p>
                     </div>
                     <Button size="lg" asChild>
@@ -1367,7 +1405,7 @@ export default function CharacterWizardView({ model: m }) {
                           "#/c/" + encodeURIComponent(d.activatedId) + "/chat"
                         }
                       >
-                        {m.progress?.complete ? "去见" + name : "先开始相处"}
+                        {m.progress?.complete ? "去见" + name : "先前往聊天"}
                         <ArrowRight size={15} />
                       </a>
                     </Button>
@@ -1530,6 +1568,13 @@ export default function CharacterWizardView({ model: m }) {
           </div>
         </footer>
       )}
+      {selectedTask && <TaskRecordDialog
+        taskId={selectedTask.taskId}
+        returnTo={selectedTask.returnTo}
+        presentation="sheet"
+        returnFocus={() => taskTrigger.current}
+        onClose={() => setSelectedTask(null)}
+      />}
       <WorkspaceDialog
         open={!!m.recoveryReview}
         onOpenChange={(open) => {

@@ -7,6 +7,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ActionButton } from "@/react-app/controls";
 import { displayText, listValues, Fragment } from "@/react-app/render-helpers";
+function linkedTaskId(href) {
+  const match = /^#\/diag\/task\/([^/?#]+)$/.exec(href || "");
+  if (!match) return null;
+  try { return decodeURIComponent(match[1]) || null; } catch { return null; }
+}
 export default function PreparationSteps(input = {}) {
   const __props = {
     stages: [],
@@ -48,6 +53,7 @@ export default function PreparationSteps(input = {}) {
       >
         <Fragment>
           {listValues(__props.stages).map((stage) => {
+            const taskId = linkedTaskId(stage.href);
             return (
               <div
                 role="listitem"
@@ -129,7 +135,7 @@ export default function PreparationSteps(input = {}) {
                         </a>
                       </ActionButton>
                     ) : null}
-                    {stage.retryable && typeof __props.onRecover==='function' ? (
+                    {stage.retryable && stage.state !== 'blocked' && typeof __props.onRecover==='function' ? (
                       <ActionButton
                         variant={stage.state==='failed'?'default':'outline'}
                         key={1}
@@ -138,10 +144,15 @@ export default function PreparationSteps(input = {}) {
                         disabled={__props.busy}
                         onClick={($event) => __props.onRecover?.(stage)}
                       >
-                        {displayText(__props.busy ? "处理中…" : "恢复原任务")}
+                        {displayText(__props.busy ? "处理中…" : stage.state === "failed" ? "重试此环节" : "恢复原任务")}
                       </ActionButton>
                     ) : null}
-                    {stage.href ? (
+                    {taskId && typeof __props.onOpenTask === "function" ? (
+                      <ActionButton variant="ghost" type="button"
+                        onClick={(event) => __props.onOpenTask(taskId, event.currentTarget)}>
+                        {stage.linkLabel || "查看任务记录"}
+                      </ActionButton>
+                    ) : stage.href ? (
                       <ActionButton variant="ghost" asChild key={2}>
                         <a
                           key={2}

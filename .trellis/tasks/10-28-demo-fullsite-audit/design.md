@@ -35,3 +35,11 @@ coverage.json为完整数据源，coverage.md为可读索引；每行视觉/交�
 TaskRecordDialog负责wide尺寸、动态语义标题与单一弹窗滚动主体；TaskDetailPage去掉嵌套阅读卡层级，三页签与Demo一致，失败原因放执行阶段附近，完整来源在任务信息。WorkflowRecovery继续单独拥有allowed_actions/CAS/原请求/accepted围栏，当前保留原恢复区域，优先落实R14的调用数据主体。task-presentation只从同task/fid的正式衣柜result投影已确认阶段，生命周期payload.stage只作执行记录，不能当业务阶段。无阶段来源时如实说明，不编造百分比或时刻。只改该共享详情及必要测试/fixture/CSS，不新增后端恢复能力，不启用真实模型；截图仍仅在/tmp。
 
 用户R14优先：TaskDetail默认执行记录视图，其主要内容为按真实task.correlation_id查询model-runs的Request/Response/错误；复用diagnosticsClient.page的正式查询及原游标，不发无范围全局查询，不凭标题/时间猜关联。已记录请求与响应直接可读，不能用工作流JSON当作响应；未记录/未读取区分。保留已有阶段修正和宽弹窗。工作流事件与完整任务JSON移入任务信息的辅助披露；allowed_actions/原身份恢复仍由WorkflowRecovery负责。
+
+## r20实施边界
+
+创建源选项只在成功确认全目录为空时隐藏，加载/失败/已选择来源保留真实读取和恢复；展示日常世界不等于选择。失败准备用实际blocker说明，原有角色/世界可达性保留。PreparationSteps可通过可选回调原地打开TaskRecordDialog的Sheet呈现，复用TaskDetail与Request/Response/GET恢复。TaskModelCalls仅使用真实sequence/round_count/时间/状态作轮次汇总，不用列表索引假造轮次。
+
+Studio离开该创作访问范围时只清对应Owner/fixedKind的显示偏好，编辑/详情返回保留访问内状态；不清任何草稿/原命令。画像只解释明确已知scalar行，阅读上可合并同键同值并保留原文出现次数与完整原文，不改存储或跨记录合并业务事实。衣柜准备通过视图slot移到页头之后。Feed max-width先按原Demo证据判断，不任意铺满。KEV保留真实数值和开关；仅补总开关与媒体子选项的生效说明。数据页无可测本地健康不造“本地存储正常”。
+
+后端改动仅限衣柜失败原因直接路径：Provider角色查询缺行提供精确typed cause；模型前读取按实际失败阶段包装并保留原error链；普通noRows不能视作generic_llm缺失。返回已知业务code/reason，不触碰执行、恢复identity、提示词、队列或默认配置。历史原始错误不靠UI猜测真实原因。

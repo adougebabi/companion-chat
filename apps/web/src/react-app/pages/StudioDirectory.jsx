@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useWorkspace } from "../page";
+import { approvedRoute } from "@/approved-ui/routing.mjs";
 import useWorkspaceRead from "../shared/useWorkspaceRead";
 import StudioDirectoryView from "../views/StudioDirectory";
 import { studioDraftStorage } from "@/v3/proto/components/studio-draft-storage.js";
@@ -49,6 +50,18 @@ export default function StudioDirectory({ kind: fixedKind = "", route } = {}) {
       );
     } catch {}
   }, [owner, preferenceKey, search, query, kind, archived]);
+  // Only display preferences end with this directory visit. Frozen commands,
+  // working drafts and accepted receipts use separate storage keys.
+  useEffect(() => () => {
+    const current = approvedRoute(window.location.hash);
+    const withinVisit = !current.removed && !current.notFound && (
+      current.path === (fixedKind === "world" ? "/worlds" : "/studio") ||
+      current.feature?.page === "创作中心"
+    );
+    if (!withinVisit) {
+      try { sessionStorage.removeItem(preferenceKey); } catch {}
+    }
+  }, [preferenceKey, fixedKind]);
   useEffect(() => {
     active.current = true;
     return () => {

@@ -1,0 +1,434 @@
+[
+  {
+    "id": "R20-001",
+    "area": "世界页头",
+    "original": "r19页头复查",
+    "result": "保留已有修复；有角色运行世界和无角色创作底稿是不同数据范围",
+    "status": "已有修复",
+    "files": [
+      "apps/web/src/react-app/views/StudioDirectory.jsx"
+    ],
+    "browser_cases": [],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-002",
+    "area": "Studio筛选",
+    "original": "离开到角色库再回仍保留类型/查询/已归档",
+    "result": "新访问清对应Owner/fixedKind显示偏好；同Studio编辑返回保留，含editor→Library→Studio边界",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/App.tsx",
+      "apps/web/src/react-app/pages/StudioDirectory.jsx"
+    ],
+    "browser_cases": [
+      "studio"
+    ],
+    "action": "目录搜索、筛选、编辑返回；不清草稿/原命令",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-003",
+    "area": "新建资源徽标",
+    "original": "首次打开误报修改",
+    "result": "保留新资源尚未保存提示及原dirty/save保护",
+    "status": "已有修复",
+    "files": [
+      "apps/web/src/react-app/views/StudioEditor.jsx"
+    ],
+    "browser_cases": [],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-004",
+    "area": "高级默认来源",
+    "original": "空库显示默认连接",
+    "result": "保留系统默认尚未保存和连接技术入口；不冒充已保存服务",
+    "status": "按业务保留",
+    "files": [
+      "apps/web/src/react-app/shared/SettingsSections.jsx"
+    ],
+    "browser_cases": [
+      "settings-data-feed"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-005",
+    "area": "用途分配差异",
+    "original": "秒/可选/placeholder/24场景说明与Demo不同",
+    "result": "都是正式默认超时、可空用途和真实场景目录；保留可用能力，不改成示例绑定",
+    "status": "能力差异",
+    "files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "browser_cases": [],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-006",
+    "area": "数据导入导出",
+    "original": "正式设定包/维护备份不同于Demo浏览器快照",
+    "result": "保持真实导出范围、导入草稿及部署备份语义；不能声称完整本地工作区快照",
+    "status": "能力差异",
+    "files": [
+      "apps/web/src/v3-domain/data-tools.js"
+    ],
+    "browser_cases": [
+      "settings-data-feed"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-007",
+    "area": "本地存储徽标",
+    "original": "待确认是否显示本地存储正常",
+    "result": "保留中性工作区标识；无实际本地健康检测，不新增健康结论",
+    "status": "不添加虚假状态",
+    "files": [
+      "apps/web/src/v3-domain/data-tools.js"
+    ],
+    "browser_cases": [
+      "settings-data-feed"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-008",
+    "area": "诊断默认入口",
+    "original": "默认任务页和参数复查",
+    "result": "保留r19真实路由/任务默认/来源返回；本轮原地Sheet不再强制跳此页",
+    "status": "已有修复",
+    "files": [
+      "apps/web/src/react-app/shared/DiagnosticsWorkspace.jsx"
+    ],
+    "browser_cases": [],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-009",
+    "area": "空库世界来源",
+    "original": "两个空Tab出现且默认选中空源",
+    "result": "仅完整成功确认空目录才隐藏；日常卡不预选；加载/失败/游标/精确已选来源保留",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/pages/CharacterWizardPage.jsx",
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "browser_cases": [
+      "world-empty",
+      "world-read-failure"
+    ],
+    "action": "显式选择才启用下一步；保留新建世界入口",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-010",
+    "area": "晚到世界目录",
+    "original": "空库fallback后新角色或源读取失败可能不显",
+    "result": "区分自动fallback与用户显式Tab选择，晚到失败恢复对应来源展示",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "browser_cases": [
+      "world-read-failure"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-011",
+    "area": "空白输入与独立世界",
+    "original": "第2步校验/第4步创建一独立世界",
+    "result": "保持名字必填；本轮受控实际激活一次、world写一次、无analysis",
+    "status": "补验",
+    "files": [
+      "apps/web/src/state/creation-controller.mjs"
+    ],
+    "browser_cases": [
+      "creation-context",
+      "creation-rounds"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-012",
+    "area": "导入JSON第3步",
+    "original": "r20空白路径无法复查生活/关系",
+    "result": "另走真实JSON输入与预览组件，三视口核对中文衣物/关系量表和原始字段未改",
+    "status": "补验",
+    "files": [
+      "apps/web/src/react-app/shared/SemanticTree.jsx"
+    ],
+    "browser_cases": [],
+    "action": "evidence/r19/r20-preview-return2-after/report.json",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-013",
+    "area": "失败提示",
+    "original": "一律检查模型服务，裸noRows没有实际阶段",
+    "result": "精确typed角色缺绑定、配置读取失败、模型前数据读取阶段分别给业务code/reason；未知原因中性，不猜历史裸SQL根因",
+    "status": "修复",
+    "files": [
+      "apps/core-go/internal/core/provider.go",
+      "apps/core-go/internal/core/wardrobe_preparation.go",
+      "apps/core-go/internal/core/wardrobe_preparation_failure.go",
+      "apps/web/src/approved-ui/task-presentation.mjs",
+      "apps/web/src/approved-ui/wardrobe-preparation.mjs"
+    ],
+    "browser_cases": [
+      "creation-context"
+    ],
+    "action": "查看原任务/阶段或对应配置后重试",
+    "backend_change": true,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-014",
+    "area": "配置入口错误归因",
+    "original": "字符串provider unavailable可能覆盖已保存准确原因",
+    "result": "稳定code/reason优先；普通DB/配置读取失败不再给缺用途提示及无关配置按钮",
+    "status": "修复",
+    "files": [
+      "apps/web/src/approved-ui/task-presentation.mjs",
+      "apps/web/src/approved-ui/wardrobe-preparation.mjs"
+    ],
+    "browser_cases": [
+      "creation-context"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": true,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-015",
+    "area": "失败重试入口",
+    "original": "按钮只叫恢复原任务",
+    "result": "支持失败阶段明确重试此环节，仍调用原恢复dispatcher；实测revision+幂等键仅一次POST，不重激活",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/shared/PreparationSteps.jsx"
+    ],
+    "browser_cases": [
+      "creation-rounds"
+    ],
+    "action": "重试此环节；原accepted/unknown身份恢复保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-016",
+    "area": "跳过初始化",
+    "original": "报告希望失败有跳过",
+    "result": "正式顺序/恢复API不支持任意跳过；不添加假按钮，阻塞未启动环节无独立重试",
+    "status": "能力差异",
+    "files": [
+      "apps/web/src/state/creation-controller.mjs"
+    ],
+    "browser_cases": [
+      "creation-context",
+      "creation-rounds"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-017",
+    "area": "任务记录容器",
+    "original": "创建页跳诊断再弹模态",
+    "result": "原地址原地打开Sheet；复用TaskDetail和LLM Request/Response；可Escape返回原触发点",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/shared/PreparationSteps.jsx",
+      "apps/web/src/react-app/shared/TaskRecordDialog.tsx",
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "browser_cases": [
+      "creation-context",
+      "creation-rounds"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-018",
+    "area": "调用轮次与输入输出",
+    "original": "旧版只看工作流JSON，没有轮次摘要",
+    "result": "承接e1默认Request/Response，追加真实sequence/round_count/阶段/状态/模型/耗时及已读取计数；缺数据不编造轮次",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/shared/TaskModelCalls.tsx",
+      "apps/web/src/approved-ui/task-model-call-presentation.mjs"
+    ],
+    "browser_cases": [
+      "creation-rounds"
+    ],
+    "action": "原关联GET刷新/分页重试和完整调用引用",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-019",
+    "area": "初始化完成文案",
+    "original": "2/7失败仍说可以开始相处",
+    "result": "说明角色与世界已建立但初始化仍需处理，指出实际阻塞；保留已确认世界后的聊天入口",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "browser_cases": [
+      "creation-context",
+      "creation-rounds"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-020",
+    "area": "表达画像",
+    "original": "已知英文键/枚举泄漏并重复",
+    "result": "只解释声明的标量行，中文标签/值；同键同值阅读合并并保留原文出现次数，不同值/未知/正文及完整原文保留",
+    "status": "修复",
+    "files": [
+      "apps/web/src/approved-ui/profile-presentation.mjs",
+      "apps/web/src/react-app/views/CharacterDetailPage.jsx"
+    ],
+    "browser_cases": [
+      "profile"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-021",
+    "area": "内部错误与标识",
+    "original": "workflow JSON占主要诊断内容且吞掉具体原因",
+    "result": "默认主体为真实调用；workflow原始记录仅技术披露。新失败保存精确步骤原因；历史裸SQL不追溯猜测",
+    "status": "修复/历史根因未核实",
+    "files": [
+      "apps/web/src/react-app/shared/TaskModelCalls.tsx",
+      "apps/core-go/internal/core/wardrobe_preparation_failure.go"
+    ],
+    "browser_cases": [
+      "creation-context",
+      "creation-rounds"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": true,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-022",
+    "area": "衣柜顺序",
+    "original": "准备卡在页头之前",
+    "result": "视图slot放到实际页头后；失败/读取恢复不隐藏",
+    "status": "修复",
+    "files": [
+      "apps/web/src/react-app/pages/WardrobePage.jsx",
+      "apps/web/src/react-app/views/WardrobePage.jsx"
+    ],
+    "browser_cases": [
+      "wardrobe"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-023",
+    "area": "动态右侧留白",
+    "original": "内容未铺满约128px",
+    "result": "真实computed max-width和gutter与固定Demo同视口一致，保留1110/1220+280右栏+25间距",
+    "status": "符合Demo",
+    "files": [
+      "apps/web/src/styles/replica-feed.css"
+    ],
+    "browser_cases": [
+      "settings-data-feed"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-024",
+    "area": "高级数值/开关",
+    "original": "Demo .65/.15与正式0、总关/子开不同",
+    "result": "不改正式阈值/连接；明确媒体补充选择已保留、启用总开关后生效",
+    "status": "说明修复/默认保留",
+    "files": [
+      "apps/web/src/react-app/shared/SettingsSections.jsx"
+    ],
+    "browser_cases": [
+      "settings-data-feed"
+    ],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  },
+  {
+    "id": "R20-025",
+    "area": "全站抽样边界",
+    "original": "其他依赖角色页面只抽样",
+    "result": "保留已有177行矩阵及待验状态；本轮不凭767测试或30案例宣称全站逐页验收完成",
+    "status": "保留未验范围",
+    "files": [
+      "coverage.json"
+    ],
+    "browser_cases": [],
+    "action": "原实际操作保留",
+    "backend_change": false,
+    "recovery_lifetime": "按真实目录/阶段/命令/读回状态更新，不以关闭提示改变任务",
+    "evidence_boundary": "正式构建+受控HTTP；Core错误分类另有纯/race测试；不代表真实模型/数据库闭环"
+  }
+]

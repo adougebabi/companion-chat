@@ -155,3 +155,8 @@ F79：深层反馈继续发现的同事件重复确认与聊天固定红色覆�
 ## 任务详情LLM调用主体修复（2026-10-30）
 
 旧任务详情把设施stage/name误当业务阶段，且默认展示工作流事件而非用户需要的LLM请求/响应。修复作用于TaskDetailPage/TaskRecordDialog/TaskModelCalls及task-presentation局部映射；原始Request/Response/调用错误直接阅读，原工作流数据次级保留，真实恢复不变。详细触发、根因、范围与21+3条浏览器/748全量证据见[task-llm-acceptance.md](task-llm-acceptance.md)。
+
+
+## r20 回归修复
+
+新增创建源authority/原地任务Sheet/真实调用轮次、准确失败code与恢复入口、Studio访问边界、画像中文与读取次数、衣柜准备顺序。Feed留白/正式数据备份/真实KEV默认/无跳过API逐项明确。文件/触发/动作/恢复及三视口证据见[r20-acceptance.md](r20-acceptance.md)和[r20-issues.json](r20-issues.json)，不是全站完成。

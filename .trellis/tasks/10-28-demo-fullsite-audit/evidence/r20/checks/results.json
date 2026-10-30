@@ -1,0 +1,30 @@
+{
+  "web": {
+    "passed": 767,
+    "failed": 0,
+    "skipped": 0
+  },
+  "typecheck": "passed",
+  "production_build": {
+    "passed": true,
+    "local_modules": 384,
+    "fixture_guard": "passed",
+    "react_only": "passed"
+  },
+  "browser": {
+    "r20_unique_cases": 24,
+    "json_and_config_return": 6,
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ]
+  },
+  "core_owned_snapshot": {
+    "race_passed": 6,
+    "skipped": 2,
+    "boundary": "staged r20 diff over e9287580; independent prompt changes preserved without r20 prompt modifications; PG skips not acceptance",
+    "base_commit": "e9287580c1af7a2824a8414c2f8c2c50333e7ff8"
+  },
+  "review": "two scoped independent reviewers; final cause-heuristic and assignment-read boundary fixes verified by added pure tests and full Web/race checks"
+}

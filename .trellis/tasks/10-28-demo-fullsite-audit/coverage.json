@@ -7288,6 +7288,50 @@
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
           }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:profile:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "known expression fields are translated and repeated values remain counted",
+              "chinese-portrait: no horizontal overflow",
+              "full portrait still contains original raw records",
+              "portrait reading never writes",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:profile:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 13,
+            "checks": [
+              "known expression fields are translated and repeated values remain counted",
+              "chinese-portrait: no horizontal overflow",
+              "full portrait still contains original raw records",
+              "portrait reading never writes",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:profile:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 21,
+            "checks": [
+              "known expression fields are translated and repeated values remain counted",
+              "chinese-portrait: no horizontal overflow",
+              "full portrait still contains original raw records",
+              "portrait reading never writes",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
         ]
       }
     },
@@ -13152,6 +13196,59 @@
             ],
             "recorded_assertions": "read failure exposes a recovery action; recovery reads the original domain endpoint; no document horizontal overflow; no uncaught browser exception",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:settings-data-feed:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 7,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:settings-data-feed:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:settings-data-feed:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 23,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
           }
         ]
       }
@@ -30716,6 +30813,59 @@
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:settings-data-feed:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 7,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:settings-data-feed:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:settings-data-feed:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 23,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
         ]
       }
     },
@@ -32739,6 +32889,149 @@
             ],
             "boundary": "正式构建+受控HTTP，只证明具体UI/只读请求；不提升整行或真实模型验收。"
           }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:creation-context:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
         ]
       }
     },
@@ -33541,6 +33834,83 @@
             ],
             "boundary": "正式构建+受控HTTP，只证明具体UI/只读请求；不提升整行或真实模型验收。"
           }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:creation-rounds:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
         ]
       }
     },
@@ -34279,6 +34649,59 @@
               "no uncaught browser exceptions"
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:settings-data-feed:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 7,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:settings-data-feed:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:settings-data-feed:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 23,
+            "checks": [
+              "actual master child and threshold values remain unchanged",
+              "advanced-effective-state: no horizontal overflow",
+              "data page does not fabricate local storage health",
+              "truthful-data: no horizontal overflow",
+              "feed intentional max-width and gutter match immutable Demo",
+              "feed-matches-source: no horizontal overflow",
+              "settings and data review do not save defaults",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
           }
         ]
       }
@@ -35255,7 +35678,108 @@
           "accepted_is_not_completed"
         ],
         "issue_records": [],
-        "legacy_state_evidence": []
+        "legacy_state_evidence": [],
+        "r20_observations": [
+          {
+            "key": "r20:world-empty:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-read-failure:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "loading-retained: no horizontal overflow",
+              "failed source stays visible and cannot masquerade as empty",
+              "failed-retained: no horizontal overflow",
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-empty:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-read-failure:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "loading-retained: no horizontal overflow",
+              "failed source stays visible and cannot masquerade as empty",
+              "failed-retained: no horizontal overflow",
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-empty:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 16,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-read-failure:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 17,
+            "checks": [
+              "loading-retained: no horizontal overflow",
+              "failed source stays visible and cannot masquerade as empty",
+              "failed-retained: no horizontal overflow",
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
+        ]
       }
     },
     {
@@ -35451,6 +35975,107 @@
             ],
             "recorded_assertions": "wrong immutable version never silently becomes latest; wrong-version: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:world-empty:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-read-failure:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "loading-retained: no horizontal overflow",
+              "failed source stays visible and cannot masquerade as empty",
+              "failed-retained: no horizontal overflow",
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-empty:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-read-failure:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "loading-retained: no horizontal overflow",
+              "failed source stays visible and cannot masquerade as empty",
+              "failed-retained: no horizontal overflow",
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-empty:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 16,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-read-failure:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 17,
+            "checks": [
+              "loading-retained: no horizontal overflow",
+              "failed source stays visible and cannot masquerade as empty",
+              "failed-retained: no horizontal overflow",
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
           }
         ]
       }
@@ -35966,6 +36591,53 @@
               "no uncaught browser exceptions"
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:world-empty:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-empty:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:world-empty:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 16,
+            "checks": [
+              "confirmed empty sources have no empty tab",
+              "daily source is presented without selection or mutation",
+              "world authoring stays reachable",
+              "empty-daily: no horizontal overflow",
+              "only explicit local choice enables Next",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
           }
         ]
       }
@@ -38807,6 +39479,65 @@
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
+        ],
+        "r20_extra_observations": [
+          {
+            "key": "r20-extra:preview-chinese:wide",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:preview-chinese:desktop",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:preview-chinese:mobile",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          }
         ]
       }
     },
@@ -39189,6 +39920,65 @@
               "no uncaught browser exceptions"
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
+        ],
+        "r20_extra_observations": [
+          {
+            "key": "r20-extra:preview-chinese:wide",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:preview-chinese:desktop",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:preview-chinese:mobile",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
           }
         ]
       }
@@ -39622,6 +40412,65 @@
               "no uncaught browser exceptions"
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
+        ],
+        "r20_extra_observations": [
+          {
+            "key": "r20-extra:preview-chinese:wide",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:preview-chinese:desktop",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:preview-chinese:mobile",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "selecting a daily world never creates it",
+              "life: no horizontal overflow",
+              "wardrobe-details: no horizontal overflow",
+              "relations: no horizontal overflow",
+              "relation-details: no horizontal overflow",
+              "relation metrics are readable Chinese percentages",
+              "wardrobe metadata uses Chinese terms",
+              "display never rewrites the original field types or values",
+              "preview never activates or creates a character",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
           }
         ]
       }
@@ -40424,6 +41273,74 @@
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:creation-context:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
         ]
       }
     },
@@ -41012,6 +41929,149 @@
             "recorded_assertions": "authority-state: no horizontal overflow; one source state does not erase all other confirmations; image failure preserves completed non-image preparation; original source reread confirms all seven stages; source recovery never repeats activation; read-recovered: no horizontal overflow; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:creation-context:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
         ]
       }
     },
@@ -41223,6 +42283,202 @@
               "no uncaught browser exceptions"
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:creation-context:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:wide",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:desktop",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-context:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:creation-rounds:mobile",
+            "source_report": "evidence/r20/r20-retry-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to real model records",
+              "real physical call summaries include rounds status and measured time",
+              "request and response are directly present",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "local task reads retain exact correlation",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
+        ],
+        "r20_extra_observations": [
+          {
+            "key": "r20-extra:blank-initialization:wide",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "initialization task opens its local Sheet without leaving the original route",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:blank-initialization:desktop",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "initialization task opens its local Sheet without leaving the original route",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          },
+          {
+            "key": "r20-extra:blank-initialization:mobile",
+            "source_report": "evidence/r19/r20-preview-return2-after/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "world choice remains local before activation",
+              "initial-failure: no horizontal overflow",
+              "blank activation keeps one request and skips analysis",
+              "initialization task opens its local Sheet without leaving the original route",
+              "returning preserves the failed preparation and never reactivates",
+              "only activation and original world initialization can write",
+              "returned-original: no horizontal overflow",
+              "no uncaught browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
           }
         ]
       }
@@ -47479,6 +48735,47 @@
             "recorded_assertions": "create: no horizontal overflow; create: dialog fits viewport; unknown-new-draft: no horizontal overflow; unknown-new-draft: dialog fits viewport; new garment draft survives original retry; same original payload/key replayed once; unknown replay creates one original item; recovered: no horizontal overflow; recovered: dialog fits viewport; clothing registration never implies wearing; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
           }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:wardrobe:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "preparation follows the actual wardrobe heading in DOM and geometry",
+              "heading-before-preparation: no horizontal overflow",
+              "failure and real reread remain available",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:wardrobe:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 14,
+            "checks": [
+              "preparation follows the actual wardrobe heading in DOM and geometry",
+              "heading-before-preparation: no horizontal overflow",
+              "failure and real reread remain available",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:wardrobe:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 22,
+            "checks": [
+              "preparation follows the actual wardrobe heading in DOM and geometry",
+              "heading-before-preparation: no horizontal overflow",
+              "failure and real reread remain available",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          }
         ]
       }
     },
@@ -49641,6 +50938,53 @@
               "no uncaught browser exceptions"
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
+          }
+        ],
+        "r20_observations": [
+          {
+            "key": "r20:studio:wide",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "filters: no horizontal overflow",
+              "same-visit editor return preserves filters",
+              "editor leave then fresh Studio entry resets type query archived",
+              "fresh-entry: no horizontal overflow",
+              "directory navigation does not write business data",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:studio:desktop",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 12,
+            "checks": [
+              "filters: no horizontal overflow",
+              "same-visit editor return preserves filters",
+              "editor leave then fresh Studio entry resets type query archived",
+              "fresh-entry: no horizontal overflow",
+              "directory navigation does not write business data",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
+          },
+          {
+            "key": "r20:studio:mobile",
+            "source_report": "evidence/r20/r20-final/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "filters: no horizontal overflow",
+              "same-visit editor return preserves filters",
+              "editor leave then fresh Studio entry resets type query archived",
+              "fresh-entry: no horizontal overflow",
+              "directory navigation does not write business data",
+              "no browser exceptions"
+            ],
+            "status": "已观察并定向验证",
+            "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
           }
         ]
       }
@@ -55961,5 +57305,14 @@
     "cases": 21,
     "initialization_return": "evidence/r19/task-llm-return-after/report.json",
     "note": "R14取代此详情旧的工作流事件主体；保留原全站状态，任务in_progress。"
+  },
+  "r20_increment": {
+    "report": "r20-acceptance.md",
+    "issues": "r20-issues.json",
+    "browser": "evidence/r20-browser-index.json",
+    "observed_rows": 14,
+    "before_capture": "evidence/r20-before-index.json",
+    "extra": "evidence/r19/r20-preview-return2-after/report.json",
+    "note": "保留177行全部历史与未验状态，图片仅本地；不能用767测试换算全站完成。"
   }
 }

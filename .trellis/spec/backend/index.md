@@ -18,6 +18,7 @@ failure, private media no-progress handling, segment admission and browser recov
 
 | Guide | Use it for |
 | --- | --- |
+| [Wardrobe Failure Feedback](./wardrobe-failure-feedback-contract.md) | Exact model assignment and pre-model context failure causes, truthful UI recovery guidance |
 | [LLM Prompt Composition](./prompt-composition-contract.md) | Required for every model input: one JSON format, task-specific fields, exact deduplication, history authority and prohibition on restoring prompt/response token limits |
 | [Owner Schedule / Story Contracts](./owner-schedule-story-contract.md) | Durable non-overwriting schedule requests, accepted-promise associations and authoritative read-only story totals |
 | [Directory Structure](./directory-structure.md) | Adding routes, helpers, or runtime assets |

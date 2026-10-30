@@ -1,0 +1,983 @@
+[
+  {
+    "name": "world-empty",
+    "size": "wide",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/world-empty-wide-empty-source-tabs.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "empty-source-tabs: no horizontal overflow",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "studio",
+    "size": "wide",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/studio-wide-filters.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/studio-wide-fresh-entry.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "filters: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "same-visit editor return preserves filters",
+        "value": true
+      },
+      {
+        "label": "editor leave then fresh Studio entry resets type query archived",
+        "value": false
+      },
+      {
+        "label": "fresh-entry: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "directory navigation does not write business data",
+        "value": true
+      },
+      {
+        "label": "no browser exceptions",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "profile",
+    "size": "wide",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/profile-wide-chinese-portrait.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "known expression fields are translated and repeated values remain counted",
+        "value": false
+      },
+      {
+        "label": "chinese-portrait: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "full portrait still contains original raw records",
+        "value": true
+      },
+      {
+        "label": "portrait reading never writes",
+        "value": true
+      },
+      {
+        "label": "no browser exceptions",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "wardrobe",
+    "size": "wide",
+    "status": "failed",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/wardrobe-wide-failure.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "error": "locator.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')\n    at eval (eval at evaluate (:370:30), <anonymous>:1:139)\n    at UtilityScript.evaluate (<anonymous>:372:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r20-ui.mjs:50:437",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\n\n已完成 0 / 1 个准备环节\n\n初始衣柜\n失败\n初始衣柜准备在调用模型前读取当前人格失败，原资料和已完成步骤仍保留。\n去配置中心\n恢复原任务\n查看任务记录\n重新读取准备状态\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n上衣\n青绿棉质上衣\n春\n秋\n正在穿\n下衣\n宽松长裤\n春\n秋\n正在穿\n内衣\n柔软内衣\n春\n秋\n正在穿\n内裤\n棉质内裤\n春\n秋\n正在穿\n袜子\n短袜\n春\n秋\n正在穿\n鞋子\n平底鞋\n春\n秋\n配饰\n银色项链\n春\n秋\n配饰\n简约手链\n春\n秋\n外套\n薄外套\n春\n秋",
+    "before_observations": [
+      {
+        "label": "failure: no horizontal overflow",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "world-empty",
+    "size": "desktop",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/world-empty-desktop-empty-source-tabs.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "empty-source-tabs: no horizontal overflow",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "studio",
+    "size": "desktop",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/studio-desktop-filters.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/studio-desktop-fresh-entry.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "filters: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "same-visit editor return preserves filters",
+        "value": true
+      },
+      {
+        "label": "editor leave then fresh Studio entry resets type query archived",
+        "value": false
+      },
+      {
+        "label": "fresh-entry: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "directory navigation does not write business data",
+        "value": true
+      },
+      {
+        "label": "no browser exceptions",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "profile",
+    "size": "desktop",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/profile-desktop-chinese-portrait.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "known expression fields are translated and repeated values remain counted",
+        "value": false
+      },
+      {
+        "label": "chinese-portrait: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "full portrait still contains original raw records",
+        "value": true
+      },
+      {
+        "label": "portrait reading never writes",
+        "value": true
+      },
+      {
+        "label": "no browser exceptions",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "wardrobe",
+    "size": "desktop",
+    "status": "failed",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/wardrobe-desktop-failure.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "error": "locator.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')\n    at eval (eval at evaluate (:370:30), <anonymous>:1:139)\n    at UtilityScript.evaluate (<anonymous>:372:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r20-ui.mjs:50:437",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林岚 · 验收样本\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\n\n已完成 0 / 1 个准备环节\n\n初始衣柜\n失败\n初始衣柜准备在调用模型前读取当前人格失败，原资料和已完成步骤仍保留。\n去配置中心\n恢复原任务\n查看任务记录\n重新读取准备状态\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n上衣\n青绿棉质上衣\n春\n秋\n正在穿\n下衣\n宽松长裤\n春\n秋\n正在穿\n内衣\n柔软内衣\n春\n秋\n正在穿\n内裤\n棉质内裤\n春\n秋\n正在穿\n袜子\n短袜\n春\n秋\n正在穿\n鞋子\n平底鞋\n春\n秋\n配饰\n银色项链\n春\n秋\n配饰\n简约手链\n春\n秋\n外套\n薄外套\n春\n秋",
+    "before_observations": [
+      {
+        "label": "failure: no horizontal overflow",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "world-empty",
+    "size": "mobile",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/world-empty-mobile-empty-source-tabs.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "empty-source-tabs: no horizontal overflow",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "studio",
+    "size": "mobile",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/studio-mobile-filters.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/studio-mobile-fresh-entry.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "filters: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "same-visit editor return preserves filters",
+        "value": true
+      },
+      {
+        "label": "editor leave then fresh Studio entry resets type query archived",
+        "value": false
+      },
+      {
+        "label": "fresh-entry: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "directory navigation does not write business data",
+        "value": true
+      },
+      {
+        "label": "no browser exceptions",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "profile",
+    "size": "mobile",
+    "status": "captured",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/profile-mobile-chinese-portrait.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "before_observations": [
+      {
+        "label": "known expression fields are translated and repeated values remain counted",
+        "value": false
+      },
+      {
+        "label": "chinese-portrait: no horizontal overflow",
+        "value": true
+      },
+      {
+        "label": "full portrait still contains original raw records",
+        "value": true
+      },
+      {
+        "label": "portrait reading never writes",
+        "value": true
+      },
+      {
+        "label": "no browser exceptions",
+        "value": true
+      }
+    ]
+  },
+  {
+    "name": "wardrobe",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r20-before/wardrobe-mobile-failure.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes",
+    "error": "locator.evaluate: TypeError: Cannot read properties of null (reading 'getBoundingClientRect')\n    at eval (eval at evaluate (:370:30), <anonymous>:1:139)\n    at UtilityScript.evaluate (<anonymous>:372:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r20-ui.mjs:50:437",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\n\n已完成 0 / 1 个准备环节\n\n初始衣柜\n失败\n初始衣柜准备在调用模型前读取当前人格失败，原资料和已完成步骤仍保留。\n去配置中心\n恢复原任务\n查看任务记录\n重新读取准备状态\nWARDROBE / WORN WITH A STORY\n林岚 · 验收样本的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n青绿棉质上衣 · 宽松长裤 · 柔软内衣 · 棉质内裤 · 短袜 · 平底鞋\n\n当前穿着\n全部衣服\n9\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n正在穿\n上衣\n青绿棉质上衣\n春\n秋\n正在穿\n下衣\n宽松长裤\n春\n秋\n正在穿\n内衣\n柔软内衣\n春\n秋\n正在穿\n内裤\n棉质内裤\n春\n秋\n正在穿\n袜子\n短袜\n春\n秋\n正在穿\n鞋子\n平底鞋\n春\n秋\n配饰\n银色项链\n春\n秋\n配饰\n简约手链\n春\n秋\n外套\n薄外套\n春\n秋",
+    "before_observations": [
+      {
+        "label": "failure: no horizontal overflow",
+        "value": true
+      }
+    ]
+  }
+]
