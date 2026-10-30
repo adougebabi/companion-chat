@@ -1,0 +1,631 @@
+{
+  "policy": "External local screenshots only. No image files in Git.",
+  "images": [
+    {
+      "case": "tasks",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-wide-app-list.png",
+      "sha256": "9e739bef646ebccefc80f295ac2aba29a37c2c6148df9d563de3a4534ace967a"
+    },
+    {
+      "case": "tasks",
+      "size": "wide",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-wide-demo-list.png",
+      "sha256": "6fa5f9d217b10857d45de4fed876f6a046ba5cd574cf7fa09dd793d10b9ff655"
+    },
+    {
+      "case": "task-details",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-app-progress.png",
+      "sha256": "822da884ea77f95fb26a89044116e97847ed401dbd4d42ab6246f2a6839587b0"
+    },
+    {
+      "case": "task-details",
+      "size": "wide",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-demo-progress.png",
+      "sha256": "01c3a8c65a82b932107bb7ee61e7b61a35c100a0d0f9a490a504d8dd46428cda"
+    },
+    {
+      "case": "task-details",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-app-执行记录.png",
+      "sha256": "4218640020a15c4cae2c553c54a41a109f27f0586040badea627c0d4f7755117"
+    },
+    {
+      "case": "task-details",
+      "size": "wide",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-demo-执行记录.png",
+      "sha256": "fddfe8679cb393c5a4c1595ebcc226ad1e75b21db6c74f75033b3f54bca4cabc"
+    },
+    {
+      "case": "task-details",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-app-任务信息.png",
+      "sha256": "a031b7d310bc06a6f26392988639c9d117d483ab643c44e9124ac95a4de6a4dd"
+    },
+    {
+      "case": "task-details",
+      "size": "wide",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-demo-任务信息.png",
+      "sha256": "1efd9a4f34193345f4916ea384153d4669d090b47b4275dc5876bdbe9aafb9e8"
+    },
+    {
+      "case": "task-details",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-footer-pinned.png",
+      "sha256": "b6c5684918ac48daf281c8bf730bb32764c8b4f70ed8995301ac0f9ecc4cf89c"
+    },
+    {
+      "case": "calls",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/calls-wide-app-list.png",
+      "sha256": "d2d85fd9d14f4ecfd4af02e057aa166272058dbf11d05b8c63db39f20255683c"
+    },
+    {
+      "case": "calls",
+      "size": "wide",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/calls-wide-demo-list.png",
+      "sha256": "1224f469630052de1d9d66274e5fddbb539f0e230d56695fcf0dae1eb52864de"
+    },
+    {
+      "case": "call-detail",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-wide-app-detail.png",
+      "sha256": "0c78653dc6b75a24979d1e8bd054b6d6ddf4150d99cd63c6b7f4583442bc3c0e"
+    },
+    {
+      "case": "call-detail",
+      "size": "wide",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-wide-demo-detail.png",
+      "sha256": "5d42a9a71207864a5bced597a842ea5ea48cccd4d2f8780a05de5b2401c4979a"
+    },
+    {
+      "case": "health",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-wide-app-health.png",
+      "sha256": "b446835ab05a718f3e1f03787f458bbd8d20f6352a2658688f52a8269c2a5c71"
+    },
+    {
+      "case": "health",
+      "size": "wide",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-wide-demo-health.png",
+      "sha256": "7875c603ff98fd2ce5854b328fb39cfcb8c27ced9605f1f5410a394591d2d9c4"
+    },
+    {
+      "case": "health",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-wide-actual-test-receipt.png",
+      "sha256": "c88a9b20afd47c08f86b34dbc6bbcae6b632a7b393b427607d5174a9dd189fb9"
+    },
+    {
+      "case": "empty",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-wide-empty-tasks.png",
+      "sha256": "4fd90fc348858b8df19a598203f58b31dfee99b0d40f54f572285f46b4f4e5f7"
+    },
+    {
+      "case": "empty",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-wide-empty-calls.png",
+      "sha256": "810d8c6e835827b524223e06c1effda93ae15dc78fff724daafdac2560b31fa3"
+    },
+    {
+      "case": "empty",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-wide-empty-health.png",
+      "sha256": "3a067e9183978b245e96a1d26b5a02affa6b030c10e45ffae34d93a409e5442e"
+    },
+    {
+      "case": "read-failure",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/read-failure-wide-calls-after-initial-failure.png",
+      "sha256": "221039ad03cc0c5afe59980540cdc4c5b9b03eebec74c42d0eb059f953cdd5dd"
+    },
+    {
+      "case": "recovery",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/recovery-wide-accepted-not-complete.png",
+      "sha256": "a89d3f3ff82a415d3603b98edccc3f8e40073e51bc18b46587c035286a8094a8"
+    },
+    {
+      "case": "scoped-link",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/scoped-link-wide-task-to-calls.png",
+      "sha256": "f8c5c86852f94e5beb57188c86a410893477f881b6308dc7fc5d815a56d73290"
+    },
+    {
+      "case": "creation-sheet",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/creation-sheet-wide-local-task-sheet.png",
+      "sha256": "db53695aa404728b353c84965f5a32a8164b1dd3799cee180d8cc042cf1e7578"
+    },
+    {
+      "case": "tasks",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-desktop-app-list.png",
+      "sha256": "aa1ce9d9a872ada4cee12d3a7f7994d4c7c29afc31b36ec534c053e1d96ffb10"
+    },
+    {
+      "case": "tasks",
+      "size": "desktop",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-desktop-demo-list.png",
+      "sha256": "ab893bb29bf6bdb4420d3921c84fcde9ab595e8703a585d516373959699837eb"
+    },
+    {
+      "case": "task-details",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-desktop-app-progress.png",
+      "sha256": "13ed69f063f498ee5a4115f34c0136ef45844c24a55c0e6c54083ee8d3278c81"
+    },
+    {
+      "case": "task-details",
+      "size": "desktop",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-desktop-demo-progress.png",
+      "sha256": "99f0d5f0454d9012268c5278a74798356c8a3de38f51097b2f6189b22747c8cc"
+    },
+    {
+      "case": "task-details",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-desktop-app-执行记录.png",
+      "sha256": "65893b10caf6e61d84e93a5aa463c21fd6e72895b3a84a29bd7e4391096f8758"
+    },
+    {
+      "case": "task-details",
+      "size": "desktop",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-desktop-demo-执行记录.png",
+      "sha256": "2145f6d4eee081abf3ee55d473af42f4f7902edfd8eecec1b37cbb2ad1a727da"
+    },
+    {
+      "case": "task-details",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-desktop-app-任务信息.png",
+      "sha256": "d3d1edb1a17ce99b2d01d48058582468c7377d187f62a025a093a9e1124ead86"
+    },
+    {
+      "case": "task-details",
+      "size": "desktop",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-desktop-demo-任务信息.png",
+      "sha256": "2c0ad3cb6dba1248d9b83796ab042441daffab94764d4ea884f74cf57aa3b936"
+    },
+    {
+      "case": "task-details",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-desktop-footer-pinned.png",
+      "sha256": "c40cc8764d49cb6b1b3dbe7dd2b5ed4b0dd4cc862797c88654148f71bf4b7413"
+    },
+    {
+      "case": "calls",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/calls-desktop-app-list.png",
+      "sha256": "014ef20f2de60d6f741b33580ec474a93ab4e3313d1f0460ab15bc21543ee602"
+    },
+    {
+      "case": "calls",
+      "size": "desktop",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/calls-desktop-demo-list.png",
+      "sha256": "bdb51a8a3db73c422aa96e389a5cd395c1741e43b23d75a04d8e9468bccc04b5"
+    },
+    {
+      "case": "call-detail",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-desktop-app-detail.png",
+      "sha256": "e2a1b1c0f1b83ad24c3105f506e85891c3cb53be39e6f03f3be254512bbc2f4a"
+    },
+    {
+      "case": "call-detail",
+      "size": "desktop",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-desktop-demo-detail.png",
+      "sha256": "219bbddac501736c816ac777d94cdd643e1da46c5a94c095f26a40d55275045b"
+    },
+    {
+      "case": "health",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-desktop-app-health.png",
+      "sha256": "1ed75389f22bc76800813d68e554c661289c11db9a661b16fb52d513cd3b7de9"
+    },
+    {
+      "case": "health",
+      "size": "desktop",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-desktop-demo-health.png",
+      "sha256": "cfced07ad6e9175bc35180ff8e1d3f32b3210efdf2a5181ebd5fc3fb72efa100"
+    },
+    {
+      "case": "health",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-desktop-actual-test-receipt.png",
+      "sha256": "e1afb44d000642bd85ef39d3a8f0bd68d28bf2f6f84a69408f40049d5ab524db"
+    },
+    {
+      "case": "empty",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-desktop-empty-tasks.png",
+      "sha256": "caf12c86989249df544ac362ed516d3143f078f034dc8dbb1e01ac598c2d7267"
+    },
+    {
+      "case": "empty",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-desktop-empty-calls.png",
+      "sha256": "05ab722924f21408fa9f0002c375e1084ac9da6e76238c7d766f4689774fa62c"
+    },
+    {
+      "case": "empty",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-desktop-empty-health.png",
+      "sha256": "2f6490016aa2fea148afa9b946b43873c90b8f911007d7e28ebff6e75bf1c074"
+    },
+    {
+      "case": "read-failure",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/read-failure-desktop-calls-after-initial-failure.png",
+      "sha256": "764b6890ab7ab8167a09413e2cfcd640b0810da2b2003982471cbb58efe3cf0e"
+    },
+    {
+      "case": "recovery",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/recovery-desktop-accepted-not-complete.png",
+      "sha256": "bd501c76c136a4e0aeaae2fe38769dc0f3a3224304763784181371e88f3f6187"
+    },
+    {
+      "case": "scoped-link",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/scoped-link-desktop-task-to-calls.png",
+      "sha256": "fb5c51af2ffa52398608b06a1a355c9dbc193140f03b80f06c8ddc322d908d77"
+    },
+    {
+      "case": "creation-sheet",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/creation-sheet-desktop-local-task-sheet.png",
+      "sha256": "14b912aeb97a8a995139596d89cc8aa2b4ab830e00879202e88bc91695ae21b2"
+    },
+    {
+      "case": "tasks",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-mobile-app-list.png",
+      "sha256": "e79241f0e073b491f0f291f60cdaf86bf5430d418bc0181c2f52a70bf6d7735f"
+    },
+    {
+      "case": "tasks",
+      "size": "mobile",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-mobile-demo-list.png",
+      "sha256": "14f39ab738efe03d40b3452f5446981a736afd5176abda1b8513e2d3bd3af25a"
+    },
+    {
+      "case": "task-details",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-app-progress.png",
+      "sha256": "4f938469586360febd9435a032e6758b6999b7e08eb3436c62f82a67654136b0"
+    },
+    {
+      "case": "task-details",
+      "size": "mobile",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-demo-progress.png",
+      "sha256": "2484282de67bccbf7ead10e0dd4b9ed94a4635a7508d9752152a0f6682dbf838"
+    },
+    {
+      "case": "task-details",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-app-执行记录.png",
+      "sha256": "564c0af00a18d351863cee61c9009af28e441a8fb2163d2149c2c039456b3254"
+    },
+    {
+      "case": "task-details",
+      "size": "mobile",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-demo-执行记录.png",
+      "sha256": "5981ee1ad720fcbebaa17c960c8aa322d880a1c7e8b193338ced8181847e0cd4"
+    },
+    {
+      "case": "task-details",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-app-任务信息.png",
+      "sha256": "a9782852698678b953b9ddef134c8978c0ff834f9b276da45acd97354443cf0e"
+    },
+    {
+      "case": "task-details",
+      "size": "mobile",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-demo-任务信息.png",
+      "sha256": "9c700d4b2392b22487db7b9e336378e9e298c64f3749b7307b5c48fcba0fc8df"
+    },
+    {
+      "case": "task-details",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-footer-pinned.png",
+      "sha256": "18f41a92b4ddb3c1b526e96dddf5d63df2243e291df0d86d0a81d2381da9cfc7"
+    },
+    {
+      "case": "calls",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/calls-mobile-app-list.png",
+      "sha256": "8d04d7c9d7c2f7cfa9a6836766862808817fcee40499d21caf80d1b0cfd61fa6"
+    },
+    {
+      "case": "calls",
+      "size": "mobile",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/calls-mobile-demo-list.png",
+      "sha256": "719fa58853f36e770d4cbad7f0021467fffc26fc122d3e2264cf069e57eb63f2"
+    },
+    {
+      "case": "call-detail",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-mobile-app-detail.png",
+      "sha256": "e399f2dc61b20e4d1764e2561512e5cad51a45f7d895c2a932db51ba2ef8bbdd"
+    },
+    {
+      "case": "call-detail",
+      "size": "mobile",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-mobile-demo-detail.png",
+      "sha256": "efe4ee2cdd6c9a5a16dd92a6752fd92a2a982324655094505832f490b81a3130"
+    },
+    {
+      "case": "health",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-mobile-app-health.png",
+      "sha256": "1d1e18a1c2b5d3fdf0e732eeee9e4d16946b62a362356ea2aaedf9ba56ee9258"
+    },
+    {
+      "case": "health",
+      "size": "mobile",
+      "role": "immutable Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-mobile-demo-health.png",
+      "sha256": "466514699d18f658c5b32db5f1f76a293f98b28dc1006a59ead42fe418bde469"
+    },
+    {
+      "case": "health",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-mobile-actual-test-receipt.png",
+      "sha256": "b882e45413671e97f823cd6fec56334e6be4d36840e7fb1a052b6b364e7cdef9"
+    },
+    {
+      "case": "empty",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-mobile-empty-tasks.png",
+      "sha256": "4f6c22d900539db8cea9273251f1da06a4b485e4720b6a4d101fdc9d0a7722cf"
+    },
+    {
+      "case": "empty",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-mobile-empty-calls.png",
+      "sha256": "bb2ee01ac9e9d9a1db50a9aa3d52bbc248dee8ded0e0c2bcf2e0d71e32aa4a77"
+    },
+    {
+      "case": "empty",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/empty-mobile-empty-health.png",
+      "sha256": "68a3752c767c196bb8fea8e8f70cb6d00db85d1c373442b23334a6f60e441b14"
+    },
+    {
+      "case": "read-failure",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/read-failure-mobile-calls-after-initial-failure.png",
+      "sha256": "347a95a55d14ea488e081b385fd1bf62caa870ea33ab7ee55682442195c68bf8"
+    },
+    {
+      "case": "recovery",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/recovery-mobile-accepted-not-complete.png",
+      "sha256": "286661e3e30ea616760880dc693fbaca068c7e56291f18ce5e62115b8b8b7922"
+    },
+    {
+      "case": "scoped-link",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/scoped-link-mobile-task-to-calls.png",
+      "sha256": "6a2d24a05b78dcc14b5ddf75f8806aeee26768024d6f2dba8e5ca8e6a20962d8"
+    },
+    {
+      "case": "creation-sheet",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/creation-sheet-mobile-local-task-sheet.png",
+      "sha256": "cbf6924f515663f7f9f11c6c430cd18ce9f5ef7f311abf51781fc8db5f40de90"
+    },
+    {
+      "case": "creation-context",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-context-wide-failure-truth.png",
+      "sha256": "2d64ae0fcf7bffb783a35a6a320325a4738308fdedb6b3ae93ed596c8bcdd6da"
+    },
+    {
+      "case": "creation-context",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-context-wide-local-task-sheet.png",
+      "sha256": "76514abaf7677ee58b10f2a820cce3dbed3f1bdd511e37c66819be8f2bc31e82"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-wide-failure-truth.png",
+      "sha256": "5c9dd007cc3252a64b3d6404728d2c26a870d5062967289ec72b89bf33a0c928"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-wide-local-task-sheet.png",
+      "sha256": "65037b946a0cdefa06804bf637c58c7779e27d0c4eec7bf4b03343d148805ea0"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "wide",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-wide-separate-model-detail.png",
+      "sha256": "135c8f9774e8cd4024d69bbf8133dadd3c3439c147bc970c7d40e2a7d1fc7025"
+    },
+    {
+      "case": "creation-context",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-context-desktop-failure-truth.png",
+      "sha256": "bc04f42a648b08d172e7334a5e84ed8080ec7ba522948ebb94a7f7dfe65ec1b6"
+    },
+    {
+      "case": "creation-context",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-context-desktop-local-task-sheet.png",
+      "sha256": "0aee504f5b1c909e94332462aa0f914b6c12087bd038c56d33aca1b85fdd7822"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-desktop-failure-truth.png",
+      "sha256": "bb60d1b655f7c6817c36941abb4ce228dd5a18b4900917c3f0dc968d0f803a43"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-desktop-local-task-sheet.png",
+      "sha256": "b66bfcdca727d1f646aa9c53fa35d2c9002f2e9f3489d146b04964dd0d3b1c91"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "desktop",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-desktop-separate-model-detail.png",
+      "sha256": "d020fd04cc44070b9b3cc2795c6f5e42ab6bcec490f2f139cdf372646bf9e79f"
+    },
+    {
+      "case": "creation-context",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-context-mobile-failure-truth.png",
+      "sha256": "b567c530125ce31be45a1341ceaf9b3ebe0cf8f989b2f404de197894c9673476"
+    },
+    {
+      "case": "creation-context",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-context-mobile-local-task-sheet.png",
+      "sha256": "e4a7dc12c1108b0ec4c22489fb3250941454a9c88eb4b06a5d527232de68eb43"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-mobile-failure-truth.png",
+      "sha256": "8fba75bad8152e74bbe855497f5de22307b80f4d0d3dc081f86b2dbf982590ab"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-mobile-local-task-sheet.png",
+      "sha256": "7b1ec36751f6bd91134d4506d32825353f951063562678d16b1acc97bbb2cf8c"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "mobile",
+      "role": "formal production UI",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/diag-r20-signed/creation-rounds-mobile-separate-model-detail.png",
+      "sha256": "f89c87de6685f5621fed9166829af60434e921246610eb4660881e61a4ac3f0a"
+    },
+    {
+      "case": "before final manual-review corrections",
+      "role": "historical intermediate screenshot; not final accepted evidence",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-approved/call-detail-mobile-app-detail.png",
+      "sha256": "c6bf75f814c67a4b66e642af60658deeb61d38a5191b023e6443d53d1971e25b"
+    },
+    {
+      "case": "before final manual-review corrections",
+      "role": "historical intermediate screenshot; not final accepted evidence",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-approved/tasks-mobile-app-list.png",
+      "sha256": "4a40c09e6bdf0f4d51a6d21e2f673bc497a51ce0c93f4acdc9a2a5f33a7f6226"
+    },
+    {
+      "case": "before final manual-review corrections",
+      "role": "historical intermediate screenshot; not final accepted evidence",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-approved/task-details-mobile-app-progress.png",
+      "sha256": "37bac90e862316b995819021a6cc82f5b818f81584600cfe093f75cc05be9b8b"
+    },
+    {
+      "case": "before final manual-review corrections",
+      "role": "historical intermediate screenshot; not final accepted evidence",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-approved/task-details-wide-app-执行记录.png",
+      "sha256": "1f54c8c4cfb6d8798d82d6d813e7a9584235d4c90cb24d0d137f0b38d6943021"
+    }
+  ],
+  "main_thread_representative_review": [
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-mobile-app-list.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-final/tasks-wide-app-list.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-wide-app-detail.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-mobile-app-detail.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/call-detail-mobile-demo-detail.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-mobile-app-health.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-visual-signed/health-mobile-demo-health.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-app-progress.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-mobile-demo-progress.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-app-执行记录.png",
+    "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-closed/task-details-wide-demo-执行记录.png"
+  ],
+  "review_boundary": "Representative visual checks plus scoped geometry/actions, not every fullsite page/state."
+}

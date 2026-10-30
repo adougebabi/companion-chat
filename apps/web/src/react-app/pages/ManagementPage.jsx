@@ -7,7 +7,7 @@ import {ArrowLeft} from "lucide-react";
 import { Fragment } from "@/react-app/render-helpers";
 import { ManagementPageView } from "@/react-app/views/ManagementPage";
 import { FilterChips, DetailDrawer } from "@/react-app/components";
-import { diagnosticProjection } from "@/approved-ui/presentation.mjs";
+import { diagnosticProjection as baseDiagnosticProjection } from "@/approved-ui/presentation.mjs";
 import { catalogLabel } from "@/v3/runtime-catalog.mjs";
 import ModelDirectory from "@/react-app/shared/ModelDirectory";
 import SettingsField from "@/react-app/shared/SettingsField";
@@ -28,8 +28,14 @@ import {
 import { errorMessage, domainName, stateLabel, feedbackDiagnostic } from "@/v3/domain-presentation.mjs";
 import { randomId } from "@/random-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import {diagnosticInstant} from "@/approved-ui/task-presentation.mjs";
+import {diagnosticInstant,diagnosticDateLabel} from "@/approved-ui/task-presentation.mjs";
 import { installFieldValidation } from "@/v3/proto/components/forms.js";
+function diagnosticProjection(record,index,characters){
+  const projected=baseDiagnosticProjection(record,index,characters);
+  if(typeof record.data?.title==='string'&&record.data.title.trim())projected.label=record.data.title;
+  if(record.data?.status==='error')projected.status='error';
+  return projected;
+}
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const groupSpecs = [
   ["图片（ComfyUI）", ["media.comfyui"]],
@@ -252,7 +258,7 @@ function createManagementPageController(props, context, lifecycle) {
     ({
       error: "失败",
       pending: "处理中",
-      success: "完成",
+      success: "成功",
     })[status] || "状态待确认";
   const rows = selector(() =>
     records.value
@@ -289,7 +295,7 @@ function createManagementPageController(props, context, lifecycle) {
     {
       key: "status",
       label: "状态",
-      options: ["完成", "失败", "处理中"],
+      options: ["成功", "失败", "处理中"],
     },
   ]);
   const clear = () => {
@@ -779,12 +785,13 @@ function createManagementPageController(props, context, lifecycle) {
           (endpoint
             ? "已读取模型目录 " + (result.models || []).length + " 项"
             : summary.text);
+        return result;
       }
     } catch (cause) {
       if (live()) {
         if(endpoint&&token!==endpoint.modelsEpoch)return;
         if (endpoint){endpoint.feedback = "";endpoint.modelsStatus="error";endpoint.modelsError=errorMessage(cause);}
-        else if(token===testReadEpoch){testRaw.value={status:"failed",reason:errorMessage(cause)};testKind.value='error';testResult.value = name + "：" + errorMessage(cause);}
+        else if(token===testReadEpoch){testRaw.value={status:"failed",reason:errorMessage(cause)};testKind.value='error';testResult.value = name + "：" + errorMessage(cause);return testRaw.value;}
       }
     }
   }
@@ -956,7 +963,7 @@ function createManagementPageController(props, context, lifecycle) {
         openMediaAsset: id=>w.navigatePath('/media/'+encodeURIComponent(id)),
         recordTime: (record) =>
           record.start
-            ? diagnosticInstant(new Date(record.start).toISOString())
+            ? diagnosticDateLabel(new Date(record.start).toISOString())
             : "时间未记录",
         statusLabel,
         retry,

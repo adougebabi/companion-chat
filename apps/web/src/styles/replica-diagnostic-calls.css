@@ -1,0 +1,37 @@
+.replica-model-calls-heading h2{font-size:16px;font-weight:600;color:#405839}
+.replica-model-calls-heading p{font-size:12px;color:#929e85;margin-top:7px;line-height:1.8}
+.replica-model-call-list{display:grid;min-width:0}
+.replica-model-call-list article{min-width:0;border-bottom:1px solid #e9ede3}
+.replica-model-call-list article:last-child{border-bottom:0}
+.replica-model-call-row{display:grid;grid-template-columns:35px minmax(0,1fr) auto;gap:14px;padding:17px 0;align-items:center;text-align:left;width:100%;min-width:0;background:transparent;border:0}
+.replica-model-call-icon{width:36px;height:36px;border-radius:10px;background:#f0f3eb;color:#73846a;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.replica-model-call-content{display:grid;min-width:0;gap:5px}
+.replica-model-call-content strong{font-size:13px;font-weight:550;color:#405839;overflow-wrap:anywhere}
+.replica-model-call-content>span{font-size:11px;color:#929e85;overflow-wrap:anywhere}
+.replica-model-call-row:hover strong{color:#557744}
+.replica-model-call-row:focus-visible{outline:2px solid #8ca77a;outline-offset:3px}
+.replica-model-calls-options{display:grid;gap:16px;padding-top:12px;min-width:0}
+.replica-model-call-dialog{width:calc(100vw - 34px);max-width:590px}
+.replica-model-call-detail{display:grid;gap:20px;min-width:0}
+.replica-model-call-attributes{display:grid;gap:20px;margin:0}
+.replica-model-call-attributes>div{display:grid;grid-template-columns:116px minmax(0,1fr);gap:14px;border-bottom:1px solid #f0f2e9;padding:11px 0;font-size:12px;line-height:1.8}
+.replica-model-call-attributes dt{font-size:11px;color:#8b947f}
+.replica-model-call-attributes dd{margin:0;color:#536a47;overflow-wrap:anywhere;min-width:0}
+.replica-model-call-field,.replica-model-call-error{display:grid;gap:7px;min-width:0}
+.replica-model-call-field h3,.replica-model-call-error h3{font-size:12px;font-weight:500;color:#718064}
+.replica-model-call-field h4{font-size:11px;color:#718064;margin:8px 0}
+.replica-model-call-wire{width:100%;min-width:0;max-width:100%;border-radius:10px;background:#f4f6ef;color:#718064;padding:15px;font:11px/1.8 ui-monospace,SFMono-Regular,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto;margin:0}
+.replica-model-call-missing{font-size:12px;color:#929e85;line-height:1.8}
+.replica-model-call-error .replica-model-call-wire{color:#a55d57;background:#faf0ed}
+.replica-model-call-recovery{justify-self:start;max-width:100%;white-space:normal}
+@media(max-width:700px){.replica-model-call-row{grid-template-columns:30px minmax(0,1fr) auto;gap:10px}.replica-model-call-content>span{line-height:1.8}.replica-model-call-row .replica-diagnostic-status{font-size:10px}.replica-model-call-dialog{width:calc(100vw - 34px)}}
+.replica-model-calls-surface{display:block;padding:24px}
+.replica-model-calls-heading{margin-bottom:19px}
+.replica-model-calls-heading h2{font-size:14px;font-weight:600;letter-spacing:.15px;color:inherit}
+.replica-model-calls-heading p{font-size:11px;color:#87907d;line-height:1.8;margin-top:5px}
+.replica-model-call-attributes dd{color:inherit}
+.replica-model-call-technical-target{position:absolute;right:44px;top:7px;display:flex;align-items:center}
+@media(max-width:700px){.replica-model-calls-surface{padding:18px}.replica-model-call-attributes>div{grid-template-columns:86px minmax(0,1fr)}}
+.replica-model-call-field h3{margin:0;line-height:1.5;color:inherit}
+.replica-model-call-technical-target>[data-slot=button]{height:36px;min-height:0;width:36px;padding:0}
+.replica-model-call-dialog [data-slot=dialog-footer]>[data-slot=button]{min-height:36px;padding-inline:16px}

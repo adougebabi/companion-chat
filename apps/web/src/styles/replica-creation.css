@@ -1370,7 +1370,6 @@
 }
 .replica-creation-task-sheet [data-slot="sheet-description"] { overflow-wrap: anywhere; }
 .creation-task-sheet-body { flex: 1; min-height: 0; overflow: auto; padding: 24px 26px; }
-.replica-creation-task-sheet .replica-task-wire-value { max-height: none; overflow: visible; }
 @media (max-width: 700px) {
   .replica-creation-task-sheet > [data-slot="sheet-header"] { padding: 20px 54px 16px 18px; }
   .creation-task-sheet-body { padding: 18px; }

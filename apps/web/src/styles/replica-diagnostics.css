@@ -1,0 +1,47 @@
+.react-workspace .replica-diagnostic-status[data-slot=badge]{display:inline-flex;height:auto;align-items:center;gap:5px;font-size:10px;line-height:1.5;font-weight:400;border:1px solid #e8ecdf;border-radius:5px;padding:3px 7px;background:#f1f3ed;color:#7b856e;white-space:nowrap;flex:none}
+.replica-diagnostic-status>span{height:4px;width:4px;border-radius:50%;background:currentColor}
+.react-workspace .replica-diagnostic-status[data-tone=green]{background:#edf4e9;color:#62804e;border-color:#deead5}.react-workspace .replica-diagnostic-status[data-tone=amber]{background:#fbf4e7;color:#a3844b;border-color:#efe4cb}.react-workspace .replica-diagnostic-status[data-tone=red]{background:#fbeeea;color:#b77167;border-color:#f0dcd6}.react-workspace .replica-diagnostic-status[data-tone=blue]{background:#edf3f5;color:#6b8793;border-color:#e0e9ec}
+.replica-diagnostics .replica-diagnostic-metric{padding:20px;border:1px solid #e5e8e0;border-radius:12px;display:block;gap:0;background:white}
+.replica-diagnostics .replica-diagnostic-metric span{font-size:12px;color:#7a8478}.replica-diagnostics .replica-diagnostic-metric strong{font-size:27px;font-weight:500;display:block;color:#314c38;margin:8px 0 3px}.replica-diagnostics .replica-diagnostic-metric small{font-size:11px;color:#97a092}
+.replica-diagnostics .replica-task-row{grid-template-columns:35px minmax(0,1fr) auto}.replica-diagnostics .replica-task-row:last-child{border:0}.replica-diagnostics .replica-task-icon{width:36px;height:36px;background:#f0f3eb;color:#73846a}.replica-diagnostics .replica-task-row:hover h3{color:#557744}
+.replica-diagnostics .replica-task-toolbar{margin-bottom:12px;gap:14px;justify-content:space-between}.replica-diagnostic-search{display:flex;align-items:center;gap:8px;flex:1;max-width:320px;min-width:190px;position:relative}.replica-diagnostic-search>svg{position:absolute;left:12px;color:#9ba791;pointer-events:none}.replica-diagnostic-search input{padding-left:34px}.replica-diagnostic-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.replica-diagnostic-filters>span{width:130px;flex:none}.replica-diagnostic-count{font-size:10px;color:#8c9a80;background:#edf2e6;padding:1px 5px;border-radius:4px;margin-left:5px}
+.replica-service-diagnostics{gap:0}.replica-service-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.replica-service-heading h2{font-size:15px;font-weight:550;color:#405936}.replica-service-heading p{font-size:12px;color:#96a18b;margin-top:7px;line-height:1.8}.replica-service-heading>button{flex:none}
+.replica-service-row{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #edf0e7}.replica-service-row>div{min-width:0}.replica-service-row strong{font-size:13px;font-weight:500;color:#4c5f44;display:block}.replica-service-row small{font-size:11px;color:#96a18b;display:block;margin-top:5px;line-height:1.7;overflow-wrap:anywhere}.replica-service-diagnostics>.product-disclosure{margin-top:18px}.replica-service-diagnostics .disclosure-body p{font-size:11px;line-height:1.8;color:#96a18b}.replica-service-tests{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+@media(max-width:700px){.replica-diagnostics .replica-diagnostic-metric{padding:15px}.replica-diagnostics .replica-task-row{grid-template-columns:30px minmax(0,1fr) auto;gap:10px}.replica-diagnostics .replica-task-row p{line-height:1.8}.replica-diagnostics .replica-task-toolbar{gap:8px}.replica-diagnostic-search{flex-basis:100%;max-width:none;width:100%}.replica-diagnostic-filters{width:100%;gap:8px}.replica-diagnostic-filters>span{width:auto;flex:1}.replica-service-heading{gap:10px}.replica-service-heading h2{font-size:14px}.replica-service-row{gap:10px}.replica-service-row small{font-size:10px}.replica-diagnostics .replica-data-stats{gap:10px}}
+/* R16: exact shared Demo spacing; live facts replace only simulated copy. */
+.replica-diagnostics>.replica-settings-head{gap:12px;align-items:center;flex-direction:row}
+.replica-diagnostics>.replica-settings-head p{margin-top:0;font-size:12px;color:#7a827a;line-height:1.75}
+.replica-diagnostic-environment{font-size:11px;color:#93a284;padding:3px 8px;border:1px solid #e1e7d8;border-radius:20px;white-space:nowrap}
+.replica-diagnostics>[data-slot=tabs]{margin-bottom:22px;gap:0}
+.replica-diagnostics>[data-slot=tabs]>[data-slot=tabs-list]{height:auto;min-height:0;justify-content:flex-start;gap:21px;border-radius:0;border-bottom:1px solid #e2e7de;padding:0;background:transparent;overflow-x:auto}
+.replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger]{height:auto;min-height:0;padding:0 2px 12px;font-size:12px;font-weight:400;color:#7d8872;border-radius:0;border:0;border-bottom:2px solid transparent;box-shadow:none;flex:none;gap:7px}
+.replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger][data-state=active]{color:#33563d;border-bottom-color:#547b4b;font-weight:600}
+.replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger]:after{display:none}
+.replica-diagnostics .replica-diagnostic-task-surface{display:block;padding:24px;gap:0}
+.replica-task-list{display:grid;gap:0}
+.replica-diagnostics .replica-diagnostic-search input{padding-right:43px}
+.replica-diagnostics .replica-diagnostic-search>button{position:absolute;right:2px;height:35px;width:35px;min-height:0;padding:0}
+.replica-diagnostics .replica-diagnostic-filters{display:grid;grid-template-columns:215px;gap:12px;width:auto}
+.replica-diagnostics .replica-diagnostic-filters>span{width:215px}
+.replica-diagnostic-secondary-entry{justify-self:start}
+.replica-service-diagnostics{padding:24px}
+.replica-service-heading{align-items:center;gap:15px;margin-bottom:19px}
+.replica-service-heading h2{font-size:14px;font-weight:600;letter-spacing:.15px;color:inherit}
+.replica-service-heading p{font-size:11px;color:#87907d;line-height:1.8;margin-top:5px}
+@media(max-width:1200px){.replica-diagnostics .replica-data-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.replica-diagnostic-environment{display:none}.replica-diagnostics .replica-data-stats{grid-template-columns:minmax(0,1fr);gap:16px}.replica-diagnostics .replica-diagnostic-metric{padding:20px}.replica-diagnostics .replica-diagnostic-metric strong{font-size:27px}.replica-diagnostics .replica-diagnostic-metric small{font-size:11px}.replica-diagnostics .replica-diagnostic-task-surface,.replica-service-diagnostics{padding:18px}.replica-diagnostics>[data-slot=tabs]>[data-slot=tabs-list]{gap:19px}.replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger]{font-size:11px}.replica-diagnostics .replica-diagnostic-filters{width:auto;gap:12px}.replica-diagnostics .replica-diagnostic-filters>span{width:215px}.replica-service-row small{font-size:11px}}
+.replica-service-actions{display:flex;align-items:center;gap:8px;flex:none}
+.replica-service-actions>[data-slot=button]{height:36px;min-height:0}
+.replica-service-guidance{margin-top:18px}
+.replica-service-technical{display:grid;gap:12px;min-width:0;margin-top:18px}
+.replica-diagnostics{line-height:1.5}
+.replica-diagnostics .replica-task-row p{line-height:1.5}
+.replica-diagnostic-count{font-size:9px;background:#edf1e7;color:#8c967e;margin-left:0}
+@media(max-width:700px){.replica-diagnostics .replica-task-row p{line-height:1.8}}
+@media(max-width:1200px){.replica-management-layout{gap:18px}}
+@media(max-width:700px){
+ .replica-management .replica-management-nav{padding-bottom:4px}
+ .replica-management .replica-management-layout .replica-management-nav button[data-slot=button]{min-height:40px;padding:10px}
+ .replica-management .replica-diagnostics [data-slot=tabs] [role=tab][data-slot=tabs-trigger]{min-height:0}
+ .replica-management .replica-diagnostics .replica-service-actions button[data-slot=button]{min-height:36px}
+}

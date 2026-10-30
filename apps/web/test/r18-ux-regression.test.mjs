@@ -47,3 +47,8 @@ test('r18 wardrobe phase display uses committed domain facts and never fabricate
  assert.equal(taskStageRecords(task,{...preparation,task_id:'new-recovery-task'}).length,0);
  assert.equal(taskStageRecords(task,{...preparation,fluctlight_id:undefined}).length,0);
 });
+
+test('diagnostic primary dates stay compact while execution clocks retain recorded sub-second precision',async()=>{
+ const {diagnosticDateLabel,diagnosticTimeLabel}=await import('../src/approved-ui/task-presentation.mjs');
+ const now=Date.parse('2026-10-30T08:00:00Z');assert.equal(diagnosticDateLabel('2026-10-30T06:18:02.123Z',now),'今天 14:18');assert.equal(diagnosticDateLabel('2026-10-29T06:18:02Z',now),'10-29 14:18');assert.equal(diagnosticDateLabel('2025-10-29T06:18:02Z',now),'2025-10-29 14:18');assert.equal(diagnosticTimeLabel('2026-10-30T06:18:02Z'),'14:18:02');assert.equal(diagnosticTimeLabel('2026-10-30T06:18:02.123Z'),'14:18:02.123');assert.equal(diagnosticTimeLabel('bad'),'未记录时间');
+});

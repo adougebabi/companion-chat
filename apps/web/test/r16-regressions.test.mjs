@@ -13,7 +13,7 @@ import {memoryStorage} from './support/runtime.mjs';
 const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();env.restore();});
 const load=path=>vite.ssrLoadModule('/src/'+path),button=(root,text)=>[...root.querySelectorAll('button')].find(node=>node.textContent.trim()===text);
-async function referencePanel(ui,name){await act(async()=>ui.host.querySelector('[aria-label="更多运行记录"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await ui.flush();await ui.click([...document.querySelectorAll('[role=menuitem]')].find(node=>node.textContent.trim()===name));}
+async function referencePanel(ui,name){const disclosure=button(ui.host,'筛选与更多运行记录');if(disclosure?.getAttribute('data-state')==='closed')await ui.click(disclosure);await act(async()=>ui.host.querySelector('[aria-label="更多运行记录"]').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await ui.flush();await ui.click([...document.querySelectorAll('[role=menuitem]')].find(node=>node.textContent.trim()===name));}
 
 function workspace(){const state=proxy({session:{actorId:'r16-owner'},selectedId:'A',characters:[{id:'A',name:'角色甲'}],managementTab:'运行诊断',operations:[],errors:{},runtimeCatalog:{}});return{state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),currentScope:()=> 'r16-owner-A',services:{configurationClient:{read:async()=>({effective_values:{},endpoints:[],bindings:[],versions:{}}),catalog:async()=>({agents:[]})},diagnosticsClient:{page:async()=>({items:[],next_cursor:''})}},notify(){},navigatePath(){}};}
 

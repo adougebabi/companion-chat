@@ -26575,6 +26575,176 @@
             ],
             "boundary": "仅该受控HTTP/正式构建案例；原三维状态及八场景状态保持，不代表真实Core/模型或整行验收。"
           }
+        ],
+        "diagnostic_replica_observations": [
+          {
+            "key": "diagnostic-replica:tasks:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "three modules and both actual task filters exist",
+              "app-list: no horizontal overflow",
+              "metric height follows actual Demo content typography",
+              "task heading tabs and metrics keep the Demo vertical positions",
+              "search uses associated role names",
+              "status filter is an actual task-list action",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:calls:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "model module primary body is a compact recent-call Surface",
+              "app-list: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:health:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "health restores the three service rows with saved facts",
+              "top health refresh is GET-only and not a model test",
+              "app-health: no horizontal overflow",
+              "actual media test never claims image generation",
+              "actual-test-receipt: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:tasks:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 10,
+            "checks": [
+              "three modules and both actual task filters exist",
+              "app-list: no horizontal overflow",
+              "metric height follows actual Demo content typography",
+              "task heading tabs and metrics keep the Demo vertical positions",
+              "search uses associated role names",
+              "status filter is an actual task-list action",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:calls:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 12,
+            "checks": [
+              "model module primary body is a compact recent-call Surface",
+              "app-list: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:health:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "health restores the three service rows with saved facts",
+              "top health refresh is GET-only and not a model test",
+              "app-health: no horizontal overflow",
+              "actual media test never claims image generation",
+              "actual-test-receipt: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:tasks:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "three modules and both actual task filters exist",
+              "app-list: no horizontal overflow",
+              "metric height follows actual Demo content typography",
+              "task heading tabs and metrics keep the Demo vertical positions",
+              "search uses associated role names",
+              "status filter is an actual task-list action",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:calls:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 22,
+            "checks": [
+              "model module primary body is a compact recent-call Surface",
+              "app-list: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:health:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "health restores the three service rows with saved facts",
+              "top health refresh is GET-only and not a model test",
+              "app-health: no horizontal overflow",
+              "actual media test never claims image generation",
+              "actual-test-receipt: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 10,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -31828,6 +31998,137 @@
             ],
             "boundary": "正式构建+受控HTTP，只证明具体UI/只读请求；不提升整行或真实模型验收。"
           }
+        ],
+        "diagnostic_replica_observations": [
+          {
+            "key": "diagnostic-replica:tasks:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "three modules and both actual task filters exist",
+              "app-list: no horizontal overflow",
+              "metric height follows actual Demo content typography",
+              "task heading tabs and metrics keep the Demo vertical positions",
+              "search uses associated role names",
+              "status filter is an actual task-list action",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:read-failure:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "task read failure retries without a task control",
+              "model failed read recovers actual rows",
+              "calls-after-initial-failure: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:tasks:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 10,
+            "checks": [
+              "three modules and both actual task filters exist",
+              "app-list: no horizontal overflow",
+              "metric height follows actual Demo content typography",
+              "task heading tabs and metrics keep the Demo vertical positions",
+              "search uses associated role names",
+              "status filter is an actual task-list action",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:read-failure:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 16,
+            "checks": [
+              "task read failure retries without a task control",
+              "model failed read recovers actual rows",
+              "calls-after-initial-failure: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:tasks:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 20,
+            "checks": [
+              "three modules and both actual task filters exist",
+              "app-list: no horizontal overflow",
+              "metric height follows actual Demo content typography",
+              "task heading tabs and metrics keep the Demo vertical positions",
+              "search uses associated role names",
+              "status filter is an actual task-list action",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 25,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:read-failure:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 26,
+            "checks": [
+              "task read failure retries without a task control",
+              "model failed read recovers actual rows",
+              "calls-after-initial-failure: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -33032,6 +33333,155 @@
             "status": "已观察并定向验证",
             "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
           }
+        ],
+        "diagnostic_replica_observations": [
+          {
+            "key": "diagnostic-replica:task-details:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "task opens stages and not model requests",
+              "task dialog matches actual Demo width",
+              "task tabs span the full Demo content width",
+              "task failure matches Demo compact failure height",
+              "task failure and progress retain the Demo spacing",
+              "app-progress: no horizontal overflow",
+              "execution events do not repeat their translated status",
+              "execution log typography follows the Demo history hierarchy",
+              "app-执行记录: no horizontal overflow",
+              "app-任务信息: no horizontal overflow",
+              "task information matches human field roles and separate model destination",
+              "footer remains visible while task body scrolls",
+              "footer-pinned: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-sheet:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "creation keeps local Sheet and correct task default",
+              "Sheet controls live outside the scroll body",
+              "local-task-sheet: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:task-details:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "task opens stages and not model requests",
+              "task dialog matches actual Demo width",
+              "task tabs span the full Demo content width",
+              "task failure matches Demo compact failure height",
+              "task failure and progress retain the Demo spacing",
+              "app-progress: no horizontal overflow",
+              "execution events do not repeat their translated status",
+              "execution log typography follows the Demo history hierarchy",
+              "app-执行记录: no horizontal overflow",
+              "app-任务信息: no horizontal overflow",
+              "task information matches human field roles and separate model destination",
+              "footer remains visible while task body scrolls",
+              "footer-pinned: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-sheet:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 7,
+            "checks": [
+              "creation keeps local Sheet and correct task default",
+              "Sheet controls live outside the scroll body",
+              "local-task-sheet: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:task-details:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 8,
+            "checks": [
+              "task opens stages and not model requests",
+              "task dialog matches actual Demo width",
+              "task tabs span the full Demo content width",
+              "task failure matches Demo compact failure height",
+              "task failure and progress retain the Demo spacing",
+              "app-progress: no horizontal overflow",
+              "execution events do not repeat their translated status",
+              "execution log typography follows the Demo history hierarchy",
+              "app-执行记录: no horizontal overflow",
+              "app-任务信息: no horizontal overflow",
+              "task information matches human field roles and separate model destination",
+              "footer remains visible while task body scrolls",
+              "footer-pinned: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 10,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-sheet:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 11,
+            "checks": [
+              "creation keeps local Sheet and correct task default",
+              "Sheet controls live outside the scroll body",
+              "local-task-sheet: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -33911,6 +34361,212 @@
             "status": "已观察并定向验证",
             "boundary": "仅本条正式构建/受控HTTP；原三维及八场景状态保持，非真实PG或模型验收。"
           }
+        ],
+        "diagnostic_replica_observations": [
+          {
+            "key": "diagnostic-replica:calls:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "model module primary body is a compact recent-call Surface",
+              "app-list: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:call-detail:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "model detail matches actual Demo width",
+              "model detail preserves Demo content width without an unused scrollbar gutter",
+              "model close footer keeps the Demo height without an extra technical-control row",
+              "normal model detail matches Demo content height",
+              "exact request and response are owned by model detail",
+              "app-detail: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:read-failure:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "task read failure retries without a task control",
+              "model failed read recovers actual rows",
+              "calls-after-initial-failure: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:calls:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 12,
+            "checks": [
+              "model module primary body is a compact recent-call Surface",
+              "app-list: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:call-detail:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "model detail matches actual Demo width",
+              "model detail preserves Demo content width without an unused scrollbar gutter",
+              "model close footer keeps the Demo height without an extra technical-control row",
+              "normal model detail matches Demo content height",
+              "exact request and response are owned by model detail",
+              "app-detail: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:read-failure:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 16,
+            "checks": [
+              "task read failure retries without a task control",
+              "model failed read recovers actual rows",
+              "calls-after-initial-failure: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 6,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:calls:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 22,
+            "checks": [
+              "model module primary body is a compact recent-call Surface",
+              "app-list: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:call-detail:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "model detail matches actual Demo width",
+              "model detail preserves Demo content width without an unused scrollbar gutter",
+              "model close footer keeps the Demo height without an extra technical-control row",
+              "normal model detail matches Demo content height",
+              "exact request and response are owned by model detail",
+              "app-detail: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 25,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:read-failure:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 26,
+            "checks": [
+              "task read failure retries without a task control",
+              "model failed read recovers actual rows",
+              "calls-after-initial-failure: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:scoped-link:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 10,
+            "checks": [
+              "task-to-model navigation carries actual correlation and task return",
+              "model request is scoped after navigation",
+              "task-to-calls: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -34169,6 +34825,95 @@
             ],
             "boundary": "仅本条具体反馈/行为；原八场景的未验收标记继续保留。"
           }
+        ],
+        "diagnostic_replica_observations": [
+          {
+            "key": "diagnostic-replica:health:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "health restores the three service rows with saved facts",
+              "top health refresh is GET-only and not a model test",
+              "app-health: no horizontal overflow",
+              "actual media test never claims image generation",
+              "actual-test-receipt: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:health:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "health restores the three service rows with saved facts",
+              "top health refresh is GET-only and not a model test",
+              "app-health: no horizontal overflow",
+              "actual media test never claims image generation",
+              "actual-test-receipt: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 15,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:health:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-signed/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "health restores the three service rows with saved facts",
+              "top health refresh is GET-only and not a model test",
+              "app-health: no horizontal overflow",
+              "actual media test never claims image generation",
+              "actual-test-receipt: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:empty:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-visual-final/report.json",
+            "source_record_index": 25,
+            "checks": [
+              "empty tasks are actually empty",
+              "empty-tasks: no horizontal overflow",
+              "empty-calls: no horizontal overflow",
+              "empty-health: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          }
         ]
       }
     },
@@ -34395,6 +35140,47 @@
             ],
             "recorded_assertions": "rejected-review: no horizontal overflow; rejected-review: single current shell; rejected-review: portal uses14px theme; rejected review Escape returns to its actual opening button; no operational write beyond explicit pack validation; no uncaught browser exception。只证明记录的断言，不代表该矩阵整行所有状态已完成。",
             "use": "candidate_only; verify exact record and snapshot before feedback acceptance"
+          }
+        ],
+        "diagnostic_replica_observations": [
+          {
+            "key": "diagnostic-replica:recovery:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "recovery retries exact original body key and CAS",
+              "accepted-not-complete: no horizontal overflow",
+              "read-only state refresh does not repeat the control",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:recovery:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "recovery retries exact original body key and CAS",
+              "accepted-not-complete: no horizontal overflow",
+              "read-only state refresh does not repeat the control",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:recovery:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 9,
+            "checks": [
+              "recovery retries exact original body key and CAS",
+              "accepted-not-complete: no horizontal overflow",
+              "read-only state refresh does not repeat the control",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
           }
         ]
       }
@@ -42479,6 +43265,197 @@
             ],
             "status": "已观察并定向验证",
             "boundary": "只证明该实际受控案例；不提升整行或真实后端/模型验收。"
+          }
+        ],
+        "diagnostic_replica_observations": [
+          {
+            "key": "diagnostic-replica:creation-sheet:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "creation keeps local Sheet and correct task default",
+              "Sheet controls live outside the scroll body",
+              "local-task-sheet: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-sheet:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 7,
+            "checks": [
+              "creation keeps local Sheet and correct task default",
+              "Sheet controls live outside the scroll body",
+              "local-task-sheet: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-sheet:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/diagnostic-replica/diag-closed/report.json",
+            "source_record_index": 11,
+            "checks": [
+              "creation keeps local Sheet and correct task default",
+              "Sheet controls live outside the scroll body",
+              "local-task-sheet: no horizontal overflow",
+              "no uncaught browser exception"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-context:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r20/diag-r20-signed/report.json",
+            "source_record_index": 0,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to task stages",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "task stages do not fetch model payloads",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-rounds:wide",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r20/diag-r20-signed/report.json",
+            "source_record_index": 1,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to task stages",
+              "task detail never embeds model payloads",
+              "model records are a separate correlated destination",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "task stages do not fetch model payloads",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "model module retains actual physical call timings",
+              "Request Response live in model detail",
+              "separate-model-detail: no horizontal overflow",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-context:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r20/diag-r20-signed/report.json",
+            "source_record_index": 2,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to task stages",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "task stages do not fetch model payloads",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-rounds:desktop",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r20/diag-r20-signed/report.json",
+            "source_record_index": 3,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to task stages",
+              "task detail never embeds model payloads",
+              "model records are a separate correlated destination",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "task stages do not fetch model payloads",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "model module retains actual physical call timings",
+              "Request Response live in model detail",
+              "separate-model-detail: no horizontal overflow",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-context:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r20/diag-r20-signed/report.json",
+            "source_record_index": 4,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to task stages",
+              "known context cause is readable without SQL or guessing model setup",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "task stages do not fetch model payloads",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "no browser exceptions"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
+          },
+          {
+            "key": "diagnostic-replica:creation-rounds:mobile",
+            "status": "已观察并定向验证",
+            "source_report": "evidence/r20/diag-r20-signed/report.json",
+            "source_record_index": 5,
+            "checks": [
+              "failed preparation does not announce ready initialization",
+              "supported retry exists and unsupported skip is absent",
+              "failure-truth: no horizontal overflow",
+              "task record stays in current creation route",
+              "local Sheet defaults to task stages",
+              "task detail never embeds model payloads",
+              "model records are a separate correlated destination",
+              "Sheet fills narrow viewport and has bounded single body scroll",
+              "local-task-sheet: no horizontal overflow",
+              "task stages do not fetch model payloads",
+              "closing Sheet restores connected trigger or documented heading fallback",
+              "inspection never creates a second activation",
+              "blank creation creates one world and never calls analysis",
+              "model module retains actual physical call timings",
+              "Request Response live in model detail",
+              "separate-model-detail: no horizontal overflow",
+              "supported retry submits exactly one original-scope revisioned command",
+              "retry does not repeat role activation",
+              "no browser exceptions"
+            ],
+            "boundary": "仅该 production dist / 受控 HTTP 案例；保留原三维和八场景状态，不代表真实 Core/模型或整行验收。"
           }
         ]
       }
@@ -57314,5 +58291,14 @@
     "before_capture": "evidence/r20-before-index.json",
     "extra": "evidence/r19/r20-preview-return2-after/report.json",
     "note": "保留177行全部历史与未验状态，图片仅本地；不能用767测试换算全站完成。"
+  },
+  "diagnostic_replica_increment": {
+    "requirement": "R16 replaces historical R14",
+    "acceptance": "diagnostic-replica-acceptance.md",
+    "browser_index": "evidence/diagnostic-replica-browser-index.json",
+    "creation_index": "evidence/diagnostic-r20-browser-index.json",
+    "unique_browser_cases": 36,
+    "observed_rows": 7,
+    "note": "只追加具体观察；177 行原状态及八场景状态保持。图片仅在仓库外；真实媒体生成由用户测试。"
   }
 }

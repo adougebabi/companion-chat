@@ -1,0 +1,114 @@
+{
+  "apps/web/src/react-app/shared/DiagnosticsWorkspace.jsx": [
+    {
+      "line": 19,
+      "text": "export default function DiagnosticsWorkspace({view,children}){"
+    }
+  ],
+  "apps/web/src/react-app/pages/TaskDetailPage.tsx": [
+    {
+      "line": 16,
+      "text": "export default function TaskDetailPage({route,embedded=false,onTaskLoaded,controlTarget}:{route:any;embedded?:boolean;onTaskLoaded?:(task:any)=>void;controlTarget?:HTMLElement|null}){"
+    }
+  ],
+  "apps/web/src/react-app/shared/WorkflowRecovery.tsx": [
+    {
+      "line": 16,
+      "text": "export default function WorkflowRecovery({workflowId,onChanged=()=>{},domainRecovery,presentation='card',controlTarget,detailsTarget,showDetails=true,showTechnical=true}:{workflowId:string;onChanged?:()=>unknown;domainRecovery?:{href:string;label:string};presentation?:'card'|'task';controlTarget?:HTMLElement|null;detailsTarget?:HTMLElement|null;showDetails?:boolean;showTechnical?:boolean}){"
+    }
+  ],
+  "apps/web/src/react-app/shared/TaskRecordDialog.tsx": [
+    {
+      "line": 7,
+      "text": "export default function TaskRecordDialog({taskId,returnTo,onClose,returnFocus,presentation='dialog'}:{taskId:string;returnTo?:string;onClose:()=>void;returnFocus?:()=>HTMLElement|null;presentation?:'dialog'|'sheet'}){"
+    }
+  ],
+  "apps/web/src/react-app/shared/ModelCallDetails.tsx": [
+    {
+      "line": 10,
+      "text": "export function StoredCallValue({value,missing}:{value:unknown;missing:string}){"
+    },
+    {
+      "line": 14,
+      "text": "export default function ModelCallDetails({record,onRecover,onOpenMedia,technicalTarget}:{record:any;onRecover?:()=>unknown;onOpenMedia?:(id:string)=>unknown;technicalTarget?:HTMLElement|null}){"
+    }
+  ],
+  "apps/web/src/react-app/shared/ServiceDiagnostics.tsx": [
+    {
+      "line": 14,
+      "text": "export function probeBrowserStorage(host:any=globalThis){"
+    },
+    {
+      "line": 24,
+      "text": "export default function ServiceDiagnostics({view}:any){"
+    }
+  ],
+  "apps/web/src/react-app/views/ManagementPage.jsx": [
+    {
+      "line": 432,
+      "text": "className=\"replica-model-call-dialog\""
+    }
+  ],
+  "apps/web/src/styles/replica-chat.css": [
+    {
+      "line": 651,
+      "text": ".replica-dialog{width:calc(100vw - 34px);max-width:590px;padding:26px;max-height:89dvh;overflow:hidden;scrollbar-gutter:auto;display:flex;flex-direction:column;gap:16px;border:1px solid #dfe6da;border-radius:15px;box-shadow:0 25px 100px #1c33292b;min-height:0}"
+    },
+    {
+      "line": 705,
+      "text": "@media(max-width:700px){.replica-page-heading{gap:12px;flex-wrap:wrap;margin-bottom:23px}.react-workspace .replica-page-heading h1{font-size:24px}.replica-page-heading p{font-size:11px}.replica-page-actions{justify-content:flex-start}.replica-chat.companion-page{gap:18px}.replica-chat .companion-chat-heading{padding:15px}.replica-chat .replica-chat-scroller{height:clamp(240px,calc(100dvh - 450px),380px)}.replica-chat .companion-message-list{padding:18px 13px}.replica-chat .companion-message-body{max-width:84%}.replica-chat .companion-bubble{font-size:12px;padding:11px 13px}.replica-chat .companion-composer{padding:13px;padding-bottom:calc(13px + env(safe-area-inset-bottom))}.replica-chat .companion-composer-bottom>span{font-size:8px;gap:6px}.replica-chat .companion-typing{gap:7px}.replica-chat .replica-moment-card{display:block}.replica-chat .companion-mini-section{padding-top:17px;margin-top:17px}.replica-dialog{max-height:92dvh;padding:22px}.companion-history-layout{grid-template-columns:1fr;gap:17px}.companion-history-list{border:0;padding:0;flex-direction:row;overflow:auto}.companion-history-list>button{min-width:155px}.companion-history-reading{max-height:350px}.replica-history-footer{flex-wrap:wrap}.replica-page-actions [data-slot=\"button\"]{min-height:36px;position:relative}.replica-chat .companion-composer-bottom button{min-height:33px;position:relative}.replica-page-actions [data-slot=\"button\"]::before,.replica-chat .companion-composer-bottom button::before{content:\"\";position:absolute;inset:-6px 0}}"
+    }
+  ],
+  "apps/web/src/styles/replica-diagnostics.css": [
+    {
+      "line": 37,
+      "text": ".replica-diagnostics{line-height:1.5}"
+    },
+    {
+      "line": 45,
+      "text": ".replica-management .replica-diagnostics [data-slot=tabs] [role=tab][data-slot=tabs-trigger]{min-height:0}"
+    }
+  ],
+  "apps/web/src/styles/replica-diagnostic-calls.css": [
+    {
+      "line": 33,
+      "text": ".replica-model-call-technical-target{position:absolute;right:44px;top:7px;display:flex;align-items:center}"
+    },
+    {
+      "line": 35,
+      "text": ".replica-model-call-field h3{margin:0;line-height:1.5;color:inherit}"
+    }
+  ],
+  "apps/web/src/approved-ui/task-presentation.mjs": [
+    {
+      "line": 37,
+      "text": "export function taskEventText(entry){"
+    }
+  ],
+  "apps/web/src/styles/replica-management.css": [
+    {
+      "line": 88,
+      "text": ".replica-task-detail [data-slot=tabs-list]{height:auto;min-height:42px;background:transparent;flex-wrap:wrap;max-width:100%}"
+    },
+    {
+      "line": 221,
+      "text": ".replica-task-history>li{position:relative;border-left:1px solid #e1e6d8;margin-left:5px;padding:0 0 20px 25px}"
+    },
+    {
+      "line": 236,
+      "text": ".replica-task-detail [data-slot=tabs-list]{width:100%;min-height:0;gap:21px;padding:0;margin-bottom:22px;border:0;border-bottom:1px solid #e2e7de;border-radius:0;justify-content:flex-start}"
+    },
+    {
+      "line": 249,
+      "text": "@media(max-width:700px){.replica-task-detail [data-slot=tabs-list]{gap:19px}.replica-task-detail [data-slot=tabs-trigger]{font-size:11px;min-height:0}.replica-task-times>div{grid-template-columns:86px minmax(0,1fr)}}"
+    },
+    {
+      "line": 253,
+      "text": ".replica-task-progress-panel[data-state=active]{display:grid;gap:20px;line-height:1.5}"
+    },
+    {
+      "line": 256,
+      "text": ".replica-task-detail .replica-task-failure{display:block;padding:14px;border-radius:9px;background:#faf0e8;border:1px solid #ecd9ca;font-size:12px;color:#9d775f;line-height:1.9}"
+    }
+  ]
+}

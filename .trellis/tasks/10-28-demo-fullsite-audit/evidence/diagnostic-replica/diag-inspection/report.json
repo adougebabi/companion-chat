@@ -1,0 +1,1215 @@
+[
+  {
+    "name": "tasks",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "three modules and both actual task filters exist",
+      "app-list: no horizontal overflow",
+      "metric height follows actual Demo content typography",
+      "search uses associated role names",
+      "status filter is an actual task-list action",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/saved-service/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-inspection/tasks-mobile-app-list.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-inspection/tasks-mobile-demo-list.png"
+    ],
+    "geometry": [
+      {
+        "inspection": "app-list",
+        "layout": [
+          {
+            "tag": "NAV",
+            "slot": null,
+            "cls": "replica-management-nav",
+            "rect": {
+              "x": 17,
+              "y": 189.640625,
+              "width": 356,
+              "height": 44,
+              "top": 189.640625,
+              "right": 373,
+              "bottom": 233.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "5px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "replica-settings-head",
+            "rect": {
+              "x": 17,
+              "y": 255.640625,
+              "width": 356,
+              "height": 48,
+              "top": 255.640625,
+              "right": 373,
+              "bottom": 303.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "12px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "tabs",
+            "cls": "group/tabs flex gap-2 data-horizontal:flex-col",
+            "rect": {
+              "x": 17,
+              "y": 323.640625,
+              "width": 356,
+              "height": 45,
+              "top": 323.640625,
+              "right": 373,
+              "bottom": 368.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "0px",
+            "margin": "0px 0px 22px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "tabs-list",
+            "cls": "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none gap-1 bg-transparent",
+            "rect": {
+              "x": 17,
+              "y": 323.640625,
+              "width": 356,
+              "height": 45,
+              "top": 323.640625,
+              "right": 373,
+              "bottom": 368.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "19px",
+            "margin": "0px",
+            "minHeight": "0px",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          }
+        ]
+      },
+      {
+        "inspection": "demo-list",
+        "layout": [
+          {
+            "tag": "NAV",
+            "slot": null,
+            "cls": "lp-setting-nav",
+            "rect": {
+              "x": 17,
+              "y": 189.640625,
+              "width": 356,
+              "height": 44,
+              "top": 189.640625,
+              "right": 373,
+              "bottom": 233.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px 0px 4px",
+            "gap": "5px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "lp-settings-head",
+            "rect": {
+              "x": 17,
+              "y": 251.640625,
+              "width": 356,
+              "height": 48,
+              "top": 251.640625,
+              "right": 373,
+              "bottom": 299.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "12px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "segment-tabs",
+            "rect": {
+              "x": 17,
+              "y": 319.640625,
+              "width": 356,
+              "height": 31.5,
+              "top": 319.640625,
+              "right": 373,
+              "bottom": 351.140625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "19px",
+            "margin": "0px 0px 22px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          }
+        ]
+      },
+      {
+        "app": {
+          "x": 36,
+          "y": 1047.140625,
+          "width": 318,
+          "height": 79.296875
+        },
+        "demo": {
+          "x": 36,
+          "y": 1025.640625,
+          "width": 318,
+          "height": 79.296875
+        }
+      },
+      {
+        "metric": {
+          "app": {
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "height": 135.5,
+            "children": [
+              {
+                "tag": "SPAN",
+                "font": "12px / 18px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "18px",
+                "rect": {
+                  "x": 38,
+                  "y": 435.640625,
+                  "width": 48,
+                  "height": 15,
+                  "top": 435.640625,
+                  "right": 86,
+                  "bottom": 450.640625,
+                  "left": 38
+                },
+                "margin": "0px"
+              },
+              {
+                "tag": "STRONG",
+                "font": "500 27px / 40.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "40.5px",
+                "rect": {
+                  "x": 38,
+                  "y": 460.640625,
+                  "width": 314,
+                  "height": 40.5,
+                  "top": 460.640625,
+                  "right": 352,
+                  "bottom": 501.140625,
+                  "left": 38
+                },
+                "margin": "8px 0px 3px"
+              },
+              {
+                "tag": "SMALL",
+                "font": "11px / 16.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "16.5px",
+                "rect": {
+                  "x": 38,
+                  "y": 509.140625,
+                  "width": 88,
+                  "height": 13,
+                  "top": 509.140625,
+                  "right": 126,
+                  "bottom": 522.140625,
+                  "left": 38
+                },
+                "margin": "0px"
+              }
+            ]
+          },
+          "demo": {
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "height": 135.5,
+            "children": [
+              {
+                "tag": "SPAN",
+                "font": "12px / 18px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "18px",
+                "rect": {
+                  "x": 38,
+                  "y": 418.140625,
+                  "width": 48,
+                  "height": 15,
+                  "top": 418.140625,
+                  "right": 86,
+                  "bottom": 433.140625,
+                  "left": 38
+                },
+                "margin": "0px"
+              },
+              {
+                "tag": "STRONG",
+                "font": "500 27px / 40.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "40.5px",
+                "rect": {
+                  "x": 38,
+                  "y": 443.140625,
+                  "width": 314,
+                  "height": 40.5,
+                  "top": 443.140625,
+                  "right": 352,
+                  "bottom": 483.640625,
+                  "left": 38
+                },
+                "margin": "8px 0px 3px"
+              },
+              {
+                "tag": "SMALL",
+                "font": "11px / 16.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "16.5px",
+                "rect": {
+                  "x": 38,
+                  "y": 491.640625,
+                  "width": 88,
+                  "height": 13,
+                  "top": 491.640625,
+                  "right": 126,
+                  "bottom": 504.640625,
+                  "left": 38
+                },
+                "margin": "0px"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "boundary": "production dist + controlled HTTP; immutable running Demo; no live model or backend writes"
+  },
+  {
+    "name": "call-detail",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "model detail matches actual Demo width",
+      "exact request and response are owned by model detail",
+      "app-detail: no horizontal overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/saved-service/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-inspection/call-detail-mobile-app-detail.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-inspection/call-detail-mobile-demo-detail.png"
+    ],
+    "geometry": [
+      {
+        "modelDialog": {
+          "app": {
+            "x": 17,
+            "y": 91.21875,
+            "width": 356,
+            "height": 661.5625
+          },
+          "demo": {
+            "x": 17,
+            "y": 134.1171875,
+            "width": 356,
+            "height": 575.765625
+          }
+        }
+      },
+      {
+        "inspection": "app-detail",
+        "layout": [
+          {
+            "tag": "NAV",
+            "slot": null,
+            "cls": "replica-management-nav",
+            "rect": {
+              "x": 17,
+              "y": 189.640625,
+              "width": 356,
+              "height": 44,
+              "top": 189.640625,
+              "right": 373,
+              "bottom": 233.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "5px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "replica-settings-head",
+            "rect": {
+              "x": 17,
+              "y": 255.640625,
+              "width": 356,
+              "height": 48,
+              "top": 255.640625,
+              "right": 373,
+              "bottom": 303.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "12px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "tabs",
+            "cls": "group/tabs flex gap-2 data-horizontal:flex-col",
+            "rect": {
+              "x": 17,
+              "y": 323.640625,
+              "width": 356,
+              "height": 45,
+              "top": 323.640625,
+              "right": 373,
+              "bottom": 368.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "0px",
+            "margin": "0px 0px 22px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "tabs-list",
+            "cls": "group/tabs-list inline-flex w-fit items-center justify-center rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none gap-1 bg-transparent",
+            "rect": {
+              "x": 17,
+              "y": 323.640625,
+              "width": 356,
+              "height": 45,
+              "top": 323.640625,
+              "right": 373,
+              "bottom": 368.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "19px",
+            "margin": "0px",
+            "minHeight": "0px",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "dialog-content",
+            "cls": "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 react-workspace replica-dialog replica-model-call-dialog",
+            "rect": {
+              "x": 17,
+              "y": 91.21875,
+              "width": 356,
+              "height": 661.5625,
+              "top": 91.21875,
+              "right": 373,
+              "bottom": 752.78125,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "22px",
+            "gap": "16px",
+            "margin": "0px",
+            "minHeight": "0px",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "dialog-header",
+            "cls": "flex flex-col gap-2 text-center sm:text-left",
+            "rect": {
+              "x": 40,
+              "y": 114.21875,
+              "width": 295,
+              "height": 59.59375,
+              "top": 114.21875,
+              "right": 335,
+              "bottom": 173.8125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "8px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "H2",
+            "slot": "dialog-title",
+            "cls": "text-base leading-none font-medium",
+            "rect": {
+              "x": 40,
+              "y": 114.21875,
+              "width": 295,
+              "height": 30,
+              "top": 114.21875,
+              "right": 335,
+              "bottom": 144.21875,
+              "left": 40
+            },
+            "font": "600 20px / 30px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "30px",
+            "padding": "0px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "replica-dialog-body",
+            "rect": {
+              "x": 40,
+              "y": 189.8125,
+              "width": 295,
+              "height": 415.96875,
+              "top": 189.8125,
+              "right": 335,
+              "bottom": 605.78125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "7px 0px 0px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "0px",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "replica-model-call-detail",
+            "rect": {
+              "x": 40,
+              "y": 196.8125,
+              "width": 295,
+              "height": 408.96875,
+              "top": 196.8125,
+              "right": 335,
+              "bottom": 605.78125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "20px",
+            "margin": "0px",
+            "minHeight": "0px",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DL",
+            "slot": null,
+            "cls": "replica-model-call-attributes",
+            "rect": {
+              "x": 40,
+              "y": 196.8125,
+              "width": 295,
+              "height": 173.78125,
+              "top": 196.8125,
+              "right": 335,
+              "bottom": 370.59375,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "20px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "",
+            "rect": {
+              "x": 40,
+              "y": 196.8125,
+              "width": 295,
+              "height": 44.59375,
+              "top": 196.8125,
+              "right": 335,
+              "bottom": 241.40625,
+              "left": 40
+            },
+            "font": "12px / 21.6px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21.6px",
+            "padding": "11px 0px",
+            "gap": "14px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "",
+            "rect": {
+              "x": 40,
+              "y": 261.40625,
+              "width": 295,
+              "height": 44.59375,
+              "top": 261.40625,
+              "right": 335,
+              "bottom": 306,
+              "left": 40
+            },
+            "font": "12px / 21.6px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21.6px",
+            "padding": "11px 0px",
+            "gap": "14px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "",
+            "rect": {
+              "x": 40,
+              "y": 326,
+              "width": 295,
+              "height": 44.59375,
+              "top": 326,
+              "right": 335,
+              "bottom": 370.59375,
+              "left": 40
+            },
+            "font": "12px / 21.6px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21.6px",
+            "padding": "11px 0px",
+            "gap": "14px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "SECTION",
+            "slot": null,
+            "cls": "replica-model-call-field",
+            "rect": {
+              "x": 40,
+              "y": 390.59375,
+              "width": 295,
+              "height": 97.59375,
+              "top": 390.59375,
+              "right": 335,
+              "bottom": 488.1875,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "8px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "PRE",
+            "slot": null,
+            "cls": "replica-model-call-wire",
+            "rect": {
+              "x": 40,
+              "y": 418.59375,
+              "width": 295,
+              "height": 69.59375,
+              "top": 418.59375,
+              "right": 335,
+              "bottom": 488.1875,
+              "left": 40
+            },
+            "font": "11px / 19.8px ui-monospace, SFMono-Regular, monospace",
+            "lineHeight": "19.8px",
+            "padding": "15px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "SECTION",
+            "slot": null,
+            "cls": "replica-model-call-field",
+            "rect": {
+              "x": 40,
+              "y": 508.1875,
+              "width": 295,
+              "height": 97.59375,
+              "top": 508.1875,
+              "right": 335,
+              "bottom": 605.78125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "8px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "PRE",
+            "slot": null,
+            "cls": "replica-model-call-wire",
+            "rect": {
+              "x": 40,
+              "y": 536.1875,
+              "width": 295,
+              "height": 69.59375,
+              "top": 536.1875,
+              "right": 335,
+              "bottom": 605.78125,
+              "left": 40
+            },
+            "font": "11px / 19.8px ui-monospace, SFMono-Regular, monospace",
+            "lineHeight": "19.8px",
+            "padding": "15px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "dialog-footer",
+            "cls": "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+            "rect": {
+              "x": 40,
+              "y": 621.78125,
+              "width": 295,
+              "height": 108,
+              "top": 621.78125,
+              "right": 335,
+              "bottom": 729.78125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "12px 0px 0px",
+            "gap": "8px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          }
+        ]
+      },
+      {
+        "inspection": "demo-detail",
+        "layout": [
+          {
+            "tag": "NAV",
+            "slot": null,
+            "cls": "lp-setting-nav",
+            "rect": {
+              "x": 17,
+              "y": 189.640625,
+              "width": 356,
+              "height": 44,
+              "top": 189.640625,
+              "right": 373,
+              "bottom": 233.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px 0px 4px",
+            "gap": "5px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "lp-settings-head",
+            "rect": {
+              "x": 17,
+              "y": 251.640625,
+              "width": 356,
+              "height": 48,
+              "top": 251.640625,
+              "right": 373,
+              "bottom": 299.640625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "12px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "segment-tabs",
+            "rect": {
+              "x": 17,
+              "y": 319.640625,
+              "width": 356,
+              "height": 31.5,
+              "top": 319.640625,
+              "right": 373,
+              "bottom": 351.140625,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "19px",
+            "margin": "0px 0px 22px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "dialog-content",
+            "cls": "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg detail-dialog",
+            "rect": {
+              "x": 17,
+              "y": 134.1171875,
+              "width": 356,
+              "height": 575.765625,
+              "top": 134.1171875,
+              "right": 373,
+              "bottom": 709.8828125,
+              "left": 17
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "22px",
+            "gap": "16px",
+            "margin": "0px",
+            "minHeight": "0px",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "dialog-header",
+            "cls": "flex flex-col gap-2 text-center sm:text-left",
+            "rect": {
+              "x": 40,
+              "y": 157.1171875,
+              "width": 310,
+              "height": 59.59375,
+              "top": 157.1171875,
+              "right": 350,
+              "bottom": 216.7109375,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "8px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "H2",
+            "slot": "dialog-title",
+            "cls": "text-lg leading-none font-semibold",
+            "rect": {
+              "x": 40,
+              "y": 157.1171875,
+              "width": 310,
+              "height": 30,
+              "top": 157.1171875,
+              "right": 350,
+              "bottom": 187.1171875,
+              "left": 40
+            },
+            "font": "600 20px / 30px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "30px",
+            "padding": "0px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "dialog-body",
+            "rect": {
+              "x": 40,
+              "y": 232.7109375,
+              "width": 310,
+              "height": 390.171875,
+              "top": 232.7109375,
+              "right": 350,
+              "bottom": 622.8828125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "7px 0px 0px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "lp-stack",
+            "rect": {
+              "x": 40,
+              "y": 239.7109375,
+              "width": 310,
+              "height": 383.171875,
+              "top": 239.7109375,
+              "right": 350,
+              "bottom": 622.8828125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "0px",
+            "gap": "20px",
+            "margin": "0px",
+            "minHeight": "0px",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "key-value",
+            "rect": {
+              "x": 40,
+              "y": 239.7109375,
+              "width": 310,
+              "height": 44.59375,
+              "top": 239.7109375,
+              "right": 350,
+              "bottom": 284.3046875,
+              "left": 40
+            },
+            "font": "12px / 21.6px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21.6px",
+            "padding": "11px 0px",
+            "gap": "14px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "key-value",
+            "rect": {
+              "x": 40,
+              "y": 304.3046875,
+              "width": 310,
+              "height": 44.59375,
+              "top": 304.3046875,
+              "right": 350,
+              "bottom": 348.8984375,
+              "left": 40
+            },
+            "font": "12px / 21.6px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21.6px",
+            "padding": "11px 0px",
+            "gap": "14px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": null,
+            "cls": "key-value",
+            "rect": {
+              "x": 40,
+              "y": 368.8984375,
+              "width": 310,
+              "height": 44.59375,
+              "top": 368.8984375,
+              "right": 350,
+              "bottom": 413.4921875,
+              "left": 40
+            },
+            "font": "12px / 21.6px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21.6px",
+            "padding": "11px 0px",
+            "gap": "14px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "PRE",
+            "slot": null,
+            "cls": "lp-json",
+            "rect": {
+              "x": 40,
+              "y": 458.4921875,
+              "width": 310,
+              "height": 69.59375,
+              "top": 458.4921875,
+              "right": 350,
+              "bottom": 528.0859375,
+              "left": 40
+            },
+            "font": "11px / 19.8px ui-monospace, SFMono-Regular, monospace",
+            "lineHeight": "19.8px",
+            "padding": "15px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "PRE",
+            "slot": null,
+            "cls": "lp-json",
+            "rect": {
+              "x": 40,
+              "y": 573.0859375,
+              "width": 310,
+              "height": 49.796875,
+              "top": 573.0859375,
+              "right": 350,
+              "bottom": 622.8828125,
+              "left": 40
+            },
+            "font": "11px / 19.8px ui-monospace, SFMono-Regular, monospace",
+            "lineHeight": "19.8px",
+            "padding": "15px",
+            "gap": "normal",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          },
+          {
+            "tag": "DIV",
+            "slot": "dialog-footer",
+            "cls": "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+            "rect": {
+              "x": 40,
+              "y": 638.8828125,
+              "width": 310,
+              "height": 48,
+              "top": 638.8828125,
+              "right": 350,
+              "bottom": 686.8828125,
+              "left": 40
+            },
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "padding": "12px 0px 0px",
+            "gap": "10px",
+            "margin": "0px",
+            "minHeight": "auto",
+            "flex": "0 1 auto",
+            "boxSizing": "border-box"
+          }
+        ]
+      }
+    ],
+    "boundary": "production dist + controlled HTTP; immutable running Demo; no live model or backend writes"
+  }
+]

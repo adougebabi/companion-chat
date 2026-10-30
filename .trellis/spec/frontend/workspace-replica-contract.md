@@ -10,6 +10,65 @@ file still exists. `.githooks/pre-commit` runs the staged-image guard. New check
 install it with `pnpm hooks:install`; never force-add ignored images or bypass the
 guard. This policy supersedes earlier instructions to include screenshots in Git.
 
+## Current R16 diagnostics contract: restore all three Demo modules
+
+R16 supersedes the earlier Task-first Request/Response design. The immutable
+running Demo, LifePages DiagnosticsPanel/DiagnosticHealth and shared DetailDialog/
+SegTabs/KeyValue CSS are the baseline; an older formal commit is not a baseline.
+
+- Task center: loaded-count badge, source-aware initialization context, three
+  metrics, actual status/type filtering and role-name search, source status icons,
+  and compact task rows. Use the Demo's 3→2→1 metric-column breakpoints and actual
+  1.5 reading line-height; inherited TabsContent text-sm leading is not equivalent.
+- Task detail: 860px Dialog, default execution stages, real chronological execution
+  events/count, four human information fields and actual allowed recovery controls
+  in an outer fixed footer. Only independently confirmed domain phases can supply
+  progress; lifecycle facility names never become business stages. Models are a
+  correlation-linked destination, never task-log content. R20's local creation
+  Sheet stays and uses this same correct task presentation.
+  Its SegTabs underline spans the content width. The progress panel uses the
+  Demo's 20px stack gap, compact recorded-failure box and 5px progress track;
+  keep actual error/alert semantics and any supported configuration action without
+  adding a duplicate failure heading or reverting to generic red feedback layout.
+  Execution history uses the source 13px hierarchy and 25px indentation. Render
+  a translated status once when the event title already contains that exact
+  status; retain distinct event-phase/current-state facts and complete raw data.
+- WorkflowRecovery remains one state owner. Optional controlTarget/detailsTarget
+  portals put real controls in Dialog/Sheet/Inbox footer and information in the
+  active task-info panel. Switching panels or changing portal targets cannot
+  remount its commands or clear original body/key/CAS/accepted state. Manual task
+  recovery-state refresh also reads the task authority, without a new control.
+- Model records: recent-call Surface/list, 590px detail, Model/Purpose/Duration
+  KeyValues, request and response fields and Close footer. Full stored raw values,
+  tools, unknown fields, false/zero/null/empty and actual call errors stay available.
+  Strict measured duration omits provenance suffix in primary text; source remains
+  in technical data. Actual sequence/stage metadata is shown only when recorded.
+  Extra filters/auxiliary record APIs remain in a secondary entry. The model
+  technical toggle sits beside the header close control, outside normal layout;
+  its Close footer stays one row, 36px, and fills mobile content width. Task More
+  controls remain in their real recovery footer. Never reserve an unused scrollbar
+  gutter on the outer Dialog: its body owns scrolling, so short content retains
+  the Demo's full inner width. Raw-call field headings reset inherited h3 margins.
+- Service diagnostics: browser storage / saved model configuration / image-service
+  rows. Refresh reads saved config/readiness and probes only its own transient
+  browser keys. Configured is not reachable; readiness is not model health; media
+  reachable is not generated. Explicit POST tests remain separate, adopted results
+  retain Owner/config/epoch scope. Saved complete bindings are counted independently
+  of four editable slots or unsaved drafts.
+
+Normal task information and logs follow the Demo's hierarchy. Complete task,
+workflow control/checkpoint history and call references remain under More controls;
+never delete real diagnostics to reduce height. Only real allowed actions appear,
+not simulated Demo restart/reset/skip capabilities. Date/phase/action differences
+from the Demo must be labelled as actual data/API differences, not fabricated facts.
+
+Required checks: diagnostic-task-detail, diagnostic-model-calls, diagnostic-workspace,
+current model-detail raw-value tests, owning Management/Inbox/r11/r16 scope and original
+recovery tests. Production `verify-diagnostic-replica.mjs` runs 10 families × three
+sizes, including actual Demo pairs, empty/failure recovery, exact command retries,
+correlation navigation and creation Sheet. Old TaskModelCalls and its Task-first
+browser verifier are retired; historical reports remain historical evidence only.
+
 ## r20 creation sources, local diagnostics and reading contract
 
 Hide an existing-world or published-world source only after a complete successful
@@ -23,8 +82,7 @@ the relevant source without overriding a deliberate tab choice.
 `#/diag/task/:id` entries; other links retain their own behavior. Creation opens
 `TaskRecordDialog(presentation="sheet")` without changing hash, preserves current
 return context, and restores its connected trigger (or heading if replaced).
-Default diagnostics still use the 860px Dialog. Both use Request/Response-first
-TaskDetail. Sheet has one scrolling body and a fixed header; no fake workflow
+Default diagnostics still use the 860px Dialog. Both use the R16 task-stage detail; Request/Response belong to model records. Sheet has one scrolling body and a fixed header; no fake workflow
 retry/skip controls. Failed supported recovery calls the original dispatcher via
 “重试此环节”; blocked unstarted phases have no independent retry. Ready role/world
 reachability does not mean all initialization finished; failed/blocking progress
@@ -839,10 +897,9 @@ that exception as an all-native React rewrite or restore a second application.
 - Management keeps configurationPlan/configuration acknowledgement, original
   command identities, versions, actual field schemas, secrets and quiet-policy CAS.
 - WorkflowRecovery consumes actual `allowed_actions`, run ID, revision, reason
-  and resettable checkpoints. TaskDetail defaults to associated LLM calls using
-  `diagnosticsClient.page('model-runs', {correlationId, limit:20, cursor?})`.
-  Its full stored `data.prompt`, `data.response`, `error_code` and `error` are
-  primary content; workflow JSON is never substituted for a model response.
+  and resettable checkpoints. TaskDetail defaults to confirmed task stages and
+  actual task events. Model-call records own `data.prompt`, `data.response`,
+  `error_code` and `error`, with actual correlation/pagination and epoch fences.
 - Data keeps existing pack validate/export/import/adopt and business backup
   create/restore/retry/cancel providers. No new backend endpoint is implied.
 - Authentication uses `setupStatus()`, `auth.setup(token,password)`,
@@ -861,8 +918,8 @@ formal data. Never implement a saved endpoint deletion or purpose transfer
 without the existing corresponding command. Initial read failure prevents save.
 
 TaskRecordDialog is the 860px wide view with one actual task title. Its default
-`执行记录` tab shows model Request/Response and call errors directly, with bounded
-payload scrolling and responsive columns. Refresh and pagination remain GET-only.
+`执行阶段` tab shows confirmed business phases; execution logs contain actual task
+events. The separate model module owns the 590px Request/Response detail. Refresh and pagination remain GET-only.
 Missing correlation performs no global query. Empty results, absent/null/empty
 request or response, and failed reads have separate explanations; absent diagnostic
 data does not prove no invocation occurred. Keep unknown fields, raw strings,

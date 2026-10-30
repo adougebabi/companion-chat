@@ -90,6 +90,7 @@
 .replica-task-stages{display:grid}
 .replica-task-stage{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;padding:13px 0;border-bottom:1px solid #edf0e7}
 .replica-stage-number{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#edf3e5;color:#829b6b;font-size:11px}
+.replica-stage-number.active{background:#5f7e4f;color:white}
 .replica-task-stage h3{font-size:13px;font-weight:500;color:#4a6040}
 .replica-task-stage p,.replica-task-stage time,.replica-task-summary p{font-size:11px;color:#929e85;line-height:1.8;overflow-wrap:anywhere}
 .replica-task-times{display:grid;gap:12px;padding:15px 0;font-size:12px}
@@ -214,17 +215,44 @@
 @media(max-width:950px){.replica-data-domain .replica-management-nav>[data-domain-react-control]{flex:none}.replica-data-domain .replica-management-nav a{width:auto;white-space:nowrap;font-size:11px!important;padding:9px 12px}}
 .replica-task-summary.replica-task-summary-embedded{padding:0;border:0;background:transparent;box-shadow:none}
 .replica-task-meta{margin-bottom:18px}
-.replica-task-model-calls{display:grid;gap:12px;min-width:0}
-.replica-task-calls-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.replica-task-calls-heading>h3{font-size:14px;font-weight:600;color:#405839}
-.replica-task-model-call{display:grid;gap:12px;min-width:0;padding:16px;border:1px solid #e3e8da;border-radius:12px}
-.replica-task-model-call>header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.replica-task-model-call h4{font-size:13px;font-weight:600;overflow-wrap:anywhere}
-.replica-task-model-call h5{font-size:12px;font-weight:600;margin-bottom:8px}
-.replica-task-call-payloads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;min-width:0}.replica-task-call-payloads>section{min-width:0}
-.replica-task-wire-value{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;min-width:0;margin:0;padding:12px;border-radius:8px;background:#f4f6ef;font-size:12px;line-height:1.7;max-height:360px;overflow:auto}
-.replica-task-call-error{color:#9f3e36}
-@media(max-width:700px){.replica-task-model-call{padding:12px}.replica-task-wire-value{padding:10px;font-size:11px;max-height:280px}.replica-task-call-payloads{grid-template-columns:minmax(0,1fr)}}
-.replica-task-call-summary{display:flex;flex-wrap:wrap;gap:10px 24px;min-width:0;margin:0;font-size:12px}
-.replica-task-call-summary>div{display:grid;gap:3px;min-width:0;max-width:100%}
-.replica-task-call-summary dt{font-size:11px;color:#839078}.replica-task-call-summary dd{margin:0;overflow-wrap:anywhere;color:#405839}
-.replica-task-call-source{min-width:0}.replica-task-call-source [data-slot=collapsible-content]{padding-top:8px}
+.replica-task-progress{height:5px;border-radius:5px;background:#edf0e7;overflow:hidden;margin:0}
+.replica-task-progress>i{height:100%;display:block;background:#8da17a;border-radius:5px}
+.replica-task-log-count{font-size:9px;color:#8c967e;background:#edf1e7;padding:1px 5px;border-radius:4px}
+.replica-task-history>li{position:relative;border-left:1px solid #e1e6d8;margin-left:5px;padding:0 0 20px 25px}
+.replica-task-history>li:before{content:"";position:absolute;left:-4px;top:4px;width:7px;height:7px;border-radius:50%;background:#a1b38d}
+.replica-task-history h3{font-size:13px;font-weight:600;color:#55684c;margin:0}
+.replica-task-summary .replica-task-history p{font-size:13px;color:#859078;line-height:1.9;margin-top:6px;white-space:pre-wrap}
+.replica-task-times dd{margin:0;overflow-wrap:anywhere;color:#405839}
+.replica-task-footer-target{width:100%;min-width:0}
+.replica-task-recovery-controls{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;min-width:0}
+.replica-task-recovery-controls>[data-feedback-kind],.replica-task-recovery-controls>p{flex-basis:100%;min-width:0}
+.replica-task-recovery-controls>button,.replica-task-recovery-controls>a{width:auto;max-width:100%;white-space:normal}
+.replica-creation-task-sheet>[data-slot=sheet-footer]{flex:none;margin:0;padding:18px 26px;border-top:1px solid #e3e8da}
+@media(max-width:700px){.replica-task-footer-target button,.replica-task-footer-target a{min-height:44px}.replica-creation-task-sheet>[data-slot=sheet-footer]{padding:16px 18px}}
+/* R16: task information follows the Demo's KeyValue rhythm. */
+.replica-task-detail{gap:20px}
+.replica-task-meta{margin-bottom:20px}
+.replica-task-detail [data-slot=tabs]{gap:0}
+.replica-task-detail [data-slot=tabs-list]{width:100%;min-height:0;gap:21px;padding:0;margin-bottom:22px;border:0;border-bottom:1px solid #e2e7de;border-radius:0;justify-content:flex-start}
+.replica-task-detail [data-slot=tabs-trigger]{height:auto;min-height:0;padding:0 2px 12px;font-size:12px;font-weight:400;color:#7d8872;border:0;border-bottom:2px solid transparent;border-radius:0;flex:none;gap:7px}
+.replica-task-detail [data-slot=tabs-trigger][data-state=active]{color:#33563d;border-bottom-color:#547b4b;font-weight:600}
+.replica-task-detail [data-slot=tabs-trigger]:after{display:none}
+.replica-task-times{gap:20px;padding:0;font-size:12px;line-height:1.8}
+.replica-task-times>div{grid-template-columns:116px minmax(0,1fr);gap:14px;padding:11px 0;border-bottom:1px solid #f0f2e9}
+.replica-task-times dt{font-size:11px;color:#8b947f}
+.replica-task-times dd{color:inherit}
+.replica-task-times:not([data-continued])>div:last-child{border-bottom:0}
+.replica-task-source-info{display:grid;gap:20px;min-width:0}
+.replica-task-footer-target{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.replica-task-footer-target>.replica-task-recovery-controls{flex:1}
+.replica-task-more{order:-1;flex:none}
+@media(max-width:700px){.replica-task-detail [data-slot=tabs-list]{gap:19px}.replica-task-detail [data-slot=tabs-trigger]{font-size:11px;min-height:0}.replica-task-times>div{grid-template-columns:86px minmax(0,1fr)}}
+.replica-task-source-info>[data-slot=button]{height:auto;min-height:0;padding:0;font-size:11px;font-weight:400;justify-content:flex-start;gap:4px}
+.replica-task-info-recovery,.replica-task-source-info{margin-top:20px}
+
+.replica-task-progress-panel[data-state=active]{display:grid;gap:20px;line-height:1.5}
+.replica-task-stage h3{margin:0}
+.replica-task-stage p{margin-top:5px;color:#96a18a}
+.replica-task-detail .replica-task-failure{display:block;padding:14px;border-radius:9px;background:#faf0e8;border:1px solid #ecd9ca;font-size:12px;color:#9d775f;line-height:1.9}
+.replica-task-failure [data-slot=alert-description]{font:inherit;color:inherit;text-wrap:wrap}
+.replica-task-failure>[data-slot=button]{margin-top:10px}

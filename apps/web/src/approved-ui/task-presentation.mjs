@@ -1,4 +1,9 @@
 import {domainName,errorMessage,stateLabel} from '../v3/domain-presentation.mjs';
+export function taskStatusLabel(status){
+ const labels={pending:'等待开始',queued:'等待开始',running:'进行中',processing:'进行中',paused:'已暂停',completed:'已完成',succeeded:'已完成',failed:'需要处理',dead_letter:'需要处理',cancelled:'已取消'};
+ if(Object.hasOwn(labels,status))return labels[status];
+ const fallback=stateLabel(status);return typeof fallback==='string'?fallback:'状态待确认';
+}
 export function taskDisplayTitle(task,characters=[]){
  if(!task)return '任务详情';
  if(typeof task.title==='string'&&task.title&&task.title!==task.kind&&task.title!==task.type)return task.title;
@@ -10,12 +15,29 @@ export function diagnosticInstant(value){
  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:3,hourCycle:'h23'}).formatToParts(new Date(value)).map(p=>[p.type,p.value]));
  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}.${parts.fractionalSecond}（北京时间）`;
 }
+function diagnosticParts(value){
+ if(typeof value!=='string'||!Number.isFinite(Date.parse(value)))return null;
+ return Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:3,hourCycle:'h23'}).formatToParts(new Date(value)).map(part=>[part.type,part.value]));
+}
+export function diagnosticDateLabel(value,now=Date.now()){
+ const parts=diagnosticParts(value);if(!parts)return '未记录时间';
+ const today=diagnosticParts(new Date(now).toISOString());
+ const sameDay=['year','month','day'].every(key=>parts[key]===today[key]);
+ const date=sameDay?'今天':parts.year===today.year?`${parts.month}-${parts.day}`:`${parts.year}-${parts.month}-${parts.day}`;
+ return `${date} ${parts.hour}:${parts.minute}`;
+}
+export function diagnosticTimeLabel(value){const parts=diagnosticParts(value);return parts?`${parts.hour}:${parts.minute}:${parts.second}${parts.fractionalSecond==='000'?'':'.'+parts.fractionalSecond}`:'未记录时间';}
 export function taskEventTitle(entry){
  const event=domainName(entry.event_type,'');
  if(event)return event;
  const stage=domainName(entry.name,'');
  if(stage)return stage+' · '+stateLabel(entry.status,'状态记录');
  return stateLabel(entry.status,'任务状态')+'记录';
+}
+export function taskEventText(entry){
+ const title=taskEventTitle(entry),state=stateLabel(entry.status,'已记录');
+ const label=typeof title==='string'?title:'任务记录',status=typeof state==='string'?state:'已记录';
+ return label.split(' · ').includes(status)||label===status+'记录'?label:label+' · '+status;
 }
 export function taskStageRecords(task,preparation){
  if(!['wardrobe.initialize','wardrobe_initialize','wardrobe_preparation'].includes(task?.kind||task?.type)||!task?.fluctlight_id||preparation?.task_id!==task?.task_id||preparation?.fluctlight_id!==task.fluctlight_id)return [];

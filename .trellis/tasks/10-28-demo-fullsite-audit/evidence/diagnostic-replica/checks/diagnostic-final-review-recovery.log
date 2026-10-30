@@ -1,0 +1,31 @@
+✔ notification task opens in the same dialog and returns without another acknowledgement or navigation (445.85825ms)
+✔ each inbox reader retries its own failed source while preserving notification cursor and server read time (258.041667ms)
+✔ inbox display filter survives returning from a source and clears with its Owner session (221.5345ms)
+✔ role filtering starts its own server read and the global unread count is not the page length (160.641834ms)
+✔ unrecognized notification source names retain their content and a usable detail (162.334917ms)
+✔ notification previews read exact owned sources and ignore foreign or stale results (1.219458ms)
+✔ first-use connection save needs no unused model roles (0.468125ms)
+✔ connection draft restores noncredential fields and preserves the original CAS baseline (0.381041ms)
+✔ five distinct replies become one character group without losing notice identities (0.142083ms)
+✔ diary dates and terminal receipts never manufacture generated prose (0.781083ms)
+✔ diagnostic previews keep raw formatting in detail rather than leaking it into summaries (0.351667ms)
+✔ truncated generation and malformed imports have actionable Chinese feedback (0.185208ms)
+✔ optional model timeout uses 120 seconds while malformed explicit values stay invalid (0.735417ms)
+✔ exhausted wardrobe authority is shared by both pages and blocks successors visibly (1.177583ms)
+✔ notice grouping preserves actual IDs, hash destinations and original failure records (0.200917ms)
+✔ profile projection removes exact aliases while retaining conflicting and custom facts (1.100167ms)
+✔ model output errors do not blame user input and missing embedding explains saved memory (0.139791ms)
+✔ male unknown body fields stay hidden while explicit stored values remain editable and readable (1309.443292ms)
+✔ initial schedule precedes image stages and image failure does not relabel it blocked (0.915417ms)
+✔ creation waiting for candidate review explains the human action without counting unread images as ready (0.361583ms)
+✔ inline progress follows original request, localizes tasks, keeps state on read failure and ignores changed Owner (2.785917ms)
+✔ outfit action reads fresh wardrobe and outfit versions at click time (1.013583ms)
+✔ slow restoration of an old suggestion cannot replace a freshly submitted progress panel (1.041209ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3128.413458

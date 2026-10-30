@@ -1,0 +1,207 @@
+[
+  {
+    "name": "tasks",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "three modules and both actual task filters exist",
+      "app-list: no horizontal overflow",
+      "metric height follows actual Demo content typography",
+      "search uses associated role names",
+      "status filter is an actual task-list action",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/saved-service/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-approved-task-final/tasks-wide-app-list.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/diagnostic-replica-shots/diag-approved-task-final/tasks-wide-demo-list.png"
+    ],
+    "geometry": [
+      {
+        "app": {
+          "x": 598,
+          "y": 646.328125,
+          "width": 1187,
+          "height": 76
+        },
+        "demo": {
+          "x": 598,
+          "y": 646.328125,
+          "width": 1187,
+          "height": 76
+        }
+      },
+      {
+        "metric": {
+          "app": {
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "height": 135.5,
+            "children": [
+              {
+                "tag": "SPAN",
+                "font": "12px / 18px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "18px",
+                "rect": {
+                  "x": 594,
+                  "y": 388.828125,
+                  "width": 48,
+                  "height": 15,
+                  "top": 388.828125,
+                  "right": 642,
+                  "bottom": 403.828125,
+                  "left": 594
+                },
+                "margin": "0px"
+              },
+              {
+                "tag": "STRONG",
+                "font": "500 27px / 40.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "40.5px",
+                "rect": {
+                  "x": 594,
+                  "y": 413.828125,
+                  "width": 359.65625,
+                  "height": 40.5,
+                  "top": 413.828125,
+                  "right": 953.65625,
+                  "bottom": 454.328125,
+                  "left": 594
+                },
+                "margin": "8px 0px 3px"
+              },
+              {
+                "tag": "SMALL",
+                "font": "11px / 16.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "16.5px",
+                "rect": {
+                  "x": 594,
+                  "y": 462.328125,
+                  "width": 88,
+                  "height": 13,
+                  "top": 462.328125,
+                  "right": 682,
+                  "bottom": 475.328125,
+                  "left": 594
+                },
+                "margin": "0px"
+              }
+            ]
+          },
+          "demo": {
+            "font": "14px / 21px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+            "lineHeight": "21px",
+            "height": 135.5,
+            "children": [
+              {
+                "tag": "SPAN",
+                "font": "12px / 18px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "18px",
+                "rect": {
+                  "x": 594,
+                  "y": 388.828125,
+                  "width": 48,
+                  "height": 15,
+                  "top": 388.828125,
+                  "right": 642,
+                  "bottom": 403.828125,
+                  "left": 594
+                },
+                "margin": "0px"
+              },
+              {
+                "tag": "STRONG",
+                "font": "500 27px / 40.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "40.5px",
+                "rect": {
+                  "x": 594,
+                  "y": 413.828125,
+                  "width": 359.65625,
+                  "height": 40.5,
+                  "top": 413.828125,
+                  "right": 953.65625,
+                  "bottom": 454.328125,
+                  "left": 594
+                },
+                "margin": "8px 0px 3px"
+              },
+              {
+                "tag": "SMALL",
+                "font": "11px / 16.5px Inter, -apple-system, \"system-ui\", \"Segoe UI\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+                "lineHeight": "16.5px",
+                "rect": {
+                  "x": 594,
+                  "y": 462.328125,
+                  "width": 88,
+                  "height": 13,
+                  "top": 462.328125,
+                  "right": 682,
+                  "bottom": 475.328125,
+                  "left": 594
+                },
+                "margin": "0px"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "boundary": "production dist + controlled HTTP; immutable running Demo; no live model or backend writes"
+  }
+]

@@ -30,7 +30,7 @@ coverage.json为完整数据源，coverage.md为可读索引；每行视觉/交�
 
 基线ea3d8e33，沿用既有业务控制器和已接受命令恢复。导航问题在App/approved routing及Management/Studio目录的实际入口收敛；新建资源提示在StudioEditor显示层区分，保留dirty/save业务不变量；设置展示在SettingsSections/SettingsField/ModelDirectory及现有字段拥有者收敛；数据页保留原导入/导出/维护能力但统一标题、次导航几何和低干扰说明；共用CommandDialog保留真实同步/冲突能力，正常表单只保留必要主要操作；媒体与全局主题根据生效CSS定位黑框/宽度/保存栏覆盖；预览使用正式语义组件处理已声明枚举和关系量表，未知扩展完整保留。涉及业务状态选择由主线程亲自实施，不扩展媒体收藏等缺失API，不改模型/提示词协议。参考70图留在/tmp，提交只含文字报告和检查数据。
 
-## 任务详情截图修复边界（2026-10-30）
+## 任务详情截图修复边界（2026-10-30，历史R14，已由R16更正）
 
 TaskRecordDialog负责wide尺寸、动态语义标题与单一弹窗滚动主体；TaskDetailPage去掉嵌套阅读卡层级，三页签与Demo一致，失败原因放执行阶段附近，完整来源在任务信息。WorkflowRecovery继续单独拥有allowed_actions/CAS/原请求/accepted围栏，当前保留原恢复区域，优先落实R14的调用数据主体。task-presentation只从同task/fid的正式衣柜result投影已确认阶段，生命周期payload.stage只作执行记录，不能当业务阶段。无阶段来源时如实说明，不编造百分比或时刻。只改该共享详情及必要测试/fixture/CSS，不新增后端恢复能力，不启用真实模型；截图仍仅在/tmp。
 
@@ -43,3 +43,7 @@ TaskRecordDialog负责wide尺寸、动态语义标题与单一弹窗滚动主体
 Studio离开该创作访问范围时只清对应Owner/fixedKind的显示偏好，编辑/详情返回保留访问内状态；不清任何草稿/原命令。画像只解释明确已知scalar行，阅读上可合并同键同值并保留原文出现次数与完整原文，不改存储或跨记录合并业务事实。衣柜准备通过视图slot移到页头之后。Feed max-width先按原Demo证据判断，不任意铺满。KEV保留真实数值和开关；仅补总开关与媒体子选项的生效说明。数据页无可测本地健康不造“本地存储正常”。
 
 后端改动仅限衣柜失败原因直接路径：Provider角色查询缺行提供精确typed cause；模型前读取按实际失败阶段包装并保留原error链；普通noRows不能视作generic_llm缺失。返回已知业务code/reason，不触碰执行、恢复identity、提示词、队列或默认配置。历史原始错误不靠UI猜测真实原因。
+
+## R16：以Demo重新还原诊断三个模块
+
+R16取代此前R14的任务详情Request/Response主体方案。以实际运行Demo和LifePages DiagnosticsPanel/DiagnosticHealth及共享详情/控件CSS为基准，逐项记录差异，不用旧实现当基线。任务中心负责业务阶段、执行事件、任务信息和真实恢复；模型调用记录负责模型/用途/耗时、请求/响应和调用错误；服务诊断恢复分项检查行，仅展示实际读取/探测或真实测试结果。正式额外筛选/辅助运行记录/导出保留在次级入口，不挤占Demo主要结构。当前阶段只改前端呈现和相关测试，不改Core、配置、prompt或任务状态；保留创建页原地Sheet和r20业务修复，在其中复用正确任务详情。

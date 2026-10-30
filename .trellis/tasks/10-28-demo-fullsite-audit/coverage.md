@@ -210,3 +210,9 @@
 ## r20 增量
 
 [r20逐项结果](r20-acceptance.md) / [24条三视口浏览器](evidence/r20-browser-index.json) / [6条JSON预览及配置返回](evidence/r19/r20-preview-return2-after/report.json)。覆盖矩阵只给14行追加观察，未提升原状态；12组修改前本地截图另存文本索引。
+
+## 诊断三模块增量（用户 R16）
+
+[逐项查漏与验收](diagnostic-replica-acceptance.md) / [30条诊断三视口浏览器](evidence/diagnostic-replica-browser-index.json) / [6条创建关联复验](evidence/diagnostic-r20-browser-index.json)。任务阶段/事件/信息、模型完整请求响应、真实服务检查分属三个模块；旧R14的任务默认请求响应要求已退役。正常配对含准确指标位置与弹窗内部几何，空/缺配置/读取失败/原请求恢复/关联返回按具体断言登记。
+
+只给7行增加 diagnostic_replica_observations，原177行三维和八场景状态保持。导出/清理、全部任务类型与真实完成后完整reload等未在本批重新遍历；真实媒体生成由用户测试，不以本批36案例替代全站验收。

@@ -1,0 +1,12 @@
+{
+  "immutable_demo": {
+    "count": 48,
+    "changed": []
+  },
+  "unrelated_old_task": {
+    "count": 108,
+    "changed": []
+  },
+  "head_before_checkpoint": "248722841f7814f7fa051811cc9a5c3a25dafa9a",
+  "coverage_statuses_unchanged": true
+}

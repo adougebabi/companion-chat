@@ -1,6 +1,6 @@
 import SettingsSections from '../shared/SettingsSections';
 import DiagnosticsWorkspace from "@/react-app/shared/DiagnosticsWorkspace";
-import {useRef} from 'react';
+import {useRef,useState,useEffect} from 'react';
 import WorkspaceDialog from '../shared/WorkspaceDialog';
 import WorkspacePageHeader from "@/react-app/shared/WorkspacePageHeader";
 import {Server,MessageSquare,ImageIcon,Leaf,Bell,Activity,Database,SlidersHorizontal} from "lucide-react";
@@ -8,13 +8,14 @@ import RecordView from '@/react-app/shared/RecordView';
 import CursorControls from '@/react-app/shared/CursorControls';
 import {Field,FieldLabel} from '@/components/ui/field';
 import {Input} from '@/components/ui/input';
+import {Button} from '@/components/ui/button';
 import {MoreHorizontal} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator} from '@/components/ui/dropdown-menu';
 import {InlineFeedback as OperationStatus} from "@/react-app/shared/Presentation";
 import {Feedback,InlineFeedback} from "@/react-app/shared/Presentation";
-import ModelTranscript from '@/react-app/shared/ModelTranscript';
+import ModelCallDetails from '@/react-app/shared/ModelCallDetails';
+import {Collapsible,CollapsibleContent,CollapsibleTrigger} from '@/components/ui/collapsible';
 import JsonDetails from '@/react-app/shared/JsonDetails';
-import {Table,TableBody,TableCell,TableRow} from '@/components/ui/table';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import DiagnosticRecords from '@/react-app/shared/DiagnosticRecords';
@@ -38,7 +39,7 @@ import {
 } from "@/react-app/render-helpers";
 const Yi = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 export function ManagementPageView({ view: view }) {
-  const recordTrigger=useRef(null);
+  const recordTrigger=useRef(null),managementNav=useRef(null),[callTechnicalTarget,setCallTechnicalTarget]=useState(null);
   const categories = [
     {id:'models',label:'模型服务与用途',icon:Server,sections:['服务地址','模型用途']},
     {id:'conversation',label:'聊天与视觉',icon:MessageSquare,sections:['聊天回复','看图理解']},
@@ -50,13 +51,14 @@ export function ManagementPageView({ view: view }) {
     {id:'advanced',label:'高级设置',icon:SlidersHorizontal,sections:['高级']},
   ];
   const category=readValue(view.tab)==='运行诊断'?'diagnostics':categories.find(c=>c.sections.includes(view.currentSection.value))?.id||'models';
+  useEffect(()=>{const align=()=>{const nav=managementNav.current,active=nav?.querySelector('[aria-current=page]');if(!nav||!active||nav.scrollWidth<=nav.clientWidth)return;const box=nav.getBoundingClientRect(),item=active.getBoundingClientRect();if(item.left<box.left)nav.scrollLeft+=item.left-box.left;else if(item.right>box.right)nav.scrollLeft+=item.right-box.right;};align();window.addEventListener('resize',align);return()=>window.removeEventListener('resize',align);},[category]);
   const show=title=>categories.find(c=>c.id===category)?.sections.includes(title)&&(category!=='models'||view.currentSection.value===title);
   const choose=id=>{const item=categories.find(c=>c.id===id);if(id==='data'){view.openData();return;}if(id==='diagnostics'){view.openDiagnostics();return;}view.tab.value='配置中心';view.openSettings(item.sections[0]);if(item.sections.length)void view.scrollTo(item.sections[0],false).then(()=>{document.querySelector('.replica-page')?.scrollTo({top:0,left:0,behavior:'instant'});});};
   return (
     <Tabs className="replica-management" value={view.tab.value} onValueChange={value=>view.tab.value=value}>
       <WorkspacePageHeader eyebrow="PREFERENCES / MAKE IT YOURS" title="管理中心" description="让每一次相处，按你喜欢的方式发生。" actions={view.accountActions()}/>
       <div className="replica-management-layout">
-        <nav className="replica-management-nav" aria-label="管理中心设置目录" data-testid="config-section-nav">{categories.map(item=><ActionButton key={item.id} variant={category===item.id?'secondary':'ghost'} aria-current={category===item.id?'page':undefined} type="button" onClick={()=>choose(item.id)} data-testid={'config-anchor-'+item.sections[0]}><item.icon size={16}/>{item.label}</ActionButton>)}</nav>
+        <nav ref={managementNav} className="replica-management-nav" aria-label="管理中心设置目录" data-testid="config-section-nav">{categories.map(item=><ActionButton key={item.id} variant={category===item.id?'secondary':'ghost'} aria-current={category===item.id?'page':undefined} type="button" onClick={()=>choose(item.id)} data-testid={'config-anchor-'+item.sections[0]}><item.icon size={16}/>{item.label}</ActionButton>)}</nav>
         <div className="replica-management-main">
       <TabsContent value={view.tab.value} className="min-w-0">
         {readValue(view.tab) === "配置中心" ? (
@@ -403,136 +405,40 @@ export function ManagementPageView({ view: view }) {
           </div>
         ) : (
           <DiagnosticsWorkspace view={view}>
-            <p className="muted">
-              {"每次回应背后的记录。模型与媒体的运行情况，都在这里。"}
-            </p>
-            <label className="replica-diagnostic-kind-filter">调用类型<ChoiceSelect aria-label="调用类型" value={view.kind.value} onChange={event=>view.selectKind(event.target.value)}>{['模型调用','媒体调用'].map(kind=><option key={kind} value={kind}>{kind}</option>)}</ChoiceSelect></label>
+            <Surface as="section" className="replica-model-calls-surface">
+              <header className="replica-model-calls-heading"><h2>{view.kind.value==='媒体调用'?'最近的媒体调用':'最近的模型调用'}</h2><p>记录包含用途、耗时与可展开的请求结果。</p></header>
+              {view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={{...view,selectRecord:(record,trigger)=>{recordTrigger.current=trigger;view.selectRecord(record);}}}/>}
+              <CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
+            </Surface>
+            <Collapsible className="replica-model-calls-secondary">
+              <CollapsibleTrigger asChild><ActionButton type="button" variant="ghost">筛选与更多运行记录</ActionButton></CollapsibleTrigger>
+              <CollapsibleContent className="replica-model-calls-options">
+                <label className="replica-diagnostic-kind-filter">调用类型<ChoiceSelect aria-label="调用类型" value={view.kind.value} onChange={event=>view.selectKind(event.target.value)}>{['模型调用','媒体调用'].map(kind=><option key={kind} value={kind}>{kind}</option>)}</ChoiceSelect></label>
+                <view.FilterChips search={view.search.value} onUpdateSearch={h=>view.search.value=h} filters={view.filters.value} onUpdateFilters={h=>view.filters.value=h} groups={view.filterGroups.value} testId="diag-filters" placeholder="搜索调用 / 提示词 / 工作流 / 角色"/>
+                <small className="muted">{view.rows.value.length} 条已读取记录 · 按记录顺序排列</small>
             <div className="diagnostic-navigation grid gap-4">
               <DropdownMenu><DropdownMenuTrigger asChild><ActionButton type="button" variant="ghost" aria-label="更多运行记录"><MoreHorizontal size={16}/>{view.reference.value||'更多运行记录'}</ActionButton></DropdownMenuTrigger><DropdownMenuContent align="start"><DropdownMenuItem onSelect={()=>view.selectReference('')}>模型与媒体调用</DropdownMenuItem>{readValue(view.referenceSections).map(section=><DropdownMenuItem key={section.title} onSelect={()=>view.selectReference(section.title)}>{section.title}</DropdownMenuItem>)}<DropdownMenuSeparator/><DropdownMenuItem onSelect={view.openTaskDiagnostics}>待处理事项与原任务恢复</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
 
               {view.referenceSection.value ? <Surface as="section" key={view.referenceSection.value.kind+view.referenceSection.value.title} className="grid gap-4"><div className="row"><h3>{view.referenceSection.value.title}</h3><span className="spacer"/><ActionButton variant="outline" type="button" onClick={()=>view.reference.value=''}>收起面板</ActionButton></div>{view.referenceSection.value.loading&&<p role="status">正在读取记录…</p>}{view.referenceSection.value.error&&<InlineFeedback role="alert">{view.referenceSection.value.error}<ActionButton variant="outline" onClick={view.retryReference}>重新读取原记录页</ActionButton></InlineFeedback>}{!view.referenceSection.value.rows.length&&!view.referenceSection.value.loading&&!view.referenceSection.value.error&&<p className="text-sm text-muted-foreground">当前没有对应记录。</p>}{view.referenceSection.value.rows.map(record=><ActionButton key={view.referenceSection.value.kind+':'+record.ref} variant="outline" className="h-auto min-h-14 w-full justify-between whitespace-normal text-left" onClick={()=>view.openReference(record,view.referenceSection.value)}><span className="grid min-w-0 gap-1"><b>{view.referenceTitle(record)}</b><small>{record.occurred_at?view.userInstant(record.occurred_at):'时间未记录'}</small></span><Badge>{view.referenceStatus(record)}</Badge><span>查看详情</span></ActionButton>)}<CursorControls label="诊断记录" append={{loading:view.referenceSection.value.loading,hasMore:!!view.referenceSection.value.nextCursor,loadMore:view.loadMoreReference}}/></Surface>:null}
               {view.referenceRecord.value&&<view.DetailDrawer title={view.referenceRecord.value.section.title+' · 记录详情'} testId="reference-drawer" onClose={()=>view.referenceRecord.value=null}>{view.referenceRecord.value.loading?<p role="status">正在读取详情…</p>:view.referenceRecord.value.error?<InlineFeedback role="alert">{view.referenceRecord.value.error}<ActionButton variant="outline" onClick={()=>view.openReference(view.referenceRecord.value.record,view.referenceRecord.value.section)}>重新读取</ActionButton></InlineFeedback>:<RecordView value={view.referenceRecord.value.detail?.data||view.referenceRecord.value.detail} technical/>}</view.DetailDrawer>}
             </div>
-            {!view.reference.value&&<Fragment>
-            <view.FilterChips
-              search={view.search.value}
-              onUpdateSearch={(h) => (view.search.value = h)}
-              filters={view.filters.value}
-              onUpdateFilters={(h) => (view.filters.value = h)}
-              groups={view.filterGroups.value}
-              testId="diag-filters"
-              placeholder="搜索调用 / 提示词 / 工作流 / 角色"
-            />
-            <small className="muted">
-              {displayText(view.rows.value.length) + " 条已读取记录 · 按记录顺序排列"}
-            </small>
-            <p className="muted">{view.kind.value === "媒体调用" ? "图片、音频和视频任务的实际生成记录。" : "模型处理请求的状态、用时和结果摘要。"}</p>
-            <>{view.diagnosticPages.value[view.kind.value].ready&&<DiagnosticRecords view={{...view,selectRecord:(record,trigger)=>{recordTrigger.current=trigger;view.selectRecord(record);}}}/>}</><CursorControls label="调用" append={{hasContent:view.rows.value.length>0,loading:view.diagnosticPages.value[view.kind.value].loading,hasMore:!!view.diagnosticPages.value[view.kind.value].cursor,loadMore:view.loadMoreDiagnostics,error:view.diagnosticPages.value[view.kind.value].error,retry:view.loadMoreDiagnostics}}/>
+              </CollapsibleContent>
+            </Collapsible>
             {view.selected.value ? (
               <WorkspaceDialog
                 open
                 key={0}
-                title={view.selected.value.label + " · 调用详情"}
+                title={view.selected.value.label}
+                className="replica-model-call-dialog"
+                description={view.selected.value.kind+" · "+view.recordTime(view.selected.value)}
+                footer={<><div ref={setCallTechnicalTarget} className="replica-model-call-technical-target"/><Button variant="outline" type="button" onClick={()=>view.selectedId.value=null}>关闭</Button></>}
                 testId="diagnostic-drawer"
                 returnFocus={()=>recordTrigger.current}
                 onOpenChange={open=>{if(!open)view.selectedId.value=null;}}
               >
-                <div className="detail-meta">
-                  <Badge >
-                    {displayText(view.selected.value.kind)}
-                  </Badge>
-                  <p>
-                    {displayText(view.selected.value.character) +
-                      " · " +
-                      displayText(view.recordTime(view.selected.value)) +
-                      " · " +
-                      displayText(view.selected.value.durationLabel)}
-                  </p>
-                  <span
-                    className={cn(["call-status", view.selected.value.status])}
-                  >
-                    {displayText(view.statusLabel(view.selected.value.status))}
-                  </span>
-                </div>
-                {view.selected.value.status === "error" ? (
-                  <InlineFeedback key={0} >
-                    {displayText(view.selected.value.category) +
-                      "：" +
-                      displayText(view.selected.value.reason) +
-                      " "}
-                    <ActionButton variant="outline"
-
-                      data-testid="diag-drawer-retry"
-                      onClick={(h) => view.retry(view.selected.value)}
-                    >
-                      {"查看原记录与恢复方式"}
-                    </ActionButton>
-                  </InlineFeedback>
-                ) : null}
-                {view.selected.value.kind === "媒体调用" &&
-                view.selected.value.media ? (
-                  <Fragment key={1}>
-                    <dl
-                      className="media-call-attributes"
-                      data-testid="media-call-details"
-                    >
-                      <div>
-                        <dt>{"角色"}</dt>
-                        <dd>{displayText(view.selected.value.character)}</dd>
-                      </div>
-                      <div>
-                        <dt>{"媒体类型"}</dt>
-                        <dd>
-                          {displayText(view.selected.value.media.type) +
-                            " · 图片"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>{"工作流"}</dt>
-                        <dd>
-                          {displayText(view.selected.value.media.workflow)}
-                        </dd>
-                      </div>
-                    </dl>
-                    <section className="detail-section">
-                      <h3>{"提示词 / Prompt"}</h3>
-                      <RecordView value={view.selected.value.media.prompt}/>
-                    </section>
-                    <section className="detail-section">
-                      <h3>{"负面提示词 / Negative prompt"}</h3>
-                      <RecordView value={view.selected.value.media.negativePrompt}/>
-                    </section>
-                    <section className="detail-section">
-                      <h3>{"生成参数"}</h3>
-                      <Table><TableBody>{Object.entries(view.selected.value.media.params||{}).map(([key,value])=><TableRow key={key}><TableCell>{({width:'宽度',height:'高度',steps:'步数',cfg:'CFG',seed:'种子',sampler:'采样器'})[key]||key}</TableCell><TableCell>{value===null||value===undefined?'尚未记录':typeof value==='object'?JSON.stringify(value):String(value)}</TableCell></TableRow>)}</TableBody></Table>
-                    </section>
-                    <section
-                      className="detail-section"
-                      data-testid="media-call-output"
-                    >
-                      <h3>{"输出"}</h3>
-                      {view.selected.value.media.assetId?<><p>{view.selected.value.media.output}</p><ActionButton variant="outline" type="button"  onClick={()=>view.openMediaAsset(view.selected.value.media.assetId)}>查看已记录素材</ActionButton></>:<p className="muted">{view.selected.value.status==='pending'?'媒体任务仍在处理。':'尚未关联可读取的媒体素材；调用完成不代表图片已生成。'}</p>}
-                    </section>
-                  </Fragment>
-                ) : (
-                  <Fragment key={2}>
-                    <p className="muted">
-                      {"模型 · " + displayText(view.selected.value.model)}
-                      {view.selected.value.tokens ? (
-                        <Fragment key={0}>
-                          {" · " +
-                            displayText(view.selected.value.tokens) +
-                            " token"}
-                        </Fragment>
-                      ) : null}
-                    </p>
-                    <ModelTranscript key={view.selected.value.id} record={view.selected.value}/>
-                  </Fragment>
-                )}
-                <JsonDetails value={view.selected.value._record} title="技术详情与关联标识"/>
+                <ModelCallDetails technicalTarget={callTechnicalTarget} record={view.selected.value} onRecover={view.selected.value.status==='error'?()=>view.retry(view.selected.value):undefined} onOpenMedia={view.openMediaAsset}/>
               </WorkspaceDialog>
             ) : null}
-            </Fragment>}
 
           </DiagnosticsWorkspace>
         )}

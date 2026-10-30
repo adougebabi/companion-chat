@@ -28,11 +28,12 @@ test('select normalization removes duplicate empty choices while preserving exac
  function View(){return React.createElement(ChoiceSelect,{value:'',onChange:e=>chosen=e.target.value},['','',false,0].map((value,index)=>React.createElement('option',{key:index,value},String(value)||'尚未填写')));}
  const v=await mountReact(vite,View);try{await v.click(v.host.querySelector('[role=combobox]'));const options=[...document.querySelectorAll('[role=option]')];assert.equal(options.filter(n=>n.textContent==='尚未填写').length,1);await v.click(options.find(n=>n.textContent==='0'));assert.equal(chosen,0);}finally{await v.dispose();}
 });
-test('diagnostic call rows retain separate detail and recovery actions without nested buttons',async()=>{
- const {default:Records}=await load('react-app/shared/DiagnosticRecords.tsx');let selected,retired;
- const record={id:'run',label:'模型调用',character:'尚未关联角色',status:'error',summary:'保留的失败原因'.repeat(25),durationLabel:'120 秒',start:Date.now()};
- const view={rows:{value:[record]},recordTime:()=> '完整时间',statusLabel:()=> '失败',selectRecord:r=>selected=r.id,retry:r=>retired=r.id,clear(){}};
- const v=await mountReact(vite,Records,{props:{view}});try{const row=v.host.querySelector('[data-testid=diag-record-run]');assert.ok(row);assert.equal(row.querySelectorAll('button button').length,0);assert.ok(row.querySelector('.diagnostic-summary'));assert.match(row.textContent,/120 秒/);assert.match(row.textContent,/尚未关联角色/);await v.click(v.host.querySelector('[data-testid=diag-open-run]'));assert.equal(selected,'run');await v.click(v.host.querySelector('[data-testid=diag-retry-run]'));assert.equal(retired,'run');}finally{await v.dispose();}
+test('diagnostic call rows open the compact detail where the actual recovery action remains available',async()=>{
+ const {default:Records}=await load('react-app/shared/DiagnosticRecords.tsx'),{default:Details}=await load('react-app/shared/ModelCallDetails.tsx');let selected,retired;
+ const record={id:'run',label:'模型调用',status:'error',_record:{kind:'model-runs',data:{model_id:'actual-model',started_at:'2026-10-30T00:00:00Z',completed_at:'2026-10-30T00:02:00Z',prompt:'original-request',response:null,error_code:'original-error'}}};
+ const view={rows:{value:[record]},recordTime:()=> '完整时间',statusLabel:()=> '失败',selectRecord:r=>selected=r.id,clear(){}};
+ const v=await mountReact(vite,Records,{props:{view}});try{const row=v.host.querySelector('[data-testid=diag-record-run]');assert.ok(row);assert.equal(row.querySelectorAll('button button').length,0);assert.equal(row.querySelector('.diagnostic-summary'),null);assert.match(row.textContent,/120 秒/);await v.click(v.host.querySelector('[data-testid=diag-open-run]'));assert.equal(selected,'run');}finally{await v.dispose();}
+ const d=await mountReact(vite,Details,{props:{record,onRecover:()=>retired=record.id}});try{assert.match(d.host.textContent,/original-request/);await d.click(d.host.querySelector('[data-testid=diag-drawer-retry]'));assert.equal(retired,'run');}finally{await d.dispose();}
 });
 test('malformed Studio world structure stays editable as complete JSON instead of crashing or overwriting its data',async()=>{
  const {default:Definition}=await vite.ssrLoadModule('/src/react-app/shared/StudioDefinitionForm.tsx');const original={schema:'world-definition.v1',background:'原背景',framework:{venues:[null]}};let changed;
