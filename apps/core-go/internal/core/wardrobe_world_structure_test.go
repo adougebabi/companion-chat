@@ -185,6 +185,20 @@ func TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays(t 
 	calls := 0
 	router := newFakeProviderRouter().on("wardrobe_preparation_v1", func(payload map[string]any) fakeProviderResult {
 		calls++
+		messages := arrayValue(payload["messages"])
+		if len(messages) != 2 {
+			t.Fatal("unexpected preparation messages", len(messages))
+		}
+		input := decodeObject([]byte(stringValue(mapValue(messages[1])["content"])))
+		if input["select_only"] != (calls == 2) || input["current_appearance"] == nil || mapValue(input["current_life"])["context_revision"] != nil {
+			t.Fatal("production initializer did not use the task projection")
+		}
+		for _, raw := range arrayValue(input["registered_items"]) {
+			item := mapValue(raw)
+			if item["revision"] != nil || item["source_ref"] != nil || item["fluctlight_id"] != nil {
+				t.Fatal("inventory persistence fields reached model")
+			}
+		}
 		if calls == 1 {
 			return fakeProviderResult{Structured: map[string]any{"items": []any{
 				map[string]any{"key": "top", "description": "青绿宽松上衣", "clothing_type": "upper_body", "seasons": []any{"spring", "autumn"}}, map[string]any{"key": "bottom", "description": "棉质长裤", "clothing_type": "lower_body", "seasons": []any{"spring", "autumn"}}, map[string]any{"key": "scarf", "description": "柔软围巾", "clothing_type": "accessory", "seasons": []any{"autumn"}}, map[string]any{"key": "necklace", "description": "简洁项链", "clothing_type": "accessory", "seasons": []any{}},

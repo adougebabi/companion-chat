@@ -85,6 +85,14 @@ guards are separate existing contracts, never excuses for a prompt token cap.
 - Schedule items appear once. `current_item_index` and `upcoming_item_indexes`
   are zero-based into `items`; one start/end pair plus timezone replaces purely
   derived display variants. The complete authorized plan remains in Core.
+- Wardrobe preparation sends only the current generation or selection protocol.
+  Registered garment details have one owner; saved plans and current wear use
+  exact member references, retaining invalid/missing membership explicitly.
+  Item IDs are consumed by Core validation and the separate real wardrobe.wear
+  Tool. Outfit IDs, inventory provenance and CAS revisions stay in Core. Use
+  the real local clock and effective body; read only declared style preferences
+  from retired Foundation appearance. Mixed legacy style prose remains data,
+  never persona instruction or evidence of current inventory/weather/activity.
 
 ### Memory and history
 
@@ -130,6 +138,10 @@ envelopes, evidence hydration/schema opacity, single Goal ownership, schedule
 factoring and shared-source distinct claims. Maintain whole-turn, stable-prefix,
 persona and private Writer regressions. Physical no-cap tests cover ordinary
 structured/stream, Writer and the third Tool continuation reaching request four.
+`wardrobe_preparation_prompt_test.go` covers both stage protocols through actual
+Provider HTTP JSON, one garment catalogue, invalid plan membership, local clock,
+preference/body authority and opaque preference values; private capture replay
+is opt-in and must not become a checked-in private fixture.
 
 Size comparisons measure the actual composed messages on identical/specified
 data. Reconstructed user captures are opt-in local inputs, never checked-in

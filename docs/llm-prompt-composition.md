@@ -45,7 +45,7 @@
 | wake_up | 专属完整唤醒协议 + Working Persona + D/M/S + 历史资料 H + 本次唤醒事件 | H，作为历史数据 | agent_result_adapter.go；capability_prompt_policy.go |
 | takeover_judge | Judge 协议 + 本轮 user/candidate/接管规则/控制与关系事实 + 可选 recent references | 无全量 H/M | turn_takeover.go；conversation_runtime.go |
 | takeover_reply | 接管任务规则 + caller 提供的选定人格、上下文及 messages + 授权 Tools | 取决于 caller | conversation_runtime.go |
-| wardrobe_preparation | 服装准备规则 + 人格/气候/当前情境/已有衣物/候选穿搭 | 0 | wardrobe_preparation.go |
+| wardrobe_preparation | 分阶段准备/选衣规则 + 穿搭所需身份/性格/偏好 + 本地时间/当前情境/实际身体与穿戴引用 + 唯一衣物目录/方案成员引用 | 0 | wardrobe_preparation.go；wardrobe_preparation_prompt.go |
 | initialization | 初始化解析协议 + Owner 描述 + 字段语义/输出结构提示 | 0 | app.go；model_tasks.go |
 | persona_compilation | 人格编译协议 + 选定 profile 和共享身份；必要时校验反馈 | 0 | persona_compilation.go |
 | media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；media_capture_plan.go；media_prompt_branches.go |
@@ -124,6 +124,7 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | 目标评估 `goal_ref/criterion_ref/object_ref/eN` | 选择冻结对象和证据，由 Core 恢复真实 ID/version |
 | persona profile/rule selectors | 选择已声明且获授权的人格/规则 |
 | Owner 请求的 item/intention/asset IDs | 对应工具必须精确匹配用户选择的目标，不能猜测或改对象 |
+| 初始穿搭的 registered_items.id / item_refs / wear_item_refs | 方案和当前穿戴引用唯一衣物目录，选衣结果由 Core 校验并交给真实 wardrobe.wear；不发送方案自身 ID 或库存来源流水 |
 | Studio body/allowed_references 中的资源 ID/version | 创作定义的合法引用词表；job 自身 id/version 不发送 |
 | Goal Planner run/goal/promise selectors、revision/facts_revision | 当前 query/commit 的实际 CAS 与目标协议；调度 lease/retry knobs 已去除 |
 | NPC 相遇机会 id/revision | world.npc.encounter 的精确选择与 CAS；来源事件/presence/profile 身份不进入模型 |
@@ -158,6 +159,31 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
   不能用 scripted Provider 或回复包含衣物名称替代此验收；还需审阅真实正文语义。
 
 任何提示词精简都不能通过 token 上限、按估算截断或预算拒绝实现。
+
+## 初始衣柜任务输入（2026-10-30）
+
+`wardrobe_preparation` 的生成阶段只准备初始库存和 1–4 套方案，选衣阶段只
+返回已登记衣物引用；每次只发送本阶段的规则。生成权限
+`starter_items_allowed` 仅在生成阶段出现。既有四字段输出 schema 和独立
+`wardrobe.wear` 执行、可用性/主体覆盖校验、版本栅栏、恢复语义保持原契约。
+协议明确 `outer` 不能代替 `upper_body`；主体覆盖需要上衣与下装或既有
+`full_body`。本地时钟从真实 instant/timezone 转换；月份、时区、职业及方案
+名称不能证明天气、所在场景或当前活动。
+
+输入按任务字段白名单构造。衣物详情只发送一次，方案与当前穿戴仅引用成员；
+失效/缺失方案成员显式保留为不可用引用，目录外当前穿戴不能变成可选库存。
+Core 保留库存/人格/Life 版本、来源流水和运行身份，不把完整数据库行发给模型。
+身体事实取当前状态；共享和所选 profile 的通用 preferences、character_constraints
+作为不透明业务资料保留，避免丢失存放其中的面料禁忌等约束。Foundation 只恢复
+明确的 style_preferences 和 daily_outfit_preferences，不恢复旧伤情、旧库存或
+旧穿着。旧卡的原始 system_prompt（无则 image_prompt）保留一份为旧风格参考
+数据，不能成为运行协议；其余开场白、互动规则和媒体参数不再整包注入。
+
+`wardrobe_preparation_prompt_test.go` 覆盖字段投影、未知/false/zero/大整数与
+领域字段保真、失效成员、两阶段实际 Provider HTTP JSON 和无 token 上限。
+`GO_CORE_WARDROBE_PROMPT_CAPTURE` 可显式指定本地私人 request/response 文本，
+重建消息并比较字符数、核验原选择的主体覆盖；不入库、不调用模型，不能据此
+宣称真实模型选择质量、token 数或延迟已验证。
 
 ## R9 传输与工具进度补充
 
