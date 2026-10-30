@@ -1,5 +1,8 @@
 import {InlineFeedback} from "@/react-app/shared/Presentation";
 import {lazy} from 'react';
+import {createPortal} from 'react-dom';
+import LocalBackupsPanel from '../shared/LocalBackupsPanel';
+import {dataToolsClient} from '@/v3/proto/services.js';
 import DomainPrimitives from '../shared/DomainPrimitives';
 const AvatarPage=lazy(()=>import('./AvatarPage'));
 const TaskDetailPage=lazy(()=>import('./TaskDetailPage'));
@@ -23,10 +26,11 @@ import { refreshProduct } from '@/v3/providers/real';
 function DomainToolHost({route}: {route:any}) {
   const w=useWorkspace(),host=useRef<HTMLDivElement>(null),[primitiveRoot,setPrimitiveRoot]=useState<HTMLElement|null>(null),[failure,setFailure]=useState(''),[revision,refresh]=useState(0);
   const owner=w.state.session?.actorId;
+  const [backupTarget,setBackupTarget]=useState<HTMLElement|null>(null);
   useEffect(()=>{
     if(!host.current)return;
     let active=true,dispose:void|(()=>void),validation:void|(()=>void);
-    const target=document.createElement('div');host.current.replaceChildren(target);setPrimitiveRoot(target);setFailure('');
+    const target=document.createElement('div');host.current.replaceChildren(target);setPrimitiveRoot(target);setBackupTarget(null);setFailure('');
     const live=()=>active&&owner===w.state.session?.actorId;
     async function open(){
       try{
@@ -39,13 +43,13 @@ function DomainToolHost({route}: {route:any}) {
           ? (await import('@/v3-domain/self.js')).renderRealSelfGovernance(target,context)
           : await render(target,context);
         if(!live()){cleanup?.();return;}
-        dispose=cleanup;validation=installFieldValidation(target);
+        dispose=cleanup;validation=installFieldValidation(target);setBackupTarget(target.querySelector<HTMLElement>('[data-local-backups]'));
       }catch(cause){if(live())setFailure(errorMessage(cause,'这个功能暂时无法读取，请重试。'));}
     }
     void open();
     return()=>{active=false;dispose?.();validation?.();closeOverlays();if(w.state.pageHeading?.route===route.path&&w.state.pageHeading?.owner===owner)w.state.pageHeading=null;};
   },[w,owner,route,revision]);
-  return <section className={"approved-domain"+(route.path.startsWith("/data")?" replica-data-domain":"")} aria-label={route.feature.title} data-testid="domain-workspace">{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/></section>;
+  return <section className={"approved-domain"+(route.path.startsWith("/data")?" replica-data-domain":"")} aria-label={route.feature.title} data-testid="domain-workspace">{failure&&<InlineFeedback  role="alert">{failure}<Button variant="outline" onClick={()=>refresh(value=>value+1)}>重新读取</Button></InlineFeedback>}<div className="domain-content" ref={host}/><DomainPrimitives root={primitiveRoot}/>{backupTarget&&createPortal(<LocalBackupsPanel key={owner} owner={owner} exportPack={()=>(dataToolsClient as {exportPack:()=>Promise<{pack:Record<string,unknown>}>}).exportPack()} onImport={pack=>{const input=backupTarget.closest('.replica-data-main')?.querySelector<HTMLTextAreaElement>('[data-input]');if(input){input.value=JSON.stringify(pack,null,2);input.dispatchEvent(new Event('input',{bubbles:true}));input.scrollIntoView({block:'center'});input.focus();}}}/>,backupTarget)}</section>;
 }
 
 export default function DomainPage({route}:{route:any}) {

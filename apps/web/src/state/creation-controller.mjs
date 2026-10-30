@@ -734,6 +734,23 @@ export function createCreationController({
       fail(cause);
     }
   }
+  function deferStage(stage) {
+    if (!live() || busy.value || pending.value || !draft.activatedId) return false;
+    const current = progress.value?.stages.find((entry) => entry.key === stage?.key);
+    if (!current || current.key === 'world' || !['failed', 'blocked'].includes(current.state)) return false;
+    const previous = draft.preparationDeferrals;
+    try {
+      // This is a display preference for leaving the wait, never task authority.
+      draft.preparationDeferrals = {...previous, [current.key]: new Date().toISOString()};
+      persist();
+      return true;
+    } catch (cause) {
+      if (previous === undefined) delete draft.preparationDeferrals;
+      else draft.preparationDeferrals = previous;
+      fail(cause);
+      return false;
+    }
+  }
   async function recoverStage(stage) {
     if (!live() || busy.value || !draft.activatedId) return;
     const fid = draft.activatedId,
@@ -1021,6 +1038,7 @@ export function createCreationController({
     analysisStartedAt,
     activate,
     refreshProgress,
+    deferStage,
     recoverStage,
     reanalyze,
     newDraft,

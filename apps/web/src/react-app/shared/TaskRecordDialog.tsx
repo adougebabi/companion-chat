@@ -4,7 +4,7 @@ import {taskSubtitle,taskDisplayTitle} from '@/approved-ui/task-presentation.mjs
 import {Sheet,SheetContent,SheetHeader,SheetTitle,SheetDescription,SheetFooter} from '@/components/ui/sheet';
 import WorkspaceDialog from './WorkspaceDialog';
 import TaskDetailPage from '../pages/TaskDetailPage';
-export default function TaskRecordDialog({taskId,returnTo,onClose,returnFocus,presentation='dialog'}:{taskId:string;returnTo?:string;onClose:()=>void;returnFocus?:()=>HTMLElement|null;presentation?:'dialog'|'sheet'}){
+export default function TaskRecordDialog({taskId,returnTo,onClose,returnFocus,presentation='sheet'}:{taskId:string;returnTo?:string;onClose:()=>void;returnFocus?:()=>HTMLElement|null;presentation?:'dialog'|'sheet'}){
  const [task,setTask]=useState<any>(null),[controlTarget,setControlTarget]=useState<HTMLDivElement|null>(null);
  const w=useWorkspace(),title=taskDisplayTitle(task,w.state.characters);
  const description=task?taskSubtitle(task):'正在读取任务…';

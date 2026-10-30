@@ -349,6 +349,7 @@ func TestMediaBranchM32M33ConflictsM34DisabledFallbackM38MixedM39Mirror(t *testi
 	}
 	config := decision.DefaultConfig()
 	config.Enabled = true
+	config.MediaEnabled = true // Media integration cases explicitly opt in; r22 defaults keep it off.
 	explicit := map[string]any{"primary_subject": "landscape", "human_presence": "none"}
 	service, store, _ := mediaStubKev(t, config, func(request decision.Request) map[string]any {
 		answers := map[string]any{}
@@ -411,6 +412,7 @@ func TestMediaBranchM34FailureUsesOriginalAndM40Cancel(t *testing.T) {
 	for _, kind := range []string{"unknown", "missing", "500", "invalid"} {
 		config := decision.DefaultConfig()
 		config.Enabled = true
+		config.MediaEnabled = true // Media integration cases explicitly opt in; r22 defaults keep it off.
 		service, _, _ := mediaStubKev(t, config, func(request decision.Request) map[string]any {
 			out := map[string]any{}
 			if kind == "500" {
@@ -472,6 +474,7 @@ func TestMediaPlanProbe(t *testing.T) {
 	}
 	config := decision.DefaultConfig()
 	config.Enabled = true
+	config.MediaEnabled = true // Media integration cases explicitly opt in; r22 defaults keep it off.
 	config.Endpoint = endpoint
 	config.TimeoutMS = 60000
 	config.BudgetMS = 120000
@@ -565,6 +568,7 @@ func TestMediaBranchM35CurrentAppearanceAndScopedRenderer(t *testing.T) {
 func TestMediaBranchKevTwoStagesAndMixedPointAudit(t *testing.T) {
 	config := decision.DefaultConfig()
 	config.Enabled = true
+	config.MediaEnabled = true // Media integration cases explicitly opt in; r22 defaults keep it off.
 	plan := mediaTestPlan("person", "present", "yes", "full")
 	service, store, calls := mediaStubKev(t, config, func(request decision.Request) map[string]any {
 		answers := map[string]any{}
@@ -616,6 +620,7 @@ func (s *mediaRevokingSettings) Read(context.Context) (decision.Config, int64, s
 func TestMediaBranchM40DisableBeforeFreezeRetainsRawAndFallsBack(t *testing.T) {
 	config := decision.DefaultConfig()
 	config.Enabled = true
+	config.MediaEnabled = true // Media integration cases explicitly opt in; r22 defaults keep it off.
 	service, store, _ := mediaStubKev(t, config, func(request decision.Request) map[string]any {
 		answers := map[string]any{}
 		for id, q := range request.Questions {

@@ -947,7 +947,7 @@ export default function GoalsPage({ route, onGo }) {
               !anyLoading &&
               ready &&
               !Object.values(errors).some(Boolean) && (
-                <EmptyState>
+                <EmptyState variant="page">
                   <h3>这一页暂时没有目标</h3>
                   <p>换一个筛选，或写下一个新的期待。</p>
                 </EmptyState>

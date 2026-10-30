@@ -77,7 +77,7 @@ test("opening and applying a nullable structured extension preserves null withou
   try {
     await selectTab(f, "生活设定");
     const card = [...f.v.host.querySelectorAll(".creation-structured")].find(
-      (n) => n.querySelector("h2")?.textContent === "补充设定",
+      (n) => n.querySelector("h2")?.textContent === "其他设定 1",
     );
     await f.v.click(button(card, "编辑内容"));
     assert.equal(dialog().querySelector("textarea").value, "null");
@@ -258,13 +258,14 @@ test('r21 creation reading labels aliases and unknown values, orders appearance,
     const before = JSON.stringify(f.c.previewDefinition());
     await selectTab(f,'生活设定');
     const appearance=[...f.v.host.querySelectorAll('.creation-structured')].find(n=>n.querySelector('h2')?.textContent==='外貌印象');
-    assert.deepEqual([...appearance.querySelectorAll('dt')].map(n=>n.textContent),['说明','发型','眼睛 / 瞳色','体态','补充设定']);
+    assert.deepEqual([...appearance.querySelectorAll('dt')].map(n=>n.textContent),['说明','发型','眼睛 / 瞳色','体态','其他细节']);
     assert.match(appearance.textContent,/棕色/);assert.match(appearance.textContent,/否/);
     assert.match(f.v.host.textContent,/家庭背景与家人保持稳定的联系/);
     assert.doesNotMatch(f.v.host.textContent,/extra_detail|extension_count/);
     await selectTab(f,'人格与关系');
     const relation=[...f.v.host.querySelectorAll('.creation-structured')].find(n=>n.querySelector('h2')?.textContent==='初始关系');
-    assert.match(relation.textContent,/关系对象你关系初识的朋友初始指标熟悉程度10%信任15%/);
+    assert.match(relation.textContent,/关系初识的朋友初始指标熟悉程度10%信任15%/);
+    assert.doesNotMatch(relation.textContent,/关系对象/,'unproven owner defaults stay in the complete source until reviewed');
     assert.match(relation.textContent,/关系摘要完整关系摘要情感联想适度的好奇/);
     assert.doesNotMatch(relation.textContent,/owner|target_actor_id|custom_metric|extra_note|\{"/);
     assert.match(f.v.host.textContent,/完整初始目标/);assert.match(f.v.host.textContent,/完整初始意图/);

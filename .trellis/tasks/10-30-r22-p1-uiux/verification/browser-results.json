@@ -1,0 +1,87 @@
+{
+  "status": "passed",
+  "boundary": "production dist + isolated HTTP fixtures; no live Core/provider verification",
+  "screenshots": [
+    {
+      "size": "desktop",
+      "name": "advanced",
+      "screenshot": "/tmp/r22-shots/desktop-advanced.png"
+    },
+    {
+      "size": "desktop",
+      "name": "data-local-empty",
+      "screenshot": "/tmp/r22-shots/desktop-data-local-empty.png"
+    },
+    {
+      "size": "desktop",
+      "name": "data-local-created",
+      "screenshot": "/tmp/r22-shots/desktop-data-local-created.png"
+    },
+    {
+      "size": "desktop",
+      "name": "goals-empty",
+      "screenshot": "/tmp/r22-shots/desktop-goals-empty.png"
+    },
+    {
+      "size": "desktop",
+      "name": "world-record",
+      "screenshot": "/tmp/r22-shots/desktop-world-record.png"
+    },
+    {
+      "size": "desktop",
+      "name": "task-results-sheet",
+      "screenshot": "/tmp/r22-shots/desktop-task-results-sheet.png"
+    },
+    {
+      "size": "desktop",
+      "name": "task-result-expanded",
+      "screenshot": "/tmp/r22-shots/desktop-task-result-expanded.png"
+    },
+    {
+      "size": "desktop",
+      "name": "library-empty",
+      "screenshot": "/tmp/r22-shots/desktop-library-empty.png"
+    },
+    {
+      "size": "mobile",
+      "name": "advanced",
+      "screenshot": "/tmp/r22-shots/mobile-advanced.png"
+    },
+    {
+      "size": "mobile",
+      "name": "data-local-empty",
+      "screenshot": "/tmp/r22-shots/mobile-data-local-empty.png"
+    },
+    {
+      "size": "mobile",
+      "name": "data-local-created",
+      "screenshot": "/tmp/r22-shots/mobile-data-local-created.png"
+    },
+    {
+      "size": "mobile",
+      "name": "goals-empty",
+      "screenshot": "/tmp/r22-shots/mobile-goals-empty.png"
+    },
+    {
+      "size": "mobile",
+      "name": "world-record",
+      "screenshot": "/tmp/r22-shots/mobile-world-record.png"
+    },
+    {
+      "size": "mobile",
+      "name": "task-results-sheet",
+      "screenshot": "/tmp/r22-shots/mobile-task-results-sheet.png"
+    },
+    {
+      "size": "mobile",
+      "name": "task-result-expanded",
+      "screenshot": "/tmp/r22-shots/mobile-task-result-expanded.png"
+    },
+    {
+      "size": "mobile",
+      "name": "library-empty",
+      "screenshot": "/tmp/r22-shots/mobile-library-empty.png"
+    }
+  ],
+  "reference": "/tmp/r22-shots/demo-{advanced,data}.png"
+}

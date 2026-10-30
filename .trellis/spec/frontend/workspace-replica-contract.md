@@ -26,6 +26,41 @@ file still exists. `.githooks/pre-commit` runs the staged-image guard. New check
 install it with `pnpm hooks:install`; never force-add ignored images or bypass the
 guard. This policy supersedes earlier instructions to include screenshots in Git.
 
+## r22 P1 amendments (2026-10-30 Owner request)
+
+These explicit requirements supersede the r21 centered task Dialog, absent skip,
+and historical defaults below. Other r21 authority and recovery contracts remain.
+
+- CreationPreviewValue uses Chinese labels for schema aliases and known extension
+  fields, keeps original Chinese names, and distinguishes genuinely unknown fields.
+  Empty normalized persona slots do not form a repeated placeholder wall. Imported
+  relations do not imply an authored owner target or stable trend without source.
+  Source JSON and commands retain all fields, null/false/zero and custom values.
+- Relationship display uses a shared Chinese role fallback for `unknown`, both in
+  the main headline and source/revision Sheets. Never rewrite user-authored prose.
+- TaskRecordDialog defaults to the right shadcn Sheet in creation and management.
+  Execution results lazily read actual correlated model-run records and show rounds,
+  success/failure and per-call status/duration/input/output/error. Lifecycle events
+  remain separate collapsed evidence; event counts/attempt_count never become
+  invented physical call rounds. Raw JSON is collapsed behind an explicit control.
+- `deferStage` is a local workflow departure, with explicit confirmation and
+  preserved resume state. It does not submit a nonexistent skip API or mark a failed
+  server stage complete. The original task and recovery entry remain available.
+- LocalBackupsPanel stores Owner-scoped exported resource packs under
+  `fluctlight-local-backups:<owner>`. These are explicit browser copies, never live
+  workspace authority. Create/export failures preserve prior copies; unread or
+  corrupt storage blocks overwrite. Owner changes discard late responses. Import
+  fills the existing validation draft and never bypasses confirmation/publishing.
+  Complete chat/media backups continue through actual business maintenance tasks.
+- Goals, relationship-directory and first-use/filtered character-library confirmed
+  empties use EmptyState variant="page": no border/background and a Leaf icon.
+- WorldRecord projects Chinese fields and hides known internal metadata; full source
+  remains a download. It never mutates the underlying world or edit command.
+
+Required tests: r22-reading-ui, r22-task-ui, r22-settings-backups and the affected
+creation/diagnostics/management regressions. Saved KEV values remain authoritative;
+the Core DefaultConfig supplies new unsaved defaults (see backend Kev contract).
+
 ## Current r21 presentation contracts (2026-10-30)
 
 r21 continues the existing fullsite audit. The actual immutable Demo remains the

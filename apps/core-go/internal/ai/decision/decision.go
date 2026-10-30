@@ -45,7 +45,7 @@ func DefaultConfig() Config {
 	for _, point := range Points {
 		points[point] = true
 	}
-	return Config{MediaEnabled: true, Points: points, Endpoint: "http://127.0.0.1:8010/v1/systemone", TimeoutMS: 10000, BudgetMS: 10000, Concurrency: 1, BatchSize: 8, ResponseBytes: 1048576, RequestBytes: 262144, Strategy: "choice_argmax", MaxDeferrals: 3, DeferralSeconds: 60, RetentionDays: 7, Model: "Jakevin/kev-4b-ternary-mlx", ModelRevision: "unknown"}
+	return Config{MediaEnabled: false, Points: points, Endpoint: "http://127.0.0.1:8010/v1/systemone", TimeoutMS: 10000, BudgetMS: 10000, Concurrency: 1, BatchSize: 8, ResponseBytes: 1048576, RequestBytes: 262144, Strategy: "choice_guarded", MinProbability: 0.65, MinMargin: 0.15, MaxDeferrals: 3, DeferralSeconds: 60, RetentionDays: 7, Model: "Jakevin/kev-4b-ternary-mlx", ModelRevision: "unknown"}
 }
 
 func (c Config) Allows(point string) bool {

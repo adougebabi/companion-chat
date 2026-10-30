@@ -76,7 +76,7 @@ export function taskEventReason(entry){
  const reason=typeof entry.reason==='string'?entry.reason:'';
  const code=typeof entry.reason_code==='string'?entry.reason_code:'';
  if(!reason&&!code)return '';
- const fallback='本条记录未提供可识别的原因说明；可展开下方「本条记录详情」核对原始信息。';
+ const fallback='';
  const message=errorMessage({message:reason,code},fallback);return typeof message==='string'?message:fallback;
 }
 export function taskRecoveryStrategy(snapshot,recovery){
@@ -86,3 +86,12 @@ export function taskRecoveryStrategy(snapshot,recovery){
  return actions.length?'当前支持'+actions.join('、')+'；操作受理后仍需读取实际任务结果。':'当前没有可用的通用恢复操作，可重新读取原任务状态。';
 }
 export function taskSourceLabel(task){return ['pending','queued'].includes(task?.status)&&(!Number.isInteger(task?.runs)||task.runs===0)?'查看初始衣柜准备':'查看初始衣柜与恢复';}
+
+// Physical model records own rounds. Lifecycle events and dispatcher attempts do
+// not carry enough information to reconstruct model calls or their outcomes.
+export function taskRoundRecords(records=[]){
+ return records.map((record,index)=>({record,call:record.data||{},index})).sort((a,b)=>{
+  const start=Date.parse(a.call.started_at||a.record.occurred_at),end=Date.parse(b.call.started_at||b.record.occurred_at);
+  return Number.isFinite(start)&&Number.isFinite(end)?start-end||a.index-b.index:a.index-b.index;
+ }).map(({record,call},index)=>({record,call,label:Number.isInteger(call.sequence)&&call.sequence>=0?`第 ${call.sequence} 轮`:`调用记录 ${index+1}`,status:['completed','succeeded','success'].includes(call.status)?'success':['failed','error','dead_letter','timeout'].includes(call.status)?'failure':'other'}));
+}

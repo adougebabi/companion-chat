@@ -26,6 +26,7 @@ import LoadingState from "../shared/LoadingState";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
 import SemanticTree from "../shared/SemanticTree";
 import JsonDetails from "../shared/JsonDetails";
+import WorldRecord from "../shared/WorldRecord";
 import CharacterAvatar from "../shared/CharacterAvatar";
 import WorldPlaceHistory from "../shared/WorldPlaceHistory";
 import {
@@ -535,7 +536,7 @@ export function WorldPageView({ view: m }) {
                   <h3 className="r-subtitle">基础规则</h3>
                   <p className="r-prose">{m.world.rules || "尚未补充"}</p>
                   <Disclosure title="完整世界资料与来源">
-                    <JsonDetails value={m.world} title="当前世界完整记录" />
+                    <WorldRecord value={m.world} />
                   </Disclosure>
                   <div className="r-inline-actions">
                     <Button

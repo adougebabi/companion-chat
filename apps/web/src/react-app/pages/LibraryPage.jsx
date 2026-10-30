@@ -7,7 +7,6 @@ import LoadingState from "@/react-app/shared/LoadingState";
 import {ArrowRightIcon,CheckIcon,ChevronRightIcon,LayoutGridIcon,ListIcon,PlusIcon,SearchIcon,XIcon} from "lucide-react";
 import {useController} from "@/react-app/page";
 import {selector} from "@/state/view-model";
-import {Surface} from "@/react-app/controls";
 import CharacterAvatar from "@/react-app/shared/CharacterAvatar";
 import {StoryMark,WorldArt,worldArtworkKind} from "@/react-app/shared/WorkspaceArtwork";
 import {currentReadError} from "@/approved-ui/read-feedback.mjs";
@@ -186,7 +185,7 @@ function createLibraryPageController(__props, context, lifecycle) {
           </div>
         </article></Card>)}
       </div>
-      {!rows.value.length && !w.state.loading?.library && (characters.value.length ? <EmptyState><h3>没有找到这位相识</h3><p>换一个关键词，或者从一个新的故事开始。</p><Button variant="outline" onClick={()=>{search.value="";filters.value={tag:""};}}>清除筛选</Button></EmptyState> : <Surface as="section" className="library-first-use"><h2>还没有一起生活的人</h2><p>从一个名字或一段介绍开始，为新的相识准备一个生活世界。</p>{configured.value===false&&<p>还没有连接通用模型。可以先配置模型，也可以选择空白创建。</p>}<div className="library-actions">{configured.value!==true&&<Button variant="outline" asChild><a href="#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94">先连接模型</a></Button>}{canStart&&<Button asChild><a data-testid="library-create-first" href={createHref}>创建第一个角色</a></Button>}</div></Surface>)}
+      {!rows.value.length && !w.state.loading?.library && !readError && (characters.value.length ? <EmptyState variant="page"><h3>没有找到这位相识</h3><p>换一个关键词，或者从一个新的故事开始。</p><Button variant="outline" onClick={()=>{search.value="";filters.value={tag:""};}}>清除筛选</Button></EmptyState> : <EmptyState variant="page"><h3>还没有一起生活的人</h3><p>从一个名字或一段介绍开始，为新的相识准备一个生活世界。</p>{configured.value===false&&<p>还没有连接通用模型。可以先配置模型，也可以选择空白创建。</p>}<div className="library-actions">{configured.value!==true&&<Button variant="outline" asChild><a href="#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94">先连接模型</a></Button>}{canStart&&<Button asChild><a data-testid="library-create-first" href={createHref}>创建第一个角色</a></Button>}</div></EmptyState>)}
       <div className="library-footer"><span><CheckIcon size={12}/>角色资料来自当前工作区</span><Button variant="link" asChild><a href="#/studio?kind=character_template">去创作中心寻找灵感<ChevronRightIcon size={12}/></a></Button></div>
     </div>;
   };

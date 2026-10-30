@@ -36,6 +36,7 @@ import {
   rebaseAuthoredDraft,
   backgroundReadbackProven,
   relationshipFor,
+  relationshipRoleLabel,
   relationMetrics,
 } from "@/approved-ui/people-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
@@ -200,7 +201,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
           {relation.summary || "尚未提供额外关系说明。"}
         </p>
         <PeopleFact label="关系称呼">
-          <SourceValue value={relation.role?.label ?? relation.role} />
+          {relationshipRoleLabel(relation.role)}
         </PeopleFact>
         <SourceDownload value={relation} label="下载完整关系与来源" />
       </>
@@ -231,8 +232,8 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
               />
             </div>
             <h2>
-              {relation?.role?.label ||
-                (isOwner ? "你们的关系" : "与该参与者的关系")}，从认真倾听开始。
+              {relationshipRoleLabel(relation?.role,
+                isOwner ? "你们的关系" : "与该参与者的关系")}，从认真倾听开始。
             </h2>
             <p>
               {data
@@ -501,7 +502,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
         {!!historicalRelation.length && <PeopleSection title="关系修订记录">{historicalRelation.map((row, index) => <article className="people-source-record" key={row.id || index}>
           <PeopleFact label="修订时间">{row.created_at ? userInstant(row.created_at) : "尚未记录时间"}</PeopleFact>
           <PeopleFact label="关系说明"><SourceValue value={row.summary} /></PeopleFact>
-          <PeopleFact label="关系称呼"><SourceValue value={row.role?.label ?? row.role} /></PeopleFact>
+          <PeopleFact label="关系称呼">{relationshipRoleLabel(row.role)}</PeopleFact>
           <SourceDownload value={row} />
         </article>)}</PeopleSection>}
         {data && !authoredHistory.length && (

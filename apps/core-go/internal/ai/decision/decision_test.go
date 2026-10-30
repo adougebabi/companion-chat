@@ -108,6 +108,9 @@ func testService(t *testing.T, handler http.HandlerFunc) (*Service, *testSetting
 	c := DefaultConfig()
 	c.Enabled = true
 	c.Endpoint = server.URL
+	// This fixture exercises raw protocol outcomes independently of UI defaults.
+	c.MediaEnabled = true
+	c.Strategy = "choice_argmax"
 	c.TimeoutMS = 100
 	c.BudgetMS = 300
 	settings := &testSettings{config: c, version: 1}
@@ -229,6 +232,7 @@ func TestKevPartialQuestionAndMalformedResponses(t *testing.T) {
 func TestKevChoiceArgmaxAndGuardedAreDistinct(t *testing.T) {
 	raw := json.RawMessage(`{"type":"choice","choice":"yes","confidence":0.1,"probabilities":{"yes":0.4,"no":0.35,"unclear":0.25}}`)
 	c := DefaultConfig()
+	c.Strategy = "choice_argmax"
 	a, out, p, _, err := ParseAnswer(raw, c)
 	if err != nil || out != Yes || p != 0.4 || *a.Confidence != 0.1 {
 		t.Fatal(out, err)
@@ -459,5 +463,28 @@ func TestMixedMediaBatchFiltersDisabledQuestionsAndRetainsOrder(t *testing.T) {
 	}
 	if results[0].Record.CandidateID != "capture" || results[0].Record.CallStatus != "not_called" || results[1].Record.CandidateID != "view" || results[1].Record.Point != "media.view_plan" {
 		t.Fatalf("ordering/filter=%v", results)
+	}
+}
+
+func TestR22KevDefaultsUseConfidenceGateAndDisableMedia(t *testing.T) {
+	config := DefaultConfig()
+	if config.Enabled || config.MediaEnabled || config.Strategy != "choice_guarded" || config.MinProbability != 0.65 || config.MinMargin != 0.15 {
+		t.Fatalf("unexpected defaults: %+v", config)
+	}
+	if err := config.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	config.Enabled = true
+	if config.Allows("media.capture_plan") || !config.Allows("tools.select") {
+		t.Fatal("media must be opt-in independently of KEV")
+	}
+	for _, raw := range []string{
+		`{"type":"choice","choice":"yes","confidence":0.64,"probabilities":{"yes":0.64,"no":0.2,"unclear":0.16}}`,
+		`{"type":"choice","choice":"yes","confidence":0.8,"probabilities":{"yes":0.55,"no":0.45,"unclear":0}}`,
+	} {
+		_, outcome, _, _, err := ParseAnswer(json.RawMessage(raw), config)
+		if err != nil || outcome != Original {
+			t.Fatalf("confidence gate bypassed: %s %v", outcome, err)
+		}
 	}
 }

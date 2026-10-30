@@ -37,6 +37,19 @@
 .replica-diagnostics{line-height:1.5}
 .replica-diagnostics .replica-task-row p{line-height:1.5}
 .replica-diagnostic-count{font-size:9px;background:#edf1e7;color:#8c967e;margin-left:0}
+.replica-task-results{display:grid;gap:18px;min-width:0}
+.replica-task-result-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0}
+.replica-task-result-summary>div{padding:14px 16px;border:1px solid #e3e8da;border-radius:10px;background:#f7f9f3}
+.replica-task-result-summary dt{font-size:11px;color:#859078}.replica-task-result-summary dd{font-size:24px;color:#405936;margin:6px 0 0}
+.replica-task-result-list{display:grid;gap:10px;list-style:none;padding:0;margin:0;min-width:0}
+.replica-task-result-row{border:1px solid #e3e8da;border-radius:9px;overflow:hidden;min-width:0}
+.react-workspace .replica-task-round-trigger[data-slot=button]{display:flex;width:100%;max-width:none;height:auto;min-height:46px;gap:12px;padding:12px 14px;border-radius:0;justify-content:flex-start;white-space:normal}
+.replica-task-round-trigger>span:first-child{font-size:12px;font-weight:500;flex:1;text-align:left}.replica-task-round-duration{font-size:11px;color:#859078}
+.replica-task-round-trigger[data-state=open]>svg:last-child{transform:rotate(180deg)}
+.replica-task-round-content{display:grid;gap:18px;padding:18px;border-top:1px solid #e3e8da;min-width:0;overflow-wrap:anywhere}
+.replica-task-round-content h3{font-size:12px;font-weight:600;margin:0 0 8px}.replica-task-round-content time{font-size:11px;color:#859078}
+.replica-task-results .replica-task-history time{font-size:11px;color:#859078}.replica-task-results .record-facts{overflow-wrap:anywhere}
+@media(max-width:700px){.replica-task-result-summary{gap:8px}.replica-task-result-summary>div{padding:12px}.react-workspace .replica-task-round-trigger[data-slot=button]{gap:8px;padding:12px 10px}.replica-task-round-duration{font-size:10px}.replica-task-round-content{padding:14px}}
 @media(max-width:700px){.replica-diagnostics .replica-task-row p{line-height:1.8}}
 @media(max-width:1200px){.replica-management-layout{gap:18px}}
 @media(max-width:700px){

@@ -31,6 +31,12 @@ export function relationshipFor(rows, target, profile, fid) {
     null
   );
 }
+export function relationshipRoleLabel(role, fallback = "关系尚未确认") {
+  const value = typeof role === "object" && role !== null ? role.label : role;
+  if (typeof value !== "string" || !value.trim() || value.trim().toLowerCase() === "unknown") return fallback;
+  const labels = {friend: "朋友", family: "家人", colleague: "同事", coworker: "同事", partner: "伴侣", acquaintance: "相识的人", stranger: "尚未相识"};
+  return Object.hasOwn(labels, value) ? labels[value] : value;
+}
 export function relationMetrics(row) {
   const labels = {
     familiarity: "熟悉程度",

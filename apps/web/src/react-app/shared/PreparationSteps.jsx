@@ -47,6 +47,11 @@ function StageActions({stage, props}) {
           {displayText(props.busy ? "处理中…" : stage.state === "failed" ? "重试此环节" : "恢复原任务")}
         </ActionButton>
       ) : null}
+      {stage.key !== 'world' && ['failed','blocked'].includes(stage.state) && typeof props.onSkip === 'function' && <ActionButton
+        type="button" variant="outline" disabled={props.busy}
+        onClick={event => props.onSkip(stage, event.currentTarget)}>
+        跳过此环节
+      </ActionButton>}
       {taskId && typeof props.onOpenTask === "function" ? (
         <ActionButton variant="ghost" type="button"
           onClick={(event) => props.onOpenTask(taskId, event.currentTarget)}>

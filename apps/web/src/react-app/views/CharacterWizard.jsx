@@ -42,7 +42,7 @@ import PreparationSteps from "../shared/PreparationSteps";
 import TaskRecordDialog from "../shared/TaskRecordDialog";
 import SemanticTree from "../shared/SemanticTree";
 import JsonDetails from "../shared/JsonDetails";
-import CreationPreviewValue, {creationPreviewLabel} from "../shared/CreationPreviewValue";
+import CreationPreviewValue, {creationPreviewLabel, hasCreationPreviewValue} from "../shared/CreationPreviewValue";
 import Combobox from "../shared/Combobox";
 import { WorldArt } from "../shared/WorkspaceArtwork";
 import WorkspaceCharacterSketch from "../shared/WorkspaceCharacterSketch";
@@ -148,11 +148,13 @@ export default function CharacterWizardView({ model: m }) {
     [reviewTab, setReviewTab] = useState("identity"),
     [snapshotOpen, setSnapshotOpen] = useState(false),
     [selectedTask, setSelectedTask] = useState(null),
+    [skipStage, setSkipStage] = useState(null),
     [resetOpen, setResetOpen] = useState(false),
     [structured, setStructured] = useState(null),
     [structuredError, setStructuredError] = useState("");
   const worldTabChosen = useRef(false),
     taskTrigger = useRef(null),
+    skipTrigger = useRef(null),
     snapshotTrigger = useRef(null),
     recoveryTrigger = useRef(null),
     resetTrigger = useRef(null),
@@ -233,8 +235,14 @@ export default function CharacterWizardView({ model: m }) {
     if (busy || locked) return;
     m.prev();
   };
-  const applyDefinition = (next, options) =>
-    c.updatePreviewDefinition(next, options);
+  const applyDefinition = (next, options) => {
+    const applied = c.updatePreviewDefinition(next, options);
+    if (applied && (options?.consumeJson || options?.relationshipInput)) {
+      d.relationshipPreviewSource = d.analysis?.analysis_id;
+      c.persist();
+    }
+    return applied;
+  };
   const editStructure = (event, label, path, value) => {
     if (!definition || definitionError || busy || locked) return;
     if (d.previewJsonText !== undefined) {
@@ -267,7 +275,7 @@ export default function CharacterWizardView({ model: m }) {
     at[path.at(-1)] = value;
     return root;
   };
-  const renderStructure = (label, path, value) => (
+  const renderStructure = (label, path, value, {compact = false, preview = value} = {}) => (
     <Surface className="creation-structured" key={path.join(".")}>
       <div className="creation-section-heading">
         <h2>{label}</h2>
@@ -281,9 +289,27 @@ export default function CharacterWizardView({ model: m }) {
           编辑内容
         </Button>
       </div>
-      <CreationPreviewValue value={value} field={path.at(-1)} />
+      <CreationPreviewValue value={preview} field={path.at(-1)} compact={compact} />
     </Surface>
   );
+  const personalityDetails = Object.fromEntries(Object.entries(definition?.core_persona?.personality_system || {}).filter(([key, value]) =>
+    key !== 'mode' && !(key === 'active_profile_id' && value === 'default') && hasCreationPreviewValue(value)));
+  // Core normalizes all creation modes. Owner/stable can be fallbacks, so only
+  // a matching raw input or explicit relationship/whole-document review adopts
+  // those rows. Editing an unrelated group cannot make them source facts.
+  let importedRelationships = null;
+  const relationshipsReviewed = !!d.analysis?.analysis_id && d.relationshipPreviewSource === d.analysis.analysis_id;
+  if (d.mode === 'json' && !relationshipsReviewed) {
+    try { importedRelationships = JSON.parse(d.json).initial_relationships; } catch { /* The original editor owns parse feedback. */ }
+  }
+  const relationshipSourceAligned = Array.isArray(importedRelationships) && importedRelationships.length === definition?.initial_relationships?.length;
+  const relationPreview = Array.isArray(definition?.initial_relationships) && !relationshipsReviewed
+    ? definition.initial_relationships.map((row, index) => Object.fromEntries(Object.entries(row).filter(([key, value]) => {
+      const original = relationshipSourceAligned ? importedRelationships[index] : null;
+      if (key === 'target_actor_id' && value === 'owner') return [original?.target_actor_id, original?.target, original?.actor, original?.actor_id].some(item => typeof item === 'string' && item.trim() === value);
+      if (key === 'trend' && value === 'stable') return original?.trend === value;
+      return true;
+    }))) : definition?.initial_relationships;
   const next = () => {
     if (index === 0) m.canContinue && c.next();
     else if (index === 1) m.canContinue && c.analyze();
@@ -1144,9 +1170,9 @@ export default function CharacterWizardView({ model: m }) {
                     {definition?.core_persona?.life_profile &&
                       Object.keys(definition.core_persona.life_profile)
                         .filter((k) => !Object.hasOwn(lifeFields, k))
-                        .map((k) =>
+                        .map((k, index) =>
                           renderStructure(
-                            creationPreviewLabel(k),
+                            creationPreviewLabel(k, index),
                             ["core_persona", "life_profile", k],
                             definition.core_persona.life_profile[k],
                           ),
@@ -1170,17 +1196,18 @@ export default function CharacterWizardView({ model: m }) {
                         <option value="multiple">多重人格</option>
                       </ChoiceSelect>
                     </Label>
-                    {(definition?.core_persona?.personality_system?.mode && !['single'].includes(definition.core_persona.personality_system.mode) || Object.entries(definition?.core_persona?.personality_system || {}).some(([key,value]) => key !== 'mode' && (value === null || typeof value !== 'object' || Object.keys(value).length > 0))) && renderStructure(
+                    {hasCreationPreviewValue(personalityDetails) && renderStructure(
                       "人格档案与切换规则",
                       ["core_persona", "personality_system"],
                       definition?.core_persona?.personality_system,
+                      {compact: true, preview: personalityDetails},
                     )}
                     {[
                       ["initial_relationships", "初始关系"],
                       ["initial_goals", "初始目标"],
                       ["initial_intentions", "初始意图"],
                     ].map(([key, label]) =>
-                      renderStructure(label, [key], definition?.[key]),
+                      renderStructure(label, [key], definition?.[key], {preview: key === 'initial_relationships' ? relationPreview : definition?.[key]}),
                     )}
                     <label className="creation-adopt">
                       <Checkbox
@@ -1358,6 +1385,10 @@ export default function CharacterWizardView({ model: m }) {
                     stages={m.progress.stages}
                     busy={busy}
                     onRecover={c.recoverStage}
+                    onSkip={(stage, trigger) => {
+                      skipTrigger.current = trigger;
+                      setSkipStage(stage);
+                    }}
                     replica
                     onOpenTask={(taskId, trigger) => {
                       taskTrigger.current = trigger;
@@ -1375,6 +1406,9 @@ export default function CharacterWizardView({ model: m }) {
                     }
                   />
                 )}
+                {Object.keys(d.preparationDeferrals || {}).length > 0 && <WorkspaceInfo>
+                  已跳过本次等待。原任务、未完成状态和恢复入口均已保留，可以随时回来继续准备。
+                </WorkspaceInfo>}
                 {d.worldSource && !worldBindingConfirmed && (
                   <WorkspaceInfo>
                     <p>
@@ -1596,10 +1630,23 @@ export default function CharacterWizardView({ model: m }) {
       {selectedTask && <TaskRecordDialog
         taskId={selectedTask.taskId}
         returnTo={selectedTask.returnTo}
-        presentation="dialog"
+        presentation="sheet"
         returnFocus={() => taskTrigger.current}
         onClose={() => setSelectedTask(null)}
       />}
+      <WorkspaceDialog open={!!skipStage} onOpenChange={open => !open && setSkipStage(null)}
+        title={skipStage ? `暂时跳过「${skipStage.title}」` : '暂时跳过此环节'}
+        description="跳过本次等待，原任务与恢复入口保留。此操作不会将未完成的准备标记为完成，后续依赖仍需在恢复后继续。"
+        returnFocus={() => skipTrigger.current}
+        footer={<><Button variant="outline" onClick={() => setSkipStage(null)}>继续处理</Button><Button disabled={busy} onClick={() => {
+          if (!c.deferStage(skipStage)) return;
+          setSkipStage(null);
+          const path = worldBindingConfirmed ? '/c/' + encodeURIComponent(d.activatedId) + '/chat' : '/library';
+          if (m.w?.navigatePath) m.w.navigatePath(path);
+          else globalThis.location.hash = '#' + path;
+        }}>保留进度并跳过</Button></>}>
+        <p>已有角色、世界、原恢复请求和执行记录都会保留。{worldBindingConfirmed ? '接下来先前往聊天。' : '接下来返回角色库，之后可继续准备。'}</p>
+      </WorkspaceDialog>
       <WorkspaceDialog
         open={!!m.recoveryReview}
         onOpenChange={(open) => {
@@ -1734,6 +1781,7 @@ export default function CharacterWizardView({ model: m }) {
                   if (
                     applyDefinition(
                       setPath(copy(definition), structured.path, value),
+                      {relationshipInput: structured.path[0] === 'initial_relationships'},
                     )
                   )
                     setStructured(null);

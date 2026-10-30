@@ -46,7 +46,11 @@ Check parent cancellation after settings I/O and recheck config version before
 adoption. Record actual choice/confidence/distribution separately from application.
 A stored model yes stays yes after later disable or audit rejection.
 
-Defaults: choice_argmax, 10000ms request, 10000ms shared selection stage, 1 concurrent
+Defaults (r22 Owner request, 2026-10-30): choice_guarded with min_probability=0.65,
+min_margin=0.15 and media_enabled=false. KEV remains globally disabled by default.
+These defaults apply only when settings are absent; existing saved zero thresholds,
+strategy and media choices are not migrated or overwritten. TestR22KevDefaultsUseConfidenceGateAndDisableMedia
+verifies the defaults and media opt-in. Other defaults: 10000ms request, 10000ms shared selection stage, 1 concurrent
 request per service instance, 8 questions/batch, zero retries, 3 deferrals, 60s
 backoff and 7-day retention. Missing installed settings leave the original path;
 the explicit local/operator configuration command configures ten points (seven original plus three media).

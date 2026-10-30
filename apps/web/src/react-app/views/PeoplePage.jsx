@@ -187,7 +187,7 @@ export default function PeoplePageView({ model: m }) {
               })}
             </div>
             {m.catalog.ready && !rows.length && !m.catalog.error && (
-              <EmptyState>
+              <EmptyState variant="page">
                 <h3>
                   {m.search || m.filter !== "all"
                     ? "没有找到这个人"
