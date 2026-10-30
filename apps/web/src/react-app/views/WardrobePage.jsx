@@ -322,7 +322,6 @@ export function WardrobePageView({ view, route, preparation = null }) {
           </>
         }
       />
-      {preparation}
       {w.state.loading.wardrobe && <LoadingState label="正在读取衣柜…" />}
       <Surface className="r-wearing-strip">
         <div className="r-wearing-icon">
@@ -332,6 +331,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
           <span className="r-tiny-label">TODAY'S OUTFIT</span>
           <h3>今天穿着</h3>
           <WearingSummary character={c} />
+          {preparation}
         </div>
         <Badge variant="outline">
           {Array.isArray(worn) ? "当前穿着" : "待读取"}
@@ -455,12 +455,12 @@ export function WardrobePageView({ view, route, preparation = null }) {
               </Surface>
             ))}
           </div>
-          {ready &&
+          {ready && !w.state.errors.wardrobe &&
             (!archived || archivedPage.ready) &&
             !filtered.length &&
             !archiveBusy &&
             !archiveError && (
-              <EmptyState>
+              <EmptyState variant="page">
                 <h3>没有符合条件的衣服。</h3>
                 <p>试试调整类型、季节或搜索条件。</p>
                 <Button variant="outline" onClick={clear}>
@@ -588,14 +588,14 @@ export function WardrobePageView({ view, route, preparation = null }) {
                 </Surface>
               ))}
           </div>
-          {ready &&
+          {ready && !w.state.errors.wardrobe &&
             !c.outfits.filter(
               (o) =>
                 activeTag === "all" ||
                 o.tags?.includes(activeTag) ||
                 o.tag === activeTag,
             ).length && (
-              <EmptyState>
+              <EmptyState variant="page">
                 <h3>还没有符合场景的穿搭方案</h3>
                 <Button
                   disabled={readonly}
@@ -685,7 +685,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
                     </div>
                   ))
                 ) : (
-                  <EmptyState>
+                  <EmptyState variant="page">
                     <h3>慢慢挑，不着急</h3>
                     <p>从左边选几件喜欢的衣服。</p>
                   </EmptyState>

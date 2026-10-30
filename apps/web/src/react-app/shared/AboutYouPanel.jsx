@@ -5,6 +5,7 @@ import {
   FileClockIcon,
   HeartIcon,
   RefreshCwIcon,
+  PencilIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -17,11 +18,9 @@ import {
   ChoiceSelect,
 } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
-import WorkspaceDialog from "./WorkspaceDialog";
+import PeopleSourceSheet, { SourceValue, SourceFact, SourceDownload } from "./PeopleSourceSheet";
 import WorkspaceInfo from "./WorkspaceInfo";
 import CharacterAvatar from "./CharacterAvatar";
-import SemanticTree from "./SemanticTree";
-import JsonDetails from "./JsonDetails";
 import { EmptyState } from "./Presentation";
 import useWorkspaceRead from "./useWorkspaceRead";
 import { PeopleReader, PeopleSection, PeopleFact } from "./PeopleParts";
@@ -39,9 +38,7 @@ import {
   relationshipFor,
   relationMetrics,
 } from "@/approved-ui/people-presentation.mjs";
-import { semanticLabel } from "@/v3/proto/components/semantic-fields.js";
 import { userInstant } from "@/v3/presentation-time.mjs";
-import { stateLabel } from "@/v3/domain-presentation.mjs";
 const meaningful = (value) =>
   value !== null && value !== undefined && value !== "";
 export default function AboutYouPanel({ model: m, section = "you" }) {
@@ -191,19 +188,8 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
         ),
       }
     : null;
-  const record = (row, index) => (
-    <div className="companion-reading-block" key={row.fact_id || index}>
-      <h3>{semanticLabel(row.attribute)}</h3>
-      <SemanticTree value={row.value} />
-      <p>
-        {row.epistemic_kind === "owner_defined"
-          ? "Owner自填来源"
-          : "交流中表达的事实"}{" "}
-        · {userInstant(row.effective_at || row.created_at)}
-      </p>
-      <JsonDetails value={row} title="事实来源与原记录" />
-    </div>
-  );
+  const record = (row, index) => <SourceFact key={row.fact_id || index} row={row} />;
+  const sourceScope = m.c.name + " · " + (isOwner ? "你的资料" : "当前交流参与者") + " · 当前角色范围";
   const relationView = () =>
     relation ? (
       <>
@@ -214,9 +200,9 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
           {relation.summary || "尚未提供额外关系说明。"}
         </p>
         <PeopleFact label="关系称呼">
-          <SemanticTree value={relation.role} />
+          <SourceValue value={relation.role?.label ?? relation.role} />
         </PeopleFact>
-        <JsonDetails value={relation} title="完整关系与来源" />
+        <SourceDownload value={relation} label="下载完整关系与来源" />
       </>
     ) : (
       <EmptyState>
@@ -246,7 +232,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
             </div>
             <h2>
               {relation?.role?.label ||
-                (isOwner ? "你们的关系" : "与该参与者的关系")}
+                (isOwner ? "你们的关系" : "与该参与者的关系")}，从认真倾听开始。
             </h2>
             <p>
               {data
@@ -268,27 +254,9 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
             <WorkspaceInfo>
               这是角色视角下的关系记录，自填资料不会直接改写这些指标。
             </WorkspaceInfo>
-            {relation && (
-              <JsonDetails value={relation} title="当前关系、指标与来源" />
-            )}
           </Surface>
-          <PeopleSection title="相处留下的记录">
-            <div className="companion-timeline">
-              {historicalRelation.map((row, index) => (
-                <div key={row.id || index}>
-                  <span className="companion-timeline-dot" />
-                  <small>{userInstant(row.created_at)}</small>
-                  <h4>{row.summary || "关系修订 v" + row.revision}</h4>
-                  <SemanticTree value={row.role} />
-                  <JsonDetails value={row} title="这次变化与依据" />
-                </div>
-              ))}
-            </div>
-            {data && !historicalRelation.length && (
-              <p className="companion-body-text">
-                当前范围还没有已读关系修订记录。
-              </p>
-            )}
+          <PeopleSection title="一些拉近距离的片刻">
+            <p className="companion-body-text">当前资料尚未提供可展示的共同经历。你们可以从接下来的交流中慢慢了解彼此。</p>
             <Button
               variant="outline"
               onClick={() =>
@@ -334,20 +302,11 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
         <PeopleSection
           title={isOwner ? "关于你" : "交流参与者资料"}
           description={
-            m.c.name + "会将这些作为主动填写的资料。只填你愿意分享的。"
+            m.c.name + "会将这些作为你主动填写的资料。只填你愿意分享的。"
           }
           action={
             !editing && (
               <div className="companion-action-row">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="刷新你的资料"
-                  disabled={source.busy}
-                  onClick={source.load}
-                >
-                  <RefreshCwIcon size={14} />
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -355,6 +314,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
                   disabled={!data || m.readOnly}
                   onClick={openEdit}
                 >
+                  <PencilIcon size={13} />
                   编辑资料
                 </Button>
               </div>
@@ -388,10 +348,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
                   </p>
                 </div>
               ))}
-              <Disclosure title="其他自填资料与完整来源">
-                <SemanticTree value={data.background} />
-                <JsonDetails value={data} title="当前资料、事实版本与来源" />
-              </Disclosure>
+
             </>
           ) : (
             <p className="companion-body-text">你的资料待读取。</p>
@@ -403,7 +360,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
             <h3>
               {m.c.name}对{subject}的了解
             </h3>
-            <p>你填写的资料，与交流事实和真实记忆分别展示。</p>
+            <p>你填写的资料，与{m.c.name}在相处中形成的认识，分别保存。</p>
             <Button
               variant="outline"
               disabled={!data}
@@ -418,7 +375,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
           </Surface>
           <PeopleSection title={m.c.name + "视角下的关系"}>
             <p className="companion-body-text">
-              你填写的关系描述，不会直接改变角色对关系的判断。
+              你填写的关系描述，不会直接改变{m.c.name}对你们关系的判断。
             </p>
             <Button
               variant="outline"
@@ -454,9 +411,9 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
           </PeopleSection>
         </aside>
       </div>
-      <WorkspaceDialog
-        className="replica-profile replica-people"
-        wide
+      <PeopleSourceSheet
+        scope={sourceScope}
+        source={data}
         open={!!knowledge}
         onOpenChange={(v) => {
           if (!v) setKnowledge(null);
@@ -497,7 +454,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
                   >
                     查看记忆与来源
                   </Button>
-                  <JsonDetails value={row} title="这条记忆的原记录" />
+                  <SourceDownload value={row} label="下载这条记忆的原记录" />
                 </div>
               ))}
               {data &&
@@ -525,40 +482,34 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
             </>
           )}
         </div>
-      </WorkspaceDialog>
-      <WorkspaceDialog
-        className="replica-profile replica-people"
-        wide
+      </PeopleSourceSheet>
+      <PeopleSourceSheet
+        scope={sourceScope}
+        source={data}
         open={historyOpen}
         onOpenChange={setHistoryOpen}
         returnFocus={() => readTrigger.current}
         title="你的资料修订历史"
         description="按实际事实记录展示自填来源，不把字段条数当作保存次数。"
       >
-        <div className="companion-timeline">
-          {authoredHistory.map((row, index) => (
-            <div key={row.fact_id || index}>
-              <span className="companion-timeline-dot" />
-              <small>{userInstant(row.effective_at || row.created_at)}</small>
-              <h4>
-                {{
-                  correct: "纠正了自填资料",
-                  change: "更新了目前的情况",
-                  assert: "首次填写资料",
-                }[row.transition_kind] || "资料记录"}{" "}
-                · {semanticLabel(row.attribute)}
-              </h4>
-              <SemanticTree value={row.value} />
-              <JsonDetails value={row} title="实际事实修订与来源" />
-            </div>
-          ))}
-        </div>
+        <Button variant="outline" disabled={source.busy} onClick={source.load}><RefreshCwIcon size={14} />刷新你的资料</Button>
+        <PeopleSection title="其他自填资料">
+          {extraAboutFields.map(([key, label]) => Object.hasOwn(data?.background || {}, key) && <PeopleFact key={key} label={label}><SourceValue value={data.background[key]} /></PeopleFact>)}
+          <p className="companion-body-text">完整原始记录下载保留全部来源、未知字段和原始值。</p>
+        </PeopleSection>
+        <PeopleSection title="自填资料修订">{authoredHistory.map(record)}</PeopleSection>
+        {!!historicalRelation.length && <PeopleSection title="关系修订记录">{historicalRelation.map((row, index) => <article className="people-source-record" key={row.id || index}>
+          <PeopleFact label="修订时间">{row.created_at ? userInstant(row.created_at) : "尚未记录时间"}</PeopleFact>
+          <PeopleFact label="关系说明"><SourceValue value={row.summary} /></PeopleFact>
+          <PeopleFact label="关系称呼"><SourceValue value={row.role?.label ?? row.role} /></PeopleFact>
+          <SourceDownload value={row} />
+        </article>)}</PeopleSection>}
         {data && !authoredHistory.length && (
           <EmptyState>
             <h3>尚无已读自填修订记录</h3>
           </EmptyState>
         )}
-      </WorkspaceDialog>
+      </PeopleSourceSheet>
     </>
   );
 }

@@ -326,3 +326,24 @@
     min-height: 39px;
   }
 }
+
+.replica-people .people-source-record {
+  min-width: 0;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.replica-people .people-source-record h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+.replica-people .people-source-scope {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.replica-people.people-source-sheet .profile-key-value > div {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.react-workspace.people-source-overlay[data-slot="sheet-content"]{padding:0;scrollbar-gutter:auto}

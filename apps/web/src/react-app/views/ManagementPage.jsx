@@ -69,7 +69,7 @@ export function ManagementPageView({ view: view }) {
               onInvalidCapture={event=>{const target=event.target,section=target.closest(".settings-group");if(section?.dataset.section)void view.scrollTo(section.dataset.section,false).then(()=>{target.closest("[data-setting-field]")?.scrollIntoView({block:"center",behavior:"instant"});target.focus({preventScroll:true});});}}
               onSubmit={eventModifiers(view.save, ["prevent"])}
             >
-              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small>{view.catalogReady.value?view.endpoints.value.length+' 个服务 · '+view.bindings.value.length+' 个用途':'正在读取服务与用途'}</small>}{categories.filter(item=>item.id===category).map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
+              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small className="replica-model-summary">{view.catalogReady.value?view.endpoints.value.length+' 个服务 · '+view.bindings.value.length+' 个用途':'正在读取服务与用途'}</small>}{categories.filter(item=>item.id===category&&category!=='models').map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
               {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>void view.scrollTo(value,false).then(()=>document.querySelector('.replica-page')?.scrollTo({top:0,behavior:'instant'}))}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
               {view.catalogLoading.value&&<p role="status" data-feedback-kind="progress">正在读取正式配置…</p>}
               {!view.catalogReady.value&&view.error.value&&<InlineFeedback role="alert">{view.error.value}<ActionButton type="button" variant="outline" onClick={view.retryCatalog}>重新读取配置</ActionButton></InlineFeedback>}
@@ -185,9 +185,9 @@ export function ManagementPageView({ view: view }) {
                 className="settings-group"
               >
                 <h2>{"为每种能力选择模型"}</h2>
-                <p className="muted">
+                <p className="muted" id="model-role-timeout-hint">
                   {
-                    "多个用途可以共用同一个服务，也可以分别配置。未使用的用途可以留空。"
+                    "多个用途可以共用同一个服务，也可以分别配置。未使用的用途可以留空；请求超时留空时使用 120 秒。"
                   }
                 </p>
                 <Fragment>
@@ -243,6 +243,7 @@ export function ManagementPageView({ view: view }) {
                               min="1"
                               placeholder="默认 120 秒"
                               aria-label="请求超时（秒，可选）"
+                              aria-describedby="model-role-timeout-hint"
                               value={h.timeout}
                               onChange={(event) => {
                                 ((value) => (h.timeout = value))(
@@ -250,9 +251,6 @@ export function ManagementPageView({ view: view }) {
                                 );
                               }}
                             />
-                            <small className="muted">
-                              {"留空使用 120 秒；未配置用途可以全部留空。"}
-                            </small>
                           </label>
                         </div>
                       </section>
@@ -381,7 +379,7 @@ export function ManagementPageView({ view: view }) {
                 </OperationStatus>
               ) : null}
               {view.testRaw.value&&<JsonDetails value={view.testRaw.value} title="测试回执与实际状态"/>}
-              {view.catalogReady.value&&(view.dirty.value||view.hasRecovery.value||view.saving.value||view.saveStatus.value||view.error.value)&&<div className="settings-save-bar" data-testid="config-save-bar">
+              {view.catalogReady.value&&<div className="settings-save-bar" data-testid="config-save-bar">
                 {view.hasRecovery.value ? <Feedback kind={view.recoveringConfiguration.value?'progress':view.configurationStorageProblem.value?'error':view.recovery.value?.status===409?'warning':[400,403,422].includes(view.recovery.value?.status)?'error':'action-required'} title={view.recoveringConfiguration.value?'正在核对设置':view.configurationStorageProblem.value?'本机提交记录暂时无法读取':view.needsBaselineReview.value&&!view.recovery.value?'请核对最新配置':view.recovery.value?.status===409?'设置版本已变化':[400,403,422].includes(view.recovery.value?.status)?'设置未能保存':'原设置提交结果待核对'} details={(view.configurationStorageProblem.value||view.recovery.value?.failure)&&<pre>{JSON.stringify(view.configurationStorageProblem.value||view.recovery.value.failure,null,2)}</pre>}>
                   <p>{view.error.value||view.saveStatus.value||'原设置提交仍需核对，当前输入会保留。'}</p><view.RecoveryActions/>
                 </Feedback> : view.error.value ? (
@@ -389,13 +387,13 @@ export function ManagementPageView({ view: view }) {
                     {displayText(view.error.value)}
                   </InlineFeedback>
                 ) : (
-                  <p className="text-sm" role="status" aria-live="polite" data-feedback-kind={view.saving.value?'progress':view.saveKind.value} data-testid="config-save-status">{view.saveStatus.value||(view.dirty.value?'有未保存修改':'当前配置已读取')}{view.saveStatus.value&&view.dirty.value&&!view.saving.value&&' · 有未保存修改'}</p>
+                  <p className="text-sm" role="status" aria-live="polite" data-feedback-kind={view.saving.value?'progress':view.saveKind.value} data-testid="config-save-status">{view.saveStatus.value||(view.dirty.value?'有未保存修改':view.settings.value.some(group=>Object.values(group.valueSources||{}).includes('runtime_default'))?'已读取当前配置 · 含系统默认，尚未保存':'当前配置已读取')}{view.saveStatus.value&&view.dirty.value&&!view.saving.value&&' · 有未保存修改'}</p>
                 )}
-                <ActionButton variant="outline" className="h-auto min-h-11 whitespace-normal" type="button" disabled={!view.dirty.value||!view.canDiscard.value} onClick={view.discard}>放弃未保存修改</ActionButton>
+                <ActionButton variant="outline" className="settings-discard" type="button" disabled={!view.dirty.value||!view.canDiscard.value} onClick={view.discard}>放弃修改</ActionButton>
                 <ActionButton variant="default"
 
-                  disabled={view.saving.value||view.recoveringConfiguration.value||!view.catalogReady.value||view.hasRecovery.value}
-                  className="h-auto min-h-11 whitespace-normal"
+                  disabled={!view.dirty.value||view.saving.value||view.recoveringConfiguration.value||!view.catalogReady.value||view.hasRecovery.value}
+                  className="settings-save"
                   data-testid="config-save"
                 >
                   {displayText(view.saving.value ? "保存中…" : "保存设置")}

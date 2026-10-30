@@ -1,4 +1,5 @@
 /* Chat geometry copied from the supplied workspace Demo. */
+.replica-chat.companion-page{max-width:calc(1560px - 2 * var(--replica-page-inline));width:100%;margin:0 auto}
 .companion-page{display:flex;flex-direction:column;gap:23px;min-width:0}
 .companion-soft-note {
   display: flex;

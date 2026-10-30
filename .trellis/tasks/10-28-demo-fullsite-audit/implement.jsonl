@@ -6,3 +6,4 @@
 {"file": ".trellis/spec/backend/fluctlight-configuration-contract.md", "reason": "正式配置和密钥契约"}
 {"file": ".trellis/tasks/10-28-demo-fullsite-audit/requirements.md", "reason": "本轮用户完整要求"}
 {"file": ".trellis/tasks/10-28-demo-fullsite-audit/research/real-environment.md", "reason": "真实环境已测现状与隔离运行路径"}
+{"file": ".trellis/tasks/10-28-demo-fullsite-audit/reference/r21/report.md", "reason": "r21 原报告；视觉证据与当前真实业务契约分别核对"}

@@ -20,7 +20,7 @@ function workspace({characters=[],worldCatalog=async()=>({items:[]}),listStudioR
 function model(c,extra={}){return {c,draft:c.draft,step:'world',currentStep:0,busy:false,pending:null,previewFields:[],error:'',fieldErrors:{},groups:[],existingWorlds:[],worlds:[],templates:[],canContinue:false,goStep(){},configHref:()=> '#/settings',...extra};}
 test('confirmed full empty catalogs show only an unselected daily card, create no world and block Next until explicit choice',async()=>{
  localStorage.clear();const w=workspace(),v=await mountReact(vite,Page,{workspace:w});
- try{assert.deepEqual(tabs(v.host),[]);assert.ok(button(v.host,'使用日常生活世界'));assert.equal(v.host.querySelector('.creation-daily.selected'),null);assert.equal(button(v.host,'继续，认识角色').disabled,true);assert.ok(v.host.querySelector('a[href="#/studio/edit/new?kind=world"]'));assert.deepEqual(w.mutations,[]);
+ try{assert.deepEqual(tabs(v.host),[]);assert.ok(button(v.host,'使用日常生活世界'));assert.equal(button(v.host,'重新读取已有世界'),undefined);assert.equal(v.host.querySelector('.creation-daily.selected'),null);assert.equal(button(v.host,'继续，认识角色').disabled,true);assert.ok(v.host.querySelector('a[href="#/studio/edit/new?kind=world"]'));assert.deepEqual(w.mutations,[]);
  const savedBefore=Object.keys(localStorage).map(key=>localStorage.getItem(key)).join('');assert.doesNotMatch(savedBefore,/"worldChoiceConfirmed":true/);
  await v.click(button(v.host,'使用日常生活世界'));assert.ok(v.host.querySelector('.creation-daily.selected'));assert.equal(button(v.host,'继续，认识角色').disabled,false);assert.deepEqual(w.mutations,[]);
  }finally{await v.dispose();}
@@ -63,7 +63,7 @@ test('failed initialization states the actual blocker, preserves early chat and 
  f.c.recoverStage=stage=>{recovered=stage;};
  const failed={key:'wardrobe',title:'初始衣柜',state:'failed',note:'读取角色配置失败',retryable:true},blocked={key:'schedule',title:'日程',state:'blocked',retryable:true};
  const m=model(f.c,{currentStep:3,step:'progress',progress:{complete:false,stages:[{key:'character',title:'角色',state:'ready'},{key:'world',title:'世界',state:'ready'},failed,blocked]}}),v=await mountReact(vite,View,{props:{model:m}});
- try{assert.match(v.host.querySelector('.creation-meet').textContent,/角色与世界已建立，初始化仍需处理/);assert.match(v.host.querySelector('.creation-meet').textContent,/当前需要处理「初始衣柜」/);assert.match(v.host.querySelector('[data-testid=prep-step-wardrobe]').textContent,/读取角色配置失败/);assert.doesNotMatch(v.host.textContent,/已经可以开始相处了/);assert.equal(v.host.querySelector('.creation-meet a').getAttribute('href'),'#/c/created/chat');assert.equal(v.host.querySelector('[data-testid=prep-step-schedule] button'),null);await v.click(button(v.host,'重试此环节'));assert.equal(recovered.key,'wardrobe');assert.equal(recovered.note,failed.note);
+ try{assert.match(v.host.querySelector('.creation-meet').textContent,/角色与世界已建立，初始化仍需处理/);assert.match(v.host.querySelector('.creation-meet').textContent,/当前需要处理「初始衣柜」/);assert.match(v.host.querySelector('.creation-preparation-blocker').textContent,/读取角色配置失败/);assert.doesNotMatch(v.host.textContent,/已经可以开始相处了/);assert.equal(v.host.querySelector('.creation-meet a').getAttribute('href'),'#/c/created/chat');assert.equal(v.host.querySelector('[data-testid=prep-step-schedule] button'),null);await v.click(button(v.host,'重试此环节'));assert.equal(recovered.key,'wardrobe');assert.equal(recovered.note,failed.note);
  }finally{await v.dispose();f.c.dispose();}
 });
 test('preparation opens original task stages locally and links separately to model records without fetching them',async()=>{
@@ -71,11 +71,42 @@ test('preparation opens original task stages locally and links separately to mod
  w.services.operationsClient={task:async id=>{reads.push(id);return {task_id:id,title:'真实衣柜任务',status:'failed',correlation_id:'original-correlation'};}};
  w.services.diagnosticsClient={page:async(kind,options)=>{calls.push([kind,options]);return {items:[{ref:'actual-call',data:{prompt:{original:0},response:{kept:false},status:'failed'}}],next_cursor:''};}};
  const m=model(f.c,{currentStep:3,step:'progress',progress:{complete:false,stages:[{key:'world',title:'世界',state:'ready'},{key:'wardrobe',title:'衣柜',state:'failed',href:'#/diag/task/task%2Fexact%3Fid'}]}}),v=await mountReact(vite,View,{workspace:w,props:{model:m}});
- try{location.hash='#/library/create?resume=original';const hash=location.hash,trigger=button(v.host,'查看任务记录');await v.click(trigger);const sheet=document.querySelector('[data-slot=sheet-content]');assert.ok(sheet);assert.equal(document.querySelectorAll('[role=dialog]').length,1);assert.equal(sheet.querySelector('[data-slot=sheet-title]').textContent,'真实衣柜任务');assert.equal(sheet.querySelector('[role=tab][data-state=active]').textContent,'执行阶段');assert.doesNotMatch(sheet.textContent,/"original": 0/);await act(async()=>[...sheet.querySelectorAll('[role=tab]')].find(node=>node.textContent==='任务信息').dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));await v.flush();assert.match(sheet.querySelector('a[href^="#/diag?view=calls"]').getAttribute('href'),/correlationId=original-correlation/);assert.deepEqual(reads,['task/exact?id']);assert.deepEqual(calls,[]);assert.equal(location.hash,hash);
+ try{location.hash='#/library/create?resume=original';const hash=location.hash,trigger=button(v.host,'查看任务记录');await v.click(trigger);const sheet=document.querySelector('[data-slot=dialog-content]');assert.ok(sheet);assert.equal(document.querySelectorAll('[role=dialog]').length,1);assert.equal(sheet.querySelector('[data-slot=dialog-title]').textContent,'真实衣柜任务');assert.equal(sheet.querySelector('[role=tab][data-state=active]').textContent,'执行阶段');assert.doesNotMatch(sheet.textContent,/"original": 0/);await act(async()=>[...sheet.querySelectorAll('[role=tab]')].find(node=>node.textContent==='任务信息').dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));await v.flush();assert.match(sheet.querySelector('a[href^="#/diag?view=calls"]').getAttribute('href'),/correlationId=original-correlation/);assert.deepEqual(reads,['task/exact?id']);assert.deepEqual(calls,[]);assert.equal(location.hash,hash);
  await act(async()=>sheet.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));await v.flush();assert.equal(document.querySelector('[role=dialog]'),null);assert.equal(document.activeElement,trigger);assert.equal(location.hash,hash);assert.deepEqual(w.mutations,[]);
  }finally{await v.dispose();f.c.dispose();}
 });
 test('non-task and malformed task URLs retain the existing navigation fallback',async()=>{
  const opened=[],v=await mountReact(vite,Preparation,{props:{stages:[{key:'world',title:'世界',state:'unknown',href:'#/worlds'},{key:'malformed',title:'错误链接',state:'unknown',href:'#/diag/task/%E0%A4%A'}],onOpenTask:(...args)=>opened.push(args)}});
  try{const links=[...v.host.querySelectorAll('a')];assert.equal(links.length,2);assert.ok(links[0].getAttribute('href').startsWith('#/worlds?returnTo='));assert.equal(opened.length,0);}finally{await v.dispose();}
+});
+
+test('r21 blocked phases are compact while the actual blocker and unknown readback remain actionable',async()=>{
+ const stages=[{key:'character',title:'角色',state:'failed',note:'角色已建立，资料整理仍需处理',retryable:true,href:'#/diag/task/original'},...['wardrobe','schedule','portrait','memory','voice'].map(key=>({key,title:key,state:'blocked',note:'重复的前序阻塞说明',href:'#/diag/task/'+key})),{key:'unknown',title:'待核对环节',state:'unknown',note:'需要核对原请求',retryable:true}];
+ const recovered=[],opened=[],v=await mountReact(vite,Preparation,{props:{replica:true,stages,onRecover:stage=>recovered.push(stage),onOpenTask:id=>opened.push(id)}});
+ try {
+  assert.equal(v.host.textContent.split('角色已建立，资料整理仍需处理').length-1,1);
+  assert.doesNotMatch(v.host.textContent,/重复的前序阻塞说明/);
+  for(const key of ['wardrobe','schedule','portrait','memory','voice']){const row=v.host.querySelector('[data-testid=prep-step-'+key+']');assert.equal(row.querySelector('button,a,[data-slot=alert]'),null);}
+  await v.click(button(v.host,'重试此环节'));assert.equal(recovered[0],stages[0]);
+  await v.click(button(v.host,'恢复原任务'));assert.equal(recovered[1],stages.at(-1));
+  await v.click(button(v.host,'查看任务记录'));assert.deepEqual(opened,['original']);
+  await v.click(button(v.host,'其他准备记录'));assert.equal(v.host.querySelectorAll('[data-testid^=prep-step-]').length,7);assert.ok([...v.host.querySelectorAll('button')].filter(n=>n.textContent==='查看任务记录').length>1);
+ }finally{await v.dispose();}
+});
+
+test('r21 resuming and changing a wizard step reveals its single heading and four-step navigation',async()=>{
+ const scrolled=[];
+ const f=creationFixture(),m=model(f.c,{currentStep:2,step:'preview'});
+ f.c.draft.mode='blank';
+ const v=await mountReact(vite,View,{props:{model:m}});
+ const original=window.HTMLElement.prototype.scrollIntoView;
+ try {
+  assert.equal(document.activeElement,v.host.querySelector('h1'));
+  window.HTMLElement.prototype.scrollIntoView=function(options){scrolled.push([this,options]);};
+  await v.update({model:{...m,currentStep:3,step:'progress',progress:{complete:false,stages:[]}}});
+  assert.equal(scrolled.at(-1)[0],v.host.querySelector('h1'));
+  assert.equal(scrolled.at(-1)[1].block,'start');
+  assert.equal(v.host.querySelectorAll('h1').length,1);
+  assert.equal(v.host.querySelectorAll('nav[aria-label="创建步骤"] button').length,4);
+ } finally {window.HTMLElement.prototype.scrollIntoView=original;await v.dispose();f.c.dispose();}
 });

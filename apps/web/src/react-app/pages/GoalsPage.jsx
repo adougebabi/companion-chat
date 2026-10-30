@@ -920,7 +920,7 @@ export default function GoalsPage({ route, onGo }) {
                         </Badge>
                       </div>
                       <h3>{goal.desired_outcome}</h3>
-                      <p>{goal.motivation || "动机尚未提供"}</p>
+                      {goal.motivation !== goal.desired_outcome && <p>{goal.motivation || "动机尚未提供"}</p>}
                       <Progress
                         value={a.progress === null ? null : a.progress * 100}
                         className="lp-progress"
@@ -929,7 +929,7 @@ export default function GoalsPage({ route, onGo }) {
                       <div className="lp-row lp-between">
                         <span className="lp-muted">
                           {a.verifiedCount === null
-                            ? "条件评估待读取"
+                            ? `条件评估待读取 · 共 ${a.criteria.length} 项条件`
                             : `已核实 ${a.verifiedCount} / ${a.criteria.length} 项条件`}
                         </span>
                         <span className="lp-muted">

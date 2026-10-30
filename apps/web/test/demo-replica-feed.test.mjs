@@ -360,6 +360,8 @@ test("empty, initial failure/recovery and global feed without a character remain
   let f = await fixture({ scenario: "empty", noCharacter: true });
   try {
     assert.match(f.v.host.textContent, /还没有这样的片刻/);
+    assert.ok(f.v.host.querySelector('[data-empty-variant="page"] [data-slot="empty-icon"] svg'));
+    assert.equal(f.v.host.querySelector('[data-empty-variant="page"]').closest('[data-slot="card"]'),null);
     assert.equal(
       f.api.calls.filter((c) => c.path === "/api/moment-feed").length,
       1,

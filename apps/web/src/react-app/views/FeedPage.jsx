@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChoiceSelect, FieldInput, Surface, Disclosure } from "../controls";
+import {EmptyState} from "../shared/Presentation";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
@@ -151,10 +152,9 @@ export default function FeedPageView({ model: m }) {
               onAction={m.interact}
             />
           ))}
-          {m.feed.ready && !rows.length && (
-            <Surface>
-              <div className="feed-empty">
-                <h2>还没有这样的片刻</h2>
+          {m.feed.ready && !m.feed.busy && !m.feed.error && !rows.length && (
+            <EmptyState variant="page">
+                <h3>还没有这样的片刻</h3>
                 <p>
                   {m.feed.cursor
                     ? "已读记录中没有符合筛选的动态，可以继续加载更早记录。"
@@ -173,8 +173,7 @@ export default function FeedPageView({ model: m }) {
                 >
                   清除筛选
                 </Button>
-              </div>
-            </Surface>
+            </EmptyState>
           )}
           <FeedMore source={m.feed} label="动态" />
         </div>

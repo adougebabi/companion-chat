@@ -782,7 +782,7 @@ export default function MemoryPage({ route }) {
                 !memories.items.length &&
                 !memories.error &&
                 !memories.busy && (
-                  <EmptyState>
+                  <EmptyState variant="page">
                     <h3>这里没有找到匹配的记忆</h3>
                     <p>试试别的关键词，或清除筛选。</p>
                     <Button
@@ -904,7 +904,7 @@ export default function MemoryPage({ route }) {
             !reflections.items.length &&
             !reflections.error &&
             !reflections.busy && (
-              <EmptyState>
+              <EmptyState variant="page">
                 <h3>还没有形成反思</h3>
                 <p>经历积累后，新的观察与认识会出现在这里。</p>
               </EmptyState>
@@ -1012,7 +1012,7 @@ export default function MemoryPage({ route }) {
             !claims.items.length &&
             !claims.error &&
             !claims.busy && (
-              <EmptyState>
+              <EmptyState variant="page">
                 <h3>认识自己，也需要时间</h3>
                 <p>当前筛选还没有自我认知记录。</p>
               </EmptyState>

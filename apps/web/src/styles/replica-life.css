@@ -664,3 +664,11 @@
 @media(max-width:700px){.replica-life .lp-date>span{flex:none;width:150px}}
 
 .replica-memory .lp-tag-row{display:flex;flex-wrap:wrap;gap:6px}
+
+/* Explicit normal-page empty state, matching the immutable Demo shared component. */
+.replica-workspace .replica-page-empty[data-slot="empty"]{padding:45px 20px;gap:0;border:0;border-radius:0;background:transparent;text-align:center;box-shadow:none}
+.replica-page-empty [data-slot="empty-icon"]{width:55px;height:55px;display:grid;place-items:center;background:#f0f4e9;border-radius:15px;color:#9bb083;margin:0 auto 17px}
+.replica-page-empty h3{margin:0;font-size:15px;font-weight:500;color:#67795c;line-height:1.5}
+.replica-page-empty p{font-size:12px;color:#93a085;line-height:1.9;max-width:380px;margin:10px auto 18px}
+.replica-page-empty>button+button{margin-top:8px}
+.replica-diary .lp-empty-inline{font-size:12px;color:#9ba88d;padding:20px;text-align:center}

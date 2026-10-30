@@ -15,7 +15,7 @@ test('now shows confirmed state and wearing, never infers execution from the clo
 });
 test('now loading and failed reads keep confirmed data while true emptiness stays distinct',async()=>{
  const w=workspace(),v=await mountReact(vite,Life,{workspace:w,props:{page:'此刻',onGo(){}}});
- try{await act(async()=>{w.state.loading.life=true;});await v.flush();assert.match(v.host.textContent,/正在读取日程/);assert.match(v.host.textContent,/计划中的散步/);await act(async()=>{w.state.loading.life=false;w.state.errors.schedule='读取失败';w.state.errors.wardrobe='读取失败';});await v.flush();assert.match(v.host.textContent,/日程读取未完成/);assert.match(v.host.textContent,/已确认的薄外套/);await v.click(button(v.host,'重新读取日程'));assert.deepEqual(w.reads,['life']);w.loadLife=async()=>{throw Error('详情暂时无法读取');};await v.click(button(v.host,'重新读取日程'));assert.match(v.host.textContent,/计划中的散步/);await act(async()=>{w.state.errors={};w.state.characters[0].schedule=[];w.state.characters[0]._wardrobe.wearing.worn_items=[];w.state.characters[0].activity='';});await v.flush();assert.match(v.host.textContent,/今天的生活，正在慢慢展开/);assert.match(v.host.textContent,/还没有登记实际穿着/);assert.match(v.host.textContent,/此刻状态尚未更新/);assert.doesNotMatch(v.host.textContent,/已确认的薄外套/);}finally{await v.dispose();}
+ try{await act(async()=>{w.state.loading.life=true;});await v.flush();assert.match(v.host.textContent,/正在读取日程/);assert.match(v.host.textContent,/计划中的散步/);await act(async()=>{w.state.loading.life=false;w.state.errors.schedule='读取失败';w.state.errors.wardrobe='读取失败';});await v.flush();assert.match(v.host.textContent,/日程读取未完成/);assert.match(v.host.textContent,/已确认的薄外套/);await v.click(button(v.host,'重新读取日程'));assert.deepEqual(w.reads,['life']);w.loadLife=async()=>{throw Error('详情暂时无法读取');};await v.click(button(v.host,'重新读取日程'));assert.match(v.host.textContent,/计划中的散步/);await act(async()=>{w.state.errors={};w.state.characters[0].schedule=[];w.state.characters[0]._wardrobe.wearing.worn_items=[];w.state.characters[0].activity='';});await v.flush();assert.match(v.host.textContent,/今天的生活，正在慢慢展开/);assert.ok(button(v.host,'完整日程'));assert.match(v.host.textContent,/待安排/);assert.match(v.host.textContent,/还没有登记实际穿着/);assert.match(v.host.textContent,/此刻状态尚未更新/);assert.doesNotMatch(v.host.textContent,/已确认的薄外套/);}finally{await v.dispose();}
 });
 
 test('the day summary retains earlier recorded arrangements while next activity is separate',async()=>{
@@ -23,4 +23,11 @@ test('the day summary retains earlier recorded arrangements while next activity 
  w.state.characters[0].schedule=[['08:00','早餐'],['10:00','已确认的上午安排'],['14:00','整理新书'],['17:30','散步'],['20:00','晚间阅读']].map(([time,text],i)=>({time,text,_source:{id:'day-'+i,start_at:date+'T'+time+':00+08:00',end_at:date+'T23:00:00+08:00',status:'scheduled',action_status:i<2?'completed':null},_schedule:{local_date:date,timezone:'Asia/Shanghai'}}));
  const v=await mountReact(vite,Life,{workspace:w,props:{page:'此刻',onGo(){}}});
  try{assert.match(v.host.textContent,/已确认的上午安排/);assert.match(v.host.textContent,/整理新书/);assert.doesNotMatch(v.host.textContent,/早餐/);assert.equal(v.host.querySelectorAll('.lp-timeline-card').length,4);}finally{await v.dispose();}
+});
+
+test('now reads the actual bound world and keeps a real read retry instead of inferring no world from empty life context',async()=>{
+ const w=workspace();w.state.characters[0].world='';w.isCurrent=(owner,fid)=>owner===w.state.session.actorId&&fid===w.state.selectedId;let failed=true,reads=0;
+ w.client={world:async fid=>{reads++;assert.equal(fid,'A');if(failed)throw Error('fetch failed');return {world:{id:'bound-world',name:'已绑定的日常世界'}};}};
+ const v=await mountReact(vite,Life,{workspace:w,props:{page:'此刻',onGo(){}}});
+ try{assert.match(v.host.textContent,/所属世界暂未读全/);assert.doesNotMatch(v.host.textContent,/尚未绑定世界/);failed=false;await v.click(button(v.host,'重新读取所属世界'));assert.match(v.host.textContent,/已绑定的日常世界/);assert.doesNotMatch(v.host.textContent,/所属世界暂未读全/);assert.equal(reads,2);}finally{await v.dispose();}
 });

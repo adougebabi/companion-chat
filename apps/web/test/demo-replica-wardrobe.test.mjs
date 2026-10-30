@@ -369,13 +369,14 @@ test('retained wardrobe return queries restore the native search and stable plan
   assert.equal(w.calls.some(c=>c[0]==='command'),false);
  }finally{await v.dispose();}
 });
-test('r20 wardrobe preparation follows the real header and retains read failure and retry',async()=>{
+test('r21 wardrobe preparation stays within today wearing and retains read failure and retry',async()=>{
   const w=workspace();let reads=0;
   w.services.inventoryClient.preparation=async()=>{if(++reads===1)throw Error('preparation unavailable');return {status:'failed',can_recover:false};};
   const v=await mount(w);
   try{
     const root=v.host.querySelector('.replica-wardrobe'),header=root.querySelector('h1').closest('header'),preparation=root.querySelector('.approved-preparation');
-    assert.ok(preparation);assert.ok(header);assert.equal(header.nextElementSibling,preparation);assert.ok(preparation.querySelector('[role=alert]'));
+    assert.ok(preparation);assert.ok(header);assert.ok(preparation.closest('.r-wearing-strip'));assert.equal(preparation.querySelector('[role=progressbar]'),null);assert.doesNotMatch(preparation.textContent,/已完成 0/);assert.ok(preparation.querySelector('[role=alert]'));
+    await v.click(button(preparation,'准备记录与读取'));
     await v.click(button(preparation,'重新读取准备状态'));assert.equal(reads,2);assert.ok(root.querySelector('.approved-preparation'));assert.doesNotMatch(root.querySelector('.approved-preparation').textContent,/preparation unavailable/);
   }finally{await v.dispose();}
 });

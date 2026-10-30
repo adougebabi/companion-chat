@@ -1,5 +1,7 @@
 # R16：诊断三模块按实际 Demo 还原
 
+> r21后续检查点：创建任务容器现统一为原地居中Dialog，来源/文案/空态后续变化与当前验收见 [r21-acceptance.md](r21-acceptance.md)。本文保留历史证据。
+
 本批续接 `24872284`，保留 r18/r19/r20 及并行提示词提交 `e9287580` 的成果。用户更正后的 R16 取代历史 R14：任务中心呈现任务，Request/Response 属于模型调用记录。之前的正式实现本身也不是合格基线，因此本批依据只读 Demo 的源码和实际运行效果逐项修复，没有整体回滚旧提交。
 
 基准为 Demo 的 `docs/REPLICA.md`、`docs/SOURCE_MAP.md`、`src/pages/LifePages.tsx:2290` 的 DiagnosticsPanel / DiagnosticHealth、`src/components/shared.tsx` 的 DetailDialog / SegTabs / KeyValue，以及实际 index.css / life.css。Demo 48 个源文件与旧任务 108 个文件的基线哈希均保持一致。

@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge, Disclosure, FieldInput, Surface, Textarea } from "../controls";
+import { Input } from "@/components/ui/input";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
 import LoadingState from "../shared/LoadingState";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
@@ -744,11 +745,11 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
             >
               <ChevronLeftIcon size={15} />
             </Button>
-            <DateField
+            <Input type="date"
               aria-label="查看日程日期"
               value={actualDate}
               disabled={calendar?.unavailable}
-              onChange={(event) => navigate(event.target.value)}
+              onChange={(event) => { if (event.target.value) navigate(event.target.value); }}
             />
             <Button
               variant="ghost"
@@ -871,7 +872,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                   !loading &&
                   !readError &&
                   current && (
-                    <EmptyState>
+                    <EmptyState variant="page">
                       <h3>
                         {protectedRecord
                           ? "这一天已有日程记录，当前没有条目"
@@ -1078,7 +1079,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
               ))}
               {!suggestions.length && !requestLoading && !requestError && (
                 <Surface className="lp-pad">
-                  <EmptyState>
+                  <EmptyState variant="page">
                     <h3>还没有读到日程调整建议</h3>
                     <p>点击日程中的一项安排，可以提出修改。</p>
                     <Button
@@ -1116,7 +1117,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
               ))}
               {loading && <LoadingState label="正在读取生活倾向…" />}
               {!loading && !habits.length && !readError && (
-                <EmptyState>
+                <EmptyState variant="page">
                   <h3>生活习惯，等相处中慢慢了解</h3>
                   <p>当前还没有确认的生活倾向。</p>
                 </EmptyState>

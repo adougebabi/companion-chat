@@ -77,7 +77,7 @@ test("opening and applying a nullable structured extension preserves null withou
   try {
     await selectTab(f, "生活设定");
     const card = [...f.v.host.querySelectorAll(".creation-structured")].find(
-      (n) => n.textContent.includes("custom_extension"),
+      (n) => n.querySelector("h2")?.textContent === "补充设定",
     );
     await f.v.click(button(card, "编辑内容"));
     assert.equal(dialog().querySelector("textarea").value, "null");
@@ -243,4 +243,53 @@ test("retrying an unreadable publication page retains its original cursor and up
     await v.dispose();
     directory.publication = original;
   }
+});
+
+test('r21 creation reading labels aliases and unknown values, orders appearance, and keeps complete relations and motives without altering the document', async () => {
+  const f = await preview();
+  try {
+    const definition = f.c.previewDefinition();
+    definition.core_persona.life_profile.appearance = {body_type:'匀称', description:'外貌完整说明', eyes:'brown', hair:'深棕色中长发', extra_detail:false};
+    definition.core_persona.life_profile.social_background = {family:'与家人保持稳定的联系', extension_count:0, ...JSON.parse('{"constructor":{"toString":"constructor"}}')};
+    definition.initial_relationships = [{target_actor_id:'owner',role:'初识的朋友',metrics:{familiarity:0.1,trust:0.15,custom_metric:0},summary:'完整关系摘要',emotional_association:'适度的好奇',extra_note:null}];
+    definition.initial_goals = [{description:'完整初始目标', importance:0, unknown_goal:false}];
+    definition.initial_intentions = [{action:'完整初始意图', goal_index:0, custom_intention:'保留的补充'}];
+    f.c.updatePreviewDefinition(definition);
+    const before = JSON.stringify(f.c.previewDefinition());
+    await selectTab(f,'生活设定');
+    const appearance=[...f.v.host.querySelectorAll('.creation-structured')].find(n=>n.querySelector('h2')?.textContent==='外貌印象');
+    assert.deepEqual([...appearance.querySelectorAll('dt')].map(n=>n.textContent),['说明','发型','眼睛 / 瞳色','体态','补充设定']);
+    assert.match(appearance.textContent,/棕色/);assert.match(appearance.textContent,/否/);
+    assert.match(f.v.host.textContent,/家庭背景与家人保持稳定的联系/);
+    assert.doesNotMatch(f.v.host.textContent,/extra_detail|extension_count/);
+    await selectTab(f,'人格与关系');
+    const relation=[...f.v.host.querySelectorAll('.creation-structured')].find(n=>n.querySelector('h2')?.textContent==='初始关系');
+    assert.match(relation.textContent,/关系对象你关系初识的朋友初始指标熟悉程度10%信任15%/);
+    assert.match(relation.textContent,/关系摘要完整关系摘要情感联想适度的好奇/);
+    assert.doesNotMatch(relation.textContent,/owner|target_actor_id|custom_metric|extra_note|\{"/);
+    assert.match(f.v.host.textContent,/完整初始目标/);assert.match(f.v.host.textContent,/完整初始意图/);
+    assert.equal(JSON.stringify(f.c.previewDefinition()),before);
+    await f.v.click(f.v.host.querySelector('[role=checkbox]'));
+    assert.equal(f.c.draft.includeGoals,false);
+    assert.deepEqual(f.c.previewDefinition().initial_relationships,definition.initial_relationships);
+    assert.deepEqual(f.c.previewDefinition().initial_goals,definition.initial_goals);
+  } finally {await f.v.dispose();f.c.dispose();}
+});
+
+test('r21 personality mode edits use the original preview update and preserve nullable unknown nested siblings', async () => {
+  const f=await preview();
+  try {
+    const definition=f.c.previewDefinition();
+    definition.core_persona.personality_system={mode:'single',profiles:[],custom_mode:null,switching:{unknown_policy:false,nested:{zero:0}}};
+    f.c.updatePreviewDefinition(definition);
+    await selectTab(f,'人格与关系');
+    const combo=f.v.host.querySelector('[role=combobox][aria-label="人格模式"]');
+    assert.match(combo.textContent,/单一人格/);
+    assert.ok([...f.v.host.querySelectorAll('.creation-structured')].some(n=>n.querySelector('h2')?.textContent==='人格档案与切换规则'));
+    await f.v.click(combo);await f.v.click([...document.querySelectorAll('[role=option]')].find(n=>n.textContent==='多重人格'));
+    const after=f.c.previewDefinition();
+    assert.equal(after.core_persona.personality_system.mode,'multiple');
+    assert.deepEqual(after.core_persona.personality_system,{...definition.core_persona.personality_system,mode:'multiple'});
+    assert.deepEqual(after.initial_relationships,definition.initial_relationships);
+  } finally {await f.v.dispose();f.c.dispose();}
 });

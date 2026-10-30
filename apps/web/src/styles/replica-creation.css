@@ -782,6 +782,37 @@
   font-size: 11px;
   overflow-wrap: anywhere;
 }
+.replica-creation .creation-preview-facts {
+  display: grid;
+  gap: 9px;
+}
+.replica-creation .creation-preview-facts > div {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.replica-creation .creation-preview-facts dt {
+  font-size: 10px;
+  color: #9dad8a;
+}
+.replica-creation .creation-preview-facts dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.replica-creation .creation-preview-facts .creation-preview-facts > div {
+  grid-template-columns: minmax(65px, auto) minmax(0, 1fr);
+}
+.replica-creation .creation-preview-facts .creation-preview-facts .creation-preview-facts > div {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+.replica-creation .creation-preview-records { display: grid; gap: 15px; }
+.replica-creation .creation-preview-records > div + div {
+  border-top: 1px solid #eaf0e0;
+  padding-top: 12px;
+}
 .replica-creation .creation-adopt {
   display: flex;
   align-items: flex-start;
@@ -1325,6 +1356,35 @@
 }
 .replica-creation .preparation-item > .grid {
   gap: 5px;
+}
+.replica-creation .preparation-item.blocked {
+  padding-block: 14px;
+  color: #a8b19e;
+}
+.replica-creation .preparation-item [data-slot="trace-title"] {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b9c78;
+}
+.replica-creation .preparation-item:is(.ready, .running) [data-slot="trace-title"] {
+  color: #526f3d;
+}
+.replica-creation .preparation-item [data-slot="trace-icon"],
+.replica-creation .preparation-item [data-slot="trace-icon"] svg {
+  width: 21px;
+  height: 21px;
+}
+.replica-creation .preparation-item.blocked [data-slot="trace-title"] {
+  color: #a8b19e;
+}
+.replica-creation .creation-preparation-blocker { display: grid; gap: 12px; margin-top: 18px; }
+.replica-creation .creation-prep-note{margin:0;font-size:11px;line-height:1.8;color:#96a18a}
+.replica-creation .creation-preparation-feedback{background:#faf0e8;border-color:#ecd9ca;color:#9d775f;padding:14px;font-size:12px;line-height:1.9}
+.replica-creation .creation-preparation-feedback [data-slot="alert-description"]{font:inherit;color:inherit}
+.replica-creation .creation-needs-attention {
+  color: #a17a37;
+  background: #fbf2df;
+  border-color: #eee0bd;
 }
 .replica-creation .preparation-item [data-slot="alert-description"] {
   font-size: 10px;

@@ -51,3 +51,8 @@ pass116更新：F68首次目录读取失败与F69修正JSON后旧错误均为UI�
 ## pass125收敛清单结果
 
 新增44条受控生产浏览器检查通过，没有新增生产代码修复。管理配置按实际PUT端点，通过有界测试receipt/CAS状态验证等待、新输入保留、unknown原回执恢复、明确拒绝后停止未受理、显式重基线、endpoint/binding部分已确认不重复写；没有改真实部署配置。备份只对内存queued job执行取消，running只读，未运行维护工具。定义包只进受控fixture，保持原pack/digest/reason/key恢复且仅独立草稿，未发布/应用。动态使用正式processing/rejected状态，不注入不存在的running/declined owner-request枚举；不把这些模拟结果当模型判断。真实18480最新build116五页只读通过。
+
+
+## r21 UI/UX 证据边界
+
+本轮只修改前端呈现和既有读取/原恢复入口。33个主浏览器案例与12个创建恢复/画像/创作案例均为独立暂存正式dist加受控HTTP；有原body/key/CAS及一次激活/世界创建的具体断言，但不代表真实Core/数据库/Temporal/LLM或媒体生成通过。真实媒体继续由用户测试，历史真实证据保持。并行世界共享/Core/模型调用工作未纳入本轮提交或该快照结论。

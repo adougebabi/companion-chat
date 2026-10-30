@@ -42,6 +42,7 @@ import PreparationSteps from "../shared/PreparationSteps";
 import TaskRecordDialog from "../shared/TaskRecordDialog";
 import SemanticTree from "../shared/SemanticTree";
 import JsonDetails from "../shared/JsonDetails";
+import CreationPreviewValue, {creationPreviewLabel} from "../shared/CreationPreviewValue";
 import Combobox from "../shared/Combobox";
 import { WorldArt } from "../shared/WorkspaceArtwork";
 import WorkspaceCharacterSketch from "../shared/WorkspaceCharacterSketch";
@@ -171,6 +172,15 @@ export default function CharacterWizardView({ model: m }) {
     ? preferredWorldTab : worldTabs[0][0];
   // A source disappearing only changes the view; it never selects or persists a world.
   useEffect(() => { if (worldTab !== visibleWorldTab) setWorldTab(visibleWorldTab); }, [worldTab, visibleWorldTab]);
+  const headingAnchor = useRef(null);
+  useEffect(() => {
+    const root = headingAnchor.current;
+    const heading = root?.querySelector('h1');
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus({preventScroll:true});
+    heading.scrollIntoView?.({block:'start', behavior:'instant'});
+  }, [index]);
   const errorRef=useRef(null);
   useEffect(()=>{if(!m.error)return;const key=Object.keys(m.fieldErrors)[0],id=({name:'create-name',timezone:'create-timezone',bio:'create-bio'})[key],input=id?document.getElementById(id):null;const node=input?.closest('label')||errorRef.current;node?.scrollIntoView({block:'center',behavior:'instant'});input?.focus({preventScroll:true});},[m.error]);
   const jsonFileInput=useRef(null);
@@ -272,7 +282,7 @@ export default function CharacterWizardView({ model: m }) {
           编辑内容
         </Button>
       </div>
-      <SemanticTree value={value} field={path.at(-1)} />
+      <CreationPreviewValue value={value} field={path.at(-1)} />
     </Surface>
   );
   const next = () => {
@@ -296,6 +306,7 @@ export default function CharacterWizardView({ model: m }) {
   );
   return (
     <div ref={m.rootRef} className="replica-creation creation-page">
+      <div ref={headingAnchor}>
       <WorkspacePageHeader
         eyebrow="A NEW BEGINNING / 新的相识"
         title={
@@ -325,6 +336,7 @@ export default function CharacterWizardView({ model: m }) {
           </Button>
         }
       />
+      </div>
       <nav className="creation-steps" aria-label="创建步骤">
         {steps.map(([label, note, Icon], i) => (
           <Button
@@ -585,14 +597,14 @@ export default function CharacterWizardView({ model: m }) {
               {m.selectedPublicationLoading && (
                 <LoadingState label="正在读取所选世界的精确发布版本…" />
               )}
-              <Button
+              {showExistingWorlds && <Button
                 variant="outline"
                 disabled={m.existingWorldLoading}
                 onClick={() => void m.loadExistingWorlds(true)}
               >
                 <RefreshCw size={14} />
                 重新读取已有世界
-              </Button>
+              </Button>}
             </>
           )}
           {index === 1 && (
@@ -1136,7 +1148,7 @@ export default function CharacterWizardView({ model: m }) {
                         .filter((k) => !Object.hasOwn(lifeFields, k))
                         .map((k) =>
                           renderStructure(
-                            k,
+                            creationPreviewLabel(k),
                             ["core_persona", "life_profile", k],
                             definition.core_persona.life_profile[k],
                           ),
@@ -1149,7 +1161,18 @@ export default function CharacterWizardView({ model: m }) {
                       <h2>人格、关系与最初的动机</h2>
                       <p>初始目标与意图的采用选项不会删除初始关系。</p>
                     </div>
-                    {renderStructure(
+                    <Label>
+                      人格模式
+                      <ChoiceSelect aria-label="人格模式"
+                        value={['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) ? definition.core_persona.personality_system.mode : '__recorded'}
+                        disabled={busy || locked || !!definitionError || d.previewJsonText !== undefined || (definition?.core_persona?.personality_system != null && (typeof definition.core_persona.personality_system !== 'object' || Array.isArray(definition.core_persona.personality_system)))}
+                        onChange={event => applyDefinition(setPath(copy(definition), ['core_persona','personality_system','mode'], event.target.value))}>
+                        {!['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) && <option value="__recorded">{definition?.core_persona?.personality_system?.mode == null ? '尚未提供' : '自定义模式'}</option>}
+                        <option value="single">单一人格</option>
+                        <option value="multiple">多重人格</option>
+                      </ChoiceSelect>
+                    </Label>
+                    {(definition?.core_persona?.personality_system?.mode && !['single'].includes(definition.core_persona.personality_system.mode) || Object.entries(definition?.core_persona?.personality_system || {}).some(([key,value]) => key !== 'mode' && (value === null || typeof value !== 'object' || Object.keys(value).length > 0))) && renderStructure(
                       "人格档案与切换规则",
                       ["core_persona", "personality_system"],
                       definition?.core_persona?.personality_system,
@@ -1422,6 +1445,11 @@ export default function CharacterWizardView({ model: m }) {
                 >
                   查看创建资料
                 </Button>
+                <Button variant="ghost" asChild>
+                  <a href="#/library">保留进度，返回角色库</a>
+                </Button>
+                <Disclosure title="更多准备操作">
+                  <div className="creation-action-row">
                 <Button
                   variant="outline"
                   disabled={busy || !d.activatedId}
@@ -1440,9 +1468,6 @@ export default function CharacterWizardView({ model: m }) {
                     </a>
                   </Button>
                 )}
-                <Button variant="ghost" asChild>
-                  <a href="#/library">保留进度，返回角色库</a>
-                </Button>
                 {d.activatedId && !c.archived && !pending && (
                   <Button
                     variant="ghost"
@@ -1455,6 +1480,8 @@ export default function CharacterWizardView({ model: m }) {
                     开启另一段相识
                   </Button>
                 )}
+                  </div>
+                </Disclosure>
               </div>
             </>
           )}
@@ -1571,7 +1598,7 @@ export default function CharacterWizardView({ model: m }) {
       {selectedTask && <TaskRecordDialog
         taskId={selectedTask.taskId}
         returnTo={selectedTask.returnTo}
-        presentation="sheet"
+        presentation="dialog"
         returnFocus={() => taskTrigger.current}
         onClose={() => setSelectedTask(null)}
       />}

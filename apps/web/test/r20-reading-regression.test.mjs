@@ -61,5 +61,5 @@ test('r20 Advanced media selection explains master switch without changing saved
  const {default:Sections}=await vite.ssrLoadModule('/src/react-app/shared/SettingsSections.jsx');
  const fields=[{_key:'enabled',value:false},{_key:'media_enabled',value:true},{_key:'min_probability',value:0},{_key:'min_margin',value:0}],group={title:'高级',fields,valueSources:{kev:'stored'}},view={SettingsField:({field})=>String(field.value),sectionId:()=> 'advanced',catalogReady:{value:true},test(){}};
  const ui=await mountReact(vite,Sections,{props:{group,view}});
- try{assert.match(ui.host.textContent,/媒体方案补充的选择已保留，启用辅助决策后生效/);assert.deepEqual(fields.map(field=>field.value),[false,true,0,0]);fields[0].value=true;await ui.update({group,view});assert.doesNotMatch(ui.host.textContent,/启用辅助决策后生效/);fields[0].value=false;fields[1].value=false;await ui.update({group,view});assert.doesNotMatch(ui.host.textContent,/启用辅助决策后生效/);}finally{await ui.dispose();}
+ try{assert.match(ui.host.textContent,/媒体决策的选择已保留，启用 KEV 后生效/);assert.deepEqual(fields.map(field=>field.value),[false,true,0,0]);fields[0].value=true;await ui.update({group,view});assert.doesNotMatch(ui.host.textContent,/启用 KEV 后生效/);fields[0].value=false;fields[1].value=false;await ui.update({group,view});assert.doesNotMatch(ui.host.textContent,/启用 KEV 后生效/);}finally{await ui.dispose();}
 });

@@ -46,7 +46,7 @@ test('task type and status controls filter actual raw kinds and clear filters re
  const {default:Host}=await load('DiagnosticsWorkspace.jsx'),w=workspace({tasks:[{ref:'a',data:{kind:'actual.unknown-kind',title:'未知类型任务',status:'paused'}},{ref:'b',data:{kind:'wardrobe.initialize',title:'衣柜任务',status:'completed'}}]});
  const v=await mountReact(vite,Host,{workspace:w,props:{view}});
  const choose=async(label,text)=>{const trigger=v.host.querySelector(`[role=combobox][aria-label="${label}"]`);await act(async()=>trigger.dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})));await v.flush();const option=[...document.querySelectorAll('[role=option]')].find(n=>n.textContent===text);assert.ok(option,`option ${text}`);await act(async()=>option.click());await v.flush();};
- try{await choose('任务类型','actual.unknown-kind');assert.equal(v.host.querySelectorAll('.replica-task-row').length,1);assert.match(v.host.textContent,/未知类型任务/);await choose('任务状态','已完成');assert.equal(v.host.querySelectorAll('.replica-task-row').length,0);await v.click(button(v.host,'清除筛选'));assert.equal(v.host.querySelectorAll('.replica-task-row').length,2);}finally{await v.dispose();}
+ try{await choose('任务类型','其他后台任务');assert.equal(v.host.querySelectorAll('.replica-task-row').length,1);assert.match(v.host.textContent,/未知类型任务/);await choose('任务状态','已完成');assert.equal(v.host.querySelectorAll('.replica-task-row').length,0);await v.click(button(v.host,'清除筛选'));assert.equal(v.host.querySelectorAll('.replica-task-row').length,2);}finally{await v.dispose();}
 });
 test('failed readiness and configuration reads stay separate from browser storage and remain retryable',async()=>{
  const {default:Health}=await load('ServiceDiagnostics.tsx'),w=workspace();let fail=true;
@@ -60,4 +60,25 @@ test('a test receipt for another saved version stays visible as stale rather tha
  const {default:Health}=await load('ServiceDiagnostics.tsx'),configuration={endpoints:[],bindings:[],effective_values:{'media.comfyui':{baseUrl:'http://saved.example'}},versions:{'media.comfyui':1}},w=workspace({configuration});
  const v=await mountReact(vite,Health,{workspace:w,props:{view:{...view,test:async()=>({state:'reachable',generation_tested:false,config_version:2})}}});
  try{await v.click(button(v.host,'显式连接测试与检查记录'));await v.click(button(v.host,'检查 ComfyUI 连接与工作流'));assert.match(v.host.textContent,/配置已变化/);assert.match(v.host.textContent,/配置版本与当前页面不同/);assert.doesNotMatch(v.host.textContent,/已检查服务连接与工作流/);configuration.versions['media.comfyui']=2;await v.click(button(v.host,'重新检查'));assert.doesNotMatch(v.host.textContent,/配置版本与当前页面不同/);}finally{await v.dispose();}
+});
+
+test('ordinary diagnostics show actual Owner creation progress and exact recovery link without writing storage',async()=>{
+ const {default:Context}=await load('DiagnosticCreationContext.tsx'),w=workspace(),owner=w.state.session.actorId;
+ const key=`fluctlight-creation:${owner}:draft`,draft={version:1,step:3,requestId:'original-request',activatedId:'role-real',name:'真实角色名',activationDate:'2026-10-30',worldRuntimeId:'world-real',groupConfirmed:true};
+ localStorage.setItem(key,JSON.stringify(draft));
+ w.client={visualIdentityManagement:async()=>({fluctlight_id:'role-real',session:null}),displayAvatar:async()=>({fluctlight_id:'role-real',avatar:null}),inventoryPreparation:async()=>({status:'queued',task_id:'wardrobe-task',fluctlight_id:'role-real'}),schedules:async()=>({days:[]}),lifecycleDiagnostics:async()=>({workflowIntents:[]}),world:async()=>({world:{id:'world-real'}}),detail:async()=>({persona_preparation:{status:'failed'}})};
+ const original=localStorage.getItem(key),v=await mountReact(vite,Context,{workspace:w});
+ try{assert.match(v.host.textContent,/真实角色名 · 初始化流程 1\/7/);assert.equal(v.host.querySelector('a').hash,'#/library/create?resume=role-real');assert.equal(localStorage.getItem(key),original);await act(async()=>w.state.session.actorId='another-owner');await v.flush();assert.doesNotMatch(v.host.textContent,/真实角色名|1\/7/);assert.equal(localStorage.getItem(key),original);}finally{localStorage.removeItem(key);await v.dispose();}
+});
+test('corrupt creation records remain untouched with a real read retry; no draft means no initialization banner',async()=>{
+ const {default:Context}=await load('DiagnosticCreationContext.tsx'),w=workspace(),key=`fluctlight-creation:${w.state.session.actorId}:draft`;
+ const v=await mountReact(vite,Context,{workspace:w});
+ try{assert.equal(v.host.textContent,'');localStorage.setItem(key,'{corrupt');await act(async()=>window.dispatchEvent(new window.CustomEvent('fluctlight:creation-recovery-changed',{detail:{owner:w.state.session.actorId}})));await v.flush();assert.match(v.host.textContent,/暂未读全/);assert.equal(v.host.querySelector('a'),null);assert.equal(localStorage.getItem(key),'{corrupt');localStorage.removeItem(key);await v.click(button(v.host,'重新读取初始化状态'));assert.equal(v.host.textContent,'');}finally{localStorage.removeItem(key);await v.dispose();}
+});
+
+test('valid activated history remains available independently of a corrupt current creation draft',async()=>{
+ const {default:Context}=await load('DiagnosticCreationContext.tsx'),w=workspace(),prefix=`fluctlight-creation:${w.state.session.actorId}`;
+ localStorage.setItem(prefix+':draft','{corrupt');localStorage.setItem(prefix+':history:role-real',JSON.stringify({version:1,step:3,requestId:'archived-original',activatedId:'role-real',name:'真实角色名'}));
+ const v=await mountReact(vite,Context,{workspace:w});
+ try{assert.match(v.host.textContent,/真实角色名 · 初始化流程/);assert.doesNotMatch(v.host.textContent,/1\/7|2\/7|暂未读全/);assert.equal(v.host.querySelector('a').hash,'#/library/create?resume=role-real');assert.equal(localStorage.getItem(prefix+':draft'),'{corrupt');}finally{localStorage.removeItem(prefix+':draft');localStorage.removeItem(prefix+':history:role-real');await v.dispose();}
 });

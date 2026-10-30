@@ -1,0 +1,2156 @@
+[
+  {
+    "id": "R21-001",
+    "report_section": "A",
+    "severity": "P2",
+    "page": "创作访问筛选",
+    "status": "保留原修复",
+    "source_files": [
+      "apps/web/src/react-app/pages/StudioPage.tsx"
+    ],
+    "original_state_trigger": "离开创作后搜索/类型/归档曾残留",
+    "original_ui_defect": "离开创作后搜索/类型/归档曾残留",
+    "changed_feedback_copy_position": "新访问重置，编辑范围返回保留",
+    "executable_action": "按实际导航更新显示偏好，不触碰草稿",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "studio",
+        "size": "wide",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "studio",
+        "size": "desktop",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "studio",
+        "size": "mobile",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/pages/StudioPage.tsx",
+        "line": 2
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-002",
+    "report_section": "B",
+    "severity": "P2",
+    "page": "空库世界入口",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "original_state_trigger": "完整空读仍出现重新读取已有世界",
+    "original_ui_defect": "完整空读仍出现重新读取已有世界",
+    "changed_feedback_copy_position": "确认空读后隐藏冗余按钮；异常/部分/精确来源保留",
+    "executable_action": "真实读取重试及明确本地选择",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preview",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "preview",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preview",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 2
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 175
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 177
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 308
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 598
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-003",
+    "report_section": "C-life",
+    "severity": "P2",
+    "page": "生活字段",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/CreationPreviewValue.jsx"
+    ],
+    "original_state_trigger": "棕色/家庭背景值无标签、外貌顺序不同",
+    "original_ui_defect": "棕色/家庭背景值无标签、外貌顺序不同",
+    "changed_feedback_copy_position": "补中文标签与阅读顺序，未知值有标签",
+    "executable_action": "完整编辑器仍使用原始结构",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preview",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "preview",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preview",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 2
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/CreationPreviewValue.jsx",
+        "line": 6
+      },
+      {
+        "file": "apps/web/src/react-app/shared/CreationPreviewValue.jsx",
+        "line": 24
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-004",
+    "report_section": "C-persona",
+    "severity": "P2",
+    "page": "人格模式",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "original_state_trigger": "模式被整包卡片代替",
+    "original_ui_defect": "模式被整包卡片代替",
+    "changed_feedback_copy_position": "真实单一/多重选择，额外结构仍可编辑",
+    "executable_action": "原updatePreviewDefinition，保留null/false/0与兄弟字段",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preview",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "preview",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preview",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 2
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 175
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 177
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 308
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 598
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-005",
+    "report_section": "C-relations",
+    "severity": "P2",
+    "page": "初始关系",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/CreationPreviewValue.jsx"
+    ],
+    "original_state_trigger": "布局松散/内部owner或量表JSON风险",
+    "original_ui_defect": "布局松散/内部owner或量表JSON风险",
+    "changed_feedback_copy_position": "紧凑字段、你与中文百分比",
+    "executable_action": "不复制Demo技术值；原关系数据不改",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preview",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "preview",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preview",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 2
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/CreationPreviewValue.jsx",
+        "line": 6
+      },
+      {
+        "file": "apps/web/src/react-app/shared/CreationPreviewValue.jsx",
+        "line": 24
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-006",
+    "report_section": "C-motives",
+    "severity": "P2",
+    "page": "目标意图预览",
+    "status": "已补验",
+    "source_files": [
+      "apps/web/src/react-app/shared/CreationPreviewValue.jsx"
+    ],
+    "original_state_trigger": "报告未截到完整非空卡片",
+    "original_ui_defect": "报告未截到完整非空卡片",
+    "changed_feedback_copy_position": "三视口补非空目标/意图及完整JSON保留",
+    "executable_action": "采用选择仅影响原激活复制，不删除关系",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preview",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "preview",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preview",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-preview-final/report.json",
+        "source_record_index": 2
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/CreationPreviewValue.jsx",
+        "line": 6
+      },
+      {
+        "file": "apps/web/src/react-app/shared/CreationPreviewValue.jsx",
+        "line": 24
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-007",
+    "report_section": "D-blocker",
+    "severity": "P1",
+    "page": "初始化失败等待",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/PreparationSteps.jsx"
+    ],
+    "original_state_trigger": "每个阻塞环节重复原因与动作",
+    "original_ui_defect": "每个阻塞环节重复原因与动作",
+    "changed_feedback_copy_position": "紧凑灰色行，一个真实阻塞原因/动作区",
+    "executable_action": "原恢复/待核对命令仍可达",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preparation",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preparation",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "preparation",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 9
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 167
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 180
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 187
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 193
+      }
+    ],
+    "feedback_types": [
+      "progress",
+      "action-required",
+      "error"
+    ]
+  },
+  {
+    "id": "R21-008",
+    "report_section": "D-heading",
+    "severity": "P2",
+    "page": "初始化页头",
+    "status": "已核对并修复滚动",
+    "source_files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "original_state_trigger": "截图无法确认页头与四步条",
+    "original_ui_defect": "截图无法确认页头与四步条",
+    "changed_feedback_copy_position": "现有唯一标题和步骤条切换后滚动聚焦",
+    "executable_action": "保持原创建状态与草稿",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preparation",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preparation",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "preparation",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 9
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 175
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 177
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 308
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 598
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-009",
+    "report_section": "D-footer",
+    "severity": "P2",
+    "page": "初始化底部",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "original_state_trigger": "普通返回区拥挤、重复操作",
+    "original_ui_defect": "普通返回区拥挤、重复操作",
+    "changed_feedback_copy_position": "资料与返回常驻，其他操作次级保留",
+    "executable_action": "不清任务；部分完成与全部完成区分",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preparation",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preparation",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "preparation",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 9
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 175
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 177
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 308
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 598
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-010",
+    "report_section": "D-skip",
+    "severity": "P2",
+    "page": "跳过",
+    "status": "正式能力差异",
+    "source_files": [
+      "apps/web/src/react-app/shared/PreparationSteps.jsx"
+    ],
+    "original_state_trigger": "没有跳过按钮",
+    "original_ui_defect": "没有跳过按钮",
+    "changed_feedback_copy_position": "正式API没有任意跳过能力，未造按钮",
+    "executable_action": "只展示允许的原阶段恢复",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preparation",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preparation",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "preparation",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 9
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 167
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 180
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 187
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PreparationSteps.jsx",
+        "line": 193
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-011",
+    "report_section": "D-local-task",
+    "severity": "P2",
+    "page": "任务容器",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/CharacterWizard.jsx"
+    ],
+    "original_state_trigger": "创建抽屉与管理弹窗不统一",
+    "original_ui_defect": "创建抽屉与管理弹窗不统一",
+    "changed_feedback_copy_position": "创建改本地居中Dialog，保持原hash和焦点",
+    "executable_action": "原taskId/回程/激活次数保留",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "creation-context",
+        "size": "wide",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "creation-context",
+        "size": "desktop",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 4
+      },
+      {
+        "case": "creation-context",
+        "size": "mobile",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 8
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 175
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 177
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 308
+      },
+      {
+        "file": "apps/web/src/react-app/views/CharacterWizard.jsx",
+        "line": 598
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-012",
+    "report_section": "N2",
+    "severity": "P1",
+    "page": "任务中文与标识",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/TaskRecordDialog.tsx"
+    ],
+    "original_state_trigger": "内部ID、persona.compile、Runtime/Activity在主阅读区",
+    "original_ui_defect": "内部ID、persona.compile、Runtime/Activity在主阅读区",
+    "changed_feedback_copy_position": "中文任务类型/副标题/恢复策略，完整信息技术区保留",
+    "executable_action": "来源与原允许动作不变",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "tasks",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "tasks",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 16
+      },
+      {
+        "case": "tasks",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 27
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/TaskRecordDialog.tsx",
+        "line": 10
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-013",
+    "report_section": "N3",
+    "severity": "P1",
+    "page": "执行事件原因",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/pages/TaskDetailPage.tsx"
+    ],
+    "original_state_trigger": "提示查看原始记录却无入口",
+    "original_ui_defect": "提示查看原始记录却无入口",
+    "changed_feedback_copy_position": "每条真实有界详情，已知原因中文、未知明确",
+    "executable_action": "完整字段/原始原因不删",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "tasks",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "tasks",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 16
+      },
+      {
+        "case": "tasks",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 27
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 15
+      },
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 30
+      },
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 38
+      }
+    ],
+    "feedback_types": [
+      "progress",
+      "action-required",
+      "error"
+    ]
+  },
+  {
+    "id": "R21-014",
+    "report_section": "N3-rounds",
+    "severity": "P1",
+    "page": "阶段与轮次",
+    "status": "正式能力差异",
+    "source_files": [
+      "apps/web/src/react-app/pages/TaskDetailPage.tsx"
+    ],
+    "original_state_trigger": "期待四阶段或TestResults但无真实数据",
+    "original_ui_defect": "期待四阶段或TestResults但无真实数据",
+    "changed_feedback_copy_position": "不造阶段/轮次，物理调用仍在模型模块",
+    "executable_action": "真实runs、关联标识和模型请求响应保持",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "creation-rounds",
+        "size": "wide",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "creation-rounds",
+        "size": "desktop",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "creation-rounds",
+        "size": "mobile",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 9
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 15
+      },
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 30
+      },
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 38
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-015",
+    "report_section": "N7-link",
+    "severity": "P2",
+    "page": "关联模型标签页",
+    "status": "已补验",
+    "source_files": [
+      "apps/web/src/react-app/pages/TaskDetailPage.tsx"
+    ],
+    "original_state_trigger": "截图怀疑新标签页",
+    "original_ui_defect": "截图怀疑新标签页",
+    "changed_feedback_copy_position": "实际为同标签页hash导航，页数和correlation断言通过",
+    "executable_action": "精确任务返回上下文保留",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "tasks",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "tasks",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 16
+      },
+      {
+        "case": "tasks",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 27
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 15
+      },
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 30
+      },
+      {
+        "file": "apps/web/src/react-app/pages/TaskDetailPage.tsx",
+        "line": 38
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-016",
+    "report_section": "N2-queued",
+    "severity": "P2",
+    "page": "排队任务操作",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/approved-ui/task-presentation.mjs"
+    ],
+    "original_state_trigger": "零次执行却显示恢复字样",
+    "original_ui_defect": "零次执行却显示恢复字样",
+    "changed_feedback_copy_position": "排队原业务链接为查看准备",
+    "executable_action": "不改变后台排队状态或实际恢复能力",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "tasks",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "tasks",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 16
+      },
+      {
+        "case": "tasks",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 27
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/approved-ui/task-presentation.mjs",
+        "line": 2
+      },
+      {
+        "file": "apps/web/src/approved-ui/task-presentation.mjs",
+        "line": 7
+      },
+      {
+        "file": "apps/web/src/approved-ui/task-presentation.mjs",
+        "line": 13
+      },
+      {
+        "file": "apps/web/src/approved-ui/task-presentation.mjs",
+        "line": 22
+      }
+    ],
+    "feedback_types": [
+      "progress",
+      "action-required",
+      "error"
+    ]
+  },
+  {
+    "id": "R21-017",
+    "report_section": "G3-context",
+    "severity": "P1",
+    "page": "初始化上下文",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/DiagnosticCreationContext.tsx"
+    ],
+    "original_state_trigger": "普通任务/健康入口没有有效初始化卡",
+    "original_ui_defect": "普通任务/健康入口没有有效初始化卡",
+    "changed_feedback_copy_position": "读取Owner有效激活记录与真实阶段/精确resume",
+    "executable_action": "只读；无有效记录不造卡；坏记录保留",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "preparation",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 1
+      },
+      {
+        "case": "preparation",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 5
+      },
+      {
+        "case": "preparation",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 9
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/DiagnosticCreationContext.tsx",
+        "line": 6
+      },
+      {
+        "file": "apps/web/src/react-app/shared/DiagnosticCreationContext.tsx",
+        "line": 11
+      },
+      {
+        "file": "apps/web/src/react-app/shared/DiagnosticCreationContext.tsx",
+        "line": 23
+      }
+    ],
+    "feedback_types": [
+      "progress",
+      "action-required",
+      "error"
+    ]
+  },
+  {
+    "id": "R21-018",
+    "report_section": "G1-layout",
+    "severity": "P1",
+    "page": "高级设置布局",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/SettingsSections.jsx"
+    ],
+    "original_state_trigger": "分卡结构/地址隐藏/命名不同",
+    "original_ui_defect": "分卡结构/地址隐藏/命名不同",
+    "changed_feedback_copy_position": "单张KEV主卡、地址显式、原字段顺序",
+    "executable_action": "仅展示布局，不改目录值/CAS",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "settings",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 3
+      },
+      {
+        "case": "settings",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 14
+      },
+      {
+        "case": "settings",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 25
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/SettingsSections.jsx",
+        "line": 32
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-019",
+    "report_section": "N4",
+    "severity": "P1",
+    "page": "KEV默认数值",
+    "status": "实际数据差异保留",
+    "source_files": [
+      "apps/web/src/react-app/shared/SettingsSections.jsx"
+    ],
+    "original_state_trigger": "实际0/0、媒体true、端点与Demo样例不同",
+    "original_ui_defect": "实际0/0、媒体true、端点与Demo样例不同",
+    "changed_feedback_copy_position": "保留实际目录值并显示来源，布局已还原",
+    "executable_action": "没有把持久配置或系统默认改成演示值",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "settings",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 3
+      },
+      {
+        "case": "settings",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 14
+      },
+      {
+        "case": "settings",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 25
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/SettingsSections.jsx",
+        "line": 32
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-020",
+    "report_section": "N14",
+    "severity": "P2",
+    "page": "KEV说明",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/SettingsSections.jsx"
+    ],
+    "original_state_trigger": "媒体子开关说明字号大无样式",
+    "original_ui_defect": "媒体子开关说明字号大无样式",
+    "changed_feedback_copy_position": "弱化为局部小字说明，实际总开关语义不变",
+    "executable_action": "既有测试/控制器保持",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "settings",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 3
+      },
+      {
+        "case": "settings",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 14
+      },
+      {
+        "case": "settings",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 25
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/SettingsSections.jsx",
+        "line": 32
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-021",
+    "report_section": "G-save",
+    "severity": "P1",
+    "page": "配置保存栏",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "original_state_trigger": "干净阅读看不到Demo底栏",
+    "original_ui_defect": "干净阅读看不到Demo底栏",
+    "changed_feedback_copy_position": "常驻紧凑底栏；干净保存/放弃禁用",
+    "executable_action": "编辑放弃真实读回，未知/冲突/GET恢复保持",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "settings",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 3
+      },
+      {
+        "case": "settings",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 14
+      },
+      {
+        "case": "settings",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 25
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/ManagementPage.jsx",
+        "line": 188
+      },
+      {
+        "file": "apps/web/src/react-app/views/ManagementPage.jsx",
+        "line": 246
+      },
+      {
+        "file": "apps/web/src/react-app/views/ManagementPage.jsx",
+        "line": 382
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-022",
+    "report_section": "G-role",
+    "severity": "P2",
+    "page": "用途行距统计",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/ManagementPage.jsx"
+    ],
+    "original_state_trigger": "4份相同超时提示及统计居中",
+    "original_ui_defect": "4份相同超时提示及统计居中",
+    "changed_feedback_copy_position": "共享可访问说明、统计靠右与18px行距",
+    "executable_action": "空用途/可选120秒及真实计数不造绑定",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "purpose",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 3
+      },
+      {
+        "case": "purpose",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 7
+      },
+      {
+        "case": "purpose",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 11
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/ManagementPage.jsx",
+        "line": 188
+      },
+      {
+        "file": "apps/web/src/react-app/views/ManagementPage.jsx",
+        "line": 246
+      },
+      {
+        "file": "apps/web/src/react-app/views/ManagementPage.jsx",
+        "line": 382
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-023",
+    "report_section": "N10",
+    "severity": "P2",
+    "page": "数据导航备份",
+    "status": "已修复/能力差异",
+    "source_files": [
+      "apps/web/src/v3-domain/data-tools.js"
+    ],
+    "original_state_trigger": "导航无图标、面包屑不同、备份难发现",
+    "original_ui_defect": "导航无图标、面包屑不同、备份难发现",
+    "changed_feedback_copy_position": "8个图标/管理中心/真实备份定位入口",
+    "executable_action": "业务备份实际存在；资源包3MiB与范围不伪装8MB本地快照",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "data",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 4
+      },
+      {
+        "case": "data",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 15
+      },
+      {
+        "case": "data",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 26
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/v3-domain/data-tools.js",
+        "line": 18
+      },
+      {
+        "file": "apps/web/src/v3-domain/data-tools.js",
+        "line": 25
+      },
+      {
+        "file": "apps/web/src/v3-domain/data-tools.js",
+        "line": 26
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-024",
+    "report_section": "N11",
+    "severity": "P2",
+    "page": "聊天宽度",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/styles/replica-chat.css"
+    ],
+    "original_state_trigger": "聊天根未共享内容宽度",
+    "original_ui_defect": "聊天根未共享内容宽度",
+    "changed_feedback_copy_position": "同Demo对齐及最大宽度量测",
+    "executable_action": "无自动消息/假日期/额外模型请求",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "chat-now-profile",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 7
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 18
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 29
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/styles/replica-chat.css",
+        "line": 2
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-025",
+    "report_section": "H02-links",
+    "severity": "P2",
+    "page": "此刻日程NEXT",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/NowPage.jsx"
+    ],
+    "original_state_trigger": "空日程隐藏完整日程，NEXT文案不同",
+    "original_ui_defect": "空日程隐藏完整日程，NEXT文案不同",
+    "changed_feedback_copy_position": "空日程入口保留，NEXT待安排",
+    "executable_action": "独立时间线仍可达",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "chat-now-profile",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 7
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 18
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 29
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 16
+      },
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 17
+      },
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 26
+      },
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 32
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-026",
+    "report_section": "H02-world",
+    "severity": "P2",
+    "page": "此刻世界",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/NowPage.jsx"
+    ],
+    "original_state_trigger": "未读取可能被说成未记录",
+    "original_ui_defect": "未读取可能被说成未记录",
+    "changed_feedback_copy_position": "读取当前绑定权威世界；未知/无绑定/失败分开",
+    "executable_action": "现有GET与Owner/fid围栏，失败原读取重试",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "chat-now-profile",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 7
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 18
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 29
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 16
+      },
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 17
+      },
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 26
+      },
+      {
+        "file": "apps/web/src/react-app/views/NowPage.jsx",
+        "line": 32
+      }
+    ],
+    "feedback_types": [
+      "progress",
+      "action-required",
+      "error"
+    ]
+  },
+  {
+    "id": "R21-027",
+    "report_section": "H03-date",
+    "severity": "P2",
+    "page": "日程日期",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/pages/SchedulePage.jsx"
+    ],
+    "original_state_trigger": "文本日期选择与Demo原生不同",
+    "original_ui_defect": "文本日期选择与Demo原生不同",
+    "changed_feedback_copy_position": "原生date输入接原日期导航",
+    "executable_action": "规划独立编辑器和日期/迟到请求保护保持",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "empty-pages",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "empty-pages",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "empty-pages",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/pages/SchedulePage.jsx",
+        "line": 748
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-028",
+    "report_section": "H04",
+    "severity": "P2",
+    "page": "目标卡",
+    "status": "已修复/数据差异",
+    "source_files": [
+      "apps/web/src/react-app/pages/GoalsPage.jsx"
+    ],
+    "original_state_trigger": "动机与标题重复、未知评估缺条件数",
+    "original_ui_defect": "动机与标题重复、未知评估缺条件数",
+    "changed_feedback_copy_position": "相同文本不重复，未知评估显示实际条件数",
+    "executable_action": "保留真实层级/待核对，不造已完成0/1",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "goals-world",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 10
+      },
+      {
+        "case": "goals-world",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 21
+      },
+      {
+        "case": "goals-world",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 32
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/pages/GoalsPage.jsx",
+        "line": 923
+      },
+      {
+        "file": "apps/web/src/react-app/pages/GoalsPage.jsx",
+        "line": 932
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-029",
+    "report_section": "F1",
+    "severity": "P2",
+    "page": "衣柜准备",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/WardrobePreparation.jsx"
+    ],
+    "original_state_trigger": "独立大卡和0%分隔线",
+    "original_ui_defect": "独立大卡和0%分隔线",
+    "changed_feedback_copy_position": "今天穿着内紧凑说明及次级记录/重读",
+    "executable_action": "失败原因和原恢复仍直接可达",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "empty-pages",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "empty-pages",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "empty-pages",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/WardrobePreparation.jsx",
+        "line": 104
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-030",
+    "report_section": "N9",
+    "severity": "P2",
+    "page": "六页空态",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/Presentation.tsx"
+    ],
+    "original_state_trigger": "白色带框无图标、多层内框",
+    "original_ui_defect": "白色带框无图标、多层内框",
+    "changed_feedback_copy_position": "显式page透明居中Leaf；不全局换默认",
+    "executable_action": "仅正常确认空数据，错误/加载/已知数据保留",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "empty-pages",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "empty-pages",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "empty-pages",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/Presentation.tsx",
+        "line": 40
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-031",
+    "report_section": "H06",
+    "severity": "P2",
+    "page": "日记左栏",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/styles/replica-life.css"
+    ],
+    "original_state_trigger": "空列表字号深重",
+    "original_ui_defect": "空列表字号深重",
+    "changed_feedback_copy_position": "恢复浅灰12px阅读层级",
+    "executable_action": "真实收藏/刷新保留",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "empty-pages",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "empty-pages",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "empty-pages",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/styles/replica-life.css",
+        "line": 669
+      },
+      {
+        "file": "apps/web/src/styles/replica-life.css",
+        "line": 670
+      },
+      {
+        "file": "apps/web/src/styles/replica-life.css",
+        "line": 671
+      },
+      {
+        "file": "apps/web/src/styles/replica-life.css",
+        "line": 672
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-032",
+    "report_section": "H08-avatar",
+    "severity": "P2",
+    "page": "档案头像",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/styles/replica-profile.css"
+    ],
+    "original_state_trigger": "大头像fallback子元素text-sm",
+    "original_ui_defect": "大头像fallback子元素text-sm",
+    "changed_feedback_copy_position": "98/80容器中的源34px字形",
+    "executable_action": "姓名首字/实际图片失败回退保留",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "chat-now-profile",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 7
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 18
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 29
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/styles/replica-profile.css",
+        "line": 473
+      },
+      {
+        "file": "apps/web/src/styles/replica-profile.css",
+        "line": 476
+      },
+      {
+        "file": "apps/web/src/styles/replica-profile.css",
+        "line": 480
+      },
+      {
+        "file": "apps/web/src/styles/replica-profile.css",
+        "line": 776
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-033",
+    "report_section": "N12",
+    "severity": "P2",
+    "page": "画像失败文案",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/views/CharacterDetailPage.jsx"
+    ],
+    "original_state_trigger": "继续准备角色的准备有语病",
+    "original_ui_defect": "继续准备角色的准备有语病",
+    "changed_feedback_copy_position": "可以继续完成准备",
+    "executable_action": "按钮仍由can_recover控制",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "chat-now-profile",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 7
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 18
+      },
+      {
+        "case": "chat-now-profile",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 29
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/CharacterDetailPage.jsx",
+        "line": 145
+      }
+    ],
+    "feedback_types": [
+      "progress",
+      "action-required",
+      "error"
+    ]
+  },
+  {
+    "id": "R21-034",
+    "report_section": "E",
+    "severity": "P2",
+    "page": "非空画像",
+    "status": "已补验",
+    "source_files": [
+      "apps/web/src/react-app/views/CharacterDetailPage.jsx"
+    ],
+    "original_state_trigger": "空态不能判断英文键/重复",
+    "original_ui_defect": "空态不能判断英文键/重复",
+    "changed_feedback_copy_position": "补已知中文/原文次数/完整原文三视口验证",
+    "executable_action": "受控已存记录，不冒充真实LLM生成",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "profile",
+        "size": "wide",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 3
+      },
+      {
+        "case": "profile",
+        "size": "desktop",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 7
+      },
+      {
+        "case": "profile",
+        "size": "mobile",
+        "source_report": "evidence/r20/r21-protocol-signed/report.json",
+        "source_record_index": 11
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/CharacterDetailPage.jsx",
+        "line": 145
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-035",
+    "report_section": "H09",
+    "severity": "P2",
+    "page": "世界数量名称",
+    "status": "实际数据差异",
+    "source_files": [
+      "apps/web/src/react-app/pages/WorldPage.jsx"
+    ],
+    "original_state_trigger": "1个日常世界对Demo4个示例",
+    "original_ui_defect": "1个日常世界对Demo4个示例",
+    "changed_feedback_copy_position": "保留真实名称/数量，未改存量",
+    "executable_action": "此刻已读同一实际绑定，不复制演示数据",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "goals-world",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 10
+      },
+      {
+        "case": "goals-world",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 21
+      },
+      {
+        "case": "goals-world",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 32
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/pages/WorldPage.jsx",
+        "line": 24
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-036",
+    "report_section": "H10-gap",
+    "severity": "P2",
+    "page": "动态右留白",
+    "status": "已有结论保留",
+    "source_files": [
+      "apps/web/src/styles/replica-feed.css"
+    ],
+    "original_state_trigger": "报告已确认与Demo一致",
+    "original_ui_defect": "报告已确认与Demo一致",
+    "changed_feedback_copy_position": "不额外铺满，不改源宽度",
+    "executable_action": "正常空态修复独立进行",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "empty-pages",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "empty-pages",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "empty-pages",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/styles/replica-feed.css",
+        "line": 1
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-037",
+    "report_section": "N1",
+    "severity": "P0",
+    "page": "关于你来源",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/PeopleSourceSheet.jsx"
+    ],
+    "original_state_trigger": "整包ActorContext重复递归、英文ID铺满页面",
+    "original_ui_defect": "整包ActorContext重复递归、英文ID铺满页面",
+    "changed_feedback_copy_position": "中文有界Sheet、固定下载区、完整未知值下载",
+    "executable_action": "Scope/CAS/自填与认识/原请求不变，不删除真实记录",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "people",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "people",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 11
+      },
+      {
+        "case": "people",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 22
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/PeopleSourceSheet.jsx",
+        "line": 9
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PeopleSourceSheet.jsx",
+        "line": 17
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PeopleSourceSheet.jsx",
+        "line": 22
+      },
+      {
+        "file": "apps/web/src/react-app/shared/PeopleSourceSheet.jsx",
+        "line": 36
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-038",
+    "report_section": "H11-about",
+    "severity": "P1",
+    "page": "关于你字段",
+    "status": "已修复/数据差异",
+    "source_files": [
+      "apps/web/src/react-app/shared/AboutYouPanel.jsx"
+    ],
+    "original_state_trigger": "缺关系字段观察、编辑无图标、文案不同",
+    "original_ui_defect": "缺关系字段观察、编辑无图标、文案不同",
+    "changed_feedback_copy_position": "真实关系字段始终可读，铅笔与角色名说明恢复",
+    "executable_action": "未填写称呼不伪造或保存我",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "people",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "people",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 11
+      },
+      {
+        "case": "people",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 22
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 21
+      },
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 235
+      },
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 414
+      },
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 485
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-039",
+    "report_section": "H11-relation",
+    "severity": "P1",
+    "page": "关系阅读",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/react-app/shared/AboutYouPanel.jsx"
+    ],
+    "original_state_trigger": "头像末字、普通标题、修订冒充共同经历",
+    "original_ui_defect": "头像末字、普通标题、修订冒充共同经历",
+    "changed_feedback_copy_position": "首字/源衬线标题/经历空态/真实聊天入口",
+    "executable_action": "修订仍在来源历史与原路由，不伪造共同经历",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "people",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "people",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 11
+      },
+      {
+        "case": "people",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 22
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 21
+      },
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 235
+      },
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 414
+      },
+      {
+        "file": "apps/web/src/react-app/shared/AboutYouPanel.jsx",
+        "line": 485
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-040",
+    "report_section": "N13",
+    "severity": "P2",
+    "page": "媒体搜索",
+    "status": "已修复",
+    "source_files": [
+      "apps/web/src/styles/replica-media.css"
+    ],
+    "original_state_trigger": "已有绝对定位图标无定位祖先",
+    "original_ui_defect": "已有绝对定位图标无定位祖先",
+    "changed_feedback_copy_position": "补真实relative祖先，图标可见可点击",
+    "executable_action": "查询原handler不变",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "empty-pages",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "empty-pages",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "empty-pages",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/styles/replica-media.css",
+        "line": 1
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-041",
+    "report_section": "H12-capabilities",
+    "severity": "P2",
+    "page": "媒体额外能力",
+    "status": "正式能力差异",
+    "source_files": [
+      "apps/web/src/react-app/views/MediaWorkspace.jsx"
+    ],
+    "original_state_trigger": "全局标题/素材类型/过滤与Demo不同",
+    "original_ui_defect": "全局标题/素材类型/过滤与Demo不同",
+    "changed_feedback_copy_position": "保留真实全局/角色范围和音频等类型",
+    "executable_action": "无收藏API不造筛选，不将全局库假称单一角色",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "empty-pages",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 2
+      },
+      {
+        "case": "empty-pages",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 6
+      },
+      {
+        "case": "empty-pages",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-final-targeted/report.json",
+        "source_record_index": 10
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/views/MediaWorkspace.jsx",
+        "line": 19
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  },
+  {
+    "id": "R21-042",
+    "report_section": "GLOBAL",
+    "severity": "P2",
+    "page": "演示与计数",
+    "status": "明确不适用/按数据",
+    "source_files": [
+      "apps/web/src/react-app/shared/WorkspaceNavigation.tsx"
+    ],
+    "original_state_trigger": "演示开关/帮助重置/通知角标差异",
+    "original_ui_defect": "演示开关/帮助重置/通知角标差异",
+    "changed_feedback_copy_position": "不接入原型重置，计数按实际零/非零",
+    "executable_action": "没有伪造通知数字或替代已有未读/业务处理状态",
+    "state_recovery_update": "依据原读回/原草稿/任务权威状态更新；展示/关闭不删除或重置业务状态。",
+    "desktop_and_mobile_verification": [
+      {
+        "case": "people",
+        "size": "wide",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 0
+      },
+      {
+        "case": "people",
+        "size": "desktop",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 11
+      },
+      {
+        "case": "people",
+        "size": "mobile",
+        "source_report": "evidence/r21/r21-signed/report.json",
+        "source_record_index": 22
+      }
+    ],
+    "backend": "复用现有领域/读取/恢复接口；本轮没有Core/提示词/业务默认变更。证据为受控HTTP/DOM，非真实后端成功。",
+    "source_locations": [
+      {
+        "file": "apps/web/src/react-app/shared/WorkspaceNavigation.tsx",
+        "line": 22
+      }
+    ],
+    "feedback_types": [
+      "information"
+    ]
+  }
+]

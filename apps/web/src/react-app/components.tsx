@@ -212,6 +212,7 @@ export function FilterChips({
 export function DetailDrawer({
   title,
   testId,
+  contentClassName = "",
   children,
   onClose,
   returnFocus,footer,
@@ -231,7 +232,7 @@ export function DetailDrawer({
       <SheetContent
         data-testid={prefix}
         showCloseButton={false}
-        className="react-workspace product-sheet gap-0 overflow-hidden"
+        className={"react-workspace product-sheet gap-0 overflow-hidden " + contentClassName}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           const target = returnFocus?.() || previous;

@@ -1,0 +1,4250 @@
+[
+  {
+    "name": "creation-context",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "failed preparation does not announce ready initialization",
+      "supported retry exists and unsupported skip is absent",
+      "failure-truth: no horizontal overflow",
+      "task record stays in current creation route",
+      "local Dialog defaults to task stages",
+      "known context cause is readable without SQL or guessing model setup",
+      "local task Dialog follows Demo viewport width and body scroll",
+      "local-task-dialog: no horizontal overflow",
+      "task stages do not fetch model payloads",
+      "closing Dialog restores connected trigger or documented heading fallback",
+      "inspection never creates a second activation",
+      "blank creation creates one world and never calls analysis",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "9a4ced0a-b92b-473b-bc61-d6d4d794e97b",
+          "initializationMode": "blank_slate",
+          "name": "r20 原进度",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "8b9b4fa8-7e06-431c-8468-8af967dac07a"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [
+      {
+        "width": 860,
+        "height": 625.28125,
+        "viewport": 1920,
+        "scroll": "auto"
+      }
+    ],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-wide-failure-truth.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-wide-local-task-dialog.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "creation-rounds",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "failed preparation does not announce ready initialization",
+      "supported retry exists and unsupported skip is absent",
+      "failure-truth: no horizontal overflow",
+      "task record stays in current creation route",
+      "local Dialog defaults to task stages",
+      "task detail never embeds model payloads",
+      "model records are a separate correlated destination",
+      "local task Dialog follows Demo viewport width and body scroll",
+      "local-task-dialog: no horizontal overflow",
+      "task stages do not fetch model payloads",
+      "closing Dialog restores connected trigger or documented heading fallback",
+      "inspection never creates a second activation",
+      "blank creation creates one world and never calls analysis",
+      "model module retains actual physical call timings",
+      "Request Response live in model detail",
+      "separate-model-detail: no horizontal overflow",
+      "supported retry submits exactly one original-scope revisioned command",
+      "retry does not repeat role activation",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "648a82b8-fb3f-43fe-b97a-d4196ef04951",
+          "initializationMode": "blank_slate",
+          "name": "r20 原进度",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "b5433e58-1a47-47a9-8043-19eab12ce848"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "r20-original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "r20-original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "恢复原角色的初始穿搭准备",
+          "idempotencyKey": "ba99d607-f1d4-4fab-af41-d40c011b81cb"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [
+      {
+        "width": 860,
+        "height": 664.515625,
+        "viewport": 1920,
+        "scroll": "auto"
+      }
+    ],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-wide-failure-truth.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-wide-local-task-dialog.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-wide-separate-model-detail.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "studio",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "filters: no horizontal overflow",
+      "same-visit editor return preserves filters",
+      "editor leave then fresh Studio entry resets type query archived",
+      "fresh-entry: no horizontal overflow",
+      "directory navigation does not write business data",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-wide-filters.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-wide-fresh-entry.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "profile",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "known expression fields are translated and repeated values remain counted",
+      "chinese-portrait: no horizontal overflow",
+      "full portrait still contains original raw records",
+      "portrait reading never writes",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/profile-wide-chinese-portrait.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "creation-context",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "failed preparation does not announce ready initialization",
+      "supported retry exists and unsupported skip is absent",
+      "failure-truth: no horizontal overflow",
+      "task record stays in current creation route",
+      "local Dialog defaults to task stages",
+      "known context cause is readable without SQL or guessing model setup",
+      "local task Dialog follows Demo viewport width and body scroll",
+      "local-task-dialog: no horizontal overflow",
+      "task stages do not fetch model payloads",
+      "closing Dialog restores connected trigger or documented heading fallback",
+      "inspection never creates a second activation",
+      "blank creation creates one world and never calls analysis",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "c48ceefc-0c66-4b1d-92a7-40e23e324716",
+          "initializationMode": "blank_slate",
+          "name": "r20 原进度",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "62680135-59f7-48a1-8a40-b60479bf6660"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [
+      {
+        "width": 860,
+        "height": 625.28125,
+        "viewport": 1348,
+        "scroll": "auto"
+      }
+    ],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-desktop-failure-truth.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-desktop-local-task-dialog.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "creation-rounds",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "failed preparation does not announce ready initialization",
+      "supported retry exists and unsupported skip is absent",
+      "failure-truth: no horizontal overflow",
+      "task record stays in current creation route",
+      "local Dialog defaults to task stages",
+      "task detail never embeds model payloads",
+      "model records are a separate correlated destination",
+      "local task Dialog follows Demo viewport width and body scroll",
+      "local-task-dialog: no horizontal overflow",
+      "task stages do not fetch model payloads",
+      "closing Dialog restores connected trigger or documented heading fallback",
+      "inspection never creates a second activation",
+      "blank creation creates one world and never calls analysis",
+      "model module retains actual physical call timings",
+      "Request Response live in model detail",
+      "separate-model-detail: no horizontal overflow",
+      "supported retry submits exactly one original-scope revisioned command",
+      "retry does not repeat role activation",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "94629a04-8a7b-4ab1-b9c6-2a555f6debd7",
+          "initializationMode": "blank_slate",
+          "name": "r20 原进度",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "4271ecd4-2b73-4c96-8887-b04fefafb857"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "r20-original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "r20-original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "恢复原角色的初始穿搭准备",
+          "idempotencyKey": "dc9a2c53-e9b0-4a9c-856f-d73b53b6026b"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [
+      {
+        "width": 860,
+        "height": 664.515625,
+        "viewport": 1348,
+        "scroll": "auto"
+      }
+    ],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-desktop-failure-truth.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-desktop-local-task-dialog.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-desktop-separate-model-detail.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "studio",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "filters: no horizontal overflow",
+      "same-visit editor return preserves filters",
+      "editor leave then fresh Studio entry resets type query archived",
+      "fresh-entry: no horizontal overflow",
+      "directory navigation does not write business data",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-desktop-filters.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-desktop-fresh-entry.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "profile",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "known expression fields are translated and repeated values remain counted",
+      "chinese-portrait: no horizontal overflow",
+      "full portrait still contains original raw records",
+      "portrait reading never writes",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/profile-desktop-chinese-portrait.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "creation-context",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "failed preparation does not announce ready initialization",
+      "supported retry exists and unsupported skip is absent",
+      "failure-truth: no horizontal overflow",
+      "task record stays in current creation route",
+      "local Dialog defaults to task stages",
+      "known context cause is readable without SQL or guessing model setup",
+      "local task Dialog follows Demo viewport width and body scroll",
+      "local-task-dialog: no horizontal overflow",
+      "task stages do not fetch model payloads",
+      "closing Dialog restores connected trigger or documented heading fallback",
+      "inspection never creates a second activation",
+      "blank creation creates one world and never calls analysis",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "a60bad2e-7d11-499d-977f-f562e8d24d6a",
+          "initializationMode": "blank_slate",
+          "name": "r20 原进度",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "899049b4-c33c-4007-b2fa-b2cef862fcba"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [
+      {
+        "width": 356,
+        "height": 669.375,
+        "viewport": 390,
+        "scroll": "auto"
+      }
+    ],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-mobile-failure-truth.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-mobile-local-task-dialog.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "creation-rounds",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "failed preparation does not announce ready initialization",
+      "supported retry exists and unsupported skip is absent",
+      "failure-truth: no horizontal overflow",
+      "task record stays in current creation route",
+      "local Dialog defaults to task stages",
+      "task detail never embeds model payloads",
+      "model records are a separate correlated destination",
+      "local task Dialog follows Demo viewport width and body scroll",
+      "local-task-dialog: no horizontal overflow",
+      "task stages do not fetch model payloads",
+      "closing Dialog restores connected trigger or documented heading fallback",
+      "inspection never creates a second activation",
+      "blank creation creates one world and never calls analysis",
+      "model module retains actual physical call timings",
+      "Request Response live in model detail",
+      "separate-model-detail: no horizontal overflow",
+      "supported retry submits exactly one original-scope revisioned command",
+      "retry does not repeat role activation",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "cef5ab5a-be6f-4fe6-9bf2-f328fdc6fcfc",
+          "initializationMode": "blank_slate",
+          "name": "r20 原进度",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "69830270-94f2-409b-b9d3-e1aadbdf10e1"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/r20-original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "r20-original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "r20-original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r20-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "expectedRevision": 7,
+          "reason": "恢复原角色的初始穿搭准备",
+          "idempotencyKey": "562b06c3-2c3c-4048-abeb-a52af0ca1cbf"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [
+      {
+        "width": 356,
+        "height": 704.953125,
+        "viewport": 390,
+        "scroll": "auto"
+      }
+    ],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-mobile-failure-truth.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-mobile-local-task-dialog.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-mobile-separate-model-detail.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "studio",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "filters: no horizontal overflow",
+      "same-visit editor return preserves filters",
+      "editor leave then fresh Studio entry resets type query archived",
+      "fresh-entry: no horizontal overflow",
+      "directory navigation does not write business data",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "q": "书签",
+          "kind": "item",
+          "archived": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-two/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "archived": "false"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-mobile-filters.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-mobile-fresh-entry.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  },
+  {
+    "name": "profile",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "known expression fields are translated and repeated values remain counted",
+      "chinese-portrait: no horizontal overflow",
+      "full portrait still contains original raw records",
+      "portrait reading never writes",
+      "no browser exceptions"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "geometry": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/profile-mobile-chinese-portrait.png"
+    ],
+    "boundary": "production dist / controlled HTTP; Core causes separately pure-tested; no live model/config writes"
+  }
+]

@@ -1,10 +1,10 @@
 import type {HTMLAttributes,ReactNode} from 'react';
 import {useEffect,useRef} from 'react';
 import {Alert,AlertDescription} from '@/components/ui/alert';
-import {Empty} from '@/components/ui/empty';
+import {Empty,EmptyMedia} from '@/components/ui/empty';
 import {Button} from '@/components/ui/button';
 import {Collapsible,CollapsibleContent,CollapsibleTrigger} from '@/components/ui/collapsible';
-import {CircleAlert,Info,CheckCircle2,Clock3,ListTodo,TriangleAlert,ChevronDown,X} from 'lucide-react';
+import {CircleAlert,Info,CheckCircle2,Clock3,ListTodo,TriangleAlert,ChevronDown,X,Leaf} from 'lucide-react';
 import LoadingState from './LoadingState';
 import {cn} from '@/lib/utils';
 
@@ -37,7 +37,7 @@ export function ResultFeedback({notice,onDismiss}:{notice:ResultNotice;onDismiss
 export function InlineFeedback({children,className,variant='destructive',kind,...props}:HTMLAttributes<HTMLDivElement>&{variant?:'default'|'destructive';kind?:FeedbackKind}){
  return <Feedback {...props} kind={kind||(variant==='destructive'?'error':'information')} className={className}>{children}</Feedback>;
 }
-export function EmptyState({children,className,...props}:HTMLAttributes<HTMLDivElement>){return <Empty {...props} className={cn('border bg-card',className)}>{children}</Empty>;}
+export function EmptyState({children,className,variant='default',...props}:HTMLAttributes<HTMLDivElement>&{variant?:'default'|'page'}){return <Empty {...props} data-empty-variant={variant} className={cn(variant==='page'?'replica-page-empty':'border bg-card',className)}>{variant==='page'&&<EmptyMedia><Leaf size={25} aria-hidden="true"/></EmptyMedia>}{children}</Empty>;}
 export function ReadState({children,role,...props}:HTMLAttributes<HTMLDivElement>){return <div {...props}><LoadingState label={children||'正在读取…'}/></div>;}
 export function ReaderFeedback({source,label,retryLabel}:{source:any;label:string;retryLabel?:string}){
  if(source.busy)return source.ready?<Feedback kind="progress">正在重新读取{label}，上次确认的内容仍保留。</Feedback>:null;

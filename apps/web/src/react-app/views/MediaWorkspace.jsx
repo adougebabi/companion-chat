@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Surface, ChoiceSelect, FieldInput, Disclosure } from "../controls";
+import {EmptyState} from "../shared/Presentation";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
@@ -210,9 +211,9 @@ export default function MediaWorkspaceView({ model: m }) {
               </Surface>
             ))}
           </div>
-          {m.library.ready && !m.library.items.length && (
-            <Surface className="panel r-padded media-empty">
-              <h2>还没有这样的画面</h2>
+          {m.library.ready && !m.library.busy && !m.library.error && !m.library.items.length && (
+            <EmptyState variant="page">
+              <h3>还没有这样的画面</h3>
               <p>{m.w.state.characters.length?'上传或创作一张新的画面，慢慢收集生活的片刻。':'先创建一个角色，再把想象留在画面里。'}</p>
               <Button onClick={()=>m.w.state.characters.length?m.setTab('generate'):m.w.navigatePath('/library/create')}>开始创作</Button>
               <Button
@@ -230,7 +231,7 @@ export default function MediaWorkspaceView({ model: m }) {
               >
                 清除筛选
               </Button>
-            </Surface>
+            </EmptyState>
           )}
           <MediaMore source={m.library} label="素材" />
         </TabsContent>

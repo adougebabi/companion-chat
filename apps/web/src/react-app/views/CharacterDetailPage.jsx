@@ -373,7 +373,7 @@ export default function CharacterDetailPageView({ model: m }) {
       {d.persona_preparation && d.persona_preparation.status !== "ready" && (
         <WorkspaceInfo>
           {d.persona_preparation.status === "failed"
-            ? "表达画像准备遇到问题，可继续原角色的准备。"
+            ? "表达画像准备遇到问题，可以继续完成准备。"
             : "角色资料已保存，正在后台整理表达画像。"}
           {d.persona_preparation.can_recover && (
             <Button

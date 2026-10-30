@@ -10,7 +10,69 @@ file still exists. `.githooks/pre-commit` runs the staged-image guard. New check
 install it with `pnpm hooks:install`; never force-add ignored images or bypass the
 guard. This policy supersedes earlier instructions to include screenshots in Git.
 
-## Current R16 diagnostics contract: restore all three Demo modules
+## Current r21 presentation contracts (2026-10-30)
+
+r21 continues the existing fullsite audit. The actual immutable Demo remains the
+visual source; screenshot findings must be checked against data/API provenance.
+Do not change saved values or runtime defaults just to reproduce sample data.
+
+- AboutYou normal pages never traverse the complete ActorContext recursively.
+  Knowledge, relationship basis and authored revisions use a bounded source Sheet
+  with Chinese explicit fields and real time/revision semantics. Preserve complete
+  unknown raw values in an explicit download. Self-authored facts, learned facts,
+  relationship revisions and lived shared experiences are different datasets.
+- PeopleSourceSheet opts its existing DetailDrawer into the replica-overlay theme
+  via optional contentClassName. Its outer root has no unused scrollbar gutter or
+  extra padding; only the body scrolls and its header/download footer stay visible.
+- CreationPreviewValue is a reading projection: known aliases eyes/family and
+  appearance order are contextual, every supplemental value has a readable label,
+  and explicit null/false/zero/unknown nested values survive in the original editor
+  and command. Personality mode writes through updatePreviewDefinition; absent or
+  custom modes are not silently coerced to single.
+- Confirmed complete empty world directories hide their redundant reread button;
+  unread, failed, partial and saved exact sources keep real recovery. Initialization
+  has one actual blocker cause/action area, compact gray blocked rows and plain
+  informational descriptions. Secondary entries retain unstarted task sources and
+  original pending recovery. No invented skip or business phase.
+- **r21 supersedes the earlier creation-only Sheet container:** creation now opens
+  the same centered local task Dialog as management, with original URL, source,
+  decoded task identity and return focus. The shared Sheet API stays supported for
+  other genuine consumers. Configuration links retain the live returnTo hash.
+- Task subtitles are human type/status/time; opaque IDs and raw Runtime/Activity
+  explanations stay technical. Unknown event reasons have a real per-event source
+  disclosure. No lifecycle event is converted into physical model rounds. New
+  label dictionaries require own-key checks; unknown task types/actions never
+  resolve Object.prototype members into UI text or available controls.
+- DiagnosticCreationContext reads only valid current-Owner activated recovery
+  records and actual creation progress. Real saved name/count/resume context may
+  appear on ordinary task/health entry; no valid record means no fabricated card.
+- KEV uses one main card, visible endpoint and Demo field order. Real values, schema
+  boundaries, source provenance, CAS and durable recovery remain authoritative.
+  Clean settings show a compact disabled-action footer; no clean save admission.
+  Role timeout guidance is shared and connected via aria-describedby, not repeated
+  below all four fields. Data tools preserve true resource-pack and business-backup
+  scope/limits, retain eight navigation icons and a real backup discovery link.
+- EmptyState variant="page" is explicit: transparent/no frame, centered Leaf and
+  Demo text geometry. Only confirmed normal empty states opt in; loading, failure,
+  retained data and diagnostic defaults remain independent. Feed/Media check busy
+  and error before showing empty results. Wardrobe preparation stays compact within
+  today's wearing region while true errors/original recovery remain reachable.
+- Schedule toolbar uses the Demo native date input through the existing date navigation; its separate planning date editor remains unchanged.
+- Now reads the existing current-world authority through an Owner/fid-scoped
+  useWorkspaceRead; missing life context cannot imply no bound world. Failed reads
+  keep their real GET retry. Chat uses shared content width; big profile fallback
+  glyphs inherit the source 34px size, including the 80px mobile avatar container.
+
+Verification uses the exact staged Web snapshot when parallel work exists. Never
+silently include concurrent Core, world-sharing, model-call or prompt changes.
+Keep snapshots, screenshots and images outside Git; persist only text evidence.
+Required regressions include People source/CAS/recovery, creation full-definition
+and local Dialog, diagnostic original-request/owner context, clean/dirty settings,
+page empty/read failures and Now world read. verify-r21-ui.mjs covers three sizes
+with exact assertions and declares data/API differences. Fullsite 177-row and
+feedback-state statuses are not accepted wholesale from these cases.
+
+## R16 diagnostics base contract (r21 refinements above)
 
 R16 supersedes the earlier Task-first Request/Response design. The immutable
 running Demo, LifePages DiagnosticsPanel/DiagnosticHealth and shared DetailDialog/
@@ -24,8 +86,8 @@ SegTabs/KeyValue CSS are the baseline; an older formal commit is not a baseline.
   events/count, four human information fields and actual allowed recovery controls
   in an outer fixed footer. Only independently confirmed domain phases can supply
   progress; lifecycle facility names never become business stages. Models are a
-  correlation-linked destination, never task-log content. R20's local creation
-  Sheet stays and uses this same correct task presentation.
+  correlation-linked destination, never task-log content. The original creation context
+  stays; r21 uses the same centered Dialog for its local task presentation.
   Its SegTabs underline spans the content width. The progress panel uses the
   Demo's 20px stack gap, compact recorded-failure box and 5px progress track;
   keep actual error/alert semantics and any supported configuration action without
@@ -66,7 +128,7 @@ Required checks: diagnostic-task-detail, diagnostic-model-calls, diagnostic-work
 current model-detail raw-value tests, owning Management/Inbox/r11/r16 scope and original
 recovery tests. Production `verify-diagnostic-replica.mjs` runs 10 families × three
 sizes, including actual Demo pairs, empty/failure recovery, exact command retries,
-correlation navigation and creation Sheet. Old TaskModelCalls and its Task-first
+correlation navigation and local creation Dialog. Old TaskModelCalls and its Task-first
 browser verifier are retired; historical reports remain historical evidence only.
 
 ## r20 creation sources, local diagnostics and reading contract
@@ -80,9 +142,9 @@ the relevant source without overriding a deliberate tab choice.
 
 `PreparationSteps.onOpenTask(taskId, trigger)` handles only safely decoded exact
 `#/diag/task/:id` entries; other links retain their own behavior. Creation opens
-`TaskRecordDialog(presentation="sheet")` without changing hash, preserves current
+`TaskRecordDialog(presentation="dialog")` without changing hash (r20 used a Sheet; r21 normalizes the container), preserves current
 return context, and restores its connected trigger (or heading if replaced).
-Default diagnostics still use the 860px Dialog. Both use the R16 task-stage detail; Request/Response belong to model records. Sheet has one scrolling body and a fixed header; no fake workflow
+Default diagnostics use the 860px Dialog. The earlier local creation Sheet rule above is historical; r21 uses the same local Dialog. Both use the task-stage detail; Request/Response belong to model records. Sheet has one scrolling body and a fixed header; no fake workflow
 retry/skip controls. Failed supported recovery calls the original dispatcher via
 “重试此环节”; blocked unstarted phases have no independent retry. Ready role/world
 reachability does not mean all initialization finished; failed/blocking progress

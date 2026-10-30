@@ -1,0 +1,365 @@
+[
+  {
+    "name": "preview",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "eyes and family keep actual readable labels",
+      "life-preview: no horizontal page overflow",
+      "personality and initial relation are explicit Chinese fields",
+      "relation-preview: no horizontal page overflow",
+      "complete-初始目标: no horizontal page overflow",
+      "complete-初始意图: no horizontal page overflow",
+      "nonempty initial goals and intentions remain complete and readable",
+      "mode edits preserve original unknown siblings and relation data",
+      "preview performs analysis only and never activation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-life-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-relation-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-complete-初始目标.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-complete-初始意图.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "preview",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "eyes and family keep actual readable labels",
+      "life-preview: no horizontal page overflow",
+      "personality and initial relation are explicit Chinese fields",
+      "relation-preview: no horizontal page overflow",
+      "complete-初始目标: no horizontal page overflow",
+      "complete-初始意图: no horizontal page overflow",
+      "nonempty initial goals and intentions remain complete and readable",
+      "mode edits preserve original unknown siblings and relation data",
+      "preview performs analysis only and never activation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-life-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-relation-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-complete-初始目标.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-complete-初始意图.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "preview",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "eyes and family keep actual readable labels",
+      "life-preview: no horizontal page overflow",
+      "personality and initial relation are explicit Chinese fields",
+      "relation-preview: no horizontal page overflow",
+      "complete-初始目标: no horizontal page overflow",
+      "complete-初始意图: no horizontal page overflow",
+      "nonempty initial goals and intentions remain complete and readable",
+      "mode edits preserve original unknown siblings and relation data",
+      "preview performs analysis only and never activation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-life-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-relation-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-complete-初始目标.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-complete-初始意图.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  }
+]

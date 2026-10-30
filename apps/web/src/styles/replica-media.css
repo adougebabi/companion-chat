@@ -109,6 +109,7 @@
   font-size: 9px;
 }
 .replica-media .r-search {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;

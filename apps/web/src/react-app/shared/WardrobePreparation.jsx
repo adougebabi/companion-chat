@@ -1,11 +1,11 @@
 import {InlineFeedback} from "@/react-app/shared/Presentation";
-import {Surface as CardSurface} from "@/react-app/controls";
+import {Disclosure} from "@/react-app/controls";
 import { useController } from "@/react-app/page";
 import { selector } from "@/state/view-model";
 import { ActionButton } from "@/react-app/controls";
 import { displayText } from "@/react-app/render-helpers";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
-import PreparationSteps from "@/react-app/shared/PreparationSteps";
+
 import { ActionFeedback } from "@/react-app/components";
 import { wardrobePreparationStage } from "@/approved-ui/wardrobe-preparation.mjs";
 function createWardrobePreparationController(__props, context, lifecycle) {
@@ -98,25 +98,23 @@ function createWardrobePreparationController(__props, context, lifecycle) {
   });
   return (_ctx, _cache) => {
     if(stages.value[0]?.state==='ready'&&!readError.value)return null;
+    const stage = stages.value[0];
+    const labels = {unknown:'初始衣柜状态待确认',pending:'初始衣柜正在准备',running:'初始衣柜正在准备',failed:'初始衣柜准备遇到问题'};
     return (
-      <CardSurface
-        className="approved-preparation"
-      >
-        <PreparationSteps
-          stages={stages.value}
-          busy={busy.value}
-          onRecover={recover}
-        />
-        {readError.value ? (
-          <InlineFeedback key={0}  role="alert">
-            {displayText(readError.value)}
-          </InlineFeedback>
-        ) : null}
+      <div className="approved-preparation wardrobe-preparation-inline">
+        <p role="status">{labels[stage.state] || '初始衣柜正在准备'}{stage.state !== 'failed' && stage.note ? ' · ' + stage.note : ''}</p>
+        {stage.state === 'failed' && stage.note && <InlineFeedback kind="error">{displayText(stage.note)}</InlineFeedback>}
+        {readError.value && <InlineFeedback role="alert">{displayText(readError.value)}</InlineFeedback>}
+        <div className="wardrobe-preparation-actions">
+          {stage.retryable && <ActionButton type="button" variant={stage.state === 'failed' ? 'default' : 'outline'} disabled={busy.value} onClick={recover}>{busy.value ? '处理中…' : stage.state === 'failed' ? '重试此环节' : '恢复原任务'}</ActionButton>}
+          {stage.state === 'failed' && stage.configSection && <ActionButton variant="ghost" asChild><a href={'#/settings?section='+encodeURIComponent(stage.configSection)}>去配置中心</a></ActionButton>}
+          <Disclosure title="准备记录与读取">
+            {stage.href && <ActionButton variant="ghost" asChild><a href={'#/diag?view=tasks&taskId='+encodeURIComponent(preparation.value.task_id)+'&returnTo='+encodeURIComponent(globalThis.location?.hash || '#/library')}>查看任务记录</a></ActionButton>}
+            <ActionButton variant="ghost" type="button" onClick={load}>重新读取准备状态</ActionButton>
+          </Disclosure>
+        </div>
         <ActionFeedback labels={["衣柜"]} />
-        <ActionButton variant="outline" className="w-fit self-start" type="button" onClick={load}>
-          {" 重新读取准备状态 "}
-        </ActionButton>
-      </CardSurface>
+      </div>
     );
   };
 }

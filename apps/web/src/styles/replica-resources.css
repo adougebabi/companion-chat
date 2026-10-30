@@ -665,3 +665,8 @@
     height: 90px;
   }
 }
+
+.replica-wardrobe .wardrobe-preparation-inline{margin-top:7px;min-width:0}
+.replica-wardrobe .wardrobe-preparation-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.replica-wardrobe .wardrobe-preparation-actions>button{font-size:11px;height:30px;min-height:30px}
+.replica-wardrobe .wardrobe-preparation-inline [data-feedback-kind]{margin:8px 0}

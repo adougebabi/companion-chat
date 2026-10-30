@@ -122,7 +122,7 @@ export default function PeoplePage({
   const displayCharacter = {
     ...c,
     name: displayName,
-    initial: [...displayName].at(-1),
+    initial: [...displayName][0],
     avatar: profileSnapshotFromDetail(profile.items[0] || {}, c._directory)
       .avatar,
   };

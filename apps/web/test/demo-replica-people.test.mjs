@@ -798,3 +798,47 @@ test("person management preserves referenced actors through archive and deletes 
     await f.dispose();
   }
 });
+
+test("About-you keeps full context off the page and preserves untouched unknown sources in the bounded source Sheet download", async () => {
+  const api = peopleFixture({ owner: "people-owner", scenario: "normal" });
+  const actor = api.state("A").actors.get("people-owner");
+  actor.background.future_extension = { nested: { enabled: false, score: 0, absent: null, text: "" } };
+  actor.history.push({ actor_id: "people-owner", fact_id: "unknown-source", attribute: "future_extension", value: actor.background.future_extension, epistemic_kind: "owner_defined", transition_kind: "constructor", reason: "保留未知扩展", created_at: "2026-10-30T01:02:03Z", revision: 9 });
+  const f = await fixture({ api, query: { tab: "you" } });
+  try {
+    assert.doesNotMatch(f.v.host.textContent, /其他自填资料与完整来源|future_extension|context_version|刷新你的资料/);
+    assert.match(f.v.host.textContent, /你填写的关系/);
+    assert.ok(button(f.v.host, "编辑资料").querySelector("svg"));
+    const trigger = button(f.v.host, "查看修订记录");
+    await f.v.click(trigger);
+    assert.ok(dialog().matches('[data-slot="sheet-content"]'));
+    assert.match(dialog().textContent, /当前角色范围|修改含义|记录时间|保留未知扩展/);
+    assert.match(dialog().textContent, /结构化资料/);
+    assert.doesNotMatch(dialog().textContent, /future_extension|context_version|owner-command/);
+    const download = dialog().querySelector('[data-slot="sheet-footer"] a[download]');
+    const raw = JSON.parse(decodeURIComponent(download.getAttribute("href").split(",")[1]));
+    assert.deepEqual(raw.background.future_extension, actor.background.future_extension);
+    assert.deepEqual(raw.history.at(-1), actor.history.at(-1));
+    assert.equal(f.writes().length, 0);
+    await f.v.click(dialog().querySelector('[aria-label="关闭"]'));
+    assert.equal(dialog(), undefined);
+    assert.equal(document.activeElement, trigger);
+    await f.v.click(button(f.v.host, "查看了解记录"));
+    assert.ok(dialog().matches('[data-slot="sheet-content"]'));
+    assert.match(dialog().textContent, /你曾在交流中提过最近工作较忙/);
+    assert.doesNotMatch(dialog().textContent, /owner-command|context_version/);
+  } finally { await f.dispose(); }
+});
+
+test("relationship page uses the first character fallback and never calls relationship revisions shared experiences", async () => {
+  const f = await fixture({ query: { tab: "relationship" } });
+  try {
+    assert.match(f.v.host.querySelector('.companion-relationship-card h2').textContent, /，从认真倾听开始。$/);
+    assert.match(f.v.host.textContent, /一些拉近距离的片刻/);
+    assert.match(f.v.host.textContent, /尚未提供可展示的共同经历/);
+    assert.doesNotMatch(f.v.host.textContent, /相处留下的记录|关系修订 v/);
+    const first = [...f.s.seed.identity.name][0];
+    assert.equal(f.v.host.querySelector('.companion-relationship-avatars .avatar-lg').textContent, first);
+    assert.ok(button(f.v.host, "继续聊聊"));
+  } finally { await f.dispose(); }
+});

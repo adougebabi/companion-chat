@@ -1,0 +1,2339 @@
+[
+  {
+    "name": "people",
+    "size": "wide",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/people-wide-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: about-you normal page has relationship field and no recursive technical source tree\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:33:4",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n人物关系\n快速前往\n⌘ K\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n青岚小城里的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n3\n关于你\n你们的关系\n关于你的资料暂未读全\n\n人物资料或交流身份范围不匹配。\n\n重新读取关于你的资料\n查看技术详情\n关于你\n\n林岚 · 验收样本会将这些作为你主动填写的资料。只填你愿意分享的。\n\n编辑资料\n\n你的资料待读取。\n\nIN HER EYES\n林岚 · 验收样本对你的了解\n\n你填写的资料，与林岚 · 验收样本在相处中形成的认识，分别保存。\n\n查看了解记录\n林岚 · 验收样本视角下的关系\n\n你填写的关系描述，不会直接改变林岚 · 验收样本对你们关系的判断。\n\n关系与交往依据\n来源与修订历史\n\n修订记录待读取。\n\n查看修订记录"
+  },
+  {
+    "name": "preview",
+    "size": "wide",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/preview-wide-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '使用日常生活世界', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:40:92",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n+\n正在相处\n创建角色\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n新的相识\n快速前往\n⌘ K\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n已发布的世界底稿\n日常生活世界\n采用明确的已发布版本\n世界底稿\n河畔小镇\n\n沿着河流展开的小镇日常。\n\npublished:world:1 · 已发布\n固定版本\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\nYOUR NEW CHAPTER\n故事，正在等待开始\n\n给日常一个可以发生的地方。\n\n生活世界\n待选择\n认识方式\n一段描述\n每一个细节，\n都可以成为日后相处的回声。\n草稿与原请求按当前账号保留\n草稿自动保留\n返回与切换页面，保留这次输入。\n继续，认识角色"
+  },
+  {
+    "name": "preparation",
+    "size": "wide",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/preparation-wide-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '使用日常生活世界', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:40:92",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n+\n正在相处\n创建角色\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n新的相识\n快速前往\n⌘ K\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n已发布的世界底稿\n日常生活世界\n采用明确的已发布版本\n世界底稿\n河畔小镇\n\n沿着河流展开的小镇日常。\n\npublished:world:1 · 已发布\n固定版本\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\nYOUR NEW CHAPTER\n故事，正在等待开始\n\n给日常一个可以发生的地方。\n\n生活世界\n待选择\n认识方式\n一段描述\n每一个细节，\n都可以成为日后相处的回声。\n草稿与原请求按当前账号保留\n草稿自动保留\n返回与切换页面，保留这次输入。\n继续，认识角色"
+  },
+  {
+    "name": "settings",
+    "size": "wide",
+    "status": "failed",
+    "checks": [
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-wide-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-wide-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-wide-clean-footer.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-wide-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: discard returns original zero and never saves Demo defaults\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:54:541",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n高级设置\n\n修改正式配置；保存后读取实际回执。\n\nKEV 决策评分\n\n在候选行动之间加入独立评分，授权与实际执行分别记录。\n\n系统默认 · 尚未保存\n启用 KEV\n用于媒体决策\n\n媒体决策的选择已保留，启用 KEV 后生效。\n\n服务地址\n决策策略\n直接选择最高分\n直接选择最高分\n带置信门槛的最优选择\n单次超时（毫秒）\n决策总预算（毫秒）\n并发请求\n单批候选数\n诊断保留（天）\n最低置信概率\n领先候选最小差值\n最多延后次数\n延后时间（秒）\n模型标识\n模型修订版本\n决策场景与技术参数\n\n已放弃未保存修改\n\n放弃修改\n保存设置"
+  },
+  {
+    "name": "data",
+    "size": "wide",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/data-wide-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: all eight data secondary navigation icons exist\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:56:84",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n数据管理\n\n保存设定文件，查看工作区备份与历史。\n\n当前工作区\n\n这里显示当前已读取的角色与分组。可分享的设定和完整业务备份分别管理。\n\n2\n位已读取角色\n1\n个已读取分组\n查看业务备份与创建任务\n备份聊天、记忆、日记和媒体；通过真实维护任务执行。\n导出设定\n\n将已保存的作品设定、所需依赖、分组名称和通知偏好导出为文件。未发布草稿也会包含在内，分享前请先预览。文件不包含聊天、记忆、服务密钥或媒体授权。\n\n只导出指定作品\n导出设定文件\n导入设定\n\n导入为新的创作草稿；预览完整内容，再确认正式导入。\n\n选择设定文件 · JSON · 最大 3 MiB\n选择文件\n也可以将文件拖放到这里\n或粘贴设定文件内容\n清空未提交草稿\n校验\n业务数据备份\n\n聊天、记忆、日记和媒体由工作区备份保留，可在这里查看备份与恢复任务。\n\n备份范围与恢复说明\n\n创建任务后，按详情页指引执行备份。完成后才能用于恢复，进度和结果会保留在记录中。\n\n创建备份任务\n刷新任务\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 1 次 · 备份已核验\n\n已完成实际核验\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 2 次 · 维护阶段已记录\n\n失败\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 3 次 · 维护阶段已记录\n\n等待维护执行\n历史版本与恢复\n查看历史版本 →\n角色生活恢复说明 →\n\n可在对应页面查看历史并恢复受支持的字段。当前不支持将角色的整条生活时间线退回过去。\n\n创作中心"
+  },
+  {
+    "name": "tasks",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "persona.compile uses Chinese task title and list metadata",
+      "normal subtitle never exposes opaque task ID",
+      "every unknown reason has actual accessible detail",
+      "event-detail: no horizontal page overflow",
+      "event-detail: overlay fits viewport",
+      "normal recovery prose does not expose Runtime/Activity",
+      "human-task-info: no horizontal page overflow",
+      "human-task-info: overlay fits viewport",
+      "associated model record uses current tab and real correlation",
+      "task reading never mutates workflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/persona_compile_INTERNAL_OPAQUE",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20",
+          "correlationId": "original-correlation"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/tasks-wide-event-detail.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/tasks-wide-human-task-info.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "empty-pages",
+    "size": "wide",
+    "status": "failed",
+    "checks": [
+      "wardrobe confirmed empty has Demo Leaf and transparent frame",
+      "app-wardrobe: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-wide-app-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-wide-demo-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-wide-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: wardrobe preparation is inside today strip without standalone progress card\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:65:28",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林晚的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n还没有登记实际穿着。\n\n当前穿着\n全部衣服\n0\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n没有符合条件的衣服。\n\n试试调整类型、季节或搜索条件。\n\n清除筛选"
+  },
+  {
+    "name": "chat-now-profile",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "chat root follows Demo aligned content width",
+      "app-chat: no horizontal page overflow",
+      "empty day still exposes complete schedule",
+      "now-empty: no horizontal page overflow",
+      "profile large fallback uses real 34px glyph",
+      "profile failure copy has no repeated preparation phrase",
+      "profile: no horizontal page overflow",
+      "normal reads do not create missing Demo state",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-wide-app-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-wide-demo-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-wide-now-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-wide-profile.png"
+    ],
+    "geometry": [
+      {
+        "chat": {
+          "actual": {
+            "x": 350,
+            "y": 102,
+            "width": 1460,
+            "height": 881.828125
+          },
+          "expected": {
+            "x": 350,
+            "y": 102,
+            "width": 1460,
+            "height": 939.828125
+          }
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "read-failure",
+    "size": "wide",
+    "status": "failed",
+    "checks": [
+      "configuration-read-failure: no horizontal page overflow",
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-wide-configuration-read-failure.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-wide-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-wide-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-wide-clean-footer.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-wide-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: discard returns original zero and never saves Demo defaults\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:54:541",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n高级设置\n\n修改正式配置；保存后读取实际回执。\n\nKEV 决策评分\n\n在候选行动之间加入独立评分，授权与实际执行分别记录。\n\n系统默认 · 尚未保存\n启用 KEV\n用于媒体决策\n\n媒体决策的选择已保留，启用 KEV 后生效。\n\n服务地址\n决策策略\n直接选择最高分\n直接选择最高分\n带置信门槛的最优选择\n单次超时（毫秒）\n决策总预算（毫秒）\n并发请求\n单批候选数\n诊断保留（天）\n最低置信概率\n领先候选最小差值\n最多延后次数\n延后时间（秒）\n模型标识\n模型修订版本\n决策场景与技术参数\n\n已读取当前配置 · 含系统默认，尚未保存\n\n放弃修改\n保存设置"
+  },
+  {
+    "name": "people",
+    "size": "desktop",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/people-desktop-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: about-you normal page has relationship field and no recursive technical source tree\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:33:4",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n世界与联系\n人物关系\n快速前往\n⌘ K\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n青岚小城里的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n3\n关于你\n你们的关系\n关于你的资料暂未读全\n\n人物资料或交流身份范围不匹配。\n\n重新读取关于你的资料\n查看技术详情\n关于你\n\n林岚 · 验收样本会将这些作为你主动填写的资料。只填你愿意分享的。\n\n编辑资料\n\n你的资料待读取。\n\nIN HER EYES\n林岚 · 验收样本对你的了解\n\n你填写的资料，与林岚 · 验收样本在相处中形成的认识，分别保存。\n\n查看了解记录\n林岚 · 验收样本视角下的关系\n\n你填写的关系描述，不会直接改变林岚 · 验收样本对你们关系的判断。\n\n关系与交往依据\n来源与修订历史\n\n修订记录待读取。\n\n查看修订记录"
+  },
+  {
+    "name": "preview",
+    "size": "desktop",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/preview-desktop-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '使用日常生活世界', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:40:92",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n+\n正在相处\n创建角色\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n新的相识\n快速前往\n⌘ K\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n已发布的世界底稿\n日常生活世界\n采用明确的已发布版本\n世界底稿\n河畔小镇\n\n沿着河流展开的小镇日常。\n\npublished:world:1 · 已发布\n固定版本\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\nYOUR NEW CHAPTER\n故事，正在等待开始\n\n给日常一个可以发生的地方。\n\n生活世界\n待选择\n认识方式\n一段描述\n每一个细节，\n都可以成为日后相处的回声。\n草稿与原请求按当前账号保留\n草稿自动保留\n返回与切换页面，保留这次输入。\n继续，认识角色"
+  },
+  {
+    "name": "preparation",
+    "size": "desktop",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/preparation-desktop-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '使用日常生活世界', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:40:92",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n+\n正在相处\n创建角色\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n角色库\n新的相识\n快速前往\n⌘ K\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n故事从哪里开始\n01\n认识角色\n选择一种认识的方式\n02\n资料预览\n把每个细节看清楚\n03\n准备相遇\n让生活慢慢展开\n04\n已发布的世界底稿\n日常生活世界\n采用明确的已发布版本\n世界底稿\n河畔小镇\n\n沿着河流展开的小镇日常。\n\npublished:world:1 · 已发布\n固定版本\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\nYOUR NEW CHAPTER\n故事，正在等待开始\n\n给日常一个可以发生的地方。\n\n生活世界\n待选择\n认识方式\n一段描述\n每一个细节，\n都可以成为日后相处的回声。\n草稿与原请求按当前账号保留\n草稿自动保留\n返回与切换页面，保留这次输入。\n继续，认识角色"
+  },
+  {
+    "name": "settings",
+    "size": "desktop",
+    "status": "failed",
+    "checks": [
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-desktop-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-desktop-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-desktop-clean-footer.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-desktop-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: discard returns original zero and never saves Demo defaults\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:54:541",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n高级设置\n\n修改正式配置；保存后读取实际回执。\n\nKEV 决策评分\n\n在候选行动之间加入独立评分，授权与实际执行分别记录。\n\n系统默认 · 尚未保存\n启用 KEV\n用于媒体决策\n\n媒体决策的选择已保留，启用 KEV 后生效。\n\n服务地址\n决策策略\n直接选择最高分\n直接选择最高分\n带置信门槛的最优选择\n单次超时（毫秒）\n决策总预算（毫秒）\n并发请求\n单批候选数\n诊断保留（天）\n最低置信概率\n领先候选最小差值\n最多延后次数\n延后时间（秒）\n模型标识\n模型修订版本\n决策场景与技术参数\n\n已放弃未保存修改\n\n放弃修改\n保存设置"
+  },
+  {
+    "name": "data",
+    "size": "desktop",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/data-desktop-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: all eight data secondary navigation icons exist\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:56:84",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n创作与管理\n管理中心\n快速前往\n⌘ K\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n数据管理\n\n保存设定文件，查看工作区备份与历史。\n\n当前工作区\n\n这里显示当前已读取的角色与分组。可分享的设定和完整业务备份分别管理。\n\n2\n位已读取角色\n1\n个已读取分组\n查看业务备份与创建任务\n备份聊天、记忆、日记和媒体；通过真实维护任务执行。\n导出设定\n\n将已保存的作品设定、所需依赖、分组名称和通知偏好导出为文件。未发布草稿也会包含在内，分享前请先预览。文件不包含聊天、记忆、服务密钥或媒体授权。\n\n只导出指定作品\n导出设定文件\n导入设定\n\n导入为新的创作草稿；预览完整内容，再确认正式导入。\n\n选择设定文件 · JSON · 最大 3 MiB\n选择文件\n也可以将文件拖放到这里\n或粘贴设定文件内容\n清空未提交草稿\n校验\n业务数据备份\n\n聊天、记忆、日记和媒体由工作区备份保留，可在这里查看备份与恢复任务。\n\n备份范围与恢复说明\n\n创建任务后，按详情页指引执行备份。完成后才能用于恢复，进度和结果会保留在记录中。\n\n创建备份任务\n刷新任务\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 1 次 · 备份已核验\n\n已完成实际核验\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 2 次 · 维护阶段已记录\n\n失败\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 3 次 · 维护阶段已记录\n\n等待维护执行\n历史版本与恢复\n查看历史版本 →\n角色生活恢复说明 →\n\n可在对应页面查看历史并恢复受支持的字段。当前不支持将角色的整条生活时间线退回过去。\n\n创作中心"
+  },
+  {
+    "name": "tasks",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "persona.compile uses Chinese task title and list metadata",
+      "normal subtitle never exposes opaque task ID",
+      "every unknown reason has actual accessible detail",
+      "event-detail: no horizontal page overflow",
+      "event-detail: overlay fits viewport",
+      "normal recovery prose does not expose Runtime/Activity",
+      "human-task-info: no horizontal page overflow",
+      "human-task-info: overlay fits viewport",
+      "associated model record uses current tab and real correlation",
+      "task reading never mutates workflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/persona_compile_INTERNAL_OPAQUE",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20",
+          "correlationId": "original-correlation"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/tasks-desktop-event-detail.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/tasks-desktop-human-task-info.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "empty-pages",
+    "size": "desktop",
+    "status": "failed",
+    "checks": [
+      "wardrobe confirmed empty has Demo Leaf and transparent frame",
+      "app-wardrobe: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-desktop-app-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-desktop-demo-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-desktop-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: wardrobe preparation is inside today strip without standalone progress card\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:65:28",
+    "text": "Fluctlight\nA LIFE OF THEIR OWN\n林\n正在相处\n林晚\n日常相处\n聊天\n此刻\n日程\n目标\n衣柜\n日记\n记忆\n角色档案\n世界与联系\n世界\n动态\n人物关系\n媒体\n创作与管理\n角色库\n创作中心\n通知与待处理\n2\n管理中心\n我\n我的空间\nMY WORKSPACE\nToggle Sidebar\n日常相处\n衣柜\n快速前往\n⌘ K\nWARDROBE / WORN WITH A STORY\n林晚的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n还没有登记实际穿着。\n\n当前穿着\n全部衣服\n0\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n没有符合条件的衣服。\n\n试试调整类型、季节或搜索条件。\n\n清除筛选"
+  },
+  {
+    "name": "chat-now-profile",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "chat root follows Demo aligned content width",
+      "app-chat: no horizontal page overflow",
+      "empty day still exposes complete schedule",
+      "now-empty: no horizontal page overflow",
+      "profile large fallback uses real 34px glyph",
+      "profile failure copy has no repeated preparation phrase",
+      "profile: no horizontal page overflow",
+      "normal reads do not create missing Demo state",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-desktop-app-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-desktop-demo-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-desktop-now-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-desktop-profile.png"
+    ],
+    "geometry": [
+      {
+        "chat": {
+          "actual": {
+            "x": 252,
+            "y": 94,
+            "width": 1062,
+            "height": 796.828125
+          },
+          "expected": {
+            "x": 252,
+            "y": 94,
+            "width": 1062,
+            "height": 854.828125
+          }
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "read-failure",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "configuration-read-failure: no horizontal page overflow",
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-desktop-configuration-read-failure.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-desktop-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-desktop-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-desktop-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "people",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/people-mobile-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: about-you normal page has relationship field and no recursive technical source tree\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:33:4",
+    "text": "Toggle Sidebar\n世界与联系\n人物关系\n快速前往\nWORLD / PEOPLE & CONNECTIONS\n每一次相遇，都留下联系。\n\n青岚小城里的人，以及你们之间慢慢建立的了解。\n\n新增世界人物\n世界中的人\n3\n关于你\n你们的关系\n关于你的资料暂未读全\n\n人物资料或交流身份范围不匹配。\n\n重新读取关于你的资料\n查看技术详情\n关于你\n\n林岚 · 验收样本会将这些作为你主动填写的资料。只填你愿意分享的。\n\n编辑资料\n\n你的资料待读取。\n\nIN HER EYES\n林岚 · 验收样本对你的了解\n\n你填写的资料，与林岚 · 验收样本在相处中形成的认识，分别保存。\n\n查看了解记录\n林岚 · 验收样本视角下的关系\n\n你填写的关系描述，不会直接改变林岚 · 验收样本对你们关系的判断。\n\n关系与交往依据\n来源与修订历史\n\n修订记录待读取。\n\n查看修订记录"
+  },
+  {
+    "name": "preview",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/preview-mobile-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '使用日常生活世界', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:40:92",
+    "text": "Toggle Sidebar\n角色库\n新的相识\n快速前往\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n认识角色\n资料预览\n准备相遇\n已发布的世界底稿\n日常生活世界\n采用明确的已发布版本\n世界底稿\n河畔小镇\n\n沿着河流展开的小镇日常。\n\npublished:world:1 · 已发布\n固定版本\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\n草稿自动保留\n继续，认识角色"
+  },
+  {
+    "name": "preparation",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-world/versions/published%3Aworld%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources/creation-template/versions/published%3Atemplate%3A1",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/preparation-mobile-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "locator.waitFor: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: '使用日常生活世界', exact: true }) to be visible\u001b[22m\n\n    at /Users/vinson/Documents/project/个人/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:40:92",
+    "text": "Toggle Sidebar\n角色库\n新的相识\n快速前往\nA NEW BEGINNING / 新的相识\n先为相遇，选一个世界。\n\n世界是日常的背景。可以复用已有配置，也可以从一份新底稿开始。\n\n返回角色库\n生活世界\n认识角色\n资料预览\n准备相遇\n已发布的世界底稿\n日常生活世界\n采用明确的已发布版本\n世界底稿\n河畔小镇\n\n沿着河流展开的小镇日常。\n\npublished:world:1 · 已发布\n固定版本\n创建新的世界底稿\n\n定义背景、规则与地点\n保存发布后，带它回到这里。\n\n去创作中心\n草稿自动保留\n继续，认识角色"
+  },
+  {
+    "name": "settings",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-mobile-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-mobile-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/settings-mobile-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "data",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/data-mobile-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: all eight data secondary navigation icons exist\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:56:84",
+    "text": "Toggle Sidebar\n创作与管理\n管理中心\n快速前往\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n数据管理\n\n保存设定文件，查看工作区备份与历史。\n\n当前工作区\n\n这里显示当前已读取的角色与分组。可分享的设定和完整业务备份分别管理。\n\n2\n位已读取角色\n1\n个已读取分组\n查看业务备份与创建任务\n备份聊天、记忆、日记和媒体；通过真实维护任务执行。\n导出设定\n\n将已保存的作品设定、所需依赖、分组名称和通知偏好导出为文件。未发布草稿也会包含在内，分享前请先预览。文件不包含聊天、记忆、服务密钥或媒体授权。\n\n只导出指定作品\n导出设定文件\n导入设定\n\n导入为新的创作草稿；预览完整内容，再确认正式导入。\n\n选择设定文件 · JSON · 最大 3 MiB\n选择文件\n也可以将文件拖放到这里\n或粘贴设定文件内容\n清空未提交草稿\n校验\n业务数据备份\n\n聊天、记忆、日记和媒体由工作区备份保留，可在这里查看备份与恢复任务。\n\n备份范围与恢复说明\n\n创建任务后，按详情页指引执行备份。完成后才能用于恢复，进度和结果会保留在记录中。\n\n创建备份任务\n刷新任务\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 1 次 · 备份已核验\n\n已完成实际核验\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 2 次 · 维护阶段已记录\n\n失败\n业务备份\n\n2026-10-13 09:00 (北京时间) · 第 3 次 · 维护阶段已记录\n\n等待维护执行\n历史版本与恢复\n查看历史版本 →\n角色生活恢复说明 →\n\n可在对应页面查看历史并恢复受支持的字段。当前不支持将角色的整条生活时间线退回过去。\n\n创作中心"
+  },
+  {
+    "name": "tasks",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "persona.compile uses Chinese task title and list metadata",
+      "normal subtitle never exposes opaque task ID",
+      "every unknown reason has actual accessible detail",
+      "event-detail: no horizontal page overflow",
+      "event-detail: overlay fits viewport",
+      "normal recovery prose does not expose Runtime/Activity",
+      "human-task-info: no horizontal page overflow",
+      "human-task-info: overlay fits viewport",
+      "associated model record uses current tab and real correlation",
+      "task reading never mutates workflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/persona_compile_INTERNAL_OPAQUE",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20",
+          "correlationId": "original-correlation"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/tasks-mobile-event-detail.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/tasks-mobile-human-task-info.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes"
+  },
+  {
+    "name": "empty-pages",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [
+      "wardrobe confirmed empty has Demo Leaf and transparent frame",
+      "app-wardrobe: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-mobile-app-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-mobile-demo-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/empty-pages-mobile-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: wardrobe preparation is inside today strip without standalone progress card\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:65:28",
+    "text": "Toggle Sidebar\n日常相处\n衣柜\n快速前往\nWARDROBE / WORN WITH A STORY\n林晚的衣柜\n\n喜欢的衣服，合适的搭配，还有今天的自己。\n\n拍一张穿搭\n添加衣服\nTODAY'S OUTFIT\n今天穿着\n\n还没有登记实际穿着。\n\n当前穿着\n全部衣服\n0\n穿搭方案\n0\n搭配工作台\n所有类型\n所有季节\n已归档\n没有符合条件的衣服。\n\n试试调整类型、季节或搜索条件。\n\n清除筛选"
+  },
+  {
+    "name": "chat-now-profile",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [
+      "chat root follows Demo aligned content width",
+      "app-chat: no horizontal page overflow",
+      "empty day still exposes complete schedule",
+      "now-empty: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-mobile-app-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-mobile-demo-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-mobile-now-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/chat-now-profile-mobile-failure.png"
+    ],
+    "geometry": [
+      {
+        "chat": {
+          "actual": {
+            "x": 17,
+            "y": 81,
+            "width": 356,
+            "height": 1371.609375
+          },
+          "expected": {
+            "x": 17,
+            "y": 81,
+            "width": 356,
+            "height": 1419.171875
+          }
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: profile large fallback uses real 34px glyph\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:68:739",
+    "text": "Toggle Sidebar\n日常相处\n角色档案\n快速前往\nLIFE / A PERSON WITH A STORY\n认识更完整的林岚 · 验收样本。\n\n来处、性格、习惯，以及相处中慢慢长出的自己。\n\n身份与能力\n编辑资料\n林\nA PERSON, NOT JUST A PROFILE\n林岚 · 验收样本\n\n运行中\n\n还没有提供简介，之后可以慢慢补充。\n\n当前人格尚未确认\n身份与背景\n性格与人格\n生活与此刻\n修订与来源\n0\n身份与背景\n编辑\n生活时区\nAsia/Shanghai\n\n尚未填写：称呼、年龄、职业、居住地、出生地。可以通过本区编辑入口补充。\n\n表达与相处\n调整表达\n\n尚未填写：回复风格、消息长短、分歧处理、拒绝方式。可以通过本区编辑入口补充。\n\n完整表达与相处设定\n共同性格\n\n这些倾向构成了相处时的底色。\n\n当前尚未提供可读取的性格维度，这里保留留白。\n\n完整性格与来源\nWORKING PERSONA\n当前表达画像\n尚未提供人格设定与最近生活共同影响此刻的表达\n完整能力申请与历史\n发展中的自我"
+  },
+  {
+    "name": "read-failure",
+    "size": "mobile",
+    "status": "failed",
+    "checks": [
+      "configuration-read-failure: no horizontal page overflow",
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "failure: no horizontal page overflow"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-mobile-configuration-read-failure.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-mobile-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-mobile-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-mobile-clean-footer.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-first/read-failure-mobile-failure.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "error": "AssertionError [ERR_ASSERTION]: discard returns original zero and never saves Demo defaults\n    at check (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:23:37)\n    at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/.trellis/tasks/10-28-demo-fullsite-audit/verification/verify-r21-ui.mjs:54:541",
+    "text": "Toggle Sidebar\n创作与管理\n管理中心\n快速前往\nPREFERENCES / MAKE IT YOURS\n管理中心\n\n让每一次相处，按你喜欢的方式发生。\n\n我的工作区\n模型服务与用途\n聊天与视觉\n图片生成\n自主性与安静时段\n通知与后台\n诊断与任务\n数据管理\n高级设置\n高级设置\n\n修改正式配置；保存后读取实际回执。\n\nKEV 决策评分\n\n在候选行动之间加入独立评分，授权与实际执行分别记录。\n\n系统默认 · 尚未保存\n启用 KEV\n用于媒体决策\n\n媒体决策的选择已保留，启用 KEV 后生效。\n\n服务地址\n决策策略\n直接选择最高分\n直接选择最高分\n带置信门槛的最优选择\n单次超时（毫秒）\n决策总预算（毫秒）\n并发请求\n单批候选数\n诊断保留（天）\n最低置信概率\n领先候选最小差值\n最多延后次数\n延后时间（秒）\n模型标识\n模型修订版本\n决策场景与技术参数\n\n已放弃未保存修改\n\n放弃修改\n保存设置"
+  }
+]

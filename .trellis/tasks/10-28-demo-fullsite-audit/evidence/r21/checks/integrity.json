@@ -1,0 +1,10 @@
+{
+  "demo_files": 48,
+  "unrelated_old_task_files": 108,
+  "changed": [],
+  "matrix_rows": 177,
+  "original_statuses_unchanged": true,
+  "owned_code_test_paths": 53,
+  "isolated_source": "/private/tmp/fluctlight-demo-audit-20261028/r21-staged-source-1",
+  "parallel_work": "excluded from this snapshot and commit; live working-tree changes preserved"
+}

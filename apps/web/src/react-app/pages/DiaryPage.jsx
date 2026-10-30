@@ -923,7 +923,7 @@ export default function DiaryPage() {
                 </div>
               </article>
             ) : page.ready && !loading[kind] && !errors[kind] ? (
-              <EmptyState>
+              <EmptyState variant="page">
                 <h3>日记本还是空的</h3>
                 <p>真实经历会在一天结束后被回顾。</p>
               </EmptyState>
@@ -974,7 +974,7 @@ export default function DiaryPage() {
           {lists.shared.ready &&
             !lists.shared.items.length &&
             !errors.shared && (
-              <EmptyState>
+              <EmptyState variant="page">
                 <h3>共同的经历，慢慢积累</h3>
                 <p>新的相处会留下有来源的交流记录。</p>
               </EmptyState>

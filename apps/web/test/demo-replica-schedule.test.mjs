@@ -256,7 +256,7 @@ test("schedule failed refresh retains the correct date; an older date response c
       }),
     );
     await v.flush();
-    assert.match(v.host.textContent, /2026-10-29/);
+    assert.equal(v.host.querySelector('[aria-label="查看日程日期"]').value, "2026-10-29");
     assert.doesNotMatch(v.host.textContent, /过期日期的内容/);
     assert.match(v.host.textContent, /空白的一页/);
   } finally {

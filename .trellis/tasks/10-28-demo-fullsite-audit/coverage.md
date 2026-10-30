@@ -216,3 +216,10 @@
 [逐项查漏与验收](diagnostic-replica-acceptance.md) / [30条诊断三视口浏览器](evidence/diagnostic-replica-browser-index.json) / [6条创建关联复验](evidence/diagnostic-r20-browser-index.json)。任务阶段/事件/信息、模型完整请求响应、真实服务检查分属三个模块；旧R14的任务默认请求响应要求已退役。正常配对含准确指标位置与弹窗内部几何，空/缺配置/读取失败/原请求恢复/关联返回按具体断言登记。
 
 只给7行增加 diagnostic_replica_observations，原177行三维和八场景状态保持。导出/清理、全部任务类型与真实完成后完整reload等未在本批重新遍历；真实媒体生成由用户测试，不以本批36案例替代全站验收。
+
+
+## r21 增量
+
+[42条逐项处置](r21-issues.json) / [验收与能力差异](r21-acceptance.md) / [33个r21三视口案例](evidence/r21-browser-index.json) / [12个创建恢复、画像与创作回程](evidence/r21-protocol-index.json)。只给42行追加精确观察，177行原三维和八场景状态不提升。新增页面空态与错误/加载保持区分，来源/修订不再铺满正常业务页；真实配置值、数据和未提供API的能力不按演示假造。
+
+本批运行于明确排除并行工作后的暂存前端快照，794项全量及build388通过；真实模型/媒体生成与全站未验状态继续单独记录。图片全部在仓库外。

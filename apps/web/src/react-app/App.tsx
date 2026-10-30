@@ -250,7 +250,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
       <SidebarInset tabIndex={-1} className="replica-main min-w-0 min-h-0 overflow-hidden">
       <header className="replica-topbar">
         <SidebarTrigger ref={navigationTrigger} className="replica-topbar-icon" aria-label={!isMobile&&sidebarOpen?"收起导航":"打开导航"}/>
-        <WorkspaceBreadcrumb parentLabel={workspaceNavigationGroup(page)} parentHref="#/library" ancestors={route.feature?ancestors:[]} currentLabel={workspacePageLabel(displayTitle)}/>
+        <WorkspaceBreadcrumb parentLabel={workspaceNavigationGroup(page)} parentHref="#/library" ancestors={route.feature?ancestors:[]} currentLabel={route.path==="/data"?"管理中心":workspacePageLabel(displayTitle)}/>
         <div className="replica-topbar-actions"><WorkspaceQuickJump key={state.session?.actorId} characters={state.characters} hasCharacter={!!current.id} onNavigate={navigate} onCharacter={id=>{workspace.select(id);navigate('聊天');}}/><Button type="button" variant="ghost" size="icon" className="replica-topbar-icon" title={state.notificationCountError?"未读计数暂未更新："+state.notificationCountError:state.notificationCount?state.notificationCount.count+" 条未读通知":"未读计数尚未读取"} aria-label="查看通知" onClick={()=>navigate('通知与待处理')}><BellIcon size={16}/>{(state.notificationCount?.alert_count||0)>0&&<span className="replica-notification-dot" aria-label={state.notificationCount.count+' 条未读通知'}/>}</Button></div>
       </header>
         <div

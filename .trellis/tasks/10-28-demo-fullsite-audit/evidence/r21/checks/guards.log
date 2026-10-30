@@ -1,0 +1,2 @@
+Verified real production bundle: no fixture store, seed, diagnostic samples, debug writers or QA page.
+Verified React-only production graph (388 local modules): no Vue, Reka, legacy pages or old router.

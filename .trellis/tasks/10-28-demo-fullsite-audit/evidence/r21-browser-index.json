@@ -1,0 +1,5051 @@
+[
+  {
+    "name": "people",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "about-you normal page has relationship field and no recursive technical source tree",
+      "edit action retains the source Pencil icon",
+      "app-about: no horizontal page overflow",
+      "source history is a real bounded Sheet",
+      "source uses Chinese reading without raw technical identities",
+      "complete source download preserves unknown values",
+      "source-sheet: no horizontal page overflow",
+      "source-sheet: overlay fits viewport",
+      "closing sources returns to the original trigger",
+      "relation title and real chat entry match intended hierarchy",
+      "relationship revisions are not represented as shared experiences",
+      "app-relationship: no horizontal page overflow",
+      "reading and closing People never writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-app-about.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-demo-about.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-source-sheet.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-app-relationship.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-demo-relationship.png"
+    ],
+    "geometry": [
+      {
+        "sheet": {
+          "x": 1380,
+          "y": 0,
+          "width": 540,
+          "height": 1113
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "preview",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "eyes and family keep actual readable labels",
+      "life-preview: no horizontal page overflow",
+      "personality and initial relation are explicit Chinese fields",
+      "relation-preview: no horizontal page overflow",
+      "complete-初始目标: no horizontal page overflow",
+      "complete-初始意图: no horizontal page overflow",
+      "nonempty initial goals and intentions remain complete and readable",
+      "mode edits preserve original unknown siblings and relation data",
+      "preview performs analysis only and never activation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-life-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-relation-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-complete-初始目标.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-complete-初始意图.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-preview-final/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "preparation",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "step4 retains one visible heading and four steps",
+      "failed-preparation: no horizontal page overflow",
+      "blocked stages have no repeated normal-page notes",
+      "failed-preparation-bottom: no horizontal page overflow",
+      "creation task uses local centered Dialog and original route",
+      "local-task-dialog: no horizontal page overflow",
+      "local-task-dialog: overlay fits viewport",
+      "opening task never reactivates",
+      "ordinary diagnostics shows actual saved initialization context",
+      "actual-initialization-context: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "e9ac5423-563d-4125-8cb6-33f4aa97e089",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "5dc5854b-ec11-4ca6-9008-4893197882c1"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/health/ready",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-failed-preparation.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-failed-preparation-bottom.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-local-task-dialog.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-actual-initialization-context.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "settings",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-wide-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-wide-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-wide-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 3
+  },
+  {
+    "name": "data",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "all eight data secondary navigation icons exist",
+      "data breadcrumb retains management context",
+      "app-data: no horizontal page overflow",
+      "backup entry scrolls to actual existing business backup controls",
+      "actual-backup: no horizontal page overflow",
+      "data inspection never creates or restores a backup",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-wide-app-data.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-wide-demo-data.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-wide-actual-backup.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 4
+  },
+  {
+    "name": "tasks",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "persona.compile uses Chinese task title and list metadata",
+      "normal subtitle never exposes opaque task ID",
+      "every unknown reason has actual accessible detail",
+      "event-detail: no horizontal page overflow",
+      "event-detail: overlay fits viewport",
+      "normal recovery prose does not expose Runtime/Activity",
+      "human-task-info: no horizontal page overflow",
+      "human-task-info: overlay fits viewport",
+      "associated model record uses current tab and real correlation",
+      "task reading never mutates workflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/persona_compile_INTERNAL_OPAQUE",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20",
+          "correlationId": "original-correlation"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-wide-event-detail.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-wide-human-task-info.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 5
+  },
+  {
+    "name": "empty-pages",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "wardrobe confirmed empty has Demo Leaf and transparent frame",
+      "app-wardrobe: no horizontal page overflow",
+      "wardrobe preparation is inside today strip without standalone progress card",
+      "diary confirmed empty has Demo Leaf and transparent frame",
+      "app-diary: no horizontal page overflow",
+      "memory confirmed empty has Demo Leaf and transparent frame",
+      "app-memory: no horizontal page overflow",
+      "feed confirmed empty has Demo Leaf and transparent frame",
+      "app-feed: no horizontal page overflow",
+      "media confirmed empty has Demo Leaf and transparent frame",
+      "app-media: no horizontal page overflow",
+      "schedule confirmed empty has Demo Leaf and transparent frame",
+      "app-schedule: no horizontal page overflow",
+      "schedule keeps the Demo native date field",
+      "empty-page browsing has no writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "query": {
+          "favorite": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "query": {
+          "status": "active",
+          "aboutOwner": "false",
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "query": {
+          "status": "active",
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "fluctlightId": "",
+          "status": "visible",
+          "q": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "query": {
+          "fluctlightId": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "query": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "scope": "all",
+          "hidden": "false",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/owner-requests",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-diary.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-diary.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-memory.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-memory.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-feed.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-feed.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-media.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-media.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-schedule.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-schedule.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "chat-now-profile",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "chat root follows Demo aligned content width",
+      "app-chat: no horizontal page overflow",
+      "empty day still exposes complete schedule",
+      "now-empty: no horizontal page overflow",
+      "profile large fallback uses real 34px glyph",
+      "profile failure copy has no repeated preparation phrase",
+      "profile: no horizontal page overflow",
+      "normal reads do not create missing Demo state",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-app-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-demo-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-now-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-profile.png"
+    ],
+    "geometry": [
+      {
+        "chat": {
+          "actual": {
+            "x": 350,
+            "y": 102,
+            "width": 1460,
+            "height": 881.828125
+          },
+          "expected": {
+            "x": 350,
+            "y": 102,
+            "width": 1460,
+            "height": 939.828125
+          }
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 7
+  },
+  {
+    "name": "read-failure",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "configuration-read-failure: no horizontal page overflow",
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-configuration-read-failure.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 8
+  },
+  {
+    "name": "purpose",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "role timeout help is shared once with an accessible field reference",
+      "model summary is the only right header item",
+      "app-purpose: no horizontal page overflow",
+      "reading assignments never writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-wide-app-purpose.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-wide-demo-purpose.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 3
+  },
+  {
+    "name": "goals-world",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "goal outcome is not repeated as its motivation",
+      "app-goals: no horizontal page overflow",
+      "app-world: no horizontal page overflow",
+      "goal and world browsing never invents data or writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "query": {
+          "history": "false",
+          "limit": "50"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "query": {
+          "history": "true",
+          "limit": "50"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-app-goals.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-demo-goals.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-app-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-demo-world.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 10
+  },
+  {
+    "name": "people",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "about-you normal page has relationship field and no recursive technical source tree",
+      "edit action retains the source Pencil icon",
+      "app-about: no horizontal page overflow",
+      "source history is a real bounded Sheet",
+      "source uses Chinese reading without raw technical identities",
+      "complete source download preserves unknown values",
+      "source-sheet: no horizontal page overflow",
+      "source-sheet: overlay fits viewport",
+      "closing sources returns to the original trigger",
+      "relation title and real chat entry match intended hierarchy",
+      "relationship revisions are not represented as shared experiences",
+      "app-relationship: no horizontal page overflow",
+      "reading and closing People never writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-app-about.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-demo-about.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-source-sheet.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-app-relationship.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-demo-relationship.png"
+    ],
+    "geometry": [
+      {
+        "sheet": {
+          "x": 808,
+          "y": 0,
+          "width": 540,
+          "height": 925
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 11
+  },
+  {
+    "name": "preview",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "eyes and family keep actual readable labels",
+      "life-preview: no horizontal page overflow",
+      "personality and initial relation are explicit Chinese fields",
+      "relation-preview: no horizontal page overflow",
+      "complete-初始目标: no horizontal page overflow",
+      "complete-初始意图: no horizontal page overflow",
+      "nonempty initial goals and intentions remain complete and readable",
+      "mode edits preserve original unknown siblings and relation data",
+      "preview performs analysis only and never activation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-life-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-relation-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-complete-初始目标.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-complete-初始意图.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-preview-final/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "preparation",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "step4 retains one visible heading and four steps",
+      "failed-preparation: no horizontal page overflow",
+      "blocked stages have no repeated normal-page notes",
+      "failed-preparation-bottom: no horizontal page overflow",
+      "creation task uses local centered Dialog and original route",
+      "local-task-dialog: no horizontal page overflow",
+      "local-task-dialog: overlay fits viewport",
+      "opening task never reactivates",
+      "ordinary diagnostics shows actual saved initialization context",
+      "actual-initialization-context: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "90f044be-4897-45f9-95ee-119c976ee612",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "bc0c15e1-faf1-4e53-9327-0147193799e2"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/health/ready",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-failed-preparation.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-failed-preparation-bottom.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-local-task-dialog.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-actual-initialization-context.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 5
+  },
+  {
+    "name": "settings",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-desktop-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-desktop-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-desktop-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 14
+  },
+  {
+    "name": "data",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "all eight data secondary navigation icons exist",
+      "data breadcrumb retains management context",
+      "app-data: no horizontal page overflow",
+      "backup entry scrolls to actual existing business backup controls",
+      "actual-backup: no horizontal page overflow",
+      "data inspection never creates or restores a backup",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-desktop-app-data.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-desktop-demo-data.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-desktop-actual-backup.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 15
+  },
+  {
+    "name": "tasks",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "persona.compile uses Chinese task title and list metadata",
+      "normal subtitle never exposes opaque task ID",
+      "every unknown reason has actual accessible detail",
+      "event-detail: no horizontal page overflow",
+      "event-detail: overlay fits viewport",
+      "normal recovery prose does not expose Runtime/Activity",
+      "human-task-info: no horizontal page overflow",
+      "human-task-info: overlay fits viewport",
+      "associated model record uses current tab and real correlation",
+      "task reading never mutates workflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/persona_compile_INTERNAL_OPAQUE",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20",
+          "correlationId": "original-correlation"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-desktop-event-detail.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-desktop-human-task-info.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 16
+  },
+  {
+    "name": "empty-pages",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "wardrobe confirmed empty has Demo Leaf and transparent frame",
+      "app-wardrobe: no horizontal page overflow",
+      "wardrobe preparation is inside today strip without standalone progress card",
+      "diary confirmed empty has Demo Leaf and transparent frame",
+      "app-diary: no horizontal page overflow",
+      "memory confirmed empty has Demo Leaf and transparent frame",
+      "app-memory: no horizontal page overflow",
+      "feed confirmed empty has Demo Leaf and transparent frame",
+      "app-feed: no horizontal page overflow",
+      "media confirmed empty has Demo Leaf and transparent frame",
+      "app-media: no horizontal page overflow",
+      "schedule confirmed empty has Demo Leaf and transparent frame",
+      "app-schedule: no horizontal page overflow",
+      "schedule keeps the Demo native date field",
+      "empty-page browsing has no writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "query": {
+          "favorite": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "query": {
+          "status": "active",
+          "aboutOwner": "false",
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "query": {
+          "status": "active",
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "fluctlightId": "",
+          "status": "visible",
+          "q": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "query": {
+          "fluctlightId": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "query": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "scope": "all",
+          "hidden": "false",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/owner-requests",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-diary.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-diary.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-memory.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-memory.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-feed.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-feed.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-media.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-media.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-schedule.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-schedule.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 6
+  },
+  {
+    "name": "chat-now-profile",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "chat root follows Demo aligned content width",
+      "app-chat: no horizontal page overflow",
+      "empty day still exposes complete schedule",
+      "now-empty: no horizontal page overflow",
+      "profile large fallback uses real 34px glyph",
+      "profile failure copy has no repeated preparation phrase",
+      "profile: no horizontal page overflow",
+      "normal reads do not create missing Demo state",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-app-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-demo-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-now-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-profile.png"
+    ],
+    "geometry": [
+      {
+        "chat": {
+          "actual": {
+            "x": 252,
+            "y": 94,
+            "width": 1062,
+            "height": 796.828125
+          },
+          "expected": {
+            "x": 252,
+            "y": 94,
+            "width": 1062,
+            "height": 854.828125
+          }
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 18
+  },
+  {
+    "name": "read-failure",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "configuration-read-failure: no horizontal page overflow",
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-configuration-read-failure.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 19
+  },
+  {
+    "name": "purpose",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "role timeout help is shared once with an accessible field reference",
+      "model summary is the only right header item",
+      "app-purpose: no horizontal page overflow",
+      "reading assignments never writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-desktop-app-purpose.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-desktop-demo-purpose.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 7
+  },
+  {
+    "name": "goals-world",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "goal outcome is not repeated as its motivation",
+      "app-goals: no horizontal page overflow",
+      "app-world: no horizontal page overflow",
+      "goal and world browsing never invents data or writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "query": {
+          "history": "false",
+          "limit": "50"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "query": {
+          "history": "true",
+          "limit": "50"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-app-goals.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-demo-goals.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-app-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-demo-world.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 21
+  },
+  {
+    "name": "people",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "about-you normal page has relationship field and no recursive technical source tree",
+      "edit action retains the source Pencil icon",
+      "app-about: no horizontal page overflow",
+      "source history is a real bounded Sheet",
+      "source uses Chinese reading without raw technical identities",
+      "complete source download preserves unknown values",
+      "source-sheet: no horizontal page overflow",
+      "source-sheet: overlay fits viewport",
+      "closing sources returns to the original trigger",
+      "relation title and real chat entry match intended hierarchy",
+      "relationship revisions are not represented as shared experiences",
+      "app-relationship: no horizontal page overflow",
+      "reading and closing People never writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/npcs",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/actor-context/human-fixture-owner",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-app-about.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-demo-about.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-source-sheet.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-app-relationship.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-demo-relationship.png"
+    ],
+    "geometry": [
+      {
+        "sheet": {
+          "x": 16,
+          "y": 0,
+          "width": 374,
+          "height": 844
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 22
+  },
+  {
+    "name": "preview",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "eyes and family keep actual readable labels",
+      "life-preview: no horizontal page overflow",
+      "personality and initial relation are explicit Chinese fields",
+      "relation-preview: no horizontal page overflow",
+      "complete-初始目标: no horizontal page overflow",
+      "complete-初始意图: no horizontal page overflow",
+      "nonempty initial goals and intentions remain complete and readable",
+      "mode edits preserve original unknown siblings and relation data",
+      "preview performs analysis only and never activation",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/analysis",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "json": {
+            "schema_version": 2,
+            "core_persona": {
+              "schema_version": 1,
+              "identity": {
+                "name": "雨禾",
+                "nickname": null,
+                "gender": null,
+                "age": null,
+                "occupation": null,
+                "background_story": null,
+                "notes": null,
+                "timezone": "Asia/Shanghai"
+              },
+              "personality": {},
+              "behavioral_policy": {},
+              "life_profile": {
+                "appearance": {
+                  "description": null
+                },
+                "social_background": {},
+                "preferences": {},
+                "life_habits": [],
+                "recurring_commitments": [],
+                "relationship_seeds": [],
+                "character_constraints": [],
+                "media_preferences": {}
+              },
+              "personality_system": {
+                "mode": "single"
+              },
+              "extensions": {}
+            },
+            "developing_self": {
+              "claims": []
+            },
+            "initial_relationships": [],
+            "initial_goals": [],
+            "initial_intentions": [],
+            "extensions": {}
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-life-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-relation-preview.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-complete-初始目标.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-complete-初始意图.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-preview-final/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "preparation",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "complete empty world has no pointless reread",
+      "empty-world: no horizontal page overflow",
+      "step4 retains one visible heading and four steps",
+      "failed-preparation: no horizontal page overflow",
+      "blocked stages have no repeated normal-page notes",
+      "failed-preparation-bottom: no horizontal page overflow",
+      "creation task uses local centered Dialog and original route",
+      "local-task-dialog: no horizontal page overflow",
+      "local-task-dialog: overlay fits viewport",
+      "opening task never reactivates",
+      "ordinary diagnostics shows actual saved initialization context",
+      "actual-initialization-context: no horizontal page overflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "world",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {
+          "kind": "character_template",
+          "published": "true"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlight-creations/activate",
+        "query": {},
+        "method": "POST",
+        "body": {
+          "requestId": "513f27c1-bfc3-4eea-82f0-1002c63247f0",
+          "initializationMode": "blank_slate",
+          "name": "林晚",
+          "initializationTimezone": "Asia/Shanghai"
+        }
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "PUT",
+        "body": {
+          "expectedRevision": 0,
+          "name": "日常世界",
+          "background": "日常生活，具体地点和经历将在相处中逐渐补充。",
+          "reason": "为新角色建立默认生活世界",
+          "idempotencyKey": "0a2f1657-827e-4130-9d5f-18add859f4fd"
+        }
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/actor-groups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/pending/count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/resources",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/studio/previews",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/sidebar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/media",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/diary",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/nearby",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world/templates",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/desires",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/reflections",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/autonomy-policy",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/goals",
+        "query": {
+          "history": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/display-avatar",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/lifecycle",
+        "query": {
+          "limit": "100",
+          "fluctlightId": "creation-character-1"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/health/ready",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/creation-character-1/visual-identity/timeline",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/r21-original-task",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-empty-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-failed-preparation.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-failed-preparation-bottom.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-local-task-dialog.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-actual-initialization-context.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 9
+  },
+  {
+    "name": "settings",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-mobile-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-mobile-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-mobile-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 25
+  },
+  {
+    "name": "data",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "all eight data secondary navigation icons exist",
+      "data breadcrumb retains management context",
+      "app-data: no horizontal page overflow",
+      "backup entry scrolls to actual existing business backup controls",
+      "actual-backup: no horizontal page overflow",
+      "data inspection never creates or restores a backup",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/ops/backups",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-mobile-app-data.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-mobile-demo-data.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-mobile-actual-backup.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 26
+  },
+  {
+    "name": "tasks",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "persona.compile uses Chinese task title and list metadata",
+      "normal subtitle never exposes opaque task ID",
+      "every unknown reason has actual accessible detail",
+      "event-detail: no horizontal page overflow",
+      "event-detail: overlay fits viewport",
+      "normal recovery prose does not expose Runtime/Activity",
+      "human-task-info: no horizontal page overflow",
+      "human-task-info: overlay fits viewport",
+      "associated model record uses current tab and real correlation",
+      "task reading never mutates workflow",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostics/tasks/persona_compile_INTERNAL_OPAQUE",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/workflow-controls/original-workflow",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20",
+          "correlationId": "original-correlation"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "correlationId": "original-correlation",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-mobile-event-detail.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-mobile-human-task-info.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 27
+  },
+  {
+    "name": "empty-pages",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "wardrobe confirmed empty has Demo Leaf and transparent frame",
+      "app-wardrobe: no horizontal page overflow",
+      "wardrobe preparation is inside today strip without standalone progress card",
+      "diary confirmed empty has Demo Leaf and transparent frame",
+      "app-diary: no horizontal page overflow",
+      "memory confirmed empty has Demo Leaf and transparent frame",
+      "app-memory: no horizontal page overflow",
+      "feed confirmed empty has Demo Leaf and transparent frame",
+      "app-feed: no horizontal page overflow",
+      "media confirmed empty has Demo Leaf and transparent frame",
+      "app-media: no horizontal page overflow",
+      "schedule confirmed empty has Demo Leaf and transparent frame",
+      "app-schedule: no horizontal page overflow",
+      "schedule keeps the Demo native date field",
+      "empty-page browsing has no writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/diary",
+        "query": {
+          "favorite": "false",
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/memories",
+        "query": {
+          "status": "active",
+          "aboutOwner": "false",
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/reflections",
+        "query": {
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/self-claims",
+        "query": {
+          "status": "active",
+          "limit": "30"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-feed",
+        "query": {
+          "fluctlightId": "",
+          "status": "visible",
+          "q": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/moment-suggestions",
+        "query": {
+          "fluctlightId": "",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/media-library",
+        "query": {
+          "fluctlightId": "fluctlight-fixture-one",
+          "scope": "all",
+          "hidden": "false",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/owner-requests",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {
+          "from": "2026-10-30",
+          "to": "2026-10-30"
+        },
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-wardrobe.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-diary.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-diary.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-memory.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-memory.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-feed.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-feed.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-media.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-media.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-schedule.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-schedule.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 10
+  },
+  {
+    "name": "chat-now-profile",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "chat root follows Demo aligned content width",
+      "app-chat: no horizontal page overflow",
+      "empty day still exposes complete schedule",
+      "now-empty: no horizontal page overflow",
+      "profile large fallback uses real 34px glyph",
+      "profile failure copy has no repeated preparation phrase",
+      "profile: no horizontal page overflow",
+      "normal reads do not create missing Demo state",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/conversation",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory",
+        "query": {
+          "kind": "wearable",
+          "state": "current",
+          "limit": "100",
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/wardrobe",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/outfits",
+        "query": {
+          "cursor": ""
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/tags",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/schedules",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/detail",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-app-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-demo-chat.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-now-empty.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-profile.png"
+    ],
+    "geometry": [
+      {
+        "chat": {
+          "actual": {
+            "x": 17,
+            "y": 81,
+            "width": 356,
+            "height": 1371.609375
+          },
+          "expected": {
+            "x": 17,
+            "y": 81,
+            "width": 356,
+            "height": 1419.171875
+          }
+        }
+      }
+    ],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 29
+  },
+  {
+    "name": "read-failure",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "configuration-read-failure: no horizontal page overflow",
+      "saved/default actual KEV values remain truthful",
+      "endpoint is directly visible without opening a disclosure",
+      "app-kev: no horizontal page overflow",
+      "clean config retains safe footer without new admission",
+      "clean-footer: no horizontal page overflow",
+      "discard returns original zero and never saves Demo defaults",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-configuration-read-failure.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-app-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-demo-kev.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-clean-footer.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 30
+  },
+  {
+    "name": "purpose",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "role timeout help is shared once with an accessible field reference",
+      "model summary is the only right header item",
+      "app-purpose: no horizontal page overflow",
+      "reading assignments never writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/configuration-catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/settings/agents",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-mobile-app-purpose.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-mobile-demo-purpose.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-final-targeted/report.json",
+    "source_record_index": 11
+  },
+  {
+    "name": "goals-world",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "goal outcome is not repeated as its motivation",
+      "app-goals: no horizontal page overflow",
+      "app-world: no horizontal page overflow",
+      "goal and world browsing never invents data or writes",
+      "no uncaught browser exception"
+    ],
+    "requests": [
+      {
+        "path": "/api/fluctlights",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/notifications/unread-count",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "query": {
+          "history": "false",
+          "limit": "50"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/goals",
+        "query": {
+          "history": "true",
+          "limit": "50"
+        },
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world",
+        "query": {},
+        "method": "GET",
+        "body": null
+      },
+      {
+        "path": "/api/fluctlights/fluctlight-fixture-one/world/catalog/fixture-world-other",
+        "query": {},
+        "method": "GET",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-app-goals.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-demo-goals.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-app-world.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-demo-world.png"
+    ],
+    "geometry": [],
+    "boundary": "production dist and controlled HTTP; immutable Demo source; local browser state only; no live model/backend writes",
+    "source_report": "evidence/r21/r21-signed/report.json",
+    "source_record_index": 32
+  }
+]

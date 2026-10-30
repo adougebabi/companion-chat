@@ -256,3 +256,23 @@
 .replica-task-detail .replica-task-failure{display:block;padding:14px;border-radius:9px;background:#faf0e8;border:1px solid #ecd9ca;font-size:12px;color:#9d775f;line-height:1.9}
 .replica-task-failure [data-slot=alert-description]{font:inherit;color:inherit;text-wrap:wrap}
 .replica-task-failure>[data-slot=button]{margin-top:10px}
+
+/* r21: the KEV editor keeps the directory values in the Demo's single-card layout. */
+.replica-management .settings-kev-card .replica-settings-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.settings-value-source{flex:none;font-size:10px;line-height:1.8;color:#8c9c7e;background:#f2f5ec;border-radius:5px;padding:3px 7px}
+.replica-management .settings-kev-toggles{display:grid;gap:0}
+.replica-management .settings-kev-toggles>[data-slot=field]{flex-direction:row;align-items:center;justify-content:space-between;gap:16px;padding:15px 0;border-bottom:1px solid #edf0e8;min-height:54px}
+.replica-management .settings-kev-toggles>[data-slot=field]>label{flex:1}
+.replica-management .settings-kev-fields>[data-setting-field='["kev","endpoint"]']{grid-column:1/-1}
+.replica-management .settings-kev-hint{font-size:11px;line-height:1.8;color:#93a085;margin:8px 0 0}
+.react-workspace .replica-management .settings-save-bar{padding:16px 0;border:0;border-top:1px solid #e2e7da;border-radius:0;box-shadow:none;background:transparent;gap:10px}
+.replica-management .settings-save-bar>.settings-discard,.replica-management .settings-save-bar>.settings-save{min-height:36px;height:auto;white-space:normal}
+.replica-data-summary-actions{display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+.replica-data-summary-actions>span{font-size:11px;color:#93a085;line-height:1.8}
+.replica-data-domain [data-backup-heading]{scroll-margin-top:24px}
+.replica-data-domain .replica-management-nav svg{width:16px;height:16px;flex:none}
+@media(max-width:700px){.replica-management .settings-kev-card .replica-settings-section-head{flex-wrap:wrap}.replica-management .settings-save-bar>.settings-discard,.replica-management .settings-save-bar>.settings-save{min-height:44px}.replica-data-summary-actions{align-items:flex-start;flex-direction:column}}
+
+.replica-model-summary{margin-left:auto;align-self:flex-start;padding-top:3px}
+.replica-management .replica-model-role{padding:18px 0}
+.replica-model-role:first-of-type{border-top:0}

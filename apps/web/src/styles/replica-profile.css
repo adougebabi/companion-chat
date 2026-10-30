@@ -477,6 +477,7 @@
   flex: none;
   border-radius: 50%;
 }
+.replica-profile .avatar-xl [data-slot="avatar-fallback"] { font-size:inherit; }
 .replica-profile .profile-main-tabs {
   display: flex;
   flex-direction: column;
@@ -775,7 +776,7 @@
   .replica-profile .avatar-xl {
     width: 80px;
     height: 80px;
-    font-size: 28px;
+    font-size: 34px;
   }
   .replica-profile .companion-profile-intro h2 {
     font-size: 23px;

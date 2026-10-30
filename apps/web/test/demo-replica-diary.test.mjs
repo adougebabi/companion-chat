@@ -184,6 +184,7 @@ test("Diary initial read selects a real entry exactly once, preserves original b
   const e = await mount(empty);
   try {
     assert.match(e.host.textContent, /日记本还是空的/);
+    assert.ok(e.host.querySelector('[data-empty-variant="page"] [data-slot="empty-icon"] svg'));
     assert.equal(e.host.querySelector('[aria-label="日记正文"]'), null);
   } finally {
     await e.dispose();

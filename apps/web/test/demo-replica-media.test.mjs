@@ -611,6 +611,8 @@ test("empty media, visual, avatar and image history are honest without fake seed
   const f = await fixture({ scenario: "empty" });
   try {
     assert.match(f.v.host.textContent, /还没有这样的画面/);
+    assert.ok(f.v.host.querySelector('[data-empty-variant="page"] [data-slot="empty-icon"] svg'));
+    assert.equal(f.v.host.querySelector('[data-empty-variant="page"]').closest('[data-slot="card"]'),null);
     await tab(f, "视觉身份");
     assert.match(f.v.host.textContent, /尚未建立|从第一个视觉候选开始/);
     assert.equal(f.v.host.querySelector(".r-identity-image img"), null);

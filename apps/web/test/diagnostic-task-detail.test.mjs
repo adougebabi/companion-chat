@@ -10,13 +10,16 @@ const button=(host,text)=>[...host.querySelectorAll('button')].find(node=>node.t
 async function tab(view,label){await act(async()=>[...document.querySelectorAll('[role=tab]')].find(node=>node.textContent.trim().startsWith(label)).dispatchEvent(new window.MouseEvent('mousedown',{bubbles:true,button:0})));await view.flush();}
 function workspace(){const state=proxy({session:{actorId:'diagnostic-task-owner'},characters:[{id:'A',name:'原角色'}]});return {state,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),navigatePath(){},services:{}};}
 test('task status labels never expose inherited object properties for unknown wire values',async()=>{
- const {taskStatusLabel,taskEventText}=await vite.ssrLoadModule('/src/approved-ui/task-presentation.mjs');
+ const {taskStatusLabel,taskEventText,taskRecoveryStrategy,taskTypeLabel}=await vite.ssrLoadModule('/src/approved-ui/task-presentation.mjs');
  for(const status of ['constructor','toString','__proto__','hasOwnProperty'])assert.equal(taskStatusLabel(status),'状态待确认');
  assert.equal(taskStatusLabel('running'),'进行中');assert.equal(taskStatusLabel('实际扩展状态'),'实际扩展状态');
  assert.equal(taskEventText({event_type:'lifecycle.wardrobe.started',status:'started'}),'穿搭准备 · 已开始');
  assert.equal(taskEventText({event_type:'lifecycle.wardrobe.failed',status:'failed'}),'穿搭准备 · 执行失败');
  assert.equal(taskEventText({event_type:'lifecycle.wardrobe.started',status:'running'}),'穿搭准备 · 已开始 · 执行中');
  assert.equal(taskEventText({status:'queued'}),'排队中记录');
+ for(const action of ['constructor','toString','__proto__'])assert.equal(taskRecoveryStrategy({allowed_actions:[action]}),'当前没有可用的通用恢复操作，可重新读取原任务状态。');
+ assert.match(taskRecoveryStrategy({allowed_actions:['constructor','restart']}),/^当前支持重试原任务；/);
+ for(const kind of ['constructor','toString','__proto__'])assert.equal(taskTypeLabel({kind}),'其他后台任务');
 });
 for(const presentation of ['dialog','sheet'])test(`${presentation} task recovery is owned once and portaled outside its scrolling body across tabs`,async()=>{
  const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace();let workflowReads=0,modelReads=0;const writes=[];
@@ -27,7 +30,7 @@ for(const presentation of ['dialog','sheet'])test(`${presentation} task recovery
   const outer=document.querySelector('[role=dialog]'),body=outer.querySelector(presentation==='sheet'?'.creation-task-sheet-body':'.replica-dialog-body'),footer=outer.querySelector(`[data-slot=${presentation==='sheet'?'sheet':'dialog'}-footer]`);
   assert.ok(footer);assert.equal(body.contains(footer),false);assert.equal(outer.querySelector('[role=tab][data-state=active]').textContent,'执行阶段');assert.match(outer.textContent,/原角色 · 已尝试 2 次/);assert.equal(outer.querySelector('[role=progressbar]'),null);assert.ok(button(footer,'重试任务'));assert.equal(body.querySelector('[data-slot=card]'),null);
   await tab(view,'执行记录');assert.match(outer.textContent,/执行记录 已读取 2/);assert.deepEqual([...outer.querySelectorAll('.replica-task-history time')].map(node=>node.dateTime),['2026-10-30T01:00:00Z','2026-10-30T01:02:00Z']);const events=[...outer.querySelectorAll('.replica-task-history h3')].map(node=>node.textContent);assert.ok(events[0].includes('09:00:00'));assert.ok(events[1].includes('09:02:00'));
-  await tab(view,'任务信息');const link=[...outer.querySelectorAll('a')].find(node=>node.textContent.trim()==='查看关联模型调用');assert.ok(link);assert.ok(outer.querySelector('[role=tabpanel][data-state=active]').contains(link));const route=new URLSearchParams(link.hash.split('?')[1]);assert.equal(route.get('correlationId'),'real correlation');assert.match(route.get('returnTo'),/returnTo=/);await tab(view,'执行阶段');assert.equal(workflowReads,1);assert.equal(modelReads,0);
+  await tab(view,'任务信息');const link=[...outer.querySelectorAll('a')].find(node=>node.textContent.trim()==='查看关联模型调用');assert.ok(link);assert.equal(link.getAttribute('target'),null);assert.ok(outer.querySelector('[role=tabpanel][data-state=active]').contains(link));const route=new URLSearchParams(link.hash.split('?')[1]);assert.equal(route.get('correlationId'),'real correlation');assert.match(route.get('returnTo'),/returnTo=/);await tab(view,'执行阶段');assert.equal(workflowReads,1);assert.equal(modelReads,0);
   const trigger=button(footer,'重试任务');await view.click(trigger);let confirmation=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(confirmation.querySelector('textarea'),'原任务恢复');await view.click(button(confirmation,'取消'));await view.flush();assert.equal(document.activeElement,trigger);
   await view.click(trigger);confirmation=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(confirmation.querySelector('textarea'),'原任务恢复');await view.click(button(confirmation,'确认重试任务'));assert.equal(writes.length,1);await view.click(confirmation.querySelector('[data-slot=dialog-close]'));await view.click(button(footer,'核对或重试原提交'));assert.equal(writes.length,2);assert.deepEqual(writes[1],writes[0]);assert.match(footer.textContent,/受理不表示执行完成/);assert.equal(button(footer,'重试任务').disabled,true);
  }finally{await view.dispose();}
@@ -42,4 +45,27 @@ test('task checkpoint reset uses the actual completed history point and keeps it
   const select=outer.querySelector('[aria-label="重置检查点"]');assert.ok(select);await view.click(select);const option=[...document.querySelectorAll('[role=option]')].find(node=>node.textContent.includes('事件 42'));assert.ok(option);assert.equal([...document.querySelectorAll('[role=option]')].some(node=>node.textContent.includes('事件 43')),false);await view.click(option);await tab(view,'执行阶段');assert.equal(button(footer,'从检查点重新执行').disabled,false);await view.click(button(footer,'从检查点重新执行'));
   const confirmation=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(confirmation.querySelector('textarea'),'核对后的检查点');await view.click(button(confirmation,'确认从检查点重新执行'));assert.equal(writes.length,1);assert.equal(writes[0].body.historyPoint,42);assert.equal(writes[0].body.sourceRunId,'reset-run');assert.equal(writes[0].body.expectedRevision,12);assert.equal(confirmation.querySelector('[data-slot=dialog-close]'),null);assert.equal(button(confirmation,'取消').disabled,true);await act(async()=>finish());await view.flush();assert.match(footer.textContent,/受理不表示执行完成/);
  }finally{finish?.();await view.dispose();}
+});
+
+test('readable task title and subtitle keep exact IDs and raw recovery semantics in technical details',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace();
+ const raw={task_id:'persona_compile_exact_internal_id',kind:'persona.compile',workflow_id:'raw-workflow',status:'failed',runs:3,created_at:'2026-10-30T01:00:00Z',steps:[{id:'exact-event-id',name:'persona_compile',status:'failed',reason_code:'unknown_failure_code',extra:{falseValue:false,zero:0}}]};
+ w.services.operationsClient={task:async()=>raw};w.services.diagnosticsClient={workflow:async()=>({intent:{revision:1,status:'failed'},runtime_state:'available',runtime:{run_id:'raw-run',status:'failed'},control_semantics:'Activity retry runs in Runtime',allowed_actions:[],commands:[]})};
+ const v=await mountReact(vite,Record,{workspace:w,props:{taskId:raw.task_id,onClose(){}}});
+ try{const outer=document.querySelector('[role=dialog]'),description=outer.querySelector('[data-slot=dialog-description]');assert.match(outer.querySelector('[data-slot=dialog-title]').textContent,/人格资料整理/);assert.match(description.textContent,/人格资料整理 · 需要处理/);assert.doesNotMatch(description.textContent,/persona_compile_exact_internal_id/);
+ await tab(v,'执行记录');assert.match(outer.textContent,/可展开下方「本条记录详情」/);const detail=outer.querySelector('.replica-task-event-details');assert.ok(detail);await v.click(detail.querySelector('summary'));assert.equal(detail.open,true);assert.deepEqual(JSON.parse(detail.querySelector('pre').textContent),raw.steps[0]);assert.equal(detail.querySelector('pre').style.maxHeight,'240px');
+ await tab(v,'任务信息');assert.doesNotMatch(outer.querySelector('.replica-task-times[data-continued]+div dl').textContent,/Activity|Runtime/);await v.click(button(outer,'更多任务记录'));await v.click(button(outer,'完整任务信息与关联来源'));assert.match(outer.textContent,/persona_compile_exact_internal_id/);await v.click(button(outer,'管理命令与技术详情'));assert.match(outer.textContent,/Activity retry runs in Runtime/);
+ }finally{await v.dispose();}
+});
+test('task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery',async()=>{
+ const {taskEventReason,taskTypeLabel,taskSourceLabel}=await vite.ssrLoadModule('/src/approved-ui/task-presentation.mjs');
+ assert.match(taskEventReason({reason_code:'initialization_role_unconfigured'}),/通用模型/);assert.match(taskEventReason({reason:'已保留真实原因'}),/已保留真实原因/);assert.match(taskEventReason({reason:'unrecognized raw cause'}),/本条记录详情/);assert.equal(taskTypeLabel({kind:'unknown.internal'}),'其他后台任务');assert.equal(taskSourceLabel({status:'queued',runs:0}),'查看初始衣柜准备');
+});
+
+test('queued unattempted task uses a preparation link while retaining the backend domain target',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace();let destination='';w.navigatePath=path=>destination=path;
+ w.services.operationsClient={task:async()=>({task_id:'queued-original',kind:'wardrobe.initialize',fluctlight_id:'A',workflow_id:'queued-workflow',status:'queued',runs:0,steps:[]})};
+ w.services.diagnosticsClient={workflow:async()=>({intent:{status:'queued'},runtime_state:'unavailable',allowed_actions:[],commands:[],recovery:{mode:'domain_recovery',href:'/c/A/life/wardrobe',label:'恢复初始衣柜准备'}})};
+ const v=await mountReact(vite,Record,{workspace:w,props:{taskId:'queued-original',onClose(){}}});
+ try{const outer=document.querySelector('[role=dialog]');assert.match(outer.textContent,/已尝试 0 次/);assert.equal(button(outer,'恢复初始衣柜准备'),undefined);await v.click(button(outer,'查看初始衣柜准备'));assert.equal(destination,'/c/A/life/wardrobe');}finally{await v.dispose();}
 });

@@ -1,0 +1,1203 @@
+{
+  "policy": "All image files external; no screenshots committed. Supplied before images are indexed in reference/r21/manifest.json.",
+  "shots": [
+    {
+      "case": "people",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-app-about.png",
+      "sha256": "085314887ec788165d8bad1c8bf2baea850cf9f7c4740447e9bd1bffc364d864"
+    },
+    {
+      "case": "people",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-demo-about.png",
+      "sha256": "bdcb2f0068d2c74fa81dc8142bb702e2a3b3ccdf63cd4b3868f9e14c877dc9ad"
+    },
+    {
+      "case": "people",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-source-sheet.png",
+      "sha256": "249cc7eb71b585920e3ca1b023a35963a2caa7610b510637f7a7d2a677a04b1d"
+    },
+    {
+      "case": "people",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-app-relationship.png",
+      "sha256": "8125c88402daba737ac501e266350e2398c1be53a5049277864caf7638e28186"
+    },
+    {
+      "case": "people",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-wide-demo-relationship.png",
+      "sha256": "d347804a0407a033dabb9101f8a9e48adca7a2955779ad7ac84aef3bd63fd8ee"
+    },
+    {
+      "case": "preview",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-empty-world.png",
+      "sha256": "415bda2a2c3ce27e1e863eec8ad2cfc48e68d7cc189b5c8a0eebfba524606ff6"
+    },
+    {
+      "case": "preview",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-life-preview.png",
+      "sha256": "a65c51ce5965413fff81732d21418160794bcfb9ca924bd1ec56c57a11d7a742"
+    },
+    {
+      "case": "preview",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-relation-preview.png",
+      "sha256": "db737674911c1d1b1cdd2346197e659db7251886fed7f18e3ee4adb2fce5aedd"
+    },
+    {
+      "case": "preview",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-complete-初始目标.png",
+      "sha256": "04da8be80842b6726cc4df339cfefd13568c563b5126158a28c0d96cb88d9118"
+    },
+    {
+      "case": "preview",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-wide-complete-初始意图.png",
+      "sha256": "62ba6ed77d89f3ade66bc8bba851676cf0ce7c9007e2599f04b3dfa34c184ddd"
+    },
+    {
+      "case": "preparation",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-empty-world.png",
+      "sha256": "415bda2a2c3ce27e1e863eec8ad2cfc48e68d7cc189b5c8a0eebfba524606ff6"
+    },
+    {
+      "case": "preparation",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-failed-preparation.png",
+      "sha256": "47c027b59260133005b7598adc899f547fe949e196121aa412cef3b48a3f5f3a"
+    },
+    {
+      "case": "preparation",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-failed-preparation-bottom.png",
+      "sha256": "47c027b59260133005b7598adc899f547fe949e196121aa412cef3b48a3f5f3a"
+    },
+    {
+      "case": "preparation",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-local-task-dialog.png",
+      "sha256": "3b7d2ba84b742ce36ea6aa93a528e3a517e3d02a3d4df04e41aa3085e9f58e33"
+    },
+    {
+      "case": "preparation",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-wide-actual-initialization-context.png",
+      "sha256": "f25bf5193c9beb29f55a80834c7b8dc2f133656fd9543856db7d8f32ffbb53eb"
+    },
+    {
+      "case": "settings",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-wide-app-kev.png",
+      "sha256": "49d93c1298b455bae85141ac4dcb3dd69a5cd83b75b6dac8d4ec0d38e970c34f"
+    },
+    {
+      "case": "settings",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-wide-demo-kev.png",
+      "sha256": "83c5c6eaa6002c7a3d74cec339e00a01882d63fdd013361e1933e26534fec91d"
+    },
+    {
+      "case": "settings",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-wide-clean-footer.png",
+      "sha256": "8f4d7d3ec3da43f4f82ddfcc17a5ceb88c479ebe0190e86c001e11584c602aa4"
+    },
+    {
+      "case": "data",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-wide-app-data.png",
+      "sha256": "3f3d64948cc47b8127e9e5a40d9c8c75f60b6d6603df6c22e4612e318ef887c6"
+    },
+    {
+      "case": "data",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-wide-demo-data.png",
+      "sha256": "d43e41266461ba0fd9c48c488b84e3608c20eae6729b7c7777308c8454b25810"
+    },
+    {
+      "case": "data",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-wide-actual-backup.png",
+      "sha256": "f212548e09931b9cdcde7676f278a4ee70075c24748e04dbb1a514e23138e343"
+    },
+    {
+      "case": "tasks",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-wide-event-detail.png",
+      "sha256": "d9733a3f17129cb0e03835de7329af6e4fca81bc1a07136a2d646823dde45a0c"
+    },
+    {
+      "case": "tasks",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-wide-human-task-info.png",
+      "sha256": "472c064ec64a83bc543e8e10905d6ed658cf7c5780fa68095f88323a2ca0e76e"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-wardrobe.png",
+      "sha256": "5decb5e4e5a44e1fba57cbd8119ce9d75698fc1f91af1bfa42bbb38d90828abc"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-wardrobe.png",
+      "sha256": "3ef7f0e9bb6599c7148608878d306d85f75ac5ef3539dc28176bfad7cd143a71"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-diary.png",
+      "sha256": "e986352cb0400e020db2f960e34f8777cd8b3e8a1dbc80cdb6374991941b7866"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-diary.png",
+      "sha256": "7bebc63af623a0800dd1de243a32aa2e05f271695557cf25651ac7e1ac1f428f"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-memory.png",
+      "sha256": "195e9ba30341684ab892fea18f42922637e5bce3d9a78e8e6a516e8b29dccff0"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-memory.png",
+      "sha256": "10ca604bc2fe6246ae9cd4876a7a10cbd22c4b89bc2ce18433de17b5a50fcc9e"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-feed.png",
+      "sha256": "3cb9366b2a53f72b4dc2915cb97c8ce9b20c2c2454cc745f4a0bc503e2bd9aea"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-feed.png",
+      "sha256": "653673e5eee8ba2982d33bc028e24ca7e8b3294fa23a35f59ac1e117e1cc295e"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-media.png",
+      "sha256": "d537f239950b4e41702fa052c4d58f134751e66fb9867dab99aae62fcc14005b"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-media.png",
+      "sha256": "f2e9e8548c70541a9429ab5b8d283378e8239e89b64c63aca681f271030f99a7"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-app-schedule.png",
+      "sha256": "3b06169b8b6f0a7e5b96a6aa8a25d6c9e3ba7e07719f5382bf9749dec384f886"
+    },
+    {
+      "case": "empty-pages",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-wide-demo-schedule.png",
+      "sha256": "7304bbccf50be4778916d0afaca8b36e96a9d001a38abca27137999998ae4598"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-app-chat.png",
+      "sha256": "b19b26c65f68d3400793eed08288d9b8eb2e80e2a01996a31e5c458bc56acb0f"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-demo-chat.png",
+      "sha256": "77ff29bd4fa5f5b2108303476a77da7ec7e0090f2ffc68122f6bdd3e0163f029"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-now-empty.png",
+      "sha256": "d68d8dc356f3ded9b011853a9328e7e29eff450598e0b5f9e9630515148bc4a4"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-wide-profile.png",
+      "sha256": "da6eb241e2782a07bf0db6d8bc6ede31dff3c37daa71bd27a0f0885b197cc391"
+    },
+    {
+      "case": "read-failure",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-configuration-read-failure.png",
+      "sha256": "f96e508379974665cd26d4694bcc5dba424965bfc2c2209f93684035d795b210"
+    },
+    {
+      "case": "read-failure",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-app-kev.png",
+      "sha256": "49d93c1298b455bae85141ac4dcb3dd69a5cd83b75b6dac8d4ec0d38e970c34f"
+    },
+    {
+      "case": "read-failure",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-demo-kev.png",
+      "sha256": "83c5c6eaa6002c7a3d74cec339e00a01882d63fdd013361e1933e26534fec91d"
+    },
+    {
+      "case": "read-failure",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-wide-clean-footer.png",
+      "sha256": "73430202d5cb3839db17ae5884a656d05e5794d9ce9d366404e04f6e498d775c"
+    },
+    {
+      "case": "purpose",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-wide-app-purpose.png",
+      "sha256": "fca7df85cde18ef27cd8b87f80731e0c312bcb1ad53edce5e427634d72b1cb90"
+    },
+    {
+      "case": "purpose",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-wide-demo-purpose.png",
+      "sha256": "55f9b11a5a7eecb08367ff1268a486ce81174375d2ec9404db45c44f207512bc"
+    },
+    {
+      "case": "goals-world",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-app-goals.png",
+      "sha256": "4152be29f32c34789dd405ae3edd204a5a14edacc184237c53f3df7f6d0aa3e3"
+    },
+    {
+      "case": "goals-world",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-demo-goals.png",
+      "sha256": "f46ecf67bd0345fff9c55efa86b7a7d7c9e178c346fd56c51bccf66cd419be3e"
+    },
+    {
+      "case": "goals-world",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-app-world.png",
+      "sha256": "30ba25104e4135bb1ceeb47294b078a9ab55af723551d9bf6ce88a9b30dabf3c"
+    },
+    {
+      "case": "goals-world",
+      "size": "wide",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-wide-demo-world.png",
+      "sha256": "e28983226d21ec64e9388877f36d9a79063acfa742eb94d1d6d54a9ec8c652a2"
+    },
+    {
+      "case": "people",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-app-about.png",
+      "sha256": "6f8d93747eef970688898b16da77cc4bf4350e603663809f3cfb2bc39fe3c0f3"
+    },
+    {
+      "case": "people",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-demo-about.png",
+      "sha256": "dd312f5d729449471e9430df87150da0b9604a98ca4ecf5809a269a017b62002"
+    },
+    {
+      "case": "people",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-source-sheet.png",
+      "sha256": "82222ba56fd384d96dea464b7d7a7164342ffae0f314a9370d50b0eb556800ce"
+    },
+    {
+      "case": "people",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-app-relationship.png",
+      "sha256": "326adb84ca3207cd47d06b5a89a4dfbda71a06736e0d629b6ee8cd25e6e66698"
+    },
+    {
+      "case": "people",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-desktop-demo-relationship.png",
+      "sha256": "b6305bffc7bd8c5fd43ee188964ab4896db5bd94d7e2ccbd28f90f71a6706efb"
+    },
+    {
+      "case": "preview",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-empty-world.png",
+      "sha256": "18ad0f5c68f40182cb7c0fbd06eb0f4ba5c37d90810b428f4ab35f413ed85a96"
+    },
+    {
+      "case": "preview",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-life-preview.png",
+      "sha256": "85865d2a1c46962023fe86c40fe643cdae7f9c863a4a6e3fbff97d3b37f233b1"
+    },
+    {
+      "case": "preview",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-relation-preview.png",
+      "sha256": "7362be4283c31b326f7e01dc59e7eb6d3a88f9b6bbf6978d9907feb7f2d98f3f"
+    },
+    {
+      "case": "preview",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-complete-初始目标.png",
+      "sha256": "964f5bc04d1cf0a5e511dddd23498a768e022caf5b607084094413be3af2d741"
+    },
+    {
+      "case": "preview",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-desktop-complete-初始意图.png",
+      "sha256": "5af308798d1f615d132af9370b8fa37eb6cb4a6a49059628de10ac8ea65c9032"
+    },
+    {
+      "case": "preparation",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-empty-world.png",
+      "sha256": "18ad0f5c68f40182cb7c0fbd06eb0f4ba5c37d90810b428f4ab35f413ed85a96"
+    },
+    {
+      "case": "preparation",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-failed-preparation.png",
+      "sha256": "64a6e93b7447abe0efbf8e99a2af6a973e3eaf9135fcd983c4d29eb4243734b9"
+    },
+    {
+      "case": "preparation",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-failed-preparation-bottom.png",
+      "sha256": "e176380882c365d0e23c685c230c4e25fa5eba30f943dee15f1e1760db4087f0"
+    },
+    {
+      "case": "preparation",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-local-task-dialog.png",
+      "sha256": "5a641c05fed443f062be50d351b960fa6dfac7e24019b708be6a365bb480d3f1"
+    },
+    {
+      "case": "preparation",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-desktop-actual-initialization-context.png",
+      "sha256": "73b95c1503fc38e7f02fe4a849e9df4cb5712c77b7e1daa674cc44bc89e0312b"
+    },
+    {
+      "case": "settings",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-desktop-app-kev.png",
+      "sha256": "af6e919e820e6ffaf7d73396cad4ae728f5ae5700b385a0ca254cc7812d59d06"
+    },
+    {
+      "case": "settings",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-desktop-demo-kev.png",
+      "sha256": "171f4e8dc6ff2510904dea71a6da8be53dd8bdf3dca963a47df4da5278ff8f23"
+    },
+    {
+      "case": "settings",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-desktop-clean-footer.png",
+      "sha256": "b4116e690ed4647f76848cd005290b8d792fe4692f2e1452c9135be3598c37a8"
+    },
+    {
+      "case": "data",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-desktop-app-data.png",
+      "sha256": "086b31b767f31f33820b1599866b4c541660866e6de2167ddc8932eb8ec6a2dc"
+    },
+    {
+      "case": "data",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-desktop-demo-data.png",
+      "sha256": "0d8c37703c6f268eba6b1824893e419286bc155621ad8701f57e42cd4eb91478"
+    },
+    {
+      "case": "data",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-desktop-actual-backup.png",
+      "sha256": "9d3d7c5babe9dea18af4bf0cd701cd572e6244fdbd3ff7db6b333ce478e89f66"
+    },
+    {
+      "case": "tasks",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-desktop-event-detail.png",
+      "sha256": "d5e998cf57320a5a2f92aafa31a9dfd0ff33259596c15bf214ebc40dfe8c4d5e"
+    },
+    {
+      "case": "tasks",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-desktop-human-task-info.png",
+      "sha256": "732f3b5a515b217fdd5f15973df7ff8ebd1c992ff5b05fedbcf91e25a01d3cd1"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-wardrobe.png",
+      "sha256": "2ecd795191451c92950a5f9b62196e862e8949841e736d793f975d52de9a037b"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-wardrobe.png",
+      "sha256": "97090246a092a2d365ffb280ee8fd881ffbfa924927aea4664a084785509810e"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-diary.png",
+      "sha256": "4fea1da34ce3dd8cc5bc2fc2235e925d190003f7b4a339e51b654bf076143d11"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-diary.png",
+      "sha256": "8946dbc651b332595d9ee62e66a5cbe716d1e2b216981a1a8c1884b7a74c4f0b"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-memory.png",
+      "sha256": "010dbbc922428ea8aa1756685159bf95e39027060ac73db544af5c48673675c7"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-memory.png",
+      "sha256": "e4d19e3253591fa671711d08e64b6f96577d6f7bb3b864f61434fefa907974ae"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-feed.png",
+      "sha256": "8d6cbf9cd33b6cb7e0ebe2654584255cc22b7de66a9832faf51d616ed4cb9e8d"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-feed.png",
+      "sha256": "43af0edb252a1320c7c85c1744b7c004aa5b947d5e3556a67e30930fbdd197f2"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-media.png",
+      "sha256": "b0559862a91b80d02ec2a3baea8f7b7a92cb3ccd85e5fdc9a7986de2a204cd2e"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-media.png",
+      "sha256": "ccf28a6649e462ae20c343377fde0a8c3a6df72525bcf42ae8013bbb25813bda"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-app-schedule.png",
+      "sha256": "a7f9ea129a94d48beb7cad5575876a9425845165688646fd4e25f10f5bc45aa7"
+    },
+    {
+      "case": "empty-pages",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-desktop-demo-schedule.png",
+      "sha256": "def83a4cd0ac57819c7831026d5e2f528958d09dbc27e40f1531784e740972c1"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-app-chat.png",
+      "sha256": "a44ce739497dd0f31990f8daa0c66d7caa92dd6059b3eff0aa6ad4066f16d111"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-demo-chat.png",
+      "sha256": "8ebd19370a6b3721b8eaf234b00d57addf5c33f0804827dc78b2e506ac88f860"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-now-empty.png",
+      "sha256": "3708c5ec23431cc34ffd67dd26268560bb03f35f96eef763a3081f148f25e157"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-desktop-profile.png",
+      "sha256": "45e21d4257cdf32c11bde495ae94a63957e700e3254830672073676c2869a6be"
+    },
+    {
+      "case": "read-failure",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-configuration-read-failure.png",
+      "sha256": "fddeb90f2a8baf3c5a92a75df183ce1cea1f388ca0a39985034e236f96cf4cc5"
+    },
+    {
+      "case": "read-failure",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-app-kev.png",
+      "sha256": "81e226fe79fc48e38ae15c14cdc34a4d81527805f00063653dde6fd9f8174fd2"
+    },
+    {
+      "case": "read-failure",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-demo-kev.png",
+      "sha256": "171f4e8dc6ff2510904dea71a6da8be53dd8bdf3dca963a47df4da5278ff8f23"
+    },
+    {
+      "case": "read-failure",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-desktop-clean-footer.png",
+      "sha256": "238b02aa821b83dcb0cb4c6a8cfa2242300d3f9067feb2fb634ecd8abbe1256b"
+    },
+    {
+      "case": "purpose",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-desktop-app-purpose.png",
+      "sha256": "26ebf90752e3c7b6fbf99b53c5c52f5d126a858421fc6710cedf7eeb5374ef0f"
+    },
+    {
+      "case": "purpose",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-desktop-demo-purpose.png",
+      "sha256": "0cc174e1a2a86aa52179f719ac4c050c28058c72b661505d569d8f025107cb38"
+    },
+    {
+      "case": "goals-world",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-app-goals.png",
+      "sha256": "f02d91829df5ad3ab159da648de0a55428bdf4dc2d785d53f72705ec4abcb01a"
+    },
+    {
+      "case": "goals-world",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-demo-goals.png",
+      "sha256": "7d2afe6f191ca2bb0367fb006adf0eb1b98ad71f7a59944022dabd7fba05eda0"
+    },
+    {
+      "case": "goals-world",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-app-world.png",
+      "sha256": "2231780a010ef91a7ebf8b1bae18b753b3afed46956ed109dbc7302c49ce3a00"
+    },
+    {
+      "case": "goals-world",
+      "size": "desktop",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-desktop-demo-world.png",
+      "sha256": "1bfd10832bcc27c3e4a9a9b12b63dde105731338d9d2a404e46c65a78c665e6e"
+    },
+    {
+      "case": "people",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-app-about.png",
+      "sha256": "1f89739ac277b95a91d044e3167004656df89ac68f98a2b1da40bd4fbd1c473d"
+    },
+    {
+      "case": "people",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-demo-about.png",
+      "sha256": "90cfad4679d27c3d0bc23386415332feb028e6127598372d2bc9b0928d7fbd77"
+    },
+    {
+      "case": "people",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-source-sheet.png",
+      "sha256": "c50f313c2310f9f73820be5c5ad0db16ab07084bf761ab39e26230b83774c36e"
+    },
+    {
+      "case": "people",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-app-relationship.png",
+      "sha256": "647bca97ca52a1949664046b5de667688f3b2e26d9eddd7a0b6598072599531d"
+    },
+    {
+      "case": "people",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/people-mobile-demo-relationship.png",
+      "sha256": "0125eb4f443548b3bb6581c38f411aed5d535db42d7455218b56934ed41d9c7e"
+    },
+    {
+      "case": "preview",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-empty-world.png",
+      "sha256": "dc4af37abe1681ff6efa2eb71e4ab3a401fa013fef100142328f574629fc9f13"
+    },
+    {
+      "case": "preview",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-life-preview.png",
+      "sha256": "950381752fe88f587e84de012b778a632585358998f738de7ea52663a0a42493"
+    },
+    {
+      "case": "preview",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-relation-preview.png",
+      "sha256": "5689866e8296c5ed8fecabf0a9beba4f1866d81ca1f6d3659f40e166fae74457"
+    },
+    {
+      "case": "preview",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-complete-初始目标.png",
+      "sha256": "27c7307ecb161c83989012ecfb093834bfff1ef2e97d26e5e7699c83aafb4253"
+    },
+    {
+      "case": "preview",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-preview-final/preview-mobile-complete-初始意图.png",
+      "sha256": "869b45557bbad20f5cbb6ccfe92904f47b36e91e5ea2e70f8ca4ab0c32ba99ef"
+    },
+    {
+      "case": "preparation",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-empty-world.png",
+      "sha256": "dc4af37abe1681ff6efa2eb71e4ab3a401fa013fef100142328f574629fc9f13"
+    },
+    {
+      "case": "preparation",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-failed-preparation.png",
+      "sha256": "4b81965d8553959c955ce18ae681c35c575da11d5e3f29f878d329e6df27af3c"
+    },
+    {
+      "case": "preparation",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-failed-preparation-bottom.png",
+      "sha256": "8b75620be9d2a5889e30b1d5f77109df8606b2b4d47b51dda72eb7e57fbf066e"
+    },
+    {
+      "case": "preparation",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-local-task-dialog.png",
+      "sha256": "f74f8efcdb3d3f9ea3fb1498f4654c8953ecbcc7d9d1536d033b84e2ef1eedfb"
+    },
+    {
+      "case": "preparation",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/preparation-mobile-actual-initialization-context.png",
+      "sha256": "a9fe487bc4268d5c710cbc41e3fa924962f5ca775bba9c22a301e7263fe0de61"
+    },
+    {
+      "case": "settings",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-mobile-app-kev.png",
+      "sha256": "b773f6458805f41d1d1f855386f8b04f5f78ed2c8dbd512f82641f280de015c6"
+    },
+    {
+      "case": "settings",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-mobile-demo-kev.png",
+      "sha256": "996e6e234d9e1b5720cf33ca4cb8c75fb610e6eadd2a529e3d208b205c9bf1c5"
+    },
+    {
+      "case": "settings",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/settings-mobile-clean-footer.png",
+      "sha256": "11bddeee0e19bbe37a851340f4317921976862f98ba780d8f8fcb00cb6bf379b"
+    },
+    {
+      "case": "data",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-mobile-app-data.png",
+      "sha256": "64409e1d391900071c40f5c0e8b0a78adeae4ff020a9d84175110e59c481e148"
+    },
+    {
+      "case": "data",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-mobile-demo-data.png",
+      "sha256": "ce56d3295075b44b7e866d3ad6a8fe08e4807c1327b5b59daa571025ffc82525"
+    },
+    {
+      "case": "data",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/data-mobile-actual-backup.png",
+      "sha256": "bd06c14c3a9714b936e3f871ccd26dcc663b8104ff5f7182874cfc65b8ecc637"
+    },
+    {
+      "case": "tasks",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-mobile-event-detail.png",
+      "sha256": "2a37a48d50b347dc2d94d7c28ea6c38e25d12e5471d78122e5355ac94eb8ea31"
+    },
+    {
+      "case": "tasks",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/tasks-mobile-human-task-info.png",
+      "sha256": "951724f5b73a217f977184ed89921922637bfe46fca2ef048949c901189403e5"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-wardrobe.png",
+      "sha256": "5e4db5f5368aa5d556ae84e0f2285449c7d3d7fadfbb796b9a4c2cafce35054c"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-wardrobe.png",
+      "sha256": "9a73268c75d7a9b8d059a7b42d0e1bfc757d063beeab1cd9ab837edb9bbf2b63"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-diary.png",
+      "sha256": "ddf0dd47ad605c75d27cf47e7089c95b7eb6020c6710d38d2db118016e7faf2d"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-diary.png",
+      "sha256": "1b0d6f82b887d8ce393b9f03d507aa729af816bbfa77ad02649215660c567bf3"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-memory.png",
+      "sha256": "8e53c46cd4a69a75ec836e2b9f3f277545a3c3039e79c15bf95276af3433b5db"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-memory.png",
+      "sha256": "7df2c3ac587c6e946df872b73e8c76b02c3e5d9d2fb7ad188f6144771dab7700"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-feed.png",
+      "sha256": "1adeda7330866f88f9a2096dd27a134b32cf26fc088533d3b229da13501e2327"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-feed.png",
+      "sha256": "e8b14d56e8a68e4ecb30cf67fa3a92c0a3de34bcaddddf16bce1547b3e46c953"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-media.png",
+      "sha256": "4c472e8a1fef36244642f674f13980d770d58ec37b90514682de1b02e76e73a8"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-media.png",
+      "sha256": "bc59db45becca90f0612113bc192513b1cd70fdabc4f2001dc252ed248edbf7b"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-app-schedule.png",
+      "sha256": "7f1e17094ef6ff0c8ace49be39cf1a7fdb58fbfcabceaaecb43c0de9f6389203"
+    },
+    {
+      "case": "empty-pages",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/empty-pages-mobile-demo-schedule.png",
+      "sha256": "b131c0c57582e575826381701fd8591c279af4ba99af3642d8268901f3a176bf"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-app-chat.png",
+      "sha256": "85f23a57a3d58d99119125894c83a59ef1aac79f5e6b5236d99b007f7213e2cf"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-demo-chat.png",
+      "sha256": "fa0e1c5232fcaa55b3443d4cbdec74f4b621e0ec894b69c71bef16987360f10e"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-now-empty.png",
+      "sha256": "8c496dee821c5bb1a3abde0879e8c65c2060be5d25ddfa6331b60708dfe4c7c3"
+    },
+    {
+      "case": "chat-now-profile",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/chat-now-profile-mobile-profile.png",
+      "sha256": "8f15373369addb71bb5a7d05cc3c88bccfc3e7fd35a427db977c00e0699be1db"
+    },
+    {
+      "case": "read-failure",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-configuration-read-failure.png",
+      "sha256": "6da85afa8643ffa994998a52e3b473586c51a78892bf3ec3e2407fdefb54acfc"
+    },
+    {
+      "case": "read-failure",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-app-kev.png",
+      "sha256": "b773f6458805f41d1d1f855386f8b04f5f78ed2c8dbd512f82641f280de015c6"
+    },
+    {
+      "case": "read-failure",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-demo-kev.png",
+      "sha256": "996e6e234d9e1b5720cf33ca4cb8c75fb610e6eadd2a529e3d208b205c9bf1c5"
+    },
+    {
+      "case": "read-failure",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/read-failure-mobile-clean-footer.png",
+      "sha256": "11bddeee0e19bbe37a851340f4317921976862f98ba780d8f8fcb00cb6bf379b"
+    },
+    {
+      "case": "purpose",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-mobile-app-purpose.png",
+      "sha256": "ad76f75fc0845f8771e170105c4ecae7547b01ac68d232611bf298d48d29b38d"
+    },
+    {
+      "case": "purpose",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-final-targeted/purpose-mobile-demo-purpose.png",
+      "sha256": "67852ef6175786b597b80f61085f519aa72ee08ecf180af96dfef02bb16e5fb3"
+    },
+    {
+      "case": "goals-world",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-app-goals.png",
+      "sha256": "0c6132e5eef77a82a1079baeb2be983189a293467e6f3b3fcf787a814d726a8f"
+    },
+    {
+      "case": "goals-world",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-demo-goals.png",
+      "sha256": "91b71ce02ce9903b4a245e0e0959f4995e7b283c1c5d42982e238bccf7c94b26"
+    },
+    {
+      "case": "goals-world",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-app-world.png",
+      "sha256": "20443dd0f95e4133ac89b261302fecf8042bab5083cae313ceff3f8ceb0d8402"
+    },
+    {
+      "case": "goals-world",
+      "size": "mobile",
+      "role": "Demo",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r21-shots/r21-signed/goals-world-mobile-demo-world.png",
+      "sha256": "ddfb2f82bfab995cc4b93087eb7d04ddabaf37c540f63b190274845a21e7c1b6"
+    },
+    {
+      "case": "creation-context",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-wide-failure-truth.png",
+      "sha256": "4a4a8a2a6eabb646cbdf4c5373d299fa514c7c9472711b2d4409b7fe288f4e47"
+    },
+    {
+      "case": "creation-context",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-wide-local-task-dialog.png",
+      "sha256": "3be57b6cb3564a8e2bddad3db2e800a229cb2318d2994de9f5093407f64fa9c9"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-wide-failure-truth.png",
+      "sha256": "1292da7a04e677c43aeeeaad6add0fa15e195a63f26d49c9842e53bd64e6286b"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-wide-local-task-dialog.png",
+      "sha256": "dfe7d30ff4fd861f58f39785995d383f908cfb1a3b9418cea4af4c90c3600dd4"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-wide-separate-model-detail.png",
+      "sha256": "135c8f9774e8cd4024d69bbf8133dadd3c3439c147bc970c7d40e2a7d1fc7025"
+    },
+    {
+      "case": "studio",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-wide-filters.png",
+      "sha256": "967ec26e959a3b2dfbbd2957834b1e945da089abca592c1e8c0309c5b8101de4"
+    },
+    {
+      "case": "studio",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-wide-fresh-entry.png",
+      "sha256": "653302f5c048e2583dc6fd33b5cd1cc25fbf7eb89fa361d147469800826c19bf"
+    },
+    {
+      "case": "profile",
+      "size": "wide",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/profile-wide-chinese-portrait.png",
+      "sha256": "b07102ffc233a1907fa03a44fc6b215bd2b2c6508e7306a02970ba6296fb7c4f"
+    },
+    {
+      "case": "creation-context",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-desktop-failure-truth.png",
+      "sha256": "18476d3e1e975464e83f07f6250961a48594436737185ffff9289e5951965ba3"
+    },
+    {
+      "case": "creation-context",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-desktop-local-task-dialog.png",
+      "sha256": "70175ca9f1d78b757e9985e3bd8d74a52a6dd1fe8e43e78dc1f2a1bf102274b3"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-desktop-failure-truth.png",
+      "sha256": "18476d3e1e975464e83f07f6250961a48594436737185ffff9289e5951965ba3"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-desktop-local-task-dialog.png",
+      "sha256": "6ce4238ca2c451d19abf2cab2c05935c6e23434263119ceb6eb05df3c58e031c"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-desktop-separate-model-detail.png",
+      "sha256": "d020fd04cc44070b9b3cc2795c6f5e42ab6bcec490f2f139cdf372646bf9e79f"
+    },
+    {
+      "case": "studio",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-desktop-filters.png",
+      "sha256": "b39ba9b8ee0f429ae6b4b248b5cdf3449d09eb4cb915cd23f5090874f78450c1"
+    },
+    {
+      "case": "studio",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-desktop-fresh-entry.png",
+      "sha256": "d8a3178a9dfc3afa3c4dd987953b384d64f65e9521cc1473cfe3c933ddc8c627"
+    },
+    {
+      "case": "profile",
+      "size": "desktop",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/profile-desktop-chinese-portrait.png",
+      "sha256": "bf69630808692916554a2eb435fff27b076913501a18c1628d776808676d2fc4"
+    },
+    {
+      "case": "creation-context",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-mobile-failure-truth.png",
+      "sha256": "e09bc047f8ae52536e5fc56d09e85fee2db03139194bca4595f40dbb77c24ab0"
+    },
+    {
+      "case": "creation-context",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-context-mobile-local-task-dialog.png",
+      "sha256": "238540de58d84cc2a44f81c90ea7dd5db8475eb4dd7b34d0e4d82c1757d44f46"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-mobile-failure-truth.png",
+      "sha256": "e09bc047f8ae52536e5fc56d09e85fee2db03139194bca4595f40dbb77c24ab0"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-mobile-local-task-dialog.png",
+      "sha256": "252efb4ae24d384845f5eec3a698d804be7e7ddd9174ad25def71ee77b6068f5"
+    },
+    {
+      "case": "creation-rounds",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/creation-rounds-mobile-separate-model-detail.png",
+      "sha256": "f89c87de6685f5621fed9166829af60434e921246610eb4660881e61a4ac3f0a"
+    },
+    {
+      "case": "studio",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-mobile-filters.png",
+      "sha256": "549b96b159ab0447c82d4caaf19db0e5c1873705a38140dd43ae10d7f8ffcc77"
+    },
+    {
+      "case": "studio",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/studio-mobile-fresh-entry.png",
+      "sha256": "6d156470dd6276542eb0f097103bb634cf6ac118be852b3cb6cc95ce40f77425"
+    },
+    {
+      "case": "profile",
+      "size": "mobile",
+      "role": "app",
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/r20-shots/r21-protocol-signed/profile-mobile-chinese-portrait.png",
+      "sha256": "9b17cfb6ef86cada5b51058c0c482354fb2e6e3f7fc86258a5b49255c82b2d66"
+    }
+  ],
+  "manual_review": "Main inspected representative desktop/mobile source Sheet, preview, progress bottom, native schedule, KEV, data and original r21 references; not every fullsite state."
+}
