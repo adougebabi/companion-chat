@@ -1,0 +1,2969 @@
+[
+  {
+    "name": "content",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "long request can scroll to its original final fields",
+      "response-readable: no horizontal document overflow",
+      "manual refresh reads actual updated response",
+      "matching nested preparation supplies real business phases",
+      "real-phases: no horizontal document overflow",
+      "workflow records remain secondary and explicitly expandable",
+      "secondary-info: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-content",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-content",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-content",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-content",
+          "limit": "20"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-wide-request-response.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-wide-response-readable.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-wide-real-phases.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-wide-secondary-info.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 530,
+          "y": 61.21875,
+          "width": 860,
+          "height": 990.5625
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 574,
+            "y": 560.203125,
+            "width": 757,
+            "height": 385.140625,
+            "top": 560.203125,
+            "right": 1331,
+            "bottom": 945.34375,
+            "left": 574
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 574,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 944.5,
+                "bottom": 945.34375,
+                "left": 574
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 960.5,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 1331,
+                "bottom": 945.34375,
+                "left": 960.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-content-final/report.json",
+    "source_record_index": 0
+  },
+  {
+    "name": "loading",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "loading: no horizontal document overflow",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-loading",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-loading",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-loading",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/loading-wide-loading.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/loading-wide-request-response.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 530,
+          "y": 115.96875,
+          "width": 860,
+          "height": 881.0625
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 574,
+            "y": 560.203125,
+            "width": 757,
+            "height": 385.140625,
+            "top": 560.203125,
+            "right": 1331,
+            "bottom": 945.34375,
+            "left": 574
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 574,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 944.5,
+                "bottom": 945.34375,
+                "left": 574
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 960.5,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 1331,
+                "bottom": 945.34375,
+                "left": 960.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "read-failure",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-read-failure",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-read-failure",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-read-failure",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-read-failure",
+          "limit": "20"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/read-failure-wide-request-response.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 530,
+          "y": 143.4765625,
+          "width": 860,
+          "height": 826.046875
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 574,
+            "y": 560.203125,
+            "width": 757,
+            "height": 385.140625,
+            "top": 560.203125,
+            "right": 1331,
+            "bottom": 945.34375,
+            "left": 574
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 574,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 944.5,
+                "bottom": 945.34375,
+                "left": 574
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 960.5,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 1331,
+                "bottom": 945.34375,
+                "left": 960.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "pagination",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "read-more failure keeps the confirmed request",
+      "read-more-failed: no horizontal document overflow",
+      "retry retains original correlation and failed cursor",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-pagination",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-pagination",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20",
+          "cursor": "original-next-cursor"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20",
+          "cursor": "original-next-cursor"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/pagination-wide-request-response.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/pagination-wide-read-more-failed.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 530,
+          "y": 61.21875,
+          "width": 860,
+          "height": 990.5625
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 574,
+            "y": 560.203125,
+            "width": 757,
+            "height": 385.140625,
+            "top": 560.203125,
+            "right": 1331,
+            "bottom": 945.34375,
+            "left": 574
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 574,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 944.5,
+                "bottom": 945.34375,
+                "left": 574
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 960.5,
+                "y": 585.34375,
+                "width": 370.5,
+                "height": 360,
+                "top": 585.34375,
+                "right": 1331,
+                "bottom": 945.34375,
+                "left": 960.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 3
+  },
+  {
+    "name": "missing-fields",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "missing wire fields are explicit",
+      "missing-wire: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-missing-fields",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-missing-fields",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-missing-fields",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/missing-fields-wide-missing-wire.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 530,
+          "y": 63.640625,
+          "width": 860,
+          "height": 985.71875
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 4
+  },
+  {
+    "name": "empty",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "no-records: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-empty",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-empty",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-empty",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/empty-wide-no-records.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 530,
+          "y": 194.0703125,
+          "width": 860,
+          "height": 724.859375
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 5
+  },
+  {
+    "name": "unlinked",
+    "size": "wide",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "unlinked task never starts an unscoped model query",
+      "missing-association: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-unlinked",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-unlinked",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/unlinked-wide-missing-association.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 530,
+          "y": 225.96875,
+          "width": 860,
+          "height": 661.0625
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 6
+  },
+  {
+    "name": "content",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "long request can scroll to its original final fields",
+      "response-readable: no horizontal document overflow",
+      "manual refresh reads actual updated response",
+      "matching nested preparation supplies real business phases",
+      "real-phases: no horizontal document overflow",
+      "workflow records remain secondary and explicitly expandable",
+      "secondary-info: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-content",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-content",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-content",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-content",
+          "limit": "20"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-desktop-request-response.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-desktop-response-readable.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-desktop-real-phases.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-desktop-secondary-info.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 244,
+          "y": 50.875,
+          "width": 860,
+          "height": 823.25
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 288,
+            "y": 549.859375,
+            "width": 757,
+            "height": 385.140625,
+            "top": 549.859375,
+            "right": 1045,
+            "bottom": 935,
+            "left": 288
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 288,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 658.5,
+                "bottom": 935,
+                "left": 288
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 674.5,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 1045,
+                "bottom": 935,
+                "left": 674.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-content-final/report.json",
+    "source_record_index": 1
+  },
+  {
+    "name": "loading",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "loading: no horizontal document overflow",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-loading",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-loading",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-loading",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/loading-desktop-loading.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/loading-desktop-request-response.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 244,
+          "y": 50.875,
+          "width": 860,
+          "height": 823.25
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 288,
+            "y": 549.859375,
+            "width": 757,
+            "height": 385.140625,
+            "top": 549.859375,
+            "right": 1045,
+            "bottom": 935,
+            "left": 288
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 288,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 658.5,
+                "bottom": 935,
+                "left": 288
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 674.5,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 1045,
+                "bottom": 935,
+                "left": 674.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 8
+  },
+  {
+    "name": "read-failure",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-read-failure",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-read-failure",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-read-failure",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-read-failure",
+          "limit": "20"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/read-failure-desktop-request-response.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 244,
+          "y": 50.875,
+          "width": 860,
+          "height": 823.25
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 288,
+            "y": 549.859375,
+            "width": 757,
+            "height": 385.140625,
+            "top": 549.859375,
+            "right": 1045,
+            "bottom": 935,
+            "left": 288
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 288,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 658.5,
+                "bottom": 935,
+                "left": 288
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 674.5,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 1045,
+                "bottom": 935,
+                "left": 674.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 9
+  },
+  {
+    "name": "pagination",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "read-more failure keeps the confirmed request",
+      "read-more-failed: no horizontal document overflow",
+      "retry retains original correlation and failed cursor",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-pagination",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-pagination",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20",
+          "cursor": "original-next-cursor"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20",
+          "cursor": "original-next-cursor"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/pagination-desktop-request-response.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/pagination-desktop-read-more-failed.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 244,
+          "y": 50.875,
+          "width": 860,
+          "height": 823.25
+        }
+      },
+      {
+        "payloads": {
+          "columns": "370.5px 370.5px",
+          "rect": {
+            "x": 288,
+            "y": 549.859375,
+            "width": 757,
+            "height": 385.140625,
+            "top": 549.859375,
+            "right": 1045,
+            "bottom": 935,
+            "left": 288
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 288,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 658.5,
+                "bottom": 935,
+                "left": 288
+              },
+              "scrollHeight": 2022,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            },
+            {
+              "rect": {
+                "x": 674.5,
+                "y": 575,
+                "width": 370.5,
+                "height": 360,
+                "top": 575,
+                "right": 1045,
+                "bottom": 935,
+                "left": 674.5
+              },
+              "scrollHeight": 636,
+              "clientHeight": 360,
+              "scrollWidth": 371,
+              "clientWidth": 371
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 10
+  },
+  {
+    "name": "missing-fields",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "missing wire fields are explicit",
+      "missing-wire: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-missing-fields",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-missing-fields",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-missing-fields",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/missing-fields-desktop-missing-wire.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 244,
+          "y": 50.875,
+          "width": 860,
+          "height": 823.25
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 11
+  },
+  {
+    "name": "empty",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "no-records: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-empty",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-empty",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-empty",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/empty-desktop-no-records.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 244,
+          "y": 100.0703125,
+          "width": 860,
+          "height": 724.859375
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 12
+  },
+  {
+    "name": "unlinked",
+    "size": "desktop",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "unlinked task never starts an unscoped model query",
+      "missing-association: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-unlinked",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-unlinked",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/unlinked-desktop-missing-association.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 244,
+          "y": 131.96875,
+          "width": 860,
+          "height": 661.0625
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 13
+  },
+  {
+    "name": "content",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "long request can scroll to its original final fields",
+      "response-readable: no horizontal document overflow",
+      "manual refresh reads actual updated response",
+      "matching nested preparation supplies real business phases",
+      "real-phases: no horizontal document overflow",
+      "workflow records remain secondary and explicitly expandable",
+      "secondary-info: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-content",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-content",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-content",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-content",
+          "limit": "20"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-mobile-request-response.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-mobile-response-readable.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-mobile-real-phases.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-mobile-secondary-info.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875
+        }
+      },
+      {
+        "payloads": {
+          "columns": "269px",
+          "rect": {
+            "x": 53,
+            "y": 588.3125,
+            "width": 269,
+            "height": 626.28125,
+            "top": 588.3125,
+            "right": 322,
+            "bottom": 1214.59375,
+            "left": 53
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 53,
+                "y": 613.453125,
+                "width": 269,
+                "height": 280,
+                "top": 613.453125,
+                "right": 322,
+                "bottom": 893.453125,
+                "left": 53
+              },
+              "scrollHeight": 2263,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            },
+            {
+              "rect": {
+                "x": 53,
+                "y": 934.59375,
+                "width": 269,
+                "height": 280,
+                "top": 934.59375,
+                "right": 322,
+                "bottom": 1214.59375,
+                "left": 53
+              },
+              "scrollHeight": 655,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-content-final/report.json",
+    "source_record_index": 2
+  },
+  {
+    "name": "loading",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "loading: no horizontal document overflow",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-loading",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-loading",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-loading",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/loading-mobile-loading.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/loading-mobile-request-response.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875
+        }
+      },
+      {
+        "payloads": {
+          "columns": "269px",
+          "rect": {
+            "x": 53,
+            "y": 588.3125,
+            "width": 269,
+            "height": 626.28125,
+            "top": 588.3125,
+            "right": 322,
+            "bottom": 1214.59375,
+            "left": 53
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 53,
+                "y": 613.453125,
+                "width": 269,
+                "height": 280,
+                "top": 613.453125,
+                "right": 322,
+                "bottom": 893.453125,
+                "left": 53
+              },
+              "scrollHeight": 2263,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            },
+            {
+              "rect": {
+                "x": 53,
+                "y": 934.59375,
+                "width": 269,
+                "height": 280,
+                "top": 934.59375,
+                "right": 322,
+                "bottom": 1214.59375,
+                "left": 53
+              },
+              "scrollHeight": 655,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 15
+  },
+  {
+    "name": "read-failure",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-read-failure",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-read-failure",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-read-failure",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-read-failure",
+          "limit": "20"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/read-failure-mobile-request-response.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875
+        }
+      },
+      {
+        "payloads": {
+          "columns": "269px",
+          "rect": {
+            "x": 53,
+            "y": 588.3125,
+            "width": 269,
+            "height": 626.28125,
+            "top": 588.3125,
+            "right": 322,
+            "bottom": 1214.59375,
+            "left": 53
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 53,
+                "y": 613.453125,
+                "width": 269,
+                "height": 280,
+                "top": 613.453125,
+                "right": 322,
+                "bottom": 893.453125,
+                "left": 53
+              },
+              "scrollHeight": 2263,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            },
+            {
+              "rect": {
+                "x": 53,
+                "y": 934.59375,
+                "width": 269,
+                "height": 280,
+                "top": 934.59375,
+                "right": 322,
+                "bottom": 1214.59375,
+                "left": 53
+              },
+              "scrollHeight": 655,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 16
+  },
+  {
+    "name": "pagination",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "full stored Request is shown unchanged",
+      "full stored Response is shown unchanged",
+      "actual model call error is visible",
+      "workflow facility names are not the record body",
+      "request and response use the appropriate responsive columns",
+      "long request remains bounded and scrollable",
+      "long values do not overflow either pane",
+      "request-response: no horizontal document overflow",
+      "read-more failure keeps the confirmed request",
+      "read-more-failed: no horizontal document overflow",
+      "retry retains original correlation and failed cursor",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-pagination",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-pagination",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20",
+          "cursor": "original-next-cursor"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-pagination",
+          "limit": "20",
+          "cursor": "original-next-cursor"
+        }
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/pagination-mobile-request-response.png",
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/pagination-mobile-read-more-failed.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875
+        }
+      },
+      {
+        "payloads": {
+          "columns": "269px",
+          "rect": {
+            "x": 53,
+            "y": 588.3125,
+            "width": 269,
+            "height": 626.28125,
+            "top": 588.3125,
+            "right": 322,
+            "bottom": 1214.59375,
+            "left": 53
+          },
+          "panes": [
+            {
+              "rect": {
+                "x": 53,
+                "y": 613.453125,
+                "width": 269,
+                "height": 280,
+                "top": 613.453125,
+                "right": 322,
+                "bottom": 893.453125,
+                "left": 53
+              },
+              "scrollHeight": 2263,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            },
+            {
+              "rect": {
+                "x": 53,
+                "y": 934.59375,
+                "width": 269,
+                "height": 280,
+                "top": 934.59375,
+                "right": 322,
+                "bottom": 1214.59375,
+                "left": 53
+              },
+              "scrollHeight": 655,
+              "clientHeight": 280,
+              "scrollWidth": 269,
+              "clientWidth": 269
+            }
+          ]
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 17
+  },
+  {
+    "name": "missing-fields",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "missing wire fields are explicit",
+      "missing-wire: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-missing-fields",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-missing-fields",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-missing-fields",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/missing-fields-mobile-missing-wire.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 18
+  },
+  {
+    "name": "empty",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "no-records: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-empty",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "correlationId": "task-call-correlation-empty",
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-empty",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/empty-mobile-no-records.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 17,
+          "y": 33.765625,
+          "width": 356,
+          "height": 776.46875
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 19
+  },
+  {
+    "name": "unlinked",
+    "size": "mobile",
+    "status": "passed",
+    "checks": [
+      "LLM records are the default task view",
+      "task dialog translates production enum title",
+      "wide dialog matches the Demo width",
+      "unlinked task never starts an unscoped model query",
+      "missing-association: no horizontal document overflow",
+      "all task model reads retain their exact correlation",
+      "viewing and refreshing never submits a command",
+      "Escape returns focus to original task entry",
+      "no uncaught browser error"
+    ],
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/api/fluctlights",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/notifications/unread-count",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/configuration-catalog",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/model-runs",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/media-prompts",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostic-records/workflow-intents",
+        "query": {
+          "limit": "20"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/providers/endpoints/fixture-model/models",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/settings/agents",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/diagnostics/tasks/actual-task-unlinked",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/fluctlights/fluctlight-fixture-one/inventory/preparation",
+        "query": {}
+      },
+      {
+        "method": "GET",
+        "path": "/api/workflow-controls/original-workflow-unlinked",
+        "query": {}
+      }
+    ],
+    "errors": [],
+    "local_screenshots": [
+      "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/unlinked-mobile-missing-association.png"
+    ],
+    "geometry": [
+      {
+        "dialog": {
+          "x": 17,
+          "y": 52.7734375,
+          "width": 356,
+          "height": 738.453125
+        }
+      }
+    ],
+    "boundary": "production dist + scoped controlled HTTP; no real model invocation; images outside Git",
+    "source_report": "evidence/task-llm/task-llm-final/report.json",
+    "source_record_index": 20
+  }
+]

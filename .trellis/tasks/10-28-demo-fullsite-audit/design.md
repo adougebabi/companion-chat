@@ -29,3 +29,9 @@ coverage.json为完整数据源，coverage.md为可读索引；每行视觉/交�
 ## r19 修复边界
 
 基线ea3d8e33，沿用既有业务控制器和已接受命令恢复。导航问题在App/approved routing及Management/Studio目录的实际入口收敛；新建资源提示在StudioEditor显示层区分，保留dirty/save业务不变量；设置展示在SettingsSections/SettingsField/ModelDirectory及现有字段拥有者收敛；数据页保留原导入/导出/维护能力但统一标题、次导航几何和低干扰说明；共用CommandDialog保留真实同步/冲突能力，正常表单只保留必要主要操作；媒体与全局主题根据生效CSS定位黑框/宽度/保存栏覆盖；预览使用正式语义组件处理已声明枚举和关系量表，未知扩展完整保留。涉及业务状态选择由主线程亲自实施，不扩展媒体收藏等缺失API，不改模型/提示词协议。参考70图留在/tmp，提交只含文字报告和检查数据。
+
+## 任务详情截图修复边界（2026-10-30）
+
+TaskRecordDialog负责wide尺寸、动态语义标题与单一弹窗滚动主体；TaskDetailPage去掉嵌套阅读卡层级，三页签与Demo一致，失败原因放执行阶段附近，完整来源在任务信息。WorkflowRecovery继续单独拥有allowed_actions/CAS/原请求/accepted围栏，当前保留原恢复区域，优先落实R14的调用数据主体。task-presentation只从同task/fid的正式衣柜result投影已确认阶段，生命周期payload.stage只作执行记录，不能当业务阶段。无阶段来源时如实说明，不编造百分比或时刻。只改该共享详情及必要测试/fixture/CSS，不新增后端恢复能力，不启用真实模型；截图仍仅在/tmp。
+
+用户R14优先：TaskDetail默认执行记录视图，其主要内容为按真实task.correlation_id查询model-runs的Request/Response/错误；复用diagnosticsClient.page的正式查询及原游标，不发无范围全局查询，不凭标题/时间猜关联。已记录请求与响应直接可读，不能用工作流JSON当作响应；未记录/未读取区分。保留已有阶段修正和宽弹窗。工作流事件与完整任务JSON移入任务信息的辅助披露；allowed_actions/原身份恢复仍由WorkflowRecovery负责。

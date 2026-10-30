@@ -1,0 +1,31 @@
+{
+  "full_web_tests": {
+    "passed": 748,
+    "failed": 0,
+    "skipped": 0
+  },
+  "independent_check": {
+    "focused_tests": 38,
+    "lint": "passed",
+    "typecheck": "passed",
+    "product_findings": [],
+    "fixed_test_assertion": "r11 generic task timeout now checked in execution stages; main also aligned Inbox same default view expectation"
+  },
+  "production_build": {
+    "passed": true,
+    "modules": 383,
+    "fixture_isolation": "passed",
+    "react_only": "passed"
+  },
+  "browser": {
+    "task_llm_cases": 21,
+    "initialization_return_cases": 3,
+    "viewports": [
+      "1920×1113",
+      "1348×925",
+      "390×844"
+    ],
+    "all_passed": true
+  },
+  "backend": "existing diagnostic GETs only; no model/config/backend code changes"
+}

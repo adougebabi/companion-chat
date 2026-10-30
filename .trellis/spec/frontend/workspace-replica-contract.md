@@ -793,7 +793,10 @@ that exception as an all-native React rewrite or restore a second application.
 - Management keeps configurationPlan/configuration acknowledgement, original
   command identities, versions, actual field schemas, secrets and quiet-policy CAS.
 - WorkflowRecovery consumes actual `allowed_actions`, run ID, revision, reason
-  and resettable checkpoints. TaskDetail consumes recorded steps/history.
+  and resettable checkpoints. TaskDetail defaults to associated LLM calls using
+  `diagnosticsClient.page('model-runs', {correlationId, limit:20, cursor?})`.
+  Its full stored `data.prompt`, `data.response`, `error_code` and `error` are
+  primary content; workflow JSON is never substituted for a model response.
 - Data keeps existing pack validate/export/import/adopt and business backup
   create/restore/retry/cancel providers. No new backend endpoint is implied.
 - Authentication uses `setupStatus()`, `auth.setup(token,password)`,
@@ -806,14 +809,35 @@ is not resolve; marking all read must not include events newer than `as_of`.
 Same-page details preserve source filters and actual task/proposal links.
 
 Management uses the Demo's 180px secondary directory with a 28px main-column
-separation, service/four-purpose tabs, section fields and sticky save/discard.
+separation, service/four-purpose tabs, section fields and normal-flow save/discard.
 Actual endpoints, model IDs, supported fields/enums and configured secrets are
 formal data. Never implement a saved endpoint deletion or purpose transfer
 without the existing corresponding command. Initial read failure prevents save.
 
-Task progress is recorded stage state, never a percentage inferred from status.
-An accepted restart/reset is not completed work. Actual original requests and
-execution records remain accessible through explicit feature routes.
+TaskRecordDialog is the 860px wide view with one actual task title. Its default
+`执行记录` tab shows model Request/Response and call errors directly, with bounded
+payload scrolling and responsive columns. Refresh and pagination remain GET-only.
+Missing correlation performs no global query. Empty results, absent/null/empty
+request or response, and failed reads have separate explanations; absent diagnostic
+data does not prove no invocation occurred. Keep unknown fields, raw strings,
+tool calls, false/zero and null; retry preserves the original correlation/cursor
+and rejects late Owner/task/correlation responses. Shared correlation can contain
+multiple attempts; do not claim unique-attempt membership without an actual link.
+
+Task progress is recorded business state, never a percentage inferred from status
+or lifecycle `steps.name` such as dispatcher/workflow_start/activity. Wardrobe
+phases use exact `preparation.task_id` and `fluctlight_id`, with the committed fact
+at `preparation.result.inventory_committed`; final wearing requires actual completed
+preparation plus the committed fact. A newer attempt cannot supply old-task stages.
+Lifecycle records and complete task JSON remain secondary disclosures in 任务信息.
+An accepted restart/reset is not completed work. Original requests and recovery
+records remain accessible; UI tab changes never modify the task.
+
+Required task-detail tests: `task-llm-detail`, `r18-ux-regression`,
+`demo-replica-management`, `r11-flows`, and `feedback-semantics`. Browser verification
+uses `verify-task-llm-ui.mjs`: raw payload equality, exact scoped retry/pagination,
+loading/missing/empty/failure, manual refresh, 860px/390px geometry, long payload
+scroll, Escape/focus return and zero mutations. Keep snapshots outside Git.
 
 Packs create independent definition drafts; import binds the exact original
 JSON and validation digest and does not automatically publish, apply or replace

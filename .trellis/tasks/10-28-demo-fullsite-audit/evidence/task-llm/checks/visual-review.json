@@ -1,0 +1,29 @@
+{
+  "policy": "images only outside Git",
+  "reviewed": [
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/content-desktop-request-response.png",
+      "sha256": "2e7ea20966c8e997e1d55720a33acae27a15b6ce6910a48040ac256dbfd5f0e1"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/content-mobile-request-response.png",
+      "sha256": "641579a2896f2e93c5a9e4627e7950397c9e2bc3e21cc01cd829f02fdf363b0e"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/missing-fields-mobile-missing-wire.png",
+      "sha256": "9ff02d0f115ee24550e1e641ef01fa91f6df59fbf52dd48b7e19add8c0c4772b"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-content-final/content-mobile-response-readable.png",
+      "sha256": "e22bae66594a6febbca4bb4e6d9c482e9189c69bc1d8b4c97a07cca8043bde16"
+    },
+    {
+      "path": "/private/tmp/fluctlight-demo-audit-20261028/task-llm-shots/task-llm-final/read-failure-desktop-request-response.png",
+      "sha256": "8b99ee6a6f93471374fffe6c683dcbcf1af6ce0b5f7f44d40a22fde17ece82e7"
+    }
+  ],
+  "reference_images": [
+    "/var/folders/gv/hlfcpzxj63b3813yxlrkqv6r0000gn/T/codex-clipboard-b4b8727e-b2df-469a-a3c3-d58ab8b935d7.png",
+    "/var/folders/gv/hlfcpzxj63b3813yxlrkqv6r0000gn/T/codex-clipboard-8157ea51-c49c-4a6d-90cf-99ad9dfcfeec.png"
+  ]
+}

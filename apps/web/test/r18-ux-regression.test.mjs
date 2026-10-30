@@ -26,19 +26,24 @@ test('r18 directory reads are not connection edits; actual edits retain their ow
  next.versions['endpoint:S']=8;const stale=restoreConnectionDraft(JSON.stringify(draft),next);assert.equal(stale.stale,true);assert.equal(stale.versions['endpoint:S'],7);assert.equal(stale.versions['binding:generic_llm'],5);assert.equal(stale.versions['product.wakeup'],8);
  assert.equal(connectionDraftDirty({...clean,credentialPending:true},catalog),true);
 });
-test('r18 lifecycle events remain records, named stages use their latest real status, and seconds distinguish events',()=>{
+test('r18 lifecycle events and named infrastructure records never become business phases; seconds distinguish events',()=>{
  const events=[{id:'new',event_type:'lifecycle.wardrobe.failed',status:'failed',at:'2026-10-29T00:00:45Z'},{id:'old',event_type:'lifecycle.wardrobe.started',status:'running',at:'2026-10-29T00:00:15Z'}];
  assert.equal(taskStageRecords({steps:events}).length,0);assert.notEqual(taskEventTitle(events[0]),taskEventTitle(events[1]));assert.doesNotMatch(taskEventTitle(events[0]),/^执行阶段$/);
  assert.match(diagnosticInstant(events[0].at),/08:00:45/);assert.match(diagnosticInstant(events[1].at),/08:00:15/);
- const stages=taskStageRecords({steps:events.map(e=>({...e,name:'初始衣柜'}))});assert.equal(stages.length,1);assert.equal(stages[0].id,'new');assert.equal(stages[0].status,'failed');
+ for(const name of ['dispatcher','workflow_start','activity','workflow_reconcile','初始衣柜'])assert.equal(taskStageRecords({steps:events.map(e=>({...e,name}))}).length,0);
 });
 test('r18 wardrobe configuration cause is adopted only from its exact original task and keeps domain failure data',()=>{
  const preparation={task_id:'original-task',status:'failed',can_recover:true,error_code:'wardrobe_preparation_failed',result:{failure_reason:'旧的通用失败说明'}},raw=JSON.stringify(preparation),task={task_id:'original-task',source:{last_error:'provider role generic_llm unavailable: no rows in result set'}};
  assert.match(wardrobePreparationStage(preparation,'',task).note,/通用模型.*就绪/);assert.equal(wardrobePreparationStage(preparation,'',{...task,task_id:'foreign-task'}).note,preparation.result.failure_reason);assert.match(taskFailureReason(task,null),/已有角色、世界/);assert.equal(JSON.stringify(preparation),raw);
 });
 test('r18 wardrobe phase display uses committed domain facts and never fabricates stage timestamps',()=>{
- const task={task_id:'original',kind:'wardrobe.initialize',fluctlight_id:'A',steps:[]},preparation={task_id:'original',fluctlight_id:'A',status:'failed',inventory_committed:false};
+ const task={task_id:'original',kind:'wardrobe.initialize',fluctlight_id:'A',steps:[]},preparation={task_id:'original',fluctlight_id:'A',status:'failed',result:{inventory_committed:false}};
  let stages=taskStageRecords(task,preparation);assert.deepEqual(stages.map(s=>s.status),['failed','blocked']);assert.ok(stages.every(s=>s.at===undefined));
- stages=taskStageRecords(task,{...preparation,inventory_committed:true});assert.deepEqual(stages.map(s=>s.status),['completed','failed']);assert.equal(taskStageRecords(task,{...preparation,fluctlight_id:'foreign'}).length,0);
- assert.deepEqual(taskStageRecords(task,{...preparation,inventory_committed:true,status:'completed'}).map(s=>s.status),['completed','completed']);
+ stages=taskStageRecords(task,{...preparation,result:{inventory_committed:true}});assert.deepEqual(stages.map(s=>s.status),['completed','failed']);assert.equal(taskStageRecords(task,{...preparation,fluctlight_id:'foreign'}).length,0);
+ assert.deepEqual(taskStageRecords(task,{...preparation,result:{inventory_committed:true},status:'completed'}).map(s=>s.status),['completed','completed']);
+ assert.deepEqual(taskStageRecords(task,{...preparation,result:undefined}).map(s=>s.status),['failed','blocked']);
+ assert.deepEqual(taskStageRecords(task,{...preparation,result:undefined,status:'completed'}).map(s=>s.status),['pending','pending']);
+ assert.deepEqual(taskStageRecords(task,{...preparation,result:{inventory_committed:true},status:'awaiting_wear'}).map(s=>s.status),['completed','running']);
+ assert.equal(taskStageRecords(task,{...preparation,task_id:'new-recovery-task'}).length,0);
+ assert.equal(taskStageRecords(task,{...preparation,fluctlight_id:undefined}).length,0);
 });

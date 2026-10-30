@@ -150,3 +150,8 @@ F79：深层反馈继续发现的同事件重复确认与聊天固定红色覆�
 ## r19 空库回归增量
 
 逐项原问题、文件、动作和恢复清除、三视口证据见[r19-acceptance.md](r19-acceptance.md)及[r19-issues.json](r19-issues.json)。本批34条含修复、语义确认、能力差异和未验范围，不是34个独立bug。详细检查索引evidence/r19-browser-index.json；不以受控HTTP冒充真实Core。
+
+
+## 任务详情LLM调用主体修复（2026-10-30）
+
+旧任务详情把设施stage/name误当业务阶段，且默认展示工作流事件而非用户需要的LLM请求/响应。修复作用于TaskDetailPage/TaskRecordDialog/TaskModelCalls及task-presentation局部映射；原始Request/Response/调用错误直接阅读，原工作流数据次级保留，真实恢复不变。详细触发、根因、范围与21+3条浏览器/748全量证据见[task-llm-acceptance.md](task-llm-acceptance.md)。

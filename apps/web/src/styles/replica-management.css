@@ -83,8 +83,7 @@
 .replica-task-row p{font-size:11px;color:#929e85;overflow-wrap:anywhere}
 .replica-task-icon{width:35px;height:35px;display:grid;place-items:center;border-radius:10px;background:#edf2e5;color:#829b6b}
 .replica-task-detail{display:grid;gap:24px;min-width:0}
-.replica-task-summary{padding:22px!important}
-.replica-task-summary>[data-slot=card-header],.replica-task-summary>[data-slot=card-content]{padding:0!important}
+.replica-task-summary{padding:22px;min-width:0;border:1px solid #e3e8da;border-radius:14px;background:#fff}
 .replica-task-summary [data-slot=tabs-content]{padding-top:20px}
 .replica-task-detail [data-slot=tabs-list]{height:auto;min-height:42px;background:transparent;flex-wrap:wrap;max-width:100%}
 .replica-task-detail [role=tab]{font-size:12px}
@@ -96,7 +95,7 @@
 .replica-task-times{display:grid;gap:12px;padding:15px 0;font-size:12px}
 .replica-task-times>div{display:grid;grid-template-columns:70px 1fr;gap:12px}
 .replica-workflow-recovery [data-slot=card-title]{font-size:15px;color:#536d44}
-@media(max-width:700px){.replica-data-stats{gap:8px}.replica-data-stats>section{padding:12px!important}.replica-data-stats strong{font-size:22px}.replica-data-stats small{font-size:9px}.replica-task-row{grid-template-columns:30px minmax(0,1fr) auto;gap:10px}.replica-task-row>svg{display:none}.replica-task-summary{padding:17px!important}.replica-task-detail button{min-height:44px}.replica-task-detail .replica-page-heading{gap:15px}}
+@media(max-width:700px){.replica-data-stats{gap:8px}.replica-data-stats>section{padding:12px!important}.replica-data-stats strong{font-size:22px}.replica-data-stats small{font-size:9px}.replica-task-row{grid-template-columns:30px minmax(0,1fr) auto;gap:10px}.replica-task-row>svg{display:none}.replica-task-summary{padding:17px}.replica-task-detail button{min-height:44px}.replica-task-detail .replica-page-heading{gap:15px}}
 .replica-data{display:grid;gap:28px;min-width:0}
 .replica-data-main,.replica-data .data-tools-grid{display:grid;gap:20px;min-width:0;grid-template-columns:1fr}
 .replica-data-domain .replica-management-nav a{justify-content:flex-start;text-align:left;gap:10px;padding:12px 14px;height:auto;min-height:44px;font-size:12px!important;color:#7d8875!important;border:1px solid transparent!important;white-space:normal;background:transparent!important;width:100%;border-radius:8px}
@@ -213,3 +212,15 @@
 .replica-data-domain .replica-management-nav a{line-height:1.5}
 .react-workspace .replica-data-domain .replica-management-nav .domain-rich-label{line-height:inherit}
 @media(max-width:950px){.replica-data-domain .replica-management-nav>[data-domain-react-control]{flex:none}.replica-data-domain .replica-management-nav a{width:auto;white-space:nowrap;font-size:11px!important;padding:9px 12px}}
+.replica-task-summary.replica-task-summary-embedded{padding:0;border:0;background:transparent;box-shadow:none}
+.replica-task-meta{margin-bottom:18px}
+.replica-task-model-calls{display:grid;gap:12px;min-width:0}
+.replica-task-calls-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.replica-task-calls-heading>h3{font-size:14px;font-weight:600;color:#405839}
+.replica-task-model-call{display:grid;gap:12px;min-width:0;padding:16px;border:1px solid #e3e8da;border-radius:12px}
+.replica-task-model-call>header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.replica-task-model-call h4{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.replica-task-model-call h5{font-size:12px;font-weight:600;margin-bottom:8px}
+.replica-task-call-payloads{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;min-width:0}.replica-task-call-payloads>section{min-width:0}
+.replica-task-wire-value{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;min-width:0;margin:0;padding:12px;border-radius:8px;background:#f4f6ef;font-size:12px;line-height:1.7;max-height:360px;overflow:auto}
+.replica-task-call-error{color:#9f3e36}
+@media(max-width:700px){.replica-task-model-call{padding:12px}.replica-task-wire-value{padding:10px;font-size:11px;max-height:280px}.replica-task-call-payloads{grid-template-columns:minmax(0,1fr)}}
