@@ -51,13 +51,16 @@ func (a *App) WorldNPCRecords(ctx context.Context, owner, fid, npc, kind string,
 	}
 	table, column := "", "created_at"
 	projection := "to_jsonb(t)"
+	memberFilter := "$6::text<>''"
 	switch kind {
 	case "encounters":
 		table, column = "world_encounters", "occurred_at"
+		memberFilter += " AND EXISTS(SELECT 1 FROM public.life_events le WHERE le.id=t.life_event_id AND le.fluctlight_id=$6)"
 	case "presences":
 		table = "world_npc_presence_runs"
 	case "opportunities":
 		table = "world_npc_opportunities"
+		memberFilter += " AND t.fluctlight_id=$6"
 		projection = `to_jsonb(t)||jsonb_build_object('task_id',(SELECT intent_id FROM public.platform_workflow_intents i WHERE i.payload->>'inbox_id'=t.source_fact_id AND i.payload->>'fluctlight_id'=t.fluctlight_id ORDER BY created_at DESC LIMIT 1))`
 	default:
 		return nil, ErrInvalidArguments
@@ -71,7 +74,7 @@ func (a *App) WorldNPCRecords(ctx context.Context, owner, fid, npc, kind string,
 	if err != nil || (q.Get("cursor") != "" && (cursor.ID == "" || cursor.Time.IsZero())) {
 		return nil, invalid("invalid NPC record cursor")
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT t.id,t.`+column+`,`+projection+`||jsonb_build_object('record_kind','`+kind+`') FROM public.`+table+` t WHERE t.world_id=$1 AND t.npc_id=$2 AND ($3='' OR (t.`+column+`,t.id)<($4,$3)) ORDER BY t.`+column+` DESC,t.id DESC LIMIT $5`, world, npc, cursor.ID, cursor.Time, limit+1)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT t.id,t.`+column+`,`+projection+`||jsonb_build_object('record_kind','`+kind+`') FROM public.`+table+` t WHERE t.world_id=$1 AND t.npc_id=$2 AND `+memberFilter+` AND ($3='' OR (t.`+column+`,t.id)<($4,$3)) ORDER BY t.`+column+` DESC,t.id DESC LIMIT $5`, world, npc, cursor.ID, cursor.Time, limit+1, fid)
 	if err != nil {
 		return nil, err
 	}

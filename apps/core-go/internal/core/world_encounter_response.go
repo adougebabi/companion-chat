@@ -51,7 +51,7 @@ func (c npcEncounterCapability) Prepare(ctx context.Context, i CapabilityInvocat
 			return err
 		}
 		definition = decodeObject(raw)
-		history, e := readWorldObjects(ctx, tx, `SELECT jsonb_build_object('event_id',life_event_id,'summary',summary,'occurred_at',occurred_at,'source_kind',source_kind) FROM public.world_encounters WHERE world_id=$1 AND npc_id=$2 ORDER BY occurred_at DESC,id DESC LIMIT 6`, p["world_id"], p["npc_id"])
+		history, e := readWorldObjects(ctx, tx, `SELECT jsonb_build_object('summary',e.summary,'occurred_at',e.occurred_at,'source_kind',e.source_kind,'participant_name',f.identity->>'name','is_current_character',f.id=$3) FROM public.world_encounters e JOIN public.life_events le ON le.id=e.life_event_id JOIN public.fluctlights f ON f.id=le.fluctlight_id WHERE e.world_id=$1 AND e.npc_id=$2 ORDER BY e.occurred_at DESC,e.id DESC LIMIT 6`, p["world_id"], p["npc_id"], fid)
 		if e != nil {
 			return e
 		}

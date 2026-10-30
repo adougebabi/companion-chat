@@ -108,7 +108,7 @@ func freezeStudioReferencesTx(ctx context.Context, tx pgx.Tx, owner string, body
 			table = "world_npcs"
 		}
 		var raw []byte
-		err := tx.QueryRow(ctx, `SELECT jsonb_build_object('kind',$3::text,'id',p.id,'world_id',p.world_id,'name',p.name) FROM public.`+table+` p JOIN public.life_worlds w ON w.id=p.world_id JOIN public.fluctlights f ON f.id=w.fluctlight_id WHERE p.id=$1 AND f.created_by_actor_id=$2 AND p.status='active'`, id, owner, kind).Scan(&raw)
+		err := tx.QueryRow(ctx, `SELECT jsonb_build_object('kind',$3::text,'id',p.id,'world_id',p.world_id,'name',p.name) FROM public.`+table+` p JOIN public.life_worlds w ON w.id=p.world_id WHERE p.id=$1 AND w.owner_actor_id=$2 AND p.status='active'`, id, owner, kind).Scan(&raw)
 		if errors.Is(err, pgx.ErrNoRows) {
 			continue
 		}

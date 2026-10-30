@@ -55,7 +55,12 @@ func (a *App) initialSchedulePayload(ctx context.Context, fluctlightID, localDat
 	if err != nil {
 		return nil, err
 	}
-	taskInput := ScheduleGenerationTaskInput{LocalDate: localDate, Timezone: timezone, Identity: stableCompilationIdentity(identity), LifeProfile: stableLife,
+	places, err := a.readScheduleWorldPlaces(ctx, fluctlightID)
+	if err != nil {
+		return nil, err
+	}
+	scheduleIdentity := scheduleGenerationIdentity(identity)
+	taskInput := ScheduleGenerationTaskInput{LocalDate: localDate, Timezone: timezone, Identity: scheduleIdentity, LifeProfile: stableLife, WorldPlaces: places,
 		CurrentState: map[string]any{"inner_state": inner, "appearance": appearance}, CurrentLife: currentLife,
 		Goals: filterActiveProfileRows(goals, activeProfileID), Intentions: filterActiveProfileRows(intentions, activeProfileID), RecentOutcomes: outcomes}
 	result, err := a.RunScheduleGenerationTask(ctx, taskInput)
@@ -77,7 +82,16 @@ func (a *App) initialSchedulePayload(ctx context.Context, fluctlightID, localDat
 	if err != nil {
 		return nil, err
 	}
+	places.bind(payload)
 	return payload, nil
+}
+
+func scheduleGenerationIdentity(identity map[string]any) map[string]any {
+	result := stableCompilationIdentity(identity)
+	if residence, present := identity["residence"]; present {
+		result["residence"] = copyPromptData(residence)
+	}
+	return result
 }
 
 // Keep the automatic current-day lifecycle on its existing acceptance path.
@@ -159,7 +173,11 @@ func normalizeScheduleResponse(result map[string]any, localDate, timezone string
 		}
 		resultItems = append(resultItems, entry.item)
 	}
-	return map[string]any{"local_date": localDate, "timezone": timezone, "items": resultItems, "reschedule_policy": result["reschedule_policy"], "evidence_refs": []any{"foundation:" + "pending"}}, nil
+	payload := map[string]any{"local_date": localDate, "timezone": timezone, "items": resultItems, "reschedule_policy": result["reschedule_policy"], "evidence_refs": []any{"foundation:" + "pending"}}
+	if places, present := result["new_places"]; present {
+		payload["new_places"] = copyPromptData(places)
+	}
+	return payload, nil
 }
 
 func parseScheduleTimeInLocation(value string, day time.Time, location *time.Location) (time.Time, error) {

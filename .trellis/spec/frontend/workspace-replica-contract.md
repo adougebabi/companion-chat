@@ -1,5 +1,21 @@
 # Supplied workspace Demo contract (2026-10-27)
 
+## Shared world and model-call purpose amendment (2026-10-30)
+
+New existing-world selections join the same world ID. Directory entry characters
+are read paths, not world owners; deduplicate/match by world ID. Keep previously
+admitted copy commands and completed parallel-world results in their original
+recovery lane. Shared joins have their own original body/key, explicit known-CAS
+review and GET-only readback. Never override a later confirmed world selection.
+World reads validate world/place/NPC relationships rather than creator fid.
+
+Model lists/details use actual scenario, schema and logical role before generic
+binding. Unknown purpose codes remain distinguishable. Actual Kev requests have
+their own stored Request/Response and a mixed-point batch remains one call.
+World calls show their real world subject. Historical search submits to the
+existing server query, retaining correlation/query/cursor across retry; loaded
+filters are labelled separately and do not pretend to search all history.
+
 ## Image storage and commit policy (Owner request, 2026-10-29)
 
 Images, screenshots and reference-image copies are local verification artifacts.

@@ -165,7 +165,7 @@ func TestPausedCharacterAutonomousActivitiesDoNotRun(t *testing.T) {
 	}
 }
 
-func TestPausedCharacterWorldAndNPCActivitiesDoNotRun(t *testing.T) {
+func TestPausedCharacterDoesNotStopIndependentNPCWorld(t *testing.T) {
 	fixture, _, _, _ := seedNPCEncounterRuntime(t, true)
 	var revision int
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT current_revision FROM public.fluctlights WHERE id=$1`, fixture.fluctlightID).Scan(&revision); err != nil {
@@ -174,8 +174,8 @@ func TestPausedCharacterWorldAndNPCActivitiesDoNotRun(t *testing.T) {
 	if _, err := fixture.app.SetFluctlightStatus(fixture.ctx, fixture.ownerID, fixture.fluctlightID, "paused", "stop world activity", &revision); err != nil {
 		t.Fatal(err)
 	}
-	if count, err := fixture.app.RepairWorldNPCPresence(fixture.ctx, 20); err != nil || count != 0 {
-		t.Fatalf("paused NPC presence repair = %d err=%v", count, err)
+	if count, err := fixture.app.RepairWorldNPCPresence(fixture.ctx, 20); err != nil || count != 1 {
+		t.Fatalf("independent NPC presence repair = %d err=%v", count, err)
 	}
 	if count, err := fixture.app.RepairNPCOpportunities(fixture.ctx, 20); err != nil || count != 0 {
 		t.Fatalf("paused NPC opportunity repair = %d err=%v", count, err)
@@ -187,7 +187,7 @@ func TestPausedCharacterWorldAndNPCActivitiesDoNotRun(t *testing.T) {
 	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT (SELECT count(*) FROM public.world_npc_presence_runs r JOIN public.life_worlds w ON w.id=r.world_id WHERE w.fluctlight_id=$1), (SELECT count(*) FROM public.world_event_runs WHERE fluctlight_id=$1)`, fixture.fluctlightID).Scan(&presence, &runs); err != nil {
 		t.Fatal(err)
 	}
-	if presence != 0 || runs != 0 {
-		t.Fatalf("paused world activity created presence=%d events=%d", presence, runs)
+	if presence != 1 || runs != 0 {
+		t.Fatalf("independent world presence=%d, paused character events=%d", presence, runs)
 	}
 }

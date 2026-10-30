@@ -51,13 +51,20 @@ PAD and emotional momentum use the canonical range `-1..1`; other domain intensi
 
 **Reflection** is the slow governance stage that consolidates evidence into durable memory, emotional summaries, drive recalibration, personality revisions, and autobiographical revisions. It is separate from immediate state update.
 
-**Actor** is an identity capable of participating in social interaction. An actor is either a human or a Fluctlight instance.
+**Actor** is an independent identity capable of participating in social interaction: a human, a Fluctlight instance, or an NPC. Sharing a world does not merge actors' identities, relationships, or private memories.
 
 **Conversation** is a shared ordered interaction context among one or more actors. It owns participant membership and messages, but it does not own or merge a Fluctlight instance's private internal state.
 
 **Participant** is an actor's membership in one conversation, including its conversation-specific role and membership lifecycle. It is not a second copy of the actor's identity.
 
-**Life world** is a Fluctlight instance's ongoing lived context: routines, plans, events, places, supporting people, temporary states, and time progression.
+**World** is a persistent shared environment with its own places, NPCs, events and time. Several actors can inhabit the same world and encounter the same NPC identities.
+_Avoid_: a character's world copy when referring to the same shared world
+
+**Life world** is the part of a world experienced by one Fluctlight instance through its plans, current situation and actual interactions. It is that actor's perspective, not ownership of the world's identities.
+
+**World membership** is an actor's association with an existing world. Joining a world preserves the identities of its places and NPCs; creating a world copy creates a separate world.
+
+**NPC** is an independent supporting actor in a world. Its world identity and experiences are shared, while each Fluctlight instance's relationship with and memory of that NPC remain separately evidenced.
 
 **Relationship** is a directed state owned by one Fluctlight instance and targeting another actor. The reverse direction, when the target is another Fluctlight instance, is a separate relationship with its own evidence and evolution.
 

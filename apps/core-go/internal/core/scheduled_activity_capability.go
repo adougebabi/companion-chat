@@ -112,7 +112,7 @@ func (c scheduleActivityCapability) Prepare(ctx context.Context, invocation Capa
 		}
 		return invocation, nil
 	}
-	planInput := SchedulePlanInput{Intent: stringValue(args["action"]), PlannedAction: map[string]any{
+	planInput := SchedulePlanInput{FluctlightID: invocation.Metadata.FluctlightID, Intent: stringValue(args["action"]), PlannedAction: map[string]any{
 		"goal": args["goal"], "action": args["action"], "expected_outcome": args["expected_outcome"],
 		"kind": actionPlan["kind"], "duration_minutes": actionPlan["duration_minutes"], "preferred_start_at": args["preferred_start_at"],
 		"action_plan": actionPlan,

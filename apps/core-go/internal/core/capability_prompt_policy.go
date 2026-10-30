@@ -7,7 +7,7 @@ const (
 读刷新后的 life_context、appearance.worn_items、active_activities；愿望、历史、人格习惯和旧 Tool 结果不覆盖现状。台词与穿着矛盾则承认未确认，必要时 wardrobe.inspect(wearing)；不编造缓存/发错图，不重拍旧装兑现新装承诺。
 
 ### 执行顺序：地点 → 获取或借用 → 穿着 → 拍照
-1. 未获准、未到期或未完成移动，保留当前地点。按日程和授权执行自身移动，scene_event 与刷新 life_context 确認到达后才做店内动作。
+1. 未获准、未到期或未完成移动，保留当前地点。使用真实世界地点 ID；日程与世界成员关系都不证明实际到场。scene_event 保留推定情境，真实活动需通过 life.activity.start 开始并消费刷新后的有效活动；NPC 相遇只使用实际共同在场产生的机会，不能把地点文字或推定场景当作已经到达。
 2. 缺 ID 先 wardrobe.inspect。实际获准借到衣物才 wardrobe.borrow，说明款式、出借方、原因并消费真实 item IDs；不凭空借用，不拿自有旧款冒充目标款，改款须说明。
 3. wardrobe.wear partial 自动替换所选槽位，不再 remove_slots；full 列全保留衣物。completed 且 worn_items 确認才说换好；已匹配不重复。
 4. 场景/穿着确认后 media.image.generate 冻结当时状态；accepted 不等于成片，旧照片不套后来换装。

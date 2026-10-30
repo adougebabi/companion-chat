@@ -20,7 +20,7 @@ func (a *App) RepairWorldEvents(ctx context.Context, limit int) (int, error) {
 	failures := []error{}
 	count := 0
 	at := a.now().UTC()
-	targets, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT to_jsonb(t)||jsonb_build_object('fluctlight_id',w.fluctlight_id,'owner_actor_id',f.created_by_actor_id) FROM public.world_event_templates t JOIN public.life_worlds w ON w.id=t.world_id JOIN public.fluctlight_world_bindings b ON b.world_id=w.id AND b.fluctlight_id=w.fluctlight_id JOIN public.fluctlights f ON f.id=w.fluctlight_id WHERE f.status='active' AND t.enabled AND t.definition->'trigger'->>'mode'='automatic' AND t.next_check_at<=$1 ORDER BY t.next_check_at,t.id LIMIT $2`, at, limit)
+	targets, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT to_jsonb(t)||jsonb_build_object('fluctlight_id',f.id,'owner_actor_id',f.created_by_actor_id) FROM public.world_event_templates t JOIN public.life_worlds w ON w.id=t.world_id JOIN LATERAL(SELECT member.id,member.created_by_actor_id FROM public.fluctlight_world_bindings b JOIN public.fluctlights member ON member.id=b.fluctlight_id WHERE b.world_id=w.id AND member.status='active' ORDER BY member.id LIMIT 1) f ON true WHERE t.enabled AND t.definition->'trigger'->>'mode'='automatic' AND t.next_check_at<=$1 ORDER BY t.next_check_at,t.id LIMIT $2`, at, limit)
 	if err != nil {
 		return 0, err
 	}
@@ -28,7 +28,7 @@ func (a *App) RepairWorldEvents(ctx context.Context, limit int) (int, error) {
 		t := mapValue(rawTarget)
 		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 			fid := stringValue(t["fluctlight_id"])
-			if err := lockLifeContextTx(ctx, tx, fid); err != nil {
+			if err := lockSharedWorldMembersTx(ctx, tx, fid, stringValue(t["world_id"])); err != nil {
 				return err
 			}
 			current, err := readWorldTemplateWith(ctx, tx, fid, stringValue(t["id"]), true)
@@ -104,9 +104,12 @@ func (a *App) RepairWorldEvents(ctx context.Context, limit int) (int, error) {
 	return count, errors.Join(failures...)
 }
 func (a *App) executeWorldEvent(ctx context.Context, run map[string]any, at time.Time) error {
+	if stringValue(run["fluctlight_id"]) == "" {
+		return a.executeAmbientWorldEvent(ctx, run, at)
+	}
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		fid := stringValue(run["fluctlight_id"])
-		if err := lockLifeContextTx(ctx, tx, fid); err != nil {
+		if err := lockSharedWorldMembersTx(ctx, tx, fid, stringValue(run["world_id"])); err != nil {
 			return err
 		}
 		r, err := readWorldEventRunWith(ctx, tx, stringValue(run["owner_actor_id"]), fid, stringValue(run["template_id"]), stringValue(run["id"]), true)
@@ -166,7 +169,7 @@ func (a *App) executeWorldEvent(ctx context.Context, run map[string]any, at time
 		if err != nil {
 			return err
 		}
-		zone, err := readLifeContextTimezoneWith(ctx, tx, fid)
+		zone, err := readWorldTimezoneWith(ctx, tx, stringValue(r["world_id"]))
 		if err != nil {
 			return err
 		}
@@ -206,7 +209,13 @@ func (a *App) executeWorldEvent(ctx context.Context, run map[string]any, at time
 		}
 		attribution := lifeEventRuntimeEffect{Ambient: true, Facts: map[string]any{"run_id": r["id"], "world_id": r["world_id"], "template_id": r["template_id"], "template_revision": r["template_revision"], "description": d["description"], "effects": d["effects"], "source": "virtual_world_event", "owner_copresent": false}}
 		eventCtx := context.WithValue(context.WithValue(ctx, lifeEventSourceKey{}, "world-event:"+stringValue(r["id"])), lifeEventRuntimeEffectKey{}, attribution)
-		eventPayload := map[string]any{"kind": kind, "start_at": at.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "activity": d["description"], "evidence_refs": []any{"world-event-run:" + stringValue(r["id"]), "resource:" + stringValue(t["source_resource_id"]) + ":" + stringValue(t["source_version"])}, "expected_life_context_revision": life["context_revision"], "idempotency_key": "world-event:" + stringValue(r["id"])}
+		evidence := []any{"world-event-run:" + stringValue(r["id"])}
+		if generation := stringValue(t["generation_id"]); generation != "" {
+			evidence = append(evidence, "world-event-generation:"+generation)
+		} else {
+			evidence = append(evidence, "resource:"+stringValue(t["source_resource_id"])+":"+stringValue(t["source_version"]))
+		}
+		eventPayload := map[string]any{"kind": kind, "start_at": at.Format(time.RFC3339Nano), "end_at": end.Format(time.RFC3339Nano), "activity": d["description"], "evidence_refs": evidence, "expected_life_context_revision": life["context_revision"], "idempotency_key": "world-event:" + stringValue(r["id"])}
 		if bodyEffect != nil {
 			eventPayload["body_effect"] = bodyEffect
 		}
@@ -271,7 +280,7 @@ func (a *App) executeWorldNPCVisitTx(ctx context.Context, tx pgx.Tx, fid string,
 	if err := tx.QueryRow(ctx, `INSERT INTO public.world_npc_presence_runs(id,world_id,npc_id,actor_id,place_id,definition_revision,source_kind,source_ref,planned_start,planned_end,start_at,end_at,status,activity) VALUES($1,$2,$3,$4,$5,$6,'world_event_execution',$7,$8,$9,$8,$9,'active',$10) RETURNING to_jsonb(world_npc_presence_runs)`, id, r["world_id"], n["id"], n["actor_id"], e["place_id"], n["revision"], r["id"], at, end, e["value"]).Scan(&raw); err != nil {
 		return err
 	}
-	return a.createNPCOpportunityTx(ctx, tx, stringValue(r["owner_actor_id"]), fid, stringValue(r["world_id"]), n, decodeObject(raw), at)
+	return a.createWorldMemberOpportunitiesTx(ctx, tx, stringValue(r["world_id"]), n, decodeObject(raw))
 }
 func (a *App) recoverWorldEvent(ctx context.Context, run map[string]any, at time.Time) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {

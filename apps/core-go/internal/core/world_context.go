@@ -20,7 +20,7 @@ func (a *App) worldEnvironmentContext(ctx context.Context, fid, profile string) 
 		return nil, err
 	}
 	result := decodeObject(raw)
-	known, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT DISTINCT ON(n.id) jsonb_build_object('name',n.name,'actor_id',n.actor_id,'relationship_summary',left(r.summary,500),'source','recorded_relationship') FROM public.world_npcs n JOIN public.relationships r ON r.target_actor_id=n.actor_id JOIN public.life_worlds w ON w.id=n.world_id AND r.owner_fluctlight_id=w.fluctlight_id WHERE w.id=$1 AND n.status='active' AND n.enabled AND (r.profile_id IS NULL OR r.profile_id=$2) ORDER BY n.id,r.updated_at DESC LIMIT 16`, worldID, profile)
+	known, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT DISTINCT ON(n.id) jsonb_build_object('name',n.name,'actor_id',n.actor_id,'relationship_summary',left(r.summary,500),'source','recorded_relationship') FROM public.world_npcs n JOIN public.relationships r ON r.target_actor_id=n.actor_id AND r.owner_fluctlight_id=$3 WHERE n.world_id=$1 AND n.status='active' AND n.enabled AND (r.profile_id IS NULL OR r.profile_id=$2) ORDER BY n.id,r.updated_at DESC LIMIT 16`, worldID, profile, fid)
 	if err != nil {
 		return nil, err
 	}

@@ -32,7 +32,7 @@ func readDefaultPlaceWith(ctx context.Context, q lifeContextQuerier, fid, world,
 		suffix = " FOR UPDATE OF p"
 	}
 	var raw []byte
-	err := q.QueryRow(ctx, `SELECT to_jsonb(p) FROM public.world_places p JOIN public.life_worlds w ON w.id=p.world_id WHERE w.fluctlight_id=$1 AND w.id=$2 AND p.id=$3`+suffix, fid, world, id).Scan(&raw)
+	err := q.QueryRow(ctx, `SELECT to_jsonb(p) FROM public.world_places p JOIN public.life_worlds w ON w.id=p.world_id WHERE w.owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) AND w.id=$2 AND p.id=$3`+suffix, fid, world, id).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -96,8 +96,10 @@ func writePlaceDefaultTx(ctx context.Context, tx pgx.Tx, place map[string]any, d
 }
 func appendPlaceDefaultHistory(ctx context.Context, tx pgx.Tx, place, source map[string]any, reason, operation string, before, after any) error {
 	audit, _ := ctx.Value(worldCommandAuditKey{}).(string)
-	var fid, owner string
-	if err := tx.QueryRow(ctx, `SELECT w.fluctlight_id,f.created_by_actor_id FROM public.life_worlds w JOIN public.fluctlights f ON f.id=w.fluctlight_id WHERE w.id=$1`, place["world_id"]).Scan(&fid, &owner); err != nil {
+	actor, _ := ctx.Value(worldMutationActorKey{}).(string)
+	var fid *string
+	var owner string
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(NULLIF($2::varchar,''),w.fluctlight_id),w.owner_actor_id FROM public.life_worlds w WHERE w.id=$1`, place["world_id"], actor).Scan(&fid, &owner); err != nil {
 		return err
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO public.world_place_default_history(id,world_id,place_id,operation,place_revision,default_revision,before_value,after_value,source,reason,audit_id,owner_actor_id,fluctlight_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`, randomID("place_history_"), place["world_id"], place["id"], operation, intValue(place["revision"]), intValue(source["revision"]), jsonBytes(before), jsonBytes(after), jsonBytes(source), reason, nilIfEmpty(audit), owner, fid)
@@ -203,7 +205,7 @@ func (a *App) OwnerPlaceDefaultHistory(ctx context.Context, owner, fid, id strin
 	}
 	var available bool
 	world := firstString(q.Get("worldId"), q.Get("world_id"))
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.world_place_default_history WHERE fluctlight_id=$1 AND owner_actor_id=$2 AND world_id=$3 AND place_id=$4) OR EXISTS(SELECT 1 FROM public.world_places p JOIN public.life_worlds w ON w.id=p.world_id WHERE w.fluctlight_id=$1 AND w.id=$3 AND p.id=$4)`, fid, owner, world, id).Scan(&available); err != nil {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.world_place_default_history WHERE fluctlight_id=$1 AND owner_actor_id=$2 AND world_id=$3 AND place_id=$4) OR EXISTS(SELECT 1 FROM public.world_places p JOIN public.life_worlds w ON w.id=p.world_id WHERE w.owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) AND w.id=$3 AND p.id=$4)`, fid, owner, world, id).Scan(&available); err != nil {
 		return nil, err
 	}
 	if !available {
@@ -214,7 +216,7 @@ func (a *App) OwnerPlaceDefaultHistory(ctx context.Context, owner, fid, id strin
 	if err != nil {
 		return nil, ErrDiagnosticsFilterInvalid
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,created_at,to_jsonb(h) FROM public.world_place_default_history h WHERE place_id=$1 AND ($2='' OR (created_at,id)<($3,$2)) AND fluctlight_id=$4 AND owner_actor_id=$5 AND world_id=$6 ORDER BY created_at DESC,id DESC LIMIT 31`, id, cursor.ID, cursor.Time, fid, owner, world)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,created_at,to_jsonb(h) FROM public.world_place_default_history h WHERE place_id=$1 AND ($2='' OR (created_at,id)<($3,$2)) AND owner_actor_id=$4 AND world_id=$5 ORDER BY created_at DESC,id DESC LIMIT 31`, id, cursor.ID, cursor.Time, owner, world)
 	if err != nil {
 		return nil, err
 	}

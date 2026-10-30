@@ -710,7 +710,7 @@ func (c scheduleReplanCapability) Prepare(ctx context.Context, invocation Capabi
 	if timezone == "" {
 		timezone = stringValue(resolved.Schedule.Data["timezone"])
 	}
-	planned, err := planner.Plan(ctx, SchedulePlanInput{OwnerRequest: ownerScheduleRequestFromContext(ctx), Intent: stringValue(args["intent"]), Schedule: resolved.Schedule.Data, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data, SourceFactID: invocation.SourceFactID, Timezone: timezone})
+	planned, err := planner.Plan(ctx, SchedulePlanInput{FluctlightID: invocation.Metadata.FluctlightID, OwnerRequest: ownerScheduleRequestFromContext(ctx), Intent: stringValue(args["intent"]), Schedule: resolved.Schedule.Data, CurrentLife: resolved.Life.Data, Agency: resolved.Agency.Data, SourceFactID: invocation.SourceFactID, Timezone: timezone})
 	if err != nil {
 		return invocation, newCapabilityError("schedule_replan_planner_failed", true, err)
 	}

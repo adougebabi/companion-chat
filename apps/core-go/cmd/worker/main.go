@@ -276,6 +276,12 @@ func main() {
 		if _, err := application.RepairWorldEvents(ctx, 20); err != nil {
 			logger.Error("World event recovery failed", "error", err)
 		}
+		if _, err := application.EnsureWorldEventGenerationIntents(ctx, 100); err != nil {
+			logger.Error("World event generation clock repair failed", "error", err)
+		}
+		if _, err := application.EnsureLegacyScheduleWorldReconciliation(ctx, 50); err != nil {
+			logger.Error("World schedule place reconciliation failed", "error", err)
+		}
 		if _, err := application.RepairWorldNPCPresence(ctx, 20); err != nil {
 			logger.Error("NPC presence recovery failed", "error", err)
 		}

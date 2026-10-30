@@ -17,7 +17,7 @@ func (a *App) copyWorldConfigurationTx(ctx context.Context, tx pgx.Tx, fid strin
 		return nil, ErrInvalidArguments
 	}
 	var raw []byte
-	err := tx.QueryRow(ctx, `SELECT jsonb_build_object('world',to_jsonb(w),'places',COALESCE((SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM public.world_places p WHERE p.world_id=w.id),'[]')) FROM public.life_worlds w JOIN public.fluctlights s ON s.id=w.fluctlight_id JOIN public.fluctlights target ON target.id=$1 AND target.created_by_actor_id=s.created_by_actor_id WHERE w.id=$2 AND w.fluctlight_id=$3`, fid, sourceID, sourceFID).Scan(&raw)
+	err := tx.QueryRow(ctx, `SELECT jsonb_build_object('world',to_jsonb(w),'places',COALESCE((SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM public.world_places p WHERE p.world_id=w.id),'[]')) FROM public.life_worlds w JOIN public.fluctlights s ON s.id=$3 AND s.created_by_actor_id=w.owner_actor_id JOIN public.fluctlights target ON target.id=$1 AND target.created_by_actor_id=w.owner_actor_id WHERE w.id=$2`, fid, sourceID, sourceFID).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -30,7 +30,7 @@ func (a *App) copyWorldConfigurationTx(ctx context.Context, tx pgx.Tx, fid strin
 		return nil, conflict("source_world", expected, intValue(source["revision"]))
 	}
 	definition := map[string]any{}
-	for _, key := range []string{"name", "background", "rules", "flavor", "description", "item_pool", "venue_categories"} {
+	for _, key := range []string{"name", "background", "rules", "timezone", "flavor", "description", "item_pool", "venue_categories"} {
 		definition[key] = source[key]
 	}
 	if name := strings.TrimSpace(stringValue(body["name"])); name != "" {

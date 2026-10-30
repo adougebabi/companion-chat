@@ -3547,7 +3547,14 @@
             "type": "string"
           },
           "fluctlight_id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "name": {
             "type": "string"
@@ -3602,6 +3609,9 @@
                 "type": "null"
               }
             ]
+          },
+          "timezone": {
+            "type": "string"
           },
           "venue_categories": {
             "type": "array",
@@ -4142,7 +4152,14 @@
                   "type": "string"
                 },
                 "fluctlight_id": {
-                  "type": "string"
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "name": {
                   "type": "string"
@@ -4197,6 +4214,9 @@
                       "type": "null"
                     }
                   ]
+                },
+                "timezone": {
+                  "type": "string"
                 },
                 "active": {
                   "type": "boolean"
@@ -12935,7 +12955,14 @@
             "type": "string"
           },
           "fluctlight_id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "world_id": {
             "anyOf": [
@@ -13062,10 +13089,34 @@
             "additionalProperties": true
           },
           "source_resource_id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "source_version": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "enabled": {
             "type": "boolean"
@@ -13141,7 +13192,14 @@
             "type": "string"
           },
           "fluctlight_id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "owner_actor_id": {
             "type": "string"
@@ -45459,6 +45517,13 @@
             }
           },
           {
+            "name": "qAny",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "cursor",
             "in": "query",
             "schema": {
@@ -46389,6 +46454,13 @@
           },
           {
             "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "qAny",
             "in": "query",
             "schema": {
               "type": "string"

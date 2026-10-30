@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-var Points = []string{"runtime.wakeup", "runtime.reflection", "goal.completion_check", "goal.replenish_plan", "tools.select", "persona.switch", "context.select", "media.subject_route", "media.capture_plan", "media.view_plan"}
+var Points = []string{"runtime.wakeup", "runtime.reflection", "goal.completion_check", "goal.replenish_plan", "tools.select", "persona.switch", "context.select", "media.subject_route", "media.capture_plan", "media.view_plan", "world.event.admit"}
 
 type Config struct {
 	MediaEnabled    bool            `json:"media_enabled"`
@@ -205,12 +205,14 @@ type Store interface {
 	Save(context.Context, Record) error
 }
 type Service struct {
-	Settings Settings
-	Store    Store
-	HTTP     *http.Client
-	ID       func() string
-	mu       sync.Mutex
-	active   int
+	Settings        Settings
+	Store           Store
+	HTTP            *http.Client
+	ID              func() string
+	Unavailable     func(string, string)
+	lastUnavailable map[string]time.Time
+	mu              sync.Mutex
+	active          int
 }
 type Result struct {
 	Record      Record
@@ -266,7 +268,30 @@ func (s *Service) Enabled(ctx context.Context, point string) bool {
 		return false
 	}
 	c, _, _, e := s.Settings.Read(ctx)
+	if e != nil && ctx.Err() == nil {
+		s.reportUnavailable(point, "settings_unavailable")
+	}
 	return e == nil && c.Allows(point)
+}
+
+func (s *Service) reportUnavailable(point, reason string) {
+	if s.Unavailable == nil {
+		return
+	}
+	s.mu.Lock()
+	if s.lastUnavailable == nil {
+		s.lastUnavailable = map[string]time.Time{}
+	}
+	key := point + ":" + reason
+	last := s.lastUnavailable[key]
+	now := time.Now()
+	if now.Sub(last) < time.Minute {
+		s.mu.Unlock()
+		return
+	}
+	s.lastUnavailable[key] = now
+	s.mu.Unlock()
+	s.Unavailable(point, reason)
 }
 func (s *Service) Decide(ctx context.Context, point string, scope Scope, state string, candidates []Candidate) ([]Result, error) {
 	return s.decide(ctx, point, scope, candidates, func([]Candidate) string { return state })
@@ -305,10 +330,15 @@ func (s *Service) decide(ctx context.Context, point string, scope Scope, candida
 			}
 		}
 	}
-	if err != nil || !config.Allows(batchPoint) {
+	if err != nil {
+		s.reportUnavailable(point, "settings_unavailable")
+		return originalResults(candidates, "settings_unavailable"), nil
+	}
+	if !config.Allows(batchPoint) {
 		return originalResults(candidates, "disabled"), nil
 	}
 	if err = config.Validate(); err != nil {
+		s.reportUnavailable(point, "config_invalid")
 		return originalResults(candidates, "config_invalid"), nil
 	}
 	serviceDeadline := time.Now().Add(time.Duration(config.BudgetMS) * time.Millisecond)

@@ -21,11 +21,11 @@ func wardrobePreparationMessages(foundation, sections, life map[string]any, item
 	catalog := make([]map[string]any, 0, len(items))
 	registered := make(map[string]bool, len(items))
 	for _, item := range items {
-		catalog = append(catalog, wardrobePromptFields(item, "id", "description", "slot", "clothing_type", "seasons", "ownership", "availability", "source_verified"))
+		catalog = append(catalog, copyPromptFields(item, "id", "description", "slot", "clothing_type", "seasons", "ownership", "availability", "source_verified"))
 		registered[stringValue(item["id"])] = true
 	}
 	appearance := mapValue(sections["current_appearance"])
-	current := wardrobePromptFields(appearance, "body_fields", "wearing_state")
+	current := copyPromptFields(appearance, "body_fields", "wearing_state")
 	wornRefs := []string{}
 	for _, raw := range arrayValue(appearance["worn_items"]) {
 		item := mapValue(raw)
@@ -34,7 +34,7 @@ func wardrobePreparationMessages(foundation, sections, life map[string]any, item
 		// A worn item outside the current selectable inventory remains a fact,
 		// never an implicitly authorized member of the registered catalogue.
 		if !registered[id] {
-			unregistered := wardrobePromptFields(item, "id", "description", "slot", "ownership", "availability", "source_verified")
+			unregistered := copyPromptFields(item, "id", "description", "slot", "ownership", "availability", "source_verified")
 			unregistered["selectable"] = false
 			catalog = append(catalog, unregistered)
 		}
@@ -42,7 +42,7 @@ func wardrobePreparationMessages(foundation, sections, life map[string]any, item
 	current["item_refs"] = wornRefs
 	planViews := make([]map[string]any, 0, len(plans))
 	for _, plan := range plans {
-		view := wardrobePromptFields(plan, "name", "tags")
+		view := copyPromptFields(plan, "name", "tags")
 		refs, unusable := []string{}, []string{}
 		for _, raw := range arrayValue(plan["items"]) {
 			member := mapValue(raw)
@@ -64,21 +64,9 @@ func wardrobePreparationMessages(foundation, sections, life map[string]any, item
 	return (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{{"role": "system", "content": wardrobePreparationCommonInstruction + "\n\n" + instruction}, {"role": "user", "content": promptTaskData(input)}})
 }
 
-// Allowlist only the task-owned envelopes. Values inside an explicit preference
-// or body field are opaque business data, including unknown/false/zero and IDs.
-func wardrobePromptFields(source map[string]any, keys ...string) map[string]any {
-	view := make(map[string]any, len(keys))
-	for _, key := range keys {
-		if value, ok := source[key]; ok {
-			view[key] = copyPromptData(value)
-		}
-	}
-	return view
-}
-
 func wardrobePersonaPromptView(foundation, sections map[string]any) map[string]any {
 	view := map[string]any{
-		"identity":    wardrobePromptFields(mapValue(sections["identity"]), "name", "age", "gender", "height_cm", "occupation"),
+		"identity":    copyPromptFields(mapValue(sections["identity"]), "name", "age", "gender", "height_cm", "occupation"),
 		"personality": copyPromptData(sections["personality"]),
 	}
 	lifeProfile := mapValue(sections["life_profile"])
@@ -88,12 +76,12 @@ func wardrobePersonaPromptView(foundation, sections map[string]any) map[string]a
 	if value, ok := lifeProfile["character_constraints"]; ok {
 		view["character_constraints"] = copyPromptData(value)
 	}
-	preferences := wardrobePromptFields(lifeProfile, "style_preferences", "daily_outfit_preferences")
+	preferences := copyPromptFields(lifeProfile, "style_preferences", "daily_outfit_preferences")
 	// persona.detail intentionally retires old appearance facts. Read only the
 	// two declared preference fields from Foundation, never former worn stock,
 	// injuries or measurements. Effective appearance remains authoritative.
 	appearance := mapValue(mapValue(foundation["life_profile"])["appearance"])
-	for key, value := range wardrobePromptFields(appearance, "style_preferences", "daily_outfit_preferences") {
+	for key, value := range copyPromptFields(appearance, "style_preferences", "daily_outfit_preferences") {
 		preferences[key] = value
 	}
 	view["preferences"] = preferences
@@ -106,8 +94,8 @@ func wardrobePersonaPromptView(foundation, sections map[string]any) map[string]a
 	// original mixed prose once as data, rather than regex-rewriting it or
 	// silently losing the only clothing preference. Never promote it to system.
 	extensions := mapValue(sections["extensions"])
-	legacyPreferences := wardrobePromptFields(extensions, "core_persona.life_profile.appearance.style_preferences", "core_persona.life_profile.appearance.daily_outfit_preferences")
-	if nested := wardrobePromptFields(mapValue(extensions["core_persona.life_profile.appearance"]), "style_preferences", "daily_outfit_preferences"); len(nested) > 0 {
+	legacyPreferences := copyPromptFields(extensions, "core_persona.life_profile.appearance.style_preferences", "core_persona.life_profile.appearance.daily_outfit_preferences")
+	if nested := copyPromptFields(mapValue(extensions["core_persona.life_profile.appearance"]), "style_preferences", "daily_outfit_preferences"); len(nested) > 0 {
 		legacyPreferences["core_persona.life_profile.appearance"] = nested
 	}
 	if len(legacyPreferences) > 0 {
@@ -122,7 +110,7 @@ func wardrobePersonaPromptView(foundation, sections map[string]any) map[string]a
 }
 
 func wardrobeLifePromptView(life map[string]any) map[string]any {
-	view := wardrobePromptFields(life, "timezone", "authority_status", "scene", "activity", "location", "behavior_state", "sleeping")
+	view := copyPromptFields(life, "timezone", "authority_status", "scene", "activity", "location", "behavior_state", "sleeping")
 	if at, err := time.Parse(time.RFC3339Nano, stringValue(life["instant"])); err == nil {
 		zone, zoneErr := time.LoadLocation(stringValue(life["timezone"]))
 		if zoneErr == nil {
@@ -134,15 +122,15 @@ func wardrobeLifePromptView(life map[string]any) map[string]any {
 		}
 	}
 	if presence := mapValue(life["presence"]); len(presence) > 0 {
-		view["presence"] = wardrobePromptFields(presence, "current_task", "user_presence")
+		view["presence"] = copyPromptFields(presence, "current_task", "user_presence")
 	}
 	events := []map[string]any{}
 	for _, raw := range arrayValue(life["world_effects"]) {
 		event := mapValue(raw)
-		semantic := wardrobePromptFields(event, "description", "start_at", "end_at")
+		semantic := copyPromptFields(event, "description", "start_at", "end_at")
 		effects := []map[string]any{}
 		for _, effect := range arrayValue(event["effects"]) {
-			effects = append(effects, wardrobePromptFields(mapValue(effect), "kind", "scope", "value"))
+			effects = append(effects, copyPromptFields(mapValue(effect), "kind", "scope", "value"))
 		}
 		semantic["effects"] = effects
 		events = append(events, semantic)

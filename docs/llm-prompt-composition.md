@@ -1,6 +1,6 @@
 # LLM 提示词组成清单
 
-更新：2026-10-25。代码权威是 `apps/core-go/internal/core/formal_agents.go`
+更新：2026-10-30。代码权威是 `apps/core-go/internal/core/formal_agents.go`
 与各 typed task，规范在 [Prompt Composition Contract](../.trellis/spec/backend/prompt-composition-contract.md)。
 
 ## 统一构造
@@ -33,12 +33,13 @@
   是 `historical_conversation` 数据，不模拟当前用户发来旧请求。
 - 表中“0”表示不追加通用私聊；Goal、日记、摘要的显式证据可包含源消息。
 
-## 29 个正式 Agent
+## 30 个正式 Agent
 
 表内文件均在 `apps/core-go/internal/core/`；这些文件与函数可用于定位具体入口。
 
 | Agent ID | 当前提示词组成 | 通用原始聊天 | 入口/构造位置 |
 | --- | --- | --- | --- |
+| world_event_generation | 世界规则/时区/真实地点与 NPC/实际在场角色/近期已发生事件；只提议或 no_event，独立 Kev 审批后才可入可执行库 | 0 | world_event_generation.go |
 | conversation_cognition | 私聊认知协议 + Working Persona + 私聊 D/M/S + H + 当前输入；legacy 与 fact-only 投影不同 | H | cognition_agent.go；conversation_runtime.go |
 | conversation_reply | 私聊表达协议 + Working Persona + 独立事实视图/能力边界/实际 Tool facts + M/S + H + 当前输入 | H | reply_context.go；reply_provider.go |
 | reply_action_check | 换装未生效时核验未发送正文；实际动作回执 + 当前状态 + 候选正文，无人格扮演，无工具 | 0 | reply_action_consistency.go |
@@ -54,7 +55,7 @@
 | visual_identity_patch | 修正决策协议 + candidate/snapshot/constraints/vision findings | 0 | model_tasks.go |
 | visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查 + 必要图片 | 0；尝试历史是任务历史 | visual_identity_agent.go |
 | conversation_summary | 累计：旧摘要+Actor 更正+源消息；片段：真实参与者/说话人别名与名称+时间范围+源消息，显式 JSON 合同；daily：日期/时区+segments | 指定源范围，非通用 H | conversation_summary.go；model_tasks.go |
-| schedule_generation | 排程规则 + 当前 identity/life/goals/intentions/outcomes/承诺 | 0 | model_tasks.go |
+| schedule_generation | 排程规则 + 含已声明住所的 identity/life/goals/intentions/outcomes/承诺 + 共享世界规则/时区/真实地点候选 | 0 | model_tasks.go；schedule_places.go |
 | native_cognition | 认知协议 + Working Persona + D/M + 本次事件/事实 | 0，无 S | model_tasks.go |
 | studio_assistant | 定义编辑协议 + 隔离的定义 body/创作要求/允许引用（移除 job 身份） | 0，无生活 M | studio_runtime.go |
 | studio_text_preview | 虚构示例协议 + 隔离的定义/请求 snapshot | 0，无生活 M | studio_runtime.go |
@@ -64,7 +65,7 @@
 | diary_expression | 日记表达协议 + Working Persona + 日期/时区/as_of + 选定真实材料 | 0 | diary_runtime.go |
 | persistent_switch | 切换判定规则 + Working Persona/切换规则 + D/M/S/H + user_text/candidate_reply/response_intent | 可带 H | model_tasks.go |
 | reflection | 反思规则 + Working Persona + D/M + 明确范围的 evidence | 0，无 S | model_tasks.go |
-| schedule_replan | 重排规则 + 冻结 intent + 当前日程/生活事实 | 0 | model_tasks.go；schedule_capability.go |
+| schedule_replan | 重排规则 + 冻结 intent + 当前日程/生活事实/已声明住所 + 共享世界规则/时区/地点候选 | 0 | model_tasks.go；schedule_capability.go |
 | goal_planner | Planner 协议 + run/mode + goal-set snapshot；后续 query/commit 原生结果 | 0 | goal_planner.go |
 | goal_evaluation | 评估协议 + Working Persona + stable 目标/criteria/actor refs + 专属事实/记忆/其他目标背景 + 当前目标状态/sources/reviews/accepted submissions；重复正文通过 evidence_payloads 复用 | 0；sources 包含消息证据 | goal_evaluation_task.go；goal_evaluation_wire.go |
 | virtual_activity_result | 活动结果规则 + 请求/当前 appearance/life/近期结果/开始和最早结束时间 | 0 | model_tasks.go |
@@ -125,6 +126,7 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | persona profile/rule selectors | 选择已声明且获授权的人格/规则 |
 | Owner 请求的 item/intention/asset IDs | 对应工具必须精确匹配用户选择的目标，不能猜测或改对象 |
 | 初始穿搭的 registered_items.id / item_refs / wear_item_refs | 方案和当前穿戴引用唯一衣物目录，选衣结果由 Core 校验并交给真实 wardrobe.wear；不发送方案自身 ID 或库存来源流水 |
+| 日程 place_ref/place_id、新地点局部 key；事件 place_id/npc_id/target_actor_ref | 显式选择授权世界实体或冻结的实际在场角色；Core 校验/绑定后才登记、排程或执行，不能猜运行时 ID |
 | Studio body/allowed_references 中的资源 ID/version | 创作定义的合法引用词表；job 自身 id/version 不发送 |
 | Goal Planner run/goal/promise selectors、revision/facts_revision | 当前 query/commit 的实际 CAS 与目标协议；调度 lease/retry knobs 已去除 |
 | NPC 相遇机会 id/revision | world.npc.encounter 的精确选择与 CAS；来源事件/presence/profile 身份不进入模型 |
@@ -217,3 +219,15 @@ PostgreSQL 配置复制，没有运行模型效果回归。
 不改写用户正文、媒体意图或其他人物引用。确定的人物权限拒绝作为非重试工具
 结果交回原生循环，依赖故障仍保持真实失败。本次修复未修改提示词、模型入口
 或任何输入输出 Token 控制；静态上下文回归不代表实际媒体生成成功。
+
+## 共享世界与事件（2026-10-30）
+
+世界提议不加载任一角色的 Working Persona 或私聊。实际在场角色使用本次冻结的
+aN 引用，Core 保留绑定；人物 ID、世界运行和调度元数据不进入提议提示词。
+Kev 使用 world.event.admit 的独立 JSON state，只携带候选涉及的地点/NPC/在场
+角色及必要世界规则、时间和近期事实。No/unclear/disabled/异常不等于允许入库。
+
+NPC 独立回应仍保留该 NPC 的共享已发生互动，新增 participant_name 和
+is_current_character，防止把与甲的经历当作与乙的关系。scene_event 的稳定地点
+身份贯穿准备、执行和结果，实际 NPC 在场仍以确认事件或有效已开始活动为准。
+输入输出继续不设应用 token 上限，诊断估算不参与截断或拒绝。

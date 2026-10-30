@@ -214,8 +214,7 @@ export default function CharacterWizardView({ model: m }) {
           "待选择";
   const selectedWorld = m.existingWorlds.find(
     (w) =>
-      w.id === d.worldSource?.worldId &&
-      w.fluctlightId === d.worldSource?.fluctlightId,
+      w.id === d.worldSource?.worldId,
   );
   const groupName = m.groups.find((g) => g.id === d.groupId)?.name || "未分组",
     done = m.progress?.stages.filter((s) => s.state === "ready").length || 0,
@@ -435,7 +434,7 @@ export default function CharacterWizardView({ model: m }) {
                   <div className="creation-world-toolbar">
                     <span>
                       {visibleWorldTab === "existing"
-                        ? "复用配置，开启独立的生活"
+                        ? "加入同一世界，开启自己的生活"
                         : "采用明确的已发布版本"}
                     </span>
                     <div className="creation-search">
@@ -487,8 +486,7 @@ export default function CharacterWizardView({ model: m }) {
                     {worldRows.map((row) => {
                       const existing = visibleWorldTab === "existing",
                         selected = existing
-                          ? d.worldSource?.worldId === row.id &&
-                            d.worldSource?.fluctlightId === row.fluctlightId
+                          ? d.worldSource?.worldId === row.id
                           : d.worldResourceId === row.id &&
                             d.worldResourceVersion === row.published_version;
                       return (
@@ -522,7 +520,7 @@ export default function CharacterWizardView({ model: m }) {
                               {selected && <Check size={12} />}
                             </span>
                             <Badge variant="outline">
-                              {existing ? "配置来源" : "世界底稿"}
+                              {existing ? "共享世界" : "世界底稿"}
                             </Badge>
                           </div>
                           <section>
@@ -533,7 +531,7 @@ export default function CharacterWizardView({ model: m }) {
                                 row.publication?.body?.background ||
                                 row.publication?.body?.description ||
                                 row.publicationError ||
-                                "选择这份已读配置，核对后为新角色建立独立世界。"}
+                                "选择这份已读配置，核对后让新角色加入这个世界。"}
                             </p>
                             <footer>
                               <span>
@@ -541,7 +539,7 @@ export default function CharacterWizardView({ model: m }) {
                                   ? "来自 " + row.characterName
                                   : row.published_version + " · 已发布"}
                               </span>
-                              <span>{existing ? "独立复用" : "固定版本"}</span>
+                              <span>{existing ? "加入共享世界" : "固定版本"}</span>
                             </footer>
                           </section>
                         </button>
@@ -580,7 +578,7 @@ export default function CharacterWizardView({ model: m }) {
               {d.worldChoiceConfirmed && (
                 <WorkspaceInfo>
                   {d.worldSource
-                    ? `将复用「${d.worldSource.name}」版本 ${d.worldSource.revision} 的背景、规则和地点；人物、物品实例和生活历史分别建立。`
+                    ? `将加入「${d.worldSource.name}」的同一世界；地点与 NPC 身份共享，各角色的关系与记忆分别记录。`
                     : d.worldResourceId
                       ? `本次固定使用「${worldName} · ${d.worldResourceVersion}」。之后的底稿修改由你明确重新选择。`
                       : "已明确选择日常生活配置。世界创建与绑定将在原角色的准备流程中读回。"}

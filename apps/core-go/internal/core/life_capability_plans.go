@@ -22,6 +22,7 @@ type preparedSceneMutation struct {
 	Scene                       string    `json:"scene,omitempty"`
 	Activity                    string    `json:"activity,omitempty"`
 	Location                    string    `json:"location,omitempty"`
+	PlaceID                     string    `json:"place_id,omitempty"`
 	Confidence                  float64   `json:"confidence"`
 	EvidenceRefs                []string  `json:"evidence_refs"`
 	OccurredAt                  time.Time `json:"occurred_at"`
@@ -97,9 +98,19 @@ func (a *App) prepareSceneCapability(_ context.Context, invocation CapabilityInv
 		return invocation, errors.New("scene_runtime_evidence_invalid")
 	}
 	occurredAt := a.now().UTC()
+	place := ""
+	if operation != "end" {
+		// Scene/activity wording may change at the same known location. An
+		// explicit new location still needs an explicit stable place selector.
+		place, err = resolveUnscheduledActivityPlace(map[string]any{"location": args["location"], "place_id": args["place_id"]}, life)
+		if err != nil {
+			return invocation, err
+		}
+	}
 	plan := preparedSceneMutation{
 		SchemaVersion: sceneMutationPlanVersion, Operation: operation, Scene: scene, Activity: activity,
 		Location: stringValue(args["location"]), Confidence: confidence, EvidenceRefs: evidence,
+		PlaceID:    place,
 		OccurredAt: occurredAt, EndsAt: occurredAt.Add(sceneDefaultDuration),
 		ExpectedLifeContextRevision: expectedRevision, ExpectedSource: expectedSource,
 		ExpectedEventID: stringValue(life["event_id"]), ExpectedEventRevision: intValue(life["event_revision"]),

@@ -288,6 +288,8 @@ func (r *TemporalRuntime) service() workflowservice.WorkflowServiceClient {
 
 func workflowFunction(intentType string) (any, error) {
 	switch intentType {
+	case "world.events.generate":
+		return WorldEventGenerationWorkflow, nil
 	case "media.delete":
 		return MediaDeletionWorkflow, nil
 	case "schedule.owner":

@@ -128,7 +128,7 @@ func (a *App) RequestOwnerSchedule(ctx context.Context, owner, fid string, body 
 	if !eventKeys(body, "local_date", "expected_revision", "expected_life_context_revision", "idempotency_key", "reason", "promise_id", "expected_promise_revision", "start_at", "end_at") {
 		return nil, invalid("unsupported schedule request field")
 	}
-	if err := lockLifeContextTx(ctx, tx, fid); err != nil {
+	if err := lockSharedWorldMembersTx(ctx, tx, fid); err != nil {
 		return nil, err
 	}
 	key := strings.TrimSpace(stringValue(body["idempotency_key"]))
@@ -456,7 +456,7 @@ func (a *App) ProcessOwnerScheduleRequest(ctx context.Context, id string) (resul
 			if a.Schedule == nil || a.Schedule.Planner() == nil {
 				return nil, errors.New("schedule_planner_unavailable")
 			}
-			proposal, err = a.Schedule.Planner().Plan(ctx, SchedulePlanInput{OwnerRequest: map[string]any{"purpose": "accepted_promise_appointment", "local_date": date, "start_at": body["start_at"], "end_at": body["end_at"], "activity": p["title"]}, Intent: "Arrange this already accepted promise in the exact requested interval. This is a plan, not execution or fulfillment.", PlannedAction: map[string]any{"title": p["title"], "duration_minutes": int(end.Sub(start) / time.Minute)}, Schedule: base, CurrentLife: life, Agency: map[string]any{"goals": filterActiveProfileRows(goals, stringValue(frozen["profile_id"])), "intentions": filterActiveProfileRows(intentions, stringValue(frozen["profile_id"]))}, Timezone: zone})
+			proposal, err = a.Schedule.Planner().Plan(ctx, SchedulePlanInput{FluctlightID: fid, OwnerRequest: map[string]any{"purpose": "accepted_promise_appointment", "local_date": date, "start_at": body["start_at"], "end_at": body["end_at"], "activity": p["title"]}, Intent: "Arrange this already accepted promise in the exact requested interval. This is a plan, not execution or fulfillment.", PlannedAction: map[string]any{"title": p["title"], "duration_minutes": int(end.Sub(start) / time.Minute)}, Schedule: base, CurrentLife: life, Agency: map[string]any{"goals": filterActiveProfileRows(goals, stringValue(frozen["profile_id"])), "intentions": filterActiveProfileRows(intentions, stringValue(frozen["profile_id"]))}, Timezone: zone})
 			if err != nil {
 				return nil, err
 			}
@@ -499,7 +499,7 @@ func (a *App) ProcessOwnerScheduleRequest(ctx context.Context, id string) (resul
 		ctx = context.WithValue(ctx, ownerSchedulePromiseKey{}, stringValue(body["promise_id"]))
 	}
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := lockLifeContextTx(ctx, tx, fid); err != nil {
+		if err := lockSharedWorldMembersTx(ctx, tx, fid); err != nil {
 			return err
 		}
 		if err := requireOwnerMutableTx(ctx, tx, owner, fid); err != nil {

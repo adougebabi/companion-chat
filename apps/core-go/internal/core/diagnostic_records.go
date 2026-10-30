@@ -14,19 +14,33 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var ownerDiagnosticKinds = []string{"events", "lifecycle", "model-runs", "agent-runs", "media-prompts", "kev", "workflow-intents", "audit", "harm", "media-recoveries", "turns", "links"}
+var ownerDiagnosticKinds = []string{"events", "lifecycle", "model-runs", "agent-runs", "world-event-generations", "media-prompts", "kev", "workflow-intents", "audit", "harm", "media-recoveries", "turns", "links"}
 
 type ownerDiagnosticFilter map[string]string
 
 func parseOwnerDiagnosticFilter(q url.Values) (ownerDiagnosticFilter, error) {
 	f := ownerDiagnosticFilter{}
-	for _, key := range []string{"fluctlightId", "correlationId", "runId", "intentId", "workflowId", "surface", "status", "eventType", "severity", "role", "identity", "action", "from", "to", "q"} {
+	for _, key := range []string{"fluctlightId", "correlationId", "runId", "intentId", "workflowId", "surface", "status", "eventType", "severity", "role", "identity", "action", "from", "to", "q", "qAny"} {
 		value := strings.TrimSpace(q.Get(key))
+		if key == "qAny" && value == "" {
+			value = strings.TrimSpace(q.Get("q_any"))
+		}
 		if len([]rune(value)) > 256 {
 			return nil, ErrDiagnosticsFilterInvalid
 		}
 		if value != "" {
 			f[key] = value
+		}
+	}
+	if f["qAny"] != "" {
+		var terms []string
+		if json.Unmarshal([]byte(f["qAny"]), &terms) != nil || len(terms) == 0 || len(terms) > 16 {
+			return nil, ErrDiagnosticsFilterInvalid
+		}
+		for _, term := range terms {
+			if strings.TrimSpace(term) == "" {
+				return nil, ErrDiagnosticsFilterInvalid
+			}
 		}
 	}
 	for _, key := range []string{"from", "to"} {
@@ -58,6 +72,12 @@ func ownerDiagnosticSourceSnapshot(kind, visible string) (string, error) {
 		agentMembership = " AND pg_visible_in_snapshot(ar.recorded_xid," + visible + "::pg_snapshot)"
 	}
 	switch kind {
+	case "world-event-generations":
+		membership := ""
+		if visible != "" {
+			membership = " AND pg_visible_in_snapshot(g.recorded_xid," + visible + "::pg_snapshot)"
+		}
+		return `SELECT g.id AS key,g.created_at AS at,g.recorded_xid AS born,(to_jsonb(g)-'recorded_xid')||jsonb_build_object('title',COALESCE(g.proposal->>'name','世界事件生成'),'world_name',g.context->>'name','correlation_id',g.model_correlation_id,'execution',(SELECT to_jsonb(r) FROM public.world_event_runs r WHERE r.id=g.run_id)) AS data FROM public.world_event_generations g JOIN public.life_worlds w ON w.id=g.world_id WHERE w.owner_actor_id=$1` + membership, nil
 	case "events", "lifecycle":
 		where := ""
 		if kind == "lifecycle" {
@@ -104,7 +124,7 @@ func appendOwnerDiagnosticFilter(sql string, args []any, f ownerDiagnosticFilter
 		if f[key] != "" {
 			args = append(args, f[key])
 			if key == "correlationId" {
-				sql += fmt.Sprintf(" AND (%s=$%[2]d::text OR data->>'parent_run_id'=$%[2]d::text OR data->'metrics'->>'parent_run_id'=$%[2]d::text OR data->'payload'->>'parent_run_id'=$%[2]d::text)", expressions[key], len(args))
+				sql += fmt.Sprintf(" AND (%s=$%[2]d::text OR data->>'parent_run_id'=$%[2]d::text OR data->'metrics'->>'parent_run_id'=$%[2]d::text OR data->'payload'->>'parent_run_id'=$%[2]d::text OR data->'metrics'->>'world_clock_correlation_id'=$%[2]d::text)", expressions[key], len(args))
 			} else {
 				sql += fmt.Sprintf(" AND %s=$%d::text", expressions[key], len(args))
 			}
@@ -123,6 +143,10 @@ func appendOwnerDiagnosticFilter(sql string, args []any, f ownerDiagnosticFilter
 	if f["q"] != "" {
 		args = append(args, f["q"])
 		sql += fmt.Sprintf(" AND strpos(lower(data::text),lower($%d::text))>0", len(args))
+	}
+	if f["qAny"] != "" {
+		args = append(args, f["qAny"])
+		sql += fmt.Sprintf(" AND EXISTS(SELECT 1 FROM jsonb_array_elements_text($%d::jsonb) term(value) WHERE strpos(lower(data::text),lower(term.value))>0)", len(args))
 	}
 	return sql, args
 }

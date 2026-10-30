@@ -32,7 +32,7 @@ func (a *App) applyWorldEventTemplateTx(ctx context.Context, tx pgx.Tx, fid stri
 	return map[string]any{"id": id, "revision": revision, "world_id": world, "enabled": enabled, "life_write": false}, err
 }
 func readWorldTemplateWith(ctx context.Context, q lifeContextQuerier, fid, id string, lock bool) (map[string]any, error) {
-	sql := `SELECT to_jsonb(t) FROM public.world_event_templates t JOIN public.life_worlds w ON w.id=t.world_id WHERE w.fluctlight_id=$1 AND t.id=$2`
+	sql := `SELECT to_jsonb(t) FROM public.world_event_templates t JOIN public.life_worlds w ON w.id=t.world_id WHERE w.owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) AND t.id=$2`
 	if lock {
 		sql += " FOR UPDATE OF t"
 	}
@@ -50,7 +50,7 @@ func (a *App) worldTemplateSurface(ctx context.Context, method string, p []strin
 			if err != nil {
 				return nil, err
 			}
-			items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT to_jsonb(t)||jsonb_build_object('template_id',t.id,'category',t.definition->>'category','permanent_harm',false,'locked',false) FROM public.world_event_templates t WHERE world_id=$1 ORDER BY name,id LIMIT 201`, world)
+			items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT to_jsonb(t)||jsonb_build_object('template_id',t.id,'category',t.definition->>'category','permanent_harm',false,'locked',false) FROM public.world_event_templates t WHERE world_id=$1 AND generation_id IS NULL ORDER BY name,id LIMIT 201`, world)
 			if err != nil {
 				return nil, err
 			}
@@ -146,11 +146,11 @@ func (a *App) queueWorldEventTx(ctx context.Context, tx pgx.Tx, owner, fid strin
 	}
 	id := "world_event_" + stableDigest(fid+":"+key)
 	var raw []byte
-	err := tx.QueryRow(ctx, `INSERT INTO public.world_event_runs(id,world_id,template_id,fluctlight_id,owner_actor_id,template_revision,definition,trigger_kind,source_key,status,due_at,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'queued',$10,$11) ON CONFLICT(source_key) DO UPDATE SET source_key=EXCLUDED.source_key RETURNING to_jsonb(world_event_runs)`, id, t["world_id"], t["id"], fid, owner, t["revision"], jsonBytes(d), trigger, key, due, due.Add(30*time.Minute)).Scan(&raw)
+	err := tx.QueryRow(ctx, `INSERT INTO public.world_event_runs(id,world_id,template_id,fluctlight_id,owner_actor_id,template_revision,definition,trigger_kind,source_key,status,due_at,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'queued',$10,$11) ON CONFLICT(source_key) DO UPDATE SET source_key=EXCLUDED.source_key RETURNING to_jsonb(world_event_runs)`, id, t["world_id"], t["id"], nullableString(fid), owner, t["revision"], jsonBytes(d), trigger, key, due, due.Add(30*time.Minute)).Scan(&raw)
 	return decodeObject(raw), err
 }
 func readWorldEventRunWith(ctx context.Context, q lifeContextQuerier, owner, fid, template, id string, lock bool) (map[string]any, error) {
-	sql := `SELECT to_jsonb(r) FROM public.world_event_runs r WHERE owner_actor_id=$1 AND fluctlight_id=$2 AND template_id=$3 AND id=$4`
+	sql := `SELECT to_jsonb(r) FROM public.world_event_runs r WHERE owner_actor_id=$1 AND (fluctlight_id=$2 OR fluctlight_id IS NULL AND world_id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$2)) AND template_id=$3 AND id=$4`
 	if lock {
 		sql += " FOR UPDATE"
 	}
@@ -174,7 +174,7 @@ func (a *App) worldEventRuns(ctx context.Context, owner, fid string, t map[strin
 	if err != nil || (q.Get("cursor") != "" && (cursor.ID == "" || cursor.Time.IsZero())) {
 		return nil, invalid("invalid world event cursor")
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,created_at,to_jsonb(r) FROM public.world_event_runs r WHERE owner_actor_id=$1 AND fluctlight_id=$2 AND template_id=$3 AND ($4='' OR (created_at,id)<($5,$4)) ORDER BY created_at DESC,id DESC LIMIT $6`, owner, fid, t["id"], cursor.ID, cursor.Time, limit+1)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,created_at,to_jsonb(r) FROM public.world_event_runs r WHERE owner_actor_id=$1 AND (fluctlight_id=$2 OR fluctlight_id IS NULL AND world_id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$2)) AND template_id=$3 AND ($4='' OR (created_at,id)<($5,$4)) ORDER BY created_at DESC,id DESC LIMIT $6`, owner, fid, t["id"], cursor.ID, cursor.Time, limit+1)
 	if err != nil {
 		return nil, err
 	}

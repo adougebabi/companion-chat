@@ -1,10 +1,12 @@
 import {persistentCommand} from './providers/persistent-command.mjs';
 
-// Explicit opt-in only. The unchanged default-world flow remains independent.
-// Core copies saved world/place configuration; no NPCs, inventory or history.
+// New selections join the same world. Previously admitted copy commands keep
+// their exact original body/key and independent-world recovery semantics.
 export async function finishReusedWorld({client,recovery,storage,owner,ownerCurrent}){
  const initial=recovery.read(),fid=initial.activatedId,requestId=initial.requestId,source=initial.worldSource;
  if(!fid)throw Error('请先完成角色创建，原世界选择已保留');
+ const legacy=initial.worldReuseMode==='copy'||(initial.worldReuseMode!=='shared'&&(initial.worldRuntimeId||storage.getItem(`fluctlight-creation:${owner}:${fid}:reused-world-command`)));
+ if(!legacy)return finishJoinedWorld({client,recovery,storage,owner,ownerCurrent});
  const current=()=>{if(!ownerCurrent())return null;const value=recovery.read();return value.requestId===requestId&&value.activatedId===fid&&JSON.stringify(value.worldSource)===JSON.stringify(source)?value:null;};
  const stale={configured:false,stale:true};
  if(!current())return stale;
@@ -26,8 +28,37 @@ export async function finishReusedWorld({client,recovery,storage,owner,ownerCurr
  return {configured:true,worldId:draft.worldRuntimeId};
 }
 
+async function finishJoinedWorld({client,recovery,storage,owner,ownerCurrent}){
+ const initial=recovery.read(),fid=initial.activatedId,requestId=initial.requestId,source=initial.worldSource;
+ const current=()=>{if(!ownerCurrent())return null;const d=recovery.read();return d.activatedId===fid&&d.requestId===requestId&&JSON.stringify(d.worldSource)===JSON.stringify(source)?d:null;};
+ if(!current())return {configured:false,stale:true};
+ const command=persistentCommand({key:`fluctlight-creation:${owner}:${fid}:shared-world-command`,storage:()=>storage,execute:async(value,key)=>{
+  if(value.worldId!==source.worldId)throw Error('原世界加入请求与当前选择不一致，请恢复原创建记录。');
+  const result=await client.selectWorld(fid,{...value,idempotencyKey:key});
+  const d=current();if(d){d.worldRuntimeId=source.worldId;d.worldReuseMode='shared';d.worldSelectionConfirmed=true;recovery.save(d);}return result;
+ }});
+ if(command.pending())await command.retry();
+ let d=current();if(!d)return {configured:false,stale:true};
+ const catalog=await client.worldCatalog(fid);d=current();if(!d)return {configured:false,stale:true};
+ if(catalog.active_binding?.world_id!==source.worldId){
+  if(d.worldSelectionConfirmed)return {configured:false,warning:'角色后来选择了其他世界，请到世界页核对；原加入记录已保留。'};
+  await command.submit({worldId:source.worldId,expectedRevision:d.worldJoinReviewedRevision??catalog.active_binding?.revision??0,reason:'加入已有共享世界，保留角色各自的关系与记忆'});
+ }
+ const actual=await client.world(fid);d=current();if(!d)return {configured:false,stale:true};
+ if(actual.world?.id!==source.worldId)throw Error('共享世界加入尚未读回，原请求已保留。');
+ d.worldRuntimeId=source.worldId;d.worldReuseMode='shared';d.worldSelectionConfirmed=true;recovery.save(d);
+ return {configured:true,worldId:source.worldId};
+}
+
 function reviewChannel({owner,storage},fid){return persistentCommand({key:`fluctlight-creation:${owner}:${fid}:reused-world-command`,storage:()=>storage,execute(){throw Error('此处只核对原提交，不执行写入');}});}
 export async function reviewWorldReuse(options){
+ const draft=options.recovery.read(),shared=sharedReviewChannel(options,draft.activatedId),joined=shared.pending();
+ if(joined){
+  if(!options.ownerCurrent()||!joined.rejection||joined.value.worldId!==draft.worldSource?.worldId||draft.worldSelectionConfirmed)throw Error('原加入请求尚未确认无效果，请先恢复原请求。');
+  const catalog=await options.client.worldCatalog(draft.activatedId);
+  if(!options.ownerCurrent()||JSON.stringify(options.recovery.read())!==JSON.stringify(draft))throw Error('创建资料已变化，请重新核对。');
+  return {mode:'shared',requestId:draft.requestId,fid:draft.activatedId,idempotencyKey:joined.idempotencyKey,previous:draft.worldSource,source:draft.worldSource,bindingRevision:catalog.active_binding?.revision||0,preview:{世界:draft.worldSource.name,说明:'加入同一世界；地点与 NPC 身份共享，各角色的关系与记忆分别记录。',当前绑定:catalog.active_binding?.world_id||'尚未选用'}};
+ }
  const {client,recovery,ownerCurrent}=options,old=recovery.read(),channel=reviewChannel(options,old.activatedId),pending=channel.pending();
  if(!ownerCurrent()||!pending?.rejection||pending.value.operation!=='copy'||old.worldRuntimeId)throw Error('原复用提交尚未确认无效果，请先恢复或查询原提交。');
  const source=old.worldSource,view=await client.catalogWorld(source.fluctlightId,source.worldId);
@@ -36,8 +67,15 @@ export async function reviewWorldReuse(options){
  return {requestId:old.requestId,fid:old.activatedId,idempotencyKey:pending.idempotencyKey,previous:source,source:{...source,name:view.world.name,revision:view.world.revision},preview:{名称:view.world.name,背景:view.world.background,规则:view.world.rules,地点:(view.places||[]).map(p=>({名称:p.alias||p.name,描述:p.desc||p.description,楼层:p.floor,陈设:p.furniture,布局:p.layout}))}};
 }
 export function confirmWorldReuse(options,review){
+ if(review.mode==='shared'){
+  const old=options.recovery.read(),channel=sharedReviewChannel(options,old.activatedId),pending=channel.pending();
+  if(!options.ownerCurrent()||old.requestId!==review.requestId||old.activatedId!==review.fid||JSON.stringify(old.worldSource)!==JSON.stringify(review.previous)||pending?.idempotencyKey!==review.idempotencyKey||!pending.rejection)throw Error('原加入请求或创建资料已变化，请重新核对。');
+  channel.releaseRejected();options.recovery.save({...old,worldJoinReviewedRevision:review.bindingRevision});return;
+ }
  const {recovery,ownerCurrent}=options,old=recovery.read(),channel=reviewChannel(options,old.activatedId),pending=channel.pending();
  if(!ownerCurrent()||old.requestId!==review.requestId||old.activatedId!==review.fid||old.worldRuntimeId||JSON.stringify(old.worldSource)!==JSON.stringify(review.previous)||pending?.idempotencyKey!==review.idempotencyKey)throw Error('原提交或创建资料已变化，请重新核对。');
  channel.releaseRejected();
  recovery.save({...old,worldSource:review.source,worldName:review.source.name});
 }
+
+function sharedReviewChannel({owner,storage},fid){return persistentCommand({key:`fluctlight-creation:${owner}:${fid}:shared-world-command`,storage:()=>storage,execute(){throw Error('此处只核对原加入请求');}});}

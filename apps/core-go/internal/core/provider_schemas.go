@@ -316,6 +316,9 @@ func scheduleResponseSchema() map[string]any {
 		"activity":          stringSchema(),
 		"scene":             stringSchema(),
 		"location":          stringSchema(),
+		"place_id":          stringSchema(),
+		"place_ref":         stringSchema(),
+		"location_kind":     enumStringSchema("place", "transit", "unknown"),
 		"item_type":         stringSchema(),
 		"status":            stringSchema(),
 		"priority":          unitNumberSchema(),
@@ -325,6 +328,7 @@ func scheduleResponseSchema() map[string]any {
 	return objectSchema(map[string]any{
 		"items":             arraySchema(item),
 		"reschedule_policy": openObjectSchema(),
+		"new_places":        scheduleNewPlacesSchema(),
 	}, []string{"items", "reschedule_policy"}, false)
 }
 

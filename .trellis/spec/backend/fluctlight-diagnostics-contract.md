@@ -2,6 +2,15 @@
 
 ## Scenario: Built-In Local Debugging Without External Telemetry Stack
 
+2026-10-30 amendment: actual Kev HTTP batches are distinct model-call records;
+not-called/disabled decisions are not fabricated physical requests. Purpose
+presentation uses scenario/schema/logical role, retaining unknown codes. The
+optional `qAny` (`q_any` on the native contract) contains a bounded JSON string
+array of literal OR search terms so one displayed purpose can cover aliases.
+It participates in the existing cursor/filter identity and preserves ordinary
+`q` literal semantics. `world-event-generations` is a read-only business audit
+view with world Owner authorization; it is not a deletable diagnostic dataset.
+
 ### 1. Scope / Trigger
 
 - Trigger: browser boundary/Core/Worker emits a diagnostic event, a model call runs, a cognitive turn/workflow/event/media chain needs inspection, or Owner queries/exports/cleans diagnostics.

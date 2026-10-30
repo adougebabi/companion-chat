@@ -26,6 +26,7 @@ import (
 
 const (
 	LifecycleQueue                = "lifecycle"
+	WorldEventQueue               = "world-events"
 	CriticalLifecycleQueue        = "lifecycle-critical"
 	MediaQueue                    = "media"
 	InteractionQueue              = "interaction"
@@ -236,6 +237,7 @@ func ensureWorkerDeploymentCurrentVersion(ctx context.Context, handle WorkerDepl
 }
 
 type Input struct {
+	WorldID            string   `json:"world_id,omitempty"`
 	DiaryAttemptID     string   `json:"diary_attempt_id,omitempty"`
 	KevOriginal        bool     `json:"kev_original,omitempty"`
 	IntentID           string   `json:"intent_id"`
@@ -1275,7 +1277,7 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 	if logger == nil {
 		logger = slog.Default()
 	}
-	queues := []string{LifecycleQueue, CriticalLifecycleQueue, MediaQueue, InteractionQueue, VisualIdentityQueue, ReplyContinuationQueue}
+	queues := []string{LifecycleQueue, WorldEventQueue, CriticalLifecycleQueue, MediaQueue, InteractionQueue, VisualIdentityQueue, ReplyContinuationQueue}
 	workers := make([]worker.Worker, 0, len(queues))
 	fatalErrors := make(chan error, len(queues))
 	buildID := WorkerDeploymentBuildID()
@@ -1314,6 +1316,9 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			},
 		})
 		switch queue {
+		case WorldEventQueue:
+			w.RegisterWorkflow(WorldEventGenerationWorkflow)
+			w.RegisterActivity(GenerateWorldEventActivity)
 		case LifecycleQueue:
 			w.RegisterWorkflow(OwnerScheduleWorkflow)
 			w.RegisterActivity(ProcessOwnerScheduleActivity)
@@ -1455,6 +1460,11 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 	for _, item := range batch {
 		d.reconcileCursor = item.id
 		intentID, workflowID, intentType, currentIntentStatus, payload, attemptCount := item.id, item.workflowID, item.kind, item.status, item.payload, item.attempts
+		// Dispatch idempotently starts/adopts a world clock. A terminal previous
+		// run must not close a newly queued recovery of the same clock identity.
+		if intentType == "world.events.generate" && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
+			continue
+		}
 		var input Input
 		if err := json.Unmarshal(payload, &input); err != nil {
 			input = Input{IntentID: intentID}
@@ -2216,7 +2226,7 @@ func workflowIDReusePolicy(intentType string) enumspb.WorkflowIdReusePolicy {
 		// cycle idempotent even when a terminal execution is replayed.
 		return enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
 	}
-	if intentType == "visual_identity.initialize" || intentType == "wardrobe.initialize" || intentType == "schedule.current_day" {
+	if intentType == "visual_identity.initialize" || intentType == "wardrobe.initialize" || intentType == "schedule.current_day" || intentType == "world.events.generate" {
 		// Reconciliation retries only a terminal failed Visual Identity workflow.
 		// The stable workflow ID must therefore admit a new run after failure but
 		// must not reopen a successfully completed identity workflow.
@@ -2347,6 +2357,9 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		// preserving deterministic replay for this intent after restarts.
 		goWorkflowID := normalizedWorkflowID(workflowID)
 		switch intentType {
+		case "world.events.generate":
+			workflowFn = WorldEventGenerationWorkflow
+			taskQueue = WorldEventQueue
 		case "media.delete":
 			workflowFn = MediaDeletionWorkflow
 			taskQueue = MediaQueue

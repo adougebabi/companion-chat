@@ -3,6 +3,7 @@ import {
   errorMessage,
   stateLabel,
 } from "../v3/domain-presentation.mjs";
+import {callPurpose} from './task-model-call-presentation.mjs';
 export const joined = (...values) =>
   values.filter((value) => value != null && String(value).trim()).join(" · ");
 export function readablePrompt(value) {
@@ -149,7 +150,7 @@ export function diagnosticProjection(
     fid = d.fluctlight_id || d.metrics?.fluctlight_id,
     character =
       characters.find((c) => c.id === fid)?.name ||
-      (fid ? "角色名称未读取" : ['initialization','persona_compilation'].includes(scenario)?"创建中的人物":"未记录角色来源"),
+      (fid ? "角色名称未读取" : d.metrics?.kev_agent==='admin_connection_test'?"管理操作":d.metrics?.world_name?"世界 · "+d.metrics.world_name:d.metrics?.world_id?"世界调用": ['initialization','persona_compilation'].includes(scenario)?"创建中的人物":"未记录角色来源"),
     start = Date.parse(d.started_at || d.queued_at || record.occurred_at) || 0,
     queued = Date.parse(d.queued_at) || start,
     completed = Date.parse(d.completed_at || ""),
@@ -163,10 +164,8 @@ export function diagnosticProjection(
         : ["completed", "ready", "succeeded"].includes(d.status)
           ? "success"
           : "unknown",
-    label = domainName(
-      scenario || d.binding_role,
-      index ? "媒体生成" : "模型调用",
-    );
+    purpose = callPurpose(d,index ? "媒体生成" : "模型调用"),
+    label = purpose.label;
   const rawInput = readablePrompt(d.prompt),
     rawResponse =
       typeof d.response === "string"
@@ -184,6 +183,8 @@ export function diagnosticProjection(
     id: record.ref,
     kind: index ? "媒体调用" : "模型调用",
     label,
+    purposeCode:purpose.code,
+    searchTerms:purpose.codes.join(' '),
     character,
     status,
     start,

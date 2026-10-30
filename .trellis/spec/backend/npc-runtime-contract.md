@@ -2,6 +2,10 @@
 
 ## 1. Scope / Trigger
 
+The 2026-10-30 [shared world contract](./shared-world-contract.md) supersedes
+character ownership: several members share one NPC identity and world-time
+execution. Actor-specific relationship/memory/opportunity reads remain private.
+
 An enabled runtime NPC's current routine interval is executed; actual shared
 presence may produce an encounter opportunity. Schema: `0076_world_encounter_runtime`.
 NPC definitions, NPC Actors, Fluctlights, Owner identity and acquaintances differ.

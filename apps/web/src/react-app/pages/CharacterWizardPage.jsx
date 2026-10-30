@@ -188,8 +188,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
         draft.worldSource &&
         !result.items.some(
           (world) =>
-            world.id === draft.worldSource.worldId &&
-            world.fluctlightId === draft.worldSource.fluctlightId,
+            world.id === draft.worldSource.worldId,
         )
       ) {
         worldChoice.value = false;
@@ -423,8 +422,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
       (draft.worldSource
         ? existingWorlds.value.some(
             (world) =>
-              world.id === draft.worldSource.worldId &&
-              world.fluctlightId === draft.worldSource.fluctlightId,
+              world.id === draft.worldSource.worldId,
           )
         : draft.useDefaultWorld
           ? true

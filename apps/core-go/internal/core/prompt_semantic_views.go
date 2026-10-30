@@ -50,7 +50,7 @@ func npcEncounterPromptView(definition map[string]any) map[string]any {
 	result := compactStateMap(definition, []string{"name", "role", "background", "world_rules", "public_character", "public_place", "current_npc_activity"})
 	history := []any{}
 	for _, raw := range arrayValue(definition["actual_prior_interactions"]) {
-		history = append(history, compactStateMap(mapValue(raw), []string{"summary", "occurred_at", "source_kind"}))
+		history = append(history, compactStateMap(mapValue(raw), []string{"summary", "occurred_at", "source_kind", "participant_name", "is_current_character"}))
 	}
 	if len(history) > 0 {
 		result["actual_prior_interactions"] = history
@@ -161,4 +161,16 @@ func npcOpportunityPromptView(opportunity map[string]any) map[string]any {
 	result := compactStateMap(opportunity, []string{"id", "revision", "place_name", "character_presence_source", "created_at", "expires_at"})
 	result["npc"] = compactStateMap(opportunity["npc"], []string{"public_role", "known"})
 	return result
+}
+
+// Allowlist only the task-owned envelopes. Values inside an explicit preference
+// or body field are opaque business data, including unknown/false/zero and IDs.
+func copyPromptFields(source map[string]any, keys ...string) map[string]any {
+	view := make(map[string]any, len(keys))
+	for _, key := range keys {
+		if value, ok := source[key]; ok {
+			view[key] = copyPromptData(value)
+		}
+	}
+	return view
 }

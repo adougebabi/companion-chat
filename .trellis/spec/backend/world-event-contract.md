@@ -2,6 +2,11 @@
 
 ## 1. Scope / Trigger
 
+The 2026-10-30 [shared world contract](./shared-world-contract.md) adds one
+hourly world-level generation clock and mandatory `world.event.admit` for LLM
+candidates. World-only events do not invent a character/Life source; existing
+Owner-authored templates and confirmed character injury recovery remain typed.
+
 Schema `0077_world_events`: a published event definition is explicitly applied
 to one runtime world, enabled, and evaluated by the bounded Worker. Studio
 drafts/publications, runtime policy, queued execution and occurred facts differ.

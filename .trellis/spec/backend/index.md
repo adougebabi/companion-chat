@@ -9,6 +9,10 @@ boundaries described below.
 
 ## Active Specifications
 
+The [shared world contract](./shared-world-contract.md) governs independent
+world identity/time, shared NPCs with private actor relationships, Schedule
+place binding and hourly LLM → mandatory Kev → executable world events.
+
 The [R8 recovery contract](./r8-recovery-contract.md) covers persistent venue
 categories, shopping feedback, schedule/image ordering, segment attribution and
 read-only self-Moment recall.

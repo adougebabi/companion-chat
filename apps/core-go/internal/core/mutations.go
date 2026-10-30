@@ -45,6 +45,7 @@ func (a *App) acceptScheduleTx(ctx context.Context, tx pgx.Tx, actorID, fluctlig
 }
 
 func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID, fluctlightID string, payload map[string]any) (map[string]any, error) {
+	payload = copyPromptData(payload).(map[string]any)
 	if callerTx != nil {
 		var authorized bool
 		if err := callerTx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2)`, fluctlightID, actorID).Scan(&authorized); err != nil {
@@ -143,6 +144,11 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 	scheduleID := "schedule_" + stableDigest(fluctlightID+":"+idempotencyKey)
 	var result map[string]any
 	apply := func(tx pgx.Tx) error {
+		if len(arrayValue(payload["new_places"])) > 0 {
+			if err := lockSharedWorldMembersTx(ctx, tx, fluctlightID); err != nil {
+				return err
+			}
+		}
 		if err := lockLifeContextTx(ctx, tx, fluctlightID); err != nil {
 			return err
 		}
@@ -190,6 +196,9 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 		}
 		if expectedRevision != current {
 			return ErrConflict
+		}
+		if err := a.acceptSchedulePlacesTx(ctx, tx, fluctlightID, payload); err != nil {
+			return err
 		}
 		linkedEntries := make(map[string]struct{})
 		for _, entry := range entries {
@@ -244,6 +253,11 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 		if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedules (id,fluctlight_id,local_date,timezone,status,generated_from,evidence_refs,revision,generated_at,reschedule_policy,idempotency_key,request_digest,result,updated_at) VALUES ($1,$2,$3,$4,'accepted',$5,$6,$7,$8,$9,$10,$11,'{}',$8)`, scheduleID, fluctlightID, localDate, timezone, generatedFrom, jsonBytes(evidence), revision, applyAt, jsonBytes(payload["reschedule_policy"]), idempotencyKey, requestDigest); err != nil {
 			return err
 		}
+		if _, scoped := payload["_schedule_world"]; scoped {
+			if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET place_binding_version=1 WHERE id=$1`, scheduleID); err != nil {
+				return err
+			}
+		}
 		if found {
 			if _, err := tx.Exec(ctx, `UPDATE public.life_schedules SET previous_version_id=$2 WHERE id=$1`, scheduleID, currentID); err != nil {
 				return err
@@ -291,8 +305,16 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 					return err
 				}
 			}
-			if err := validateLifePlaceTx(ctx, tx, fluctlightID, stringValue(item["place_id"])); err != nil {
-				return err
+			historicalPlace := false
+			if boundary, err := time.Parse(time.RFC3339Nano, stringValue(payload["completed_before"])); err == nil && !end.After(boundary) && currentID != "" {
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_schedule_items WHERE schedule_id=$1 AND start_at=$2 AND end_at=$3 AND COALESCE(place_id,'')=$4 AND activity=$5 AND scene=$6 AND COALESCE(location,'')=$7)`, currentID, start, end, stringValue(item["place_id"]), strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), stringValue(item["location"])).Scan(&historicalPlace); err != nil {
+					return err
+				}
+			}
+			if !historicalPlace {
+				if err := validateLifePlaceTx(ctx, tx, fluctlightID, stringValue(item["place_id"])); err != nil {
+					return err
+				}
 			}
 			itemID := randomID("schedule_item_")
 			if _, err := tx.Exec(ctx, `INSERT INTO public.life_schedule_items (id,schedule_id,start_at,end_at,activity,scene,location,item_type,status,priority,flexibility,interruption_cost,intention_id,action_plan,place_id,promise_request_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`, itemID, scheduleID, start, end, strings.TrimSpace(stringValue(item["activity"])), strings.TrimSpace(stringValue(item["scene"])), nullableString(stringValue(item["location"])), firstString(item["item_type"], "planned"), firstString(item["status"], "planned"), numberString(item["priority"], 0.5), numberString(item["flexibility"], 0.5), numberString(item["interruption_cost"], 0.5), nullableString(intentionID), nullableJSON(actionPlan), nullableString(stringValue(item["place_id"])), nullableString(stringValue(item["promise_request_id"]))); err != nil {
@@ -353,7 +375,7 @@ func (a *App) acceptScheduleWithTx(ctx context.Context, callerTx pgx.Tx, actorID
 }
 
 func scheduleAcceptanceRequestDigest(payload map[string]any, evidence []any) string {
-	return stableDigest(jsonString(map[string]any{
+	data := map[string]any{
 		"local_date":                     payload["local_date"],
 		"timezone":                       canonicalTimezone(stringValue(payload["timezone"])),
 		"expected_revision":              payload["expected_revision"],
@@ -368,7 +390,13 @@ func scheduleAcceptanceRequestDigest(payload map[string]any, evidence []any) str
 		"evidence_refs":                  evidence,
 		"expected_life_context_revision": payload["expected_life_context_revision"],
 		"capability_call_hint":           payload["idempotency_key"],
-	}))
+	}
+	for _, key := range []string{"new_places", "_schedule_world"} {
+		if value, present := payload[key]; present {
+			data[key] = value
+		}
+	}
+	return stableDigest(jsonString(data))
 }
 
 // ReplanSchedule shares the immutable acceptance/CAS path but refuses to

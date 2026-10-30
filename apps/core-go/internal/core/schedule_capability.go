@@ -41,6 +41,9 @@ func scheduleReplanCapabilityDefinition() CapabilityDefinition {
 }
 
 type SchedulePlanInput struct {
+	FluctlightID  string
+	WorldPlaces   *scheduleWorldPlaceContext
+	Identity      map[string]any
 	OwnerRequest  map[string]any
 	Intent        string
 	PlannedAction map[string]any
@@ -134,6 +137,8 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 		"current_life":   compactMediaLifeContext(input.CurrentLife),
 		"agency":         compactSchedulePlannerAgency(input.Agency),
 		"timezone":       input.Timezone,
+		"world_places":   input.WorldPlaces.modelView(),
+		"identity":       scheduleGenerationSemanticValue(input.Identity),
 	}
 	if len(input.TargetEdit) > 0 {
 		result["target_edit"] = input.TargetEdit
@@ -146,15 +151,16 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 
 func schedulePlannerOutputSchema() map[string]any {
 	item := objectSchema(map[string]any{
-		"start_at": stringSchema(), "end_at": stringSchema(), "activity": stringSchema(), "scene": stringSchema(), "location": stringSchema(), "place_id": stringSchema(),
-		"item_type": stringSchema(), "status": stringSchema(), "priority": unitNumberSchema(), "flexibility": unitNumberSchema(), "interruption_cost": unitNumberSchema(),
+		"start_at": stringSchema(), "end_at": stringSchema(), "activity": stringSchema(), "scene": stringSchema(), "location": stringSchema(), "place_id": stringSchema(), "place_ref": stringSchema(),
+		"location_kind": enumStringSchema("place", "transit", "unknown"),
+		"item_type":     stringSchema(), "status": stringSchema(), "priority": unitNumberSchema(), "flexibility": unitNumberSchema(), "interruption_cost": unitNumberSchema(),
 		"intention_id":        stringSchema(),
 		"promise_request_id":  stringSchema(),
 		"source_item_id":      stringSchema(),
 		"planned_action_slot": map[string]any{"type": "boolean"},
 	}, []string{"start_at", "end_at", "activity", "scene", "item_type", "status", "priority", "flexibility", "interruption_cost"}, false)
 	return objectSchema(map[string]any{
-		"items": arraySchema(item), "reschedule_policy": openObjectSchema(),
+		"items": arraySchema(item), "reschedule_policy": openObjectSchema(), "new_places": scheduleNewPlacesSchema(),
 	}, []string{"items", "reschedule_policy"}, false)
 }
 
@@ -209,7 +215,7 @@ func scheduleReplanPlannerInstruction(input SchedulePlanInput) string {
 	}
 	instruction += " Preserve every existing promise_request_id on its unchanged appointment interval. Never invent or drop promise references; these are accepted appointments, not executable action plans."
 	instruction += " Retain explicit stable place_id on unchanged intervals. Location text alone does not identify a place; omit place_id when unknown."
-	return instruction
+	return instruction + "\n\n" + scheduleWorldPlaceInstruction
 }
 
 func scheduleReplanCompletedBefore(schedule map[string]any) string {

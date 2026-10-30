@@ -54,7 +54,7 @@ func (a *App) advanceNPCPresenceTx(ctx context.Context, tx pgx.Tx, fid, world st
 	if !errors.Is(visitErr, pgx.ErrNoRows) {
 		return nil, visitErr
 	}
-	zone, err := readLifeContextTimezoneWith(ctx, tx, fid)
+	zone, err := readWorldTimezoneWith(ctx, tx, world)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (a *App) RepairWorldNPCPresence(ctx context.Context, limit int) (int, error
 	if limit < 1 || limit > 100 {
 		return 0, ErrInvalidArguments
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT n.id,w.id,w.fluctlight_id,f.created_by_actor_id FROM public.world_npcs n JOIN public.life_worlds w ON w.id=n.world_id JOIN public.fluctlight_world_bindings b ON b.world_id=w.id AND b.fluctlight_id=w.fluctlight_id JOIN public.fluctlights f ON f.id=w.fluctlight_id LEFT JOIN public.world_npc_runtime_clocks c ON c.npc_id=n.id WHERE f.status='active' AND (c.next_attempt_at IS NULL OR c.next_attempt_at<=$1) ORDER BY COALESCE(c.last_tick_at,'epoch'::timestamptz),n.id LIMIT $2`, a.now().UTC(), limit)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT n.id,w.id,''::text,w.owner_actor_id FROM public.world_npcs n JOIN public.life_worlds w ON w.id=n.world_id LEFT JOIN public.world_npc_runtime_clocks c ON c.npc_id=n.id WHERE (c.next_attempt_at IS NULL OR c.next_attempt_at<=$1) ORDER BY COALESCE(c.last_tick_at,'epoch'::timestamptz),n.id LIMIT $2`, a.now().UTC(), limit)
 	if err != nil {
 		return 0, err
 	}
@@ -146,15 +146,8 @@ func (a *App) RepairWorldNPCPresence(ctx context.Context, limit int) (int, error
 	failures := []error{}
 	for _, target := range targets {
 		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-			if err := lockLifeContextTx(ctx, tx, target.fid); err != nil {
+			if err := lockWorldRuntimeTx(ctx, tx, target.world); err != nil {
 				return err
-			}
-			var current bool
-			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_world_bindings b JOIN public.fluctlights f ON f.id=b.fluctlight_id WHERE b.fluctlight_id=$1 AND b.world_id=$2 AND f.status='active')`, target.fid, target.world).Scan(&current); err != nil {
-				return err
-			}
-			if !current {
-				return nil
 			}
 			var raw []byte
 			if err := tx.QueryRow(ctx, `SELECT to_jsonb(n) FROM public.world_npcs n WHERE id=$1 AND world_id=$2 FOR UPDATE`, target.npc, target.world).Scan(&raw); err != nil {
@@ -169,7 +162,7 @@ func (a *App) RepairWorldNPCPresence(ctx context.Context, limit int) (int, error
 				return err
 			}
 			if presence != nil && presence["status"] == "active" {
-				if err := a.createNPCOpportunityTx(ctx, tx, target.owner, target.fid, target.world, npc, presence, a.now().UTC()); err != nil {
+				if err := a.createWorldMemberOpportunitiesTx(ctx, tx, target.world, npc, presence); err != nil {
 					return err
 				}
 			}

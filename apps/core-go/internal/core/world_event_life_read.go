@@ -10,6 +10,7 @@ import (
 
 const lifeEventWorldSQL = `COALESCE(e.result#>>'{runtime_effect,world_id}',(SELECT world_id FROM public.world_encounters n WHERE n.life_event_id=e.id LIMIT 1),(SELECT world_id FROM public.world_places p WHERE p.id=e.result->>'place_id'))`
 const lifeEventReadSQL = `to_jsonb(e)||jsonb_build_object('world_id',` + lifeEventWorldSQL + `,'title',COALESCE(NULLIF(e.activity,''),e.kind))`
+const ambientWorldEventReadSQL = `jsonb_build_object('id',r.id,'fluctlight_id',NULL,'revision',r.revision,'result',r.result,'evidence_refs',jsonb_build_array('world-event-run:'||r.id),'kind','world_event','record_kind','world_event_execution','status',r.status,'world_id',r.world_id,'template_id',r.template_id,'generation_id',t.generation_id,'title',t.name,'activity',r.definition->>'description','start_at',r.started_at,'end_at',r.end_at,'context_scope','ambient','definition',r.definition,'source','world_execution','life_write',false)`
 
 // Unknown legacy world attribution stays explicit instead of being filled with
 // the currently selected world. Queries never produce an event or a movement.
@@ -18,7 +19,17 @@ func (a *App) worldLifeEvents(ctx context.Context, owner, fid, id string, q url.
 		var raw []byte
 		err := a.DB.Pool().QueryRow(ctx, `SELECT `+lifeEventReadSQL+` FROM public.life_events e WHERE e.fluctlight_id=$1 AND e.id=$2`, fid, id).Scan(&raw)
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
+			err = a.DB.Pool().QueryRow(ctx, `SELECT `+ambientWorldEventReadSQL+` FROM public.world_event_runs r JOIN public.world_event_templates t ON t.id=r.template_id WHERE r.id=$2 AND r.fluctlight_id IS NULL AND r.owner_actor_id=$3 AND r.world_id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1) AND r.status='applied'`, fid, id, owner).Scan(&raw)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, ErrNotFound
+			}
+			if err != nil {
+				return nil, err
+			}
+			result := decodeObject(raw)
+			result["impacts"] = []any{map[string]any{"id": id, "type": "world_event_execution", "title": result["title"], "template_id": result["template_id"], "status": result["status"]}}
+			result["impact_scope"] = "Recorded world execution; no inferred character memory or relationship"
+			return result, nil
 		}
 		if err != nil {
 			return nil, err
@@ -59,7 +70,7 @@ func (a *App) worldLifeEvents(ctx context.Context, owner, fid, id string, q url.
 	if err != nil || (q.Get("cursor") != "" && (cursor.ID == "" || cursor.Time.IsZero())) {
 		return nil, invalid("invalid world event cursor")
 	}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT e.id,e.start_at,`+lifeEventReadSQL+` FROM public.life_events e WHERE e.fluctlight_id=$1 AND (`+lifeEventWorldSQL+`=$2 OR `+lifeEventWorldSQL+` IS NULL) AND ($3='' OR (e.start_at,e.id)<($4,$3)) ORDER BY e.start_at DESC,e.id DESC LIMIT $5`, fid, world, cursor.ID, cursor.Time, limit+1)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT event.id,event.at,event.data FROM (SELECT e.id,e.start_at AS at,`+lifeEventReadSQL+` AS data FROM public.life_events e WHERE e.fluctlight_id=$1 AND (`+lifeEventWorldSQL+`=$2 OR `+lifeEventWorldSQL+` IS NULL) UNION ALL SELECT r.id,r.started_at AS at,`+ambientWorldEventReadSQL+` AS data FROM public.world_event_runs r JOIN public.world_event_templates t ON t.id=r.template_id WHERE r.world_id=$2 AND r.fluctlight_id IS NULL AND r.status='applied') event WHERE ($3='' OR (event.at,event.id)<($4,$3)) ORDER BY event.at DESC,event.id DESC LIMIT $5`, fid, world, cursor.ID, cursor.Time, limit+1)
 	if err != nil {
 		return nil, err
 	}

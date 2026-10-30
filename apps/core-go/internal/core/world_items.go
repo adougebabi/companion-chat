@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const itemResourceReferencesSQL = `SELECT jsonb_build_object('fluctlight_id',i.fluctlight_id,'world_id',i.world_id,'runtime_id',i.id,'running_version',i.source_version,'instance_revision',i.revision,'target_kind','world_item','status','registered','available',i.available) FROM public.world_items i JOIN public.fluctlights f ON f.id=i.fluctlight_id WHERE i.source_resource_id=$1 AND f.created_by_actor_id=$2 ORDER BY i.id`
+const itemResourceReferencesSQL = `SELECT jsonb_build_object('fluctlight_id',i.fluctlight_id,'world_id',i.world_id,'runtime_id',i.id,'running_version',i.source_version,'instance_revision',i.revision,'target_kind','world_item','status','registered','available',i.available) FROM public.world_items i JOIN public.life_worlds w ON w.id=i.world_id WHERE i.source_resource_id=$1 AND w.owner_actor_id=$2 ORDER BY i.id`
 
 func validateItemDefinition(body map[string]any) error {
 	if body["schema"] != "item-definition.v1" || !eventKeys(body, "schema", "item_kind", "category", "slot", "description") || containsPermanentHarm(body) {
@@ -32,7 +32,7 @@ func readWorldItemWith(ctx context.Context, q lifeContextQuerier, fid, id string
 		suffix = " FOR UPDATE"
 	}
 	var raw []byte
-	err := q.QueryRow(ctx, `SELECT to_jsonb(i) FROM public.world_items i WHERE fluctlight_id=$1 AND id=$2`+suffix, fid, id).Scan(&raw)
+	err := q.QueryRow(ctx, `SELECT to_jsonb(i) FROM public.world_items i WHERE world_id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1) AND id=$2`+suffix, fid, id).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -184,7 +184,7 @@ func (a *App) worldItemSurface(ctx context.Context, method string, p []string, q
 		if err != nil {
 			return nil, err
 		}
-		rows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.created_at,to_jsonb(i) FROM public.world_items i WHERE i.fluctlight_id=$1 AND i.world_id=$2 AND ($3='' OR strpos(lower(i.name||' '||(i.definition->>'description')),lower($3))>0) AND ($4='' OR (i.created_at,i.id)<($5,$4)) ORDER BY i.created_at DESC,i.id DESC LIMIT $6`, fid, world, search, cursor.ID, cursor.Time, limit+1)
+		rows, err := a.DB.Pool().Query(ctx, `SELECT i.id,i.created_at,to_jsonb(i) FROM public.world_items i WHERE i.world_id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1) AND i.world_id=$2 AND ($3='' OR strpos(lower(i.name||' '||(i.definition->>'description')),lower($3))>0) AND ($4='' OR (i.created_at,i.id)<($5,$4)) ORDER BY i.created_at DESC,i.id DESC LIMIT $6`, fid, world, search, cursor.ID, cursor.Time, limit+1)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +232,7 @@ func (a *App) worldItemSurface(ctx context.Context, method string, p []string, q
 			}
 		}
 		var raw []byte
-		if err := tx.QueryRow(ctx, `UPDATE public.world_items SET available=$3,place_id=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND fluctlight_id=$2 RETURNING to_jsonb(world_items)`, p[4], fid, available, nilIfEmpty(place)).Scan(&raw); err != nil {
+		if err := tx.QueryRow(ctx, `UPDATE public.world_items SET available=$3,place_id=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND world_id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$2) RETURNING to_jsonb(world_items)`, p[4], fid, available, nilIfEmpty(place)).Scan(&raw); err != nil {
 			return nil, err
 		}
 		after := decodeObject(raw)

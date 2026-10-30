@@ -13,7 +13,7 @@ func (a *App) readWorldNPCs(ctx context.Context, fid, world string) ([]any, erro
 	if err != nil {
 		return nil, err
 	}
-	zone, err := readLifeContextTimezoneWith(ctx, a.DB.Pool(), fid)
+	zone, err := readWorldTimezoneWith(ctx, a.DB.Pool(), world)
 	if err != nil {
 		return nil, err
 	}
@@ -318,11 +318,11 @@ func (a *App) worldNPCDetail(ctx context.Context, fid, id string) (map[string]an
 	if npc == nil {
 		return nil, ErrNotFound
 	}
-	encounters, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',id,'npc_id',npc_id,'place_id',place_id,'life_event_id',life_event_id,'relationship_id',relationship_id,'memory_id',memory_id,'summary',summary,'evidence_refs',evidence_refs,'occurred_at',occurred_at,'source_kind',source_kind,'opportunity_id',opportunity_id) FROM public.world_encounters WHERE world_id=$1 AND npc_id=$2 ORDER BY occurred_at DESC,id LIMIT 100`, world, id)
+	encounters, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',id,'npc_id',npc_id,'place_id',place_id,'life_event_id',life_event_id,'relationship_id',relationship_id,'memory_id',memory_id,'summary',summary,'evidence_refs',evidence_refs,'occurred_at',occurred_at,'source_kind',source_kind,'opportunity_id',opportunity_id) FROM public.world_encounters WHERE world_id=$1 AND npc_id=$2 AND life_event_id IN(SELECT id FROM public.life_events WHERE fluctlight_id=$3) ORDER BY occurred_at DESC,id LIMIT 100`, world, id, fid)
 	if err != nil {
 		return nil, err
 	}
-	references, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',id) FROM ((SELECT id FROM public.world_npc_presence_runs WHERE npc_id=$1 ORDER BY created_at DESC LIMIT 1) UNION ALL (SELECT id FROM public.world_npc_opportunities WHERE npc_id=$1 ORDER BY created_at DESC LIMIT 1)) refs`, id)
+	references, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',id) FROM ((SELECT id FROM public.world_npc_presence_runs WHERE npc_id=$1 ORDER BY created_at DESC LIMIT 1) UNION ALL (SELECT id FROM public.world_npc_opportunities WHERE npc_id=$1 AND fluctlight_id=$2 ORDER BY created_at DESC LIMIT 1)) refs`, id, fid)
 	if err != nil {
 		return nil, err
 	}

@@ -383,6 +383,7 @@ type ScheduleGenerationTaskInput struct {
 	Intentions            []map[string]any
 	RecentOutcomes        []map[string]any
 	CompactOutputReminder bool
+	WorldPlaces           *scheduleWorldPlaceContext
 }
 
 type VirtualActivityResultTaskInput struct {
@@ -442,7 +443,7 @@ func virtualActivityModelInput(input VirtualActivityResultTaskInput) map[string]
 const scheduleGenerationTaskInstruction = "Return one compact object with items and reschedule_policy. Use only as many intervals as the supplied facts require, no more than 16; cover the local day contiguously from 00:00 through the next 00:00, with explicit free/unplanned/rest intervals where nothing is committed. Identity or occupation alone does not establish a daily class, library visit, uniform, or fixed routine. Preserve supplied recurring commitments as constraints, distinguish an intention from a scheduled action and a completed result, and consider current state, existing activities and recent outcomes. Do not claim an activity happened just because its planned time passed. A planned location must match that interval’s activity and scene; current_life.location describes only the current snapshot, not every interval. If the supplied facts do not establish a planned location, omit location or leave it empty; never default it to home or invent a registered place. Every item needs start_at, end_at, activity, scene, item_type, status, priority, flexibility, interruption_cost; location is optional when unknown. A sleep interval must have item_type='sleep'; this is the authoritative behavior classification, not a claim that a periodic check wakes the actor. Keep activity, scene, and location each under 80 Chinese characters; use one concrete activity and scene per item, never combine alternatives with '/', '／', '、', or '或'. Merge adjacent equivalent periods. priority, flexibility, and interruption_cost are normalized numbers from 0 to 1. Use RFC3339 timestamps with the supplied timezone. Do not return markdown or foundation fields."
 
 func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGenerationTaskInput) (map[string]any, error) {
-	instruction := scheduleGenerationTaskInstruction
+	instruction := scheduleGenerationTaskInstruction + "\n\n" + scheduleWorldPlaceInstruction
 	if input.CompactOutputReminder {
 		instruction += " 上一个日程 JSON 不完整。请重新输出完整且紧凑的时段，必须覆盖从 00:00 到次日 00:00；未安排时间用明确空闲时段表示，不能截断，也不要附加解释。"
 	}
@@ -487,6 +488,7 @@ func scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]
 		"life_profile":  scheduleGenerationSemanticValue(input.LifeProfile),
 		"current_state": scheduleGenerationSemanticValue(input.CurrentState),
 		"current_life":  currentLife,
+		"world_places":  input.WorldPlaces.modelView(),
 		"goals":         goals, "intentions": intentions, "recent_outcomes": outcomes,
 	}
 }
@@ -538,17 +540,27 @@ func (a *App) RunNativeCognitionTask(ctx context.Context, input NativeCognitionT
 		return ProjectionTaskResult{}, errors.New("native_cognition_projection_request_invalid")
 	}
 	operationRules := []string{providerContextAuthorityRule, nativeCognitionInstruction}
+	if input.EventType == "life.world.changed" || input.EventType == "life.world.schedule_reconcile" {
+		operationRules = append(operationRules, "这是世界与日程关联的重新评估机会。核对已声明住所、当前选用世界和未来地点；需要变更时发现并执行 schedule.replan，保留已完成历史，不把选用世界、计划或位置文字当作实际到达。")
+	}
 	if input.EventType == ownerReflectionFeedbackFactType {
 		operationRules = append(operationRules, "这是 Owner 对已有反思的交流反馈，不是直接改写人格或记忆的管理命令。将反馈与原反思摘要、原来源和当前有效事实分开判断。可不产生改变；只有真实 Tool/正常结算提交的结果才算应用。不要把收到反馈写成已认可或已成长。")
 	}
 	if input.EventType == ownerDiaryReplyFactType {
 		operationRules = append(operationRules, "这是 Owner 对既有主观日记的真实交流回应。读取明确关联的日记版本和回应，自主决定是否在真实会话回复；不改写日记原文，不把回应推成用户同场。")
 	}
-	currentInput := jsonString(map[string]any{"event_type": input.EventType, "fact": compactProviderFact(input.Fact)})
+	currentData := map[string]any{"event_type": input.EventType, "fact": compactProviderFact(input.Fact)}
+	if input.EventType == "life.world.event" {
+		source := mapValue(decodeObject(input.Fact)["candidate"])
+		currentData["world_event_scope"] = map[string]any{"world_name": source["world_name"], "is_current_world": stringValue(source["world_id"]) != "" && source["world_id"] == input.Projection.LifeContext["world_id"]}
+		operationRules = append(operationRules, "这是实际执行的世界事件感知，发生时间和来源世界属于该次观察。is_current_world=false 时不能把旧世界天气或地点影响套到当前世界；以刷新后的当前生活状态为准，保留可证实的历史，不虚构跨世界旅行或其他人的经历。")
+	}
+	currentInput := jsonString(currentData)
 	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceNativeCognition, input.Projection, "cognitive_assessment", operationRules, currentInput, definitions, "native_cognition_response", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	assembly.Diagnostics["native_event_type"] = input.EventType
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "native_cognition"), assembly.Diagnostics)
 	providerCtx = a.bindProjectionRefresh(providerCtx, input.ProjectionRequest, ProviderContextSurfaceNativeCognition, "cognitive_assessment", operationRules, currentInput, definitions, "native_cognition_response", schema, nil)
 	capabilityRequest := formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition)
@@ -662,11 +674,26 @@ func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionPro
 // RunScheduleReplanTask is the typed task boundary used by the capability
 // planner. It owns the planner instruction, factual slots and output schema.
 func (a *App) RunScheduleReplanTask(ctx context.Context, input SchedulePlanInput) (map[string]any, error) {
+	if input.FluctlightID != "" {
+		var err error
+		input.WorldPlaces, err = a.readScheduleWorldPlaces(ctx, input.FluctlightID)
+		if err != nil {
+			return nil, err
+		}
+		var identity []byte
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT identity FROM public.fluctlights WHERE id=$1`, input.FluctlightID).Scan(&identity); err != nil {
+			return nil, err
+		}
+		input.Identity = scheduleGenerationIdentity(decodeObject(identity))
+	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{
 		{"role": "system", "content": scheduleReplanPlannerInstruction(input)},
 		{"role": "user", "content": promptTaskData(scheduleReplanModelInput(input))},
 	})
 	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchemaForInput(input), false, nil)
+	if err == nil {
+		input.WorldPlaces.bind(run.Completion.Structured)
+	}
 	return run.Completion.Structured, err
 }
 

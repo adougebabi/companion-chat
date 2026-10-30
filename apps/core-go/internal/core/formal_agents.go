@@ -15,6 +15,8 @@ import (
 // contract and is run through the common Eino Runner.
 type FormalAgentID string
 
+const FormalAgentWorldEventGeneration FormalAgentID = "world_event_generation"
+
 const (
 	FormalAgentConversationCognition FormalAgentID = "conversation_cognition"
 	FormalAgentConversationReply     FormalAgentID = "conversation_reply"
@@ -74,6 +76,7 @@ type FormalAgentDefinition struct {
 }
 
 var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
+	FormalAgentWorldEventGeneration:  {ID: FormalAgentWorldEventGeneration, Name: "world-event-generation", Description: "Propose an hourly world event from real places and participants; Kev admission and Core execution are separate.", Role: "cognitive_assessment", Scenario: "world_event_generation", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
 	FormalAgentWardrobePreparation:   {ID: FormalAgentWardrobePreparation, Name: "fluctlight-wardrobe-preparation", Description: "Prepare persona-appropriate sourced starter clothing and select a tagged outfit for the current situation; actual wear remains a separate Tool effect.", Role: "cognitive_assessment", Scenario: "wardrobe_preparation", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
 	FormalAgentStudioAssistant:       {ID: FormalAgentStudioAssistant, Name: "fluctlight-studio-assistant", Description: "Suggest a complete definition from an isolated Owner draft without life access or tools.", Role: "cognitive_assessment", Scenario: "studio_assistant", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
 	FormalAgentStudioTextPreview:     {ID: FormalAgentStudioTextPreview, Name: "fluctlight-studio-text-preview", Description: "Express an explicitly fictional isolated resource preview without life access or tools.", Role: conversationReplyModelRole, Scenario: "studio_text_preview", OutputKind: FormalAgentOutputText, MandatoryTools: []string{}},

@@ -29,6 +29,7 @@ import { errorMessage, domainName, stateLabel, feedbackDiagnostic } from "@/v3/d
 import { randomId } from "@/random-id.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import {diagnosticInstant,diagnosticDateLabel} from "@/approved-ui/task-presentation.mjs";
+import {callPurposeSearchQuery} from '@/approved-ui/task-model-call-presentation.mjs';
 import { installFieldValidation } from "@/v3/proto/components/forms.js";
 function diagnosticProjection(record,index,characters){
   const projected=baseDiagnosticProjection(record,index,characters);
@@ -119,6 +120,9 @@ function createManagementPageController(props, context, lifecycle) {
     }),
     kind = lifecycle.cell("模型调用"),
     search = lifecycle.cell(""),
+    historySearch = lifecycle.cell(""),
+    diagnosticQuery = lifecycle.cell(""),
+    diagnosticQueryFilter = lifecycle.cell({}),
     filters = lifecycle.cell({
       type: "",
       who: "",
@@ -241,6 +245,7 @@ function createManagementPageController(props, context, lifecycle) {
       ["生命周期", "lifecycle"],
       ["回合诊断", "turns"],
       ["Kev 决策", "kev"],
+      ["世界事件生成与审核","world-event-generations"],
       ["系统事件与主动触达", "events"],
       ["重试耗尽的后台任务", "workflow-intents"],
       ["技术详情", "links"],
@@ -269,7 +274,7 @@ function createManagementPageController(props, context, lifecycle) {
           (!filters.value.who || filters.value.who === r.character) &&
           (!filters.value.status ||
             filters.value.status === statusLabel(r.status)) &&
-          [r.label, r.input, r.character, r.model, r.reason, r.response]
+          [r.label, r.searchTerms, r.correlationId, r._record?.data?.parent_run_id, r.input, r.character, r.model, r.reason, r.response]
             .join(" ")
             .toLowerCase()
             .includes(search.value.trim().toLowerCase()),
@@ -278,7 +283,7 @@ function createManagementPageController(props, context, lifecycle) {
   const filterGroups = selector(() => [
     {
       key: "type",
-      label: "类型",
+      label: "用途",
       options: [
         ...new Set(
           records.value
@@ -289,8 +294,8 @@ function createManagementPageController(props, context, lifecycle) {
     },
     {
       key: "who",
-      label: "角色",
-      options: characters.value.map((c) => c.name),
+      label: "角色或世界",
+      options: [...new Set([...characters.value.map((c) => c.name),...records.value.filter(r=>r.kind===kind.value).map(r=>r.character)])],
     },
     {
       key: "status",
@@ -450,7 +455,7 @@ function createManagementPageController(props, context, lifecycle) {
   const diagnosticCorrelation=lifecycle.cell(new URLSearchParams((globalThis.location?.hash||" ").split("?")[1]||"").get("correlationId")||"");
   let diagnosticEpoch=0;
   async function loadDiagnostics() {
-    const token=++diagnosticEpoch,correlationId=diagnosticCorrelation.value,filter=correlationId?{correlationId}:{};
+    const token=++diagnosticEpoch,correlationId=diagnosticCorrelation.value,filter={...(correlationId?{correlationId}:{}),...diagnosticQueryFilter.value};
     const [models, media] = await Promise.allSettled([
       diagnostics.page("model-runs", {
         ...filter,limit: 20,
@@ -479,10 +484,11 @@ function createManagementPageController(props, context, lifecycle) {
     const selectedKind=kind.value,state=diagnosticPages.value[selectedKind],cursor=state.cursor,correlationId=diagnosticCorrelation.value,token=diagnosticEpoch;
     if(!state.ready&&state.error){await loadDiagnostics();return;}if(state.loading||!cursor)return;state.loading=true;state.error='';
     const current=()=>live()&&token===diagnosticEpoch&&correlationId===diagnosticCorrelation.value;
-    try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor,...(correlationId?{correlationId}:{})});if(!current())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}
+    try{const page=await diagnostics.page(selectedKind==='模型调用'?'model-runs':'media-prompts',{limit:20,cursor,...(correlationId?{correlationId}:{}),...diagnosticQueryFilter.value});if(!current())return;const seen=new Set(records.value.filter(record=>record.kind===selectedKind).map(record=>record.id));records.value=[...records.value,...page.items.filter(record=>!seen.has(record.ref)).map(record=>diagnosticProjection(record,selectedKind==='媒体调用'?1:0,characters.value))];state.cursor=page.next_cursor||'';}
     catch(cause){if(current())state.error=errorMessage(cause);}finally{if(current())state.loading=false;}
   }
-  function diagnosticRouteChanged(){const value=new URLSearchParams((globalThis.location?.hash||'').split('?')[1]||'').get('correlationId')||'';if(value===diagnosticCorrelation.value)return;diagnosticCorrelation.value=value;selectedId.value=null;reference.value='';referenceEpoch++;referenceDetailEpoch++;referenceRecord.value=null;for(const section of referenceSections.value)Object.assign(section,{rows:[],nextCursor:'',loading:false,error:'',failedMore:false});records.value=[];clear();for(const state of Object.values(diagnosticPages.value))Object.assign(state,{loading:true,ready:false,error:'',cursor:''});void loadDiagnostics();}
+  function searchHistory(){diagnosticQuery.value=historySearch.value.trim();diagnosticQueryFilter.value=callPurposeSearchQuery(historySearch.value);selectedId.value=null;records.value=[];clear();for(const state of Object.values(diagnosticPages.value))Object.assign(state,{loading:true,ready:false,error:'',cursor:''});return loadDiagnostics();}
+  function diagnosticRouteChanged(){const value=new URLSearchParams((globalThis.location?.hash||'').split('?')[1]||'').get('correlationId')||'';if(value===diagnosticCorrelation.value)return;diagnosticCorrelation.value=value;historySearch.value='';diagnosticQuery.value='';diagnosticQueryFilter.value={};selectedId.value=null;reference.value='';referenceEpoch++;referenceDetailEpoch++;referenceRecord.value=null;for(const section of referenceSections.value)Object.assign(section,{rows:[],nextCursor:'',loading:false,error:'',failedMore:false});records.value=[];clear();for(const state of Object.values(diagnosticPages.value))Object.assign(state,{loading:true,ready:false,error:'',cursor:''});void loadDiagnostics();}
   lifecycle.onStart(()=>window.addEventListener('hashchange',diagnosticRouteChanged));
   lifecycle.onDispose(()=>window.removeEventListener('hashchange',diagnosticRouteChanged));
   let referenceDetailEpoch=0;
@@ -907,8 +913,8 @@ function createManagementPageController(props, context, lifecycle) {
         selectReference:value=>{reference.value=value;selectedId.value=null;referenceRecord.value=null;},
         loadMoreReference:()=>readReference(reference.value,true),
         retryReference:()=>readReference(reference.value,referenceSections.value.find(section=>section.title===reference.value)?.failedMore||false),
-        referenceTitle:record=>domainName(record.data?.event_type||record.data?.intent_type||record.data?.agent_id||record.data?.boundary,({"agent-runs":"逻辑执行记录",events:"系统事件",links:"关联信息",kev:"辅助决策",harm:"安全拦截"})[record.kind]||"后台运行记录"),
-        referenceStatus:record=>record.data?.status||record.data?.payload?.status?stateLabel(record.data?.status||record.data?.payload?.status):({events:"系统事件",links:"关联记录",harm:"拦截记录"})[record.kind]||"未记录状态",
+        referenceTitle:record=>record.kind==='world-event-generations'?(record.data?.world_name?record.data.world_name+' · ':'')+(record.data?.title||'世界事件生成'):domainName(record.data?.event_type||record.data?.intent_type||record.data?.agent_id||record.data?.boundary,({"agent-runs":"逻辑执行记录",events:"系统事件",links:"关联信息",kev:"辅助决策",harm:"安全拦截"})[record.kind]||"后台运行记录"),
+        referenceStatus:record=>record.kind==='world-event-generations'?({generating:'生成中',review_pending:'待 Kev 审核',awaiting_kev:'待 Kev 审核',approved:'已准入',rejected:'未批准',no_event:'本小时无事件',failed:'生成失败',interrupted:'已中断',expired:'已过期'}[record.data?.status]||stateLabel(record.data?.status))+(record.data?.execution?' · '+stateLabel(record.data.execution.status):''):(record.data?.status||record.data?.payload?.status?stateLabel(record.data?.status||record.data?.payload?.status):({events:"系统事件",links:"关联记录",harm:"拦截记录"})[record.kind]||"未记录状态"),
         currentSection,
         dirty:selector(()=>loaded&&confirmedEditable()!==editableConfiguration(settings.value,endpoints.value,bindings.value,quiet.value)),
         canDiscard:selector(()=>!saving.value&&!recovery.value&&!policyRecovery.value&&!pending.size&&!configurationStorageProblem.value),
@@ -952,6 +958,7 @@ function createManagementPageController(props, context, lifecycle) {
         },
         FilterChips,
         search,
+        historySearch,diagnosticQuery,searchHistory,
         filters,
         filterGroups,
         rows,

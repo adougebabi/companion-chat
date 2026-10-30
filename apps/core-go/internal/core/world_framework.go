@@ -83,7 +83,7 @@ func (a *App) materializeWorldFrameworkTx(ctx context.Context, tx pgx.Tx, fid, w
 		return map[string]any{"created_places": 0}, nil
 	}
 	var raw []byte
-	if err := tx.QueryRow(ctx, `SELECT venue_categories FROM public.life_worlds WHERE id=$1 AND fluctlight_id=$2 FOR UPDATE`, world, fid).Scan(&raw); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT venue_categories FROM public.life_worlds WHERE id=$1 AND owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$2) FOR UPDATE`, world, fid).Scan(&raw); err != nil {
 		return nil, err
 	}
 	var categories []any
@@ -157,7 +157,7 @@ func (a *App) worldApplyTarget(ctx context.Context, q lifeContextQuerier, fid st
 		return a.worldApplyCurrent(ctx, q, fid, p)
 	}
 	var raw []byte
-	err := q.QueryRow(ctx, `SELECT to_jsonb(w) FROM public.life_worlds w WHERE id=$1 AND fluctlight_id=$2`, body["runtime_world_id"], fid).Scan(&raw)
+	err := q.QueryRow(ctx, `SELECT to_jsonb(w) FROM public.life_worlds w WHERE id=$1 AND owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$2)`, body["runtime_world_id"], fid).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}

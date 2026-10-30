@@ -82,6 +82,14 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		}
 		// All mutating Tools share lifecycle-before-Life lock ordering with
 		// cognition enqueue and background final settlement.
+		// Only paths that can mutate shared entities or create schedule places
+		// coordinate the world before any actor lock. Private Tools stay local.
+		switch request.CapabilityName {
+		case "world.npc.encounter", "schedule.replan", "schedule.edit", "intention.schedule":
+			if err := lockSharedWorldMembersTx(ctx, tx, request.FluctlightID); err != nil {
+				return err
+			}
+		}
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext('fluctlight_lifecycle:' || $1))`, request.FluctlightID); err != nil {
 			return err
 		}

@@ -358,7 +358,7 @@ func (a *App) worldApplyCurrent(ctx context.Context, q lifeContextQuerier, fid s
 	var err error
 	switch p.Kind {
 	case "world":
-		err = q.QueryRow(ctx, `SELECT jsonb_build_object('id',id,'name',name,'background',background,'rules',rules,'flavor',flavor,'description',description,'item_pool',item_pool,'revision',revision) FROM public.life_worlds WHERE fluctlight_id=$1 AND source_resource_id=$2`, fid, p.ID).Scan(&raw)
+		err = q.QueryRow(ctx, `SELECT jsonb_build_object('id',id,'name',name,'background',background,'rules',rules,'flavor',flavor,'description',description,'item_pool',item_pool,'revision',revision) FROM public.life_worlds WHERE owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) AND source_resource_id=$2 AND (fluctlight_id=$1 OR id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1)) ORDER BY (id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1)) DESC NULLS LAST,id LIMIT 1`, fid, p.ID).Scan(&raw)
 	case "place":
 		err = q.QueryRow(ctx, `SELECT jsonb_build_object('id',p.id,'name',p.name,'description',p.description,'revision',p.revision) || p.details FROM public.world_places p JOIN public.life_worlds w ON w.id=p.world_id WHERE w.id=(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1) AND p.source_resource_id=$2`, fid, p.ID).Scan(&raw)
 	case "event_template":

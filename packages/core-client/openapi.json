@@ -9044,10 +9044,34 @@
             "additionalProperties": true
           },
           "source_resource_id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "source_version": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "generation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "enabled": {
             "type": "boolean"
@@ -9123,7 +9147,14 @@
             "type": "string"
           },
           "fluctlight_id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "owner_actor_id": {
             "type": "string"
@@ -9370,7 +9401,14 @@
             "type": "string"
           },
           "fluctlight_id": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "world_id": {
             "anyOf": [
@@ -38728,6 +38766,13 @@
             }
           },
           {
+            "name": "q_any",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "cursor",
             "in": "query",
             "schema": {
@@ -39308,6 +39353,13 @@
           },
           {
             "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q_any",
             "in": "query",
             "schema": {
               "type": "string"

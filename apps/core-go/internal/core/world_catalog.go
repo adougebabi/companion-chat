@@ -3,13 +3,15 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
 func (a *App) worldCatalog(ctx context.Context, fid string) (map[string]any, error) {
-	items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',w.id,'fluctlight_id',w.fluctlight_id,'name',w.name,'background',w.background,'rules',w.rules,'flavor',w.flavor,'description',w.description,'item_pool',w.item_pool,'venue_categories',w.venue_categories,'revision',w.revision,'source_resource_id',w.source_resource_id,'source_version',w.source_version,'active',COALESCE(b.world_id=w.id,false)) FROM public.life_worlds w LEFT JOIN public.fluctlight_world_bindings b ON b.fluctlight_id=w.fluctlight_id WHERE w.fluctlight_id=$1 ORDER BY w.created_at,w.id`, fid)
+	items, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT jsonb_build_object('id',w.id,'fluctlight_id',w.fluctlight_id,'timezone',w.timezone,'name',w.name,'background',w.background,'rules',w.rules,'flavor',w.flavor,'description',w.description,'item_pool',w.item_pool,'venue_categories',w.venue_categories,'revision',w.revision,'source_resource_id',w.source_resource_id,'source_version',w.source_version,'active',COALESCE(b.world_id=w.id,false)) FROM public.life_worlds w LEFT JOIN public.fluctlight_world_bindings b ON b.fluctlight_id=$1 WHERE w.owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) ORDER BY w.created_at,w.id`, fid)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +52,7 @@ func (a *App) writeWorldCatalogTx(ctx context.Context, tx pgx.Tx, fid, method st
 		return nil, ErrInvalidArguments
 	}
 	var rev int
-	if err := tx.QueryRow(ctx, `SELECT revision FROM public.life_worlds WHERE fluctlight_id=$1 AND id=$2 FOR UPDATE`, fid, id).Scan(&rev); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT revision FROM public.life_worlds WHERE owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) AND id=$2 FOR UPDATE`, fid, id).Scan(&rev); err != nil {
 		return nil, err
 	}
 	expected, ok := parseRevision(body["expected_revision"])
@@ -58,7 +60,7 @@ func (a *App) writeWorldCatalogTx(ctx context.Context, tx pgx.Tx, fid, method st
 		return nil, conflict("world", expected, rev)
 	}
 	var referenced bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_world_bindings WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_places WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_npcs WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_encounters WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_event_templates WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_items WHERE world_id=$1)`, id).Scan(&referenced); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.fluctlight_world_bindings WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_places WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_npcs WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_encounters WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_event_templates WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_items WHERE world_id=$1) OR EXISTS(SELECT 1 FROM public.world_event_generations WHERE world_id=$1)`, id).Scan(&referenced); err != nil {
 		return nil, err
 	}
 	if referenced {
@@ -94,14 +96,15 @@ func (a *App) createCatalogWorldTx(ctx context.Context, tx pgx.Tx, fid string, b
 func (a *App) selectWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map[string]any) (map[string]any, error) {
 	id := stringValue(body["world_id"])
 	var exists bool
-	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_worlds WHERE id=$1 AND fluctlight_id=$2)`, id, fid).Scan(&exists); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_worlds WHERE id=$1 AND owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$2))`, id, fid).Scan(&exists); err != nil {
 		return nil, err
 	}
 	if !exists {
 		return nil, ErrNotFound
 	}
 	var rev int
-	err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1 FOR UPDATE`, fid).Scan(&rev)
+	var previousWorld string
+	err := tx.QueryRow(ctx, `SELECT revision,world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1 FOR UPDATE`, fid).Scan(&rev, &previousWorld)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
@@ -116,10 +119,33 @@ func (a *App) selectWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map
 	if _, err = tx.Exec(ctx, `SELECT public.bump_fluctlight_context_generation_with_source($1,'world_binding','UPDATE',NULL)`, fid); err != nil {
 		return nil, err
 	}
+	if previousWorld != id {
+		var planned bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_schedules WHERE fluctlight_id=$1 AND status='accepted')`, fid).Scan(&planned); err != nil {
+			return nil, err
+		}
+		if planned {
+			if _, err := a.enqueueNativeFactTx(ctx, tx, fid, "", "world-binding:"+id, "life.world.changed", "world-binding:"+fid+":"+id+":"+fmt.Sprint(rev+1), map[string]any{"reason": "Selected world changed. Reassess current and future schedule against the actual new world places; preserve completed history. World selection is not arrival or acquaintance."}); err != nil {
+				return nil, err
+			}
+		}
+	}
 	return map[string]any{"id": id, "world_id": id, "revision": rev + 1, "status": "selected", "life_write": false}, nil
 }
 
 func writeWorldExtrasTx(ctx context.Context, tx pgx.Tx, id string, body map[string]any) error {
+	if value, present := body["timezone"]; present {
+		zone, ok := value.(string)
+		if !ok {
+			return invalid("world timezone must be an IANA zone")
+		}
+		if _, err := time.LoadLocation(zone); err != nil {
+			return invalid("world timezone must be an IANA zone")
+		}
+		if _, err := tx.Exec(ctx, `UPDATE public.life_worlds SET timezone=$2 WHERE id=$1`, id, zone); err != nil {
+			return err
+		}
+	}
 	for key, limit := range map[string]int{"flavor": 1000, "description": 8000} {
 		if _, ok := body[key]; !ok {
 			continue

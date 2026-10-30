@@ -2,8 +2,7 @@ import {Button} from '@/components/ui/button';
 import {createPortal} from 'react-dom';
 import {useState} from 'react';
 import {MoreHorizontal} from 'lucide-react';
-import {recordedCallValue,callValueLabel,callDurationLabel,callStageLabel} from '@/approved-ui/task-model-call-presentation.mjs';
-import {domainName} from '@/v3/domain-presentation.mjs';
+import {recordedCallValue,callValueLabel,callDurationLabel,callStageLabel,callPurpose} from '@/approved-ui/task-model-call-presentation.mjs';
 import '../../styles/replica-diagnostic-calls.css';
 
 /** The exact stored wire value, without parsing or flattening provider structures. */
@@ -14,7 +13,7 @@ export function StoredCallValue({value,missing}:{value:unknown;missing:string}){
 export default function ModelCallDetails({record,onRecover,onOpenMedia,technicalTarget}:{record:any;onRecover?:()=>unknown;onOpenMedia?:(id:string)=>unknown;technicalTarget?:HTMLElement|null}){
  const [sourceOpen,setSourceOpen]=useState(false);
  const call=record._record?.data||{},media=record._record?.kind==='media-prompts',present=(v:unknown)=>v!==undefined&&v!==null&&v!=='';
- const attributes=[['模型',callValueLabel(recordedCallValue(call,'model_id'),record.model||'模型未记录')],['用途',({generic_llm:'通用分析',conversation_reply:'聊天回复',vision_understanding:'看图理解',embedding:'记忆检索向量'} as Record<string,string>)[call.binding_role||call.role]||domainName(call.binding_role||call.role,record.label||'用途未记录')],['耗时',callDurationLabel(call,{includeSource:false})]];
+ const attributes=[['模型',callValueLabel(recordedCallValue(call,'model_id'),record.model||'模型未记录')],['用途',callPurpose(call,record.label||'用途未记录').label],['耗时',callDurationLabel(call,{includeSource:false})]];
  for(const [key,label] of [['sequence','调用序号'],['round_count','所属运行调用数'],['stage','调用阶段']])if(present(recordedCallValue(call,key)))attributes.push([label,key==='stage'?callStageLabel(call):callValueLabel(recordedCallValue(call,key),'未记录')]);
  return <div className="replica-model-call-detail">
   <dl className="replica-model-call-attributes">{attributes.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>

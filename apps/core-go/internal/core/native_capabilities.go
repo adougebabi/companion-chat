@@ -28,6 +28,7 @@ func sceneCapabilityDefinition() CapabilityDefinition {
 				"scene":      map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
 				"activity":   map[string]any{"type": "string", "minLength": 1, "maxLength": 512},
 				"location":   map[string]any{"type": "string", "maxLength": 512},
+				"place_id":   map[string]any{"type": "string", "maxLength": 128},
 				"confidence": map[string]any{"type": "number", "minimum": 0, "maximum": 1},
 			},
 		},
@@ -43,6 +44,7 @@ func sceneCapabilityDefinition() CapabilityDefinition {
 				"expected_context_revision":  map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 				"resulting_context_revision": map[string]any{"type": "string", "minLength": 1, "maxLength": 64},
 				"replayed":                   map[string]any{"type": "boolean"},
+				"place_id":                   stringSchema(),
 			},
 		},
 		SideEffectClass: "native_projection", SuccessBoundary: "life_context_committed", ConcurrencyClass: "exclusive", SupportsCancel: false, SupportsRetry: true, RequiresPreflight: false,
@@ -148,6 +150,14 @@ func (a *App) applySceneCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, i
 	if stringValue(liveContext["behavior_state"]) == "sleep" {
 		return failedCapabilityResult(invocation, "life_state_sleeping", false), ErrConflict
 	}
+	if plan.Operation != "end" {
+		if err := validateLifePlaceTx(ctx, callerTx, fluctlightID, plan.PlaceID); err != nil {
+			return failedCapabilityResult(invocation, "life_place_not_available", false), err
+		}
+		if err := requireWorldPlaceOpenTx(ctx, callerTx, fluctlightID, plan.PlaceID, applyAt); err != nil {
+			return failedCapabilityResult(invocation, "world_place_temporarily_closed", false), err
+		}
+	}
 	previousScene := map[string]any{"source": liveContext["source"], "scene": liveContext["scene"], "activity": liveContext["activity"], "location": liveContext["location"], "context_revision": liveContext["context_revision"]}
 	if plan.Operation == "switch" || plan.Operation == "end" {
 		if plan.ExpectedSource == "event" {
@@ -175,7 +185,11 @@ func (a *App) applySceneCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, i
 		status, kind, endAt, expiresAt = "confirmed", "scene_end", applyAt.Add(time.Second), applyAt
 		sceneValue, activityValue, locationValue = nil, nil, nil
 	}
-	inserted, err := callerTx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,revision,evidence_refs,idempotency_key,request_digest,result,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,1,$10,$11,$12,'{}',$13)`, eventID, fluctlightID, kind, startAt, endAt, sceneValue, activityValue, locationValue, status, jsonBytes(plan.EvidenceRefs), plan.IdempotencyKey, plan.RequestDigest, expiresAt)
+	initialResult := map[string]any{}
+	if plan.PlaceID != "" {
+		initialResult["place_id"] = plan.PlaceID
+	}
+	inserted, err := callerTx.Exec(ctx, `INSERT INTO public.life_events(id,fluctlight_id,kind,start_at,end_at,scene,activity,location,status,revision,evidence_refs,idempotency_key,request_digest,result,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,1,$10,$11,$12,$14,$13)`, eventID, fluctlightID, kind, startAt, endAt, sceneValue, activityValue, locationValue, status, jsonBytes(plan.EvidenceRefs), plan.IdempotencyKey, plan.RequestDigest, expiresAt, jsonBytes(initialResult))
 	if err != nil {
 		return failedCapabilityResult(invocation, "scene_persist_failed", true), err
 	}
@@ -206,6 +220,9 @@ func (a *App) applySceneCapabilityWithTx(ctx context.Context, callerTx pgx.Tx, i
 		"event_id": eventID, "inbox_id": inboxID, "operation": plan.Operation, "status": resultStatus,
 		"event_revision": 1, "expected_context_revision": plan.ExpectedLifeContextRevision,
 		"resulting_context_revision": resultingContext["context_revision"], "replayed": false,
+	}
+	if plan.PlaceID != "" {
+		output["place_id"] = plan.PlaceID
 	}
 	if _, err := callerTx.Exec(ctx, `UPDATE public.life_events SET result=$2 WHERE id=$1 AND revision=1`, eventID, jsonBytes(output)); err != nil {
 		return failedCapabilityResult(invocation, "scene_persist_failed", true), err

@@ -8,6 +8,15 @@ resource authority. Querying a name does not grant another private surface.
 
 ## 1. Scope / Trigger
 
+`0102_shared_worlds` adds `world.event.admit`. Generated world candidates require
+explicit audited Yes plus a current configuration at commit; Original/disabled/
+failure never admits an executable event. This mandatory gate does not use the
+optional automatic gate's original-path fallback. Actual Kev HTTP batches also
+appear in model-call diagnostics once per request, with all observed mixed
+decision points. Settings failures emit bounded `kev.unavailable` diagnostics
+and remain distinguishable from disabled configuration. The default global
+switch remains disabled; a connection test does not enable saved settings.
+
 Kev gates eligible WakeUp, Reflection, Goal assessment/replenishment, permitted
 Tool disclosure, declared persistent persona conditions and optional context.
 This is a selection adapter over existing execution, not an Agent/loop replacement.

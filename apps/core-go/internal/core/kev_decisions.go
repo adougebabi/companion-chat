@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -73,6 +74,43 @@ func (s *kevStore) saveDB(ctx context.Context, r decision.Record) error {
 		return errors.New("kev_audit_database_unavailable")
 	}
 	_, err := s.app.DB.Pool().Exec(ctx, `INSERT INTO public.kev_decisions(id,request_id,question_id,decision_point,actor_self,actor_user,agent,run_id,candidate_id,started_at,completed_at,payload) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,completed_at=excluded.completed_at WHERE (excluded.payload->>'recorded_at')::timestamptz >= (kev_decisions.payload->>'recorded_at')::timestamptz`, r.ID, r.RequestID, r.QuestionID, r.Point, r.Scope.ActorSelf, nullableString(r.Scope.ActorUser), nullableString(r.Scope.Agent), nullableString(r.Scope.RunID), r.CandidateID, r.StartedAt, r.CompletedAt, jsonBytes(r))
+	if err == nil && r.RequestID != "" && r.CallStatus != "not_called" {
+		model := r.Model
+		if r.ReturnedModel != nil {
+			model = *r.ReturnedModel
+		}
+		status := "completed"
+		if r.CallStatus != "ok" {
+			status = "failed"
+		}
+		if r.CallStatus == "timeout" || r.CallStatus == "cancelled" {
+			status = r.CallStatus
+		}
+		errorCode := ""
+		if status != "completed" {
+			errorCode = r.Reason
+		}
+		fid := r.Scope.ActorSelf
+		if strings.HasPrefix(fid, "world:") || r.Scope.Agent == "admin_connection_test" {
+			fid = ""
+		}
+		metrics := map[string]any{"source": "kev", "kev_agent": r.Scope.Agent, "decision_point": r.Point, "decision_points": []string{r.Point}, "parent_run_id": r.Scope.RunID, "model_call_id": r.RequestID, "configured_model": r.Model, "returned_model": r.ReturnedModel}
+		if strings.HasPrefix(r.Scope.ActorSelf, "world:") {
+			world := strings.TrimPrefix(r.Scope.ActorSelf, "world:")
+			metrics["world_id"] = world
+			var name, clockCorrelation string
+			if e := s.app.DB.Pool().QueryRow(ctx, `SELECT context->>'name',COALESCE(context->>'world_clock_correlation_id','') FROM public.world_event_generations WHERE id=$1 AND world_id=$2`, r.Scope.RunID, world).Scan(&name, &clockCorrelation); e == nil && name != "" {
+				metrics["world_name"] = name
+				if clockCorrelation != "" {
+					metrics["world_clock_correlation_id"] = clockCorrelation
+				}
+			}
+		}
+		_, diagnosticErr := s.app.DB.Pool().Exec(ctx, `INSERT INTO public.diagnostic_model_runs(id,role,binding_role,scenario,model_id,prompt,response,status,error_code,correlation_id,fluctlight_id,metrics,latency_ms,queued_at,started_at,completed_at) VALUES($1,'kev_decision','kev','kev_decision',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,$12) ON CONFLICT(id) DO UPDATE SET response=excluded.response,status=excluded.status,error_code=excluded.error_code,metrics=diagnostic_model_runs.metrics||excluded.metrics||jsonb_build_object('decision_points',(SELECT jsonb_agg(DISTINCT p.value) FROM jsonb_array_elements(COALESCE(diagnostic_model_runs.metrics->'decision_points','[]'::jsonb)||(excluded.metrics->'decision_points')) p(value))),completed_at=excluded.completed_at`, "kev-model:"+r.RequestID, model, jsonBytes(redactDiagnostic(r.Request)), jsonBytes(redactDiagnostic(r.RawResponse)), status, nullableString(errorCode), r.Scope.CorrelationID, nullableString(fid), jsonBytes(metrics), r.DurationMS, r.StartedAt, r.CompletedAt)
+		if diagnosticErr != nil {
+			s.app.recordDiagnosticEvent(ctx, "kev.model_run.persistence_failed", "warning", fid, r.RequestID, r.Scope.CorrelationID, map[string]any{"reason": "diagnostic_unavailable"})
+		}
+	}
 	return err
 }
 func (s *kevStore) Save(ctx context.Context, r decision.Record) error {
@@ -195,6 +233,11 @@ func (a *App) kevService() *decision.Service {
 			directory = "/var/lib/fluctlight/kev"
 		}
 		a.Kev = &decision.Service{Settings: kevSettingsReader{a}, Store: &kevStore{app: a, directory: directory}, HTTP: &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, ID: func() string { return randomID("kev_") }}
+		a.Kev.Unavailable = func(point, reason string) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			a.recordDiagnosticEvent(ctx, "kev.unavailable", "warning", "", "", "", map[string]any{"decision_point": point, "reason": reason})
+		}
 	}
 	return a.Kev
 }

@@ -5,7 +5,7 @@ import {reviewWorldReuse,confirmWorldReuse} from '../src/v3/reuse-world.mjs';
 import {reusableWorlds} from '../src/approved-ui/world-sources.mjs';
 import {memoryStorage} from './support/runtime.mjs';
 function fixture(mode='unknown'){
- let draft={requestId:'original',activatedId:'new-role',useDefaultWorld:false,worldSource:{worldId:'existing-world',fluctlightId:'source-role',revision:1,name:'杭州生活'}},active=null,attempt=0,owner=true;
+ let draft={worldReuseMode:'copy',requestId:'original',activatedId:'new-role',useDefaultWorld:false,worldSource:{worldId:'existing-world',fluctlightId:'source-role',revision:1,name:'杭州生活'}},active=null,attempt=0,owner=true;
  const calls=[],saved=memoryStorage(),recovery={read:()=>structuredClone(draft),save:value=>draft=structuredClone(value)};
  const client={createCatalogWorld:async(fid,body)=>{calls.push([fid,structuredClone(body)]);attempt++;if(attempt===1&&mode==='unknown')throw Error('response lost');if(attempt===1&&mode==='conflict')throw Object.assign(Error('source changed'),{status:409,code:'revision_conflict'});if(mode==='unknown-then-conflict'){if(attempt===1)throw Error('response lost');throw Object.assign(Error('source changed'),{status:409,code:'revision_conflict'});}return {id:'copied-world'};},worldCatalog:async()=>({items:[],active_binding:active}),selectWorld:async(fid,body)=>{assert.equal(fid,'new-role');active={world_id:body.worldId,revision:1};return {id:body.worldId};},world:async()=>({world:active?{id:active.world_id}:null}),catalogWorld:async(fid,id)=>{assert.equal(fid,'source-role');assert.equal(id,'existing-world');return {world:{id,revision:2,name:'杭州生活·新版',background:'已保存的新背景',rules:'保留规则'},places:[{name:'湖边书店',floor:'2F'}]};}};
  return {options:{client,recovery,storage:saved,owner:'owner',ownerCurrent:()=>owner},calls,draft:()=>draft,setOwner:v=>owner=v};
@@ -28,4 +28,20 @@ test('a conflict after an earlier unknown attempt never authorizes a replacement
 });
 test('a changed Owner cannot confirm an old world review or start another write',async()=>{
  const f=fixture('conflict');await assert.rejects(finishCreationWorld(f.options));const review=await reviewWorldReuse(f.options);f.setOwner(false);assert.throws(()=>confirmWorldReuse(f.options,review),/已变化/);assert.deepEqual(await finishCreationWorld(f.options),{configured:false,stale:true});assert.equal(f.calls.length,1);assert.equal(f.draft().worldSource.revision,1);
+});
+
+test('new world selection joins one shared identity without a configuration copy',async()=>{
+ let draft={requestId:'shared',activatedId:'member-B',worldSource:{worldId:'shared-world',fluctlightId:'member-A',revision:1,name:'共同的城市'}};
+ let active=null;const calls=[],storage=memoryStorage(),recovery={read:()=>structuredClone(draft),save:value=>draft=structuredClone(value)};
+ const client={createCatalogWorld(){throw Error('joining must not copy');},worldCatalog:async()=>({items:[],active_binding:active}),selectWorld:async(fid,body)=>{calls.push({fid,...body});active={world_id:body.worldId,revision:1};return{id:body.worldId};},world:async()=>({world:active?{id:active.world_id}:null})};
+ const options={client,recovery,storage,owner:'owner',ownerCurrent:()=>true};
+ assert.deepEqual(await finishCreationWorld(options),{configured:true,worldId:'shared-world'});
+ assert.equal(calls.length,1);assert.equal(calls[0].fid,'member-B');assert.equal(calls[0].worldId,'shared-world');
+ await finishCreationWorld(options);assert.equal(calls.length,1);
+ active={world_id:'later-choice',revision:2};assert.equal((await finishCreationWorld(options)).configured,false);assert.equal(calls.length,1);
+});
+
+test('shared world source is deduplicated across member directory entry points',async()=>{
+ const result=await reusableWorlds({worldCatalog:async()=>({items:[{id:'same-world',name:'共同的城市',revision:1}]})},[{id:'A',name:'甲'},{id:'B',name:'乙'}]);
+ assert.equal(result.items.length,1);assert.equal(result.items[0].id,'same-world');
 });

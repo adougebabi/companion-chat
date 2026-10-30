@@ -166,12 +166,11 @@ func (a *App) worldCommand(ctx context.Context, owner, fid, operation string, bo
 	digest := stableDigest(operation + ":" + jsonString(body))
 	auditID := randomID("audit_world_")
 	ctx = context.WithValue(ctx, worldCommandAuditKey{}, auditID)
+	ctx = context.WithValue(ctx, worldMutationActorKey{}, fid)
 	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if fid != "" {
-			if err := lockLifeContextTx(ctx, tx, fid); err != nil {
-				return err
-			}
+		if err := lockOwnerWorldMutationTx(ctx, tx, owner); err != nil {
+			return err
 		}
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, owner+":"+key); err != nil {
 			return err
@@ -235,7 +234,7 @@ func (a *App) worldSnapshot(ctx context.Context, owner, fid, selected string) (m
 	}
 	result := map[string]any{"available": true, "world": nil, "places": []any{}, "npcs": []any{}, "scenes": []any{}}
 	var raw []byte
-	err := a.DB.Pool().QueryRow(ctx, `SELECT jsonb_build_object('id',id,'fluctlight_id',fluctlight_id,'name',name,'background',background,'rules',rules,'flavor',flavor,'description',description,'item_pool',item_pool,'venue_categories',venue_categories,'revision',revision,'source_resource_id',source_resource_id,'source_version',source_version) FROM public.life_worlds WHERE fluctlight_id=$1 AND id=COALESCE(NULLIF($2,''),(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1))`, fid, selected).Scan(&raw)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT jsonb_build_object('id',id,'fluctlight_id',fluctlight_id,'timezone',timezone,'name',name,'background',background,'rules',rules,'flavor',flavor,'description',description,'item_pool',item_pool,'venue_categories',venue_categories,'revision',revision,'source_resource_id',source_resource_id,'source_version',source_version) FROM public.life_worlds WHERE owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) AND id=COALESCE(NULLIF($2,''),(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1))`, fid, selected).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if selected != "" {
 			return nil, ErrNotFound
@@ -315,7 +314,7 @@ func (a *App) writeWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map[
 	}
 	var id string
 	var revision int
-	err = tx.QueryRow(ctx, `SELECT id,revision FROM public.life_worlds WHERE id=COALESCE(NULLIF($2,''),(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1)) AND fluctlight_id=$1 FOR UPDATE`, fid, stringValue(body["world_id"])).Scan(&id, &revision)
+	err = tx.QueryRow(ctx, `SELECT id,revision FROM public.life_worlds WHERE id=COALESCE(NULLIF($2,''),(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1)) AND owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) FOR UPDATE`, fid, stringValue(body["world_id"])).Scan(&id, &revision)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if expected != 0 {
 			return nil, conflict("world", expected, 0)
@@ -348,6 +347,7 @@ func (a *App) writeWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map[
 }
 
 func (a *App) writeWorldPlaceTx(ctx context.Context, tx pgx.Tx, fid, id, method string, body map[string]any) (map[string]any, error) {
+	ctx = context.WithValue(ctx, worldMutationActorKey{}, fid)
 	world := stringValue(body["world_id"])
 	var err error
 	if world == "" {
@@ -357,7 +357,7 @@ func (a *App) writeWorldPlaceTx(ctx context.Context, tx pgx.Tx, fid, id, method 
 		}
 	} else {
 		var owned bool
-		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_worlds WHERE id=$1 AND fluctlight_id=$2)`, world, fid).Scan(&owned); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.life_worlds WHERE id=$1 AND owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$2))`, world, fid).Scan(&owned); err != nil {
 			return nil, err
 		}
 		if !owned {

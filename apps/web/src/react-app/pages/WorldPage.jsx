@@ -79,8 +79,7 @@ export default function WorldPage({ initialWorldId = "" } = {}) {
   async function readCatalog() {
     const page = await w.client.worldCatalog(fid);
     if (
-      !Array.isArray(page.items) ||
-      page.items.some((row) => row.fluctlight_id !== fid)
+      !Array.isArray(page.items)
     )
       throw Error("世界目录范围尚未完整确认。");
     const views = await Promise.all(
@@ -88,7 +87,6 @@ export default function WorldPage({ initialWorldId = "" } = {}) {
         const view = await w.client.catalogWorld(fid, row.id);
         if (
           view.world?.id !== row.id ||
-          view.world?.fluctlight_id !== fid ||
           !Array.isArray(view.places) ||
           view.places.some((p) => p.world_id !== row.id) ||
           !Array.isArray(view.npcs) ||
