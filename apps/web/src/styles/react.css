@@ -233,4 +233,13 @@ body {
     transform: translate(-50%, -50%);
     background: transparent;
   }
+
+  /* These compact actions must also accept a pointer 10px beyond the visual
+     box. A 44px minimum alone extends a 36px icon by only 4px. Allow for the
+     filter's border and keep the probe inside, rather than on, the hit edge. */
+  .replica-library .tag-filter > button::after,
+  .replica-inbox-toolbar > button[data-size="icon"]::after {
+    width: max(44px, calc(100% + 24px));
+    height: max(44px, calc(100% + 24px));
+  }
 }

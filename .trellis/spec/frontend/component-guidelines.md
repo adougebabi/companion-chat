@@ -85,6 +85,18 @@ className merges in the shared cn helper and preserve responsive scroll owners.
   `scripts/verify-r9-controls.mjs` checks the production build in Chrome, real
   Tab focus, icon geometry and transparent mobile hit areas. Screenshots stay
   under `/tmp/r9-shots`, outside Git.
+- A deployment audit must identify the **loaded** hashed CSS/JS assets. An open
+  SPA tab can retain a previous release even when the server runs the new commit;
+  compare its CDP styles with a fresh browser and the local production build.
+  R10 found `index-CmVhmy0N.css` in old tabs while fresh d6843350 served
+  `index-bRyegPHY.css`. Do not attribute old-tab geometry to the new source.
+- A 44px minimum does not promise a hit 10px outside a 36px icon or a 28.5px
+  filter. Home filters and inbox reload reserve additional transparent space;
+  preserve their visual boxes. Check actual 10px coordinates, pointer dispatch,
+  clipping ancestors and the winning pseudo-element declarations in CDP.
+  `scripts/verify-r10-controls.mjs` applies the same selectors/measurements to
+  existing tabs, fresh deployment and local dist with isolated GET replay.
+  It records evidence under `/tmp/r10-shots`; it never proxies replay writes.
 
 ## Verification
 
