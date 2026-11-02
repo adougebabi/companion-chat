@@ -108,8 +108,11 @@ task with returnTo pointing back to chat. Keep `ft-r1-defects.test.mjs` DOM/orde
 task-reference, draft-retention and recovery assertions.
 
 Assistant bubble/history and reply-notification rendering use `replyBodyText`.
-An empty cleaned body never falls back to the original raw protocol. User messages
-remain unchanged. Shared Go/JS drift fixtures verify the server/UI boundary;
+Malformed JSON and incomplete headings fall back to recovered plain body text,
+with the same private-section/metadata filter; multiple reply sections become
+plain paragraphs. Do not hide recoverable text or display the raw envelope.
+An empty cleaned body never falls back to private content. User messages remain
+unchanged. Shared Go/JS drift fixtures verify the server/UI boundary;
 real chat, history and inbox DOM tests verify all presentation consumers.
 
 ## Good, base and bad cases

@@ -61,6 +61,10 @@ func TestReplyWriterActualTransportExtractsDriftedBody(t *testing.T) {
 	for _, raw := range []string{
 		"# 回复\n你好，很高兴认识你。\n# 认知\nprivate\n# 事务记录\n- 发送时间：2026-11-02T20:48:16+08:00\n- 使用工具：无",
 		"```markdown\n# Reply\n你好，很高兴认识你。\n# Reasoning\nprivate\n# Transaction Log\nTools used: none\n```",
+		`{"text":"# 回复\n你好，很高兴认识你。\n# 认知\nprivate"`,
+		`{"text":"# 回复\n你好，很高兴认识你。\n# 回复\n你好，很高兴认识你。\n# 事务记录\nprivate`,
+		`{"direction":"private planning","text":"# 回复\n你好，很高兴认识你。\n# 认知\nprivate"}`,
+		"# 回复（Reply\n你好，很高兴认识你。\n# 认知（Cognition\nprivate",
 	} {
 		router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 			if payload["max_tokens"] != nil || payload["max_completion_tokens"] != nil {
@@ -73,5 +77,53 @@ func TestReplyWriterActualTransportExtractsDriftedBody(t *testing.T) {
 		if err != nil || draft.Text != "你好，很高兴认识你。" {
 			t.Fatalf("transport accepted envelope: text=%q error=%v", draft.Text, err)
 		}
+	}
+}
+
+func TestConversationReplyPublicationFallbackCommitsOnlyCleanText(t *testing.T) {
+	ctx, repo, app, owner, self, conversation := setupDirectPublicationToolTest(t, "body-fallback")
+	samples := []struct{ name, raw, want string }{
+		{"ambiguous", "# 回复\n你好。\n# 回复\n我在这里。\n# 认知\nprivate", "你好。\n\n我在这里。"},
+		{"malformed-json", `{"text":"# 回复\n你好。\n# 认知\nprivate"`, "你好。"},
+		{"unclosed-text", `{"text":"# Reply\nHello.\n# Ledger\nprivate`, "Hello."},
+		{"extra-fields", `{"direction":"private planning","text":"# 回复\n你好。\n# 认知\nprivate"}`, "你好。"},
+		{"malformed-heading", "# 回复（Reply\n你好。\n# 认知（Cognition\nprivate", "你好。"},
+	}
+	for _, sample := range samples {
+		t.Run(sample.name, func(t *testing.T) {
+			request := ToolExecutionRequest{CapabilityName: "conversation.reply", OperationID: "fallback-native-" + sample.name, AuthorizationActorID: owner, FluctlightID: self, ConversationID: conversation, Arguments: json.RawMessage(jsonBytes(map[string]any{"text": sample.raw}))}
+			for attempt := 0; attempt < 2; attempt++ {
+				receipt, err := app.ExecuteTool(ctx, request)
+				output := mapValue(receipt.Result.Output)
+				if err != nil || receipt.Result.Status != "completed" || stringValue(output["text"]) != sample.want || toolBoolValue(output["replayed"]) != (attempt == 1) {
+					t.Fatalf("fallback/replay receipt = %#v, error=%v", receipt.Result, err)
+				}
+				var stored string
+				if err := repo.Pool().QueryRow(ctx, `SELECT text FROM public.conversation_messages WHERE id=$1 AND conversation_id=$2`, stringValue(output["target_ref"]), conversation).Scan(&stored); err != nil || stored != sample.want || stored == sample.raw {
+					t.Fatalf("stored native body = %q, want %q: %v", stored, sample.want, err)
+				}
+			}
+			err := withTransaction(ctx, repo.Pool(), func(tx pgx.Tx) error {
+				resource, err := NewToolPublicationService(app).PublishConversationReplyTx(ctx, tx, ConversationReplyPublication{AuthorizationActorID: owner, FluctlightID: self, ConversationID: conversation, OperationID: "fallback-prepared-" + sample.name, Text: sample.raw})
+				if err != nil {
+					return err
+				}
+				var stored string
+				if err := tx.QueryRow(ctx, `SELECT text FROM public.conversation_messages WHERE id=$1 AND conversation_id=$2`, resource.ID, conversation).Scan(&stored); err != nil {
+					return err
+				}
+				if resource.Text != sample.want || stored != sample.want || stored == sample.raw {
+					return fmt.Errorf("prepared fallback returned=%q stored=%q want=%q", resource.Text, stored, sample.want)
+				}
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	var count int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversation).Scan(&count); err != nil || count != 2*len(samples) {
+		t.Fatalf("fallback message count = %d, want %d: %v", count, 2*len(samples), err)
 	}
 }

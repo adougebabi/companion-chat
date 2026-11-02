@@ -20,7 +20,7 @@ function section(line) {
   if (bracket) value = value.slice(1);
   const match = headingPattern.exec(value);
   if (!match) return null;
-  let body = match[2].replace(/^\s*[（(](?:reply|response|cognition|reasoning|analysis|ledger|transaction log)[）)]/i, '').trim();
+  let body = match[2].replace(/^\s*[（(](?:reply|response|cognition|reasoning|analysis|ledger|transaction log)(?:[）)]|$)/i, '').trim();
   function closeDecoration() {
     if (bracket && body.startsWith(bracket)) { body = body.slice(1).trimStart(); bracket = ''; }
     if (emphasis && body.startsWith(emphasis)) { body = body.slice(emphasis.length).trimStart(); emphasis = ''; }
@@ -72,6 +72,48 @@ function cleanProtocolLines(lines) {
   return result;
 }
 
+/** Recover a top-level text string without displaying JSON syntax or private fields.
+ * @param {string} text
+ */
+function envelopeBody(text) {
+  /** @param {number} start */
+  function stringEnd(start) {
+    for (let index = start + 1; index < text.length; index++) {
+      if (text[index] === '\\') index++;
+      else if (text[index] === '"') return index + 1;
+    }
+    return -1;
+  }
+  let depth = 0;
+  for (let index = 0; index < text.length; index++) {
+    if (text[index] === '{' || text[index] === '[') depth++;
+    else if (text[index] === '}' || text[index] === ']') depth--;
+    else if (text[index] === '"') {
+      const end = stringEnd(index);
+      if (end < 0) return '';
+      let key;
+      try { key = JSON.parse(text.slice(index, end)); } catch { return ''; }
+      if (depth === 1 && key === 'text') {
+        const colon = /^\s*:\s*/.exec(text.slice(end));
+        if (colon) {
+          const start = end + colon[0].length;
+          if (text[start] !== '"') return '';
+          const close = stringEnd(start);
+          let value = text.slice(start, close < 0 ? text.length : close);
+          if (close < 0) {
+            if ((/\\+$/.exec(value)?.[0].length || 0) % 2) value = value.slice(0, -1);
+            value += '"';
+          }
+          value = value.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+          try { return JSON.parse(value); } catch { return ''; }
+        }
+      }
+      index = end - 1;
+    }
+  }
+  return '';
+}
+
 /** Extract only user-facing text, preserving ordinary prose, Markdown and code.
  * @param {unknown} input
  * @returns {string}
@@ -87,10 +129,12 @@ export function replyBodyText(input) {
       if (envelope && typeof envelope.text === 'string') text = envelope.text;
       else return '';
     } catch {
-      // A malformed envelope has no trusted user-facing field.
-      return '';
+      // Format failure still displays the recovered body through the same
+      // protocol/private-section filter. Never return the raw envelope.
+      text = envelopeBody(json);
     }
   }
+  if (!/[\n#:：*_\[\]【】>]/.test(text) && replyNames.includes(text.trim().toLowerCase())) return text.trim();
   let lines = text.split('\n');
   const wrapped = /^\s*(?:```|~~~)(?:markdown|md|text|plaintext)?\s*$/i.test(lines[0] || '') && lines.some(line => section(line));
   if (wrapped) {

@@ -73,3 +73,23 @@ test('active chat filters historical assistant output but preserves the user mes
     await fixture.dispose();
   }
 });
+
+test('active chat displays clean fallback bodies from malformed and ambiguous assistant output', async () => {
+  const fixture = await activeChatFixture();
+  const samples = sharedSamples.filter(sample => ['malformed_json_missing_brace', 'malformed_json_duplicate_reply', 'unclosed_bilingual_headings'].includes(sample.name));
+  try {
+    await fixture.update(() => {
+      fixture.store.messages = samples.map((sample, index) => ({id: sample.name, kind: 'assistant', text: sample.input, createdAt: `2026-11-02T12:57:4${index}Z`}));
+    });
+    const bubbles = fixture.view.host.querySelectorAll('.companion-bubble');
+    assert.equal(bubbles.length, samples.length);
+    samples.forEach((sample, index) => {
+      assert.equal(bubbles[index].textContent, sample.want);
+      assert.notEqual(bubbles[index].textContent, sample.input);
+      assert.doesNotMatch(bubbles[index].textContent, /#|private|"text"|认知|事务记录/);
+      assert.equal(fixture.store.messages[index].text, sample.input);
+    });
+  } finally {
+    await fixture.dispose();
+  }
+});

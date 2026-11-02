@@ -31,5 +31,18 @@
   {"name":"standalone_timestamp","input":"我听着呢。\n2026-11-02T21:00:00+08:00\n使用工具：无","want":"我听着呢。"},
   {"name":"inline_body_emphasis","input":"# Reply: **Hello.**\n# Cognition\nprivate","want":"**Hello.**"},
   {"name":"inline_body_brackets","input":"# Reply: [hello]\n# Ledger\nprivate","want":"[hello]"},
-  {"name":"bold_label_colon_inside","input":"**回复：** 你好。\n# 认知\nprivate","want":"你好。"}
+  {"name":"bold_label_colon_inside","input":"**回复：** 你好。\n# 认知\nprivate","want":"你好。"},
+  {"name":"malformed_json_missing_brace","input":"{\"text\":\"# 回复\\n你好。\\n# 认知\\nprivate\"","want":"你好。"},
+  {"name":"malformed_json_unclosed_text","input":"{\"text\":\"# Reply\\nHello.\\n# Cognition\\nprivate","want":"Hello."},
+  {"name":"malformed_json_literal_newlines","input":"{\"text\":\"# 回复\n你好。\n# 事务记录\nprivate\"}","want":"你好。"},
+  {"name":"malformed_json_trailing_data","input":"{\"text\":\"# Reply\\nHello.\\n# Ledger\\nprivate\"} extra output","want":"Hello."},
+  {"name":"malformed_json_nested_private_field","input":"{\"private\":{\"text\":\"secret\"},\"text\":\"# Reply\\nHello.\\n# Ledger\\nprivate\"","want":"Hello."},
+  {"name":"envelope_extra_private_fields","input":"{\"direction\":\"private planning\",\"text\":\"# 回复\\n你好。\\n# 认知\\nprivate\"}","want":"你好。"},
+  {"name":"unclosed_json_fence","input":"```json\n{\"text\":\"# 回复\\n你好。\\n# 认知\\nprivate\"","want":"你好。"},
+  {"name":"unclosed_bilingual_headings","input":"# 回复（Reply\n你好。\n# 认知（Cognition\nprivate\n# 事务记录（Ledger\nprivate","want":"你好。"},
+  {"name":"malformed_json_duplicate_reply","input":"{\"text\":\"# 回复\\n你好。\\n# 回复\\n我在这里。\\n# 认知\\nprivate\"","want":"你好。\n\n我在这里。"},
+  {"name":"malformed_json_no_public_body","input":"{\"private\":{\"text\":\"secret\"}","want":""},
+  {"name":"malformed_json_escaped_quotes","input":"{\"text\":\"# Reply\\nSay \\\"hello\\\".\\n# Ledger\\nprivate\"","want":"Say \"hello\"."},
+  {"name":"envelope_public_label_as_prose","input":"{\"text\":\"reply\",\"direction\":\"private planning\"}","want":"reply"},
+  {"name":"standalone_reply_word","input":"reply","want":"reply"}
 ]

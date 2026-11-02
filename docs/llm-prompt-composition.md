@@ -81,7 +81,10 @@ H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制�
 私聊 Writer 输出通过 `parseReplyDraft` / `extractReplyBody` 提取正文，
 `ToolPublicationService.PublishConversationReplyTx` 对原生 Tool 和准备草稿再次
 使用同一解析器。中英文回复段、重复段、围栏和缺失段均不能把认知、事务记录、
-时间或工具元数据写成用户可见消息；无法提取正文时拒绝发布。原始候选只保留在
+时间或工具元数据写成用户可见消息。JSON 畸形、额外外壳字段或标题标记不完整时，
+回退到清理后的可恢复正文并正常发布；不能直接保存原始外壳，也不能提取嵌套私有
+字段。清理后确实没有正文才拒绝发布，媒体参数及原生工具授权仍按原规则校验。
+原始候选只保留在
 既有私有诊断路径。该防线不改变人格、输入协议或 token 设置，
 `reply_body_integration_test.go` 覆盖真实 Provider HTTP 传输与 PostgreSQL 发布。
 

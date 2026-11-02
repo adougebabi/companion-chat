@@ -34,15 +34,27 @@ func TestReplyDraftFormatDriftNeverPublishesPrivateSections(t *testing.T) {
 	}
 }
 
-func TestReplyDraftInvalidEnvelopeHasNoPublishableText(t *testing.T) {
+func TestReplyDraftMalformedEnvelopeFallsBackToCleanBody(t *testing.T) {
+	for _, sample := range []struct{ raw, want string }{
+		{`{"text":"partial reply"`, "partial reply"},
+		{`{"text":"reply","direction":"private planning"}`, "reply"},
+		{"```json\n{\"text\":\"partial\"\n```", "partial"},
+	} {
+		draft, err := parseReplyDraft(sample.raw)
+		if err != nil || draft.Text != sample.want {
+			t.Fatalf("malformed envelope body = %q, want %q, error=%v", draft.Text, sample.want, err)
+		}
+	}
+}
+
+func TestReplyDraftUnrecoverableEnvelopeHasNoPublishableText(t *testing.T) {
 	for _, raw := range []string{
-		`{"text":"partial reply"`,
-		`{"text":"reply","direction":"private planning"}`,
-		"```json\n{\"text\":\"partial\"\n```",
+		`{"text":42}`, `{"text":null}`, `{"direction":"private planning"}`,
+		`{"private":{"text":"private planning"}`, `{"text":"# 认知\nprivate reasoning"`,
 	} {
 		draft, err := parseReplyDraft(raw)
 		if err == nil || draft.Text != "" {
-			t.Fatalf("invalid envelope retained publishable text: %q, error=%v", draft.Text, err)
+			t.Fatalf("bodyless envelope retained publishable text: %q, error=%v", draft.Text, err)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 )
@@ -9,7 +10,7 @@ var replySectionNumber = regexp.MustCompile(`^(?:[0-9]+|[一二三四五六七�
 var replyPrivateXML = regexp.MustCompile(`(?is)<(?:think|analysis|reasoning|cognition)>.*?(?:</(?:think|analysis|reasoning|cognition)>|$)`)
 var replyLedgerField = regexp.MustCompile(`(?i)^(?:[-*]\s*)?(?:发言时间|发送时间|发送消息类型|消息类型|使用工具|工具使用|工具调用|关键数据|时间戳|sent\s*(?:at|time)|timestamp|message\s*type|tools?\s*used|tool\s*calls?|key\s*data)\s*[:：]`)
 var replyProtocolWrapper = regexp.MustCompile("(?i)^(?:```|~~~)(?:markdown|md|text|plaintext)?$")
-var replyBilingualSuffix = regexp.MustCompile(`(?i)\s*[（(](?:reply|response|cognition|reasoning|analysis|ledger|transaction log)[）)]\s*$`)
+var replyBilingualSuffix = regexp.MustCompile(`(?i)\s*[（(](?:reply|response|cognition|reasoning|analysis|ledger|transaction log)[）)]?\s*$`)
 var replyTimestamp = regexp.MustCompile(`^(?:[-*]\s*)?\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$`)
 var replyInlineHeading = regexp.MustCompile(`(?i)(\S[ \t]+)(#{1,6}[ \t]*(?:事务记录|事务日志|认知分析|认知记录|回复正文|回复内容|最终回复|认知|回复|思考|分析|transaction records|transaction record|transaction ledger|transaction log|cognitive analysis|assistant reply|assistant response|final answer|final response|cognition|reasoning|analysis|metadata|thoughts|ledger|response|reply|answer)(?:[ \t:：]|$))`)
 
@@ -87,11 +88,75 @@ func stripReplyPrivateXML(text string) string {
 	return result.String()
 }
 
+// replyEnvelopeBody recovers only a top-level text string when the enclosing
+// JSON is malformed. Nested text, private fields and media requests are never
+// promoted into the public body or treated as authority for an action.
+func replyEnvelopeBody(text string) string {
+	depth := 0
+	for index := 0; index < len(text); index++ {
+		switch text[index] {
+		case '{', '[':
+			depth++
+		case '}', ']':
+			depth--
+		case '"':
+			end, closed := replyJSONStringEnd(text, index)
+			if !closed {
+				return ""
+			}
+			var key string
+			if depth == 1 && json.Unmarshal([]byte(text[index:end]), &key) == nil && key == "text" {
+				value := strings.TrimSpace(text[end:])
+				if strings.HasPrefix(value, ":") {
+					value = strings.TrimSpace(value[1:])
+					if !strings.HasPrefix(value, `"`) {
+						return ""
+					}
+					end, closed := replyJSONStringEnd(value, 0)
+					value = value[:end]
+					if !closed {
+						// A dangling escape cannot consume the synthetic closing quote.
+						if slashes := len(value) - len(strings.TrimRight(value, `\`)); slashes%2 != 0 {
+							value = value[:len(value)-1]
+						}
+						value += `"`
+					}
+					value = strings.NewReplacer("\r", `\r`, "\n", `\n`, "\t", `\t`).Replace(value)
+					var body string
+					if json.Unmarshal([]byte(value), &body) == nil {
+						return body
+					}
+					return ""
+				}
+			}
+			index = end - 1
+		}
+	}
+	return ""
+}
+
+func replyJSONStringEnd(text string, start int) (int, bool) {
+	for index := start + 1; index < len(text); index++ {
+		if text[index] == '\\' {
+			index++
+		} else if text[index] == '"' {
+			return index + 1, true
+		}
+	}
+	return len(text), false
+}
+
 // extractReplyBody is used both at Writer decoding and at the shared message
-// publication boundary. It never falls back to the raw envelope on ambiguity.
-// Multiple reply sections become plain paragraphs; exact repeats are deduped.
+// publication boundary. Ambiguous sections degrade to cleaned plain paragraphs,
+// never the raw envelope; exact repeats are deduped.
 func extractReplyBody(text string) string {
 	text = strings.TrimSpace(stripReplyPrivateXML(strings.ReplaceAll(text, "\r\n", "\n")))
+	// A single ordinary word in a text field is prose, not an empty heading.
+	if !strings.ContainsAny(text, "\n#:：*_[]【】>") {
+		if section, _ := replySection(text); section == "reply" {
+			return text
+		}
+	}
 	lines := strings.Split(text, "\n")
 	// Some small models fence the entire protocol. Ordinary fenced code remains
 	// unchanged; only unwrap when the wrapper actually contains protocol labels.

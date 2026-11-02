@@ -57,9 +57,18 @@ func TestReplyDraftMediaParsingNeverPublishesBrokenEnvelopes(t *testing.T) {
 			t.Fatalf("valid draft rejected: %v", err)
 		}
 	}
-	for _, text := range []string{`{ "text": "断掉了"`, `{"text":"照片发了","direction":"先安慰"}`, `{"text":"照片发了","media_requests":[{"kind":"image","intent":""}]}`} {
+	for _, text := range []string{`{"text":"照片发了","media_requests":[{"kind":"image","intent":""}]}`} {
 		if _, err := parseReplyDraft(text); err == nil {
 			t.Errorf("invalid envelope accepted: %s", text)
+		}
+	}
+	for _, sample := range []struct{ raw, want string }{
+		{`{ "text": "断掉了"`, "断掉了"},
+		{`{"text":"照片发了","direction":"先安慰"}`, "照片发了"},
+	} {
+		draft, err := parseReplyDraft(sample.raw)
+		if err != nil || draft.Text != sample.want {
+			t.Errorf("format fallback = %q, want %q: %v", draft.Text, sample.want, err)
 		}
 	}
 	draft, err := parseReplyDraft("这个设备型号是 e6，🙂。")

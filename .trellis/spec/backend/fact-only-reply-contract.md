@@ -415,7 +415,11 @@ bilingual labels, fenced envelopes, repeated replies and missing sections.
 Internal cognition/ledger content remains blocked until an explicit reply.
 Exact duplicate replies collapse; distinct replies become plain paragraphs.
 Timestamp/tool fields start a private tail. Preserve ordinary Markdown, code and
-contextual English. No extracted body or invalid envelope means no publication;
+contextual English. Malformed JSON, extra envelope fields and incomplete section
+decorations fall back to cleaned plain body text rather than blocking publication.
+Recover only a top-level text string, never nested/private fields or JSON syntax;
+malformed media envelopes cannot authorize media actions. Actual media parameter
+validation remains strict. No public body after cleaning means no publication;
 an error-returning draft has empty Text. RawCandidate remains private diagnostics.
 Publication receipts and committed_text use the actual cleaned message text.
 No model-specific branch, prompt change or new token setting is involved.
@@ -424,7 +428,8 @@ No model-specific branch, prompt change or new token setting is involved.
 | Output | Result |
 | --- | --- |
 | reply + cognition + ledger / repeated reply sections | clean reply paragraphs only |
-| cognition/ledger only or invalid JSON envelope | empty draft Text, no assistant INSERT |
+| malformed JSON / extra fields with recoverable text | clean body fallback, normal publication |
+| cognition/ledger only or envelope without public text | empty draft Text, no assistant INSERT |
 | ordinary fenced code / English / Markdown | preserved |
 | empty ADK final / failed Agent run | existing failure settlement; no reasoning/raw fallback |
 
@@ -435,8 +440,9 @@ ordinary prose stays unchanged. Bad: returning the whole output on parse failure
 ### 6. Tests Required
 Shared `testdata/reply_output_drift.json` drives Go and JS contract cases.
 `reply_body_integration_test.go` verifies Provider wire decoding, native/prepared
-publication, cleaned receipts, fenced JSON and zero messages for private-only
-output using disposable PostgreSQL. Keep existing envelope, idempotency, ownership,
+publication, malformed/ambiguous fallback, exact stored bodies, cleaned receipts,
+fenced JSON and zero messages for private-only output using disposable PostgreSQL.
+Keep media validation, idempotency, ownership,
 cancellation, reasoning-only and malformed-settlement regressions.
 
 ### 7. Wrong vs Correct

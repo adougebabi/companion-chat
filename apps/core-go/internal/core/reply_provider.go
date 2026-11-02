@@ -40,8 +40,12 @@ func parseReplyDraft(text string) (draft ReplyDraft, err error) {
 	}()
 	text = strings.TrimSpace(text)
 	// A fenced JSON envelope is still an envelope, never chat prose.
-	if lines := strings.Split(text, "\n"); len(lines) > 2 && replyFence(lines[0]) && replyFence(lines[len(lines)-1]) {
-		inner := strings.TrimSpace(strings.Join(lines[1:len(lines)-1], "\n"))
+	if lines := strings.Split(text, "\n"); len(lines) > 1 && replyFence(lines[0]) {
+		lines = lines[1:]
+		if replyFence(lines[len(lines)-1]) {
+			lines = lines[:len(lines)-1]
+		}
+		inner := strings.TrimSpace(strings.Join(lines, "\n"))
 		if strings.HasPrefix(inner, "{") && (strings.Contains(inner, `"text"`) || strings.Contains(inner, `"media_requests"`)) {
 			text = inner
 		}
@@ -54,16 +58,23 @@ func parseReplyDraft(text string) (draft ReplyDraft, err error) {
 				Text          string              `json:"text"`
 				MediaRequests []ReplyMediaRequest `json:"media_requests"`
 			}
-			if _, err := decodeReplyVisionSetting([]byte(text), envelope); err != nil {
-				return draft, errors.New("reply_envelope_invalid")
+			// Ignore extraneous envelope fields rather than letting format drift
+			// suppress a real reply. Keep strict validation of actual media data.
+			fields := map[string]json.RawMessage{}
+			for _, key := range []string{"text", "media_requests"} {
+				if value, exists := shape[key]; exists {
+					fields[key] = value
+				}
 			}
-			if err := json.Unmarshal([]byte(text), &envelope); err != nil {
+			known, _ := json.Marshal(fields)
+			envelope, err = decodeReplyVisionSetting(known, envelope)
+			if err != nil {
 				return draft, errors.New("reply_envelope_invalid")
 			}
 			draft.Text = strings.TrimSpace(envelope.Text)
 			draft.MediaRequests = envelope.MediaRequests
-		} else if strings.Contains(text, `"media_requests"`) || strings.Contains(text, `"text"`) {
-			return draft, errors.New("reply_envelope_invalid")
+		} else {
+			draft.Text = replyEnvelopeBody(text)
 		}
 	}
 	if draft.Text == "" || len([]rune(draft.Text)) > 32000 || len(draft.MediaRequests) > 2 {
