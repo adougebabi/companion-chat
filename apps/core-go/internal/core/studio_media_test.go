@@ -32,6 +32,16 @@ func TestStudioMediaReadyRecoveryAuthorizationAndExplicitMaterialRetention(t *te
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,media_scope,studio_owner_actor_id,studio_job_id,kind,mime_type,prompt,provider_request_id,workflow_id,status) VALUES($1,NULL,'studio',$2,$3,'image','image/png',$4,'fixture-request',$5,'running')`, mid, owner, id, jsonString(concept), workflow); err != nil {
 		t.Fatal(err)
 	}
+	// A planner timeout after delegation must leave the active media execution
+	// and its domain attempt intact rather than enqueueing competing work.
+	outcome, err := app.ReconcileStudioWorkflowFailure(ctx, "studio_intent:"+id+"_attempt_1", "activity heartbeat timeout")
+	if err != nil || outcome.NextIntentID != "" || outcome.ReasonCode != "studio_media_already_delegated" {
+		t.Fatal(outcome, err)
+	}
+	delegated, err := app.StudioJob(ctx, owner, id)
+	if err != nil || delegated["status"] != "running" || intValue(delegated["latest_attempt"]) != 1 {
+		t.Fatal("planner failure replaced delegated media work", delegated, err)
+	}
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,media_scope,studio_owner_actor_id,studio_job_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES($1,NULL,'studio',$2,$3,'v1','image','image/png',1,'fixture-digest','private-fixture','not-read-in-this-test','fixture-request',$4,'ready')`, asset, owner, id, workflow); err != nil {
 		t.Fatal(err)
 	}

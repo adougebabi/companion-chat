@@ -79,7 +79,7 @@ func TestSharedWorldSameNPCIndependentRelationshipsAndPresence(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.fluctlight_world_bindings WHERE world_id=$1`, world); err != nil {
 		t.Fatal(err)
 	}
-	if count, err := f.app.RepairWorldNPCPresence(f.ctx, 20); err != nil || count != 1 {
+	if count, err := f.app.RepairWorldNPCPresence(f.ctx, 20); err != nil || count != 3 {
 		t.Fatal("world NPC clock depended on creator/members", count, err)
 	}
 	foreign := "foreign-world-member"

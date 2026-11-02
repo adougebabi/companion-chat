@@ -184,3 +184,47 @@ consumer effects. Source review/build evidence alone does not pass these cases.
 Wrong: CAS only `endpoint:id`, then delete all of its role bindings.
 Correct: under the shared admission lock, enumerate and CAS every affected
 `binding:role`, then commit the endpoint, removals, audit and receipt together.
+
+## Scenario: Trusted browser origin list (D11)
+
+### 1. Scope / Trigger
+Startup `FLUCTLIGHT_TRUSTED_ORIGIN` and browser mutation/CORS/preflight.
+
+### 2. Signatures
+`config.ParseTrustedOrigins(string) ([]string,error)`;
+`Config.TrustedOrigin` retains its string type and stores a normalized comma list.
+
+### 3. Contracts
+Trim each entry; validate every HTTP(S) origin, host and port. Accept localhost,
+IPv4 and bracketed IPv6. Reject empty entries, credentials, non-root paths,
+query/fragment delimiters, invalid host/port and wildcards. Error messages name
+the variable and one-based entry, without echoing supplied credentials.
+Origin authorization uses exact membership; CSRF token equality remains required.
+CORS/preflight echo only the matched request origin, never the configured list.
+Default cookies allow configured HTTP origins; an explicit secure-cookie=true
+setting is preserved. Deployment example:
+`http://127.0.0.1:13001,http://100.109.12.105:13001`.
+
+### 4. Validation & Error Matrix
+| Condition | Required result |
+| --- | --- |
+| Empty middle/trailing entry | Startup error naming that entry |
+| Either configured exact origin | Mutation allowed with matching CSRF |
+| Other port, suffix, null, comma-joined request origin | 403 invalid_origin |
+| Allowed origin without CSRF | 403; no Core mutation |
+| Invalid list passed directly to middleware | Fail closed |
+
+### 5. Good / Base / Bad Cases
+Good: both loopback and tailnet browser addresses work. Base: the old single
+origin remains valid. Bad: substring matching or emitting the entire allowlist
+as Access-Control-Allow-Origin.
+
+### 6. Tests Required
+`TestTrustedOriginsListValidatesEveryEntryAndTrimsSpaces`,
+`TestFromEnvAcceptsMultipleTrustedOriginsAndHTTPDefaults`,
+`TestTrustedOriginListMutationAndPreflightMatchAnyExactEntry`,
+`TestTrustedOriginsPassActualHTTPMiddlewareAndKeepCookieDefaults`.
+
+### 7. Wrong vs Correct
+Wrong: compare Origin to the unsplit environment string.
+Correct: validate the whole list at startup, then require an exact member plus CSRF.

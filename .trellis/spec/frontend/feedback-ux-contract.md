@@ -76,6 +76,8 @@ class. Preserve source node/listener/FormData identity and hidden placeholders.
 | Draft and command requestId mismatch / orphan command | Block new creation; retain both records and diagnostics |
 | Valid archived creation with independent corrupt draft | Open the requested history only; never substitute a different current draft |
 | Preparation accepted/running/awaiting-review/failed | Real per-stage state and allowed action; accepted is not completed |
+| Persona preparation failed/pending | Chat keeps the draft, disables send, and exposes scoped recovery/readback; explicit admission rejection creates no pending turn |
+| Visual session `last_error=vision_disabled` | Explain the saved candidate is unverified; link to 看图理解 settings and retain explicit manual review |
 | Original configuration unresolved | Disable all new save admission, including form submit; recover original receipt first |
 | Configuration receipt recovered or stale connection draft restored | Explicit latest-baseline read preserves current input before new save |
 | Structured configuration field invalid | Atomic pre-write validation, attached settingKey/key, field error and focus |
@@ -102,6 +104,19 @@ Use `feedback-semantics`, `creation-recovery-state`,
 `conversation-storage-feedback`, `demo-replica-management`, `r16-regressions` and
 the owning page regressions. Assert real callbacks, original bodies/identities,
 scope fences, retained inputs, semantic kind and stale-event clearing.
+
+`ft-r1-defects` exercises the actual chat recovery control through
+`BrowserClient.recoverPersonaPreparation(fid, {expectedRevision, idempotencyKey})`
+and `workspace.command`. A recovery receipt followed by a failed detail read
+retains GET-only readback; never enqueue a second recovery request. Clear the
+blocked state only after `detail.persona_preparation.status` reads `ready`.
+Remounting chat restores its unresolved workspace command. If the original
+command belongs to an unmounted page whose readback callback no longer reads,
+chat reads its current scope itself and retains GET-only recovery on failure.
+`persona_preparation_failed` and `persona_preparation_pending` are explicit
+pre-admission rejections even when HTTP uses 409; retain the draft without a
+phantom optimistic message or an unknown-outcome retry. Do not translate these
+states into model timeout or connection failure.
 
 Browser checks use production dist, desktop 1348×925 and mobile 390×844. Record
 before/after with the same content and fault. Check location, duplication, real

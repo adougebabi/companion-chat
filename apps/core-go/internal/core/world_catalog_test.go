@@ -74,6 +74,14 @@ func TestWorldCatalogCreateSelectScopeCycleReferencesAndReplay(t *testing.T) {
 	rejected("PUT", base+"/world/active", map[string]any{"world_id": first["id"], "expected_revision": 1}, "revision_conflict")
 	rejected("DELETE", base+"/world/catalog/"+stringValue(second["id"]), map[string]any{"expected_revision": 1}, "resource_referenced")
 	rejected("PUT", base+"/world", map[string]any{"name": "Bad", "expected_revision": 1, "permanent_harm": true}, "permanent_harm_forbidden")
+	// The positive deletion case uses an empty legacy-world fixture. New worlds
+	// now own base configuration, and the existing reference guard still applies.
+	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.world_npcs WHERE world_id=$1`, first["id"]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.world_places WHERE world_id=$1`, first["id"]); err != nil {
+		t.Fatal(err)
+	}
 	must("DELETE", base+"/world/catalog/"+stringValue(first["id"]), map[string]any{"expected_revision": 1})
 	nearby := must("GET", base+"/nearby", nil)
 	if nearby["place_id"] != nil || len(arrayValue(nearby["actors"])) != 0 {

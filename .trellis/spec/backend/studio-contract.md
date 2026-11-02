@@ -68,6 +68,18 @@ and do not consume their execution budget or retry the model because a status
 read failed. Confirmed ordinary terminal states and dead-letter branches both
 close their owning product rows through existing typed hooks.
 
+Confirmed transient Studio planning/model timeouts and transport failures create
+new domain attempts through `ReconcileStudioWorkflowFailure`, with durable 15s
+then 60s backoff and three executions per automatic series. An explicit Owner
+retry starts a fresh series. Failed attempts remain immutable; each successor
+has its own stable workflow ID and inherits a validated staged output. Permanent
+validation/configuration/cancellation failures and exhausted series settle the
+job as failed. Repeated terminal observations cannot enqueue another successor,
+replace a newer attempt, or resurrect completed/discarded jobs. A committed
+active media delegation retains ownership; a late planning timeout cannot
+replace its media workflow. Temporal Activity attempts remain one because the
+domain failure fence deliberately forbids replaying the failed attempt.
+
 The v3 generic, NPC definition and standalone preview pages share one complete
 Owner/resource working-draft shape. Reads preserve an existing CAS baseline.
 The assistant result is a proposal; only explicit adoption changes that draft.
@@ -82,7 +94,8 @@ pauses while hidden/submitting. Owner change/unmount invalidates late responses.
 | Unknown Owner/resource or stale admission version | Explicit error, no job |
 | Missing required reference/input | `needs_input`, original draft unchanged |
 | Generated invented or cross-world reference | Reject output, no valid proposal |
-| Provider failure | Bounded actual failed attempt, explicit retry |
+| Transient Provider timeout/transport failure | New attempt after 15s/60s; failed after three executions; explicit retry remains available |
+| Permanent Provider/configuration/validation failure | Failed job with explicit recovery |
 | Temporal status lookup unavailable | Preserve execution, retry observation |
 | Late model after failed/discarded task | Preserve real terminal result |
 | Completed stage retried | Reuse staged output; no new model call |

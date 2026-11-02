@@ -163,10 +163,11 @@ export default function CharacterWizardView({ model: m }) {
     !!m.existingWorldLoading || !!m.existingWorldError || m.existingWorlds.length > 0;
   const showPublishedWorlds = !!d.worldResourceId || !m.publishedWorldsConfirmed ||
     !!m.sourceLoading || !!m.sourceError || !!m.worldCursor || m.worlds.length > 0;
+  const canCreateWorld = m.worldsConfirmed && !m.existingWorldLoading && !m.existingWorldError && m.existingWorlds.length === 0;
   const worldTabs = [
     ...(showExistingWorlds ? [["existing", "已有角色的世界"]] : []),
-    ...(showPublishedWorlds ? [["resource", "已发布的世界底稿"]] : []),
-    ["daily", "日常生活世界"],
+    ...(canCreateWorld && showPublishedWorlds ? [["resource", "已发布的世界底稿"]] : []),
+    ...(canCreateWorld ? [["daily", "日常生活世界"]] : []),
   ];
   const preferredWorldTab = worldTabChosen.current ? worldTab : d.worldSource ? "existing"
     : d.worldResourceId ? "resource" : d.worldChoiceConfirmed && d.useDefaultWorld ? "daily" : worldTabs[0][0];
@@ -440,7 +441,7 @@ export default function CharacterWizardView({ model: m }) {
                     <Badge variant="outline">轻松开始</Badge>
                     <h2>日常生活世界</h2>
                     <p>
-                      从日常生活配置出发，确认创建后为角色建立独立的世界。之后可以继续完善背景、规则和地点。
+                      确认后建立包含居所、商店、公共地点与社区 NPC 的日常生活世界。
                     </p>
                     <Button
                       onClick={() => m.chooseWorld(null)}
@@ -571,12 +572,12 @@ export default function CharacterWizardView({ model: m }) {
                         </button>
                       );
                     })}
-                    <a
+                    {canCreateWorld && <a
                       className="creation-new-world"
                       href="#/studio/edit/new?kind=world"
                     >
                       <Plus size={24} />
-                      <strong>创建新的世界底稿</strong>
+                      <strong>创建世界</strong>
                       <p>
                         定义背景、规则与地点
                         <br />
@@ -586,7 +587,7 @@ export default function CharacterWizardView({ model: m }) {
                         去创作中心
                         <ArrowRight size={12} />
                       </span>
-                    </a>
+                    </a>}
                   </div>
                   {visibleWorldTab === "resource" && m.worldCursor && (
                     <Button
@@ -600,7 +601,7 @@ export default function CharacterWizardView({ model: m }) {
                 </>
               )}
               {visibleWorldTab === "daily" && <Button variant="ghost" asChild>
-                <a href="#/studio/edit/new?kind=world"><Plus size={15} />创建新的世界底稿</a>
+                <a href="#/studio/edit/new?kind=world"><Plus size={15} />创建世界</a>
               </Button>}
               {d.worldChoiceConfirmed && (
                 <WorkspaceInfo>

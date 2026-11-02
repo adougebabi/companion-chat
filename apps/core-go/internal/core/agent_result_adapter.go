@@ -174,6 +174,13 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 			if participantCount != 2 {
 				return errors.New("conversation_not_found")
 			}
+			preparation, err := readPersonaPreparationStatus(ctx, tx, fluctlightID)
+			if err != nil {
+				return err
+			}
+			if err := personaPreparationChatError(preparation); err != nil {
+				return err
+			}
 		}
 		var enqueueErr error
 		inboxID, supersededInboxIDs, enqueueErr = a.enqueueTurnFactTx(ctx, tx, actorID, authorizationActorID, fluctlightID, conversationID, turnID, idempotency, text, payload["attachment_refs"], snapshot, claimOwner)

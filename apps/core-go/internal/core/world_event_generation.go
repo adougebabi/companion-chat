@@ -23,6 +23,11 @@ func (a *App) EnsureWorldEventGenerationIntents(ctx context.Context, limit int) 
 	if limit < 1 || limit > 200 {
 		limit = 100
 	}
+	// A dead Worker cannot execute its deferred cleanup. The clock repair loop
+	// closes abandoned activities without restarting an already consumed slot.
+	if _, err := a.DB.Pool().Exec(ctx, `WITH expired AS (UPDATE public.world_event_generations SET status='failed',error_code='world_event_generation_timeout',updated_at=now() WHERE id IN(SELECT id FROM public.world_event_generations WHERE status='generating' AND updated_at<now()-interval '10 minutes' ORDER BY updated_at,id LIMIT $1) RETURNING world_id,slot_at) UPDATE public.platform_workflow_intents i SET payload=i.payload||jsonb_build_object('cycle_status','failed','cycle_error_code','world_event_generation_timeout','cycle_finished_at',now()) FROM expired e WHERE i.intent_type='world.events.generate' AND i.payload->>'world_id'=e.world_id AND i.payload->>'cycle_status'='generating' AND (i.payload->>'cycle_started_at')::timestamptz>=e.slot_at AND (i.payload->>'cycle_started_at')::timestamptz<e.slot_at+interval '1 hour'`, limit); err != nil {
+		return 0, err
+	}
 	tag, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status) SELECT 'world_event_generation:'||w.id,'world_event_generation:'||w.id,'world-events','world.events.generate',jsonb_build_object('world_id',w.id,'owner_actor_id',w.owner_actor_id,'correlation_id','world-events:'||w.id),'pending' FROM public.life_worlds w LEFT JOIN public.platform_workflow_intents i ON i.intent_id='world_event_generation:'||w.id WHERE i.intent_id IS NULL ORDER BY w.id LIMIT $1 ON CONFLICT(intent_id) DO NOTHING`, limit)
 	if err != nil {
 		return 0, err
@@ -50,6 +55,10 @@ func (a *App) worldEventGenerationContextWith(ctx context.Context, q lifeContext
 		return nil, err
 	}
 	data := decodeObject(raw)
+	data["current_time"] = a.now().UTC().Format(instantLayout)
+	if zone, err := time.LoadLocation(stringValue(data["timezone"])); err == nil {
+		data["current_time"] = formatLocalInstant(a.now(), zone)
+	}
 	places, err := readWorldObjects(ctx, q, `SELECT jsonb_build_object('id',id,'name',name,'description',description,'parent_place_id',parent_place_id) FROM public.world_places WHERE world_id=$1 AND status='active' ORDER BY id`, world)
 	if err != nil {
 		return nil, err
@@ -57,6 +66,11 @@ func (a *App) worldEventGenerationContextWith(ctx context.Context, q lifeContext
 	npcs, err := readWorldObjects(ctx, q, `SELECT jsonb_build_object('id',id,'name',name,'role',role) FROM public.world_npcs WHERE world_id=$1 AND status='active' AND enabled ORDER BY id`, world)
 	if err != nil {
 		return nil, err
+	}
+	data["places"], data["npcs"] = places, npcs
+	if len(places) == 0 || len(npcs) == 0 {
+		data["present_characters"], data["recent_events"] = []any{}, []any{}
+		return data, nil
 	}
 	members, err := readWorldObjects(ctx, q, `SELECT jsonb_build_object('id',f.id,'name',f.identity->>'name') FROM public.fluctlight_world_bindings b JOIN public.fluctlights f ON f.id=b.fluctlight_id WHERE b.world_id=$1 AND f.status='active' ORDER BY f.id`, world)
 	if err != nil {
@@ -84,10 +98,6 @@ func (a *App) worldEventGenerationContextWith(ctx context.Context, q lifeContext
 		return nil, err
 	}
 	data["places"], data["npcs"], data["present_characters"], data["recent_events"] = places, npcs, present, recent
-	data["current_time"] = a.now().UTC().Format(instantLayout)
-	if zone, err := time.LoadLocation(stringValue(data["timezone"])); err == nil {
-		data["current_time"] = formatLocalInstant(a.now(), zone)
-	}
 	return data, nil
 }
 
@@ -143,6 +153,9 @@ func worldEventAdmissionState(data, proposal map[string]any) map[string]any {
 // One persisted UTC-hour slot prevents repeated generation after retries or a
 // Worker restart. Proposals here are staging/audit, never executable events.
 func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result map[string]any, runErr error) {
+	// Bound each hour's work independently of the intentionally permanent clock.
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
 	at := a.now().UTC()
 	slot := at.Truncate(time.Hour)
 	next := slot.Add(time.Hour)
@@ -175,12 +188,37 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 			_ = conn.Conn().Close(cleanup)
 		}
 	}()
+	intent := "world_event_generation:" + world
+	if _, err := conn.Exec(ctx, `UPDATE public.platform_workflow_intents SET payload=payload||jsonb_build_object('cycle_status','generating','cycle_started_at',$2::text,'cycle_deadline_at',$3::text,'cycle_next_at',$4::text) WHERE intent_id=$1 AND intent_type='world.events.generate'`, intent, at.Format(time.RFC3339Nano), at.Add(10*time.Minute).Format(time.RFC3339Nano), next.Format(time.RFC3339Nano)); err != nil {
+		return nil, err
+	}
+	defer func() {
+		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
+		defer cancel()
+		status, code := stringValue(result["status"]), "world_event_cycle_settled"
+		transition := LifecycleTransitionCompletedNoop
+		if runErr != nil || status == "failed" {
+			status, code, transition = "failed", "world_event_generation_failed", LifecycleTransitionFailed
+		}
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			status, code, transition = "failed", "world_event_generation_timeout", LifecycleTransitionFailed
+		}
+		_, err := conn.Exec(cleanup, `UPDATE public.platform_workflow_intents SET payload=payload||jsonb_build_object('cycle_status',$2::text,'cycle_finished_at',$3::text,'cycle_error_code',$4::text) WHERE intent_id=$1 AND intent_type='world.events.generate'`, intent, status, a.now().UTC().Format(time.RFC3339Nano), code)
+		if err != nil {
+			runErr = errors.Join(runErr, err)
+		}
+		_, _ = a.RecordLifecycleDiagnostic(cleanup, LifecycleDiagnostic{Surface: "world", Transition: transition, IntentID: intent, CorrelationID: "world-events:" + world, Stage: "hour_slot", Status: status, ReasonCode: code, NextDueAt: next})
+	}()
 	id := "world_generation_" + stableDigest(world+":"+slot.Format(time.RFC3339))
 	defer func() {
 		if runErr != nil {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 			defer cancel()
-			_, err := conn.Exec(cleanup, `UPDATE public.world_event_generations SET status='failed',error_code='world_event_generation_failed',updated_at=now() WHERE id=$1 AND status IN('generating','review_pending','awaiting_kev')`, id)
+			code := "world_event_generation_failed"
+			if errors.Is(runErr, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				code = "world_event_generation_timeout"
+			}
+			_, err := conn.Exec(cleanup, `UPDATE public.world_event_generations SET status='failed',error_code=CASE WHEN $2='world_event_generation_timeout' THEN $2 ELSE COALESCE(error_code,$2) END,updated_at=now() WHERE id=$1 AND status IN('generating','review_pending','awaiting_kev','failed')`, id, code)
 			if err != nil {
 				runErr = errors.Join(runErr, err)
 			}
@@ -222,7 +260,20 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 			data["world_clock_correlation_id"] = value
 		}
 		ctx = WithPromptDiagnostics(ctx, map[string]any{"world_id": world, "world_name": data["name"], "owner_actor_id": data["owner_actor_id"], "world_event_generation_id": id, "world_clock_correlation_id": clock["world_clock_correlation_id"], "world_clock_intent_id": clock["world_clock_intent_id"]})
-		if _, err = conn.Exec(ctx, `INSERT INTO public.world_event_generations(id,world_id,slot_at,status,context,model_correlation_id) VALUES($1,$2,$3,'generating',$4,$5)`, id, world, slot, jsonBytes(data), correlation); err != nil {
+		inserted, insertErr := conn.Exec(ctx, `INSERT INTO public.world_event_generations(id,world_id,slot_at,status,context,model_correlation_id) VALUES($1,$2,$3,'generating',$4,$5) ON CONFLICT(world_id,slot_at) DO NOTHING`, id, world, slot, jsonBytes(data), correlation)
+		if insertErr != nil {
+			return nil, insertErr
+		}
+		if inserted.RowsAffected() == 0 {
+			result["status"] = "already_generated"
+			return result, nil
+		}
+		if len(arrayValue(data["places"])) == 0 || len(arrayValue(data["npcs"])) == 0 {
+			_, err = conn.Exec(ctx, `UPDATE public.world_event_generations SET status='skipped',error_code='world_base_objects_missing',updated_at=now() WHERE id=$1`, id)
+			result["status"], result["reason_code"], result["generation_id"] = "skipped", "world_base_objects_missing", id
+			return result, err
+		}
+		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 		messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{{"role": "system", "content": worldEventGenerationInstruction}, {"role": "user", "content": promptTaskData(worldEventGenerationModelView(data))}})

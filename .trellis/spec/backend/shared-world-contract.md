@@ -104,3 +104,67 @@ the Activity, separate from generation correlation. Native event perception mark
 whether the observed source world is still current; a later world switch cannot
 apply old weather to a new world. Shared place history is Owner/world scoped and
 records the operating actor, rather than attributing every edit to the creator.
+
+## Scenario: Explicit character world choice and nonempty new worlds (D8/D10)
+
+### 1. Scope / Trigger
+Character creation, explicit world PUT/catalog POST/Studio apply/configuration copy.
+
+### 2. Signatures
+`finishCreationWorld`, `requireWorldCreationChoiceTx`, `bootstrapWorldTx`;
+`BrowserWorldWriteBody.creationPreset?: 'daily'` maps to `creation_preset`.
+
+### 3. Contracts
+Activation/preparation/GET never creates a world. New drafts have no default
+world authorization. Existing worlds are listed for explicit selection; only a
+complete zero-world read offers 使用日常生活世界 and 创建世界. A legacy
+`useDefaultWorld=true` without `worldChoiceConfirmed` authorizes no write.
+The daily command rechecks the catalog; Core checks zero worlds under the Owner
+world mutation lock, returning `409 world_choice_required` on a concurrent create.
+All explicit new-world paths materialize the supplied framework or the base
+framework (8 places in 3 venue categories), plus 2 independent base NPCs with
+immutable definition provenance and unknown position. Configuration proves no
+arrival, presence, encounter, relationship or memory. Existing worlds are never
+merged, deduplicated, renamed or backfilled by this path.
+
+### 4. Validation & Error Matrix
+| Condition | Required result |
+| --- | --- |
+| No explicit daily choice | No create command |
+| Partial/failed catalog | No empty-catalog assumption or create option |
+| Concurrent daily choices | One world; loser requires explicit selection |
+| Replayed creation command | Same world/place/NPC identities |
+| Published/custom framework | Preserve its place keys and category names |
+| Existing world lacks active places or NPCs | Hourly cycle `skipped/world_base_objects_missing`; no model/Kev |
+
+### 5. Good / Base / Bad Cases
+Good: Owner chooses an existing shared world and no clone is created. Base:
+explicit daily selection creates configuration atomically. Bad: interpreting a
+boolean draft default as permission to create an empty world on every activation.
+
+### 6. Tests Required
+`TestCharacterAdmissionNeverCreatesWorldAndExplicitDailyCreatesBaseObjects`,
+`TestConcurrentDailyWorldChoicesCreateOnlyOneWorldPerOwner`,
+`TestExplicitWorldCatalogCreationIncludesBaseObjectsWithoutBinding`,
+`TestIncompleteWorldsSkipEventsWithoutModelOrKev`; creation-world/r20 DOM and
+BrowserClient wire tests cover no-choice, late catalog, scope and replay.
+
+### 7. Wrong vs Correct
+Wrong: `if draft.useDefaultWorld { createWorld() }`.
+Correct: require an explicit confirmation, complete zero-world catalog and
+transactional zero-world check; create usable configuration only in that command.
+
+## Hour-slot reliability and diagnostics (D7/D9)
+The durable clock remains `started` while waiting; one generation is bounded to
+10 minutes inside the existing 15-minute Temporal Activity timeout. Its staging
+row reaches failed/no_event/skipped/admitted/rejected or explicit awaiting_kev.
+Worker crash repair closes abandoned generating rows and the matching clock
+cycle metadata after 10 minutes. The world advisory lock is held through cleanup
+and diagnostic settlement; UNIQUE(world_id,slot_at) plus conflict-safe insertion
+fences the world/hour before model I/O. No-event/failed/skipped slots are consumed.
+Different worlds at the same hour remain independent. Task list/detail expose
+`waiting`, last cycle status and next cycle time, keeping the underlying clock
+status in diagnostics. Tests: `TestWorldHourLockDeduplicatesConcurrentCallsRestartAndMultipleMembers`,
+`TestWorldGenerationDeadlinePersistsTerminalFailureAndReleasesHourLock`,
+`TestAbandonedWorldGenerationTimesOutAndClockTaskShowsTerminalCycle`,
+`TestWorldEventClockFailedHourStillSchedulesNextHour`.

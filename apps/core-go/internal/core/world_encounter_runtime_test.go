@@ -426,7 +426,7 @@ func TestNPCTickFailureBackoffDoesNotStarveAnotherCharacter(t *testing.T) {
 		t.Fatal(err)
 	}
 	count, err := f.app.RepairWorldNPCPresence(f.ctx, 20)
-	if err == nil || count != 1 {
+	if err == nil || count != 5 {
 		t.Fatal("failure hidden or healthy target starved", count, err)
 	}
 	var healthy, failures int

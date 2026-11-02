@@ -10,6 +10,9 @@ func TestWorldSurfaceValidationKeepsDomainIdentityServerOwned(t *testing.T) {
 		method, path, body string
 		valid              bool
 	}{
+		{"PUT", "/api/fluctlights/fl/world", `{"name":"日常世界","creationPreset":"daily","expectedRevision":0,"idempotencyKey":"daily","reason":"explicit choice"}`, true},
+		{"PUT", "/api/fluctlights/fl/world", `{"name":"日常世界","creationPreset":"implicit","expectedRevision":0,"idempotencyKey":"daily","reason":"explicit choice"}`, false},
+		{"PUT", "/api/fluctlights/fl/world", `{"name":"日常世界","creationPreset":{},"expectedRevision":0,"idempotencyKey":"daily","reason":"explicit choice"}`, false},
 		{"PUT", "/api/fluctlights/fl/world", `{"name":"World","flavor":"Quiet","description":"Setting","itemPool":"Books","expectedRevision":1,"idempotencyKey":"key","reason":"Edit"}`, true},
 		{"PUT", "/api/fluctlights/fl/world/catalog/world", `{"name":"World","venueCategories":[{"id":"shops","name":"商店"}],"expectedRevision":1,"idempotencyKey":"key","reason":"Edit"}`, true},
 		{"PUT", "/api/fluctlights/fl/world/catalog/world", `{"name":"World","venueCategories":"[]","expectedRevision":1,"idempotencyKey":"key","reason":"Edit"}`, false},

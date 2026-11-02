@@ -5,6 +5,26 @@
 
 > Current ordinary image behavior is governed by **Branch-first media capture v1** below. Earlier selfie defaults, free rewriting of explicit framing and first-person/full-body recovery describe legacy contracts and must not be reintroduced into new media tasks.
 
+## Explicit image text exclusion (2026-11-02)
+
+The Owner requires every image prompt, including available negative conditioning,
+to forbid text, pseudo-text, letters, numbers, captions, signatures, logos and
+watermarks. The ordinary/retry/normalization model protocols carry this policy.
+The common `submitComfyPrompt` boundary appends the same fixed positive policy
+and negative terms to declared textual conditioning inputs; it follows the
+actual graph's `negative` / `negative_prompt` edges and supports direct named
+negative fields and `{{negative_prompt}}`. This is an explicit output policy.
+Shared upstream text encoders reached by positive conditioning retain the
+positive no-text instruction, including Flux negative conditioning derived
+through `ConditioningZeroOut`; do not append raw exclusion tokens to them.
+This is not permission to infer or rewrite visual subjects, capture geometry or user
+facts. Keep original exclusions, native image references, numeric renderer
+values and the frozen model prompt intact. Do not invent negative-channel nodes
+for models that only support positive conditioning. Diagnostics preserve the
+actual submitted graph. Physical HTTP request regressions cover ordinary,
+Visual Identity and Studio submissions; prompt rules do not certify live image
+quality or guarantee that a model cannot produce stray characters.
+
 ## Scenario: AI-owned media concept, prompt-master template, and durable jobs
 
 ### 1. Scope / Trigger

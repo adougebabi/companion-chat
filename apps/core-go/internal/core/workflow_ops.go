@@ -583,7 +583,7 @@ func (a *App) ProcessReflection(ctx context.Context, fluctlightID, correlationID
 	memoryEvidenceScopes := make(map[string]reflectionMemoryEvidenceScope)
 	toSequence := watermark
 	for len(evidence) < 20 {
-		rows, queryErr := a.DB.Pool().Query(ctx, `SELECT id,sequence,event_type,payload,occurred_at,public.cognition_source_fingerprint(payload) FROM public.cognition_inbox WHERE fluctlight_id=$1 AND sequence>$2 AND status='processed' AND COALESCE(payload->>'source_message_invalidated','false')<>'true' ORDER BY sequence LIMIT 100`, fluctlightID, toSequence)
+		rows, queryErr := a.DB.Pool().Query(ctx, reflectionSourceQuery, fluctlightID, toSequence)
 		if queryErr != nil {
 			_ = a.setReflectionWindowIdle(ctx, fluctlightID)
 			return nil, queryErr

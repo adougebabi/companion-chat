@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -74,7 +75,12 @@ func TestScheduleGenerationFinalProviderRequestOmitsStorageIDs(t *testing.T) {
 			t.Fatalf("final schedule Provider text retained %q: %s", forbidden, modelText)
 		}
 	}
-	if !strings.Contains(modelText, "练习钢琴") || !strings.Contains(modelText, "练习半小时") || strings.HasPrefix(modelText, "{") {
+	var taskData map[string]any
+	if err := json.Unmarshal([]byte(modelText), &taskData); err != nil {
+		t.Fatalf("final schedule Provider task data is not JSON: %v", err)
+	}
+	goals, intentions := arrayValue(taskData["goals"]), arrayValue(taskData["intentions"])
+	if len(goals) != 1 || mapValue(goals[0])["desired_outcome"] != "练习钢琴" || len(intentions) != 1 || mapValue(intentions[0])["action_intent"] != "练习半小时" || taskData["local_date"] != "2026-09-28" || taskData["timezone"] != "Asia/Shanghai" {
 		t.Fatalf("final schedule Provider text lost readable semantics: %s", modelText)
 	}
 }

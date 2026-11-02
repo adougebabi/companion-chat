@@ -11,6 +11,40 @@ import (
 
 const personaPreparationIntent = "persona.compile"
 
+// A durable preparation is a chat precondition, not work for the HTTP observer
+// to wait on. Legacy characters without a preparation intent remain ready.
+func personaPreparationChatError(status string) error {
+	switch status {
+	case "", "completed":
+		return nil
+	case "failed", "dead_letter", "cancelled", "terminated":
+		return newCapabilityError("persona_preparation_failed", false, ErrConflict)
+	default:
+		return newCapabilityError("persona_preparation_pending", true, ErrConflict)
+	}
+}
+
+func readPersonaPreparationStatus(ctx context.Context, q DBTX, fid string) (string, error) {
+	var status string
+	err := q.QueryRow(ctx, `SELECT COALESCE(p.status,'pending') FROM public.platform_workflow_intents p JOIN public.fluctlights f ON f.id=$1 WHERE p.intent_type='persona.compile' AND p.payload->>'fluctlight_id'=f.id AND p.payload->>'expected_revision'=f.current_revision::text ORDER BY p.created_at DESC,p.intent_id DESC LIMIT 1`, fid).Scan(&status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return status, err
+}
+
+// PersonaPreparationMessage is safe public copy for the two chat admission
+// states. Provider/compiler details remain in the preparation diagnostics.
+func PersonaPreparationMessage(code string) string {
+	switch code {
+	case "persona_preparation_failed":
+		return "人格准备失败，暂时无法聊天。请在角色资料中恢复人格准备后重试。"
+	case "persona_preparation_pending":
+		return "人格正在准备中，请等待准备完成后再发送消息。"
+	}
+	return ""
+}
+
 // Maintenance callers can still require a fully compiled aggregate. Browser
 // admission instead commits the source and its durable compilation together.
 func (a *App) CreateFluctlight(ctx context.Context, actor, id, name, mode, source string, foundation map[string]any, goals, intentions []any, zone ...string) (Fluctlight, error) {

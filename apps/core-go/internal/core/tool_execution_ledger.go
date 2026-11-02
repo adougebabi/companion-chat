@@ -105,6 +105,9 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 		if err := lockLifeContextTx(ctx, tx, request.FluctlightID); err != nil {
 			return err
 		}
+		if err := fenceOwnerRequestClaimTx(ctx, tx); err != nil {
+			return err
+		}
 		key := request.FluctlightID + "\x1f" + request.CapabilityName + "\x1f" + request.OperationID
 		if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, key); err != nil {
 			return err

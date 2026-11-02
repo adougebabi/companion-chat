@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Backend quality"}
+{"file": ".trellis/spec/backend/prompt-composition-contract.md", "reason": "LLM request invariants"}
+{"file": ".trellis/spec/backend/fluctlight-workflow-contract.md", "reason": "Durable retries and lanes"}
+{"file": ".trellis/spec/frontend/feedback-ux-contract.md", "reason": "Readable failure/recovery"}

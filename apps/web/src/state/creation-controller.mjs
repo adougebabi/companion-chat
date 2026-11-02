@@ -271,6 +271,7 @@ export function createCreationController({
       delete draft.previewJsonBase;
       previewFields.value = [];
     }
+    draft.worldChoiceConfirmed = true;
     persist();
   }
   function selectExistingWorld(world) {
@@ -285,6 +286,7 @@ export function createCreationController({
       name: world.name,
     };
     draft.worldName = world.name;
+    draft.worldChoiceConfirmed = true;
     invalidate();
     persist();
   }

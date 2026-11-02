@@ -50,7 +50,7 @@ func TestR10WorldConfigurationCopyIsIndependentAtomicAndReplayable(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if copy["id"] == world["id"] || copy["configuration_copied"] != true || intValue(copy["copied_places"]) != 2 {
+	if copy["id"] == world["id"] || copy["configuration_copied"] != true || intValue(copy["copied_places"]) != 10 {
 		t.Fatal(copy)
 	}
 	again, err := call(target, "POST", "/world/catalog", body)
@@ -74,6 +74,9 @@ func TestR10WorldConfigurationCopyIsIndependentAtomicAndReplayable(t *testing.T)
 		t.Fatal("copy silently selected world", bound, err)
 	}
 	for table, n := range before {
+		if table == "world_npcs" {
+			n += 2
+		} // The copied world owns new base NPC identities, never acquaintance/history.
 		var after int
 		if err := f.repository.Pool().QueryRow(f.ctx, "SELECT count(*) FROM public."+table).Scan(&after); err != nil || after != n {
 			t.Fatal("copied life history or actors", table, n, after, err)

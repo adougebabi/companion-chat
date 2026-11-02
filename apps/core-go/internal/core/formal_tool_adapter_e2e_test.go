@@ -1074,38 +1074,43 @@ func (provider *controlledFormalToolProvider) ServeHTTP(w http.ResponseWriter, r
 		return
 	}
 	if providerWireSchemaName(payload) == "schedule_replan_plan" {
-		location, _ := time.LoadLocation("Asia/Shanghai")
-		now := time.Now().In(location).Truncate(time.Second)
+		var current map[string]any
 		for _, raw := range arrayValue(payload["messages"]) {
 			message := mapValue(raw)
 			if stringValue(message["role"]) != "user" {
 				continue
 			}
-			for _, line := range strings.Split(stringValue(message["content"]), "\n") {
-				line = strings.TrimSpace(line)
-				if !strings.HasPrefix(line, "completed_before:") {
-					continue
-				}
-				value := strings.Trim(strings.TrimSpace(strings.TrimPrefix(line, "completed_before:")), "'\"")
-				if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
-					now = parsed.In(location)
-				}
+			var input map[string]any
+			if json.Unmarshal([]byte(stringValue(message["content"])), &input) == nil && len(mapValue(input["schedule"])) > 0 {
+				current = mapValue(input["schedule"])
 			}
 		}
-		dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, location)
-		dayEnd := dayStart.AddDate(0, 0, 1)
-		schedulePlan["items"] = []any{
-			map[string]any{
-				"start_at": dayStart.Format(time.RFC3339Nano), "end_at": now.Format(time.RFC3339Nano),
-				"activity": "阅读", "scene": "书房", "item_type": "planned", "status": "planned",
-				"priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5,
-			},
-			map[string]any{
-				"start_at": now.Format(time.RFC3339Nano), "end_at": dayEnd.Format(time.RFC3339Nano),
-				"activity": "阅读", "scene": "书房", "item_type": "planned", "status": "planned",
-				"priority": 0.5, "flexibility": 0.5, "interruption_cost": 0.5,
-			},
+		boundary, err := parseScheduleTime(stringValue(current["completed_before"]))
+		if err != nil || len(arrayValue(current["items"])) == 0 {
+			http.Error(w, "controlled planner requires the JSON schedule and its exact completed_before boundary", http.StatusInternalServerError)
+			return
 		}
+		// Copy the actual immutable history rather than inventing a second-
+		// truncated clock boundary or reconstructing its semantic fields.
+		items := []any{}
+		for _, raw := range arrayValue(current["items"]) {
+			item := compactStateMap(mapValue(raw), []string{"start_at", "end_at", "activity", "scene", "location", "place_id", "item_type", "status", "priority", "flexibility", "interruption_cost", "intention_id", "promise_request_id"})
+			start, startErr := parseScheduleTime(stringValue(item["start_at"]))
+			end, endErr := parseScheduleTime(stringValue(item["end_at"]))
+			if startErr != nil || endErr != nil {
+				http.Error(w, "controlled planner received an invalid current interval", http.StatusInternalServerError)
+				return
+			}
+			if start.Before(boundary) && end.After(boundary) {
+				history := cloneMap(item)
+				history["end_at"] = boundary.Format(time.RFC3339Nano)
+				items = append(items, history)
+				item["start_at"] = boundary.Format(time.RFC3339Nano)
+				item["activity"] = "受控 adapter 核验"
+			}
+			items = append(items, item)
+		}
+		schedulePlan["items"] = items
 		response := map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(schedulePlan), "tool_calls": []any{}}}}}
 		_, _ = w.Write(jsonBytes(response))
 		return

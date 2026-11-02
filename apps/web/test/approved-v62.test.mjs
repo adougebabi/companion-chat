@@ -67,6 +67,7 @@ function fixture({
     a = analysis();
   let world = null;
   const client = {
+    worldCatalog: async () => ({items:[]}),
     detail: async () => ({
       current_revision: 0,
       persona_preparation: {
@@ -155,6 +156,8 @@ function fixture({
     }),
     today: () => "2026-10-23"
   };
+  const initial = creationRecovery({owner:"owner",storage:saved,query:new URLSearchParams()});
+  initial.save({...initial.read(),useDefaultWorld:true,worldChoiceConfirmed:true});
   return {
     saved,
     calls,
@@ -512,6 +515,7 @@ test("profile save recovers the same proposal before accepting and preserves dec
   const calls = [];
   let once = true;
   const client = {
+    worldCatalog: async () => ({items:[]}),
     submitFoundationRevision: async (fid, body) => {
       calls.push(["propose", fid, body]);
       return {

@@ -4340,6 +4340,13 @@
             "minimum": 0,
             "maximum": 2147483647
           },
+          "creationPreset": {
+            "type": "string",
+            "enum": [
+              "daily"
+            ],
+            "description": "Explicit zero-world daily choice; conflicts if another world already exists."
+          },
           "name": {
             "type": "string",
             "maxLength": 256,
@@ -4426,6 +4433,13 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 2147483647
+          },
+          "creationPreset": {
+            "type": "string",
+            "enum": [
+              "daily"
+            ],
+            "description": "Explicit zero-world daily choice; conflicts if another world already exists."
           },
           "name": {
             "type": "string",

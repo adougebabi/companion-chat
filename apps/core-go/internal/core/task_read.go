@@ -26,6 +26,27 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 	}
 	input := decodeObject(payload)
 	source := compactStateMap(input, []string{"deletion_id", "asset_id", "inbox_id", "request_id", "source_fact_id", "action_id", "media_intent_id", "goal_id", "local_date", "correlation_id", "diary_attempt_id"})
+	if kind == "world.events.generate" {
+		source["world_id"], source["clock_status"] = input["world_id"], status
+		cycle, nextAt := stringValue(input["cycle_status"]), stringValue(input["cycle_next_at"])
+		if cycle == "" {
+			var slot time.Time
+			err := a.DB.Pool().QueryRow(ctx, `SELECT status,slot_at FROM public.world_event_generations WHERE world_id=$1 ORDER BY slot_at DESC LIMIT 1`, input["world_id"]).Scan(&cycle, &slot)
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return nil, err
+			}
+			if err == nil {
+				nextAt = slot.Add(time.Hour).Format(time.RFC3339Nano)
+			}
+		}
+		source["last_cycle_status"], source["next_cycle_at"] = cycle, nextAt
+		if status == "started" && cycle != "" && cycle != "generating" {
+			status = "waiting"
+			if at, err := time.Parse(time.RFC3339Nano, nextAt); err == nil {
+				next = &at
+			}
+		}
+	}
 	if lastError != "" {
 		source["last_error"] = boundedLifecycleCause(lastError)
 	}

@@ -31,21 +31,25 @@ test('loading and failed source reads retain their tabs and retry the published 
  try{assert.ok(tabs(v.host).includes('已发布的世界底稿'));assert.equal(button(v.host,'继续，认识角色').disabled,true);await select(v,'已发布的世界底稿');assert.match(v.host.textContent,/正在读取已发布/);await act(async()=>resolveDirectory());await v.flush();assert.ok(tabs(v.host).includes('已发布的世界底稿'));assert.ok(button(v.host,'重新读取世界'));failed=false;await v.click(button(v.host,'重新读取世界'));await act(async()=>resolveDirectory());await v.flush();assert.deepEqual(tabs(v.host),[]);assert.equal(v.host.querySelector('.creation-daily.selected'),null);assert.deepEqual(w.mutations,[]);
  }finally{await v.dispose();}
 });
-test('partial or cursor catalogs cannot hide empty source tabs',async()=>{
+test('partial or cursor catalogs require resolving existing worlds before offering creation',async()=>{
  localStorage.clear();const w=workspace({characters:[{id:'role',name:'角色'}],worldCatalog:async()=>({items:[],next_cursor:'unread'}),listStudioResources:async query=>({items:[],next_cursor:query.kind==='world'?'next-world':''})}),v=await mountReact(vite,Page,{workspace:w});
- try{assert.deepEqual(tabs(v.host),['已有角色的世界','已发布的世界底稿','日常生活世界']);await select(v,'已发布的世界底稿');assert.ok(button(v.host,'读取更多世界'));assert.equal(button(v.host,'继续，认识角色').disabled,true);assert.deepEqual(w.mutations,[]);}finally{await v.dispose();}
+ try{assert.deepEqual(tabs(v.host),[]);assert.ok(button(v.host,'重新读取已有世界'));assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界/);assert.equal(button(v.host,'继续，认识角色').disabled,true);assert.deepEqual(w.mutations,[]);}finally{await v.dispose();}
+ // Published pagination remains available after a complete zero-world read.
+ localStorage.clear();const empty=workspace({listStudioResources:async query=>({items:[],next_cursor:query.kind==='world'?'next-world':''})}),published=await mountReact(vite,Page,{workspace:empty});
+ try{assert.deepEqual(tabs(published.host),['已发布的世界底稿','日常生活世界']);await select(published,'已发布的世界底稿');assert.ok(button(published.host,'读取更多世界'));assert.equal(button(published.host,'继续，认识角色').disabled,true);assert.deepEqual(empty.mutations,[]);}finally{await published.dispose();}
 });
-test('an automatic empty fallback reveals late worlds and read failures, while an explicit daily view remains chosen',async()=>{
+test('late worlds and read failures replace a daily choice with required existing-world selection',async()=>{
  localStorage.clear();let fail=false;
  const w=workspace({worldCatalog:async()=>{if(fail)throw Error('fetch failed');return {items:[{id:'late-world',name:'后来读到的世界',revision:1}]};}}),v=await mountReact(vite,Page,{workspace:w});
  try{
   assert.deepEqual(tabs(v.host),[]);assert.ok(button(v.host,'使用日常生活世界'));
+  await v.click(button(v.host,'使用日常生活世界'));assert.ok(v.host.querySelector('.creation-daily.selected'));assert.equal(button(v.host,'继续，认识角色').disabled,false);
   await act(async()=>{w.state.characters=[{id:'late-role',name:'后来读到的角色'}];});await v.flush();
-  assert.ok(tabs(v.host).includes('已有角色的世界'));assert.match(v.host.textContent,/后来读到的世界/);
-  await select(v,'日常生活世界');
+  assert.deepEqual(tabs(v.host),[]);assert.match(v.host.textContent,/后来读到的世界/);assert.equal(button(v.host,'继续，认识角色').disabled,true);
+  assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界/);
   fail=true;await act(async()=>{w.state.characters[0].name='读取失败的角色';});await v.flush();
-  assert.ok(tabs(v.host).includes('已有角色的世界'));assert.ok(button(v.host,'使用日常生活世界'));
-  await select(v,'已有角色的世界');assert.ok(button(v.host,'重新读取世界'));assert.match(v.host.textContent,/后来读到的世界/);assert.deepEqual(w.mutations,[]);
+  assert.deepEqual(tabs(v.host),[]);assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界/);
+  assert.ok(button(v.host,'重新读取世界'));assert.match(v.host.textContent,/后来读到的世界/);assert.deepEqual(w.mutations,[]);
  }finally{await v.dispose();}
 });
 test('filter empty keeps nonempty catalog tabs; saved exact sources absent from the first page stay readable or explicitly unresolved',async()=>{

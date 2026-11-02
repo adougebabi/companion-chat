@@ -314,6 +314,7 @@ func (a *App) writeWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map[
 	}
 	var id string
 	var revision int
+	created := false
 	err = tx.QueryRow(ctx, `SELECT id,revision FROM public.life_worlds WHERE id=COALESCE(NULLIF($2,''),(SELECT world_id FROM public.fluctlight_world_bindings WHERE fluctlight_id=$1)) AND owner_actor_id=(SELECT created_by_actor_id FROM public.fluctlights WHERE id=$1) FOR UPDATE`, fid, stringValue(body["world_id"])).Scan(&id, &revision)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if expected != 0 {
@@ -322,7 +323,11 @@ func (a *App) writeWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map[
 		if stringValue(body["world_id"]) != "" {
 			return nil, ErrNotFound
 		}
+		if err := requireWorldCreationChoiceTx(ctx, tx, fid, body); err != nil {
+			return nil, err
+		}
 		id = randomID("world_")
+		created = true
 		revision = 1
 		_, err = tx.Exec(ctx, `INSERT INTO public.life_worlds(id,fluctlight_id,name,background,rules) VALUES($1,$2,$3,$4,$5)`, id, fid, name, background, rules)
 	} else if err == nil {
@@ -342,6 +347,11 @@ func (a *App) writeWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map[
 	}
 	if err = writeWorldExtrasTx(ctx, tx, id, body); err != nil {
 		return nil, err
+	}
+	if created {
+		if err := a.bootstrapWorldTx(ctx, tx, fid, id, body); err != nil {
+			return nil, err
+		}
 	}
 	return map[string]any{"id": id, "revision": revision, "status": "saved"}, nil
 }

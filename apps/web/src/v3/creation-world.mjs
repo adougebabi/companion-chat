@@ -6,7 +6,10 @@ import {finishReusedWorld} from './reuse-world.mjs';
 export async function finishCreationWorld({client,recovery,storage,owner,ownerCurrent=()=>true}){
  let draft=recovery.read();
  if(draft.worldSource)return finishReusedWorld({client,recovery,storage,owner,ownerCurrent});
- if(draft.useDefaultWorld)return finishDefaultCreationWorld({client,recovery,storage,owner,ownerCurrent});
+ if(draft.useDefaultWorld){
+  if(!draft.worldChoiceConfirmed)return {configured:false,warning:'请先明确选择生活世界；角色创建不会自动建立世界'};
+  return finishDefaultCreationWorld({client,recovery,storage,owner,ownerCurrent});
+ }
  if(!draft.worldResourceId||!draft.worldResourceVersion)return {configured:false,warning:'尚未选择世界底稿，可在初始化向导继续补全'};
  const fid=draft.activatedId,requestId=draft.requestId,source={resourceId:draft.worldResourceId,version:draft.worldResourceVersion};
  if(!fid)throw new Error('人物尚未激活，世界底稿已保留');
@@ -45,12 +48,11 @@ export async function finishCreationWorld({client,recovery,storage,owner,ownerCu
  return {configured:true,worldId:actual.world.id};
 }
 
-// A new character can start with a minimal real world, independently from the
-// advanced reusable-resource branch. No character/place facts are invented.
+// Only the Owner's confirmed daily-world choice authorizes this command.
 async function finishDefaultCreationWorld({client,recovery,storage,owner,ownerCurrent}){
  const first=recovery.read(),fid=first.activatedId,requestId=first.requestId;
  if(!fid)throw new Error('请先完成角色创建');
- const current=()=>{if(!ownerCurrent())return null;const value=recovery.read();return value.requestId===requestId&&value.activatedId===fid&&value.useDefaultWorld?value:null;};
+ const current=()=>{if(!ownerCurrent())return null;const value=recovery.read();return value.requestId===requestId&&value.activatedId===fid&&value.useDefaultWorld&&value.worldChoiceConfirmed?value:null;};
  const stale={configured:false,stale:true};
  if(!current())return stale;
  const command=persistentCommand({key:`fluctlight-creation:${owner}:${fid}:default-world-command`,storage:()=>storage,execute:async(body,key)=>{
@@ -64,7 +66,15 @@ async function finishDefaultCreationWorld({client,recovery,storage,owner,ownerCu
  if(!actual||actual.available===false||!Object.hasOwn(actual,'world')||actual.world!==null&&(!actual.world||typeof actual.world.id!=='string'||!actual.world.id.trim()))throw Error('生活世界读取结果不完整，请重新读取原创建步骤');
  if(!draft)return stale;
  if(!draft.worldRuntimeId&&actual.world?.id){draft.worldRuntimeId=actual.world.id;recovery.save(draft);}
- else if(!draft.worldRuntimeId){await command.submit({expectedRevision:0,name:'日常世界',background:'日常生活，具体地点和经历将在相处中逐渐补充。',reason:'为新角色建立默认生活世界'});if(!current())return stale;actual=await client.world(fid);}
+ else if(!draft.worldRuntimeId){
+  // Recheck just before mutation: another character may have created a world
+  // since the wizard's initial zero-world read. Joining remains an explicit choice.
+  const catalog=await client.worldCatalog(fid);
+  if(!current())return stale;
+  if(!Array.isArray(catalog?.items)||catalog.next_cursor||catalog.available===false)throw Error('世界目录尚未完整读到，请重新选择生活世界');
+  if(catalog.items.length)return {configured:false,warning:'已有生活世界，请返回世界步骤明确选择加入'};
+  await command.submit({creationPreset:'daily',expectedRevision:0,name:'日常世界',background:'日常生活，包含居所、商店和公共空间，以及独立的社区居民。',reason:'所有者明确选择使用日常生活世界'});if(!current())return stale;actual=await client.world(fid);
+ }
  draft=current();if(!draft)return stale;
  if(actual.world?.id!==draft.worldRuntimeId)throw new Error('生活世界尚未读回，原角色和创建步骤已保留');
  draft.worldSelectionConfirmed=true;draft.worldName=actual.world.name||draft.worldName||'';recovery.save(draft);

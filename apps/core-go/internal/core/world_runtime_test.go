@@ -25,7 +25,7 @@ func TestWorldNPCPersistenceIsolationEncounterAndSource(t *testing.T) {
 	if err != nil || before["world"] != nil {
 		t.Fatal(before, err)
 	}
-	command("PUT", base+"/world", map[string]any{"name": "Test world", "background": "Test setting", "rules": "No permanent harm", "expected_revision": 0})
+	initialWorld := command("PUT", base+"/world", map[string]any{"name": "Test world", "background": "Test setting", "rules": "No permanent harm", "expected_revision": 0})
 	place := command("POST", base+"/world/places", map[string]any{"name": "Test bookshop", "description": "Scoped place", "expected_revision": 0})
 	resource, err := f.app.DispatchOwnerSurface(f.ctx, "POST", "/internal/studio/resources", nil, f.ownerID, map[string]any{"kind": "npc", "name": "Bookshop keeper", "body": map[string]any{"role": "keeper", "background": "Published background"}, "reason": "Create a definition", "idempotency_key": randomID("definition_")})
 	if err != nil {
@@ -99,17 +99,26 @@ func TestWorldNPCPersistenceIsolationEncounterAndSource(t *testing.T) {
 	}
 	otherBase := "/internal/fluctlights/" + other.ID
 	otherCatalog := command("GET", otherBase+"/world/catalog", nil)
-	if otherCatalog["active_binding"] != nil || len(arrayValue(otherCatalog["items"])) != 0 {
-		t.Fatal("blank activation must not invent a world", otherCatalog)
+	assertUnboundSharedCatalog := func(catalog map[string]any) {
+		t.Helper()
+		// The Owner's existing world is a selectable shared candidate. Blank
+		// creation and browsing must neither create another world nor bind one.
+		items := arrayValue(catalog["items"])
+		if catalog["active_binding"] != nil || len(items) != 1 || mapValue(items[0])["id"] != initialWorld["id"] || mapValue(items[0])["active"] != false {
+			t.Fatal("unbound character changed shared world candidates or acquired a binding", catalog)
+		}
+		world, err := f.app.WorldSnapshot(f.ctx, f.ownerID, other.ID)
+		if err != nil || world["world"] != nil {
+			t.Fatal("unbound character acquired a world snapshot", world, err)
+		}
 	}
+	assertUnboundSharedCatalog(otherCatalog)
 	_, err = f.app.DispatchWorldSurface(f.ctx, "GET", otherBase+"/npcs/"+npcID, nil, f.ownerID, nil)
 	var missingWorld *SurfaceError
 	if !errors.As(err, &missingWorld) || missingWorld.Status != 422 || missingWorld.Code != "world_not_configured" {
 		t.Fatal("unconfigured world must remain a prerequisite error", err)
 	}
-	if afterRead := command("GET", otherBase+"/world/catalog", nil); afterRead["active_binding"] != nil || len(arrayValue(afterRead["items"])) != 0 {
-		t.Fatal("NPC read created a world", afterRead)
-	}
+	assertUnboundSharedCatalog(command("GET", otherBase+"/world/catalog", nil))
 	otherWorld := command("POST", otherBase+"/world/catalog", map[string]any{"name": "Other world"})
 	if created := command("GET", otherBase+"/world/catalog", nil); created["active_binding"] != nil {
 		t.Fatal("catalogue creation implicitly selected a world", created)

@@ -117,3 +117,10 @@ test('P2-6 relations directory retains the shared leaf when no world people exis
  const v=await mountReact(vite,People,{props:{model:m}});
  try{const empty=v.host.querySelector('[data-slot=empty]');assert.ok(empty.querySelector('.lucide-leaf'));assert.equal(empty.dataset.emptyVariant,'page');await v.click(button(v.host,'新增世界人物'));assert.equal(created,true);}finally{await v.dispose();}
 });
+
+test('D7 world clock waiting state shows the finished hour and next scheduled cycle',async()=>{
+ const {default:Diagnostics}=await load('react-app/shared/DiagnosticsWorkspace.jsx'),w=workspace();
+ w.services.diagnosticsClient={page:async()=>({items:[{ref:'clock',occurred_at:'2026-11-02T08:13:00Z',data:{intent_id:'world-clock',kind:'world.events.generate',status:'waiting',last_cycle_status:'failed',next_cycle_at:'2026-11-02T09:00:00Z'}}],next_cursor:''})};
+ const v=await mountReact(vite,Diagnostics,{workspace:w,props:{view:{view:'tasks',openTaskDiagnostics(){}}}});
+ try{const row=v.host.querySelector('.replica-task-row');assert.match(row.textContent,/等待下一小时/);assert.match(row.textContent,/上一轮：需要处理/);assert.match(row.textContent,/下一轮：.*17:00/);assert.equal(row.querySelector('.animate-spin'),null);}finally{await v.dispose();}
+});

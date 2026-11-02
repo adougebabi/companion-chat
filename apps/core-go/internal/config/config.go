@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -47,7 +48,7 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 	if serviceKey == "" {
 		return Config{}, fmt.Errorf("FLUCTLIGHT_CORE_SERVICE_KEY is required")
 	}
-	trustedOrigin, err := parseTrustedOrigin(first(lookup, "FLUCTLIGHT_TRUSTED_ORIGIN"))
+	trustedOrigins, err := ParseTrustedOrigins(first(lookup, "FLUCTLIGHT_TRUSTED_ORIGIN"))
 	if err != nil {
 		return Config{}, err
 	}
@@ -58,8 +59,12 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 			return Config{}, fmt.Errorf("FLUCTLIGHT_SECURE_COOKIES must be a boolean")
 		}
 		secureCookies = parsed
-	} else if trustedOrigin.Scheme == "http" {
-		secureCookies = false
+	} else {
+		for _, origin := range trustedOrigins {
+			if strings.HasPrefix(origin, "http://") {
+				secureCookies = false
+			}
+		}
 	}
 	listen := strings.TrimSpace(first(lookup, "CORE_GO_LISTEN_ADDRESS"))
 	if listen == "" {
@@ -103,21 +108,69 @@ func FromEnv(lookup func(string) (string, bool)) (Config, error) {
 		TemporalAddr:  first(lookup, "TEMPORAL_ADDRESS"),
 		TemporalNS:    first(lookup, "TEMPORAL_NAMESPACE"),
 		RedisURL:      firstOrDefault(lookup, "REDIS_URL", "redis://redis:6379/0"),
-		TrustedOrigin: trustedOrigin.String(),
+		TrustedOrigin: strings.Join(trustedOrigins, ","),
 		SecureCookies: secureCookies,
 	}, nil
 }
 
-func parseTrustedOrigin(value string) (*url.URL, error) {
+// ParseTrustedOrigins validates every entry, including empty trailing entries.
+// The singular environment name remains compatible with existing deployments.
+func ParseTrustedOrigins(value string) ([]string, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return nil, fmt.Errorf("FLUCTLIGHT_TRUSTED_ORIGIN is required")
 	}
+	origins := []string{}
+	for i, entry := range strings.Split(value, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			return nil, fmt.Errorf("FLUCTLIGHT_TRUSTED_ORIGIN entry %d is empty", i+1)
+		}
+		origin, err := parseTrustedOrigin(entry)
+		if err != nil {
+			return nil, fmt.Errorf("FLUCTLIGHT_TRUSTED_ORIGIN entry %d: must be an absolute HTTP(S) origin without credentials, path, query or fragment", i+1)
+		}
+		origins = append(origins, origin.String())
+	}
+	return origins, nil
+}
+
+func parseTrustedOrigin(value string) (*url.URL, error) {
 	parsed, err := url.Parse(value)
-	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.ForceQuery || strings.ContainsAny(value, "?#\\") || (parsed.Path != "" && parsed.Path != "/") || parsed.RawPath != "" {
 		return nil, fmt.Errorf("FLUCTLIGHT_TRUSTED_ORIGIN must be an absolute HTTP(S) origin without path, query, or fragment")
 	}
+	host := parsed.Hostname()
+	if ip := net.ParseIP(host); ip == nil {
+		if strings.HasPrefix(parsed.Host, "[") {
+			return nil, fmt.Errorf("invalid IPv6 origin")
+		}
+		if len(host) == 0 || len(host) > 253 || strings.Trim(host, "0123456789.") == "" {
+			return nil, fmt.Errorf("invalid origin host")
+		}
+		for _, label := range strings.Split(strings.TrimSuffix(host, "."), ".") {
+			if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+				return nil, fmt.Errorf("invalid origin host")
+			}
+			for _, c := range label {
+				if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-') {
+					return nil, fmt.Errorf("invalid origin host")
+				}
+			}
+		}
+	} else if strings.Contains(host, ":") && !strings.HasPrefix(parsed.Host, "[") {
+		return nil, fmt.Errorf("IPv6 origins require brackets")
+	}
+	if port := parsed.Port(); port != "" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return nil, fmt.Errorf("invalid origin port")
+		}
+	} else if strings.HasSuffix(parsed.Host, ":") {
+		return nil, fmt.Errorf("empty origin port")
+	}
 	parsed.Path = ""
+	parsed.Host = strings.ToLower(parsed.Host)
 	return parsed, nil
 }
 

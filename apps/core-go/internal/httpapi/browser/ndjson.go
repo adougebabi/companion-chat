@@ -98,6 +98,8 @@ var hiddenPayloadKeys = map[string]struct{}{
 // to the generic turn failure so provider/database/model text cannot cross the
 // browser boundary.
 var browserTurnErrorCodes = map[string]struct{}{
+	"persona_preparation_failed":            {},
+	"persona_preparation_pending":           {},
 	"user_cancelled":                        {},
 	"active_memory_capability_unavailable":  {},
 	"active_memory_plan_invalid":            {},
@@ -276,6 +278,15 @@ func TranslateCoreNDJSON(ctx context.Context, response *http.Response, dst io.Wr
 		line, readErr := reader.ReadBytes('\n')
 		if ctx.Err() != nil {
 			return nil
+		}
+		// Preparation admission failed before Core accepted a message. Preserve
+		// this closed business result for the HTTP 409 mapper, without emitting
+		// a fake stream error or an optimistic accepted turn first.
+		if len(line) == 0 && expectedSequence == 0 && readErr != nil {
+			var business *CoreError
+			if errors.As(readErr, &business) && business != nil && (business.Code == "persona_preparation_failed" || business.Code == "persona_preparation_pending") {
+				return readErr
+			}
 		}
 
 		if len(line) > 0 && line[len(line)-1] == '\n' {
@@ -532,13 +543,14 @@ func browserEvent(core CoreStreamEvent) (BrowserStreamEvent, string) {
 		// and the legacy `error` field emitted after visible output. Normalize
 		// both at the public boundary and discard status/details/message so a
 		// model, provider, or persistence failure cannot become browser data.
+		code := browserTurnErrorCode(core.Payload)
 		return BrowserStreamEvent{
 			Type:     "error",
 			TurnID:   core.TurnID,
 			Sequence: core.Sequence,
 			Payload: map[string]any{
-				"code":    browserTurnErrorCode(core.Payload),
-				"message": browserTurnErrorMessage,
+				"code":    code,
+				"message": browserTurnMessage(code),
 			},
 		}, ""
 	}
@@ -572,6 +584,17 @@ func browserEvent(core CoreStreamEvent) (BrowserStreamEvent, string) {
 	}
 
 	return BrowserStreamEvent{Type: eventType, TurnID: core.TurnID, Sequence: core.Sequence, Payload: core.Payload}, ""
+}
+
+// Only repository-owned messages are allowed; never forward Core/provider text.
+func browserTurnMessage(code string) string {
+	switch code {
+	case "persona_preparation_failed":
+		return "人格准备失败，暂时无法聊天。请恢复人格准备后重试。"
+	case "persona_preparation_pending":
+		return "人格正在准备中，请等待准备完成后再发送消息。"
+	}
+	return browserTurnErrorMessage
 }
 
 func browserTurnErrorCode(payload map[string]any) string {

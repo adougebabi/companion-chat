@@ -53,3 +53,11 @@ test("world mutation conflicts remain errors and OpenAPI declares real request/r
   assert.equal(api.components.schemas.BrowserPlaceWriteBody.properties.worldId.type, "string");
   assert.deepEqual(api.components.schemas.BrowserRuntimeNPC.properties.position_mode.enum, ["routine", "fixed", "unknown"]);
 });
+
+test("D8 explicit daily-world choice reaches the Core boundary without implicit defaults",async()=>{
+ let actual:unknown;
+ const client=new BrowserClient("http://local.test",async(_input,init)=>{actual=JSON.parse(String(init?.body));return Response.json({id:"world",revision:1,status:"saved",audit_id:"audit"});});
+ const body={name:"日常世界",creationPreset:"daily" as const,expectedRevision:0,reason:"明确选择",idempotencyKey:"daily-choice"};
+ await client.updateRuntimeWorld("character",body);assert.deepEqual(actual,body);
+ const api=JSON.parse(await readFile(new URL("../openapi.json",import.meta.url),"utf8"));assert.deepEqual(api.components.schemas.BrowserWorldWriteBody.properties.creationPreset.enum,["daily"]);
+});

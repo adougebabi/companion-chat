@@ -1060,7 +1060,13 @@ func (a *App) readVisualIdentityDetail(ctx context.Context, fluctlightID string)
 		if err := rows.Scan(&sessionID, &attemptID, &stage, &stageOrder, &status, &summary, &assets, &metadata, &correlation, &occurred); err != nil {
 			return nil, err
 		}
-		timeline = append(timeline, map[string]any{"session_id": sessionID, "attempt_id": attemptID, "stage": stage, "stage_order": stageOrder, "status": status, "summary": summary, "asset_ids": decodeArray(assets), "metadata": decodeObject(metadata), "correlation_id": correlation, "occurred_at": occurred.Format(time.RFC3339Nano)})
+		meta := decodeObject(metadata)
+		if stage == visualIdentityStageVisionReady && status == "skipped" && strings.HasPrefix(stringValue(meta["reason"]), "vision_") {
+			// Explain existing skipped checkpoints too, without rewriting their
+			// durable history or pretending that enabling vision re-runs them.
+			summary = visualIdentityVisionGuidance(stringValue(meta["reason"]))
+		}
+		timeline = append(timeline, map[string]any{"session_id": sessionID, "attempt_id": attemptID, "stage": stage, "stage_order": stageOrder, "status": status, "summary": summary, "asset_ids": decodeArray(assets), "metadata": meta, "correlation_id": correlation, "occurred_at": occurred.Format(time.RFC3339Nano)})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

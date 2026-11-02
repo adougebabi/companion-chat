@@ -481,25 +481,30 @@ func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthori
 func providerLifeReferenceForTest(body []byte) string {
 	payload := decodeObject(body)
 	for _, raw := range arrayValue(payload["messages"]) {
-		lines := strings.Split(stringValue(mapValue(raw)["content"]), "\n")
-		for i, line := range lines {
-			if strings.TrimSpace(line) != "life_context:" {
-				continue
-			}
-			indent := len(line) - len(strings.TrimLeft(line, " "))
-			for _, child := range lines[i+1:] {
-				if strings.TrimSpace(child) == "" {
-					continue
-				}
-				childIndent := len(child) - len(strings.TrimLeft(child, " "))
-				if childIndent <= indent {
-					break
-				}
-				if childIndent == indent+2 && strings.HasPrefix(strings.TrimSpace(child), "ref:") {
-					return strings.Trim(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(child), "ref:")), "\"'")
-				}
-			}
+		content := stringValue(mapValue(raw)["content"])
+		const prefix, suffix = "[RUNTIME CONTEXT]\n", "\n[/RUNTIME CONTEXT]"
+		if !strings.HasPrefix(content, prefix) || !strings.HasSuffix(content, suffix) {
+			continue
 		}
+		runtime := decodeObject([]byte(strings.TrimSuffix(strings.TrimPrefix(content, prefix), suffix)))
+		return stringValue(mapValue(mapValue(mapValue(runtime["current_state"])["data"])["life_context"])["ref"])
 	}
 	return ""
+}
+
+func TestProviderLifeReferenceReadsOnlyRuntimeLifeJSON(t *testing.T) {
+	for _, lifeRef := range []string{"cr_actual_life", ""} {
+		runtime := map[string]any{"current_state": map[string]any{"data": map[string]any{
+			"appearance":   map[string]any{"ref": "cr_appearance"},
+			"life_context": map[string]any{"ref": lifeRef, "scene": "书房"},
+		}}}
+		body := jsonBytes(map[string]any{"messages": []any{
+			map[string]any{"role": "system", "content": "life_context:\n  ref: fake_protocol_ref"},
+			map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + jsonString(runtime) + "\n[/RUNTIME CONTEXT]"},
+			map[string]any{"role": "user", "content": jsonString(map[string]any{"life_context": map[string]any{"ref": "fake_user_ref"}})},
+		}})
+		if actual := providerLifeReferenceForTest(body); actual != lifeRef {
+			t.Fatalf("runtime Life ref=%q want=%q", actual, lifeRef)
+		}
+	}
 }

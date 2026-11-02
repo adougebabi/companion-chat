@@ -184,10 +184,29 @@ func TestMediaQualityFinalProviderRequestKeepsImageAndReadableText(t *testing.T)
 	if err := repository.Pool().QueryRow(ctx, `SELECT prompt FROM public.diagnostic_model_runs WHERE scenario='media_quality_acceptance' ORDER BY queued_at DESC LIMIT 1`).Scan(&diagnosticPrompt); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(diagnosticPrompt), `"frozen_media_concept":`) || !strings.Contains(string(diagnosticPrompt), "REDACTED_IMAGE_DATA") || strings.Contains(string(diagnosticPrompt), imageURL) {
+	var diagnosticMessages []map[string]any
+	if err := json.Unmarshal(diagnosticPrompt, &diagnosticMessages); err != nil {
+		t.Fatal(err)
+	}
+	diagnosticText := ""
+	for _, message := range diagnosticMessages {
+		if message["role"] == "user" {
+			for _, rawPart := range arrayValue(message["content"]) {
+				part := mapValue(rawPart)
+				if part["type"] == "text" {
+					diagnosticText += stringValue(part["text"])
+				}
+			}
+		}
+	}
+	if diagnosticText != modelText || !strings.Contains(string(diagnosticPrompt), "REDACTED_IMAGE_DATA") || strings.Contains(string(diagnosticPrompt), imageURL) {
 		t.Fatalf("physical diagnostic does not match readable multimodal wire: prompt=%s image=%s", diagnosticPrompt, imageURL)
 	}
-	if !strings.HasPrefix(imageURL, "data:image/png;base64,") || !strings.Contains(modelText, `"frozen_media_concept":`) || !strings.Contains(modelText, "澄光") || strings.HasPrefix(modelText, "{") {
+	var taskData map[string]any
+	if err := json.Unmarshal([]byte(modelText), &taskData); err != nil {
+		t.Fatalf("media quality task text is not JSON: %v", err)
+	}
+	if !strings.HasPrefix(imageURL, "data:image/png;base64,") || len(mapValue(taskData["frozen_media_concept"])) == 0 || taskData["media_kind"] != "image" || !strings.Contains(modelText, "澄光") {
 		t.Fatalf("media quality wire lost multimodal readable input: text=%s image=%s", modelText, imageURL)
 	}
 	for _, forbidden := range []string{"private story", "fl-private", "chest_lora_weight", `\"`} {

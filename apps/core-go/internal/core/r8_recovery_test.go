@@ -28,7 +28,7 @@ func seedR8Shop(t *testing.T, f independentToolE2EFixture) (string, string, stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	categories := []any{map[string]any{"id": "shops", "name": "商店"}}
+	categories := []any{map[string]any{"id": "home", "name": "居所"}, map[string]any{"id": "shops", "name": "商店"}, map[string]any{"id": "public", "name": "公共空间"}}
 	saved, err := f.app.DispatchWorldSurface(f.ctx, "PUT", base+"/world/catalog/"+wid, nil, f.ownerID, map[string]any{"name": "湖滨世界", "expected_revision": 1, "venue_categories": categories, "reason": "fixture", "idempotency_key": "r8-category"})
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +43,7 @@ func seedR8Shop(t *testing.T, f independentToolE2EFixture) (string, string, stri
 			actual = mapValue(raw)
 		}
 	}
-	if len(arrayValue(actual["venue_categories"])) != 1 || intValue(actual["revision"]) != intValue(saved["revision"]) {
+	if len(arrayValue(actual["venue_categories"])) != 3 || intValue(actual["revision"]) != intValue(saved["revision"]) {
 		t.Fatal("category lost after reload", actual)
 	}
 	_, err = f.app.DispatchWorldSurface(f.ctx, "PUT", base+"/world/catalog/"+wid, nil, f.ownerID, map[string]any{"name": "湖滨世界", "expected_revision": saved["revision"], "venue_categories": []any{}, "reason": "fixture", "idempotency_key": "r8-bad-category"})

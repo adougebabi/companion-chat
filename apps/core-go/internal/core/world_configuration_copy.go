@@ -36,7 +36,7 @@ func (a *App) copyWorldConfigurationTx(ctx context.Context, tx pgx.Tx, fid strin
 	if name := strings.TrimSpace(stringValue(body["name"])); name != "" {
 		definition["name"] = name
 	}
-	result, err := a.createCatalogWorldTx(ctx, tx, fid, definition)
+	result, err := a.createCatalogWorldShellTx(ctx, tx, fid, definition)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +87,9 @@ func (a *App) copyWorldConfigurationTx(ctx context.Context, tx pgx.Tx, fid strin
 		if err := writePlaceDefaultTx(ctx, tx, place, baseline, "复用已有世界的配置，建立独立地点基准", "initial_saved", nil); err != nil {
 			return nil, err
 		}
+	}
+	if err := a.bootstrapWorldTx(ctx, tx, fid, world, definition); err != nil {
+		return nil, err
 	}
 	result["configuration_copied"] = true
 	result["copied_places"] = len(places)

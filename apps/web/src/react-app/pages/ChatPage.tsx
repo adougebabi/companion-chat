@@ -19,6 +19,7 @@ import {SidebarProvider,Sidebar,SidebarContent} from '@/components/ui/sidebar';
 import {InlineFeedback,Feedback} from "@/react-app/shared/Presentation";
 import {ArrowUpRightIcon as ExternalLinkIcon,MoreHorizontalIcon as MoreActionsIcon} from "lucide-react";
 import ChatTurnFeedback from "../components/ChatTurnFeedback";
+import PersonaPreparationFeedback from '../shared/PersonaPreparationFeedback';
 import {
   useEffect,
   useRef,
@@ -112,6 +113,12 @@ export default function ChatPage({
   }
   const busy =
     snapshot.sending || store.hasPendingTurn || store.hasSettlingTurn;
+  const preparationBlocked=!!character.detail?.persona_preparation&&character.detail.persona_preparation.status!=='ready';
+  useEffect(()=>{
+    let active=true;
+    if(/persona_preparation_(?:failed|pending)/.test(snapshot.error||''))void workspace.detail().catch((cause:unknown)=>{if(active&&workspace.currentScope()===scope)setReadFailure(errorMessage(cause,'人格准备状态暂时无法读取。'));});
+    return()=>{active=false;};
+  },[workspace,scope,snapshot.error]);
   useEffect(() => {
     try {
       sessionStorage.setItem(storageKey, draft);
@@ -174,7 +181,7 @@ export default function ChatPage({
   async function send() {
     const submitted = latestDraft.current,
       text = submitted.trim();
-    if (!text || busy || readLoading || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
+    if (!text || busy || readLoading || preparationBlocked || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
     await store.send(text, false, null, () => {
       if (
         pageActive.current && workspace.currentScope() === scope &&
@@ -256,6 +263,7 @@ export default function ChatPage({
             只属于你们的对话
           </span>
         </header>
+        <PersonaPreparationFeedback key={scope} character={character}/>
         <MessageScrollerProvider autoScroll defaultScrollPosition="end" scrollEdgeThreshold={80}>
           <MessageScroller className="replica-chat-scroller">
             <MessageScrollerViewport aria-label="聊天消息" className="companion-message-list">
@@ -365,7 +373,7 @@ export default function ChatPage({
             <span>Enter 发送 <i/> Shift + Enter 换行</span>
             <Button
               className="touch-target"
-              disabled={!draft.trim() || busy || readLoading || !snapshot.conversation || !!snapshot.recoveryStorageError}
+              disabled={!draft.trim() || busy || readLoading || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
               onClick={() => void send()}
             >
               {busy ? "回应中" : "发送"}

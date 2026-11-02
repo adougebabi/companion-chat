@@ -13,3 +13,23 @@ Environment: original `.git` and requested sibling screenshot directory are read
 Task: `.trellis/tasks/11-02-r23-ui-polish` (completed, uncommitted by explicit user instruction). Fixed all eleven requested items using existing shadcn primitives. Chat root cause was selection loading left behind by request invalidation; loading now belongs to its read epoch, with actual controller/provider/page and delayed-browser regressions. Added 13 UI tests. Preserved diary search feedback beside a selected entry and existing people-directory leaf; completed missing Studio/relationship leaves.
 
 Install/build/web lint/workspace typecheck and all 877 JS/TS tests pass. Full Go suite passes after correcting seven obsolete assertions in six test files to current normalization/catalog/Agent/CI/React/queue contracts; no backend production or CI configuration changes. Chrome production desktop/mobile checks and three chunk+data skeleton flows pass; 28 PNGs only in `/tmp/r23-shots`. Exact per-item files, test names, check results and limits are in task final-report.md. No accept-tree/env edits, Git commit, staging or image changes. Trellis archive/journal auto-commit scripts were not used.
+
+
+## Session 1: Fix Fluctlight D1-D6 and full regressions
+<!-- trellis-session: v=2 fp=289e78f8618699f6 -->
+
+**Date**: 2026-11-02
+**Task**: Fix Fluctlight D1-D6 and full regressions
+**Branch**: `codex/demo-fullsite-audit-20261028`
+
+### Summary
+
+D1-D6 fixed with recovery, independent chat/Owner lanes and Reflection fences, bounded Studio retries, exact name, valid wardrobe diagnostics, readable vision guidance and text-free image prompts. Full JS 883 pass; Go 3428 pass / 47 existing skips with isolated PostgreSQL; build/lint/typecheck/race checks pass. Old serialization/world-contract assertion changes documented in task validation.md. User explicitly prohibits commits; all changes left in working tree.
+
+### Git Commits
+
+(No commits — completed implementation remains in the working tree by explicit user instruction.)
+
+### Status
+
+[OK] **Completed**

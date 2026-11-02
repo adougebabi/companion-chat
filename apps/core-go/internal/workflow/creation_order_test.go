@@ -35,6 +35,17 @@ func TestPersonaPreparationWorkflowRetriesAndReturnsTerminal(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestPersonaPreparationWorkflowExhaustsThreeAttemptsAsExplicitFailure(t *testing.T) {
+	var suite testsuite.WorkflowTestSuite
+	env := suite.NewTestWorkflowEnvironment()
+	env.OnActivity(ProcessPersonaPreparationActivity, mock.Anything, mock.Anything).Return(nil, errors.New("compiler unavailable")).Times(3)
+	env.ExecuteWorkflow(PersonaPreparationWorkflow, Input{IntentID: "failed-persona", FluctlightID: "role"})
+	if err := env.GetWorkflowError(); err == nil {
+		t.Fatal("exhausted compiler did not expose terminal failure")
+	}
+	env.AssertExpectations(t)
+}
 func TestPostgresCreationStageOrdering(t *testing.T) {
 	databaseURL := os.Getenv("GO_CORE_TEST_DATABASE_URL")
 	if databaseURL == "" {

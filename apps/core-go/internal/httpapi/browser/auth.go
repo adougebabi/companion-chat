@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/config"
 )
 
 const (
@@ -120,7 +122,7 @@ func cookieValue(request *http.Request, name string) string {
 }
 
 func csrfValid(request *http.Request, trustedOrigin string) bool {
-	if trustedOrigin == "" || request.Header.Get("Origin") != trustedOrigin {
+	if !originAllowed(request.Header.Get("Origin"), trustedOrigin) {
 		return false
 	}
 	cookie := cookieValue(request, csrfCookieName)
@@ -137,7 +139,7 @@ func csrfValid(request *http.Request, trustedOrigin string) bool {
 
 func corsHeaders(response http.ResponseWriter, request *http.Request, trustedOrigin string) {
 	origin := request.Header.Get("Origin")
-	if origin != "" && origin == trustedOrigin {
+	if originAllowed(origin, trustedOrigin) {
 		response.Header().Set("Access-Control-Allow-Origin", origin)
 		response.Header().Set("Access-Control-Allow-Credentials", "true")
 		response.Header().Add("Vary", "Origin")
@@ -145,11 +147,11 @@ func corsHeaders(response http.ResponseWriter, request *http.Request, trustedOri
 }
 
 func optionsResponse(response http.ResponseWriter, request *http.Request, trustedOrigin string) {
-	if request.Header.Get("Origin") == "" || request.Header.Get("Origin") != trustedOrigin {
+	if !originAllowed(request.Header.Get("Origin"), trustedOrigin) {
 		writeError(response, http.StatusForbidden, "invalid_origin", "Origin is not allowed")
 		return
 	}
-	response.Header().Set("Access-Control-Allow-Origin", trustedOrigin)
+	response.Header().Set("Access-Control-Allow-Origin", request.Header.Get("Origin"))
 	response.Header().Set("Access-Control-Allow-Credentials", "true")
 	response.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
 	response.Header().Set("Access-Control-Allow-Headers", "content-type,range,x-csrf-token")
@@ -165,3 +167,19 @@ func mutationGuard(response http.ResponseWriter, request *http.Request, trustedO
 }
 
 func normalizeOrigin(value string) string { return strings.TrimSpace(value) }
+
+func originAllowed(origin, trusted string) bool {
+	if origin == "" || origin == "null" {
+		return false
+	}
+	allowed, err := config.ParseTrustedOrigins(trusted)
+	if err != nil {
+		return false
+	}
+	for _, candidate := range allowed {
+		if origin == candidate {
+			return true
+		}
+	}
+	return false
+}

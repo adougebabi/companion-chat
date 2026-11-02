@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -106,7 +107,13 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 		t.Fatalf("portrait version/cache diagnostic missing: %#v", diagnostic)
 	}
 	firstSystem := stringValue(mapValue(arrayValue(decodeObject([]byte(firstRequest))["messages"])[0])["content"])
-	if !strings.Contains(firstSystem, "portrait_text") || strings.Contains(firstSystem, "source_refs") || strings.Contains(firstSystem, "stable_preferences") {
+	_, personaJSON, hasPersona := strings.Cut(firstSystem, "# 人格设定\n\n")
+	var personaData map[string]any
+	if !hasPersona || json.Unmarshal([]byte(personaJSON), &personaData) != nil {
+		t.Fatalf("formal System lacks its JSON persona section: %s", firstRequest)
+	}
+	portrait := mapValue(personaData["working_persona"])
+	if len(portrait) != 2 || portrait["profile_id"] != "spark" || portrait["portrait_text"] != "我是摇光。"+takeoverChainSparkMarker+"。喜欢咖啡，但不喜欢甜咖啡。" || strings.Contains(personaJSON, `"source_refs"`) || strings.Contains(personaJSON, `"stable_preferences"`) {
 		t.Fatalf("formal request did not carry a single text portrait: %s", firstRequest)
 	}
 	if !strings.Contains(firstRequest, "喜欢咖啡") || strings.Contains(firstRequest, secret) || strings.Contains(firstRequest, takeoverChainTwilightMarker) {
@@ -323,7 +330,7 @@ func TestFoundationAcceptancePublishesMatchingPortraitOrKeepsOldVersion(t *testi
 	compileCalls := 0
 	failCompile := false
 	raceBudget := false
-	router := newFakeProviderRouter().on("persona_compilation_response", func(payload map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().on("persona_compilation_response", func(_ map[string]any) fakeProviderResult {
 		compileCalls++
 		if failCompile {
 			return fakeProviderResult{Status: 500}
@@ -334,23 +341,7 @@ func TestFoundationAcceptancePublishesMatchingPortraitOrKeepsOldVersion(t *testi
 				t.Fatal(err)
 			}
 		}
-		profileID := "spark"
-		for _, raw := range arrayValue(payload["messages"]) {
-			message := mapValue(raw)
-			if stringValue(message["role"]) != "user" {
-				continue
-			}
-			for _, line := range strings.Split(stringValue(message["content"]), "\n") {
-				if strings.HasPrefix(line, "profile_id:") {
-					profileID = strings.TrimSpace(strings.TrimPrefix(line, "profile_id:"))
-					break
-				}
-			}
-		}
-		return fakeProviderResult{Structured: map[string]any{"profile_id": profileID, "facts": []any{
-			map[string]any{"category": "identity", "text": "更新后的摇光", "source_refs": []any{"identity.name"}},
-			map[string]any{"category": "core_mechanisms", "text": "保持本人机制", "source_refs": []any{"profile"}},
-		}, "omissions": []any{}}}
+		return fakeProviderResult{Structured: map[string]any{"portrait_text": "更新后的摇光，保持本人机制。"}}
 	})
 	app := newTestApp(t, repository, router)
 	first, err := app.ProposeFoundation(ctx, ownerID, fluctlightID, map[string]any{"reason": "controlled compilation fixture", "expected_revision": 0, "changes": map[string]any{"identity": map[string]any{"name": "更新后的摇光"}}})
@@ -570,7 +561,22 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	if _, err := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{AuthorizationActorID: ownerID, FluctlightID: fluctlightID, RunID: "portrait-after-haircut", CurrentInput: "你现在的头发怎么样？"}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(finalWire, "hair_length: short") || strings.Contains(finalWire, "hair_length: long") || strings.Contains(finalWire, "起初留长发") || !strings.Contains(finalWire, "白衬衫") || !strings.Contains(initialWire, "hair_length: long") {
+	currentAppearance := func(wire string) map[string]any {
+		for _, raw := range arrayValue(decodeObject([]byte(wire))["messages"]) {
+			content := stringValue(mapValue(raw)["content"])
+			if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+				var runtime map[string]any
+				body := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+				if err := json.Unmarshal([]byte(body), &runtime); err != nil {
+					t.Fatalf("physical runtime context is not JSON: %v", err)
+				}
+				return mapValue(mapValue(mapValue(runtime["current_state"])["data"])["appearance"])
+			}
+		}
+		t.Fatal("physical request has no authoritative runtime context")
+		return nil
+	}
+	if mapValue(currentAppearance(finalWire)["body_fields"])["hair_length"] != "short" || mapValue(currentAppearance(initialWire)["body_fields"])["hair_length"] != "long" || strings.Contains(finalWire, "起初留长发") || !strings.Contains(finalWire, "白衬衫") {
 		t.Fatalf("final Provider request did not replace current appearance: first=%s after=%s", initialWire, finalWire)
 	}
 	detail, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: personaDetailCapabilityName, OperationID: "portrait-current-appearance",

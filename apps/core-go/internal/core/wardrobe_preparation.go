@@ -178,7 +178,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 	}
 	if !locked {
 		conn.Release()
-		return map[string]any{"status": "awaiting_wear", "reason": "preparation_already_running"}, nil
+		return map[string]any{"status": "awaiting_wear", "reason_code": "preparation_already_running", "reason": "preparation_already_running"}, nil
 	}
 	defer func() {
 		release, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
@@ -200,7 +200,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 			recoverCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 			defer cancel()
 			if _, err := a.DB.Pool().Exec(recoverCtx, `UPDATE public.fluctlight_wardrobe_preparations SET status=CASE WHEN result->'inventory_committed'='true'::jsonb THEN 'awaiting_wear' ELSE 'queued' END,updated_at=now() WHERE id=$1 AND status<>'completed'`, id); err == nil {
-				result = map[string]any{"status": "awaiting_wear", "reason": "资料或衣柜已变化，将按最新状态继续准备"}
+				result = map[string]any{"status": "awaiting_wear", "reason_code": "wardrobe_state_changed", "reason": "资料或衣柜已变化，将按最新状态继续准备"}
 				runErr = nil
 			} else {
 				runErr = err
@@ -222,7 +222,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 		return nil, wardrobeContextReadFailure("resource", err)
 	}
 	if resource.Status != "active" {
-		return map[string]any{"status": "awaiting_wear", "reason": "角色当前未处于活动状态"}, nil
+		return map[string]any{"status": "awaiting_wear", "reason_code": "character_inactive", "reason": "角色当前未处于活动状态"}, nil
 	}
 	profile, err := newWardrobeService(a).effectiveProfileID(ctx, a.DB.Pool(), fid, "")
 	if err != nil {
@@ -261,7 +261,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 	saved := mapValue(state["result"])
 	selectOnly := saved["inventory_committed"] == true
 	if selectOnly && life["sleeping"] == true {
-		return map[string]any{"status": "awaiting_wear", "reason": "方案已准备，等待清醒后结合当前情境换装"}, nil
+		return map[string]any{"status": "awaiting_wear", "reason_code": "awaiting_wake", "reason": "方案已准备，等待清醒后结合当前情境换装"}, nil
 	}
 	// A committed wear invocation is frozen before execution. Recovery reuses
 	// that operation rather than selecting and performing a second outfit.
@@ -333,7 +333,7 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 		return nil, err
 	}
 	if latestLife["context_revision"] != life["context_revision"] {
-		return map[string]any{"status": "awaiting_wear", "reason": "当前情境已变化，将按新情境重新选择"}, nil
+		return map[string]any{"status": "awaiting_wear", "reason_code": "wardrobe_context_changed", "reason": "当前情境已变化，将按新情境重新选择"}, nil
 	}
 	saved["wear_item_ids"], saved["wear_reason"] = ids, stringValue(proposal["reason"])
 	saved["wear_profile_id"] = profile
@@ -460,7 +460,7 @@ func (a *App) commitPreparedWardrobe(ctx context.Context, id, fid, owner, profil
 		if !usableCoverage {
 			return errors.New("wardrobe_starter_outfit_incomplete")
 		}
-		returnValue = map[string]any{"status": "awaiting_wear", "inventory_committed": true, "item_count": len(members), "plan_ids": planIDs, "reason": stringValue(proposal["reason"])}
+		returnValue = map[string]any{"status": "awaiting_wear", "inventory_committed": true, "item_count": len(members), "plan_ids": planIDs, "reason_code": "wardrobe_inventory_prepared", "reason": stringValue(proposal["reason"])}
 		_, err = tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations SET status='awaiting_wear',profile_id=$2,result=$3,error_code=NULL,updated_at=now() WHERE id=$1`, id, profile, jsonBytes(returnValue))
 		return err
 	})
@@ -508,6 +508,7 @@ func (a *App) finishWardrobePreparationWear(ctx context.Context, id, fid, owner,
 	}
 	saved = cloneMap(saved)
 	saved["status"] = "completed"
+	saved["reason_code"] = "wardrobe_wear_completed"
 	saved["wear_receipt"] = receipt
 	delete(saved, "wear_operation")
 	if _, err = a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations SET status='completed',result=$2,error_code=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(saved)); err != nil {
@@ -527,5 +528,5 @@ func (a *App) retireUnappliedWardrobeSelection(ctx context.Context, id string, s
 	if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations SET status='awaiting_wear',result=$2,updated_at=now() WHERE id=$1`, id, jsonBytes(next)); err != nil {
 		return nil, err
 	}
-	return map[string]any{"status": "awaiting_wear", "reason": reason}, nil
+	return map[string]any{"status": "awaiting_wear", "reason_code": "wardrobe_selection_retired", "reason": reason}, nil
 }

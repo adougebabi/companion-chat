@@ -38,7 +38,7 @@ func New(options Options) *Server {
 		panic("browser backend is required")
 	}
 	secure := options.SecureCookies
-	if !secure && (options.TrustedOrigin == "" || strings.HasPrefix(options.TrustedOrigin, "https://")) {
+	if !secure && !strings.Contains(options.TrustedOrigin, "http://") {
 		secure = true
 	}
 	return &Server{
@@ -1102,6 +1102,10 @@ func (s *Server) conversationTurnError(response http.ResponseWriter, err error) 
 		code = browserTurnErrorCode(map[string]any{"code": coreErr.Code})
 	}
 	slog.Default().Error("Browser conversation turn failed", "error_type", fmt.Sprintf("%T", err), "code", code)
+	if code == "persona_preparation_failed" || code == "persona_preparation_pending" {
+		writeError(response, http.StatusConflict, code, browserTurnMessage(code))
+		return
+	}
 	// Keep the route's historical 502 status and fixed message. CoreError.Code
 	// is accepted only through the same turn allowlist used for NDJSON errors;
 	// its message/details may contain provider or persistence data.

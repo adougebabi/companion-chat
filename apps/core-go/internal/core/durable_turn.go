@@ -74,7 +74,12 @@ func (a *App) StreamDurableTurn(ctx context.Context, writer http.ResponseWriter,
 			if errorCode == "user_cancelled" {
 				return writeFrame("error", map[string]any{"status": "cancelled", "code": "user_cancelled"})
 			}
-			return writeFrame("error", map[string]any{"status": "failed", "code": streamTurnFailureCodeWithFallback(errors.New(errorCode), "conversation_turn_failed")})
+			code := streamTurnFailureCodeWithFallback(errors.New(errorCode), "conversation_turn_failed")
+			frame := map[string]any{"status": "failed", "code": code}
+			if message := PersonaPreparationMessage(code); message != "" {
+				frame["message"] = message
+			}
+			return writeFrame("error", frame)
 		}
 		select {
 		case <-ctx.Done():
@@ -85,8 +90,41 @@ func (a *App) StreamDurableTurn(ctx context.Context, writer http.ResponseWriter,
 }
 
 func (a *App) readCognitionTurnStatus(ctx context.Context, inboxID string) (string, string, error) {
-	var status, code string
-	err := a.DB.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &code)
+	var status, code, fid string
+	err := a.DB.Pool().QueryRow(ctx, `SELECT status,COALESCE(error_code,''),fluctlight_id FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&status, &code, &fid)
+	if err == nil && status == "pending" {
+		preparation, lookupErr := readPersonaPreparationStatus(ctx, a.DB.Pool(), fid)
+		if lookupErr != nil {
+			return status, code, lookupErr
+		}
+		if ConversationTurnFailureCode(personaPreparationChatError(preparation)) != "persona_preparation_failed" {
+			return status, code, nil
+		}
+		err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			if err := lockLifeContextTx(ctx, tx, fid); err != nil {
+				return err
+			}
+			preparation, err := readPersonaPreparationStatus(ctx, tx, fid)
+			if err != nil {
+				return err
+			}
+			if ConversationTurnFailureCode(personaPreparationChatError(preparation)) != "persona_preparation_failed" {
+				return nil
+			}
+			// Older accepted turns may still be waiting behind the dispatcher
+			// preparation barrier. Settle the real inbox, so reload and retry
+			// observe the same failure as the stream. Never stop a claimed run.
+			tag, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='failed',error_code='persona_preparation_failed',processed_at=now() WHERE id=$1 AND status='pending'`, inboxID)
+			if err != nil || tag.RowsAffected() == 0 {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='failed',last_error='persona_preparation_failed',completed_at=now() WHERE intent_id=$1 AND status IN ('pending','retry')`, "cognition_intent:"+inboxID); err != nil {
+				return err
+			}
+			status, code = "failed", "persona_preparation_failed"
+			return nil
+		})
+	}
 	return status, code, err
 }
 

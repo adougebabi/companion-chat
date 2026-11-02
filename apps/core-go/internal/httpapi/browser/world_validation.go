@@ -90,7 +90,7 @@ func validWorldSurfaceBody(method, path string, body map[string]any) bool {
 		} else if len(p) > 4 && p[4] == "places" {
 			fields = []string{"worldId", "name", "description", "parentPlaceId", "status", "alias", "venueCategoryId", "group", "floor", "scene", "atmosphere", "furniture", "layout", "connections", "connectionPlaceIds", "roomItems"}
 		} else {
-			fields = []string{"name", "background", "rules", "description", "flavor", "itemPool", "venueCategories"}
+			fields = []string{"name", "background", "rules", "description", "flavor", "itemPool", "venueCategories", "creationPreset"}
 		}
 	} else if len(p) > 5 && p[5] == "encounters" {
 		fields = []string{"confirmed", "summary", "startAt", "endAt", "placeId", "evidenceRefs", "expectedLifeContextRevision"}
@@ -104,6 +104,9 @@ func validWorldSurfaceBody(method, path string, body map[string]any) bool {
 		if !allowed[key] {
 			return false
 		}
+	}
+	if value, present := body["creationPreset"]; present && value != "daily" {
+		return false
 	}
 	text := func(key string, max int, required bool) bool {
 		v, ok := body[key]

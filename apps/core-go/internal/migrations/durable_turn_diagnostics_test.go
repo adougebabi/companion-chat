@@ -7,7 +7,10 @@ func TestDurableTurnTraceUpgradeBackfillsOnceAndPreservesInbox(t *testing.T) {
 	if err := New(pool).Apply(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,error_code) VALUES('old-chat-inbox','trace-role',1,'conversation.turn','{"conversation_id":"trace-conversation","turn_id":"trace-turn"}','trace-turn','turn:trace-turn','trace-key',now(),'failed','provider_gateway_timeout'); UPDATE public.alembic_version SET version_num=$1`, DurableTurnDiagnosticsPreviousHead); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO public.cognition_inbox(id,fluctlight_id,sequence,event_type,payload,causation_id,correlation_id,idempotency_key,occurred_at,status,error_code) VALUES('old-chat-inbox','trace-role',1,'conversation.turn','{"conversation_id":"trace-conversation","turn_id":"trace-turn"}','trace-turn','turn:trace-turn','trace-key',now(),'failed','provider_gateway_timeout')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE public.alembic_version SET version_num=$1`, DurableTurnDiagnosticsPreviousHead); err != nil {
 		t.Fatal(err)
 	}
 	if err := New(pool).Apply(ctx); err != nil {

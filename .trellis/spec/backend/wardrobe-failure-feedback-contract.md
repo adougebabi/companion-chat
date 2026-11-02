@@ -32,6 +32,12 @@ invalid schema and invalid JSON retain their owning classifications. Unknown
 causes use neutral wardrobe guidance, without guessing model setup. Keep deferred
 failure persistence, recovery identities and original committed effects unchanged.
 
+Preparation outcomes keep user/model prose in `reason` and code-owned machine
+identifiers in `reason_code`. The wardrobe Activity projects only `reason_code`
+to `LifecycleDiagnostic.ReasonCode`; historical results without it use
+`wardrobe_preparation_settled`. Human prose must never enter the machine-token
+reason field or be rewritten to satisfy diagnostic validation.
+
 ## 4. Validation / error matrix
 
 | Evidence | Product result |

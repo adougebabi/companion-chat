@@ -185,11 +185,10 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
         !busy.value &&
         !draft.activatedId &&
         !pending.value &&
-        draft.worldSource &&
-        !result.items.some(
+        (result.items.length > 0 && !draft.worldSource || draft.worldSource && !result.items.some(
           (world) =>
             world.id === draft.worldSource.worldId,
-        )
+        ))
       ) {
         worldChoice.value = false;
         step.value = "world";
@@ -208,6 +207,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     { immediate: true },
   );
   function chooseWorld(world) {
+    if (!worldsConfirmed.value || existingWorldLoading.value || existingWorldError.value || existingWorlds.value.length) return;
     c.selectWorld(world);
     worldChoice.value = true;
     draft.worldChoiceConfirmed = true;
@@ -417,6 +417,7 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
     c.dispose();
   });
   return () => {
+    const canCreateWorld = worldsConfirmed.value && !existingWorldLoading.value && !existingWorldError.value && existingWorlds.value.length === 0;
     const canContinue =
       worldChoice.value &&
       (draft.worldSource
@@ -425,8 +426,8 @@ function createCharacterWizardPageController(__props, context, lifecycle) {
               world.id === draft.worldSource.worldId,
           )
         : draft.useDefaultWorld
-          ? true
-          : !!selectedPublication.value &&
+          ? canCreateWorld && !!draft.worldChoiceConfirmed
+          : canCreateWorld && !!selectedPublication.value &&
             !selectedPublicationLoading.value &&
             !selectedPublicationError.value);
     return (

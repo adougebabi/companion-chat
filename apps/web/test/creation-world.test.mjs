@@ -21,28 +21,28 @@ test('an unselected world stays an explicit incomplete step rather than invented
 });
 
 test('default world is a real resumable write and confirms the selected binding',async()=>{
- let draft={activatedId:'actual-character',useDefaultWorld:true},world=null,unknown=true;const calls=[];
+ let draft={activatedId:'actual-character',useDefaultWorld:true,worldChoiceConfirmed:true},world=null,unknown=true;const calls=[];
  const values=new Map(),storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
  const recovery={read:()=>structuredClone(draft),save:v=>draft=structuredClone(v)};
- const client={world:async()=>({world}),updateRuntimeWorld:async(fid,body)=>{assert.equal(fid,'actual-character');calls.push(structuredClone(body));world={id:'actual-default-world'};if(unknown){unknown=false;throw Error('response lost');}return {id:world.id};}};
+ const client={worldCatalog:async()=>({items:[]}),world:async()=>({world}),updateRuntimeWorld:async(fid,body)=>{assert.equal(fid,'actual-character');calls.push(structuredClone(body));world={id:'actual-default-world'};if(unknown){unknown=false;throw Error('response lost');}return {id:world.id};}};
  const options={client,recovery,storage,owner:'owner'};
  await assert.rejects(finishCreationWorld(options),/response lost/);assert.equal(draft.worldRuntimeId,undefined);
  assert.deepEqual(await finishCreationWorld(options),{configured:true,worldId:'actual-default-world'});assert.equal(draft.worldSelectionConfirmed,true);assert.deepEqual(calls[0],calls[1]);assert.equal(calls.length,2);
 });
 test('default world acceptance alone cannot fake a successful binding readback',async()=>{
- let draft={activatedId:'actual-character',useDefaultWorld:true};const values=new Map();const options={owner:'owner',storage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},recovery:{read:()=>structuredClone(draft),save:v=>draft=v},client:{world:async()=>({world:null}),updateRuntimeWorld:async()=>({id:'created-but-unconfirmed'})}};
+ let draft={activatedId:'actual-character',useDefaultWorld:true,worldChoiceConfirmed:true};const values=new Map();const options={owner:'owner',storage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},recovery:{read:()=>structuredClone(draft),save:v=>draft=v},client:{worldCatalog:async()=>({items:[]}),world:async()=>({world:null}),updateRuntimeWorld:async()=>({id:'created-but-unconfirmed'})}};
  await assert.rejects(finishCreationWorld(options),/尚未读回/);assert.equal(draft.activatedId,'actual-character');assert.equal(draft.worldRuntimeId,'created-but-unconfirmed');assert.notEqual(draft.worldSelectionConfirmed,true);
 });
 
 for(const phase of ['initial read','write','confirmation read'])test(`default world ${phase} ignores a replacement draft and changed Owner`,async()=>{
  for(const change of ['draft','owner']){
-  let draft={requestId:'original-request',activatedId:'original-character',useDefaultWorld:true},ownerCurrent=true,reads=0,writes=0,release;
+  let draft={requestId:'original-request',activatedId:'original-character',useDefaultWorld:true,worldChoiceConfirmed:true},ownerCurrent=true,reads=0,writes=0,release;
   const deferred=new Promise(resolve=>release=resolve),values=new Map();
   const recovery={read:()=>structuredClone(draft),save:value=>draft=structuredClone(value)};
-  const client={world:async()=>{reads++;if(phase==='initial read'&&reads===1||phase==='confirmation read'&&reads===2)await deferred;return {world:reads>1?{id:'original-world'}:null};},updateRuntimeWorld:async()=>{writes++;if(phase==='write')await deferred;return {id:'original-world'};}};
+  const client={worldCatalog:async()=>({items:[]}),world:async()=>{reads++;if(phase==='initial read'&&reads===1||phase==='confirmation read'&&reads===2)await deferred;return {world:reads>1?{id:'original-world'}:null};},updateRuntimeWorld:async()=>{writes++;if(phase==='write')await deferred;return {id:'original-world'};}};
   const pending=finishCreationWorld({client,recovery,owner:'owner',ownerCurrent:()=>ownerCurrent,storage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)}});
   while(!release||phase!=='initial read'&&writes===0||phase==='confirmation read'&&reads<2)await new Promise(resolve=>setImmediate(resolve));
-  if(change==='draft')draft={requestId:'replacement-request',activatedId:null,useDefaultWorld:true,bio:'keep newer input'};else ownerCurrent=false;
+  if(change==='draft')draft={requestId:'replacement-request',activatedId:null,useDefaultWorld:true,worldChoiceConfirmed:true,bio:'keep newer input'};else ownerCurrent=false;
   const before=structuredClone(draft);release();assert.equal((await pending).stale,true);assert.deepEqual(draft,before);
   if(phase==='initial read')assert.equal(writes,0);
  }
@@ -58,4 +58,15 @@ for(const phase of ['catalog','preview','apply','select'])test(`published world 
  // stale local receipt or later command may follow it.
  if(phase==='select')await assert.rejects(pending,/response lost/);else assert.equal((await pending).stale,true);
  assert.deepEqual(f.draft(),before);if(['catalog','preview'].includes(phase))assert.deepEqual(f.counts(),{applyCalls:0,selectCalls:0});else assert.equal(f.counts().selectCalls,phase==='select'?1:0);
+});
+
+test('D8 legacy default flag without an explicit choice never creates a world',async()=>{
+ const f=fixture();f.options.recovery.save({activatedId:'actual-character',useDefaultWorld:true});
+ f.options.client.updateRuntimeWorld=()=>assert.fail('implicit world creation');
+ const result=await finishCreationWorld(f.options);assert.equal(result.configured,false);assert.match(result.warning,/明确选择/);assert.deepEqual(f.counts(),{applyCalls:0,selectCalls:0});
+});
+test('D8 confirmed daily choice must reselect a world created while the wizard was open',async()=>{
+ const f=fixture();f.options.recovery.save({activatedId:'actual-character',useDefaultWorld:true,worldChoiceConfirmed:true});
+ f.options.client.worldCatalog=async()=>({items:[{id:'other-world'}]});f.options.client.updateRuntimeWorld=()=>assert.fail('duplicate daily world');
+ const result=await finishCreationWorld(f.options);assert.equal(result.configured,false);assert.match(result.warning,/已有生活世界/);assert.equal(f.draft().worldRuntimeId,undefined);
 });

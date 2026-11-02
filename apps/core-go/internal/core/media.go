@@ -729,6 +729,9 @@ func replaceMediaPlaceholderValueWithSeed(value any, prompt string, constraints 
 		if typed == "{{prompt}}" {
 			return prompt, nil
 		}
+		if strings.Contains(typed, "{{negative_prompt}}") {
+			typed = strings.ReplaceAll(typed, "{{negative_prompt}}", imageNoTextNegativePrompt)
+		}
 		if typed == "{{seed}}" || typed == "{{renderer_constraints.seed}}" {
 			return seed, nil
 		}
@@ -898,6 +901,8 @@ func (a *App) submitComfyPrompt(ctx context.Context, intent mediaIntent, concept
 			return nil, err
 		}
 	}
+	workflow = imageWorkflowWithoutText(workflow)
+	prompt = imagePromptWithoutText(prompt)
 	payload, err := json.Marshal(map[string]any{"prompt": workflow})
 	if err != nil {
 		return nil, err

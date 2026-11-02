@@ -985,3 +985,70 @@ retry exhaustion under the PostgreSQL integration gate.
 ### 7. Wrong vs Correct
 Wrong: an Activity blocks on another actor task for its whole ten-minute budget.
 Correct: yield the Activity slot and wait durably without changing fact identity.
+
+## Scenario: Persona failure admission and independent Owner-request cognition (2026-11-02)
+
+- Persona compilation retains its three Temporal Activity attempts. Exhaustion
+  settles the workflow intent as an explicit failed preparation; the existing
+  revision/idempotency-fenced `persona-preparation/recover` command admits a
+  new preparation intent. Do not release the compilation dispatcher barrier
+  and execute chat against a missing Working Persona.
+- New chat acceptance reads the latest preparation for the current persona
+  revision under the lifecycle/Life transaction lock. Pending/running/retrying
+  preparation returns `persona_preparation_pending`; failed/dead-letter/
+  cancelled/terminated returns `persona_preparation_failed`, before writing
+  a user message or inbox. Legacy characters with no preparation stay ready.
+- An already accepted, still-pending turn whose preparation later fails
+  settles the real inbox with `persona_preparation_failed`. Its observer and
+  History expose that same failure immediately, preserving the original user
+  message and retry identity. Never fail an already claimed model run from
+  this observer path. HTTP and NDJSON publish bounded, repository-owned copy
+  explaining preparation/recovery, never compiler or Provider error text.
+- `life.owner_request.submitted` facts use an independent ordered inbox lane
+  and do not acquire the private-chat logical lease during Provider work.
+  New starts use lifecycle Worker capacity; interaction retains cognition
+  Workflow/Activity registrations for old histories. Workflow commands,
+  stable IDs, domain sources and sequence assignment remain unchanged.
+- Before each mutating Tool transaction and final Owner-request settlement,
+  lock lifecycle/Life then validate the unexpired inbox claim owner with
+  `FOR SHARE`. A stale owner cannot mutate or settle a successor. Original
+  request targets, CAS revisions, short database transactions and durable
+  Tool receipts remain authoritative. Shared generated Provider limits are
+  unchanged; a configured single physical slot still serializes HTTP model
+  calls, with existing interactive priority between calls.
+- Reflection scans only the processed sequence prefix before the earliest
+  unresolved inbox fact. A faster chat cannot advance its watermark past a
+  slow Owner request. Owner-request settlement schedules a source-specific
+  Reflection intent through the existing non-chat quiet-period writer, so a
+  previously completed chat epoch cannot strand that later evidence.
+
+Regression coverage: `TestPersonaPreparationWorkflowExhaustsThreeAttemptsAsExplicitFailure`,
+`TestPostgresPersonaPreparationRejectsChatBeforeAcceptanceAndRecovers`,
+`TestPostgresPersonaFailureClosesAlreadyAcceptedObserverAndHistory`,
+`TestPostgresOwnerRequestLaneAllowsChatDuringSlowImageAndOutfitAssessment`,
+`TestPostgresOwnerRequestLaneFencesStaleClaimBeforeToolAndSettlement`,
+`TestPostgresOwnerRequestLaneKeepsOriginalCASAfterConcurrentWardrobeChange`,
+`TestCognitionDispatchSeparatesOwnerRequestCapacityAndKeepsHistoryRegistrations`,
+and the Core/browser persona error mapping tests. Parallel model-call coverage
+uses the documented generated concurrency of two in an isolated test database;
+it does not claim to override a deployment's configured global capacity.
+
+## Owner request automatic reassessment (D7)
+Transient assessment failures and observed wardrobe CAS conflicts retain the
+same pending Owner record and inbox. At most 3 assessments, with durable waits
+of 15 seconds and 60 seconds, then explicit failed/deferred settlement. A genuine
+model rejection/defer, cancellation or configuration failure is not retried.
+Retry metadata (`automatic_retry_count`, `retry_at`, `retry_cause`,
+`reassess_state`) stays in Core. Early observations preserve the backoff and do
+not consume another attempt. Only a newly scheduled assessment may freeze a
+fresh wardrobe CAS; the original Owner payload/target stays immutable and each
+Tool still validates its own frozen revision. A later transient failure retains
+that reassessment requirement. Operation identities include the stable automatic
+attempt ordinal; committed target-scoped receipts are checked before another
+model/effect. Retry waits use the original cognition workflow/inbox and survive
+ContinueAsNew. Terminal settlement retains the D2 claim and Reflection fences.
+Tests: `TestOwnerImageAssessmentTimeoutRetriesThenCreatesExactlyOneImageIntent`,
+`TestOwnerAssessmentTransientRetriesExhaustToTerminalState`,
+`TestOwnerStaleOutfitRequestReassessesCurrentCASAndExecutesAutomatically`,
+`TestOwnerRequestRetryWaitsDurablyBeforeReassessment`; the original D2 concurrent
+wardrobe CAS assertion remains unchanged.

@@ -14,6 +14,8 @@ import { randomId } from "../random-id";
 const client = new BrowserClient(apiOrigin);
 
 const turnErrorCodes = new Set([
+  "persona_preparation_failed",
+  "persona_preparation_pending",
   "reply_media_no_progress",
   "active_memory_capability_unavailable",
   "active_memory_plan_invalid",
@@ -1249,6 +1251,8 @@ export const conversationDefinition = defineDomain({
           !retry &&
           error instanceof BrowserApiError &&
           ([400, 401, 403, 404].includes(error.status) ||
+            error.code === "persona_preparation_failed" ||
+            error.code === "persona_preparation_pending" ||
             error.code === "conversation_turn_conflict")
         ) {
           this.messages = this.messages.filter(

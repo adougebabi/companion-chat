@@ -20,7 +20,7 @@ export function creationDraft({owner,storage,timezone='Asia/Shanghai'}) {
   const key=`fluctlight-creation:${owner}:draft`;
   function read(){
     const raw=storage.getItem(key);
-    if(raw===null||raw===undefined)return {version:1,step:0,useDefaultWorld:true,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:randomId(),timezone,analysis:null,includeGoals:true,activatedId:null};
+    if(raw===null||raw===undefined)return {version:1,step:0,useDefaultWorld:false,worldChoiceConfirmed:false,mode:'description',name:'',bio:'',traits:'',world:'',json:'',analysisText:'',groupId:'',templateId:'',templateVersion:'',requestId:randomId(),timezone,analysis:null,includeGoals:true,activatedId:null};
     return parseCreationDraft(raw);
   }
   return {key,commandKey:`fluctlight-creation:${owner}:command`,read,save(value){

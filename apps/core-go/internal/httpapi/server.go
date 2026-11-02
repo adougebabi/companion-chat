@@ -1161,7 +1161,12 @@ func readJSON(request *http.Request) (map[string]any, bool) {
 }
 
 func writeNDJSONError(response http.ResponseWriter, turnID string, err error) {
-	_ = json.NewEncoder(response).Encode(map[string]any{"type": "error", "turn_id": turnID, "sequence": 0, "payload": map[string]string{"code": turnErrorCode(err), "message": "The turn could not be completed"}})
+	code := turnErrorCode(err)
+	message := core.PersonaPreparationMessage(code)
+	if message == "" {
+		message = "The turn could not be completed"
+	}
+	_ = json.NewEncoder(response).Encode(map[string]any{"type": "error", "turn_id": turnID, "sequence": 0, "payload": map[string]string{"code": code, "message": message}})
 }
 
 // turnErrorCode maps an application error onto the small, stable vocabulary
@@ -1270,6 +1275,7 @@ func validTurnErrorCode(value string) string {
 		"memory_",
 		"native_",
 		"personality_",
+		"persona_preparation_",
 		"presence_",
 		"query_",
 		"relationship_",

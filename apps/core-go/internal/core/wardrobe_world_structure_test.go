@@ -230,6 +230,12 @@ func TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays(t 
 	if err != nil || first["status"] != "awaiting_wear" || first["inventory_committed"] != true || calls != 1 {
 		t.Fatal(first, calls, err)
 	}
+	if first["reason_code"] != "wardrobe_inventory_prepared" || first["reason"] != "根据实际人格准备虚构初始衣物，尚未穿着" {
+		t.Fatal("model prose lost or used as the diagnostic machine reason", first)
+	}
+	if err := (LifecycleDiagnostic{Surface: "wardrobe", Transition: LifecycleTransitionCompletedNoop, CorrelationID: "wardrobe-preparation:" + preparation, Status: stringValue(first["status"]), ReasonCode: stringValue(first["reason_code"])}).Validate(); err != nil {
+		t.Fatal("generated inventory result produced an invalid lifecycle reason", err)
+	}
 	second, err := f.app.ProcessWardrobePreparation(f.ctx, preparation)
 	if err != nil || second["status"] != "completed" || calls != 2 {
 		t.Fatal(second, calls, err)

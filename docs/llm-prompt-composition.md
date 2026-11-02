@@ -162,6 +162,31 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 
 任何提示词精简都不能通过 token 上限、按估算截断或预算拒绝实现。
 
+## 图片禁字与可选视觉审核（2026-11-02）
+
+`media_prompt` 的普通、质量重试和分支规范化指令明确要求最终图片无文字、
+伪文字、字母、数字、标题、标签、字幕、签名、徽标和水印。Visual Identity
+沿用已有无文字角色卡模板。所有生产出图入口（聊天、角色视觉身份与 Studio）
+共用 `submitComfyPrompt`：在提交时保留原正向描述并追加固定禁字协议；沿
+ComfyUI `negative`/`negative_prompt` 声明边找到负向文本编码输入，保留原质量
+排除项并追加禁字负向词。直接声明的 `negative_prompt` 同样处理，可选
+`{{negative_prompt}}` 占位符解析为固定禁字负向词。无负向通道的模型保留其
+原图结构，通过正向协议禁字；不创建虚构的负向节点。该固定输出政策不推断
+主体、场景、构图，不改写用户输入、冻结意图、原生图片或数字渲染参数。
+最终物理请求完整记录在原诊断 `request_payload`，缓存的模型 prompt 保持原样。
+
+`vision.understanding` 继续默认关闭并独立绑定视觉模型。关闭时不发送图片
+理解请求，候选图片保留为尚未检验、等待显式人工评审。返回摘要和时间线投影
+说明设置入口及独立模型要求；开启设置不会自动重试此前跳过的审核。机器原因
+`vision_disabled` 和既有权限保持原契约，无迁移或强制启用。
+
+`TestMediaPromptPhysicalRequestsRequireTextFreeImages` 核对实际模型 HTTP JSON
+的普通、重试与规范化协议及无输出 token 上限。
+`TestImageSubmissionForbidsTextInPositiveAndNegativeProviderInputs` 通过真实
+ComfyUI 提交函数检查三类入口的物理 HTTP 请求、SDXL 多文本负向编码、组合
+条件、原始排除项、真实参考图片文件名和大整数 seed 保真；不等于已验证实图
+质量或保证图像模型绝不产生字符。
+
 ## 初始衣柜任务输入（2026-10-30）
 
 `wardrobe_preparation` 的生成阶段只准备初始库存和 1–4 套方案，选衣阶段只
@@ -231,3 +256,14 @@ NPC 独立回应仍保留该 NPC 的共享已发生互动，新增 participant_n
 is_current_character，防止把与甲的经历当作与乙的关系。scene_event 的稳定地点
 身份贯穿准备、执行和结果，实际 NPC 在场仍以确认事件或有效已开始活动为准。
 输入输出继续不设应用 token 上限，诊断估算不参与截断或拒绝。
+
+### D7–D10 execution boundaries (2026-11-02)
+- Owner-request automatic attempts keep retry ordinal/timing/cause in Core, out
+  of the real Provider messages. A stale wardrobe request gets a new assessment
+  with the same original target and a freshly frozen execution CAS; original
+  Owner text and payload remain unchanged. Physical controlled HTTP regression:
+  `TestOwnerImageAssessmentTimeoutRetriesThenCreatesExactlyOneImageIntent`.
+- World event input is unchanged. Incomplete worlds stop before model/Kev I/O;
+  each world/hour owns one staged result and a 10-minute execution deadline.
+  New-world baseline configuration is materialized transactionally, without an
+  additional model entry or fabricated Life facts. No token limits were added.

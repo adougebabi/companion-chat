@@ -125,7 +125,7 @@ func (a *App) pauseVisualIdentityReview(ctx context.Context, state visualIdentit
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_attempts SET candidate_asset_id=$2,vision_result=$3,status='awaiting_review',updated_at=now() WHERE id=$1 AND decision IS NULL`, state.AttemptID, state.CandidateAssetID, jsonBytes(map[string]any{"inspection_status": "skipped", "reason": reason, "provenance": "none"})); err != nil {
 			return err
 		}
-		return appendVisualIdentityTimelineTx(ctx, tx, state.SessionID, state.AttemptID, state.FluctlightID, visualIdentityStageVisionReady, "skipped", "候选图片已保存，视觉检验未完成，等待显式评审", []string{state.CandidateAssetID}, map[string]any{"reason": reason, "inspection_status": "unverified"}, "visual_identity:"+state.SessionID)
+		return appendVisualIdentityTimelineTx(ctx, tx, state.SessionID, state.AttemptID, state.FluctlightID, visualIdentityStageVisionReady, "skipped", visualIdentityVisionGuidance(reason), []string{state.CandidateAssetID}, map[string]any{"reason": reason, "inspection_status": "unverified"}, "visual_identity:"+state.SessionID)
 	})
 	if err != nil {
 		return VisualIdentityAgentOutput{}, err
@@ -133,9 +133,22 @@ func (a *App) pauseVisualIdentityReview(ctx context.Context, state visualIdentit
 	state.SessionStatus = "awaiting_review"
 	state.ActionRequired = ""
 	state.WaitingStage = "awaiting_review"
-	result := visualIdentityAgentOutputFromState(state, "")
+	result := visualIdentityAgentOutputFromState(state, visualIdentityVisionGuidance(reason))
 	result.ErrorCode = reason
 	return result, nil
+}
+
+func visualIdentityVisionGuidance(reason string) string {
+	switch reason {
+	case "vision_disabled":
+		return "视觉理解未启用。候选图片已保存，尚未经视觉检验；可在设置中启用视觉理解并配置独立视觉模型，或对当前候选图片进行显式人工评审。启用后不会自动重试此前跳过的评审。"
+	case "vision_unconfigured", "vision_model_unconfigured":
+		return "尚未配置独立视觉模型。候选图片已保存，尚未经视觉检验；请在设置中选择视觉理解模型，或对当前候选图片进行显式人工评审。"
+	case "vision_config_invalid", "vision_binding_unavailable", "vision_independent_binding_required":
+		return "视觉理解配置不可用。候选图片已保存，尚未经视觉检验；请在设置中检查独立视觉模型及其连接，或对当前候选图片进行显式人工评审。"
+	default:
+		return "视觉检验暂时不可用。候选图片已保存，尚未经视觉检验；请检查视觉理解模型连接，或对当前候选图片进行显式人工评审。"
+	}
 }
 
 func visionFailureReason(err error) string {

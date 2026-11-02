@@ -1806,6 +1806,8 @@ func (a *App) createFluctlight(ctx context.Context, actorID, requestedID, name s
 			intentions = value
 		}
 	}
+	identity = creationIdentity(identity, id, name)
+	corePersona["identity"] = identity
 	if strings.TrimSpace(stringValue(identity["timezone"])) == "" {
 		if deviceTimezone != "" {
 			identity["timezone"] = deviceTimezone

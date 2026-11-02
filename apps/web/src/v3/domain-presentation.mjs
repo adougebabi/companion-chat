@@ -31,6 +31,9 @@ export function feedbackDiagnostic(cause){
 export function errorMessage(error, fallback='操作未完成，请稍后重试。') {
  const text=String(error?.message ?? error ?? ''), code=String(error?.code ?? '');
  const source=code+' '+text;
+ if(/persona_preparation_failed/.test(source))return '人格资料准备失败，暂时无法聊天。请继续准备人格，完成后再发送；当前输入会保留。';
+ if(/persona_preparation_pending/.test(source))return '人格资料正在准备，完成后即可聊天。当前输入会保留，请稍后重新读取准备状态。';
+ if(/vision_disabled/.test(source))return '视觉理解未启用；候选图片已保存，尚未经视觉检验。请到设置开启视觉理解并选择独立视觉模型，或提交人工评审。';
  const providerRole=source.match(/provider role ([\w.-]+) (unavailable|preflight failed)/);
  if(/initialization_role_unconfigured|wardrobe_provider_unconfigured/.test(source)||providerRole){
   const model=({generic_llm:'通用模型',cognitive_assessment:'通用模型',initialization:'通用模型',conversation_reply:'聊天回复模型',vision_understanding:'视觉理解模型',embedding:'记忆检索模型'})[providerRole?.[1]]||'任务需要的通用模型';

@@ -32,7 +32,7 @@ test('world wizard requires an explicit real-source choice and keeps it through 
 });
 
 test('malformed default-world reads never admit a create command',async()=>{
- for(const actual of [{},{available:false,world:null},{world:undefined},{world:{}},{world:{id:""}}]){let writes=0;let draft={requestId:'original',activatedId:'A',useDefaultWorld:true};const recovery={read:()=>structuredClone(draft),save:value=>draft=structuredClone(value)};
+ for(const actual of [{},{available:false,world:null},{world:undefined},{world:{}},{world:{id:""}}]){let writes=0;let draft={requestId:'original',activatedId:'A',useDefaultWorld:true,worldChoiceConfirmed:true};const recovery={read:()=>structuredClone(draft),save:value=>draft=structuredClone(value)};
  await assert.rejects(finishCreationWorld({client:{world:async()=>actual,updateRuntimeWorld:async()=>{writes++;return{id:'new'};}},recovery,storage:memoryStorage(),owner:'owner'}),/读取结果不完整/);assert.equal(writes,0);assert.equal(draft.activatedId,'A');}
 });
 
@@ -95,7 +95,7 @@ test('structured readers translate declared status fields without rewriting quot
 test('failed reads cannot reveal a default world; confirmed empty catalogs require an explicit source choice',async()=>{
  const {default:Wizard}=await load('react-app/pages/CharacterWizardPage.jsx'),w=workspace();w.state.session.actorId='r16-empty-world-owner';w.refreshDirectory=async()=>{};w.day=()=> '2026-10-27';let fail=true,creates=0;
  w.services.configurationClient.read=async()=>({bindings:[]});w.client={worldCatalog:async()=>{if(fail)throw Error('offline');return{items:[]};},listStudioResources:async()=>({items:[],next_cursor:''}),updateRuntimeWorld:async()=>{creates++;}};
- const v=await mountReact(vite,Wizard,{workspace:w});try{assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);fail=false;await v.click(button(v.host,'重新读取已有世界'));assert.ok(button(v.host,'使用日常生活世界'));assert.equal(v.host.querySelector('.creation-daily.selected'),null);assert.ok(![...v.host.querySelectorAll('[role=tab]')].some(n=>n.textContent==='已有角色的世界'));assert.match(v.host.textContent,/创建新的世界底稿/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);await v.click(button(v.host,'使用日常生活世界'));assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,false);assert.equal(creates,0);}finally{await v.dispose();}
+ const v=await mountReact(vite,Wizard,{workspace:w});try{assert.doesNotMatch(v.host.textContent,/使用日常生活世界|创建世界设定/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);fail=false;await v.click(button(v.host,'重新读取已有世界'));assert.ok(button(v.host,'使用日常生活世界'));assert.equal(v.host.querySelector('.creation-daily.selected'),null);assert.ok(![...v.host.querySelectorAll('[role=tab]')].some(n=>n.textContent==='已有角色的世界'));assert.match(v.host.textContent,/创建世界/);assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,true);await v.click(button(v.host,'使用日常生活世界'));assert.equal(v.host.querySelector('[data-testid=wizard-world-next]').disabled,false);assert.equal(creates,0);}finally{await v.dispose();}
 });
 
 test('workspace read failures are scoped and distinguish first failure from preserved successful data across role switches',async()=>{

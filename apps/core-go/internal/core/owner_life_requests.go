@@ -4,14 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 )
 
-const ownerLifeRequestFactType = "life.owner_request.submitted"
+const OwnerLifeRequestFactType = "life.owner_request.submitted"
+const ownerLifeRequestFactType = OwnerLifeRequestFactType
 
 func isOwnerLifeRequestKind(kind string) bool {
 	switch kind {
@@ -206,6 +209,8 @@ type ownerLifeCapability struct {
 
 type ownerScheduleRequestKey struct{}
 
+type ownerLifeStaleKey struct{}
+
 func ownerScheduleRequestFromContext(ctx context.Context) map[string]any {
 	value, _ := ctx.Value(ownerScheduleRequestKey{}).(map[string]any)
 	return compactStateMap(value, []string{"operation", "item_id", "start_at", "end_at", "activity", "scene", "location", "place_id"})
@@ -230,6 +235,10 @@ func (c ownerLifeCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Capabil
 		}
 	}
 	if err := c.app.validateOwnerLifeRequestTx(ctx, tx, c.owner, c.fid, c.kind, c.request); err != nil {
+		var conflictErr *SurfaceError
+		if flag, ok := ctx.Value(ownerLifeStaleKey{}).(*atomic.Bool); ok && (errors.Is(err, ErrConflict) || errors.As(err, &conflictErr) && conflictErr.Code == "revision_conflict") && (c.kind == "wardrobe_wear" || c.kind == "item_use") {
+			flag.Store(true)
+		}
 		return failedCapabilityResult(i, "owner_life_request_stale", false), err
 	}
 	args := decodeObject(i.Arguments)
@@ -398,6 +407,9 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 	}
 	ctx = a.bindProjectionRefresh(ctx, projectionRequest, ProviderContextSurfaceNativeCognition, "cognitive_assessment", rules, input, definitions, "owner_life_request_decision", schema, nil)
 	scope := formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition)
+	if attempt := intValue(request["_automatic_retry_count"]); attempt > 0 {
+		scope.OperationID += ":retry:" + fmt.Sprint(attempt)
+	}
 	if ownerMediaRequestKind(kind) {
 		scope.TargetKind = "owner_media_request"
 		scope.TargetRef = stringValue(request["_request_id"])
@@ -508,11 +520,39 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 	}
 	if requestRecord["status"] != "pending" {
 		result := mapValue(requestRecord["result"])
-		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error { return settleOwnerLifeInboxTx(ctx, tx, inbox, result) })
+		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			if err := fenceOwnerRequestClaimTx(ctx, tx); err != nil {
+				return err
+			}
+			return settleOwnerLifeInboxTx(ctx, tx, inbox, result)
+		})
+		return result, err
+	}
+	if retryAt, err := time.Parse(time.RFC3339Nano, stringValue(requestRecord["retry_at"])); err == nil && retryAt.After(a.now()) {
+		result := cloneMap(mapValue(requestRecord["result"]))
+		result["retry_after_seconds"] = int(retryAt.Sub(a.now()).Seconds()) + 1
+		err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			if err := fenceOwnerRequestClaimTx(ctx, tx); err != nil {
+				return err
+			}
+			_, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status='pending',claimed_by=NULL,claimed_at=NULL,attempt_count=GREATEST(0,attempt_count-1) WHERE id=$1`, inbox)
+			return err
+		})
 		return result, err
 	}
 	request := cloneMap(mapValue(requestRecord["payload"]))
 	request["_request_id"] = id
+	retries := intValue(requestRecord["automatic_retry_count"])
+	request["_automatic_retry_count"] = retries
+	if retries > 0 && (requestRecord["reassess_state"] == true || requestRecord["retry_cause"] == "owner_life_request_stale") {
+		// A new assessment freezes current state; the original Owner payload and
+		// target stay immutable. The Tool still checks this newly observed CAS.
+		var revision int
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, fid).Scan(&revision); err != nil {
+			return nil, err
+		}
+		request["expected_revision"] = revision
+	}
 	results, err := a.ownerLifeCommittedResults(ctx, owner, fid, inbox)
 	if err != nil {
 		return nil, err
@@ -521,9 +561,10 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 	satisfied, noChangeRefs := ownerLifeSatisfiedNoChange(kind, results)
 	decision := map[string]any{}
 	var runErr error
+	var stale atomic.Bool
 	planning := ownerPromisePlanningPending(kind, results)
 	if !effect && !satisfied && !planning {
-		task, err := a.runOwnerLifeRequestTask(ctx, owner, fid, inbox, kind, request)
+		task, err := a.runOwnerLifeRequestTask(context.WithValue(ctx, ownerLifeStaleKey{}, &stale), owner, fid, inbox, kind, request)
 		runErr = err
 		if err != nil {
 			a.recordDiagnosticEvent(ctx, "owner.life.request.assessment_failed", "error", fid, id, "owner-life:"+inbox, map[string]any{"error_code": "owner_life_assessment_failed", "kind": kind, "safe_cause": boundedLifecycleCause(err.Error())})
@@ -569,11 +610,23 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 		disposition = "no_change"
 	}
 	result := map[string]any{"effects": ownerLifeResultDetails(kind, results), "disposition": disposition, "request_id": id, "status": status, "error_code": nilIfEmpty(code), "source_fact_id": inbox, "result_refs": refs, "mutation_committed": effect, "reason": reason}
+	retryCause := ""
+	if !effect && !satisfied && !planning && decision["decision"] != "rejected" && !errors.Is(runErr, context.Canceled) {
+		if runErr != nil && !errors.Is(runErr, context.Canceled) && studioFailureRetryable(runErr.Error()) {
+			retryCause = "owner_life_assessment_transient"
+		} else if stale.Load() {
+			retryCause = "owner_life_request_stale"
+		}
+	}
 	// Cancellation may interrupt the model, but already committed effects must
 	// still become visible. This bounded cleanup cannot perform another effect.
 	settleCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
+	reflectionDelay := a.reflectionDelay(settleCtx)
 	err = withTransaction(settleCtx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := fenceOwnerRequestClaimTx(settleCtx, tx); err != nil {
+			return err
+		}
 		var payload []byte
 		if err := tx.QueryRow(settleCtx, `SELECT payload FROM public.owner_surface_records WHERE id=$1 AND owner_actor_id=$2 AND fluctlight_id=$3 FOR UPDATE`, id, owner, fid).Scan(&payload); err != nil {
 			return err
@@ -583,12 +636,36 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 			result = mapValue(record["result"])
 			return settleOwnerLifeInboxTx(settleCtx, tx, inbox, result)
 		}
+		if retryCause != "" && retries < 2 {
+			delay := 15 * time.Second
+			if retries > 0 {
+				delay = time.Minute
+			}
+			result["status"], result["error_code"], result["reason"] = "retry_scheduled", "owner_life_request_retry_scheduled", "本次判断因临时故障或资料变化未执行，系统将自动重新判断。"
+			result["retry_after_seconds"] = int(delay / time.Second)
+			record["automatic_retry_count"], record["retry_cause"], record["result"] = retries+1, retryCause, result
+			if retryCause == "owner_life_request_stale" {
+				record["reassess_state"] = true
+			}
+			record["retry_at"] = a.now().Add(delay).UTC().Format(time.RFC3339Nano)
+			if _, err := tx.Exec(settleCtx, `UPDATE public.owner_surface_records SET payload=$2,revision=revision+1,updated_at=now() WHERE id=$1`, id, jsonBytes(record)); err != nil {
+				return err
+			}
+			_, err := tx.Exec(settleCtx, `UPDATE public.cognition_inbox SET status='pending',claimed_by=NULL,claimed_at=NULL,error_code=$2 WHERE id=$1`, inbox, retryCause)
+			return err
+		}
+		if retryCause != "" && retries >= 2 {
+			result["error_code"] = "owner_life_request_retry_exhausted"
+		}
 		record["status"], record["result"], record["result_refs"], record["decided_by"], record["decision_reason"], record["updated_at"] = status, result, refs, "agent", reason, a.now().UTC().Format(time.RFC3339Nano)
 		record["revision"] = intValue(record["revision"]) + 1
 		if _, err := tx.Exec(settleCtx, `UPDATE public.owner_surface_records SET status=$3,payload=$4,revision=revision+1,updated_at=now() WHERE id=$1 AND owner_actor_id=$2`, id, owner, status, jsonBytes(record)); err != nil {
 			return err
 		}
 		if err := settleOwnerLifeInboxTx(settleCtx, tx, inbox, result); err != nil {
+			return err
+		}
+		if err := insertReflectionIntentWithDelayTx(settleCtx, tx, "reflection_intent:owner-request:"+inbox, "reflection:owner-request:"+inbox, map[string]any{"fluctlight_id": fid, "source_fact_id": inbox, "reason_code": "owner_request_settled"}, reflectionDelay); err != nil {
 			return err
 		}
 		return appendOwnerRequestNotificationTx(settleCtx, tx, fid, id, kind, status, inbox, reason)

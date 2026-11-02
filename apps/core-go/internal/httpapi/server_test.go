@@ -392,7 +392,7 @@ func TestPostgresInitializationAnalysisAuthoritySerializesLatestSourceAndReplay(
 		}
 	}
 	compilerServer := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		portrait := map[string]any{"profile_id": "default", "facts": []any{map[string]any{"category": "identity", "text": "S11", "source_refs": []any{"identity.name"}}}, "omissions": []any{}}
+		portrait := map[string]any{"portrait_text": "S11 保持独立、诚实的交流方式。"}
 		content, _ := json.Marshal(portrait)
 		_ = json.NewEncoder(writer).Encode(map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": string(content)}}}})
 	}))

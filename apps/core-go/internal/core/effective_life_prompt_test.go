@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -31,12 +32,24 @@ func TestFormalWakeUpFinalProviderRequestUsesCurrentSharedBodyAndWearing(t *test
 	seedCognitiveProviderRole(t, ctx, repository, "effective-wakeup-endpoint")
 	var finalWire string
 	var finalPrompt string
+	var runtimeData, triggerData map[string]any
 	router := newFakeProviderRouter().on("wake_up_response", func(payload map[string]any) fakeProviderResult {
 		finalWire = jsonString(payload)
 		for _, raw := range arrayValue(payload["messages"]) {
 			message := mapValue(raw)
 			if stringValue(message["role"]) == "user" {
-				finalPrompt += stringValue(message["content"]) + "\n"
+				content := stringValue(message["content"])
+				finalPrompt += content + "\n"
+				if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+					body := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+					if err := json.Unmarshal([]byte(body), &runtimeData); err != nil {
+						t.Fatalf("WakeUp runtime context is not JSON: %v", err)
+					}
+				} else {
+					if err := json.Unmarshal([]byte(content), &triggerData); err != nil {
+						t.Fatalf("WakeUp trigger data is not JSON: %v", err)
+					}
+				}
 			}
 		}
 		if os.Getenv("YAOGUANG_CAPTURE_WIRE") == "1" {
@@ -49,15 +62,18 @@ func TestFormalWakeUpFinalProviderRequestUsesCurrentSharedBodyAndWearing(t *test
 	if err != nil {
 		t.Fatalf("formal WakeUp did not finish: result=%#v err=%v", result, err)
 	}
-	if !strings.Contains(finalWire, "hair_length: short") || strings.Contains(finalWire, "hair_length: long") || !strings.Contains(finalWire, "白衬衫") {
+	appearance := mapValue(mapValue(mapValue(runtimeData["current_state"])["data"])["appearance"])
+	worn := arrayValue(appearance["worn_items"])
+	if mapValue(appearance["body_fields"])["hair_length"] != "short" || len(worn) != 1 || mapValue(worn[0])["description"] != "白衬衫" {
 		t.Fatalf("final WakeUp Provider request used an old body or omitted actual wearing: %s", finalWire)
 	}
-	for _, forbidden := range []string{"schedule_ref:", "wake_up_id:", "context_revision:"} {
-		if strings.Contains(finalPrompt, forbidden) {
+	for _, forbidden := range []string{"schedule_ref", "wake_up_id", "context_revision"} {
+		if strings.Contains(finalPrompt, `"`+forbidden+`":`) {
 			t.Fatalf("WakeUp model text retained %q: %s", forbidden, finalPrompt)
 		}
 	}
-	if !strings.Contains(finalPrompt, "阅读") || !strings.Contains(finalPrompt, "schedule_status") {
+	life := mapValue(mapValue(mapValue(runtimeData["current_state"])["data"])["life_context"])
+	if life["activity"] != "阅读" || triggerData["schedule_status"] != "accepted" {
 		t.Fatalf("WakeUp model text lost schedule meaning: %s", finalPrompt)
 	}
 }

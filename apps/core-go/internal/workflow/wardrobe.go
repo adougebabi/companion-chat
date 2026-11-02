@@ -51,8 +51,17 @@ func ProcessWardrobePreparationActivity(ctx context.Context, input Input) (map[s
 	if err != nil {
 		recordActivityLifecycle(app(), ctx, input, "wardrobe", core.LifecycleTransitionFailed, "failed", "wardrobe_preparation_failed", err)
 	} else {
-		transition, status, reason := actionLifecycleOutcome(result)
+		transition, status, reason := wardrobeLifecycleOutcome(result)
 		recordActivityLifecycle(app(), ctx, input, "wardrobe", transition, status, reason, nil)
 	}
 	return result, err
+}
+
+func wardrobeLifecycleOutcome(result map[string]any) (core.LifecycleTransition, string, string) {
+	transition, status, _ := actionLifecycleOutcome(result)
+	// reason is Owner-facing/model-authored prose. Only the domain-owned
+	// reason_code belongs in the machine-token diagnostic envelope. The default
+	// also supports already-persisted preparation results without reason_code.
+	reason := firstString(result["reason_code"], "wardrobe_preparation_settled")
+	return transition, status, reason
 }

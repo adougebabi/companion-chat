@@ -388,6 +388,16 @@ func CognitionProcessingWorkflow(ctx workflow.Context, input Input) (map[string]
 		return nil, err
 	}
 	watchReply := workflow.GetVersion(ctx, "cognition-reply-deadline-v1", workflow.DefaultVersion, 1)
+	if stringValue(result["status"]) == "retry_scheduled" {
+		delay := 15 * time.Second
+		if seconds, ok := result["retry_after_seconds"].(float64); ok && seconds > 0 && seconds <= 60 {
+			delay = time.Duration(seconds) * time.Second
+		}
+		if err := workflow.Sleep(ctx, delay); err != nil {
+			return nil, err
+		}
+		return nil, workflow.NewContinueAsNewError(ctx, CognitionProcessingWorkflow, input)
+	}
 	if stringValue(result["status"]) == "waiting_for_agent" || watchReply >= 1 && stringValue(result["status"]) == "waiting_reply" {
 		if err := workflow.Sleep(ctx, 5*time.Second); err != nil {
 			return nil, err
@@ -1320,6 +1330,10 @@ func StartWorkers(ctx context.Context, temporalClient client.Client, logger *slo
 			w.RegisterWorkflow(WorldEventGenerationWorkflow)
 			w.RegisterActivity(GenerateWorldEventActivity)
 		case LifecycleQueue:
+			// Owner-request cognition has independent capacity from private chat.
+			// Keep the interaction registrations for pre-isolation histories.
+			w.RegisterWorkflow(CognitionProcessingWorkflow)
+			w.RegisterActivity(ProcessCognitionActivity)
 			w.RegisterWorkflow(OwnerScheduleWorkflow)
 			w.RegisterActivity(ProcessOwnerScheduleActivity)
 			w.RegisterWorkflow(WardrobePreparationWorkflow)
@@ -1647,6 +1661,25 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionFailed, "workflow_history", "retry", "workflow_history_read_failed", attemptCount, historyErr)
 				continue
 			}
+		}
+		if intentType == "studio.generate" && intentStatus == "failed" {
+			if terminalFailure == "" && status == enumspb.WORKFLOW_EXECUTION_STATUS_TIMED_OUT {
+				terminalFailure = "studio_workflow_timeout"
+			}
+			outcome, err := d.App.ReconcileStudioWorkflowFailure(ctx, intentID, terminalFailure)
+			if err != nil {
+				return count, err
+			}
+			transition := core.LifecycleTransitionFailed
+			if outcome.Status == "retry" {
+				transition = core.LifecycleTransitionRetryScheduled
+			}
+			d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, transition, "workflow_reconcile", outcome.Status, outcome.ReasonCode, attemptCount, errors.New(firstString(terminalFailure, "studio_workflow_failed")))
+			if d.Started != nil {
+				delete(d.Started, intentID)
+			}
+			count++
+			continue
 		}
 		if intentType != "reflection.run" && intentType != "wake_up.current" && intentStatus == "failed" && workflowIntentRetryExhausted(intentType, attemptCount) {
 			if err := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, runID, attemptCount, terminalFailure); err != nil {
@@ -2323,6 +2356,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			continue
 		}
 		input = hydrateLifecycleInput(intentID, intentType, payload, input)
+		cognitionEventType := ""
 		if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
 			if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_retry_exhausted"); exhaustErr != nil {
 				return count, exhaustErr
@@ -2339,7 +2373,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				slog.Default().Warn("Go Worker lifecycle preemption degraded before cognition", "intent_id", intentID, "fluctlight_id", input.FluctlightID, "error_type", fmt.Sprintf("%T", preemptErr))
 			}
 			var claimed bool
-			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.cognition_inbox WHERE id=$1 AND status='claimed' AND claimed_at > now()-interval '10 minutes')`, input.InboxID).Scan(&claimed); err != nil {
+			if err := d.App.DB.Pool().QueryRow(ctx, `SELECT COALESCE(status='claimed' AND claimed_at > now()-interval '10 minutes',false),event_type FROM public.cognition_inbox WHERE id=$1`, input.InboxID).Scan(&claimed, &cognitionEventType); err != nil {
 				return count, err
 			}
 			if claimed {
@@ -2444,7 +2478,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			taskQueue = LifecycleQueue
 		case "cognition.processing":
 			workflowFn = CognitionProcessingWorkflow
-			taskQueue = InteractionQueue
+			taskQueue = cognitionDispatchTaskQueue(cognitionEventType)
 		case "platform.control":
 			workflowFn = PlatformControlWorkflow
 			taskQueue = LifecycleQueue

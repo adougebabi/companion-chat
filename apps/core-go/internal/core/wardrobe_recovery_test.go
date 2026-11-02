@@ -6,10 +6,56 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+func TestWardrobeInactivePreparationPersistsValidNoopDiagnostic(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	var id string
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		var err error
+		id, err = ensureWardrobePreparationTx(f.ctx, tx, f.fluctlightID, "noop-diagnostic")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlights SET status='paused' WHERE id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	result, err := f.app.ProcessWardrobePreparation(f.ctx, id)
+	if err != nil || result["status"] != "awaiting_wear" || result["reason_code"] != "character_inactive" || result["reason"] != "角色当前未处于活动状态" {
+		t.Fatal(result, err)
+	}
+	eventID, err := f.app.RecordLifecycleDiagnostic(f.ctx, LifecycleDiagnostic{
+		Surface: "wardrobe", Transition: LifecycleTransitionCompletedNoop,
+		FluctlightID: f.fluctlightID, CorrelationID: "wardrobe-preparation:" + id,
+		Stage: "activity", Status: stringValue(result["status"]), ReasonCode: stringValue(result["reason_code"]),
+	})
+	if err != nil || eventID == "" {
+		t.Fatal("actual wardrobe noop diagnostic was rejected", result, eventID, err)
+	}
+	f.requireNoModelRuns(t)
+}
+
 func TestAutomaticWardrobeRecoverySkipsCancelledAndPausedWithoutStarvingBatch(t *testing.T) {
-	cancelled := seedWardrobeToolFixture(t)
-	paused := seedWardrobeToolFixture(t)
 	eligible := seedWardrobeToolFixture(t)
+	// All three rows must compete in the same recovery query and LIMIT. Each
+	// seedWardrobeToolFixture call creates its own isolated database.
+	sharedFixture := func(label string) independentToolE2EFixture {
+		t.Helper()
+		f := eligible
+		f.ownerID += "-" + label
+		f.fluctlightID += "-" + label
+		seedLifeContextFluctlight(t, f.ctx, f.repository, f.ownerID, f.fluctlightID)
+		if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+			if _, err := tx.Exec(f.ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id,revision) VALUES($1,'default',0)`, f.fluctlightID); err != nil {
+				return err
+			}
+			return initializeEffectiveLifeTx(f.ctx, tx, f.fluctlightID, map[string]any{})
+		}); err != nil {
+			t.Fatal(err)
+		}
+		return f
+	}
+	cancelled := sharedFixture("cancelled")
+	paused := sharedFixture("paused")
 	prepare := func(f independentToolE2EFixture, intentStatus string) string {
 		t.Helper()
 		var id string
@@ -31,6 +77,10 @@ func TestAutomaticWardrobeRecoverySkipsCancelledAndPausedWithoutStarvingBatch(t 
 	cancelledID := prepare(cancelled, "cancelled")
 	pausedID := prepare(paused, "failed")
 	eligibleID := prepare(eligible, "failed")
+	var competing int
+	if err := eligible.repository.Pool().QueryRow(eligible.ctx, `SELECT count(*) FROM public.fluctlight_wardrobe_preparations WHERE id IN ($1,$2,$3)`, cancelledID, pausedID, eligibleID).Scan(&competing); err != nil || competing != 3 {
+		t.Fatal("recovery fixtures do not share a candidate database", competing, err)
+	}
 	if _, err := paused.repository.Pool().Exec(paused.ctx, `UPDATE public.fluctlights SET status='paused' WHERE id=$1`, paused.fluctlightID); err != nil {
 		t.Fatal(err)
 	}

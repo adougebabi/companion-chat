@@ -93,7 +93,7 @@ func ownerDiagnosticSourceSnapshot(kind, visible string) (string, error) {
 	case "media-recoveries":
 		return `SELECT t.id AS key,t.created_at AS at,t.recorded_xid AS born,(to_jsonb(t)-'recorded_xid')||jsonb_build_object('fluctlight_id',t.previous->>'owner_fluctlight_id','status',w.status,'attempt_count',w.attempt_count,'last_error',CASE WHEN w.last_error IS NULL THEN NULL ELSE 'media_workflow_failed' END) AS data FROM public.media_recovery_attempts t JOIN public.platform_workflow_intents w ON w.intent_id=t.intent_id WHERE t.owner_actor_id=$1`, nil
 	case "workflow-intents":
-		return `SELECT t.intent_id AS key,t.created_at AS at,t.recorded_xid AS born,to_jsonb(t)-'recorded_xid' AS data FROM public.platform_workflow_intents t WHERE $1::text<>''`, nil
+		return `SELECT t.intent_id AS key,t.created_at AS at,t.recorded_xid AS born,(to_jsonb(t)-'recorded_xid')||CASE WHEN t.intent_type='world.events.generate' AND t.status='started' AND t.payload ? 'cycle_finished_at' AND t.payload->>'cycle_status'<>'generating' THEN jsonb_build_object('status','waiting','clock_status',t.status,'last_cycle_status',t.payload->>'cycle_status','next_cycle_at',t.payload->>'cycle_next_at') ELSE '{}'::jsonb END AS data FROM public.platform_workflow_intents t WHERE $1::text<>''`, nil
 	case "kev":
 		return `SELECT t.id AS key,t.started_at AS at,t.recorded_xid AS born,(t.payload||jsonb_build_object('id',t.id,'fluctlight_id',t.actor_self,'run_id',t.run_id,'correlation_id',t.payload->'scope'->>'correlation_id')) AS data FROM public.kev_decisions t WHERE $1::text<>''`, nil
 	case "audit":

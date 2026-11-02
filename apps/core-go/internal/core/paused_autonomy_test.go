@@ -174,7 +174,7 @@ func TestPausedCharacterDoesNotStopIndependentNPCWorld(t *testing.T) {
 	if _, err := fixture.app.SetFluctlightStatus(fixture.ctx, fixture.ownerID, fixture.fluctlightID, "paused", "stop world activity", &revision); err != nil {
 		t.Fatal(err)
 	}
-	if count, err := fixture.app.RepairWorldNPCPresence(fixture.ctx, 20); err != nil || count != 1 {
+	if count, err := fixture.app.RepairWorldNPCPresence(fixture.ctx, 20); err != nil || count != 3 {
 		t.Fatalf("independent NPC presence repair = %d err=%v", count, err)
 	}
 	if count, err := fixture.app.RepairNPCOpportunities(fixture.ctx, 20); err != nil || count != 0 {

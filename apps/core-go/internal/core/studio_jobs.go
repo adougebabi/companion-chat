@@ -86,6 +86,32 @@ func enqueueStudioAttemptTx(ctx context.Context, tx pgx.Tx, owner, id string, at
 	_, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','studio.generate',$3)`, "studio_intent:"+aid, "studio:"+aid, jsonBytes(map[string]any{"owner_actor_id": owner, "studio_attempt_id": aid, "studio_job_id": id}))
 	return err
 }
+
+// New attempts preserve a validated completed model stage. Failed attempts are
+// immutable; neither automatic nor explicit recovery reopens their execution.
+func retryStudioAttemptTx(ctx context.Context, tx pgx.Tx, owner string, job map[string]any) error {
+	id, previous := stringValue(job["id"]), intValue(job["latest_attempt"])
+	var raw []byte
+	if err := tx.QueryRow(ctx, `SELECT output FROM public.studio_job_attempts WHERE job_id=$1 AND attempt=$2`, id, previous).Scan(&raw); err != nil {
+		return err
+	}
+	output := decodeObject(raw)
+	if len(output) > 0 && job["kind"] != "image_preview" {
+		if err := validateStudioOutput(stringValue(job["kind"]), mapValue(job["snapshot"]), output); err != nil {
+			return err
+		}
+	}
+	if err := enqueueStudioAttemptTx(ctx, tx, owner, id, previous+1, output); err != nil {
+		return err
+	}
+	if len(output) > 0 {
+		if _, err := tx.Exec(ctx, `UPDATE public.studio_job_attempts n SET provenance=p.provenance||jsonb_build_object('reused_from_attempt_id',p.id) FROM public.studio_job_attempts p WHERE n.job_id=$1 AND n.attempt=$2 AND p.job_id=n.job_id AND p.attempt=$3`, id, previous+1, previous); err != nil {
+			return err
+		}
+	}
+	_, err := tx.Exec(ctx, `UPDATE public.studio_jobs SET status='queued',latest_attempt=latest_attempt+1,revision=revision+1,error_code=NULL,updated_at=now() WHERE id=$1`, id)
+	return err
+}
 func (a *App) DispatchStudioJobSurface(ctx context.Context, method, path string, q url.Values, owner string, body map[string]any) (map[string]any, error) {
 	p := strings.Split(strings.Trim(path, "/"), "/")
 	if !MatchStudioJobSurface(method, path) {
@@ -227,26 +253,7 @@ func (a *App) DispatchStudioJobSurface(ctx context.Context, method, path string,
 					return nil, &SurfaceError{Status: 409, Code: "studio_media_execution_active", Message: "The original media workflow is still active or awaiting cancellation; query it before retrying"}
 				}
 			}
-			previous := intValue(job["latest_attempt"])
-			var raw []byte
-			if err := tx.QueryRow(ctx, `SELECT output FROM public.studio_job_attempts WHERE job_id=$1 AND attempt=$2`, id, previous).Scan(&raw); err != nil {
-				return nil, err
-			}
-			output := decodeObject(raw)
-			if len(output) > 0 && job["kind"] != "image_preview" {
-				if err := validateStudioOutput(stringValue(job["kind"]), mapValue(job["snapshot"]), output); err != nil {
-					return nil, err
-				}
-			}
-			if err := enqueueStudioAttemptTx(ctx, tx, owner, id, previous+1, output); err != nil {
-				return nil, err
-			}
-			if len(output) > 0 {
-				if _, err := tx.Exec(ctx, `UPDATE public.studio_job_attempts n SET provenance=p.provenance||jsonb_build_object('reused_from_attempt_id',p.id) FROM public.studio_job_attempts p WHERE n.job_id=$1 AND n.attempt=$2 AND p.job_id=n.job_id AND p.attempt=$3`, id, previous+1, previous); err != nil {
-					return nil, err
-				}
-			}
-			if _, err := tx.Exec(ctx, `UPDATE public.studio_jobs SET status='queued',latest_attempt=latest_attempt+1,revision=revision+1,error_code=NULL,updated_at=now() WHERE id=$1`, id); err != nil {
+			if err := retryStudioAttemptTx(ctx, tx, owner, job); err != nil {
 				return nil, err
 			}
 		case "discard":

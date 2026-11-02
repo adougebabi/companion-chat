@@ -36,18 +36,25 @@ func (a *App) processCognitionInbox(ctx context.Context, inboxID string) (map[st
 	if inboxID == "" {
 		return nil, errors.New("cognition_inbox_id_required")
 	}
-	logicalOwner, logicalErr := a.logicalRunOwner(ctx, inboxID)
-	if logicalErr != nil {
-		return nil, logicalErr
-	}
-	ctx, releaseLogical, logicalErr := a.enterLogicalRunWithWait(ctx, logicalOwner, "cognition", false)
-	if errors.Is(logicalErr, errLogicalAgentBusy) {
-		return map[string]any{"inbox_id": inboxID, "status": "waiting_for_agent"}, nil
+	var logicalOwner, eventType string
+	logicalErr := a.DB.Pool().QueryRow(ctx, `SELECT fluctlight_id,event_type FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&logicalOwner, &eventType)
+	if errors.Is(logicalErr, pgx.ErrNoRows) {
+		logicalErr = ErrNotFound
 	}
 	if logicalErr != nil {
 		return nil, logicalErr
 	}
-	defer releaseLogical()
+	if eventType != ownerLifeRequestFactType {
+		var releaseLogical func()
+		ctx, releaseLogical, logicalErr = a.enterLogicalRunWithWait(ctx, logicalOwner, "cognition", false)
+		if errors.Is(logicalErr, errLogicalAgentBusy) {
+			return map[string]any{"inbox_id": inboxID, "status": "waiting_for_agent"}, nil
+		}
+		if logicalErr != nil {
+			return nil, logicalErr
+		}
+		defer releaseLogical()
+	}
 	claimOwner := "go-cognition:" + randomID("worker_")
 	payload, status, err := a.claimCognitionInbox(ctx, inboxID, claimOwner)
 	if errors.Is(err, ErrConflict) {
@@ -106,6 +113,10 @@ func (a *App) processCognitionInbox(ctx context.Context, inboxID string) (map[st
 		return result, nil
 	}
 	if stringValue(data["event_type"]) == ownerLifeRequestFactType {
+		// Independent Owner jobs can spend minutes preparing an image or
+		// outfit. Their ordered inbox lane and claim fence protect execution;
+		// short Tool transactions retain the existing life locks and CAS checks.
+		ctx = context.WithValue(ctx, ownerRequestClaimKey{}, ownerRequestClaim{InboxID: inboxID, Owner: logicalOwner, Token: claimOwner})
 		result, err := a.processOwnerLifeRequest(ctx, inboxID, data)
 		if err != nil {
 			return nil, err
@@ -192,12 +203,12 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 		claimOwner = "go-cognition:" + randomID("worker_")
 	}
 	var payload []byte
-	var fluctlightID string
+	var fluctlightID, eventType string
 	var sequence int
 	var status, claimedBy string
 	var claimedAt *time.Time
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,sequence,payload,status,COALESCE(claimed_by,''),claimed_at FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &sequence, &payload, &status, &claimedBy, &claimedAt); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT fluctlight_id,sequence,payload,status,COALESCE(claimed_by,''),claimed_at,event_type FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&fluctlightID, &sequence, &payload, &status, &claimedBy, &claimedAt, &eventType); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return ErrNotFound
 			}
@@ -230,8 +241,9 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 				processed_at = COALESCE(processed_at, now())
 			WHERE fluctlight_id = $1 AND status = 'pending' AND attempt_count >= 3`, fluctlightID)
 
-		// Ordering is enforced by the durable pending/claimed predecessor
-		// check below. Do not reject a recoverable turn merely because the head's
+		// Owner requests retain their relative order in an independent lane,
+		// without making chat wait for their I/O. Do not reject a recoverable
+		// turn merely because the head's
 		// last_processed_sequence was not advanced by an older synchronous
 		// stream request or by a superseded turn; that would strand a frozen
 		// action after the request process dies before message settlement.
@@ -240,11 +252,12 @@ func (a *App) claimCognitionInbox(ctx context.Context, inboxID, claimOwner strin
 			SELECT EXISTS(
 				SELECT 1 FROM public.cognition_inbox
 				WHERE fluctlight_id = $1 AND sequence < $2
+				  AND (event_type=$3) = $4
 				  AND (
 					(status = 'claimed' AND claimed_at >= now() - interval '10 minutes')
 					OR (status = 'pending' AND attempt_count < 3)
 				  )
-			)`, fluctlightID, sequence).Scan(&earlierPending); err != nil {
+			)`, fluctlightID, sequence, ownerLifeRequestFactType, eventType == ownerLifeRequestFactType).Scan(&earlierPending); err != nil {
 			return err
 		}
 		if earlierPending {

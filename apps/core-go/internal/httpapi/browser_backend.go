@@ -83,6 +83,9 @@ func browserConversationTurnError(err error) error {
 		return nil
 	}
 	if code := core.ConversationTurnFailureCode(err); code != "" {
+		if message := core.PersonaPreparationMessage(code); message != "" {
+			return &browser.CoreError{Status: http.StatusConflict, Code: code, Message: message}
+		}
 		return &browser.CoreError{Status: http.StatusBadGateway, Code: code, Message: "conversation turn failed"}
 	}
 	return err

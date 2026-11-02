@@ -71,6 +71,17 @@ func (a *App) writeWorldCatalogTx(ctx context.Context, tx pgx.Tx, fid, method st
 }
 
 func (a *App) createCatalogWorldTx(ctx context.Context, tx pgx.Tx, fid string, body map[string]any) (map[string]any, error) {
+	result, err := a.createCatalogWorldShellTx(ctx, tx, fid, body)
+	if err == nil {
+		err = a.bootstrapWorldTx(ctx, tx, fid, stringValue(result["id"]), body)
+	}
+	return result, err
+}
+
+func (a *App) createCatalogWorldShellTx(ctx context.Context, tx pgx.Tx, fid string, body map[string]any) (map[string]any, error) {
+	if err := requireWorldCreationChoiceTx(ctx, tx, fid, body); err != nil {
+		return nil, err
+	}
 	name, err := boundedWorldText(body, "name", 256, true)
 	if err != nil {
 		return nil, err
