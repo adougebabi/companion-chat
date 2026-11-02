@@ -48,7 +48,7 @@ const (
 	minWakeUpIntervalSeconds      = 10 * 60
 	maxWakeUpIntervalSeconds      = 10 * 60
 	dispatcherIntentOrder         = "CASE WHEN intent_type = 'persona.compile' THEN 0 WHEN intent_type LIKE 'cognition.%' THEN 0 WHEN intent_type LIKE 'media.%' THEN 1 WHEN intent_type LIKE 'schedule.%' THEN 2 WHEN intent_type LIKE 'wake_up.%' THEN 3 WHEN intent_type LIKE 'daily_review.%' THEN 4 WHEN intent_type LIKE 'autonomy.%' THEN 5 WHEN intent_type LIKE 'capability.%' THEN 6 WHEN intent_type LIKE 'reflection.%' THEN 7 WHEN intent_type LIKE 'visual_identity.%' THEN 8 ELSE 9 END"
-	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE intent_id > $2 AND ((status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','schedule.current_day','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','persona.compile','conversation.segment','conversation.daily_memory'))) ORDER BY intent_id LIMIT $1`
+	reconcileIntentQuery          = `SELECT intent_id,workflow_id,intent_type,payload,COALESCE(status,'pending'),COALESCE(attempt_count,0) FROM public.platform_workflow_intents WHERE intent_id > $2 AND ((status='pending' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR status IN ('started','cancel_requested') OR (status='retry' AND (next_attempt_at IS NULL OR next_attempt_at <= now())) OR (status='failed' AND intent_type IN ('wake_up.current','schedule.current_day','wardrobe.initialize','cognition.processing','intention.trigger','autonomy.action','capability.action','reflection.run','goal.evaluate','goal.plan','visual_identity.initialize','persona.compile','conversation.segment','conversation.daily_memory'))) ORDER BY intent_id LIMIT $1`
 )
 
 func workflowIntentMaximumAttempts(intentType string) int {
@@ -73,7 +73,7 @@ func workflowIntentMaximumAttempts(intentType string) int {
 		return 0
 	case "wake_up.current":
 		return wakeUpMaximumAttempts
-	case "schedule.current_day":
+	case "schedule.current_day", "wardrobe.initialize":
 		return scheduleMaximumAttempts
 	default:
 		return 0
@@ -1479,7 +1479,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		intentID, workflowID, intentType, currentIntentStatus, payload, attemptCount := item.id, item.workflowID, item.kind, item.status, item.payload, item.attempts
 		// Dispatch starts/adopts these stable clocks. The previous terminal Run
 		// must not close a queued recovery or move its backoff deadline forward.
-		if (intentType == "world.events.generate" || intentType == "schedule.current_day") && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
+		if (intentType == "world.events.generate" || intentType == "schedule.current_day" || intentType == "wardrobe.initialize") && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
 			continue
 		}
 		var input Input
@@ -1523,19 +1523,23 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			}
 		}
 		execution, describeErr := d.Client.DescribeWorkflowExecution(ctx, normalizedWorkflowID(workflowID), "")
-		// Observation outages cannot prove a schedule execution failed. A failed
-		// ledger may also refer to an earlier Run of the still-running clock.
-		if intentType == "schedule.current_day" && (describeErr != nil || execution == nil || execution.WorkflowExecutionInfo == nil) {
+		// Observation outages cannot prove an initialization or schedule failed.
+		// A failed ledger may also refer to an earlier Run of a running execution.
+		if (intentType == "schedule.current_day" || intentType == "wardrobe.initialize") && (describeErr != nil || execution == nil || execution.WorkflowExecutionInfo == nil) {
 			continue
 		}
-		if intentType == "schedule.current_day" && currentIntentStatus == "failed" {
+		if (intentType == "schedule.current_day" || intentType == "wardrobe.initialize") && currentIntentStatus == "failed" {
 			repaired, repairErr := reconcileFailedScheduleLedger(ctx, intentID, execution, describeErr, d.App.DB.Pool().Exec)
 			if repairErr != nil {
 				return count, repairErr
 			}
 			if repaired {
 				runID := execution.WorkflowExecutionInfo.GetExecution().GetRunId()
-				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_reconcile", "started", "schedule_running_ledger_repaired", attemptCount, nil)
+				reason := "schedule_running_ledger_repaired"
+				if intentType == "wardrobe.initialize" {
+					reason = "wardrobe_running_ledger_repaired"
+				}
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_reconcile", "started", reason, attemptCount, nil)
 				if d.Started != nil {
 					d.Started[intentID] = struct{}{}
 				}
@@ -1686,9 +1690,13 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			count++
 			continue
 		}
-		if intentType == "schedule.current_day" && intentStatus == "failed" {
-			// Each Workflow keeps the existing two Activity attempts. Subsequent
-			// executions use durable exponential backoff (one, then two minutes).
+		if (intentType == "schedule.current_day" || intentType == "wardrobe.initialize") && intentStatus == "failed" {
+			surface := "schedule"
+			if intentType == "wardrobe.initialize" {
+				surface = "wardrobe"
+			}
+			// Keep each Workflow's Activity policy. Subsequent executions use
+			// durable exponential backoff (one, then two minutes).
 			delay := time.Minute
 			if attemptCount > 1 {
 				delay *= 2
@@ -1700,18 +1708,18 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents
 				SET status=$5::varchar,next_attempt_at=CASE WHEN $5::varchar='retry' THEN now()+($2 * interval '1 second') ELSE NULL END,
 				started_at=NULL,completed_at=CASE WHEN $5::varchar='dead_letter' THEN now() ELSE NULL END,
-				last_error=COALESCE(NULLIF($3,''),last_error,'schedule_workflow_failed'),
-				payload=payload||'{"initial_schedule_degraded":true}'::jsonb
-				WHERE intent_id=$1 AND status IN ('started','failed') AND attempt_count=$4`, intentID, int64(delay/time.Second), terminalFailure, attemptCount, nextStatus)
+				last_error=COALESCE(NULLIF($3,''),last_error,$6::text||'_workflow_failed'),
+				payload=CASE WHEN intent_type='schedule.current_day' THEN payload||'{"initial_schedule_degraded":true}'::jsonb ELSE payload END
+				WHERE intent_id=$1 AND status IN ('started','failed') AND attempt_count=$4`, intentID, int64(delay/time.Second), terminalFailure, attemptCount, nextStatus, surface)
 			if err != nil {
 				return count, err
 			}
 			if command.RowsAffected() == 1 {
-				transition, reason := core.LifecycleTransitionRetryScheduled, "schedule_retry_scheduled"
+				transition, reason := core.LifecycleTransitionRetryScheduled, surface+"_retry_scheduled"
 				if nextStatus == "dead_letter" {
-					transition, reason = core.LifecycleTransitionFailed, "schedule_retry_exhausted"
+					transition, reason = core.LifecycleTransitionFailed, surface+"_retry_exhausted"
 				}
-				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, transition, "workflow_reconcile", nextStatus, reason, attemptCount, errors.New(firstString(terminalFailure, "schedule_workflow_failed")))
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, transition, "workflow_reconcile", nextStatus, reason, attemptCount, errors.New(firstString(terminalFailure, surface+"_workflow_failed")))
 				delete(d.Started, intentID)
 				count++
 			}
@@ -2762,6 +2770,8 @@ func lifecycleSurfaceForIntent(intentType string) string {
 		return "daily_review"
 	case "schedule.current_day":
 		return "schedule"
+	case "wardrobe.initialize":
+		return "wardrobe"
 	case "autonomy.action":
 		return "autonomy"
 	case "capability.action":

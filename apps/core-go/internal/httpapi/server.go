@@ -159,6 +159,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/schedules", s.ownerSurfaceManagement)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/schedules/requests", s.ownerSurfaceManagement)
 	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/schedules/recover", s.ownerSurfaceManagement)
+	mux.HandleFunc("POST /internal/fluctlights/{fluctlightID}/wardrobe/recover", s.ownerSurfaceManagement)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/schedules/requests/{requestID}", s.ownerSurfaceManagement)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/promises", s.ownerSurfaceManagement)
 	mux.HandleFunc("GET /internal/fluctlights/{fluctlightID}/promises/{promiseID}", s.ownerSurfaceManagement)

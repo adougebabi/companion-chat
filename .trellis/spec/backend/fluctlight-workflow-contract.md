@@ -1052,3 +1052,30 @@ Tests: `TestOwnerImageAssessmentTimeoutRetriesThenCreatesExactlyOneImageIntent`,
 `TestOwnerStaleOutfitRequestReassessesCurrentCASAndExecutesAutomatically`,
 `TestOwnerRequestRetryWaitsDurablyBeforeReassessment`; the original D2 concurrent
 wardrobe CAS assertion remains unchanged.
+
+## Wardrobe initialization retry and owner recovery
+
+`wardrobe.initialize` shares the daily schedule outer retry policy: at most
+three dispatched executions, with one- and two-minute durable backoff, then
+`dead_letter`. Reconciliation selects failed wardrobe intents, preserves the
+terminal cause, and never observes the previous failed Run while the intent is
+`pending`/`retry`. Observation outages consume no attempts. A confirmed running
+Run repairs a stale failed ledger without incrementing attempts. Stable IDs use
+`ALLOW_DUPLICATE_FAILED_ONLY`; concurrent recovery is protected by ledger CAS.
+
+`POST /api/fluctlights/{fluctlightId}/wardrobe/recover` (Core: `/internal/` prefix)
+accepts only `reason` and `idempotencyKey` (`idempotency_key` in Core), using the
+owner command transaction, authorization, lifecycle lock, audit and replay key.
+It resets only a failed/dead-letter current initializer to pending and zero
+attempts; active/completed tasks are unchanged and cancellation is not reversed.
+The preparation keeps its current intent ID and committed inventory checkpoint;
+only current failure feedback is cleared. Completed preparations never reopen.
+Legacy preparation repair must skip intents with `attempt_count>0` so it cannot
+bypass Workflow backoff or exhaustion by creating another attempt identity.
+
+Regression: `TestPostgresWardrobeBackoffExhaustionAndOwnerRecoveryDispatch` uses
+a disposable database plus Temporal mocks for backoff, exhaustion, stable-ID
+dispatch, replay, observation failure and concurrent recovery. Core guard tests
+cover ownership, inactive/completed/cancelled state and input validation; browser
+tests cover transport, CSRF/session and strict body validation. Existing schedule
+ledger assertions remain unchanged.

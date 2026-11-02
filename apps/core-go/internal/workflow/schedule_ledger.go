@@ -8,7 +8,7 @@ import (
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 )
 
-const repairFailedScheduleLedgerSQL = `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),completed_at=NULL,next_attempt_at=NULL,last_error=NULL WHERE intent_id=$1 AND intent_type='schedule.current_day' AND status='failed'`
+const repairFailedScheduleLedgerSQL = `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),completed_at=NULL,next_attempt_at=NULL,last_error=NULL WHERE intent_id=$1 AND (intent_type='schedule.current_day' OR intent_type='wardrobe.initialize') AND status='failed'`
 
 // This is observation repair, not another attempt. The previous failure remains
 // in lifecycle history; a long-lived daily scheduler waits until local midnight.
