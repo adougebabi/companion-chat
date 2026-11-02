@@ -206,7 +206,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
         <SourceDownload value={relation} label="下载完整关系与来源" />
       </>
     ) : (
-      <EmptyState>
+      <EmptyState variant="page">
         <h3>这里还没有读到当前范围的关系记录</h3>
         <p>自填关系描述与角色视角下的关系分别保存。</p>
       </EmptyState>
@@ -464,7 +464,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
                   (memories.ready &&
                     !memories.items.length &&
                     !memories.error)) && (
-                  <EmptyState>
+                  <EmptyState variant="page">
                     <h3>还在慢慢了解彼此</h3>
                     <p>
                       当前没有已读交流事实或有效记忆，自填资料继续独立保存。
@@ -506,7 +506,7 @@ export default function AboutYouPanel({ model: m, section = "you" }) {
           <SourceDownload value={row} />
         </article>)}</PeopleSection>}
         {data && !authoredHistory.length && (
-          <EmptyState>
+          <EmptyState variant="page">
             <h3>尚无已读自填修订记录</h3>
           </EmptyState>
         )}

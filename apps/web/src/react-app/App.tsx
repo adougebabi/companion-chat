@@ -11,6 +11,7 @@ import WorkspaceQuickJump from './shared/WorkspaceQuickJump';
 import {Toaster} from '@/components/ui/sonner';
 import {toast} from 'sonner';
 import LoadingState from './shared/LoadingState';
+import PageSkeleton from './shared/PageSkeleton';
 import {
   lazy,
   Suspense,
@@ -283,7 +284,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
             )}
             {page==='管理中心'&&!route.feature&&route.query?.get('returnTo')?.startsWith('#/')&&<Button variant="outline" onClick={()=>{const target=route.query?.get('returnTo');if(target?.startsWith('#/'))workspace.navigatePath(target.slice(1));}}>{route.query?.get('returnTo')==='#/inbox'?'返回通知中心':'返回来源页面'}</Button>}
           </div>}
-          <Suspense key={state.session?.actorId} fallback={<LoadingState label="正在读取页面…"/>}>
+          <Suspense key={state.session?.actorId} fallback={<PageSkeleton/>}>
             {page === "聊天" ? (
               content
             ) : (

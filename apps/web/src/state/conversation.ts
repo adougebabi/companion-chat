@@ -463,6 +463,7 @@ export const conversationDefinition = defineDomain({
     authLoading: false,
     authError: "" as string,
     loading: false,
+    selectionLoadingEpoch: null as number | null,
     historyLoading: false,
     sending: false,
     activeTurnId: null as string | null,
@@ -689,12 +690,15 @@ export const conversationDefinition = defineDomain({
         this.error = "所选 Fluctlight 实例不可用。";
         return;
       }
-      if (options.loading !== false) this.loading = true;
       if (this.retryTurn) persistRetry(this.retryTurn);
       if (this.queuedTurn) persistQueuedTurn(this.queuedTurn);
       this.invalidateRequest();
       this.error = "";
       const selectionEpoch = this.requestEpoch;
+      if (options.loading !== false) {
+        this.selectionLoadingEpoch = selectionEpoch;
+        this.loading = true;
+      }
       try {
         const page = await client.directConversation(fluctlightId);
         if (
@@ -735,8 +739,10 @@ export const conversationDefinition = defineDomain({
         this.clearActiveConversation();
         this.error = "无法打开该 Fluctlight 的对话。";
       } finally {
-        if (selectionEpoch === this.requestEpoch && options.loading !== false)
+        if (this.selectionLoadingEpoch === selectionEpoch) {
+          this.selectionLoadingEpoch = null;
           this.loading = false;
+        }
       }
     },
     clearActiveConversation() {
@@ -1277,6 +1283,12 @@ export const conversationDefinition = defineDomain({
       return true;
     },
     invalidateRequest() {
+      // A cancelled selection no longer owns loading. Its obsolete finally
+      // must neither leave it stuck nor clear a newer selection's progress.
+      if (this.selectionLoadingEpoch !== null) {
+        this.selectionLoadingEpoch = null;
+        this.loading = false;
+      }
       this.requestEpoch += 1;
       this.abortController?.abort();
       this.abortController = null;

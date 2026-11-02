@@ -23,6 +23,7 @@ import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import { WorldArt, worldArtworkKind as decorativeKind } from "../shared/WorkspaceArtwork";
 import LoadingState from "../shared/LoadingState";
+import PageSkeleton from "../shared/PageSkeleton";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
 import SemanticTree from "../shared/SemanticTree";
 import JsonDetails from "../shared/JsonDetails";
@@ -130,7 +131,7 @@ export function WorldPageView({ view: m }) {
           </>
         }
       />
-      {m.catalog.busy && <LoadingState label="正在读取世界与地点…" />}
+      {m.catalog.busy && (m.catalog.ready?<LoadingState label="正在读取世界与地点…" />:<PageSkeleton contentOnly label="正在读取世界与地点…"/>)}
       {m.catalog.error && (
         <InlineFeedback role="alert">
           {m.catalog.error}

@@ -23,9 +23,7 @@
 .replica-logo-symbol svg { width:20px;height:23px; }
 .replica-logo-copy strong { font-size:20px;letter-spacing:-.6px;font-weight:600;display:block; }
 .replica-logo-copy small { display:block;font-size:8px;letter-spacing:2px;color:#85907f;margin-top:1px; }
-.replica-workspace-switch { margin:5px 13px 20px;border:1px solid #e2e7dc;border-radius:10px;background:white;padding:10px;display:flex;gap:9px;align-items:center; }
-.replica-workspace-switch > .avatar { width:34px;height:34px;flex-shrink:0;font-size:13px; }
-.replica-workspace-switch > div { flex:1; min-width:0; }
+.replica-workspace-switch { margin:5px 13px 20px;display:flex;gap:9px;align-items:center; }
 .replica-workspace-switch small { display:block;font-size:9px;letter-spacing:.5px;color:#87917f;margin-bottom:1px; }
 .replica-character-switch { width:100%;min-height:24px;height:auto;font-size:12px;font-weight:400;padding:0;justify-content:space-between;white-space:normal;text-align:left; }
 .replica-character-switch > span { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
@@ -414,3 +412,8 @@
 .replica-feedback .replica-feedback-dismiss { position:absolute;right:5px;top:5px;width:28px;min-height:28px;height:28px;padding:0;color:inherit; }
 
 :where(.react-workspace,.replica-dialog,.replica-overlay) :is([data-slot=dialog-close],[data-slot=tabs-trigger]):focus-visible{outline:2px solid #8aa481;outline-offset:3px;box-shadow:none}
+
+.replica-workspace-switch .replica-character-switch { flex:1;min-width:0;width:auto;padding:10px;border:1px solid #e2e7dc;border-radius:10px;background:white;gap:9px; }
+.replica-character-switch > .avatar { width:34px;height:34px;flex:none;font-size:13px; }
+.replica-character-copy { flex:1;min-width:0;display:block; }
+.replica-character-copy > span { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }

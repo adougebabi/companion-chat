@@ -1,0 +1,129 @@
+{
+  "status": "passed",
+  "boundary": "production dist + isolated HTTP fixture; no live Core/model certification",
+  "results": [
+    {
+      "item": "P2-7",
+      "styles": {
+        "color": "rgb(255, 255, 255)",
+        "gradient": "linear-gradient(rgba(0, 0, 0, 0), rgba(24, 46, 34, 0.94) 32%)",
+        "small": 10,
+        "strong": 12
+      }
+    },
+    {
+      "size": "desktop",
+      "name": "chat-empty-readable-moment"
+    },
+    {
+      "size": "desktop",
+      "name": "chat-preflight-retry"
+    },
+    {
+      "item": "P1-3",
+      "cancelledReadPreflightRecovery": "passed"
+    },
+    {
+      "size": "desktop",
+      "name": "diagnostic-task"
+    },
+    {
+      "size": "desktop",
+      "name": "character-menu"
+    },
+    {
+      "size": "desktop",
+      "name": "quiet-switch-row"
+    },
+    {
+      "size": "desktop",
+      "name": "diary-empty"
+    },
+    {
+      "item": "P2-4",
+      "scroll": {
+        "client": 1051,
+        "scroll": 1051
+      }
+    },
+    {
+      "size": "desktop",
+      "name": "notifications-empty"
+    },
+    {
+      "size": "desktop",
+      "name": "create-world-spacing"
+    },
+    {
+      "size": "desktop",
+      "name": "studio-empty"
+    },
+    {
+      "size": "desktop",
+      "name": "relations-empty"
+    },
+    {
+      "size": "desktop",
+      "name": "data-import-one-border"
+    },
+    {
+      "size": "mobile",
+      "name": "chat-empty-readable-moment"
+    },
+    {
+      "size": "mobile",
+      "name": "diagnostic-task"
+    },
+    {
+      "size": "mobile",
+      "name": "character-menu"
+    },
+    {
+      "size": "mobile",
+      "name": "quiet-switch-row"
+    },
+    {
+      "size": "mobile",
+      "name": "diary-empty"
+    },
+    {
+      "size": "mobile",
+      "name": "notifications-empty"
+    },
+    {
+      "size": "mobile",
+      "name": "create-world-spacing"
+    },
+    {
+      "size": "mobile",
+      "name": "studio-empty"
+    },
+    {
+      "size": "mobile",
+      "name": "relations-empty"
+    },
+    {
+      "size": "mobile",
+      "name": "data-import-one-border"
+    },
+    {
+      "item": "P2-10",
+      "label": "日程",
+      "chunkSkeleton": "passed",
+      "dataSkeleton": "passed"
+    },
+    {
+      "item": "P2-10",
+      "label": "目标",
+      "chunkSkeleton": "passed",
+      "dataSkeleton": "passed"
+    },
+    {
+      "item": "P2-10",
+      "label": "世界",
+      "chunkSkeleton": "passed",
+      "dataSkeleton": "passed"
+    }
+  ],
+  "shots": "/tmp/r23-shots"
+}

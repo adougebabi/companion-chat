@@ -543,8 +543,16 @@ func TestInitializationOwnerBackgroundKeepsStrictScalarTypes(t *testing.T) {
 	for _, key := range []string{"interests", "preferences", "habits", "rules", "shared_information"} {
 		for _, value := range []any{[]any{}, []any{"explicit source fact"}, map[string]any{}, ""} {
 			input := map[string]any{"core_persona": defaultCorePersona("", "验收角色"), "actor_user": map[string]any{"background": map[string]any{key: value}}}
-			if _, err := prepareInitializationResponse(input); err == nil {
-				t.Fatalf("initialization accepted invalid background %s (%T)", key, value)
+			if err := validateActorUserSettings(input["actor_user"]); err == nil {
+				t.Fatalf("strict validation accepted invalid background %s (%T)", key, value)
+			}
+			prepared, err := prepareInitializationResponse(input)
+			if err != nil || prepared["actor_user"] != nil {
+				t.Fatalf("invalid optional background became authority %s: %#v %v", key, prepared, err)
+			}
+			extensions := mapValue(prepared["extensions"])
+			if jsonString(mapValue(extensions["recovered_fields"])["actor_user"]) != jsonString(input["actor_user"]) || len(arrayValue(extensions["initialization_warnings"])) == 0 {
+				t.Fatalf("invalid optional background lost its original or warning %s: %#v", key, prepared)
 			}
 		}
 		for _, value := range []any{nil, "explicit source fact"} {

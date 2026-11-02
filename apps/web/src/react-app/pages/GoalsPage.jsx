@@ -30,6 +30,7 @@ import WorkspaceDialog from "../shared/WorkspaceDialog";
 import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
 import LoadingState from "../shared/LoadingState";
+import PageSkeleton from "../shared/PageSkeleton";
 import { EmptyState, InlineFeedback,Feedback,ResultFeedback } from "../shared/Presentation";
 import JsonDetails from "../shared/JsonDetails";
 import { jsonValueSnapshot } from "@/state/view-model";
@@ -892,7 +893,7 @@ export default function GoalsPage({ route, onGo }) {
                   </Button>
                 </InlineFeedback>
               ))}
-            {anyLoading && <LoadingState label="正在读取目标…" />}
+            {anyLoading && (ready?<LoadingState label="正在读取目标…" />:<PageSkeleton contentOnly label="正在读取目标…"/>)}
             <div className="lp-three" data-testid="goal-grid">
               {visible.map((goal) => {
                 const a = goalAssessment(goal);

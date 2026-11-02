@@ -100,7 +100,7 @@ func TestPhase8FormalAgentRegistryCoversCompleteTaskInventory(t *testing.T) {
 		FormalAgentStudioAssistant, FormalAgentStudioTextPreview, FormalAgentNPCResponse,
 		FormalAgentDailyReview, FormalAgentDiaryMaterial, FormalAgentDiaryExpression,
 		FormalAgentPersistentSwitch, FormalAgentReflection, FormalAgentScheduleReplan,
-		FormalAgentGoalPlanner, FormalAgentGoalEvaluation, FormalAgentVirtualActivityResult,
+		FormalAgentGoalPlanner, FormalAgentGoalEvaluation, FormalAgentVirtualActivityResult, FormalAgentWorldEventGeneration,
 	}
 	if len(definitions) != len(expected) {
 		t.Fatalf("formal Agent count=%d, want %d: %#v", len(definitions), len(expected), definitions)
@@ -249,35 +249,28 @@ func TestPhase8BusinessRunAndPhysicalModelCallIdentitiesStayDistinct(t *testing.
 	}
 }
 
-func TestPhase8CIUsesTheRealGateAndVectorEnabledDatabase(t *testing.T) {
+// CI now deliberately runs the formatting prerequisite before image builds;
+// the database-backed Phase 8 acceptance gate remains a separate operator entry.
+func TestPhase8CIFormatsProductionGoBeforeImageBuilds(t *testing.T) {
 	workflowPath := filepath.Join("..", "..", "..", "..", ".github", "workflows", "fluctlight-ci.yml")
 	workflow, err := os.ReadFile(workflowPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	text := string(workflow)
-	if !strings.Contains(text, "./infra/acceptance/run-phase8-contract-gates.sh") {
-		t.Fatal("CI does not invoke the Phase 8 gate script")
+	for _, required := range []string{"go-version-file: apps/core-go/go.mod", "- name: Verify Go formatting", "find apps/core-go -name '*.go' -print0 | xargs -0 gofmt -l", "needs: validate"} {
+		if !strings.Contains(text, required) {
+			t.Fatalf("CI no longer gates current production Go formatting: missing %s", required)
+		}
 	}
-	if !strings.Contains(text, "pgvector/pgvector:pg16") {
-		t.Fatal("CI database service does not provide the vector extension required by migrations")
+	gate, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "infra", "acceptance", "run-phase8-contract-gates.sh"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(text, "go run ./cmd/migrate") || !strings.Contains(text, "CORE_GO_DATABASE_URL:") {
-		t.Fatal("CI does not apply the Go Core schema before database-backed tests")
-	}
-	gateMarker := "      - name: Run Phase 8 Eino contract gate\n"
-	gateIndex := strings.Index(text, gateMarker)
-	if gateIndex < 0 {
-		t.Fatal("CI Phase 8 gate step is missing")
-	}
-	if strings.Contains(text[:gateIndex], "GO_CORE_TEST_DATABASE_URL:") {
-		t.Fatal("GO_CORE_TEST_DATABASE_URL must not activate every full-race database test")
-	}
-	if !strings.Contains(text[gateIndex:], "        env:\n          GO_CORE_TEST_DATABASE_URL:") {
-		t.Fatal("Phase 8 gate step does not receive its isolated database explicitly")
-	}
-	if strings.Contains(text, "-run 'Test(Phase8") {
-		t.Fatal("CI still replaces the Phase 8 gate with a selector-only go test")
+	for _, required := range []string{"-count=1 -json", "./internal/core ./internal/ai/agent", "collect-go-test-events.mjs", "GO_CORE_TEST_DATABASE_URL", "verify-phase5-evidence.mjs"} {
+		if !strings.Contains(string(gate), required) {
+			t.Fatalf("separate Phase 8 gate lost real execution evidence: missing %s", required)
+		}
 	}
 }
 

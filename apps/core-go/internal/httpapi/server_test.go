@@ -253,7 +253,7 @@ func TestInitializationDescriptionLimitUsesUTF8Bytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	webSource, err := os.ReadFile("../../../web/src/views/InstancesView.vue")
+	webSource, err := os.ReadFile("../../../web/src/state/creation-controller.mjs")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +264,7 @@ func TestInitializationDescriptionLimitUsesUTF8Bytes(t *testing.T) {
 	if !strings.Contains(browser, `response.Header().Set("Cache-Control", "no-store, private")`) {
 		t.Fatal("browser API Fluctlight detail does not disable caching for Owner-only source text")
 	}
-	if !strings.Contains(string(webSource), "new TextEncoder().encode(description).byteLength") || strings.Contains(string(webSource), `maxlength="12000"`) {
+	if !strings.Contains(string(webSource), "new TextEncoder().encode(request.description).length > 60000") || strings.Contains(string(webSource), `maxlength="12000"`) {
 		t.Fatal("Web does not enforce the shared UTF-8 byte limit")
 	}
 }

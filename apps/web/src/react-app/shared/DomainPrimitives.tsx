@@ -115,7 +115,7 @@ function FieldPort({port}:{port:Port}){
   source.dispatchEvent(new Event('input',{bubbles:true}));
   if(changesImmediately)source.dispatchEvent(new Event('change',{bubbles:true}));
  };
- if(type==='file')return <FieldInput {...props} type="file" accept={source.accept} multiple={source.multiple} onChange={(event:any)=>{if(!source.isConnected||source.disabled)return;source.files=event.target.files;source.dispatchEvent(new Event('change',{bubbles:true}));}}/>;
+ if(type==='file')return <FieldInput {...props} framed={!source.closest('.replica-data-upload')} type="file" accept={source.accept} multiple={source.multiple} onChange={(event:any)=>{if(!source.isConnected||source.disabled)return;source.files=event.target.files;source.dispatchEvent(new Event('change',{bubbles:true}));}}/>;
  const checkable=type==='checkbox'||type==='radio';
  const control=type==='select'?<ChoiceSelect {...props} value={source.value} onChange={(event:any)=>commit(event.target.value)}>{Array.from(source.options,(option:any)=><option key={option.index} value={option.value} disabled={option.disabled}>{option.textContent}</option>)}</ChoiceSelect>:type==='textarea'?<Textarea {...props} value={source.value} onChange={(event:any)=>{commit(event.target.value);syncSelection(event);}} onBlur={blur}/>:<FieldInput {...props} type={type} value={source.value} checked={source.checked} onChange={(event:any)=>{commit(checkable?event.target.checked:event.target.value,checkable);syncSelection(event);}} onBlur={blur}/>;
  return <ControlHint text={source.title}>{control}</ControlHint>;

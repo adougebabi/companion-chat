@@ -8,6 +8,7 @@ import RecordView from '@/react-app/shared/RecordView';
 import CursorControls from '@/react-app/shared/CursorControls';
 import {Field,FieldLabel} from '@/components/ui/field';
 import {Input} from '@/components/ui/input';
+import {Switch} from '@/components/ui/switch';
 import {Button} from '@/components/ui/button';
 import {MoreHorizontal} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator} from '@/components/ui/dropdown-menu';
@@ -291,7 +292,7 @@ export function ManagementPageView({ view: view }) {
               >
                 <h2>{"安静时段"}</h2>
                 <div className="form-grid">
-                  <Field orientation="horizontal" className="min-h-11 self-end rounded-lg border border-border p-3"><FieldInput id="quiet-enabled" className="switch" type="checkbox" modelValue={view.quiet.value.enabled} onModelChange={value=>view.quiet.value.enabled=value}/><FieldLabel htmlFor="quiet-enabled">启用安静时段</FieldLabel></Field>
+                  <Field orientation="horizontal" className="replica-quiet-toggle"><FieldLabel htmlFor="quiet-enabled">启用安静时段</FieldLabel><Switch id="quiet-enabled" checked={view.quiet.value.enabled} onCheckedChange={value=>view.quiet.value.enabled=value}/></Field>
                   <label>
                     {"适用角色"}
                     <ChoiceSelect

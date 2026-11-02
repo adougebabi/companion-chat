@@ -1434,3 +1434,5 @@
   .replica-creation-task-sheet > [data-slot="sheet-header"] { padding: 20px 54px 16px 18px; }
   .creation-task-sheet-body { padding: 18px; }
 }
+
+.replica-creation .creation-source-action { margin-top:16px;margin-right:10px; }

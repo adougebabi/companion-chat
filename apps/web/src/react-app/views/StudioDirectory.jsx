@@ -30,6 +30,7 @@ import {
   FieldInput,
   Textarea,
 } from "../controls";
+import {EmptyState} from "../shared/Presentation";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceCommandDialog from "../shared/WorkspaceCommandDialog";
 import WorkspaceInfo from "../shared/WorkspaceInfo";
@@ -276,11 +277,11 @@ export default function StudioDirectoryView({ model: m }) {
         })}
       </div>
       {m.list.ready && !m.list.items.length && (
-        <Surface className="panel r-padded studio-empty">
-          <h2>没有找到相关资源</h2>
+        <EmptyState variant="page" className="studio-empty">
+          <h3>没有找到相关资源</h3>
           <p>调整筛选，或创建一份新的设定。</p>
           <Button onClick={() => m.create()}>新建资源</Button>
-        </Surface>
+        </EmptyState>
       )}
       <MediaMore source={m.list} label="资源" />
       {m.action && (

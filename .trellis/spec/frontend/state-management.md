@@ -538,3 +538,22 @@ Regression: `v3-life-provider.test.mjs` asserts the real query and errors;
 `nas-additions.test.mjs` asserts offsets/midnight/DST/half-open windows, original
 message content, avatar failure, truthful wardrobe and failure links. Browser
 fixtures remain explicit local tests and are not real model/NAS acceptance.
+
+## Conversation selection loading belongs to its read epoch
+
+`selectFluctlight(id, {loading?, current?})` records `selectionLoadingEpoch`
+only when it owns the loading indicator. `invalidateRequest()` synchronously
+releases that indicator before invalidating the request. A selection's `finally`
+clears it only if its recorded epoch is still the owner. Bootstrap's directory
+loading remains independent when selection uses `{loading:false}`.
+
+Cancellation is a completed local lifecycle even when the HTTP promise is still
+pending. Checking the epoch only in `finally` without releasing loading on
+invalidation strands `loading=true`; a later session/directory failure before
+selection then leaves ChatPage's retry permanently disabled. Do not hide this
+with a timer or by suppressing the controller's progress in the view.
+
+`r23-ui.test.mjs` verifies cancelled A → pending B → late A → completed B,
+ChatPage unmount during selection followed by failed preflight and successful
+read-only retry, and mutually exclusive loading/empty UI. The R23 production
+browser verifier exercises that same navigation/recovery with delayed HTTP.

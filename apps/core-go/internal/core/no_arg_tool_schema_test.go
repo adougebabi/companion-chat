@@ -160,7 +160,9 @@ func TestNoArgCatalogSchemaValidationAndCatalogParity(t *testing.T) {
 	if err := invocation.Validate(definition); err == nil {
 		t.Fatal("no-argument catalog accepted an extra argument")
 	}
-	invocation.Arguments = json.RawMessage(`{}`)
+	// The directory omits schemas; explicit named disclosure returns the exact
+	// installed schema, including the no-argument catalog contract.
+	invocation.Arguments = json.RawMessage(`{"names":["capability.catalog"]}`)
 	catalog := capabilityCatalogCapability{catalog: registry.Catalog}
 	result, err := catalog.Execute(context.Background(), invocation, CapabilityContext{})
 	if err != nil {

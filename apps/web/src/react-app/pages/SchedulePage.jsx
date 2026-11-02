@@ -16,6 +16,7 @@ import { Badge, Disclosure, FieldInput, Surface, Textarea } from "../controls";
 import { Input } from "@/components/ui/input";
 import { EmptyState, InlineFeedback } from "../shared/Presentation";
 import LoadingState from "../shared/LoadingState";
+import PageSkeleton from "../shared/PageSkeleton";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceDialog from "../shared/WorkspaceDialog";
 import ScheduleTimeline from "../shared/ScheduleTimeline";
@@ -865,7 +866,7 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                     刷新
                   </Button>
                 </div>
-                {loading && <LoadingState label="正在读取这一天的日程…" />}
+                {loading && (calendar?<LoadingState label="正在读取这一天的日程…" />:<PageSkeleton contentOnly label="正在读取这一天的日程…"/>)}
                 {rows.length ? (
                   <ScheduleTimeline items={rows} onSelect={openItem} />
                 ) : (

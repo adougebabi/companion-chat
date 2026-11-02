@@ -333,7 +333,7 @@ export default function CharacterWizardView({ model: m }) {
     <div ref={m.rootRef} className="replica-creation creation-page">
       <div ref={headingAnchor}>
       <WorkspacePageHeader
-        eyebrow="A NEW BEGINNING / 新的相识"
+        eyebrow="新的相识"
         title={
           [
             "先为相遇，选一个世界。",
@@ -590,6 +590,7 @@ export default function CharacterWizardView({ model: m }) {
                   </div>
                   {visibleWorldTab === "resource" && m.worldCursor && (
                     <Button
+                      className="creation-source-action"
                       variant="outline"
                       onClick={() => void m.loadSources("world", true)}
                     >
@@ -622,6 +623,7 @@ export default function CharacterWizardView({ model: m }) {
                 <LoadingState label="正在读取所选世界的精确发布版本…" />
               )}
               {showExistingWorlds && <Button
+                className="creation-source-action"
                 variant="outline"
                 disabled={m.existingWorldLoading}
                 onClick={() => void m.loadExistingWorlds(true)}

@@ -1,0 +1,5 @@
+# Design and boundary
+
+Fix chat selection loading in the conversation controller that owns request epochs; cancellation must release only its own loading, while older completions cannot clear newer reads. Keep the existing mutually exclusive message loading/empty state and verify the real page after cancellation and failed preflight.
+
+Presentation owners: DiagnosticsWorkspace/DiagnosticStatus CSS (nonduplicated row metadata and readable badges); ManagementPage view (Switch row); WorkspaceNavigation (trigger-sized Radix menu); DiaryPage (single empty state); InboxPage and replica management CSS (demo empty layout and scroll ownership); CharacterWizard and creation CSS (Chinese eyebrow and action spacing); StudioDirectory/AboutYouPanel (shared leaf Empty); chat scene caption CSS (contrast); FilePicker/data import (one drop border); App/PageSkeleton (lazy route placeholder). Tests exercise real React consumers and asynchronous lifecycle, with browser geometry/contrast evidence. No API, prompt, model or backend policy changes.

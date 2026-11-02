@@ -25,7 +25,7 @@
 .replica-notice-actions{display:flex;justify-content:flex-end;gap:15px;margin-top:10px;font-size:10px;color:#9baa8a}
 .replica-notice-actions button{font-size:9px;height:auto;min-height:0;padding:0;line-height:1.5;position:relative}.replica-notice-actions button::before{content:"";position:absolute;inset:-15px -6px}
 .replica-inbox-aside{display:grid;gap:20px;min-width:0}
-.replica-inbox-aside>section{padding:20px}
+.replica-inbox-aside>[data-slot=card]{padding:20px;gap:12px}
 .replica-inbox-section-heading{display:flex;justify-content:space-between;align-items:center}
 .replica-inbox h2{font-size:13px;font-weight:500;color:#70815f}
 .replica-pending-group h3{font-size:11px;font-weight:500;display:flex;align-items:center;gap:8px;margin:14px 0 0}
@@ -276,3 +276,10 @@
 .replica-model-summary{margin-left:auto;align-self:flex-start;padding-top:3px}
 .replica-management .replica-model-role{padding:18px 0}
 .replica-model-role:first-of-type{border-top:0}
+
+.replica-management .replica-quiet-toggle { align-self:end;min-height:39px;justify-content:space-between;padding:10px 0;border-bottom:1px solid #edf0e7; }
+.replica-management .replica-quiet-toggle [data-slot=field-label] { flex:1;font-size:12px;font-weight:400;color:#687b5c; }
+.replica-inbox .replica-notice-panel:has(> .replica-page-empty) { border:0;background:transparent;box-shadow:none; }
+.replica-inbox .replica-notice-panel > .replica-page-empty { padding:45px 20px; }
+
+.replica-inbox-aside .replica-inbox-caption { padding:4px 0; }

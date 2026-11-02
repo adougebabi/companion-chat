@@ -20,8 +20,18 @@ func TestActorUserInitializationJSONPreservesOnlyQualifiedHumanBackground(t *tes
 	for _, value := range []any{nil, map[string]any{"background": map[string]any{"timezone": "Local"}}, map[string]any{"background": map[string]any{"timezone": "Nowhere/Zone"}}, map[string]any{"background": map[string]any{"meeting_confirmed": "false"}}, map[string]any{"background": map[string]any{"actor_id": "foreign"}}} {
 		bad := cloneMap(good)
 		bad["actor_user"] = value
-		if _, err := prepareInitializationResponse(bad); err == nil {
-			t.Fatalf("invalid user settings accepted %#v", value)
+		if err := validateActorUserSettings(value); err == nil {
+			t.Fatalf("invalid user settings passed strict validation %#v", value)
+		}
+		recovered, err := prepareInitializationResponse(bad)
+		if err != nil || recovered["actor_user"] != nil {
+			t.Fatalf("optional malformed background became authority: %#v %v", recovered, err)
+		}
+		if value != nil {
+			extensions := mapValue(recovered["extensions"])
+			if jsonString(mapValue(extensions["recovered_fields"])["actor_user"]) != jsonString(value) || len(arrayValue(extensions["initialization_warnings"])) == 0 {
+				t.Fatalf("malformed background lost its original or review warning: %#v", recovered)
+			}
 		}
 	}
 	legacy := cloneMap(good)

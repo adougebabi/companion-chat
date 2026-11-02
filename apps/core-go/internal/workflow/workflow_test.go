@@ -691,7 +691,7 @@ func TestWakeUpAndReflectionUseCriticalQueueWithLifecycleCompatibility(t *testin
 	reflectionRoute := sourceBetweenWorkflow(t, dispatcher, `case "reflection.run":`, `case "intention.trigger":`)
 
 	if !regexp.MustCompile(`(?m)^\s*CriticalLifecycleQueue\s*=\s*"lifecycle-critical"\s*$`).MatchString(text) ||
-		!strings.Contains(text, "queues := []string{LifecycleQueue, CriticalLifecycleQueue,") ||
+		!regexp.MustCompile(`queues := \[\]string\{[^\n]*\bCriticalLifecycleQueue\b`).MatchString(text) ||
 		!strings.Contains(text, "if queue == CriticalLifecycleQueue") {
 		t.Fatal("critical lifecycle lane is missing its dedicated Worker capacity")
 	}

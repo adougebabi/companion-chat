@@ -734,3 +734,8 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* The preview caption stays legible over every decorative scene. */
+.replica-moment-card .companion-scene-caption { inset:auto 0 0;padding:18px 16px 12px;color:#fff;background:linear-gradient(transparent,rgba(24,46,34,.94) 32%);gap:4px; }
+.replica-moment-card .companion-scene-caption > span { color:#fff;font-size:10px;letter-spacing:1.2px; }
+.replica-moment-card .companion-scene-caption strong { color:#fff;font-size:12px;letter-spacing:.3px;line-height:1.5; }

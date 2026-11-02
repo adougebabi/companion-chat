@@ -740,7 +740,7 @@ export default function DiaryPage() {
                   </span>
                 </Button>
               ))}
-              {page.ready && !visible.length && !errors[kind] && (
+              {page.ready && !visible.length && !errors[kind] && selected && (
                 <p className="lp-empty-inline">没有找到这段回忆。</p>
               )}
               {page.cursor && (
