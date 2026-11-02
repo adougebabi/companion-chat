@@ -1357,7 +1357,7 @@ export default function CharacterWizardView({ model: m }) {
               <Surface className="creation-preparation">
                 <div className="creation-progress-heading">
                   <div>
-                    <span className="replica-eyebrow">PREPARING A LIFE</span>
+                    <span className="replica-eyebrow">生活正在展开</span>
                     <h2>
                       {m.progress?.complete
                         ? `${name}的故事，从这里开始。`
@@ -1514,7 +1514,7 @@ export default function CharacterWizardView({ model: m }) {
         </div>
         <aside className="creation-aside">
           <Surface>
-            <div className="replica-eyebrow">YOUR NEW CHAPTER</div>
+            <div className="replica-eyebrow">新的篇章</div>
             {index >= 2 && d.mode !== "blank" ? (
               <div className="creation-portrait">
                 <WorkspaceCharacterSketch />

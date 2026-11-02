@@ -43,6 +43,33 @@ browser layout, focus, keyboard, portal and narrow-screen checks.
 - Browser-side provider calls that would expose MTPLX keys or ComfyUI configuration.
 - Reintroducing the deleted vanilla `src/` entry as a production fallback.
 
+## Rendered audit regressions (R25)
+
+When an audit screenshot contradicts a previous fix, first build the current
+HEAD and reproduce the same route/state through `main.tsx` and `App.tsx`.
+Record what already passes before editing; a PNG alone does not identify the
+deployed HTML/chunk version or prove an unused component was changed.
+
+- `/data` owns a retained domain form: `data-tools.js` → `DomainPrimitives`
+  `FieldPort` → `FieldInput` → `FilePicker`. Test this path as well as the
+  standalone picker. `framed=false` means both an unframed wrapper and a ghost
+  shadcn Button; the upload label owns the single dashed frame. Default framed
+  consumers retain their outline Button. File selection must reach the original
+  controller's JSON draft without automatically validating or importing.
+- Creation localization must cover the header and the sidebar after continuing
+  from the world step, rather than checking only the first eyebrow.
+- Chrome assertions own computed borders, status font/height and portaled menu
+  geometry; JSDOM class-name checks cannot certify these. Radix makes the trigger
+  inaccessible to role queries while its modal menu is open: use its stable DOM
+  selector for geometry. A role change closes mobile navigation; reopen it before
+  testing the next menu interaction.
+
+`r25-rendered-ui.test.mjs` covers real creation/data compositions and framed picker
+isolation. The R25 task's `verify-browser.mjs` covers all seven audit items at
+1920px and 390px using production dist and an isolated HTTP fixture. Good: count
+all visible upload descendant borders and check the original draft. Bad: assert
+only that the picker wrapper lacks a border while its Button adds another one.
+
 ## Deployment entry caching and lazy route recovery (R4)
 
 ### Scope / trigger

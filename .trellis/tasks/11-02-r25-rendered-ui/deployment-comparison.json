@@ -1,0 +1,14 @@
+{
+  "boundary": "仅 GET 13001 的公开 HTML/静态资源；未登录，未调用其业务 API，未写入数据",
+  "deployed_entry": "/assets/index-DHNTDt5M.js",
+  "deployed_css": "/assets/index-BnHV-ham.css",
+  "local_entry": "/assets/index-C_klUb6F.js",
+  "observed_deployed_signatures": {
+    "wizard_header_chinese": true,
+    "wizard_sidebar_still_english": true,
+    "quiet_field_class": true,
+    "diary_empty_index_requires_selected": true,
+    "notification_empty_frame_override": true
+  },
+  "conclusion": "R3 PNG 与当前本地及部署静态资源并非相同状态；无法据此确定截图时的 HTML/chunk/缓存根因。"
+}

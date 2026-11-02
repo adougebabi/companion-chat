@@ -100,7 +100,7 @@ test('P2-7 chat moment retains readable caption text in the scene overlay',async
 
 test('P2-8 unframed file picker keeps selection behavior and adds no nested drop border',async()=>{
  const {default:FilePicker}=await load('react-app/shared/FilePicker.tsx');let changed='';const v=await mountReact(vite,FilePicker,{props:{framed:false,accept:'.json',onChange:e=>changed=e.target.files[0].name}});
- try{const picker=v.host.firstElementChild;assert.equal(picker.classList.contains('border'),false);assert.equal(picker.querySelector('button').dataset.variant,'outline');const input=picker.querySelector('input');Object.defineProperty(input,'files',{value:[new window.File(['{}'],'settings.json',{type:'application/json'})]});await act(async()=>input.dispatchEvent(new window.Event('change',{bubbles:true})));assert.equal(changed,'settings.json');assert.match(picker.textContent,/settings.json/);}finally{await v.dispose();}
+ try{const picker=v.host.firstElementChild;assert.equal(picker.classList.contains('border'),false);assert.equal(picker.querySelector('button').dataset.variant,'ghost');const input=picker.querySelector('input');Object.defineProperty(input,'files',{value:[new window.File(['{}'],'settings.json',{type:'application/json'})]});await act(async()=>input.dispatchEvent(new window.Event('change',{bubbles:true})));assert.equal(changed,'settings.json');assert.match(picker.textContent,/settings.json/);}finally{await v.dispose();}
 });
 
 test('P2-10 pending route chunks show shadcn skeletons until the page resolves',async()=>{

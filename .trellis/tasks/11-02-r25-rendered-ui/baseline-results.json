@@ -1,0 +1,145 @@
+{
+  "status": "failed",
+  "boundary": "current production dist + isolated HTTP fixture, never the live API",
+  "results": [
+    {
+      "size": "desktop",
+      "item": "P1-4",
+      "status": "passed",
+      "title": "日常唤醒",
+      "metadata": "林岚 · 验收样本 · 今天 16:41",
+      "badge": {
+        "font": 12,
+        "height": 28
+      }
+    },
+    {
+      "size": "desktop",
+      "item": "P2-2",
+      "status": "passed",
+      "trigger": {
+        "x": 13,
+        "y": 77,
+        "width": 213,
+        "height": 56
+      },
+      "menu": {
+        "x": 13,
+        "y": 137,
+        "width": 213,
+        "height": 88
+      }
+    },
+    {
+      "size": "desktop",
+      "item": "P2-1",
+      "status": "failed",
+      "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    '0px',\n    '0px',\n+   '1px',\n    '0px',\n-   '0px'\n  ]\n"
+    },
+    {
+      "size": "desktop",
+      "item": "P2-3",
+      "status": "passed",
+      "emptyCount": 1
+    },
+    {
+      "size": "desktop",
+      "item": "P2-4",
+      "status": "passed",
+      "borders": [
+        {
+          "slot": "empty",
+          "border": "0px",
+          "style": "none"
+        },
+        {
+          "slot": "card",
+          "border": "0px",
+          "style": "none"
+        }
+      ]
+    },
+    {
+      "size": "desktop",
+      "item": "P2-5",
+      "status": "failed",
+      "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'YOUR NEW CHAPTER'\n- '新的篇章'\n"
+    },
+    {
+      "size": "desktop",
+      "item": "P2-8",
+      "status": "failed",
+      "message": "[{\"tag\":\"LABEL\",\"style\":\"dashed\"},{\"tag\":\"BUTTON\",\"slot\":\"button\",\"style\":\"solid\"}]\n\n2 !== 1\n"
+    },
+    {
+      "size": "mobile",
+      "item": "P1-4",
+      "status": "passed",
+      "title": "日常唤醒",
+      "metadata": "林岚 · 验收样本 · 今天 16:41",
+      "badge": {
+        "font": 12,
+        "height": 28
+      }
+    },
+    {
+      "size": "mobile",
+      "item": "P2-2",
+      "status": "passed",
+      "trigger": {
+        "x": 13,
+        "y": 77,
+        "width": 170,
+        "height": 56
+      },
+      "menu": {
+        "x": 13,
+        "y": 137,
+        "width": 170,
+        "height": 88
+      }
+    },
+    {
+      "size": "mobile",
+      "item": "P2-1",
+      "status": "failed",
+      "message": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    '0px',\n    '0px',\n+   '1px',\n    '0px',\n-   '0px'\n  ]\n"
+    },
+    {
+      "size": "mobile",
+      "item": "P2-3",
+      "status": "passed",
+      "emptyCount": 1
+    },
+    {
+      "size": "mobile",
+      "item": "P2-4",
+      "status": "passed",
+      "borders": [
+        {
+          "slot": "empty",
+          "border": "0px",
+          "style": "none"
+        },
+        {
+          "slot": "card",
+          "border": "0px",
+          "style": "none"
+        }
+      ]
+    },
+    {
+      "size": "mobile",
+      "item": "P2-5",
+      "status": "failed",
+      "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'YOUR NEW CHAPTER'\n- '新的篇章'\n"
+    },
+    {
+      "size": "mobile",
+      "item": "P2-8",
+      "status": "failed",
+      "message": "[{\"tag\":\"LABEL\",\"style\":\"dashed\"},{\"tag\":\"BUTTON\",\"slot\":\"button\",\"style\":\"solid\"}]\n\n2 !== 1\n"
+    }
+  ],
+  "errors": []
+}
