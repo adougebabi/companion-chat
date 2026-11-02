@@ -4,6 +4,7 @@ export function worldFixture({
   scenario = "normal",
   autoRuns = false,
   projectionReads = false,
+  diagnostics = () => ({ items: [], next_cursor: '' }),
 } = {}) {
   const expansion = scenario.startsWith("expansion-"),
     commandScenario = expansion ? scenario.slice("expansion-".length) : scenario;
@@ -276,6 +277,11 @@ export function worldFixture({
     json,
     res,
   }) {
+    if (method === 'GET' && path.startsWith('/api/diagnostic-records/')) {
+      calls.push({path, method, body: clone(body), query: Object.fromEntries(url.searchParams)});
+      json(res, clone(await diagnostics(path.split('/').at(-1), Object.fromEntries(url.searchParams))));
+      return true;
+    }
     const match = path.match(
       /^\/api\/fluctlights\/([^/]+)\/(world(?:\/.*)?|nearby|detail)$/,
     );

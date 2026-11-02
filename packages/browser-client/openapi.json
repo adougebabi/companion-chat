@@ -45433,6 +45433,20 @@
             }
           },
           {
+            "name": "worldId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "intentType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "correlationId",
             "in": "query",
             "schema": {
@@ -46370,6 +46384,20 @@
         "parameters": [
           {
             "name": "fluctlightId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "worldId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "intentType",
             "in": "query",
             "schema": {
               "type": "string"

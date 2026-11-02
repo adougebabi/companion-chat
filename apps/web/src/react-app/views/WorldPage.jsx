@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import WorldAutomaticEvents from "../shared/WorldAutomaticEvents";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -632,6 +633,7 @@ export function WorldPageView({ view: m }) {
               )}
             </TabsContent>
             <TabsContent value="events">
+              <WorldAutomaticEvents key={'automatic:' + m.world.id} model={m} />
               {m.world.id === m.binding?.world_id ? (
                 <WorldEventsPanel key={m.world.id} model={m} />
               ) : (

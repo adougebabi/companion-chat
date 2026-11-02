@@ -168,3 +168,51 @@ status in diagnostics. Tests: `TestWorldHourLockDeduplicatesConcurrentCallsResta
 `TestWorldGenerationDeadlinePersistsTerminalFailureAndReleasesHourLock`,
 `TestAbandonedWorldGenerationTimesOutAndClockTaskShowsTerminalCycle`,
 `TestWorldEventClockFailedHourStillSchedulesNextHour`.
+
+## Scenario: Automatic event and clock visibility (D12)
+
+### 1. Scope / Trigger
+World page 世界事件 and management diagnostics must expose automatic work even
+without manual templates, personal Life Events, or recent clock creation.
+
+### 2. Signatures
+`GET /api/diagnostic-records/{kind}?worldId=<world>&intentType=<type>`;
+`worldId` matches top-level or payload world_id; `intentType` matches intent_type.
+Both filters are exact, at most 256 runes, and participate in cursor identity.
+Workflow diagnostic world clocks also expose actual world_id/world_name.
+
+### 3. Contracts
+Keep generated templates out of the editable manual-template directory.
+WorldAutomaticEvents reads world-event-generations and world.events.generate
+clocks by worldId, without fluctlightId. It may read an unbound browsed world;
+reads never bind or execute it. Generation admission and execution outcome are
+displayed separately. Applied ambient runs retain their existing Life Event
+projection. Management independently reads permanent world clocks and merges
+by record ref with recent tasks, with separate append cursors and retries.
+Selecting a task type filters on the server before pagination. Keep Owner/read
+epochs, raw references, redaction, and waiting/last-cycle/next-cycle semantics.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| More than 20 newer character tasks | Older world clocks remain visible |
+| No manual templates / no_event / rejected | Automatic records remain readable |
+| Different world filter | No foreign-world records; previous cursor rejected |
+| Read fails or world/Owner changes | Original GET retry; obsolete response ignored |
+| Clock appears in both pages | One visible task, deduplicated by ref |
+
+### 5. Good / Base / Bad Cases
+Good: show admitted plus applied separately. Base: no_event is a valid visible
+result. Bad: infer event generation is absent from an empty manual template list.
+
+### 6. Tests Required
+`TestWorldEventDiagnosticsFiltersReachOldClocksAndWorldOnlyGenerations`,
+`TestWorldDiagnosticFiltersValidateLength`,
+`TestWorldEventDiagnosticFiltersPassThroughBrowserBoundary`,
+`world-event-diagnostics.test.ts`, `d12-world-tasks.test.mjs` and the D12 world
+page regressions cover exact filters, opaque cursors, scopes, states and links.
+
+### 7. Wrong vs Correct
+Wrong: filter task kinds from only the 20 newest rows or filter shared work by
+its creator character. Correct: exact server filters and independent world-clock
+reads; preserve shared world identity through UI rendering.

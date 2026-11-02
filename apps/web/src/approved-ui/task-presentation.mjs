@@ -1,6 +1,6 @@
 import {domainName,errorMessage,stateLabel} from '../v3/domain-presentation.mjs';
 export function taskStatusLabel(status){
- const labels={waiting:'等待下一小时',no_event:'本小时无事件',skipped:'已跳过',interrupted:'已中断',expired:'已过期',awaiting_kev:'等待审核',rejected:'未采纳',pending:'等待开始',queued:'等待开始',running:'进行中',processing:'进行中',paused:'已暂停',completed:'已完成',succeeded:'已完成',failed:'需要处理',dead_letter:'需要处理',cancelled:'已取消'};
+ const labels={waiting:'等待下一小时',generating:'正在生成',started:'进行中',admitted:'已通过审核',no_event:'本小时无事件',skipped:'已跳过',interrupted:'已中断',expired:'已过期',awaiting_kev:'等待审核',rejected:'未采纳',pending:'等待开始',queued:'等待开始',running:'进行中',processing:'进行中',paused:'已暂停',completed:'已完成',succeeded:'已完成',failed:'需要处理',dead_letter:'需要处理',cancelled:'已取消'};
  if(Object.hasOwn(labels,status))return labels[status];
  const fallback=stateLabel(status);return typeof fallback==='string'?fallback:'状态待确认';
 }

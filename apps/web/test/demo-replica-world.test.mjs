@@ -31,6 +31,46 @@ test.after(async () => {
   await vite.close();
   env.restore();
 });
+test('D12 world events show automatic world-only generation and task records without manual templates or life events', async () => {
+  const reads = [];
+  const api = worldFixture({ owner: 'world-owner', projectionReads: true, diagnostics: (kind, query) => {
+    reads.push({ kind, ...query });
+    const world = query.worldId;
+    return kind === 'workflow-intents' ? { items: [{ ref: 'clock', data: { intent_id: 'world_event_generation:' + world, intent_type: 'world.events.generate', payload: { world_id: world }, status: 'waiting', last_cycle_status: 'no_event', next_cycle_at: '2026-11-02T09:00:00Z' } }], next_cursor: '' } : {
+      items: query.cursor ? [{ ref: 'old-no-event', data: { world_id: world, slot_at: '2026-11-02T07:00:00Z', status: 'no_event' } }] : [{ ref: 'generated/market', data: { world_id: world, title: '晚间市集', slot_at: '2026-11-02T08:00:00Z', status: 'admitted', execution: { status: 'applied' } } }], next_cursor: query.cursor ? '' : 'opaque/+?world-history',
+    };
+  } });
+  api.state('A').templates = [];
+  const f = await fixture({ api });
+  try {
+    await enter(f); await tab(f.v, '世界事件');
+    assert.match(f.v.host.textContent, /这个世界还没有事件模板/);
+    assert.match(f.v.host.textContent, /尚未读到实际生活事件/);
+    const auto = f.v.host.querySelector('[aria-label="自动世界事件"]');
+    assert.match(auto.textContent, /世界事件时钟/); assert.match(auto.textContent, /晚间市集/);
+    assert.match(auto.textContent, /已通过审核/); assert.match(auto.textContent, /执行结果：已应用/);
+    assert.ok(auto.querySelector('[data-slot=badge]'));
+    await f.v.click(button(auto, '加载更多自动事件'));
+    assert.equal(reads.at(-1).cursor, 'opaque/+?world-history'); assert.match(auto.textContent, /本小时无事件/);
+    await f.v.click(button(auto, '查看生成任务'));
+    assert.equal(new URLSearchParams(location.hash.split('?')[1]).get('taskId'), 'world_event_generation:A-world-one');
+    await f.v.click(button(auto, '查看生成与审核记录'));
+    assert.equal(location.hash, '#/diag/record/world-event-generations/generated%2Fmarket');
+    assert.equal(f.writes().length, 0);
+    assert.ok(reads.every(row => row.worldId === 'A-world-one' && !row.fluctlightId));
+  } finally { location.hash = ''; await f.dispose(); }
+});
+test('D12 browsing another world reads that world automatic events without binding or changing the character', async () => {
+  const reads=[];
+  const api=worldFixture({owner:'world-owner',projectionReads:true,diagnostics:(kind,options)=>{reads.push({kind,...options});return {items:kind==='world-event-generations'?[{ref:'other-world-record',data:{world_id:options.worldId,title:'森林降雨',status:'admitted',slot_at:'2026-11-02T08:00:00Z'}}]:[],next_cursor:''};}});
+  const f=await fixture({api});
+  try{
+    await enter(f,'远山森林');await tab(f.v,'世界事件');
+    assert.match(f.v.host.textContent,/森林降雨/);assert.match(f.v.host.textContent,/事件列表随当前运行世界读取/);
+    assert.ok(reads.length>=2);assert.ok(reads.every(r=>r.worldId==='A-world-one-other'));
+    assert.equal(f.s.binding.world_id,'A-world-one');assert.equal(f.writes().length,0);
+  }finally{await f.dispose();}
+});
 const button = (root, text) =>
   [...root.querySelectorAll("button")].find(
     (n) => n.textContent.trim() === text,
