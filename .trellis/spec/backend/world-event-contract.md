@@ -28,6 +28,14 @@ An upgrade preserves explicit enabled policy but increments the template revisio
 queued work for old revisions is filtered. CAS, immutable publication and durable
 Owner command replay remain in the existing world domain boundary.
 
+Migration `0103_world_event_starters` adds two manual starter templates with
+immutable Studio publication references to existing worlds. Explicit new-world
+bootstrap seeds the same templates transactionally. They start disabled, create
+no occurred facts, and require Owner enablement before manual execution. Seeding
+is idempotent and preserves existing definitions, enabled policy and revisions.
+Generated hourly candidates remain excluded from the manual settings catalogue;
+an hourly generation timeout or `no_event` must not prevent manual configuration.
+
 Configured virtual-world effects are explicit structured simulation, not a
 heuristic interpretation of user conversation. Automatic checks store each
 candidate outcome, advance from the current execution time without historical

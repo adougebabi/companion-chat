@@ -125,7 +125,7 @@ func (a *App) validateOwnerInventoryRequestTx(ctx context.Context, tx pgx.Tx, ow
 			return err
 		}
 		if body["profile_id"] != profile {
-			return &SurfaceError{Status: 409, Code: "outfit_profile_changed", Message: "当前人格已变化，请重新选择套装"}
+			return validateOutfitProfileTx(ctx, tx, fid, stringValue(body["profile_id"]), profile)
 		}
 		expected, ok := parseRevision(body["expected_outfit_revision"])
 		if !ok || expected < 1 {
@@ -172,6 +172,26 @@ func (a *App) validateOwnerInventoryRequestTx(ctx context.Context, tx pgx.Tx, ow
 		body["item_ids"] = ids
 	}
 	return nil
+}
+
+// A caller-supplied profile is a selector, not evidence of a runtime switch.
+func validateOutfitProfileTx(ctx context.Context, tx pgx.Tx, fid, requested, active string) error {
+	if strings.TrimSpace(requested) == "" {
+		return invalid("profile_id is required")
+	}
+	if requested == active {
+		return nil
+	}
+	var raw []byte
+	if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, fid).Scan(&raw); err != nil {
+		return err
+	}
+	persona := decodeObject(raw)
+	profiles := personalityProfileIDs(persona)
+	if _, exists := profiles[requested]; !exists && requested != initialPersonalityProfileID(persona) {
+		return &SurfaceError{Status: 404, Code: "outfit_profile_not_found", Message: "指定的人格不存在，请核对人格标识"}
+	}
+	return &SurfaceError{Status: 409, Code: "outfit_profile_mismatch", Message: "指定的人格与当前人格不匹配，请选择当前人格的套装"}
 }
 func ownerInventoryArgumentsMatch(kind string, request, args map[string]any) bool {
 	switch kind {

@@ -70,6 +70,10 @@
 | goal_evaluation | 评估协议 + Working Persona + stable 目标/criteria/actor refs + 专属事实/记忆/其他目标背景 + 当前目标状态/sources/reviews/accepted submissions；重复正文通过 evidence_payloads 复用 | 0；sources 包含消息证据 | goal_evaluation_task.go；goal_evaluation_wire.go |
 | virtual_activity_result | 活动结果规则 + 请求/当前 appearance/life/近期结果/开始和最早结束时间 | 0 | model_tasks.go |
 
+空白人格首版由 `working_persona_persistence.go` 本地合成。共享特质被合并到
+profile 后，完全相同的输出行仅保留一次；同名但不同取值的事实均保留，原始
+Core Persona 不改写。`r4_remaining_regression_test.go` 覆盖该去重边界。
+
 `takeover_judge`、`takeover_reply` 是已注册兼容入口，本轮没有发现非测试生产
 调用方；保留注册和构造覆盖，不据此宣称正在生产运行，也不删除。
 

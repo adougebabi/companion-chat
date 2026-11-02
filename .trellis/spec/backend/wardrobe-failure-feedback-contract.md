@@ -32,6 +32,11 @@ invalid schema and invalid JSON retain their owning classifications. Unknown
 causes use neutral wardrobe guidance, without guessing model setup. Keep deferred
 failure persistence, recovery identities and original committed effects unchanged.
 
+Recovery clears only the previous attempt's `result.failure_reason` from the
+current preparation. The terminal workflow/model history retains the original
+failure. Committed inventory resumes with selection only; successful completion
+must not retain a stale failure banner or regenerate already committed items.
+
 Preparation outcomes keep user/model prose in `reason` and code-owned machine
 identifiers in `reason_code`. The wardrobe Activity projects only `reason_code`
 to `LifecycleDiagnostic.ReasonCode`; historical results without it use

@@ -47,8 +47,8 @@ func (a *App) SaveOwnerInventoryOutfit(ctx context.Context, owner, fid, id strin
 	if err != nil {
 		return nil, err
 	}
-	if profile != active {
-		return nil, &SurfaceError{Status: 409, Code: "outfit_profile_changed", Message: "当前人格已变化，请核对套装归属后保存"}
+	if err := validateOutfitProfileTx(ctx, tx, fid, profile, active); err != nil {
+		return nil, err
 	}
 	audit, err := (postgresSurfaceTx{tx}).Audit(ctx, owner, fid, "outfit_save", reason, id)
 	if err != nil {

@@ -275,7 +275,14 @@ func synthesizeBaselineWorkingPersona(input PersonaCompilationInput) (CompiledWo
 		return facts[i].Text < facts[j].Text
 	})
 	lines := make([]string, 0, len(facts))
+	seenLines := make(map[string]bool, len(facts))
 	for _, fact := range facts {
+		// Shared traits are also merged into the selected profile. Source paths
+		// differ, but an identical rendered fact should appear only once.
+		if seenLines[fact.Text] {
+			continue
+		}
+		seenLines[fact.Text] = true
 		lines = append(lines, fact.Text)
 	}
 	return CompiledWorkingPersona{

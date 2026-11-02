@@ -26,6 +26,9 @@ func requireWorldCreationChoiceTx(ctx context.Context, tx pgx.Tx, fid string, bo
 // This runs only in the explicit creation transaction, never from character init,
 // GETs, clock repair or a background data-cleanup pass.
 func (a *App) bootstrapWorldTx(ctx context.Context, tx pgx.Tx, fid, world string, body map[string]any) error {
+	if _, err := tx.Exec(ctx, `SELECT public.seed_world_event_starters($1)`, world); err != nil {
+		return err
+	}
 	frame := mapValue(body["framework"])
 	if len(frame) == 0 {
 		frame = map[string]any{"schema": "world-framework.v1", "venues": []any{
