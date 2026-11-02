@@ -20,7 +20,13 @@ func WorldEventGenerationWorkflow(ctx workflow.Context, input Input) (map[string
 	if input.WorldID == "" {
 		return nil, fmt.Errorf("world event world required")
 	}
-	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 15 * time.Minute, HeartbeatTimeout: time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 1}})
+	options := workflow.ActivityOptions{StartToCloseTimeout: worldEventActivityTimeout, HeartbeatTimeout: time.Minute, RetryPolicy: &temporal.RetryPolicy{MaximumAttempts: 1}}
+	// StartToClose does not cover an Activity waiting for a Worker. Preserve
+	// existing histories; new cycles also bound that otherwise unlimited wait.
+	if workflow.GetVersion(ctx, "world-event-schedule-timeout-v1", workflow.DefaultVersion, 1) != workflow.DefaultVersion {
+		options.ScheduleToCloseTimeout = worldEventActivityTimeout
+	}
+	ctx = workflow.WithActivityOptions(ctx, options)
 	control, err := registerWorkflowControl(ctx)
 	if err != nil {
 		return nil, err

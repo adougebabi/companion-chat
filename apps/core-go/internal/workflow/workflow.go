@@ -1629,6 +1629,16 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		}
 		status := execution.WorkflowExecutionInfo.GetStatus()
 		if status == enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING {
+			if intentType == "world.events.generate" && currentIntentStatus == "started" && worldEventActivityStale(execution, time.Now().UTC()) {
+				reclaimed, reclaimErr := d.reclaimWorldEventActivity(ctx, input, workflowID, runID, attemptCount, payload)
+				if reclaimErr != nil {
+					return count, reclaimErr
+				}
+				if reclaimed {
+					count++
+				}
+				continue
+			}
 			if currentIntentStatus != "started" {
 				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),completed_at=NULL,next_attempt_at=NULL,attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
 				if err != nil {

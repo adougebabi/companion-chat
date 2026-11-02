@@ -169,6 +169,58 @@ status in diagnostics. Tests: `TestWorldHourLockDeduplicatesConcurrentCallsResta
 `TestAbandonedWorldGenerationTimesOutAndClockTaskShowsTerminalCycle`,
 `TestWorldEventClockFailedHourStillSchedulesNextHour`.
 
+## Scenario: Reclaim an abandoned world generation Activity
+
+### 1. Scope / Trigger
+`Dispatcher.ReconcileOnce` observes a running `world.events.generate` clock
+whose `GenerateWorldEventActivity` has exceeded 15 minutes since scheduling.
+The clock's persistent `started`/attempt=1 alone is normal and proves no stall.
+
+### 2. Signatures
+`worldEventActivityStale(execution, now)`;
+`App.ReclaimWorldEventGenerationAttempt(ctx, intent, attempts, payload)`.
+New workflow histories use `world-event-schedule-timeout-v1` to add a
+15-minute ScheduleToClose timeout while retaining the old replay branch.
+
+### 3. Contracts
+Only an overdue, unpaused generation Activity is reclaimed. First terminate
+its exact observed Temporal Run ID; an observation/termination error cannot
+release the attempt. Then atomically CAS the intent's started status, attempt
+count and payload snapshot to retry with a one-minute delay. Preserve the
+attempt count until dispatch actually starts its successor. Terminalize this
+cycle's generating/review_pending slot with world_event_generation_timeout;
+keep completed hours, other worlds and explicit awaiting_kev gates intact.
+Late model/Kev results cannot reopen a reclaimed row or create executable
+templates/runs. Admission locks and validates the staging status before effects.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Old clock waiting on hourly timer | Keep running; no termination |
+| Fresh or paused Activity | Keep existing attempt |
+| Overdue Activity, including never-started Activity | Exact Run termination, retry after one minute |
+| Describe/terminate unavailable | Preserve started attempt; retry observation |
+| Cancellation/new attempt/new payload won CAS | Preserve newer ledger state |
+| Late model/Kev response | Retain failed timeout; no executable event |
+
+### 5. Good / Base / Bad Cases
+Good: reclaim an abandoned scheduled Activity and dispatch attempt 2. Base:
+terminalize the consumed hour and generate again next hour. Bad: infer staleness
+from started_at, or requeue before terminating the observed Run.
+
+### 6. Tests Required
+`TestPostgresWorldEventStaleActivityReclaimsAndDispatchesNextAttempt`,
+`TestWorldEventActivityStaleRequiresOverdueGeneration`,
+`TestWorldEventActivityTotalTimeoutPreservesExistingHistories`, and
+`TestWorldEventAttemptReclaim*` cover backoff, exact Run identity, CAS,
+late model/Kev results, hour deduplication and next-hour progress.
+Database regressions create disposable databases, never clear a shared database.
+
+### 7. Wrong vs Correct
+Wrong: trust every RUNNING workflow indefinitely or terminate by workflow ID
+with an empty Run ID. Correct: inspect the pending generation's scheduled time,
+terminate its precise Run, then fence the durable retry against the old snapshot.
+
 ## Scenario: Automatic event and clock visibility (D12)
 
 ### 1. Scope / Trigger

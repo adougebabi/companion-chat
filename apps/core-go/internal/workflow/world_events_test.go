@@ -1,14 +1,47 @@
 package workflow
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/mock"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
+
+func TestWorldEventActivityTotalTimeoutPreservesExistingHistories(t *testing.T) {
+	for _, version := range []workflow.Version{workflow.DefaultVersion, 1} {
+		t.Run(fmt.Sprint(version), func(t *testing.T) {
+			var suite testsuite.WorkflowTestSuite
+			env := suite.NewTestWorkflowEnvironment()
+			env.OnGetVersion("world-event-schedule-timeout-v1", workflow.DefaultVersion, 1).Return(version)
+			env.RegisterActivity(GenerateWorldEventActivity)
+			observed := false
+			env.SetOnActivityStartedListener(func(info *activity.Info, _ context.Context, _ converter.EncodedValues) {
+				observed = true
+				// The SDK expands an unset schedule timeout to ten years.
+				want := 10 * 365 * 24 * time.Hour
+				if version != workflow.DefaultVersion {
+					want = 15 * time.Minute
+				}
+				if info.ScheduleToCloseTimeout != want || info.StartToCloseTimeout != 15*time.Minute || info.HeartbeatTimeout != time.Minute || info.Attempt != 1 {
+					t.Errorf("unexpected Activity timeout contract: %+v", info)
+				}
+			})
+			env.OnActivity(GenerateWorldEventActivity, mock.Anything, mock.Anything).Return(map[string]any{"status": "no_event"}, nil).Once()
+			env.ExecuteWorkflow(WorldEventGenerationWorkflow, Input{WorldID: "world", IntentID: "world-clock"})
+			if !observed || !workflow.IsContinueAsNewError(env.GetWorkflowError()) {
+				t.Fatal("versioned cycle failed", observed, env.GetWorkflowError())
+			}
+			env.AssertExpectations(t)
+		})
+	}
+}
 
 func TestWorldEventClockContinuesAtNextHourWithoutCharacter(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite

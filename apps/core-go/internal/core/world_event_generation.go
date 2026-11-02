@@ -36,6 +36,29 @@ func (a *App) EnsureWorldEventGenerationIntents(ctx context.Context, limit int) 
 	return int(tag.RowsAffected() + repaired.RowsAffected()), err
 }
 
+// ReclaimWorldEventGenerationAttempt settles a timed-out runtime attempt after
+// its exact Run has been terminated. The snapshot CAS preserves cancellation,
+// concurrent repair and newer cycles. A consumed hour is never regenerated.
+func (a *App) ReclaimWorldEventGenerationAttempt(ctx context.Context, intent string, attempts int, payload []byte) (bool, error) {
+	reclaimed := false
+	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var world string
+		err := tx.QueryRow(ctx, `UPDATE public.platform_workflow_intents SET status='retry',next_attempt_at=now()+interval '1 minute',started_at=NULL,completed_at=NULL,last_error='world_event_generation_timeout',payload=payload||jsonb_build_object('cycle_status','failed','cycle_error_code','world_event_generation_timeout','cycle_finished_at',now()) WHERE intent_id=$1 AND intent_type='world.events.generate' AND status='started' AND attempt_count=$2 AND payload=$3::jsonb RETURNING payload->>'world_id'`, intent, attempts, payload).Scan(&world)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		// Only this cycle can be in flight in the terminated Run. A prior
+		// awaiting_kev result is a settled gate, not an in-progress generation.
+		_, err = tx.Exec(ctx, `UPDATE public.world_event_generations SET status='failed',error_code='world_event_generation_timeout',updated_at=now() WHERE world_id=$1 AND status IN('generating','review_pending') AND slot_at<=($2::jsonb->>'cycle_started_at')::timestamptz AND ($2::jsonb->>'cycle_started_at')::timestamptz<slot_at+interval '1 hour'`, world, payload)
+		reclaimed = err == nil
+		return err
+	})
+	return reclaimed && err == nil, err
+}
+
 func (a *App) worldEventGenerationContext(ctx context.Context, world string) (map[string]any, error) {
 	var result map[string]any
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
@@ -203,7 +226,7 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			status, code, transition = "failed", "world_event_generation_timeout", LifecycleTransitionFailed
 		}
-		_, err := conn.Exec(cleanup, `UPDATE public.platform_workflow_intents SET payload=payload||jsonb_build_object('cycle_status',$2::text,'cycle_finished_at',$3::text,'cycle_error_code',$4::text) WHERE intent_id=$1 AND intent_type='world.events.generate'`, intent, status, a.now().UTC().Format(time.RFC3339Nano), code)
+		_, err := conn.Exec(cleanup, `UPDATE public.platform_workflow_intents SET payload=payload||jsonb_build_object('cycle_status',$2::text,'cycle_finished_at',$3::text,'cycle_error_code',$4::text) WHERE intent_id=$1 AND intent_type='world.events.generate' AND payload->>'cycle_status'='generating' AND payload->>'cycle_started_at'=$5`, intent, status, a.now().UTC().Format(time.RFC3339Nano), code, at.Format(time.RFC3339Nano))
 		if err != nil {
 			runErr = errors.Join(runErr, err)
 		}
@@ -280,25 +303,32 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 		run, modelErr := a.runFormalStructuredTask(ctx, FormalAgentWorldEventGeneration, messages, nil, "world_event_generation_v1", worldEventGenerationSchema(), false, nil)
 		if modelErr != nil {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
-			_, _ = conn.Exec(cleanup, `UPDATE public.world_event_generations SET status='failed',error_code='world_event_model_failed',updated_at=now() WHERE id=$1`, id)
+			_, _ = conn.Exec(cleanup, `UPDATE public.world_event_generations SET status='failed',error_code='world_event_model_failed',updated_at=now() WHERE id=$1 AND status='generating'`, id)
 			cancel()
 			return nil, modelErr
 		}
 		proposal = run.Completion.Structured
 		if proposal["decision"] == "no_event" {
-			_, err = conn.Exec(ctx, `UPDATE public.world_event_generations SET status='no_event',proposal=$2,updated_at=now() WHERE id=$1`, id, jsonBytes(proposal))
+			tag, err := conn.Exec(ctx, `UPDATE public.world_event_generations SET status='no_event',proposal=$2,updated_at=now() WHERE id=$1 AND status='generating'`, id, jsonBytes(proposal))
+			if err == nil && tag.RowsAffected() != 1 {
+				return nil, ErrLifeContextStale
+			}
 			result["status"] = "no_event"
 			return result, err
 		}
 		if err := validateWorldEventDefinition(mapValue(proposal["event"])); err != nil {
-			_, _ = conn.Exec(ctx, `UPDATE public.world_event_generations SET status='failed',proposal=$2,error_code='world_event_proposal_invalid',updated_at=now() WHERE id=$1`, id, jsonBytes(proposal))
+			_, _ = conn.Exec(ctx, `UPDATE public.world_event_generations SET status='failed',proposal=$2,error_code='world_event_proposal_invalid',updated_at=now() WHERE id=$1 AND status='generating'`, id, jsonBytes(proposal))
 			return nil, err
 		}
 		if stringValue(proposal["name"]) == "" {
 			return nil, errors.New("world_event_name_required")
 		}
-		if _, err = conn.Exec(ctx, `UPDATE public.world_event_generations SET status='review_pending',proposal=$2,updated_at=now() WHERE id=$1`, id, jsonBytes(proposal)); err != nil {
+		tag, err := conn.Exec(ctx, `UPDATE public.world_event_generations SET status='review_pending',proposal=$2,updated_at=now() WHERE id=$1 AND status='generating'`, id, jsonBytes(proposal))
+		if err != nil {
 			return nil, err
+		}
+		if tag.RowsAffected() != 1 {
+			return nil, ErrLifeContextStale
 		}
 	}
 	scope := decision.Scope{ActorSelf: "world:" + world, ActorUser: stringValue(data["owner_actor_id"]), Agent: "world_event_generation", RunID: id, CorrelationID: correlation, StateVersion: stableDigest(jsonString(data))}
@@ -312,9 +342,12 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 		if outcome == decision.No {
 			status = "rejected"
 			application = "rejected"
-			_, err = conn.Exec(ctx, `UPDATE public.world_event_generations SET status='rejected',kev_decision_id=$2,kev_record=$3,updated_at=now() WHERE id=$1`, id, nullableString(r.Record.ID), jsonBytes(r.Record))
+			tag, err := conn.Exec(ctx, `UPDATE public.world_event_generations SET status='rejected',kev_decision_id=$2,kev_record=$3,updated_at=now() WHERE id=$1 AND status IN('review_pending','awaiting_kev')`, id, nullableString(r.Record.ID), jsonBytes(r.Record))
 			if err != nil {
 				return nil, err
+			}
+			if tag.RowsAffected() != 1 {
+				return nil, ErrLifeContextStale
 			}
 		}
 		if outcome != decision.No {
@@ -322,8 +355,12 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 			audit.Scope = scope
 			audit.Point = "world.event.admit"
 			audit.ApplicationStatus = "not_applied"
-			if _, err := conn.Exec(ctx, `UPDATE public.world_event_generations SET status='awaiting_kev',kev_decision_id=$2,kev_record=$3,error_code=$4,updated_at=now() WHERE id=$1`, id, nullableString(r.Record.ID), jsonBytes(audit), nullableString(r.Record.Reason)); err != nil {
+			tag, err := conn.Exec(ctx, `UPDATE public.world_event_generations SET status='awaiting_kev',kev_decision_id=$2,kev_record=$3,error_code=$4,updated_at=now() WHERE id=$1 AND status IN('review_pending','awaiting_kev')`, id, nullableString(r.Record.ID), jsonBytes(audit), nullableString(r.Record.Reason))
+			if err != nil {
 				return nil, err
+			}
+			if tag.RowsAffected() != 1 {
+				return nil, ErrLifeContextStale
 			}
 		}
 		a.recordDiagnosticEvent(ctx, "world.event.admission", "info", "", id, correlation, map[string]any{"status": status, "decision_point": "world.event.admit", "reason": r.Record.Reason, "world_id": world})
@@ -337,6 +374,13 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		if err := lockWorldRuntimeTx(ctx, tx, world); err != nil {
 			return err
+		}
+		var status string
+		if err := tx.QueryRow(ctx, `SELECT status FROM public.world_event_generations WHERE id=$1 FOR UPDATE`, id).Scan(&status); err != nil {
+			return err
+		}
+		if status != "review_pending" && status != "awaiting_kev" {
+			return ErrLifeContextStale
 		}
 		if !a.now().UTC().Before(next) {
 			return errors.New("world_event_candidate_expired")
@@ -417,7 +461,10 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 		audit := r.Record
 		audit.ApplicationStatus = "applied"
 		audit.ActionID = stringValue(admittedRun["id"])
-		_, err = tx.Exec(ctx, `UPDATE public.world_event_generations SET status='approved',kev_decision_id=$2,kev_record=$3,template_id=$4,run_id=$5,updated_at=now() WHERE id=$1 AND status='review_pending'`, id, r.Record.ID, jsonBytes(audit), template, admittedRun["id"])
+		tag, err := tx.Exec(ctx, `UPDATE public.world_event_generations SET status='approved',kev_decision_id=$2,kev_record=$3,template_id=$4,run_id=$5,updated_at=now() WHERE id=$1 AND status IN('review_pending','awaiting_kev')`, id, r.Record.ID, jsonBytes(audit), template, admittedRun["id"])
+		if err == nil && tag.RowsAffected() != 1 {
+			return ErrLifeContextStale
+		}
 		return err
 	})
 	if err != nil {
