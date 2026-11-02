@@ -3,7 +3,7 @@ import { Badge, Surface } from '../controls';
 import { EmptyState } from './Presentation';
 import { WorldReader } from './WorldFields';
 import useWorkspaceRead from './useWorkspaceRead';
-import { taskStatusLabel, taskStatusPresentation } from '@/approved-ui/task-presentation.mjs';
+import { taskStatusLabel, taskStatusPresentation, worldEventClockLabel } from '@/approved-ui/task-presentation.mjs';
 import { userInstant } from '@/v3/presentation-time.mjs';
 
 export default function WorldAutomaticEvents({ model: m }) {
@@ -26,7 +26,7 @@ export default function WorldAutomaticEvents({ model: m }) {
     </div>
     <WorldReader source={clocks} label="世界事件任务" />
     {clocks.items.map(({ ref, data }) => <div key={ref} className="flex flex-wrap items-center gap-3 border-b py-4">
-      <div className="min-w-0 flex-1"><h3>世界事件时钟</h3><p>{data.last_cycle_status && `上一轮：${taskStatusLabel(data.last_cycle_status)}`}{data.next_cycle_at && ` · 下一轮：${userInstant(data.next_cycle_at)}`}</p></div>
+      <div className="min-w-0 w-full sm:w-auto sm:flex-1"><h3>世界事件时钟</h3><p>{worldEventClockLabel(data.created_at,undefined,true)} · {data.last_cycle_status && `上一轮：${taskStatusLabel(data.last_cycle_status)}`}{data.next_cycle_at && ` · 下一轮：${userInstant(data.next_cycle_at)}`}</p></div>
       <Badge variant="outline">{taskStatusPresentation(data).label}</Badge>
       <Button variant="outline" onClick={() => w.navigatePath('/diag?view=tasks&taskId=' + encodeURIComponent(data.intent_id))}>查看生成任务</Button>
     </div>)}
@@ -34,7 +34,7 @@ export default function WorldAutomaticEvents({ model: m }) {
     {clocks.cursor && <Button variant="outline" disabled={clocks.busy} onClick={clocks.more}>加载更多生成任务</Button>}
     <WorldReader source={generations} label="自动事件记录" />
     {generations.items.map(({ ref, data }) => <div key={ref} className="flex flex-wrap items-center gap-3 border-b py-4">
-      <div className="min-w-0 flex-1"><h3>{data.proposal?.name || data.title || '本小时世界事件'}</h3><p>{userInstant(data.slot_at)}{data.proposal?.reason ? ' · ' + data.proposal.reason : ''}</p>
+      <div className="min-w-0 w-full sm:w-auto sm:flex-1"><h3>{data.proposal?.name || data.title || '本小时世界事件'}</h3><p>{worldEventClockLabel(data.created_at||data.started_at,data.slot_at,true)}{data.proposal?.reason ? ' · ' + data.proposal.reason : ''}</p>
         {data.execution && <p>执行结果：{({ queued: '等待执行', applied: '已应用', filtered: '条件过滤', failed: '执行失败' })[data.execution.status] || taskStatusLabel(data.execution.status)}</p>}
       </div>
       <Badge variant="outline">{taskStatusLabel(data.status)}</Badge>

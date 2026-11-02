@@ -117,10 +117,6 @@ export function WorldPageView({ view: m }) {
             >
               <RefreshCwIcon size={15} />
             </Button>
-            <Button variant="outline" onClick={() => go(studio("world"))}>
-              <FolderOpenIcon size={15} />
-              世界底稿
-            </Button>
             <Button
               data-testid="world-add"
               disabled={m.readOnly}
@@ -178,7 +174,7 @@ export function WorldPageView({ view: m }) {
           {m.catalog.ready && !m.catalog.items.length && !m.catalog.error && (
             <EmptyState>
               <h3>还没有建立生活世界</h3>
-              <p>创建一个世界，或从已有世界底稿开始。</p>
+              <p>使用上方「新建世界」建立生活世界。</p>
             </EmptyState>
           )}
           <div className="r-world-grid" data-testid="world-grid">
@@ -251,21 +247,6 @@ export function WorldPageView({ view: m }) {
                   </div>
                 </Surface>
               ))}
-            <Button
-              variant="ghost"
-              className="r-create-world"
-              onClick={() => go(studio("world") + "&new=1")}
-            >
-              <span>
-                <PlusIcon size={23} />
-              </span>
-              <h3>从一个想法开始</h3>
-              <p>把新的风景，写成世界底稿</p>
-              <small>
-                创建可复用的世界设定
-                <ArrowUpRightIcon size={12} />
-              </small>
-            </Button>
           </div>
           {m.query &&
             m.catalog.ready &&
@@ -320,7 +301,7 @@ export function WorldPageView({ view: m }) {
             </span>
             <div>
               <Tiny>{m.world.flavor}</Tiny>
-              <h2>一座属于日常的世界</h2>
+              <h2>{m.world.name}</h2>
               <p>{m.world.background || "这个世界的背景尚未补充。"}</p>
               <div className="r-inline-actions">
                 <Badge variant="outline">
@@ -598,7 +579,14 @@ export function WorldPageView({ view: m }) {
                     </Button>
                   ))}
                   {!residents(m.world.id).length && (
-                    <p className="r-muted">尚未读到在此生活的人物。</p>
+                    <EmptyState>
+                      <h3>这个世界还没有已读人物</h3>
+                      <p>先准备人物底稿，再发布并明确应用到这个世界。</p>
+                      <Button variant="outline" onClick={() => go(studio("npc") + "&new=1")}>
+                        <PlusIcon size={14} />
+                        创建人物底稿
+                      </Button>
+                    </EmptyState>
                   )}
                   <WorkspaceInfo>
                     浏览和编辑世界，不会移动角色的当前位置。
@@ -637,9 +625,21 @@ export function WorldPageView({ view: m }) {
               {m.world.id === m.binding?.world_id ? (
                 <WorldEventsPanel key={m.world.id} model={m} />
               ) : (
-                <WorkspaceInfo>
-                  事件列表随当前运行世界读取。浏览这里的世界资料不会触发事件或切换世界。
-                </WorkspaceInfo>
+                <Surface className="r-padded">
+                  <div className="section-heading">
+                    <div>
+                      <h2>让世界发生一点变化</h2>
+                      <p>先准备事件底稿，再切换到此世界查看并应用。</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => go(studio("event_template") + "&new=1")}>
+                      <PlusIcon size={14} />
+                      创建事件底稿
+                    </Button>
+                  </div>
+                  <WorkspaceInfo>
+                    事件列表随当前运行世界读取。浏览这里的世界资料不会触发事件或切换世界。
+                  </WorkspaceInfo>
+                </Surface>
               )}
             </TabsContent>
           </Tabs>

@@ -186,6 +186,9 @@ export default function CharacterWizardView({ model: m }) {
     heading.tabIndex = -1;
     heading.focus({preventScroll:true});
     heading.scrollIntoView?.({block:'start', behavior:'instant'});
+    // The shell owns scrolling; revealing a heading alone can leave its
+    // eyebrow and the step navigation above the previous reading position.
+    root.closest('.workspace-page')?.scrollTo({top:0, behavior:'instant'});
   }, [index]);
   const errorRef=useRef(null);
   useEffect(()=>{if(!m.error)return;const key=Object.keys(m.fieldErrors)[0],id=({name:'create-name',timezone:'create-timezone',bio:'create-bio'})[key],input=id?document.getElementById(id):null;const node=input?.closest('label')||errorRef.current;node?.scrollIntoView({block:'center',behavior:'instant'});input?.focus({preventScroll:true});},[m.error]);
@@ -210,14 +213,18 @@ export default function CharacterWizardView({ model: m }) {
   const identityName = fields.find(
     (f) => f.path.join(".") === "identity.name",
   )?.value;
+  // A retained creation choice is no longer selectable once an existing
+  // world is available. Keep the original draft for recovery, but present the
+  // same effective choice as the radio group and the Continue gate.
+  const dailyWorldChosen = d.useDefaultWorld && d.worldChoiceConfirmed && (canCreateWorld || locked);
+  const publishedWorldChosen = !!d.worldResourceId && (canCreateWorld || locked);
+  const hasWorldChoice = !!d.worldSource || publishedWorldChosen || dailyWorldChosen;
   const name = String(identityName ?? d.name ?? "").trim() || "新的相识",
-    worldName =
-      d.useDefaultWorld && d.worldChoiceConfirmed
-        ? "日常生活世界"
-        : d.worldName ||
-          d.worldSource?.name ||
-          m.selectedPublication?.name ||
-          "待选择";
+    worldName = d.worldSource
+      ? d.worldSource.name || d.worldName || "所选已有世界"
+      : publishedWorldChosen
+        ? m.selectedPublication?.name || d.worldName || "所选世界底稿"
+        : dailyWorldChosen ? d.worldName || "日常生活世界" : "待选择";
   const selectedWorld = m.existingWorlds.find(
     (w) =>
       w.id === d.worldSource?.worldId,
@@ -335,9 +342,9 @@ export default function CharacterWizardView({ model: m }) {
   );
   const rowValue = (row, existing) => JSON.stringify(existing ? ['existing', row.id] : ['resource', row.id, row.published_version]);
   const worldChoice = newWorldSelected && canCreateWorld ? 'new' : d.worldSource
-    ? JSON.stringify(['existing', d.worldSource.worldId]) : d.worldResourceId
+    ? JSON.stringify(['existing', d.worldSource.worldId]) : publishedWorldChosen
       ? JSON.stringify(['resource', d.worldResourceId, d.worldResourceVersion])
-      : d.useDefaultWorld && d.worldChoiceConfirmed ? 'daily' : '';
+      : dailyWorldChosen ? 'daily' : '';
   const newWorldCard = canCreateWorld && <label className={'creation-new-world creation-radio-card'+(worldChoice==='new'?' selected':'')}>
     <RadioGroupItem value="new" aria-label="创建新的世界底稿" className="creation-card-radio"/>
     <Plus size={24} aria-hidden="true"/>
@@ -594,7 +601,7 @@ export default function CharacterWizardView({ model: m }) {
                 <p>角色草稿会自动保留。先创建并发布底稿，再从「角色库」的「继续创建」返回，选择已发布的世界底稿后继续。</p>
                 <Button asChild disabled={busy || locked}><a href="#/studio/edit/new?kind=world">去创作中心创建<ArrowRight size={14}/></a></Button>
               </WorkspaceInfo>}
-              {d.worldChoiceConfirmed && !(newWorldSelected && canCreateWorld) && (
+              {hasWorldChoice && !(newWorldSelected && canCreateWorld) && (
                 <WorkspaceInfo>
                   {d.worldSource
                     ? `将加入「${d.worldSource.name}」的同一世界；地点与 NPC 身份共享，各角色的关系与记忆分别记录。`
@@ -1520,7 +1527,7 @@ export default function CharacterWizardView({ model: m }) {
                 <WorkspaceCharacterSketch />
                 <span>形象示意 · 非实际形象</span>
               </div>
-            ) : d.worldChoiceConfirmed ? (
+            ) : hasWorldChoice ? (
               <div className="creation-aside-world">
                 <WorldArt
                   kind={/森林|forest/i.test(worldName) ? "forest" : "city"}
@@ -1534,9 +1541,7 @@ export default function CharacterWizardView({ model: m }) {
             <h3>
               {index >= 2
                 ? name
-                : worldName === "待选择"
-                  ? "故事，正在等待开始"
-                  : worldName}
+                : worldName}
             </h3>
             <p>
               {index >= 2

@@ -127,6 +127,30 @@ function workspace() {
   return w;
 }
 const mount = (w) => mountReact(vite, Wardrobe, { workspace: w });
+test('r34c registered garments and initial outfit preparation are labelled independently', async () => {
+  for (const status of ['not_started', 'generating']) {
+    const w = workspace();
+    w.state.characters[0].garments = Array.from({length: 8}, (_, index) => ({...w.state.characters[0].garments[0], id: 'G'+index}));
+    w.services.inventoryClient.preparation = async () => ({status});
+    const v = await mount(w);
+    try {
+      const label = v.host.querySelector('.wardrobe-preparation-inline [role=status]').textContent;
+      assert.match(label, /已登记 8 件衣物/);
+      assert.match(label, status === 'not_started' ? /初始穿搭尚未开始/ : /穿搭准备仍在进行/);
+      assert.doesNotMatch(label, /初始衣柜正在准备/);
+    } finally { await v.dispose(); }
+  }
+});
+test('r34c confirmed outfit preserves every description in a separate readable list item', async () => {
+  const w = workspace();
+  w.state.characters[0]._wardrobe.wearing.worn_items = [{item_id:'G',description:'白衬衫'},{item_id:'shoes',description:'棕色乐福鞋'}];
+  const v = await mount(w);
+  try {
+    const list = v.host.querySelector('[aria-label="当前穿着的衣物"]');
+    assert.deepEqual([...list.querySelectorAll('li')].map(row => row.textContent), ['白衬衫', '棕色乐福鞋']);
+    assert.doesNotMatch(list.textContent, / · /);
+  } finally { await v.dispose(); }
+});
 async function tab(v, text) {
   await act(async () =>
     [...v.host.querySelectorAll("[role=tab]")]

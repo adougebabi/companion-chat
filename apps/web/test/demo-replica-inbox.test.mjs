@@ -6,6 +6,12 @@ import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {installDOM,mountReact} from './helpers/react-dom.mjs';
 const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 const {default:Inbox}=await vite.ssrLoadModule('/src/react-app/pages/InboxPage.jsx');
+test('r34c reply titles name the exact source character in list and detail, including old generic notices',async()=>{
+ const {w,api}=fixture();w.state.characters.push({id:'B',name:'小桂'});
+ api.notifications=async()=>({items:[{id:'named',title:'新回复',body:'今天晴朗。',source_kind:'conversation.reply.published',fluctlight_id:'B',created_at:'2026-11-02T12:00:00Z'},{id:'business',title:'schedule.current_day',body:'原业务通知',source_kind:'owner.request.settled',fluctlight_id:'A',created_at:'2026-11-02T12:00:00Z'}],as_of:'now',next_cursor:''});
+ const ui=await mountReact(vite,Inbox,{workspace:w});
+ try{assert.equal(ui.host.querySelector('.replica-notice-title h3').textContent,'小桂 · 新回复');assert.equal(ui.host.querySelectorAll('.replica-notice-title h3')[1].textContent,'今日日程准备');await ui.click(ui.host.querySelector('.replica-notice-main'));assert.equal(document.querySelector('[data-slot=dialog-title]').textContent,'小桂 · 新回复');}finally{await ui.dispose();}
+});
 test.after(async()=>{await vite.close();env.restore();});
 const button=(root,text)=>[...root.querySelectorAll('button')].find(b=>b.textContent.trim()===text);
 function fixture(){

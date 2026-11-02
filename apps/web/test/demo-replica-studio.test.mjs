@@ -142,6 +142,21 @@ test("Studio directory reads nine actual resource types, searches and keeps arch
     await f.dispose();
   }
 });
+test('r34c Studio read count includes drafts and labels publication and archive counts', async () => {
+  const items = [
+    {id:'published',kind:'npc',name:'已发布人物',status:'active',published_version:1,revision:1},
+    {id:'draft',kind:'npc',name:'草稿人物',status:'draft',published_version:null,revision:1},
+    {id:'archived',kind:'npc',name:'归档人物',status:'archived',published_version:1,revision:1},
+  ];
+  const f = await fixture({intercept: ({url}) => url.pathname === '/api/studio/resources' ? new Response(JSON.stringify({items,next_cursor:'next-page'}), {headers:{'content-type':'application/json'}}) : undefined});
+  try {
+    const stat = f.v.host.querySelector('.r-studio-stat');
+    assert.equal(stat.querySelector('strong').textContent, '3+');
+    assert.match(stat.textContent, /已读资源（含草稿）/);
+    assert.match(stat.textContent, /已发布 1 · 草稿 1 · 已归档 1/);
+    assert.equal(f.v.host.querySelectorAll('.r-resource-card').length, 3);
+  } finally { await f.dispose(); }
+});
 test("Studio empty directory and failed initial read are distinct and recover via original GET", async () => {
   const empty = await fixture({ scenario: "empty" });
   try {

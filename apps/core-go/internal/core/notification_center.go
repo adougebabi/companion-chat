@@ -74,6 +74,13 @@ func (a *App) ApplyNotificationSourceTx(ctx context.Context, tx pgx.Tx, event No
 	if err != nil {
 		return err
 	}
+	if event.Kind == "conversation.reply.published" {
+		var name string
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(NULLIF(btrim(identity->>'name'),''),'角色') FROM public.fluctlights WHERE id=$1`, event.FluctlightID).Scan(&name); err != nil {
+			return err
+		}
+		title = name + " · 新回复"
+	}
 	// A person's own comment is not an incoming interaction notification.
 	if (event.Kind == "moment.comment.created" || event.Kind == "moment.reaction.created") && event.Payload["author_actor_id"] == owner {
 		return nil

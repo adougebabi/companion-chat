@@ -101,9 +101,10 @@ export default function StudioDirectoryView({ model: m }) {
         </div>
         <div className="r-studio-stat">
           <strong>
-            {m.list.ready ? available + (m.list.cursor ? "+" : "") : "—"}
+            {m.list.ready ? m.list.items.length + (m.list.cursor ? "+" : "") : "—"}
           </strong>
-          <span>{m.fixedKind==='world'?'已读可用底稿':'已读可用资源'}</span>
+          <div><span>{m.fixedKind==='world'?'已读底稿（含草稿）':'已读资源（含草稿）'}</span>
+          {m.list.ready && <small>已发布 {available} · 草稿 {m.list.items.filter(r=>!r.published_version&&r.status!=='archived').length} · 已归档 {m.list.items.filter(r=>r.status==='archived').length}</small>}</div>
         </div>
       </div>
       <form

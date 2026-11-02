@@ -99,7 +99,10 @@ function createWardrobePreparationController(__props, context, lifecycle) {
   return (_ctx, _cache) => {
     if(stages.value[0]?.state==='ready'&&!readError.value)return null;
     const stage = stages.value[0];
-    const labels = {unknown:'初始衣柜状态待确认',pending:'初始衣柜正在准备',running:'初始衣柜正在准备',failed:'初始衣柜准备遇到问题'};
+    const count = w.current.value.garments?.length || 0;
+    const labels = count
+      ? {unknown:`已登记 ${count} 件衣物，初始穿搭状态待确认`,pending:`已登记 ${count} 件衣物，初始穿搭尚未开始`,running:`已登记 ${count} 件衣物，穿搭准备仍在进行`,failed:`已登记 ${count} 件衣物，初始穿搭准备遇到问题`}
+      : {unknown:'初始衣柜状态待确认',pending:'初始衣柜尚未开始准备',running:'初始衣柜正在准备',failed:'初始衣柜准备遇到问题'};
     return (
       <div className="approved-preparation wardrobe-preparation-inline">
         <p role="status">{labels[stage.state] || '初始衣柜正在准备'}{stage.state !== 'failed' && stage.note ? ' · ' + stage.note : ''}</p>

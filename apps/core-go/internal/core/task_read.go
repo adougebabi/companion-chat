@@ -28,6 +28,9 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 	source := compactStateMap(input, []string{"deletion_id", "asset_id", "inbox_id", "request_id", "source_fact_id", "action_id", "media_intent_id", "goal_id", "local_date", "correlation_id", "diary_attempt_id"})
 	if kind == "world.events.generate" {
 		source["world_id"], source["clock_status"] = input["world_id"], status
+		if at := stringValue(input["cycle_started_at"]); at != "" {
+			source["cycle_started_at"] = at
+		}
 		cycle, nextAt := stringValue(input["cycle_status"]), stringValue(input["cycle_next_at"])
 		if cycle == "" {
 			var slot time.Time

@@ -28,7 +28,10 @@ export function taskStatusPresentation(task={},now=Date.now()){
   else if(!['waiting','generating'].includes(status))status='unknown'; // Workflow lifetime alone does not prove hourly generation.
  }
  const group=statusGroupByState.get(status)||'unknown';
- const started=Date.parse(kind==='world.events.generate'?(task.payload?.cycle_started_at||task.source?.cycle_started_at||''):(task.started_at||task.updated_at||task.created_at||''));
+ // A status refresh is not a new execution. Prefer the actual start, then the
+ // original creation evidence; updated_at can move on every dispatcher read.
+ const times=kind==='world.events.generate'?[task.payload?.cycle_started_at,task.source?.cycle_started_at,task.started_at,task.created_at]:[task.started_at,task.source?.started_at,task.payload?.started_at,task.created_at,task.source?.created_at,task.occurred_at,task.updated_at];
+ const started=times.map(value=>Date.parse(value||'')).find(Number.isFinite);
  const stale=group==='running'&&Number.isFinite(started)&&now-started>taskRunningStaleAfterMs;
  const statusLabel=taskStatusLabel(status),groupLabel={attention:'需要处理',running:'进行中',waiting:'等待开始',completed:'已完成',ended:'已经结束'};
  const label=group==='unknown'?'状态待确认':status==='generating'?'生成中':status==='waiting'&&kind!=='world.events.generate'?'等待中':statusLabel==='状态待确认'?groupLabel[group]:statusLabel;
@@ -67,6 +70,37 @@ export function diagnosticDateLabel(value,now=Date.now()){
  return `${date} ${parts.hour}:${parts.minute}`;
 }
 export function diagnosticTimeLabel(value){const parts=diagnosticParts(value);return parts?`${parts.hour}:${parts.minute}:${parts.second}${parts.fractionalSecond==='000'?'':'.'+parts.fractionalSecond}`:'未记录时间';}
+// Keep the original timestamp as evidence and explain its hourly slot without
+// changing the backend clock or substituting a different lifecycle timestamp.
+export function worldEventClockLabel(startedAt,slotAt,includeDate=false){
+ const started=diagnosticParts(startedAt),slot=diagnosticParts(slotAt||startedAt);
+ if(!slot)return '未记录时间';
+ const label=`${slot.hour}:00 整点${started?`（${started.hour}:${started.minute} 开始）`:''}`;
+ return includeDate?diagnosticDateLabel(slotAt||startedAt).replace(/\s\d{2}:\d{2}$/,'')+' '+label:label;
+}
+
+// Notifications and diagnostics read the same unresolved source, including
+// older tasks outside the recent workflow page. Every page retains its cursor.
+export async function readAttentionTasks(api){
+ const items=[],seen=new Set();let cursor='',detailErrors=0;
+ do{
+  const page=await api.pending('','failed_task',cursor),group=page.groups?.find(row=>row.kind==='failed_task');
+  if(group?.status!=='ok')throw Error(group?.message||'需要处理的任务来源尚未完整读到。');
+  const records=await Promise.all((group.items||[]).map(async row=>{
+   const workflow=row.href?.includes('/diag/task/');
+   let task=null,detailError='';
+   if(workflow&&typeof api.task==='function')try{task=await api.task(row.source_id||row.id.replace(/^workflow:/,''));}catch(cause){detailErrors++;detailError=errorMessage(cause,'任务详情暂未读到，待处理来源仍保留。');}
+   // The pending snapshot owns membership and status. A concurrent recovery or
+   // an unavailable detail must not silently change its count into a new total.
+   return {ref:'attention:'+row.id,occurred_at:row.created_at,sourceHref:row.href,data:{...(task||row),status:row.status,kind:task?.kind||row.title,intent_id:task?.task_id||(workflow?row.source_id||row.id.replace(/^workflow:/,''):''),pending_source_id:row.source_id,task_detail_error:detailError}};
+  }));
+  items.push(...records);
+  cursor=group.next_cursor||'';
+  if(cursor&&seen.has(cursor))throw Error('需要处理的任务分页重复，请重新读取原来源。');
+  seen.add(cursor);
+ }while(cursor);
+ return {items,next_cursor:'',detail_errors:detailErrors};
+}
 export function taskEventTitle(entry){
  const event=domainName(entry.event_type,'');
  if(event)return event;

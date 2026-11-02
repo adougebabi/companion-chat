@@ -331,6 +331,23 @@ async function tab(v, root, text) {
 async function open(v) {
   await v.click(v.host.querySelector('[aria-label="查看记忆 你喜欢听雨声。"]'));
 }
+test('r34c unfiltered memory emptiness guides a first conversation and filtered emptiness clears filters', async () => {
+  const w = workspace();
+  w.client.managedMemories = async () => ({items: [], next_cursor: ''});
+  const v = await mount(w);
+  try {
+    assert.match(v.host.textContent, /还没有记录下记忆/);
+    assert.doesNotMatch(v.host.textContent, /试试别的关键词/);
+    assert.equal(button(v.host, '清除筛选'), undefined);
+    assert.equal(v.host.querySelector('a[href="#/c/A/chat"]').textContent, '去聊聊天');
+    await v.input(v.host.querySelector('[aria-label="搜索记忆正文"]'), '雨声');
+    await v.click(v.host.querySelector('[aria-label="应用记忆搜索"]'));
+    assert.match(v.host.textContent, /这里没有找到匹配的记忆/);
+    assert.ok(button(v.host, '清除筛选'));
+    await v.click(button(v.host, '清除筛选'));
+    assert.match(v.host.textContent, /还没有记录下记忆/);
+  } finally { await v.dispose(); }
+});
 test("memory card scores use the actual 0–1 scale and search sends the applied scope rather than fabricating tags", async () => {
   const w = workspace(),
     v = await mount(w);

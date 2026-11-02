@@ -32,9 +32,20 @@ func (a *App) bootstrapWorldTx(ctx context.Context, tx pgx.Tx, fid, world string
 	frame := mapValue(body["framework"])
 	if len(frame) == 0 {
 		frame = map[string]any{"schema": "world-framework.v1", "venues": []any{
-			map[string]any{"key": "home", "name": "居所", "places": []any{map[string]any{"key": "living", "name": "起居室"}, map[string]any{"key": "bedroom", "name": "卧室"}, map[string]any{"key": "kitchen", "name": "厨房"}, map[string]any{"key": "bathroom", "name": "浴室"}}},
-			map[string]any{"key": "shops", "name": "商店", "places": []any{map[string]any{"key": "grocer", "name": "杂货店"}, map[string]any{"key": "food", "name": "小吃店"}}},
-			map[string]any{"key": "public", "name": "公共空间", "places": []any{map[string]any{"key": "square", "name": "广场"}, map[string]any{"key": "meeting", "name": "会客处"}}},
+			map[string]any{"key": "home", "name": "居所", "places": []any{
+				map[string]any{"key": "living", "name": "起居室", "description": "明亮的起居室设有沙发、茶几和书架，窗边留着适合阅读与闲聊的角落。"},
+				map[string]any{"key": "bedroom", "name": "卧室", "description": "安静的卧室里摆着床、衣柜和床头灯，柔和的窗帘隔开外面的光线。"},
+				map[string]any{"key": "kitchen", "name": "厨房", "description": "整洁的厨房配有灶台、水槽和料理台，餐具与常用厨具各有收纳的位置。"},
+				map[string]any{"key": "bathroom", "name": "浴室", "description": "干净的浴室设有洗手台、镜子和淋浴区，毛巾与洗护用品收在置物架上。"},
+			}},
+			map[string]any{"key": "shops", "name": "商店", "places": []any{
+				map[string]any{"key": "grocer", "name": "杂货店", "description": "街角的小店陈列着食品与日用品，货架之间留着窄窄的过道，收银台靠近门口。"},
+				map[string]any{"key": "food", "name": "小吃店", "description": "临街的小吃店摆着几张木桌，开放的料理台前挂着菜单，店内弥漫着热食的香气。"},
+			}},
+			map[string]any{"key": "public", "name": "公共空间", "places": []any{
+				map[string]any{"key": "square", "name": "广场", "description": "开阔的步行广场围着树荫和长椅，几条小路从这里通向附近的街区。"},
+				map[string]any{"key": "meeting", "name": "会客处", "description": "温暖的公共会客空间里摆着圆桌和座椅，入口旁设有饮水处，适合坐下交谈。"},
+			}},
 		}}
 	}
 	var places int
@@ -62,7 +73,7 @@ func (a *App) bootstrapWorldTx(ctx context.Context, tx pgx.Tx, fid, world string
 	}
 	// NPC sources keep the existing immutable Studio provenance contract. No schema
 	// exception and no synthetic encounter/relationship are needed for base NPCs.
-	for _, name := range []string{"当地居民", "常住居民"} {
+	for _, name := range []string{"周予安", "林晚晴"} {
 		source, npc, actor := randomID("resource_"), randomID("npc_"), randomID("actor_npc_")
 		definition := map[string]any{"role": "居民", "background": "这个世界的独立居民；尚无与角色相识或实际在场的记录。"}
 		rec := surfaceRecord{ID: source, OwnerID: owner, Kind: "studio_resource", Status: "published", Revision: 1, Payload: map[string]any{"kind": "npc", "name": name, "body": definition, "draft_version": "v1", "published_version": "v1", "versions": []any{map[string]any{"version": "v1", "body": definition}}}}

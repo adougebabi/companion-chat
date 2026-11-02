@@ -140,7 +140,12 @@
   font-weight: 400;
   color: #8da878;
 }
-.replica-studio .r-studio-stat > span {
+.replica-studio .r-studio-stat > div {
+  display: grid;
+  gap: 5px;
+}
+.replica-studio .r-studio-stat span,
+.replica-studio .r-studio-stat small {
   font-size: 10px;
   color: #a1af91;
 }
@@ -814,6 +819,7 @@
   .replica-studio .r-studio-intro {
     padding: 20px;
     gap: 15px;
+    flex-wrap: wrap;
   }
   .replica-studio .r-studio-intro h3 {
     font-size: 13px;
@@ -822,7 +828,10 @@
     font-size: 10px;
   }
   .replica-studio .r-studio-stat {
-    display: none;
+    flex-basis: 100%;
+    border-left: 0;
+    border-top: 1px solid #dfe7d1;
+    padding: 12px 0 0;
   }
   .replica-studio .r-resource-grid {
     gap: 14px;

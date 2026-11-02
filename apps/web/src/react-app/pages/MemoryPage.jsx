@@ -783,9 +783,9 @@ export default function MemoryPage({ route }) {
                 !memories.error &&
                 !memories.busy && (
                   <EmptyState variant="page">
-                    <h3>这里没有找到匹配的记忆</h3>
-                    <p>试试别的关键词，或清除筛选。</p>
-                    <Button
+                    <h3>{filters.q||filters.type||filters.aboutOwner||filters.status!=='active'?'这里没有找到匹配的记忆':'还没有记录下记忆'}</h3>
+                    <p>{filters.q||filters.type||filters.aboutOwner||filters.status!=='active'?'试试别的关键词，或清除筛选。':'从一次聊天开始，值得记住的经历会慢慢积累在这里。'}</p>
+                    {filters.q||filters.type||filters.aboutOwner||filters.status!=='active'?<Button
                       variant="outline"
                       onClick={() => {
                         setQuery("");
@@ -798,7 +798,7 @@ export default function MemoryPage({ route }) {
                       }}
                     >
                       清除筛选
-                    </Button>
+                    </Button>:<Button asChild variant="outline"><a href={'#/c/'+encodeURIComponent(fid)+'/chat'}>去聊聊天</a></Button>}
                   </EmptyState>
                 )}
               <More source={memories} label="记忆" />

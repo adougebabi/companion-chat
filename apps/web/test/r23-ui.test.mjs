@@ -48,7 +48,7 @@ test('P1-3 leaving a pending chat then failing preflight keeps retry usable and 
 test('P1-4 diagnostic task row speaks its title once and retains time and status',async()=>{
  const {default:Diagnostics}=await load('react-app/shared/DiagnosticsWorkspace.jsx'),w=workspace();w.services.diagnosticsClient={page:async()=>({items:[{ref:'task',occurred_at:'2026-10-31T06:15:00Z',data:{id:'task',kind:'world.events.generate',status:'running'}}],next_cursor:''})};
  const v=await mountReact(vite,Diagnostics,{workspace:w,props:{view:{openTaskDiagnostics(){}}}});
- try{const row=v.host.querySelector('.replica-task-row');assert.equal(row.querySelector('h3').textContent,'世界事件时钟');assert.doesNotMatch(row.querySelector('p').textContent,/世界事件时钟/);assert.match(row.querySelector('p').textContent,/10-31 14:15/);assert.match(row.querySelector('.replica-diagnostic-status').textContent,/进行中/);}finally{await v.dispose();}
+ try{const row=v.host.querySelector('.replica-task-row');assert.equal(row.querySelector('h3').textContent,'世界事件时钟');assert.doesNotMatch(row.querySelector('p').textContent,/世界事件时钟/);assert.match(row.querySelector('p').textContent,/10-31 14:00 整点（14:15 开始）/);assert.equal(row.querySelector('.replica-diagnostic-status').textContent,'状态待确认');}finally{await v.dispose();}
 });
 
 test('P2-1 quiet hours uses a labelled shadcn Switch row and preserves times while disabled',async()=>{

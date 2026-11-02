@@ -117,6 +117,44 @@ real chat, history and inbox DOM tests verify all presentation consumers.
 
 ## Good, base and bad cases
 
+### R34C same-source counts and effective selections (2026-11-02)
+
+1. **Scope / trigger:** diagnostics, Inbox service issues, world/wizard previews,
+   Studio counts, wardrobe and memory empty states.
+2. **Signatures:** `readAttentionTasks(operationsClient)` consumes the existing
+   `pending('', 'failed_task', cursor)` pages; `worldEventClockLabel(startedAt,
+   slotAt, includeDate)` formats existing timestamps. `OwnerTask.source` preserves
+   `cycle_started_at` unchanged for running world-cycle age checks.
+3. **Contracts:** diagnostics and Inbox share unresolved pending membership and
+   attention states. Read all original pending cursors; preserve a pending row's
+   status when its separate detail fails or changes concurrently. Late Owner
+   responses cannot publish. Counts and filters use the same visible projection.
+   Running-task age prefers valid actual starts, then creation evidence, ahead of
+   mutable updates; every running kind gets the 15-minute hint. World time says
+   `20:00 整点（20:39 开始）` without replacing source timestamps. Wizard previews
+   use the effective selectable source; historical daily/published draft choices
+   cannot imply selection when existing worlds require another choice. Step
+   navigation resets `.workspace-page` to top and focuses its heading.
+4. **Validation / errors:** unread pending source means unknown count, never a
+   fabricated zero or empty state. Failed task detail retains membership and a
+   real retry. Studio counts include the cards shown, label published/draft/archive
+   subtotals, and remain visible on narrow screens. Registered garments and
+   unfinished preparation are described separately; confirmed wear is a list.
+   Unfiltered empty memory offers chat guidance, while filters offer reset.
+5. **Good / base / bad:** good: an older failed task appears in both Inbox and
+   diagnostics. Base: all visible counts sum to the visible rows. Bad: deriving
+   the global unresolved count from only the 20 newest workflows, or showing a
+   retained default-world draft as a current selection.
+6. **Tests:** `r34c-task-audit`, `r34c-world-wizard`, `r34c-sidebar` and the
+   memory/wardrobe/studio/inbox DOM suites cover counts, source failures, Owner
+   fences, selection, scroll and accessible labels. Go
+   `TestR34CPendingAttentionSharesAllActionRequiredStates` and
+   `TestR34CWorldTaskRetainsActualCycleStartForStalePresentation` verify the real
+   source in isolated PostgreSQL. Production browser evidence belongs outside Git.
+7. **Wrong / correct:** wrong: `started_at || updated_at || created_at` and
+   counting a separate recent page. Correct: pick the first valid execution or
+   creation timestamp and classify the same pending/visible set used by rows.
+
 Good: unreadable storage blocks a new send and offers local reread; after access
 returns, the original retry identity is restored without a replacement command.
 Base: an empty successful directory has ordinary empty guidance and a real create
