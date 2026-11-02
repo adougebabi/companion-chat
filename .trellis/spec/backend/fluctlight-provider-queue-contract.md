@@ -14,7 +14,8 @@ idempotency, and side effects.
 - `ProviderClient.Structured*`, `Text`, `StreamText`, and `Embed` submit a
   `ProviderQueue` task and return the same normalized result/error as before.
 - `runtime_settings["llm.queue"]` accepts
-  `{generated_concurrency: integer, embedding_concurrency: integer}`.
+  `{generated_concurrency: integer, embedding_concurrency: integer,
+  queue_wait_timeout_seconds: integer}`.
 - `GET /api/diagnostics/model-runs` returns `bindingRole`, `scenario`,
   `priority`, `queuedAt`, `startedAt`, and `completedAt` in addition to the
   existing model-run fields.
@@ -52,6 +53,15 @@ idempotency, and side effects.
 
 - Generated requests and embedding requests have separate queues and limits.
   Defaults are generated=1 and embedding=1; each setting is clamped to 1–8.
+- Queue waiting has one independent timeout covering Redis admission and the
+  local queue together. `queue_wait_timeout_seconds` defaults to 1800, accepts
+  integers 1–86400, and applies to subsequent calls without restart. Existing
+  settings without the field retain the default. A physical execution timeout
+  starts only after both permits are acquired; stop the wait timer at admission.
+  Streaming execution includes reader consumption through EOF/close. Caller
+  deadlines and explicit cancellation still bound both phases. Wait expiry
+  never invokes the Provider and records `timeout/request_timeout` with no
+  `started_at`; it removes the pending job and releases any acquired Redis slot.
 - Queue class and routing identity are separate. `providerQueueBindingRole` maps all non-embedding physical requests, including independent reply/vision, to the existing generic_llm Redis capacity bucket. `providerBindingRole` retains dedicated model identity. A route addition cannot silently split shared capacity or claim a process-local fallback is a global ceiling.
 - Generated priority is interactive `reply` and conversation
   `cognitive_assessment` (100), native/daily-review/plan (90), media prompt
@@ -94,12 +104,15 @@ idempotency, and side effects.
 `runtime_settings["llm.queue"]` stores:
 
 ```json
-{"generated_concurrency": 1, "embedding_concurrency": 1}
+{"generated_concurrency": 1, "embedding_concurrency": 1, "queue_wait_timeout_seconds": 1800}
 ```
 
-Unknown keys, non-integers, and values outside 1–8 are rejected. Missing values
-use the corresponding default. Changes apply to subsequent requests without a
-process restart.
+Unknown keys and non-integers are rejected. Concurrency must be within 1–8;
+queue wait seconds must be within 1–86400. Missing values use the corresponding
+default. Changes apply to subsequent requests without a process restart.
+`provider_queue_timeout_test.go` covers local/Redis waits longer than execution
+timeouts, fresh execution deadlines, stream-read expiry, caller deadlines,
+persisted wait-timeout settings, timeout diagnostics and subsequent slot reuse.
 
 - Unit tests cover priority/FIFO, both queue limits, cancellation, timeout and
   slot release. Run the running-Provider explicit-turn cancellation regression

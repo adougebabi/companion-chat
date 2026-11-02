@@ -15,6 +15,8 @@ const (
 	providerQueueMinConcurrency     = model.MinConcurrency
 	providerQueueMaxConcurrency     = model.MaxConcurrency
 	providerQueueMaximumWait        = model.MaximumWait
+	providerQueueDefaultWaitTimeout = 30 * time.Minute
+	providerQueueMaxWaitSeconds     = 24 * 60 * 60
 )
 
 type providerQueueClass = model.QueueClass
@@ -61,8 +63,9 @@ func (q *providerQueue) close() {
 }
 
 type providerQueueSettings struct {
-	GeneratedConcurrency int `json:"generated_concurrency"`
-	EmbeddingConcurrency int `json:"embedding_concurrency"`
+	GeneratedConcurrency    int `json:"generated_concurrency"`
+	EmbeddingConcurrency    int `json:"embedding_concurrency"`
+	QueueWaitTimeoutSeconds int `json:"queue_wait_timeout_seconds"`
 }
 
 type providerQueueBypassContextKey struct{}
@@ -95,8 +98,9 @@ func (p *ProviderClient) queueFor(role string) *providerQueue {
 	return p.generated
 }
 
-func (p *ProviderClient) refreshQueueLimits(ctx context.Context) {
+func (p *ProviderClient) refreshQueueLimits(ctx context.Context) time.Duration {
 	generated, embedding := providerQueueDefaultConcurrency, providerQueueDefaultEmbedding
+	waitTimeout := providerQueueDefaultWaitTimeout
 	if p != nil && p.DB != nil {
 		var raw string
 		if err := p.DB.Pool().QueryRow(ctx, `SELECT value_json FROM public.runtime_settings WHERE key='llm.queue'`).Scan(&raw); err == nil {
@@ -108,11 +112,62 @@ func (p *ProviderClient) refreshQueueLimits(ctx context.Context) {
 				if settings.EmbeddingConcurrency != 0 {
 					embedding = settings.EmbeddingConcurrency
 				}
+				if settings.QueueWaitTimeoutSeconds > 0 && settings.QueueWaitTimeoutSeconds <= providerQueueMaxWaitSeconds {
+					waitTimeout = time.Duration(settings.QueueWaitTimeoutSeconds) * time.Second
+				}
 			}
 		}
 	}
 	p.queueFor("generic_llm").setLimit(generated)
 	p.queueFor("embedding").setLimit(embedding)
+	return waitTimeout
+}
+
+// One wait budget covers Redis admission and the local queue. Stop it before
+// creating the execution deadline so neither phase consumes the other's time.
+// The cancel cause preserves deadline errors when Queue.Submit returns early.
+type providerQueueCallContext struct {
+	ctx       context.Context
+	cancel    context.CancelCauseFunc
+	waitTimer *time.Timer
+}
+
+func newProviderQueueCallContext(ctx context.Context, waitTimeout time.Duration) *providerQueueCallContext {
+	runCtx, cancel := context.WithCancelCause(ctx)
+	call := &providerQueueCallContext{ctx: runCtx, cancel: cancel}
+	call.waitTimer = time.AfterFunc(waitTimeout, func() { cancel(context.DeadlineExceeded) })
+	return call
+}
+
+func (c *providerQueueCallContext) close() {
+	c.waitTimer.Stop()
+	c.cancel(context.Canceled)
+}
+
+func (c *providerQueueCallContext) startExecution(timeout time.Duration) (context.Context, func(), error) {
+	if !c.waitTimer.Stop() {
+		c.cancel(context.DeadlineExceeded)
+	}
+	if err := context.Cause(c.ctx); err != nil {
+		return nil, nil, err
+	}
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(c.ctx, timeout)
+	} else {
+		ctx, cancel = context.WithCancel(c.ctx)
+	}
+	// Submit must still return promptly if the provider ignores cancellation.
+	stop := context.AfterFunc(ctx, func() { c.cancel(context.Cause(ctx)) })
+	return ctx, func() { stop(); cancel() }, nil
+}
+
+func (c *providerQueueCallContext) resultError(err error) error {
+	if err == context.Canceled && c.ctx.Err() != nil {
+		return context.Cause(c.ctx)
+	}
+	return err
 }
 
 type providerTimeoutContextKey struct{}
@@ -142,23 +197,17 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	if capacity, ok := ctx.Value(providerCapacityKey{}).(providerCapacity); ok && capacity.class != "" && capacity.limit > 0 {
 		return runProviderWithCapacity(p, ctx, capacity, role, scenario, priority, diagnosticID, fn)
 	}
-	p.refreshQueueLimits(ctx)
-	timeout := providerTimeoutFromContext(ctx)
-	var runCtx context.Context
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		runCtx, cancel = context.WithTimeout(ctx, timeout)
-	} else {
-		runCtx, cancel = context.WithCancel(ctx)
-	}
-	defer cancel()
-	stopWatch := p.watchProviderCancellation(runCtx, cancel)
+	call := newProviderQueueCallContext(ctx, p.refreshQueueLimits(ctx))
+	defer call.close()
+	runCtx := call.ctx
+	stopWatch := p.watchProviderCancellation(runCtx, func() { call.cancel(context.Canceled) })
 	defer stopWatch()
 	queue := p.queueFor(role)
 	releaseRedis, redisEnabled, redisErr := p.acquireProviderRedisSlot(runCtx, role, priority, queue.currentLimit(), diagnosticID)
 	if redisErr != nil {
+		redisErr = call.resultError(redisErr)
 		if diagnosticID != "" {
-			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
+			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunStatusForError(redisErr), redisErr)
 		}
 		return result, redisErr
 	}
@@ -170,6 +219,11 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 	// this caller's result read.
 	resultReady := make(chan T, 1)
 	err := queue.submit(runCtx, priority, func(taskCtx context.Context) error {
+		taskCtx, finish, err := call.startExecution(providerTimeoutFromContext(ctx))
+		if err != nil {
+			return err
+		}
+		defer finish()
 		if guard := providerExecutionGuard(taskCtx); guard != nil {
 			if guardErr := guard(taskCtx); guardErr != nil {
 				return guardErr
@@ -182,13 +236,17 @@ func runProviderQueued[T any](p *ProviderClient, ctx context.Context, role, scen
 		if p.DB == nil || diagnosticID == "" {
 			return
 		}
+		if runErr == context.Canceled {
+			runErr = call.resultError(runErr)
+			status = providerRunStatusForError(runErr)
+		}
 		p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
 	})
 	select {
 	case result = <-resultReady:
 	default:
 	}
-	return result, err
+	return result, call.resultError(err)
 }
 
 func (p *ProviderClient) watchProviderCancellation(ctx context.Context, cancel context.CancelFunc) func() {

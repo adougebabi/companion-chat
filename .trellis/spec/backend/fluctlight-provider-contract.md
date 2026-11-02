@@ -1151,7 +1151,8 @@ Multi-round native Agent execution, malformed final evidence, and upgrades from
 ### 3. Contracts
 
 ADK keeps the caller's cancellation/deadline; each physical Generate/Stream owns
-the configured timeout, including queueing. A single-call task retains its outer
+the configured execution timeout starting after Redis/local queue admission,
+plus the independent `llm.queue.queue_wait_timeout_seconds` wait budget. A single-call task retains its outer
 timeout. Missing/null influences become an empty list only when declared by the
 final schema; malformed objects/strings and invalid references still fail and
 enter the existing tool-free repair. Preparation and final validation use the

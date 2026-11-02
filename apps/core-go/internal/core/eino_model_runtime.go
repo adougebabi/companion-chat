@@ -651,24 +651,18 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 	if providerQueueBypassed(ctx) {
 		return fn(ctx)
 	}
-	p.refreshQueueLimits(ctx)
+	call := newProviderQueueCallContext(ctx, p.refreshQueueLimits(ctx))
 	reader, writer := schema.Pipe[*schema.Message](1)
-	timeout := providerTimeoutFromContext(ctx)
-	var runCtx context.Context
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		runCtx, cancel = context.WithTimeout(ctx, timeout)
-	} else {
-		runCtx, cancel = context.WithCancel(ctx)
-	}
-	stopWatch := p.watchProviderCancellation(runCtx, cancel)
+	runCtx := call.ctx
+	stopWatch := p.watchProviderCancellation(runCtx, func() { call.cancel(context.Canceled) })
 	go func() {
 		defer stopWatch()
-		defer cancel()
+		defer call.close()
 		releaseRedis, redisEnabled, redisErr := p.acquireProviderRedisSlot(runCtx, role, priority, p.queueFor(role).currentLimit(), diagnosticID)
 		if redisErr != nil {
+			redisErr = call.resultError(redisErr)
 			if diagnosticID != "" {
-				p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunFailed, redisErr)
+				p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, providerRunStatusForError(redisErr), redisErr)
 			}
 			writer.Send(nil, wrapPhysicalProviderRequestError(redisErr))
 			writer.Close()
@@ -678,6 +672,11 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 			defer releaseRedis()
 		}
 		err := p.queueFor(role).submit(runCtx, priority, func(taskCtx context.Context) error {
+			taskCtx, finish, err := call.startExecution(providerTimeoutFromContext(ctx))
+			if err != nil {
+				return err
+			}
+			defer finish()
 			if guard := providerExecutionGuard(taskCtx); guard != nil {
 				if guardErr := guard(taskCtx); guardErr != nil {
 					return guardErr
@@ -729,8 +728,13 @@ func runProviderQueuedStream(p *ProviderClient, ctx context.Context, role, scena
 			if p.DB == nil || diagnosticID == "" {
 				return
 			}
+			if runErr == context.Canceled {
+				runErr = call.resultError(runErr)
+				status = providerRunStatusForError(runErr)
+			}
 			p.runtimeSupport().UpdateModelRunState(ctx, diagnosticID, status, runErr)
 		})
+		err = call.resultError(err)
 		for _, observe := range observers {
 			terminalErr := err
 			if terminalErr == nil {

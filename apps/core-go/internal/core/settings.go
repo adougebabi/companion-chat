@@ -338,15 +338,16 @@ func mergeWakeUpSettings(previous WakeUpSettings, raw any) (WakeUpSettings, erro
 
 func normalizeProviderQueueSettings(value any) map[string]any {
 	settings := map[string]any{
-		"generated_concurrency": providerQueueDefaultConcurrency,
-		"embedding_concurrency": providerQueueDefaultEmbedding,
+		"generated_concurrency":      providerQueueDefaultConcurrency,
+		"embedding_concurrency":      providerQueueDefaultEmbedding,
+		"queue_wait_timeout_seconds": int(providerQueueDefaultWaitTimeout / time.Second),
 	}
 	input := mapValue(value)
 	if len(input) == 0 && value != nil {
 		return nil
 	}
 	for key := range input {
-		if key != "generated_concurrency" && key != "embedding_concurrency" {
+		if key != "generated_concurrency" && key != "embedding_concurrency" && key != "queue_wait_timeout_seconds" {
 			return nil
 		}
 	}
@@ -360,6 +361,16 @@ func normalizeProviderQueueSettings(value any) map[string]any {
 		} else {
 			settings[key] = fallback
 		}
+	}
+	if raw, ok := input["queue_wait_timeout_seconds"]; ok {
+		if _, isString := raw.(string); isString {
+			return nil
+		}
+		parsed, valid := numberFloat(raw)
+		if !valid || parsed != float64(int(parsed)) || parsed < 1 || parsed > providerQueueMaxWaitSeconds {
+			return nil
+		}
+		settings["queue_wait_timeout_seconds"] = int(parsed)
 	}
 	return settings
 }

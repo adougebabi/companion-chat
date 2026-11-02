@@ -697,7 +697,7 @@ func normalizeAbsentAppraisalEvidence(structured, outputSchema map[string]any) {
 
 func providerCompletionContext(ctx context.Context, timeout time.Duration, adk bool) (context.Context, context.CancelFunc) {
 	if adk {
-		// Each physical model call already owns its timeout, including queueing.
+		// Each physical model call owns separate queue-wait and execution timeouts.
 		// Tools and later rounds share only the caller's business deadline.
 		return context.WithCancel(ctx)
 	}
