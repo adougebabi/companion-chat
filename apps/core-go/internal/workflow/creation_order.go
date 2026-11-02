@@ -17,7 +17,10 @@ const creationStageReadySQL = `
         THEN EXISTS(SELECT 1 FROM public.fluctlight_world_bindings b WHERE b.fluctlight_id=candidate.payload->>'fluctlight_id')
       WHEN candidate.intent_type='visual_identity.initialize'
         THEN EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_preparations p WHERE p.fluctlight_id=candidate.payload->>'fluctlight_id' AND p.status='completed')
-          AND EXISTS(SELECT 1 FROM public.life_schedules s WHERE s.fluctlight_id=candidate.payload->>'fluctlight_id' AND s.status IN ('accepted','superseded'))
+          AND (EXISTS(SELECT 1 FROM public.life_schedules s WHERE s.fluctlight_id=candidate.payload->>'fluctlight_id' AND s.status IN ('accepted','superseded'))
+            OR EXISTS(SELECT 1 FROM public.platform_workflow_intents s
+              WHERE s.intent_id='schedule_intent:'||(candidate.payload->>'fluctlight_id') AND s.intent_type='schedule.current_day'
+                AND (s.status IN ('failed','dead_letter') OR s.payload->>'initial_schedule_degraded'='true')))
       WHEN candidate.intent_id='schedule_intent:'||(candidate.payload->>'fluctlight_id')
         THEN EXISTS(SELECT 1 FROM public.fluctlight_wardrobe_preparations p WHERE p.fluctlight_id=candidate.payload->>'fluctlight_id' AND p.status='completed')
       WHEN candidate.intent_type='wake_up.current'

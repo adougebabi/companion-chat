@@ -110,10 +110,10 @@ func characterTemplateSource(body map[string]any) (string, error) {
 	if !validInitializationDescription(text) {
 		return "", invalid("Template initialization exceeds the 60000-byte UTF-8 limit")
 	}
-	// Validate the exact structured source at publication; no default template or
+	// Validate the exact structured source on save and publication; no default template or
 	// invented semantic data is substituted for an invalid definition.
 	if _, err := prepareInitializationResponse(value); err != nil {
-		return "", err
+		return "", invalid("Template initialization does not match the character schema")
 	}
 	return text, nil
 }

@@ -8,7 +8,7 @@ import (
 func TestStudioApplyPersistsChoicesAndObservedRevision(t *testing.T) {
 	surface := NewMemoryOwnerSurface(SurfaceHooks{InstanceRevision: func(context.Context, string, string) (int, error) { return 7, nil }})
 	created, err := surface.Dispatch(context.Background(), "POST", "/internal/studio/resources", nil, "owner-1", map[string]any{
-		"idempotency_key": "res-1", "kind": "character_template", "name": "模板", "body": map[string]any{},
+		"idempotency_key": "res-1", "kind": "character_template", "name": "模板", "body": map[string]any{"schema": "character-template.v1", "description": "一位成年书店店主"},
 	})
 	if err != nil {
 		t.Fatal(err)

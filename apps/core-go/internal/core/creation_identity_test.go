@@ -19,6 +19,29 @@ func TestCreationIdentityPreservesOwnerNameOverModelInterpretation(t *testing.T)
 	}
 }
 
+func TestCreationProfileNamesRenamesEveryDeclaredProfile(t *testing.T) {
+	persona := map[string]any{"personality_system": map[string]any{"profiles": []any{
+		map[string]any{"id": "quiet", "name": "旧名一", "identity": map[string]any{"name": "旧名一", "nickname": "小静"}, "personality": map[string]any{"description": "保留旧名一的原始说明"}},
+		map[string]any{"id": "bright", "name": "旧名二", "identity": map[string]any{"name": "旧名二"}},
+	}}}
+	before := jsonString(persona)
+	creationProfileNames(persona, "")
+	if jsonString(persona) != before {
+		t.Fatal("missing chosen name rewrote profiles")
+	}
+	creationProfileNames(persona, "用户姓名")
+	for _, raw := range arrayValue(mapValue(persona["personality_system"])["profiles"]) {
+		profile := mapValue(raw)
+		if profile["name"] != "用户姓名" || mapValue(profile["identity"])["name"] != "用户姓名" {
+			t.Fatal("a declared profile retained template name", profile)
+		}
+	}
+	first := mapValue(arrayValue(mapValue(persona["personality_system"])["profiles"])[0])
+	if first["id"] != "quiet" || mapValue(first["identity"])["nickname"] != "小静" || mapValue(first["personality"])["description"] != "保留旧名一的原始说明" {
+		t.Fatal("rename rewrote unrelated identity or original prose", first)
+	}
+}
+
 func TestLLMDefinedActivationPersistsVerbatimOwnerNameAndReplays(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	app := &App{DB: repository}

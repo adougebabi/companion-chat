@@ -1079,6 +1079,11 @@ func (s *OwnerSurface) writeResource(ctx context.Context, tx surfaceTx, op surfa
 	}
 	now := s.now()
 	if op.a == "" {
+		if kind == "character_template" {
+			if _, err := characterTemplateSource(mapValue(body["body"])); err != nil {
+				return nil, err
+			}
+		}
 		version := "1"
 		rec := surfaceRecord{ID: randomID("res_"), OwnerID: owner, Kind: "studio_resource", Status: "draft", Revision: 1, CreatedAt: now, UpdatedAt: now, Payload: map[string]any{"kind": kind, "name": name, "body": body["body"], "published_version": nil, "draft_version": version, "versions": []any{map[string]any{"version": version, "created_at": now.Format(time.RFC3339)}}, "referenced_by": []any{}}}
 		rec.ResourceKey = rec.ID
@@ -1106,6 +1111,15 @@ func (s *OwnerSurface) writeResource(ctx context.Context, tx surfaceTx, op surfa
 	draft := stringValue(current.Payload["draft_version"])
 	if expected == "" || expected != draft {
 		return nil, &SurfaceError{Status: 409, Code: "revision_conflict", Message: "Studio resource version conflict", Details: map[string]any{"current_version": draft, "expected_version": expected, "current_revision": current.Revision, "expected_revision": expected, "resource": "studio_resource"}}
+	}
+	definition := current.Payload["body"]
+	if body["body"] != nil {
+		definition = body["body"]
+	}
+	if firstString(kind, stringValue(current.Payload["kind"])) == "character_template" {
+		if _, err := characterTemplateSource(mapValue(definition)); err != nil {
+			return nil, err
+		}
 	}
 	next := strconv.Itoa(current.Revision + 1)
 	current.Revision++

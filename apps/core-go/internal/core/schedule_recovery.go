@@ -41,7 +41,7 @@ func (a *App) RecoverInitialSchedule(ctx context.Context, owner, fid string, bod
 		}
 		result := map[string]any{"intent_id": id, "workflow_id": workflow, "status": status, "restarted": false}
 		if status == "failed" || status == "dead_letter" {
-			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, id); err != nil {
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',attempt_count=0,next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL,payload=payload||'{"initial_schedule_degraded":true}'::jsonb WHERE intent_id=$1`, id); err != nil {
 				return nil, err
 			}
 			result["status"], result["restarted"] = "pending", true

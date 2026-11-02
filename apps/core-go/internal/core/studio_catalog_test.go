@@ -63,7 +63,7 @@ func TestStudioCatalogueFiltersBeforePagesAndReadsExactPublication(t *testing.T)
 	for i := 0; i < 4; i++ {
 		create("world", "Other definition", map[string]any{"description": "Catalogue test source"})
 	}
-	create("character_template", "Unpublished", map[string]any{})
+	create("character_template", "Unpublished", map[string]any{"schema": "character-template.v1", "description": "Unpublished adult character"})
 	page, err := f.app.OwnerStudioResources(f.ctx, f.ownerID, url.Values{"kind": {"character_template"}, "q": {"%_"}, "published": {"true"}, "limit": {"1"}})
 	if err != nil || len(arrayValue(page["items"])) != 1 || mapValue(arrayValue(page["items"])[0])["id"] != id || page["next_cursor"] != nil {
 		t.Fatal("filter ran after page or treated wildcard as SQL", page, err)

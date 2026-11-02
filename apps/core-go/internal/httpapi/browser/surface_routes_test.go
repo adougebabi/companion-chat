@@ -201,7 +201,7 @@ func TestOwnerWardrobeEditConflictsWithCharacterRevision(t *testing.T) {
 
 func TestStudioApplyRecordsChoicesWithoutWritingInstance(t *testing.T) {
 	handler := newSurfaceHandler()
-	created := surfaceInvoke(handler, http.MethodPost, "/api/studio/resources", `{"idempotencyKey":"res-1","kind":"character_template","name":"模板","body":{}}`, true, true)
+	created := surfaceInvoke(handler, http.MethodPost, "/api/studio/resources", `{"idempotencyKey":"res-1","kind":"character_template","name":"模板","body":{"schema":"character-template.v1","description":"一位成年书店店主"}}`, true, true)
 	if created.code != http.StatusCreated {
 		t.Fatalf("create resource = %d %s", created.code, created.body)
 	}

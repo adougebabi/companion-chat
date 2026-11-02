@@ -41,6 +41,7 @@ const (
 	reflectionMaximumAttempts     = 5
 	goalEvaluationMaximumAttempts = 5
 	wakeUpMaximumAttempts         = 5
+	scheduleMaximumAttempts       = 3
 	cognitionMaximumAttempts      = 3
 	actionMaximumAttempts         = 5
 	defaultWakeUpIntervalSeconds  = 10 * 60
@@ -72,6 +73,8 @@ func workflowIntentMaximumAttempts(intentType string) int {
 		return 0
 	case "wake_up.current":
 		return wakeUpMaximumAttempts
+	case "schedule.current_day":
+		return scheduleMaximumAttempts
 	default:
 		return 0
 	}
@@ -1474,9 +1477,9 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 	for _, item := range batch {
 		d.reconcileCursor = item.id
 		intentID, workflowID, intentType, currentIntentStatus, payload, attemptCount := item.id, item.workflowID, item.kind, item.status, item.payload, item.attempts
-		// Dispatch idempotently starts/adopts a world clock. A terminal previous
-		// run must not close a newly queued recovery of the same clock identity.
-		if intentType == "world.events.generate" && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
+		// Dispatch starts/adopts these stable clocks. The previous terminal Run
+		// must not close a queued recovery or move its backoff deadline forward.
+		if (intentType == "world.events.generate" || intentType == "schedule.current_day") && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
 			continue
 		}
 		var input Input
@@ -1520,9 +1523,11 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			}
 		}
 		execution, describeErr := d.Client.DescribeWorkflowExecution(ctx, normalizedWorkflowID(workflowID), "")
-		// A failed schedule ledger may refer to an earlier Run while the stable
-		// daily scheduler is still running. Observe only; never redispatch or
-		// reinterpret a terminal/not-found/unavailable execution as recovery.
+		// Observation outages cannot prove a schedule execution failed. A failed
+		// ledger may also refer to an earlier Run of the still-running clock.
+		if intentType == "schedule.current_day" && (describeErr != nil || execution == nil || execution.WorkflowExecutionInfo == nil) {
+			continue
+		}
 		if intentType == "schedule.current_day" && currentIntentStatus == "failed" {
 			repaired, repairErr := reconcileFailedScheduleLedger(ctx, intentID, execution, describeErr, d.App.DB.Pool().Exec)
 			if repairErr != nil {
@@ -1535,8 +1540,8 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 					d.Started[intentID] = struct{}{}
 				}
 				count++
+				continue
 			}
-			continue
 		}
 		if intentType == "studio.generate" || intentType == "diary.generate" || intentType == "media.generation" || intentType == "media.delete" {
 			if describeErr != nil || execution == nil || execution.WorkflowExecutionInfo == nil {
@@ -1679,6 +1684,37 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				delete(d.Started, intentID)
 			}
 			count++
+			continue
+		}
+		if intentType == "schedule.current_day" && intentStatus == "failed" {
+			// Each Workflow keeps the existing two Activity attempts. Subsequent
+			// executions use durable exponential backoff (one, then two minutes).
+			delay := time.Minute
+			if attemptCount > 1 {
+				delay *= 2
+			}
+			nextStatus := "retry"
+			if workflowIntentRetryExhausted(intentType, attemptCount) {
+				nextStatus = "dead_letter"
+			}
+			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents
+				SET status=$5::varchar,next_attempt_at=CASE WHEN $5::varchar='retry' THEN now()+($2 * interval '1 second') ELSE NULL END,
+				started_at=NULL,completed_at=CASE WHEN $5::varchar='dead_letter' THEN now() ELSE NULL END,
+				last_error=COALESCE(NULLIF($3,''),last_error,'schedule_workflow_failed'),
+				payload=payload||'{"initial_schedule_degraded":true}'::jsonb
+				WHERE intent_id=$1 AND status IN ('started','failed') AND attempt_count=$4`, intentID, int64(delay/time.Second), terminalFailure, attemptCount, nextStatus)
+			if err != nil {
+				return count, err
+			}
+			if command.RowsAffected() == 1 {
+				transition, reason := core.LifecycleTransitionRetryScheduled, "schedule_retry_scheduled"
+				if nextStatus == "dead_letter" {
+					transition, reason = core.LifecycleTransitionFailed, "schedule_retry_exhausted"
+				}
+				d.recordIntentLifecycle(ctx, input, intentType, workflowID, runID, transition, "workflow_reconcile", nextStatus, reason, attemptCount, errors.New(firstString(terminalFailure, "schedule_workflow_failed")))
+				delete(d.Started, intentID)
+				count++
+			}
 			continue
 		}
 		if intentType != "reflection.run" && intentType != "wake_up.current" && intentStatus == "failed" && workflowIntentRetryExhausted(intentType, attemptCount) {

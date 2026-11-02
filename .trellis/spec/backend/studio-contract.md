@@ -45,6 +45,14 @@ Browser transport normalizes envelope/reference fields but preserves the opaque
 definition `body` for both Studio resource writes and job snapshots. A unit
 converter test must exercise the same conversion helper as the actual route.
 
+Character-template POST/PUT saves validate `character-template.v1` through
+`characterTemplateSource`, including retained kind/body on partial updates and
+retagging. Missing/invalid schemas return HTTP 400 without changing the draft.
+Activation applies the Owner's chosen name to shared identity and every profile
+name/identity.name before compilation; profile IDs, nicknames, source prose and
+the frozen analysis remain intact. Template activation regression tests must
+assert persisted `portrait_text` contains no template name.
+
 Admission is Owner authorized, resource-version checked, idempotent and atomic
 with the workflow intent. Model I/O occurs outside transactions. Qwen's formal
 assistant returns `proposal` or `needs_input`; independent Cydonia produces

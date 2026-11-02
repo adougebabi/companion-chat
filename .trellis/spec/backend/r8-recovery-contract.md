@@ -36,7 +36,11 @@ Do not bypass the timer or derive acquisition from dialogue.
 
 Initial bootstrap is world/persona -> wardrobe -> schedule -> reference/sheet/
 avatar. Dispatch the original stable schedule intent after wardrobe completion;
-keep current-revision persona compilation and accepted-schedule visual gates.
+keep current-revision persona compilation. A confirmed schedule failure releases
+visual initialization in degraded state after wardrobe; WakeUp still requires
+an accepted Schedule. Schedule retries use the stable Workflow ID, 1m/2m
+backoff and three executions before dead-letter. Owner recovery resets attempts;
+reconciliation must not overwrite pending/retry recovery with the old failed Run.
 Missing images do not block non-image life preparation. Model concurrency stays 1.
 
 Segment source messages retain original text/time/role, with author aliases and
