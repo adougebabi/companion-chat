@@ -647,7 +647,7 @@
 .react-workspace .replica-page-heading h1{font-size:27px;line-height:1.45;font-weight:600;letter-spacing:.3px;margin:9px 0 0;outline:none}
 .replica-page-heading p{font-size:12px;color:#778170;line-height:1.85;margin:8px 0 0}
 .replica-page-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-.replica-page-actions [data-slot="button"]{height:36px;font-size:12px;padding-inline:13px;gap:7px;border-radius:7px}
+.replica-page-actions [data-slot="button"]:not([data-size="icon"]){height:36px;font-size:12px;padding-inline:13px;gap:7px;border-radius:7px}
 .replica-page-actions [data-slot="button"] svg{width:15px;height:15px}
 .replica-dialog{width:calc(100vw - 34px);max-width:590px;padding:26px;max-height:89dvh;overflow:hidden;scrollbar-gutter:auto;display:flex;flex-direction:column;gap:16px;border:1px solid #dfe6da;border-radius:15px;box-shadow:0 25px 100px #1c33292b;min-height:0}
 .replica-dialog>[data-slot=dialog-close]{top:16px;right:16px;width:16px;height:16px;min-width:0;min-height:0;padding:0;opacity:.7;border-radius:2px}

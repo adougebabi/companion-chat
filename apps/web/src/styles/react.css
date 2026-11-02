@@ -207,3 +207,30 @@ body {
 .react-workspace .chat-header>div{min-width:0;}
 .react-workspace .chat-header strong{overflow-wrap:anywhere;}
 .react-workspace .composer-bottom>[data-slot="button"]{margin-left:auto;}
+
+/* Position the shared icon hit plane below utility-level absolute positioning.
+   Avoid adding .relative: legacy select-wrapper layout rules also target it. */
+@layer components {
+  :where(button, a)[data-size="icon"]:not([data-day]) { position: relative; }
+}
+
+/* Keep compact visuals while providing a 44px mobile pointer target.
+   Explicit content also covers Radix radio/checkbox ::after hit areas. */
+@media (max-width: 700px) {
+  .replica-library .tag-filter > button { position: relative; }
+  :is(button, a)[data-size="icon"]:not([data-day])::after,
+  [data-slot="radio-group-item"]::after,
+  [data-slot="checkbox"]::after,
+  .replica-library .tag-filter > button::after {
+    content: "";
+    position: absolute;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    left: 50%;
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    background: transparent;
+  }
+}

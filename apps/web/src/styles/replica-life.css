@@ -363,7 +363,7 @@
 .replica-request-status p{margin:0}.replica-request-status [data-slot="button"]{justify-self:start}
 .replica-dialog .lp-form{gap:18px}.replica-dialog .lp-stack{gap:20px}
 .replica-dialog .replica-info{padding:14px 16px;border:1px solid #dfe8d5;border-radius:8px;background:#f1f5e9;color:#7d8f6d;font-size:11px;line-height:1.85}
-@media(max-width:700px){.replica-life .replica-segment-tabs{gap:19px}.replica-life .replica-segment-tabs [data-slot="tabs-trigger"]{font-size:11px}.replica-life .lp-date{width:100%;gap:6px}.replica-life .lp-date>span{flex:1;width:140px}.replica-life .lp-date [data-slot="button"],.replica-life .lp-date [data-slot="popover-trigger"]{min-height:44px}.replica-key-values{grid-template-columns:80px minmax(0,1fr)}.lp-change{grid-template-columns:1fr}.lp-change>svg{transform:rotate(90deg);margin:auto}}
+@media(max-width:700px){.replica-life .replica-segment-tabs{gap:19px}.replica-life .replica-segment-tabs [data-slot="tabs-trigger"]{font-size:11px}.replica-life .lp-date{width:100%;gap:6px}.replica-life .lp-date>span{flex:1;width:140px}.replica-life .lp-date [data-slot="button"]:not([data-size="icon"]),.replica-life .lp-date [data-slot="popover-trigger"]{min-height:44px}.replica-key-values{grid-template-columns:80px minmax(0,1fr)}.lp-change{grid-template-columns:1fr}.lp-change>svg{transform:rotate(90deg);margin:auto}}
 .replica-life .replica-segment-tabs [data-slot="tabs-trigger"]{line-height:1.5}
 .replica-info{display:flex;gap:10px;align-items:flex-start}.replica-info>svg{flex:none;margin-top:2px}
 .replica-life .lp-timeline-card{line-height:1.5;font-size:14px;font-weight:400}
@@ -373,7 +373,7 @@
 
 .replica-life .lp-status{gap:5px}.replica-life .lp-status::before{content:"";width:4px;height:4px;background:currentColor;border-radius:50%;flex:none}
 .replica-dialog [data-slot="dialog-footer"] [data-slot="button"]{height:36px;font-size:12px;border-radius:7px;gap:7px;padding-inline:13px}
-@media(max-width:700px){.replica-life .lp-date [data-size="icon"]{min-width:44px}.replica-dialog [data-slot="dialog-footer"] [data-slot="button"]{min-height:44px}}
+@media(max-width:700px){.replica-dialog [data-slot="dialog-footer"] [data-slot="button"]{min-height:44px}}
 
 .lp-goal-card {
   padding: 22px;
@@ -443,7 +443,7 @@
 .replica-goals .replica-search{position:relative;display:flex;align-items:center;max-width:320px;min-width:190px;flex:1}
 .replica-search>svg{position:absolute;left:11px;color:#a0aa92;pointer-events:none}
 .replica-search>input{padding-left:32px;background:white;font-size:13px;min-height:39px;border-radius:7px}
-.replica-search>button{position:absolute;right:3px;padding:0;width:28px;height:28px}
+.replica-search>button{position:absolute;right:3px}
 .replica-criterion-dot{width:16px;height:16px;border:1px solid #c8d3be;border-radius:50%;margin-top:4px;flex:none}
 .replica-goal-record{border-bottom:1px solid #edf0e8;padding:12px 0;font-size:12px;line-height:1.85;overflow-wrap:anywhere}
 .replica-goals .lp-notice{padding:14px 16px;border:1px solid #deead5;border-radius:8px;background:#f1f6ec;color:#6b845c;font-size:12px}
@@ -541,11 +541,11 @@
 @media(max-width:600px){.replica-diary .lp-diary-layout{grid-template-columns:1fr}.replica-diary .lp-diary-index{display:flex;overflow:auto}.replica-diary .lp-diary-date{flex-shrink:0;width:145px}.replica-diary .lp-paper{padding:24px}.replica-diary .lp-paper-body{font-size:14px}.replica-diary .replica-diary-search{max-width:none;flex-basis:auto}}
 
 .replica-diary-filter-menu{display:none}
-@media(max-width:600px){.replica-diary .lp-toolbar{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:14px;align-items:start}.replica-diary-controls{width:auto;min-width:0;flex-wrap:nowrap}.replica-diary-options{display:none}.replica-diary-controls .replica-diary-search{width:100%;flex:1;min-width:0}.replica-diary .replica-diary-search input{padding-right:70px}.replica-diary .replica-diary-filter-menu{position:absolute;display:inline-flex;right:34px;top:4px;width:28px;height:32px;min-height:32px;padding:0}}
+@media(max-width:600px){.replica-diary .lp-toolbar{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:14px;align-items:start}.replica-diary-controls{width:auto;min-width:0;flex-wrap:nowrap}.replica-diary-options{display:none}.replica-diary-controls .replica-diary-search{width:100%;flex:1;min-width:0}.replica-diary .replica-diary-search input{padding-right:80px}.replica-diary .replica-diary-filter-menu{position:absolute;display:inline-flex;right:40px;top:50%;transform:translateY(-50%)}}
 
 .replica-diary .lp-paper h2{font-size:25px;font-weight:500;line-height:1.65}.replica-diary .replica-inline-command .lp-form{display:flex;flex-direction:column;gap:16px}
 
-.replica-diary-search > [data-slot="button"]{position:absolute;right:4px;top:4px;width:32px;height:32px;min-height:32px;padding:0}.replica-diary .replica-diary-search input{padding-right:40px}
+.replica-diary-search > [data-slot="button"]{position:absolute;right:2px;top:50%;transform:translateY(-50%)}.replica-diary .replica-diary-search input{padding-right:40px}
 
 /* Supplied Demo growth details and cards. */
 .lp-memory-card {
@@ -645,7 +645,7 @@
 }
 
 .replica-memory .lp-toolbar{margin:0 0 20px}.replica-memory .lp-toolbar>.lp-row{gap:12px;flex-wrap:wrap}.replica-memory .lp-toolbar>.lp-row>.relative{width:130px}.replica-memory .lp-toolbar [role=combobox]{width:auto;max-width:100%;padding-inline:12px;gap:8px}
-.replica-memory-search{display:flex;position:relative;align-items:center;flex:1;min-width:190px;max-width:320px}.replica-memory-search input{height:40px;font-size:12px;background:white;border-color:#e0e5d9;padding-left:38px;padding-right:12px}.replica-memory-search>[data-slot="button"]{position:absolute;left:4px;height:32px;width:32px;padding:0;color:#9aa78d}
+.replica-memory-search{display:flex;position:relative;align-items:center;flex:1;min-width:190px;max-width:320px}.replica-memory-search input{height:40px;font-size:12px;background:white;border-color:#e0e5d9;padding-left:38px;padding-right:12px}.replica-memory-search>[data-slot="button"]{position:absolute;left:2px;color:#9aa78d}
 .replica-memory .lp-memory-card[data-slot="button"]{grid-template-columns:minmax(0,1fr);justify-content:stretch;justify-items:stretch}.replica-memory .lp-memory-card .lp-row{width:100%}.replica-memory .lp-memory-card p{white-space:pre-wrap;overflow-wrap:anywhere}
 .replica-memory .lp-memory-card[data-slot="button"]{font-weight:400}
 .replica-goals .replica-goal-search>input{padding-right:40px}

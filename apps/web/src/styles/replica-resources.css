@@ -402,9 +402,6 @@
 }
 .replica-wardrobe .r-inline-actions > [data-slot="dropdown-menu-trigger"] {
   margin-left: auto;
-  min-width: 28px;
-  height: 26px;
-  padding: 0;
   background: transparent;
   border: 0;
 }

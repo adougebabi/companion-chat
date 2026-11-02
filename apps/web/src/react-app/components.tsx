@@ -250,7 +250,7 @@ export function DetailDrawer({
           <ActionButton variant="ghost"
             type="button"
             size="icon"
-            className="touch-target absolute right-3 top-3"
+            className="absolute right-3 top-3"
             aria-label="关闭"
             data-testid={`${prefix}-close`}
             onClick={onClose}

@@ -625,11 +625,6 @@
 .replica-studio .r-resource-card .r-inline-between {
   gap: 8px;
 }
-.replica-studio .r-resource-card .r-inline-between > button {
-  width: 24px;
-  height: 24px;
-  min-height: 24px;
-}
 .replica-studio .r-divider {
   height: 1px;
   background: #e2e8d7;
@@ -973,11 +968,10 @@
 }
 .replica-studio .r-search input {
   padding-left:34px;
-  padding-right:66px;
+  padding-right:80px;
 }
-.replica-studio .r-search-actions{position:absolute;right:3px;top:3px;display:flex;gap:0}
-.replica-studio .r-search-actions button{width:28px;height:32px;min-height:32px;padding:0}
-@media(max-width:700px){.replica-studio .r-toolbar>.r-search{width:100%;max-width:none;flex-basis:100%}.replica-studio .r-toolbar>[role=combobox]{flex:1;min-width:0}.replica-studio .r-search-actions{top:6px}}
+.replica-studio .r-search-actions{position:absolute;right:2px;top:50%;transform:translateY(-50%);display:flex;gap:0}
+@media(max-width:700px){.replica-studio .r-toolbar>.r-search{width:100%;max-width:none;flex-basis:100%}.replica-studio .r-toolbar>[role=combobox]{flex:1;min-width:0}}
 
 .replica-studio .r-toolbar {
   margin-bottom: 21px;

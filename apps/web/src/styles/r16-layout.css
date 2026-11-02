@@ -5,7 +5,7 @@
  .react-workspace .form-grid .check-field{justify-content:flex-start;align-items:center;gap:10px;min-height:44px;}
  .react-workspace .form-grid label{min-width:0;}
  .react-workspace input[readonly]{background:var(--muted);color:var(--muted-foreground);cursor:default;}
- .react-workspace .number-control>[data-slot="button"]{height:auto;align-self:stretch;border-radius:0;}
+ .react-workspace .number-control>[data-slot="button"]{border-radius:0;}
  .react-workspace .number-control>[data-slot="button"]:first-child{border-radius:var(--radius) 0 0 var(--radius);}
  .react-workspace .number-control>[data-slot="button"]:last-child{border-radius:0 var(--radius) var(--radius) 0;}
  .react-workspace .number-control input{border-radius:0;text-align:center;}

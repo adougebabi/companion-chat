@@ -64,6 +64,28 @@ layout rules are scoped in `react-layout.css` inside the components layer so
 primitive utilities retain ownership. No fake Vue data-v attributes. Keep
 className merges in the shared cn helper and preserve responsive scroll owners.
 
+## Button focus, icon sizing and mobile hit areas
+
+- Outline Button links retain the shared `focus-visible:ring-[3px]` utilities.
+  Unlayered theme decorations must not set `box-shadow:none` on outline Buttons:
+  that wins over Tailwind's ring, including anchors rendered through `asChild`.
+- Icon-only actions use `Button size="icon"` (36×36px, zero padding), including
+  reload/query, menus and close controls. Remove page width/height overrides;
+  scope text-action dimensions away from `[data-size="icon"]`.
+- At <=700px, compact icon actions, home tag filters, RadioGroupItem and Checkbox
+  use transparent `::after` hit areas of at least 44×44px. Radio/checkbox visuals
+  retain the original `size-4` roots and indicator sizes. Verify actual hits
+  outside the visual box with `elementFromPoint`
+  and pointer clicks, not only the pseudo-element's computed size.
+- Icon hit-plane positioning belongs in the components layer by `data-size`, so
+  utility-level `absolute` still wins. Adding `.relative` to every icon also
+  matches old select-wrapper layout rules. Calendar `[data-day]` cells keep
+  their own grid dimensions and existing recorded-date pseudo markers.
+- Regressions: `test/r9-control-accessibility.test.mjs` checks DOM/CSS contracts;
+  `scripts/verify-r9-controls.mjs` checks the production build in Chrome, real
+  Tab focus, icon geometry and transparent mobile hit areas. Screenshots stay
+  under `/tmp/r9-shots`, outside Git.
+
 ## Verification
 
 Use React DOM interaction tests for actual controls and page flows; source
