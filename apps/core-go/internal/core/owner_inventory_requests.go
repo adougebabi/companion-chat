@@ -45,6 +45,9 @@ func (a *App) validateOwnerInventoryRequestTx(ctx context.Context, tx pgx.Tx, ow
 		return err
 	}
 	if current != expected {
+		if kind == "inventory_outfit" {
+			return &SurfaceError{Status: 409, Code: "wardrobe_revision_conflict", Message: "衣橱版本已更新，请重新读取库存后重试", Details: map[string]any{"current_revision": current, "expected_revision": expected, "resource": "wardrobe"}}
+		}
 		return conflict("wardrobe", expected, current)
 	}
 	switch kind {
@@ -140,24 +143,42 @@ func (a *App) validateOwnerInventoryRequestTx(ctx context.Context, tx pgx.Tx, ow
 		if err != nil {
 			return err
 		}
-		if (scope != "" && scope != profile) || revision != expected {
-			return &SurfaceError{Status: 409, Code: "outfit_revision_conflict", Message: "套装或人格范围已变化，请重新读取"}
+		if scope != "" && scope != profile {
+			return &SurfaceError{Status: 409, Code: "outfit_scope_mismatch", Message: "套装不属于当前人格，请选择当前人格或共用的套装"}
 		}
-		rows, err := tx.Query(ctx, `SELECT i.id,r.slot=i.slot AND i.item_kind='wearable' AND i.availability='available' AND i.archived_at IS NULL AND (i.ownership IN ('owned','borrowed') OR EXISTS(SELECT 1 FROM public.fluctlight_worn_items w WHERE w.fluctlight_id=i.fluctlight_id AND w.item_id=i.id)) AND `+inventorySourceVerifiedSQL+` FROM public.fluctlight_wardrobe_outfit_items r JOIN public.fluctlight_wardrobe_items i ON i.fluctlight_id=r.fluctlight_id AND i.id=r.item_id WHERE r.fluctlight_id=$1 AND r.outfit_id=$2 ORDER BY r.slot`, fid, body["outfit_id"])
+		if revision != expected {
+			return &SurfaceError{Status: 409, Code: "outfit_revision_conflict", Message: "套装版本已更新，请重新读取套装后重试", Details: map[string]any{"current_revision": revision, "expected_revision": expected, "resource": "outfit"}}
+		}
+		rows, err := tx.Query(ctx, `SELECT i.id,r.slot=i.slot,i.item_kind='wearable',i.availability='available',i.archived_at IS NULL,(i.ownership IN ('owned','borrowed') OR EXISTS(SELECT 1 FROM public.fluctlight_worn_items w WHERE w.fluctlight_id=i.fluctlight_id AND w.item_id=i.id)),`+inventorySourceVerifiedSQL+` FROM public.fluctlight_wardrobe_outfit_items r JOIN public.fluctlight_wardrobe_items i ON i.fluctlight_id=r.fluctlight_id AND i.id=r.item_id WHERE r.fluctlight_id=$1 AND r.outfit_id=$2 ORDER BY r.slot`, fid, body["outfit_id"])
 		if err != nil {
 			return err
 		}
 		ids := []any{}
 		for rows.Next() {
 			var id string
-			var eligible bool
-			if err := rows.Scan(&id, &eligible); err != nil {
+			var slotMatches, wearable, available, unarchived, held, sourced bool
+			if err := rows.Scan(&id, &slotMatches, &wearable, &available, &unarchived, &held, &sourced); err != nil {
 				rows.Close()
 				return err
 			}
-			if !eligible {
+			var failure *SurfaceError
+			switch {
+			case !unarchived:
+				failure = &SurfaceError{Status: 409, Code: "outfit_item_archived", Message: "套装包含已归档的物品，请先恢复或替换该物品；套装定义保持"}
+			case !wearable:
+				failure = &SurfaceError{Status: 409, Code: "outfit_item_not_wearable", Message: "套装包含非衣物物品，请核对物品类型；套装定义保持"}
+			case !slotMatches:
+				failure = &SurfaceError{Status: 409, Code: "outfit_item_slot_mismatch", Message: "套装记录的穿着部位与物品当前部位不符，请更新套装；套装定义保持"}
+			case !available:
+				failure = &SurfaceError{Status: 409, Code: "outfit_items_unavailable", Message: "套装包含当前不可用的物品，请先处理库存；套装定义保持"}
+			case !held:
+				failure = &SurfaceError{Status: 409, Code: "outfit_item_not_held", Message: "套装包含当前未持有且未穿着的物品，请先核对持有情况；套装定义保持"}
+			case !sourced:
+				failure = &SurfaceError{Status: 409, Code: "outfit_item_source_unverified", Message: "套装包含来源未经核实的物品，请先核实物品来源；套装定义保持"}
+			}
+			if failure != nil {
 				rows.Close()
-				return &SurfaceError{Status: 409, Code: "outfit_items_unavailable", Message: "套装包含当前不可穿的物品，请先处理库存；套装定义保持"}
+				return failure
 			}
 			ids = append(ids, id)
 		}

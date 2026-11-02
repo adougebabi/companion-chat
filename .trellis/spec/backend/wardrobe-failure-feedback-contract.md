@@ -73,3 +73,20 @@ skipped database cases are not persistence acceptance. Frontend consumers use
 Wrong: match `sql: no rows in result set` globally and instruct model setup.
 Correct: classify at the actual typed read boundary, retain the original cause,
 and expose only the matching actionable product reason.
+
+## Owner outfit conflict feedback
+
+Owner outfit admission and execution revalidation report the actual failed
+precondition. Keep `outfit_profile_not_found` (404) separate from
+`outfit_profile_mismatch` (409). An outfit belonging to another profile uses
+`outfit_scope_mismatch`; stale outfit and wardrobe versions use
+`outfit_revision_conflict` and `wardrobe_revision_conflict` respectively.
+Member checks distinguish archived, non-wearable, saved-slot mismatch,
+unavailable, not-held and unverified-source causes. Execution receipts retain
+the exact code; failure feedback preserves the code-owned message rather than
+guessing a model failure. Shared outfits, borrowed items and already-worn items
+with unknown ownership remain eligible. Admission rejection creates no
+request/fact; rejection changes neither the saved outfit nor current wearing.
+
+`owner_outfit_conflict_test.go` covers each cause, admission/execution feedback,
+unchanged state and the eligible cases using disposable PostgreSQL databases.

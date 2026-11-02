@@ -239,7 +239,11 @@ func (c ownerLifeCapability) ExecuteTx(ctx context.Context, tx pgx.Tx, i Capabil
 		if flag, ok := ctx.Value(ownerLifeStaleKey{}).(*atomic.Bool); ok && (errors.Is(err, ErrConflict) || errors.As(err, &conflictErr) && conflictErr.Code == "revision_conflict") && (c.kind == "wardrobe_wear" || c.kind == "item_use") {
 			flag.Store(true)
 		}
-		return failedCapabilityResult(i, "owner_life_request_stale", false), err
+		code := "owner_life_request_stale"
+		if c.kind == "inventory_outfit" && errors.As(err, &conflictErr) {
+			code = conflictErr.Code
+		}
+		return failedCapabilityResult(i, code, false), err
 	}
 	args := decodeObject(i.Arguments)
 	switch c.kind {
@@ -675,6 +679,10 @@ func (a *App) processOwnerLifeRequest(ctx context.Context, inbox string, fact ma
 
 // User-visible categories only; raw provider/SQL errors remain in diagnostics.
 func ownerRequestFailureReason(err error) string {
+	var surface *SurfaceError
+	if errors.As(err, &surface) && (strings.HasPrefix(surface.Code, "outfit_") || surface.Code == "wardrobe_revision_conflict") {
+		return surface.Message
+	}
 	text := err.Error()
 	switch {
 	case strings.Contains(text, "524"), strings.Contains(text, "gateway_timeout"):

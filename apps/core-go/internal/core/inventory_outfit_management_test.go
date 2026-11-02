@@ -57,7 +57,8 @@ func TestInventoryCorrectionsPreserveOutfitDefinitionAndRejectPartialSet(t *test
 			}
 			_, err = f.app.DispatchOwnerSurface(f.ctx, "POST", base+"/requests", nil, f.ownerID, map[string]any{"kind": "outfit", "outfit_id": outfitID, "profile_id": "default", "expected_revision": readRevision(), "expected_outfit_revision": 1, "reason": "must not shrink set to eligible member", "idempotency_key": "reject-partial-set"})
 			var surface *SurfaceError
-			if !errors.As(err, &surface) || surface.Code != "outfit_items_unavailable" {
+			wantCode := map[string]string{"archive": "outfit_item_archived", "slot": "outfit_item_slot_mismatch", "kind": "outfit_item_not_wearable"}[correction]
+			if !errors.As(err, &surface) || surface.Code != wantCode {
 				t.Fatal("invalid member did not block complete set", err)
 			}
 			history, err := f.app.OwnerInventoryOutfitHistory(f.ctx, f.ownerID, f.fluctlightID, outfitID, url.Values{})
