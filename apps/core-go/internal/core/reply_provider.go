@@ -32,9 +32,21 @@ type ReplyDraft struct {
 	CommittedMetadata map[string]any          `json:"committed_metadata,omitempty"`
 }
 
-func parseReplyDraft(text string) (ReplyDraft, error) {
+func parseReplyDraft(text string) (draft ReplyDraft, err error) {
+	defer func() {
+		if err != nil {
+			draft.Text = ""
+		}
+	}()
 	text = strings.TrimSpace(text)
-	draft := ReplyDraft{Text: text}
+	// A fenced JSON envelope is still an envelope, never chat prose.
+	if lines := strings.Split(text, "\n"); len(lines) > 2 && replyFence(lines[0]) && replyFence(lines[len(lines)-1]) {
+		inner := strings.TrimSpace(strings.Join(lines[1:len(lines)-1], "\n"))
+		if strings.HasPrefix(inner, "{") && (strings.Contains(inner, `"text"`) || strings.Contains(inner, `"media_requests"`)) {
+			text = inner
+		}
+	}
+	draft = ReplyDraft{Text: text}
 	if strings.HasPrefix(text, "{") {
 		var shape map[string]json.RawMessage
 		if json.Unmarshal([]byte(text), &shape) == nil && (shape["text"] != nil || shape["media_requests"] != nil) {
@@ -57,7 +69,7 @@ func parseReplyDraft(text string) (ReplyDraft, error) {
 	if draft.Text == "" || len([]rune(draft.Text)) > 32000 || len(draft.MediaRequests) > 2 {
 		return draft, errors.New("reply_draft_invalid")
 	}
-	draft.Text = normalizeReplyText(draft.Text)
+	draft.Text = extractReplyBody(normalizeReplyText(draft.Text))
 	if draft.Text == "" {
 		return draft, errors.New("reply_draft_invalid")
 	}

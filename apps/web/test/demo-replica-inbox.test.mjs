@@ -74,3 +74,26 @@ test('unrecognized notification source names retain their content and a usable d
  sessionStorage.clear();const {w,api}=fixture();api.notifications=async()=>({items:['constructor','__proto__'].map((source_kind,index)=>({id:'unknown-'+index,title:'原来源 '+source_kind,body:'保留这条实际通知正文',source_kind,fluctlight_id:'A',link:'/diag/task/task-one',created_at:'2026-10-27T00:00:00Z'})),as_of:'server-as-of',next_cursor:''});
  const ui=await mountReact(vite,Inbox,{workspace:w});try{assert.equal(ui.host.querySelectorAll('.replica-notice').length,2);await ui.click(ui.host.querySelectorAll('.replica-notice-main')[1]);assert.match(document.querySelector('[role=dialog]').textContent,/原来源 __proto__/);assert.match(document.querySelector('[role=dialog]').textContent,/保留这条实际通知正文/);await ui.click(button(document,'返回通知'));assert.equal(ui.host.querySelectorAll('.replica-notice').length,2);}finally{await ui.dispose();}
 });
+
+test('inbox previews and detail filter raw model sections without restoring an empty private-only reply',async()=>{
+ sessionStorage.clear();const {w,api}=fixture();
+ const raw='# 回复\n我在这里陪着你。\n# 认知\n内部认知不得展示\n# 回复\n我在这里陪着你。\n# 事务记录\n- 使用工具：无';
+ api.notifications=async()=>({items:[{id:'raw',title:'新回复',body:raw,source_kind:'conversation.reply.published',fluctlight_id:'A',link:'/c/A/chat?conversation=conversation&message=reply',created_at:'2026-11-02T12:57:47Z'},{id:'private',title:'另一条回复',body:'# 认知\n内部认知不得展示\n# 事务记录\n- 使用工具：无',source_kind:'conversation.reply.published',fluctlight_id:'A',created_at:'2026-11-02T12:57:47Z'}],as_of:'server-as-of',next_cursor:''});
+ w.client.messages=async()=>({conversation:{id:'conversation'},messages:[{id:'reply',conversationId:'conversation',kind:'assistant',authorActorId:'A',text:raw}]});
+ const ui=await mountReact(vite,Inbox,{workspace:w});
+ try{
+  const previews=ui.host.querySelectorAll('.replica-notice-main p');assert.equal(previews[0].textContent,'我在这里陪着你。');assert.equal(previews[1].textContent,'');
+  assert.doesNotMatch(ui.host.textContent,/内部认知|事务记录|使用工具|# 回复/);
+  await ui.click(ui.host.querySelector('.replica-notice-main'));
+  assert.equal(document.querySelector('.replica-inbox-body').textContent,'我在这里陪着你。');
+  const disclosure=[...document.querySelectorAll('summary')].find(node=>node.textContent.includes('通知来源与标识'));if(disclosure)await ui.click(disclosure);
+  assert.doesNotMatch(document.querySelector('[role=dialog]').textContent,/内部认知|事务记录|使用工具|# 回复/);
+ }finally{await ui.dispose();}
+});
+
+test('non-reply notifications retain ordinary JSON content',async()=>{
+ sessionStorage.clear();const {w,api}=fixture();const body='{"phase":"generating","description":"正常业务通知"}';
+ api.notifications=async()=>({items:[{id:'business-json',title:'业务记录',body,source_kind:'unknown.business.event',created_at:'2026-11-02T12:57:47Z'}],as_of:'server-as-of',next_cursor:''});
+ const ui=await mountReact(vite,Inbox,{workspace:w});
+ try{assert.equal(ui.host.querySelector('.replica-notice-main p').textContent,body);}finally{await ui.dispose();}
+});

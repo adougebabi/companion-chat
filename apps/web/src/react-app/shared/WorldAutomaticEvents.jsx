@@ -3,7 +3,7 @@ import { Badge, Surface } from '../controls';
 import { EmptyState } from './Presentation';
 import { WorldReader } from './WorldFields';
 import useWorkspaceRead from './useWorkspaceRead';
-import { taskStatusLabel } from '@/approved-ui/task-presentation.mjs';
+import { taskStatusLabel, taskStatusPresentation } from '@/approved-ui/task-presentation.mjs';
 import { userInstant } from '@/v3/presentation-time.mjs';
 
 export default function WorldAutomaticEvents({ model: m }) {
@@ -27,7 +27,7 @@ export default function WorldAutomaticEvents({ model: m }) {
     <WorldReader source={clocks} label="世界事件任务" />
     {clocks.items.map(({ ref, data }) => <div key={ref} className="flex flex-wrap items-center gap-3 border-b py-4">
       <div className="min-w-0 flex-1"><h3>世界事件时钟</h3><p>{data.last_cycle_status && `上一轮：${taskStatusLabel(data.last_cycle_status)}`}{data.next_cycle_at && ` · 下一轮：${userInstant(data.next_cycle_at)}`}</p></div>
-      <Badge variant="outline">{taskStatusLabel(data.status)}</Badge>
+      <Badge variant="outline">{taskStatusPresentation(data).label}</Badge>
       <Button variant="outline" onClick={() => w.navigatePath('/diag?view=tasks&taskId=' + encodeURIComponent(data.intent_id))}>查看生成任务</Button>
     </div>)}
     {clocks.ready && !clocks.items.length && !clocks.error && <p className="r-muted">尚未读到自动生成任务，可刷新查看后台准备进度。</p>}

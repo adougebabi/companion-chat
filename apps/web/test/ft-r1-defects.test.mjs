@@ -30,7 +30,7 @@ async function chatFixture({readbackFailure=false}={}) {
     }
     if(url.endsWith('/detail')) {
       if(failRead)throw Error('准备请求已有回执，状态读取暂时失败');
-      return Response.json({current_revision:4,identity:{name:'青岚'},persona_preparation:{status,revision:4,can_recover:status==='failed'}});
+      return Response.json({current_revision:4,identity:{name:'青岚'},persona_preparation:{id:'persona:actual-task/A',status,revision:4,can_recover:status==='failed'}});
     }
     throw Error('Unexpected request '+url);
   };
@@ -47,6 +47,12 @@ test('D1 chat exposes persona recovery endpoint, retains draft, and enables send
     const field=f.view.host.querySelector('textarea');
     await f.view.input(field,'准备完成后再发送的草稿');
     assert.match(f.view.host.querySelector('[data-feedback-kind=action-required]').textContent,/人格资料准备失败/);
+    const preparation=f.view.host.querySelector('[aria-label="人格准备与恢复"]');
+    assert.ok(preparation.compareDocumentPosition(f.view.host.querySelector('[aria-label="聊天消息"]'))&Node.DOCUMENT_POSITION_FOLLOWING,'recovery renders before the chat messages without opening another page');
+    const taskLink=[...preparation.querySelectorAll('a')].find(link=>link.textContent==='查看人格准备任务');
+    const taskQuery=new URLSearchParams(taskLink.hash.split('?')[1]);
+    assert.equal(taskQuery.get('taskId'),'persona:actual-task/A');assert.equal(taskQuery.get('returnTo'),'/c/A/chat');
+    assert.equal([...preparation.querySelectorAll('a')].find(link=>link.textContent==='检查模型用途').hash,'#/settings?section='+encodeURIComponent('模型用途'));
     assert.equal(button(f.view.host,'发送').disabled,true);
     await f.view.click(button(f.view.host,'继续准备人格'));
     const posts=f.requests.filter(r=>r.method==='POST');

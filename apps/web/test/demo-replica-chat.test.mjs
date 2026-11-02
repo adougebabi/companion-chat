@@ -61,3 +61,9 @@ test('a source outside the first directory page waits for its own role membershi
  const v=await mountReact(vite,History,{workspace:w,props:{onClose(){},initialConversationId:'B',initialMessageId:'anchor'}});
  try{const d=document.querySelector('[role=dialog]');assert.equal(calls.length,0);assert.match(d.textContent,/来源会话尚未/);await v.click(button(d,'加载更多会话'));assert.deepEqual(calls,[['B','anchor']]);assert.match(d.textContent,/来源消息与原会话不匹配/);assert.doesNotMatch(d.textContent,/不能展示的外来正文/);}finally{await v.dispose();}
 });
+
+test('history filters assistant protocol and preserves the original user Markdown',async()=>{
+ const w=workspace();w.client.messages=async()=>({messages:[{...row('user','# 认知\n这是我的原文。'),kind:'user'},row('assistant','# 回复\n我听着呢。\n# 认知\n私密认知\n# 事务记录\n使用工具：无')]});
+ const v=await mountReact(vite,History,{workspace:w,props:{onClose(){}}});
+ try{const messages=document.querySelectorAll('.companion-history-reading p');assert.equal(messages[0].textContent,'# 认知\n这是我的原文。');assert.equal(messages[1].textContent,'我听着呢。');assert.doesNotMatch(messages[1].textContent,/私密认知|事务记录|使用工具|# 回复/);}finally{await v.dispose();}
+});

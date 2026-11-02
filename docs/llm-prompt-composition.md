@@ -78,6 +78,13 @@
 H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制父 Agent 草稿或
 把私聊全文作为公开动态。
 
+私聊 Writer 输出通过 `parseReplyDraft` / `extractReplyBody` 提取正文，
+`ToolPublicationService.PublishConversationReplyTx` 对原生 Tool 和准备草稿再次
+使用同一解析器。中英文回复段、重复段、围栏和缺失段均不能把认知、事务记录、
+时间或工具元数据写成用户可见消息；无法提取正文时拒绝发布。原始候选只保留在
+既有私有诊断路径。该防线不改变人格、输入协议或 token 设置，
+`reply_body_integration_test.go` 覆盖真实 Provider HTTP 传输与 PostgreSQL 发布。
+
 R7 换装回归明确阶段职责：fact-only `conversation_cognition` 自主决定是否接受
 本人生活动作；接受且可执行时先发现、查询和执行，再交 `conversation.reply`。
 未知能力名先空参数查询 catalog，不能猜名字。目录加载和库存查询不算执行。

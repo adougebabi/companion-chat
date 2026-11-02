@@ -273,7 +273,7 @@ func (c conversationReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx
 		code, retryable := publicationCapabilityError(err, "reply_publication_failed")
 		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
 	}
-	output := map[string]any{"text": text, "target_kind": "conversation_message", "target_ref": resource.ID, "replayed": resource.Replayed}
+	output := map[string]any{"text": resource.Text, "target_kind": "conversation_message", "target_ref": resource.ID, "replayed": resource.Replayed}
 	if resource.DuplicateSuppressed {
 		output["delivery_status"] = "duplicate_suppressed"
 	}

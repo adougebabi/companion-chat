@@ -49,6 +49,7 @@ import { userInstant } from "@/v3/presentation-time.mjs";
 import {approvedRoute} from "@/approved-ui/routing.mjs";
 import DomainPage from "./DomainPage";
 import type { ConversationController } from "@/state/conversation";
+import {replyBodyText} from '@/lib/reply-body.mjs';
 function messageDay(value:string|undefined){const at=Date.parse(value||'');return Number.isFinite(at)?new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'long'}).format(new Date(at)):'日期未记录';}
 export default function ChatPage({
   preview,
@@ -298,7 +299,7 @@ export default function ChatPage({
                   </MessageHeader>
                   <Bubble className="replica-message-bubble" variant={mine?"tinted":"outline"} align={mine?"end":"start"}>
                     <BubbleContent className="companion-bubble">
-                      {message.text}
+                      {mine ? message.text : replyBodyText(message.text)}
                       {!!message.attachmentRefs?.length&&<AttachmentGroup className="companion-message-attachments">{message.attachmentRefs.map(id=><ChatAttachment key={id} src={workspace.services.mediaClient.url(id)} alt={character.name+' 的附件'} onOpen={source=>{attachmentFocus.current=source;setAttachment(id);}}/>)}</AttachmentGroup>}
                     </BubbleContent>
                   </Bubble>

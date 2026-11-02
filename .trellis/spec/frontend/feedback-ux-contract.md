@@ -90,6 +90,28 @@ Owner/fid/world fences, CAS, allowed_actions and accepted-readback GET-only rule
 from `command-receipt-draft-recovery.md`. Buttons require a real handler at the
 owning layer; omitted capabilities do not get a no-op recovery control.
 
+### Diagnostic task status and chat recovery (2026-11-02)
+
+`taskStatusPresentation(task, now)` owns the six mutually exclusive groups:
+attention/running/waiting/completed/ended/unknown. Summary, task-tab number,
+filters, row badges and task detail consume this projection and the same filtered
+loaded rows; summary counts must add up to the visible list count. `started`
+counts as running; after 15 minutes it remains running with a verification
+warning. Unknown states stay separately counted. World event clocks use actual
+cycle evidence for “生成中” / “等待下一小时”; lifetime started alone is insufficient.
+Ordinary waiting tasks use “等待中”. `d7-task-taxonomy.test.mjs` renders the audit's
+20-row distribution and verifies filtering/count agreement and clock consumers.
+
+`PersonaPreparationFeedback` renders directly before chat messages. Recovery
+keeps the draft and original request, and the persona intent link opens its actual
+task with returnTo pointing back to chat. Keep `ft-r1-defects.test.mjs` DOM/order,
+task-reference, draft-retention and recovery assertions.
+
+Assistant bubble/history and reply-notification rendering use `replyBodyText`.
+An empty cleaned body never falls back to the original raw protocol. User messages
+remain unchanged. Shared Go/JS drift fixtures verify the server/UI boundary;
+real chat, history and inbox DOM tests verify all presentation consumers.
+
 ## Good, base and bad cases
 
 Good: unreadable storage blocks a new send and offers local reread; after access

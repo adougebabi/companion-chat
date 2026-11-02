@@ -398,6 +398,52 @@ Wrong: draft_ref mismatch -> ErrUnauthorized -> no current reply.
 Correct: ignore the optional hint with a safe warning; resolve only the Core-owned
 canonical draft, then keep the existing generation/publication/effect checks.
 
+## Scenario: Reply protocol drift containment (2026-11-02)
+
+### 1. Scope / Trigger
+Writer output, native conversation.reply text and previously prepared drafts may
+contain model-generated Markdown protocols despite the plain-body prompt.
+
+### 2. Signatures
+`parseReplyDraft(text) (ReplyDraft,error)` owns envelope validation;
+`extractReplyBody(text) string` owns section extraction. The shared
+`PublishConversationReplyTx` calls the parser before any message INSERT.
+
+### 3. Contracts
+Keep only reply prose. Recognize Chinese/English section labels, decorated and
+bilingual labels, fenced envelopes, repeated replies and missing sections.
+Internal cognition/ledger content remains blocked until an explicit reply.
+Exact duplicate replies collapse; distinct replies become plain paragraphs.
+Timestamp/tool fields start a private tail. Preserve ordinary Markdown, code and
+contextual English. No extracted body or invalid envelope means no publication;
+an error-returning draft has empty Text. RawCandidate remains private diagnostics.
+Publication receipts and committed_text use the actual cleaned message text.
+No model-specific branch, prompt change or new token setting is involved.
+
+### 4. Validation & Error Matrix
+| Output | Result |
+| --- | --- |
+| reply + cognition + ledger / repeated reply sections | clean reply paragraphs only |
+| cognition/ledger only or invalid JSON envelope | empty draft Text, no assistant INSERT |
+| ordinary fenced code / English / Markdown | preserved |
+| empty ADK final / failed Agent run | existing failure settlement; no reasoning/raw fallback |
+
+### 5. Good/Base/Bad Cases
+Good: two reply sections followed by ledger become two body paragraphs. Base:
+ordinary prose stays unchanged. Bad: returning the whole output on parse failure.
+
+### 6. Tests Required
+Shared `testdata/reply_output_drift.json` drives Go and JS contract cases.
+`reply_body_integration_test.go` verifies Provider wire decoding, native/prepared
+publication, cleaned receipts, fenced JSON and zero messages for private-only
+output using disposable PostgreSQL. Keep existing envelope, idempotency, ownership,
+cancellation, reasoning-only and malformed-settlement regressions.
+
+### 7. Wrong vs Correct
+Wrong: trust prompt compliance and persist completion.Text after TrimSpace.
+Correct: parse at Writer and the shared publication boundary, reject empty body,
+and defensively filter old assistant messages and notification previews in UI.
+
 ## Output quality: isolated unexpected script tail (2026-10-23)
 
 The observed short Gujarati suffix on otherwise Chinese prose is checked before

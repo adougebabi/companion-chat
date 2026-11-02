@@ -48,9 +48,13 @@ export default function PersonaPreparationFeedback({character}:{character:any}) 
     catch(cause) {if(live())setError(errorMessage(cause));}
     finally {if(live())setBusy(false);}
   }
-  return <Feedback kind={failed?'action-required':'progress'} title={failed?'人格资料准备失败':'人格资料正在准备'} actions={<>
+  const taskId=preparation.id||preparation.intent_id||preparation.task_id;
+  const chatPath='/c/'+encodeURIComponent(fid)+'/chat';
+  return <Feedback aria-label="人格准备与恢复" kind={failed?'action-required':'progress'} title={failed?'人格资料准备失败':'人格资料正在准备'} actions={<>
     {preparation.can_recover&&<Button type="button" variant="outline" disabled={busy||!Number.isSafeInteger(revision)||character.status==='已退休'} onClick={()=>void recover()}>{busy?'处理中…':record?.readbackPending?'重新读取准备结果':record?.outcomeUnknown?'重试原准备请求':'继续准备人格'}</Button>}
     <Button type="button" variant="link" disabled={busy} onClick={()=>void reread()}>重新读取准备状态</Button>
+    {taskId&&<Button variant="link" asChild><a href={'#/diag?view=tasks&taskId='+encodeURIComponent(taskId)+'&returnTo='+encodeURIComponent(chatPath)}>查看人格准备任务</a></Button>}
+    {failed&&<Button variant="link" asChild><a href={'#/settings?section='+encodeURIComponent('模型用途')}>检查模型用途</a></Button>}
     <Button variant="link" asChild><a href={'#/c/'+encodeURIComponent(fid)+'/profile'}>查看角色资料</a></Button>
   </>}>
     {failed?'暂时无法聊天。请检查模型服务后继续准备人格，完成后再发送。':'准备完成后即可聊天。'}当前输入会保留。

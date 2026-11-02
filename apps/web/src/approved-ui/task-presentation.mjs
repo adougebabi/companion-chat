@@ -1,4 +1,44 @@
 import {domainName,errorMessage,stateLabel} from '../v3/domain-presentation.mjs';
+// Every task belongs to exactly one group. Counts, filters and row presentation
+// consume this projection together; an unrecognized backend state stays visible.
+export const taskStatusGroups=Object.freeze([
+ {id:'attention',label:'需要处理',hint:'失败、暂停或受阻的任务'},
+ {id:'running',label:'正在执行',hint:'已开始和执行中的任务'},
+ {id:'waiting',label:'等待中',hint:'排队、等待重试或下一轮的任务'},
+ {id:'completed',label:'已经完成',filterLabel:'已完成',hint:'已完成的任务记录'},
+ {id:'ended',label:'已经结束',hint:'取消、跳过或被替代的任务'},
+ {id:'unknown',label:'状态待确认',hint:'未记录或尚未识别的任务状态'},
+]);
+const statusGroups={
+ attention:['failed','dead_letter','deadletter','error','paused','blocked','timed_out','timeout'],
+ running:['started','running','processing','generating'],
+ waiting:['pending','queued','waiting','retry','manual_prepared','awaiting_kev'],
+ completed:['completed','succeeded','success','admitted','no_event','applied'],
+ ended:['cancelled','canceled','terminated','superseded','skipped','interrupted','expired','rejected','continued_as_new'],
+};
+const statusGroupByState=new Map(Object.entries(statusGroups).flatMap(([group,states])=>states.map(state=>[state,group])));
+export const taskRunningStaleAfterMs=15*60*1000;
+export function taskStatusPresentation(task={},now=Date.now()){
+ const rawStatus=typeof task.status==='string'?task.status:'',kind=task.kind||task.intent_type||task.type;
+ let status=rawStatus;
+ if(kind==='world.events.generate'&&['started','running','processing','generating','waiting'].includes(status)){
+  const cycle=task.payload?.cycle_status||task.source?.last_cycle_status||task.last_cycle_status;
+  if(cycle==='generating')status='generating';
+  else if(cycle&&(task.payload?.cycle_finished_at||task.source?.next_cycle_at||task.next_cycle_at))status='waiting';
+  else if(!['waiting','generating'].includes(status))status='unknown'; // Workflow lifetime alone does not prove hourly generation.
+ }
+ const group=statusGroupByState.get(status)||'unknown';
+ const started=Date.parse(kind==='world.events.generate'?(task.payload?.cycle_started_at||task.source?.cycle_started_at||''):(task.started_at||task.updated_at||task.created_at||''));
+ const stale=group==='running'&&Number.isFinite(started)&&now-started>taskRunningStaleAfterMs;
+ const statusLabel=taskStatusLabel(status),groupLabel={attention:'需要处理',running:'进行中',waiting:'等待开始',completed:'已完成',ended:'已经结束'};
+ const label=group==='unknown'?'状态待确认':status==='generating'?'生成中':status==='waiting'&&kind!=='world.events.generate'?'等待中':statusLabel==='状态待确认'?groupLabel[group]:statusLabel;
+ /** @type {'neutral'|'green'|'amber'|'red'|'blue'} */
+ const tone=stale?'amber':({attention:'red',running:'blue',completed:'green',unknown:'amber'})[group]||'neutral';
+ return {status,rawStatus,group,label,tone,stale,warning:stale?'运行超过 15 分钟，请核对执行记录':''};
+}
+export function taskStatusSummary(rows=[]){
+ return taskStatusGroups.map(group=>({...group,count:rows.filter(row=>row.presentation.group===group.id).length}));
+}
 export function taskStatusLabel(status){
  const labels={waiting:'等待下一小时',generating:'正在生成',started:'进行中',admitted:'已通过审核',no_event:'本小时无事件',skipped:'已跳过',interrupted:'已中断',expired:'已过期',awaiting_kev:'等待审核',rejected:'未采纳',pending:'等待开始',queued:'等待开始',running:'进行中',processing:'进行中',paused:'已暂停',completed:'已完成',succeeded:'已完成',failed:'需要处理',dead_letter:'需要处理',cancelled:'已取消'};
  if(Object.hasOwn(labels,status))return labels[status];
@@ -71,7 +111,7 @@ export function taskSourceHref(task){
 }
 
 export function taskTypeLabel(task){const label=domainName(task?.kind||task?.type,'其他后台任务');return typeof label==='string'?label:'其他后台任务';}
-export function taskSubtitle(task){return [taskTypeLabel(task),taskStatusLabel(task?.status),diagnosticDateLabel(task?.created_at)].join(' · ');}
+export function taskSubtitle(task){return [taskTypeLabel(task),taskStatusPresentation(task||{}).label,diagnosticDateLabel(task?.created_at)].join(' · ');}
 export function taskEventReason(entry){
  const reason=typeof entry.reason==='string'?entry.reason:'';
  const code=typeof entry.reason_code==='string'?entry.reason_code:'';

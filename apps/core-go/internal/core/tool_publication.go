@@ -77,7 +77,11 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	command.FluctlightID = strings.TrimSpace(command.FluctlightID)
 	command.ConversationID = strings.TrimSpace(command.ConversationID)
 	command.OperationID = strings.TrimSpace(command.OperationID)
-	command.Text = strings.TrimSpace(command.Text)
+	draft, parseErr := parseReplyDraft(command.Text)
+	if parseErr != nil {
+		return publishedResource{}, fmt.Errorf("%w: reply text is invalid", ErrInvalidArguments)
+	}
+	command.Text = draft.Text
 	if command.AttachmentRefs == nil {
 		command.AttachmentRefs = []string{}
 	}
@@ -114,7 +118,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		if existingConversation != command.ConversationID || existingAuthor != command.FluctlightID || existingText != command.Text || existingIdempotency != idempotency || existingTurnID != turnID || existingSourceFactID != sourceFactID || existingCorrelationID != correlationID {
 			return publishedResource{}, fmt.Errorf("%w: conversation reply operation payload changed", ErrConflict)
 		}
-		return publishedResource{ID: messageID, Replayed: true}, nil
+		return publishedResource{ID: messageID, Replayed: true, Text: command.Text}, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		return publishedResource{}, err
@@ -146,7 +150,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		err := tx.QueryRow(ctx, `SELECT id,text FROM public.conversation_messages WHERE conversation_id=$1 AND turn_id=$2 AND kind='assistant'`, command.ConversationID, turnID).Scan(&existingID, &existingReply)
 		if err == nil {
 			if existingReply == command.Text {
-				return publishedResource{ID: existingID, Replayed: true}, nil
+				return publishedResource{ID: existingID, Replayed: true, Text: existingReply}, nil
 			}
 			return publishedResource{}, ErrReplyAlreadyPublished
 		}
@@ -171,7 +175,11 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 		previousID, lookupErr := recentProactiveReplyTx(ctx, tx, command, inboundSequence, service.app.now().UTC().Add(-window))
 		err = lookupErr
 		if err == nil {
-			return publishedResource{ID: previousID, DuplicateSuppressed: true}, nil
+			var previousText string
+			if err := tx.QueryRow(ctx, `SELECT text FROM public.conversation_messages WHERE id=$1`, previousID).Scan(&previousText); err != nil {
+				return publishedResource{}, err
+			}
+			return publishedResource{ID: previousID, DuplicateSuppressed: true, Text: extractReplyBody(previousText)}, nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return publishedResource{}, err
@@ -184,7 +192,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 			return publishedResource{}, err
 		}
 		if duplicate {
-			return publishedResource{ID: id, DuplicateSuppressed: true}, nil
+			return publishedResource{ID: id, DuplicateSuppressed: true, Text: command.Text}, nil
 		}
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.conversation_heads SET next_sequence=$2 WHERE conversation_id=$1`, command.ConversationID, sequence+1); err != nil {
@@ -256,7 +264,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 	if err := appendOutboxTx(ctx, tx, "conversation.reply.published", "conversation_message", messageID, command.FluctlightID, sourceFactID, correlationID, "reply-published:"+messageID, map[string]any{"message_id": messageID, "conversation_id": command.ConversationID, "author_actor_id": command.FluctlightID}); err != nil {
 		return publishedResource{}, err
 	}
-	return publishedResource{ID: messageID}, nil
+	return publishedResource{ID: messageID, Text: command.Text}, nil
 }
 
 func sameTurnLifeEventTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID, eventID string) bool {

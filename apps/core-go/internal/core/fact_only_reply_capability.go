@@ -142,6 +142,7 @@ func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		code, retryable := publicationCapabilityError(err, "reply_publication_failed")
 		return failedCapabilityResultDetail(invocation, code, retryable, "reply publication did not commit"), newCapabilityError(code, retryable, err)
 	}
+	draft.Text = resource.Text
 	if resource.DuplicateSuppressed || resource.Replayed {
 		var messageMetadata []byte
 		if err := tx.QueryRow(ctx, `SELECT text,reply_metadata FROM public.conversation_messages WHERE id=$1 AND conversation_id=$2 AND author_actor_id=$3`, resource.ID, target.ConversationID, target.FluctlightID).Scan(&draft.Text, &messageMetadata); err != nil {
