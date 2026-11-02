@@ -9,8 +9,8 @@ export function attributes(values = {}) {
       return value === true ? key : `${key}="${esc(value)}"`;
     }).join(' ');
 }
-export function Button({ label = '', content, tone = '', size = '', type = 'button', attrs = {} } = {}) {
-  return `<button data-domain-ui="button" class="btn${tone ? ` ${esc(tone)}` : ''}${size ? ` ${esc(size)}` : ''}" type="${esc(type)}" ${attributes(attrs)}>${content ?? esc(label)}</button>`;
+export function Button({ label = '', content, variant = 'outline', size = 'default', type = 'button', attrs = {} } = {}) {
+  return `<button data-domain-ui="button" data-domain-variant="${esc(variant)}" data-domain-size="${esc(size)}" type="${esc(type)}" ${attributes(attrs)}>${content ?? esc(label)}</button>`;
 }
 let fieldSequence = 0;
 export function Field({ label, name, value = '', type = 'text', options, rows = 3, hint = '', attrs = {}, labelAttrs = {} }) {
@@ -27,18 +27,18 @@ export function Tabs({ items, value, attribute = 'tab', className = 'tabs', attr
   return `<div data-domain-ui="tabs" class="${esc(className)}" ${attributes(attrs)}>${items.map(item => {
     const cls = `tab ${item.value === value ? 'on' : ''}`;
     const body = item.content ?? esc(item.label);
-    return item.href ? `<a class="${cls}" href="${esc(item.href)}" ${attributes({ ...(item.value === value ? { 'aria-current': 'page' } : {}), ...(item.attrs || {}) })}>${body}</a>` : `<button data-domain-ui="button" type="button" class="${cls}" ${attributes({ [`data-${attribute}`]: item.value, 'aria-pressed': String(item.value === value), ...(item.attrs || {}) })}>${body}</button>`;
+    return item.href ? `<a class="${cls}" href="${esc(item.href)}" ${attributes({ ...(item.value === value ? { 'aria-current': 'page' } : {}), ...(item.attrs || {}) })}>${body}</a>` : `<button data-domain-ui="button" type="button" data-domain-variant="${item.value === value ? 'secondary' : 'outline'}" data-domain-size="default" class="${cls}" ${attributes({ [`data-${attribute}`]: item.value, 'aria-pressed': String(item.value === value), ...(item.attrs || {}) })}>${body}</button>`;
   }).join('')}</div>`;
 }
-export function SearchForm({ value = '', placeholder = '搜索', submitLabel = '搜索', attrs = {}, inputAttrs = {}, inputClass = 'input grow', buttonClass = 'btn' } = {}) {
-  return `<form class="row" role="search" ${attributes(attrs)}><input data-domain-ui="field" class="${esc(inputClass)}" name="q" value="${esc(value)}" placeholder="${esc(placeholder)}" ${attributes({ 'aria-label': placeholder, ...inputAttrs })}><button data-domain-ui="button" class="${esc(buttonClass)}">${esc(submitLabel)}</button></form>`;
+export function SearchForm({ value = '', placeholder = '搜索', submitLabel = '搜索', attrs = {}, inputAttrs = {}, inputClass = 'input grow', buttonVariant = 'outline', buttonSize = 'default' } = {}) {
+  return `<form class="row" role="search" ${attributes(attrs)}><input data-domain-ui="field" class="${esc(inputClass)}" name="q" value="${esc(value)}" placeholder="${esc(placeholder)}" ${attributes({ 'aria-label': placeholder, ...inputAttrs })}><button data-domain-ui="button" data-domain-variant="${esc(buttonVariant)}" data-domain-size="${esc(buttonSize)}">${esc(submitLabel)}</button></form>`;
 }
 export function PromptChips(items, attribute = 'chip', className = 'chips') {
-  return `<div class="${esc(className)}">${items.map(text => `<button data-domain-ui="button" class="chip" data-${esc(attribute)}="${esc(text)}">${esc(text)}</button>`).join('')}</div>`;
+  return `<div class="${esc(className)}">${items.map(text => `<button data-domain-ui="button" data-domain-variant="ghost" data-domain-size="default" data-${esc(attribute)}="${esc(text)}">${esc(text)}</button>`).join('')}</div>`;
 }
 export function TextComposer({ variant = 'chat', placeholder = '', attrs = {}, name = 't' } = {}) {
-  if (variant === 'assistant') return `<form class="row" ${attributes(attrs)}><input data-domain-ui="field" class="input grow" name="${esc(name)}" aria-label="创作请求" placeholder="${esc(placeholder)}" data-test="assist-input"><button data-domain-ui="button" class="btn accent sm" aria-label="提交创作请求">${icon('send')}</button></form>`;
-  return `<form class="composer" data-test="composer" ${attributes(attrs)}><textarea data-domain-ui="field" class="input" rows="1" name="${esc(name)}" placeholder="${esc(placeholder)}" aria-label="消息" enterkeyhint="send" data-test="chat-input"></textarea><button data-domain-ui="button" class="btn primary" data-test="chat-send">${icon('send')} 发送</button></form>`;
+  if (variant === 'assistant') return `<form class="row" ${attributes(attrs)}><input data-domain-ui="field" class="input grow" name="${esc(name)}" aria-label="创作请求" placeholder="${esc(placeholder)}" data-test="assist-input"><button data-domain-ui="button" data-domain-variant="default" data-domain-size="sm" aria-label="提交创作请求">${icon('send')}</button></form>`;
+  return `<form class="composer" data-test="composer" ${attributes(attrs)}><textarea data-domain-ui="field" class="input" rows="1" name="${esc(name)}" placeholder="${esc(placeholder)}" aria-label="消息" enterkeyhint="send" data-test="chat-input"></textarea><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-test="chat-send">${icon('send')} 发送</button></form>`;
 }
 export function DiffView(rows, { attrs = {}, emptyText = '无差异' } = {}) {
   return `<div class="diff" ${attributes(attrs)}>${DiffRows(rows, emptyText)}</div>`;

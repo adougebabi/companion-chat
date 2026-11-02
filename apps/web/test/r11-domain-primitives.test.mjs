@@ -20,7 +20,7 @@ test('retained feedback follows explicit business state changes without replacin
  }finally{await view.dispose();}
 });
 test('one application tree ports exact native form values, original listeners and submission while preserving a long focused draft',async()=>{
- let form,submitted,inputs=0;const html='<form>'+Field({label:'正文',name:'text',value:'x'.repeat(79),type:'textarea'})+Field({label:'类型',name:'kind',value:'',type:'select',options:[{value:'',label:'尚未填写'},{value:'0',label:'零'},{value:'false',label:'否'}]})+'<label><input data-domain-ui="field" type="checkbox" name="favorite">收藏</label><button data-domain-ui="button" type="submit" class="btn primary">保存</button></form>';
+ let form,submitted,inputs=0;const html='<form>'+Field({label:'正文',name:'text',value:'x'.repeat(79),type:'textarea'})+Field({label:'类型',name:'kind',value:'',type:'select',options:[{value:'',label:'尚未填写'},{value:'0',label:'零'},{value:'false',label:'否'}]})+'<label><input data-domain-ui="field" type="checkbox" name="favorite">收藏</label><button data-domain-ui="button" type="submit" data-domain-variant="default" data-domain-size="default">保存</button></form>';
  const view=await mountReact(vite,Harness,{props:{html,prepare:root=>{form=root.querySelector('form');form.elements.text.oninput=()=>inputs++;form.onsubmit=event=>{event.preventDefault();submitted=[...new window.FormData(form)];};}}});
  try{
   const input=visible(view.host,'textarea')[0];input.focus();await view.input(input,'x'.repeat(81)+'你好');assert.equal(document.activeElement,input);assert.equal(form.elements.text.value,'x'.repeat(81)+'你好');assert.equal(inputs,1);assert.equal(visible(view.host,'textarea')[0],input);
@@ -31,7 +31,7 @@ test('one application tree ports exact native form values, original listeners an
  }finally{await view.dispose();}
 });
 test('Collapsible keeps original nested controls and callbacks, reflects controller open state and removes ports on page replacement',async()=>{
- let root,detail,actions=0;const html='<details data-domain-ui="disclosure"><summary>技术详情</summary><section>'+Field({label:'理由',name:'reason',value:'原输入'})+'<button data-domain-ui="button" class="btn" data-action>重试原提交</button></section></details>';
+ let root,detail,actions=0;const html='<details data-domain-ui="disclosure"><summary>技术详情</summary><section>'+Field({label:'理由',name:'reason',value:'原输入'})+'<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-action>重试原提交</button></section></details>';
  const view=await mountReact(vite,Harness,{props:{html,prepare:node=>{root=node;detail=node.querySelector('details');node.querySelector('[data-action]').onclick=()=>actions++;}}});
  try{
   let trigger=visible(view.host,'button').find(node=>node.textContent==='技术详情');assert.equal(trigger.getAttribute('aria-expanded'),'false');await view.click(trigger);assert.equal(detail.open,true);

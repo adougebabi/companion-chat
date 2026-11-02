@@ -34,7 +34,7 @@ export function ProfileHeader(snapshot, canEdit) {
   return Card({ attrs: { 'data-test': `profile-${snapshot.id}` },
     heading: EntityHeader({avatar:snapshot.avatar,title:snapshot.name||'姓名尚未记录',subtitle:`当前人格 · ${esc(personaName(snapshot,snapshot.activeProfileId))}`,status:badge(({active:'运行中',paused:'已暂停',retired:'已退休',archived:'已归档',created:'准备中',failed:'需要处理'})[snapshot.status]||snapshot.status||'状态未提供')}),
     body: `${bioBody}<details data-domain-ui="disclosure" class="mgmt small muted"><summary>资料版本</summary>${KeyValueList([['身份核心版本', ProfileValue(snapshot.foundationRevision)], ['运行版本', ProfileValue(snapshot.runtimeRevision)]])}</details>`,
-    footer: `<div class="row"><button data-domain-ui="button" class="btn" data-profile-edit data-test="profile-edit" ${!canEdit || snapshot.readOnly ? 'disabled' : ''}>编辑简介…</button></div>` });
+    footer: `<div class="row"><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" data-profile-edit data-test="profile-edit" ${!canEdit || snapshot.readOnly ? 'disabled' : ''}>编辑简介…</button></div>` });
 }
 export function PersonaSection(snapshot, canSwitch) {
   const choices = snapshot.profiles.filter(profile => profile.id !== snapshot.activeProfileId && (!snapshot.switchTargetIds || snapshot.switchTargetIds.includes(profile.id)));
@@ -48,7 +48,7 @@ export function PersonaSection(snapshot, canSwitch) {
     ${Field({ label: '切换原因', name: 'reason', type: 'textarea', hint: '说明这次切换的原因，提交前需确认。', attrs: { disabled: !enabled, required: true, maxlength: 1000 } })}
     <label class="toggle"><input data-domain-ui="field" type="checkbox" name="confirm" ${!enabled ? 'disabled' : ''}> 我确认切换到所选人格</label>
     <div data-profile-feedback role="status" aria-live="polite"></div>
-    <div class="row"><button data-domain-ui="button" class="btn accent" data-test="profile-switch-submit" ${!enabled ? 'disabled' : ''}>确认切换</button><button data-domain-ui="button" class="btn" type="button" data-profile-refresh>重新读取</button></div></form></details>` });
+    <div class="row"><button data-domain-ui="button" data-domain-variant="default" data-domain-size="default" data-test="profile-switch-submit" ${!enabled ? 'disabled' : ''}>确认切换</button><button data-domain-ui="button" data-domain-variant="outline" data-domain-size="default" type="button" data-profile-refresh>重新读取</button></div></form></details>` });
 }
 export function PersonaHistory(snapshot) {
   return `<details data-domain-ui="disclosure" class="card"><summary>人格切换与资料修订历史</summary><div class="grid g2 profile-sections">${Card({ title: '人格切换历史', body: (snapshot.historyHasMore ? '<p class="small muted">显示最近 100 条切换记录，另有更早历史。</p>' : '') + (snapshot.history.length ? snapshot.history.map(entry => `<div data-domain-ui="item" class="lrow small"><span class="grow">${esc(personaName(snapshot,entry.from_profile_id))} → ${esc(personaName(snapshot,entry.to_profile_id||entry.target_profile_id))}<div class="muted">${esc(entry.reason || '')}</div>${JsonDetails(entry, '查看切换记录')}</span><time>${esc(userInstant(entry.created_at||entry.occurred_at))}</time></div>`).join('') : '<p class="small muted">暂无切换记录</p>') })}${Card({ title: '身份核心修订', body: RevisionHistory({ entries: snapshot.revisions.map(r => ({ ...r, version: r.revision ?? r.version, at: r.created_at ?? r.at })), renderEntry: r => `${esc(r.reason || r.source || '')} ${badge(r.status || '版本记录')}${JsonDetails(r, '查看修订内容')}` }) })}</div></details>`;

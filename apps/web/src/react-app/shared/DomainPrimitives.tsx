@@ -121,11 +121,13 @@ function FieldPort({port}:{port:Port}){
  return <ControlHint text={source.title}>{control}</ControlHint>;
 }
 function ButtonPort({port}:{port:Port}){
- const source:any=port.source,anchor=source.tagName==='A',classes=source.classList;
- const variant=classes.contains('on')||source.getAttribute('aria-pressed')==='true'?'secondary':classes.contains('danger')?'destructive':classes.contains('primary')||classes.contains('accent')?'default':classes.contains('ghost')||classes.contains('chip')?'ghost':'outline';
+ const source:any=port.source,anchor=source.tagName==='A';
+ // Domain owners declare the actual shadcn props, including dynamic selection.
+ // Do not infer a second styling system from legacy class names.
+ const variant=source.dataset.domainVariant||'outline',size=source.dataset.domainSize||'default';
  const activate=(event:any)=>{event.preventDefault();event.stopPropagation();if(source.isConnected&&!source.disabled)source.click();};
- const props:any={...copiedAttributes(source),...(source.hasAttribute('aria-pressed')?{'aria-pressed':source.getAttribute('aria-pressed')==='true'}:{}),variant,disabled:source.disabled,className:'max-w-full whitespace-normal text-left',onClick:activate};
- return <ControlHint text={source.title}><Button {...props} type={anchor?undefined:'button'} asChild={anchor}>{anchor?<a href={source.getAttribute('href')||undefined} target={source.target||undefined} download={source.getAttribute('download')||undefined}><OpaqueContent source={source}/></a>:<OpaqueContent source={source}/>}</Button></ControlHint>;
+ const props:any={...copiedAttributes(source),...(source.hasAttribute('aria-pressed')?{'aria-pressed':source.getAttribute('aria-pressed')==='true'}:{}),variant,size,disabled:source.disabled,className:cn('max-w-full whitespace-normal text-left',source.className),onClick:activate};
+ return <ControlHint text={source.title}><Button {...props} type={anchor?undefined:'button'} asChild={anchor}>{anchor?<a href={source.getAttribute('href')||undefined} target={source.target||undefined} rel={source.getAttribute('rel')||undefined} download={source.getAttribute('download')||undefined}><OpaqueContent source={source}/></a>:<OpaqueContent source={source}/>}</Button></ControlHint>;
 }
 function DisclosurePort({port}:{port:Port}){
  const source:any=port.source,target=useRef<HTMLDivElement>(null);

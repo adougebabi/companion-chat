@@ -10,9 +10,9 @@ export function CharacterCard(character, groups) {
     </a>
     <div data-domain-ui="card" class="library-card-meta">${badge(character.status,active ? '已确认' : character.status === '异常' ? '失败' : 'plain')}${character.bio ? `<p class="small muted">${esc(character.bio)}</p>` : ''}</div>
     <div data-domain-ui="card" class="library-card-actions">
-      <details data-domain-ui="disclosure" class="library-management"><summary aria-label="${esc(character.name)}的更多操作">更多 ···</summary><div class="stack"><a data-domain-ui="button" class="btn ghost sm" href="#/c/${id}/profile">查看资料</a>
+      <details data-domain-ui="disclosure" class="library-management"><summary aria-label="${esc(character.name)}的更多操作">更多 ···</summary><div class="stack"><a data-domain-ui="button" data-domain-variant="ghost" data-domain-size="sm" href="#/c/${id}/profile">查看资料</a>
         <label class="field">所属分组<select data-domain-ui="field" class="select" data-grp="${esc(character.id)}" aria-label="为${esc(character.name)}选择分组"><option value="" ${character.groupId === 'ungrouped' ? 'selected' : ''}>未分组</option>${groups.filter(group=>group.id !== 'ungrouped').map(group=>`<option value="${esc(group.id)}" ${group.id === character.groupId ? 'selected' : ''}>${esc(group.name)}</option>`).join('')}</select></label>
-        ${character.status !== '已退休' ? `<button data-domain-ui="button" class="btn sm" data-lifecycle="${esc(character.id)}">生命周期管理</button>` : ''}
+        ${character.status !== '已退休' ? `<button data-domain-ui="button" data-domain-variant="outline" data-domain-size="sm" data-lifecycle="${esc(character.id)}">生命周期管理</button>` : ''}
       </div></details>
     </div>
   </article>`;
