@@ -265,7 +265,7 @@ func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
 	}
 }
 
-func TestVisualIdentityPromptIncludesCharacterNameAndAppearance(t *testing.T) {
+func TestVisualIdentityPromptUsesAppearanceWithoutNameOrAge(t *testing.T) {
 	// Case 1: Chinese persona like Yaoguang with narrative appearance description
 	concept := map[string]any{
 		"purpose": "visual_identity",
@@ -287,9 +287,14 @@ func TestVisualIdentityPromptIncludesCharacterNameAndAppearance(t *testing.T) {
 		},
 	}
 	prompt := visualIdentityPromptFromConcept(concept)
-	for _, expected := range []string{"角色设定卡", "角色：摇光", "22岁", "女性", "乌黑微卷的长发", "深色长款风衣", "B"} {
+	for _, expected := range []string{"角色设定卡", "女性", "乌黑微卷的长发", "深色长款风衣", "B"} {
 		if !strings.Contains(prompt, expected) {
 			t.Fatalf("expected prompt to contain %q, but got:\n%s", expected, prompt)
+		}
+	}
+	for _, forbidden := range []string{"摇光", "22"} {
+		if strings.Contains(prompt, forbidden) {
+			t.Fatalf("image prompt contains identity metadata %q: %s", forbidden, prompt)
 		}
 	}
 
@@ -309,8 +314,8 @@ func TestVisualIdentityPromptIncludesCharacterNameAndAppearance(t *testing.T) {
 		},
 	}
 	prompt2 := visualIdentityPromptFromConcept(conceptStringApp)
-	if !strings.Contains(prompt2, "角色：摇光") || !strings.Contains(prompt2, "古典清秀，及肩黑发，素色长裙") {
-		t.Fatalf("expected prompt to contain name and appearance string, got:\n%s", prompt2)
+	if strings.Contains(prompt2, "摇光") || !strings.Contains(prompt2, "古典清秀，及肩黑发，素色长裙") {
+		t.Fatalf("expected appearance string without name metadata, got:\n%s", prompt2)
 	}
 
 	// Case 3: Enriching empty identitySnapshot from core_persona
@@ -334,8 +339,11 @@ func TestVisualIdentityPromptIncludesCharacterNameAndAppearance(t *testing.T) {
 		t.Fatal("Foundation clothing was promoted to effective current wear")
 	}
 	desc := visualIdentityCharacterDescription(emptySnapshot)
-	if !strings.Contains(desc, "摇光") || !strings.Contains(desc, "及腰黑发，眼神清冷，常穿白衬衫") {
+	if strings.Contains(desc, "摇光") || strings.Contains(desc, "22") || !strings.Contains(desc, "及腰黑发，眼神清冷，常穿白衬衫") {
 		t.Fatalf("enriched description failed: %q", desc)
+	}
+	if identity := mapValue(emptySnapshot["identity"]); identity["name"] != "摇光" || identity["age"] != 22 {
+		t.Fatalf("image projection modified source identity: %#v", identity)
 	}
 }
 

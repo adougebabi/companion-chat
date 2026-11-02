@@ -215,9 +215,14 @@ func TestVisualIdentityValidationInstructionsDoNotRequireRenderedText(t *testing
 					t.Errorf("validation instruction missing visual section %q", section)
 				}
 			}
-			for _, requirement := range []string{"text-free", "Do not require", "incidental unreadable marks"} {
+			for _, requirement := range []string{"text-free", "Reject any visible text", "pseudo-text", "letters", "numbers", "signatures", "including incidental or unreadable characters", "Missing text, information panels or signature areas is never a defect"} {
 				if !strings.Contains(instruction, requirement) {
 					t.Errorf("validation instruction missing text-free rule %q", requirement)
+				}
+			}
+			for _, forbidden := range []string{"must not by themselves", "Regenerate only", "角色签名视觉区", "人物基础资料视觉区", "人物简介视觉区", "性格关键词视觉区", "领结", "校徽"} {
+				if strings.Contains(instruction, forbidden) {
+					t.Errorf("validation instruction retains obsolete requirement %q", forbidden)
 				}
 			}
 		})

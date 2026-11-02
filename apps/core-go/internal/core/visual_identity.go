@@ -104,25 +104,23 @@ func visualIdentityExpectedViews() []string {
 }
 
 var visualIdentityRequiredCardSections = []string{
-	"人物基础资料视觉区",
 	"正面、侧面、背面三视图",
 	"平静、微笑、侧眸、思考、惊讶、冷漠六种表情",
 	"服装拆解视觉区",
-	"包、领结、腕表、耳饰、发饰配饰展示",
-	"眼睛、嘴唇、发型、校徽细节特写",
+	"与角色实际穿着一致的配饰展示",
+	"眼睛、嘴唇、发型细节特写",
 	"角色专属色卡",
-	"人物简介视觉区",
-	"性格关键词视觉区",
-	"角色签名视觉区",
 }
 
 var visualIdentityRequiredCardSectionsText = strings.Join(visualIdentityRequiredCardSections, "; ")
 
+const visualIdentityTextFreeReviewInstruction = "Reject any visible text, pseudo-text, letters, numbers, signatures, logos or watermarks, including incidental or unreadable characters. Do not require OCR or readable lettering to identify this defect. Missing text, information panels or signature areas is never a defect."
+
 const visualIdentityPromptTemplate = `角色设定卡
 %s
 制作完整角色档案卡，白色极简背景，高级时尚杂志排版，3:4 竖图。
-画面必须包含以下视觉分区：人物基础资料视觉区、正面/侧面/背面三视图、六种不同表情、服装拆解视觉区、包/领结/腕表/耳饰/发饰配饰展示、眼睛/嘴唇/发型/校徽细节特写、角色专属色卡、人物简介视觉区、性格关键词视觉区、角色签名视觉区。
-所有分区只用版式、人物小图、示意图、色块和留白表达，禁止生成任何文字、字母、数字、标题、标签、签名文字或伪文字；可以保留空白信息栏和空白签名线，但不要填入字符。
+画面必须包含以下视觉分区：正面/侧面/背面三视图、六种不同表情、服装拆解视觉区、与角色实际穿着一致的配饰展示、眼睛/嘴唇/发型细节特写、角色专属色卡。
+所有分区只用版式、人物小图、示意图、色块和留白表达，禁止生成任何文字、字母、数字、标题、标签、签名或伪文字；不要添加资料栏、人物简介、性格关键词或签名区。
 整体视觉：真实真人、高级商业摄影、柔和棚拍光、高清皮肤纹理、服装材质真实、人物五官统一、三视图保持同一张脸、非动漫、非Q版。`
 
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
@@ -739,20 +737,8 @@ func visualIdentityCharacterDescription(visualIdentity map[string]any) string {
 
 	parts := make([]string, 0, 10)
 
-	// 1. Character Name
-	name := firstVisualIdentityString(identity["name"], snapshot["name"])
-	if name != "" {
-		parts = append(parts, "角色："+name)
-	}
-
-	// 2. Age, Gender, Nationality
-	if age := firstVisualIdentityString(identity["age"], appearance["age"]); age != "" {
-		if strings.Contains(age, "岁") || strings.Contains(age, "year") {
-			parts = append(parts, age)
-		} else {
-			parts = append(parts, age+"岁")
-		}
-	}
+	// Project visual traits only. Name and age metadata invite rendered labels;
+	// leave original appearance prose intact rather than rewriting user text.
 	if gender := stringValue(identity["gender"]); gender != "" {
 		parts = append(parts, gender)
 	}

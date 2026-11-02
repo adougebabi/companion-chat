@@ -180,7 +180,14 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 
 `media_prompt` 的普通、质量重试和分支规范化指令明确要求最终图片无文字、
 伪文字、字母、数字、标题、标签、字幕、签名、徽标和水印。Visual Identity
-沿用已有无文字角色卡模板。所有生产出图入口（聊天、角色视觉身份与 Studio）
+使用无文字角色卡模板，只投影外观与穿着，不额外拼接姓名、年龄元数据；
+原始外观正文保持原样。模板和媒体补充指令不要求资料、简介、性格关键词或
+签名分区，不预设领结、校徽。保留三视图、六种表情、服装/实际配饰、细节和
+色卡。`visual_identity_vision`、`visual_identity_patch` 与生产 `visual_identity`
+Agent 一致拒绝可见文字、伪文字、字母、数字、签名、徽标、水印，包括不可读
+或零散字符；缺少文字和资料/签名分区不构成缺陷。视觉检查必须记录字符缺陷
+并降低 identity_match，修正与生产审核即使人脸一致也必须选择 regenerate。
+所有生产出图入口（聊天、角色视觉身份与 Studio）
 共用 `submitComfyPrompt`：在提交时保留原正向描述并追加固定禁字协议；沿
 ComfyUI `negative`/`negative_prompt` 声明边找到负向文本编码输入，保留原质量
 排除项并追加禁字负向词。直接声明的 `negative_prompt` 同样处理，可选
@@ -200,6 +207,12 @@ ComfyUI `negative`/`negative_prompt` 声明边找到负向文本编码输入，�
 ComfyUI 提交函数检查三类入口的物理 HTTP 请求、SDXL 多文本负向编码、组合
 条件、原始排除项、真实参考图片文件名和大整数 seed 保真；不等于已验证实图
 质量或保证图像模型绝不产生字符。
+
+`visual_identity_text_policy_test.go` 覆盖不同快照结构的姓名/年龄投影排除、
+原始外观与源快照保真、无预设配饰和信息分区，以及 seed/character_sheet、
+生产 Agent 多模态审核和两个 typed review task 的实际 Provider HTTP JSON。
+typed task 使用一次性 PostgreSQL 数据库，其余测试无需数据库；受控响应只
+验证协议传输和结果契约，不代表已完成真实模型识字或实图质量验收。
 
 ## 初始衣柜任务输入（2026-10-30）
 
