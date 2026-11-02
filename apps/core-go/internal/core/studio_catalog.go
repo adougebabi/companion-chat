@@ -113,7 +113,10 @@ func characterTemplateSource(body map[string]any) (string, error) {
 	// Validate the exact structured source on save and publication; no default template or
 	// invented semantic data is substituted for an invalid definition.
 	if _, err := prepareInitializationResponse(value); err != nil {
-		return "", invalid("Template initialization does not match the character schema")
+		failure := initializationErrorWithCorrelation(err, "")
+		validation := invalid("Template initialization does not match the character schema: " + failure.Path)
+		validation.Details = failure.PublicDetails()
+		return "", validation
 	}
 	return text, nil
 }

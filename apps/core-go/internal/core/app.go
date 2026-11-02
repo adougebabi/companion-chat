@@ -709,6 +709,9 @@ func initializationValidationDiagnostic(value map[string]any) (string, string) {
 			return "type_invalid", key
 		}
 	}
+	if validationType, path, ok := initializationRelationshipValidationDiagnostic(value); !ok {
+		return validationType, path
+	}
 	for index, raw := range arrayValue(value["initial_goals"]) {
 		goal := mapValue(raw)
 		if stringValue(goal["description"]) == "" {
@@ -991,6 +994,9 @@ func validInitialization(value map[string]any) bool {
 				}
 			}
 		}
+	}
+	if _, _, ok := initializationRelationshipValidationDiagnostic(value); !ok {
+		return false
 	}
 	for _, raw := range arrayValue(value["initial_relationships"]) {
 		item := mapValue(raw)

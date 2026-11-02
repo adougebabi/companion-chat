@@ -32,6 +32,8 @@ func TestStudioCharacterTemplateSaveValidatesSchema(t *testing.T) {
 		map[string]any{"schema": "character-template.v1", "description": 42},
 		map[string]any{"schema": "character-template.v1", "description": "描述", "initialization": map[string]any{}},
 		map[string]any{"schema": "character-template.v1", "initialization": map[string]any{"core_persona": map[string]any{"identity": map[string]any{"name": []any{}}}}},
+		map[string]any{"schema": "character-template.v1", "initialization": map[string]any{"core_persona": map[string]any{"identity": map[string]any{"name": "书店店主"}, "life_profile": map[string]any{"relationship_seeds": []any{"独居", "养一只灰猫"}}}, "initial_relationships": []any{}}},
+		map[string]any{"schema": "character-template.v1", "initialization": map[string]any{"core_persona": map[string]any{"identity": map[string]any{"name": "书店店主"}, "life_profile": map[string]any{"relationship_seeds": []any{map[string]any{"target_actor_id": "actor_self"}}}}, "initial_relationships": []any{}}},
 	}
 	for i, definition := range invalid {
 		for _, method := range []string{http.MethodPost, http.MethodPut} {

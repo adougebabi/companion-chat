@@ -48,6 +48,18 @@ converter test must exercise the same conversion helper as the actual route.
 Character-template POST/PUT saves validate `character-template.v1` through
 `characterTemplateSource`, including retained kind/body on partial updates and
 retagging. Missing/invalid schemas return HTTP 400 without changing the draft.
+`prepareInitializationResponse` validates both `initial_relationships` and
+`core_persona.life_profile.relationship_seeds`, even when the primary collection
+is populated: activation falls back to the latter when the former is empty.
+Both must be arrays of objects with an Owner target alias (`actor_user` or an
+existing supported human alias); optional `profile_id` must resolve to an
+initialization profile or the shared scope. Prose seeds such as `["独居"]`,
+foreign/self targets and undeclared profiles fail before persistence or
+compilation. Analysis returns 422 `initialization_persona_invalid` with
+`validation_error.type/path` and correlation; template saves return 400 with
+the same validation metadata. Regressions must cover empty/populated primary
+collections, unchanged drafts after rejected PUT, and valid shared/profile
+relationships through activation in an isolated database.
 Activation applies the Owner's chosen name to shared identity and every profile
 name/identity.name before compilation; profile IDs, nicknames, source prose and
 the frozen analysis remain intact. Template activation regression tests must
