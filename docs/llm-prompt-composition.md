@@ -127,7 +127,7 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | media_prompt 的主体解析/分支规范化/最终 prompt | 本阶段冻结意图、拍摄关系、可见主体及必要视觉字段；校验失败反馈 | 不加载无关 persona/history；真实图像继续用 image content part |
 | conversation_summary 的累计/片段/每日模式 | 旧摘要与未覆盖消息 / 精确片段源 / 本地日与 segments | 不将通用聊天窗口额外叠加到待总结来源 |
 | npc_response 的相遇/动态模式 | NPC 定义、世界规则、真实历史相遇、公开来意或动态正文 | 原始 target/CAS 在 Core，不冒充 Human 或 Fluctlight |
-| Kev context.select/tools.select | 当前任务输入与本批可选上下文/工具候选 | 保留 `{state,questions}` 外部协议；state 为 JSON |
+| Kev context.select/tools.select | 当前任务输入与本批可选上下文/工具候选 | 保留 `{state,questions}` 外部协议；state 为 JSON；context.select 异步执行，整阶段最多等待 250ms，超时保留原上下文 |
 | Kev persona.switch | profile/rule 条件、提议、实际 Tool arguments、当前输入与语义状态 | event identity 在 Core；实际授权切换仍走工具 |
 | Kev 自动流程/媒体 gate | 当前候选流程/意图/约束/拍摄方案 | 不增加无关私聊；不改远端 API 或回退语义 |
 | native_cognition 的 NPC 相遇机会判断 | Working Persona + native 生活事实/记忆 + 公开角色/已认识状态/地点/真实机会与有效时间 | `world_opportunity_cognition.go`；仅安装 world.npc.encounter，保留 exact opportunity id/revision，其余来源身份由 Core 绑定 |

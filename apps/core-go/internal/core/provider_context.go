@@ -159,11 +159,17 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		}
 	}
 	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
-	workingInput, err = a.selectKevContext(ctx, projection, surface, currentInput, workingInput)
+	contextSelection := a.startKevContextSelection(ctx, projection, surface, currentInput, workingInput)
+	defer contextSelection.cancel()
+	policy, err := promptBudgetPolicyForAssignment(assignment)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
-	policy, err := promptBudgetPolicyForAssignment(assignment)
+	compiled, err := a.loadCompiledWorkingPersona(ctx, projection)
+	if err != nil {
+		return PromptAssemblyResult{}, projection, err
+	}
+	workingInput, err = contextSelection.wait(ctx)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
@@ -182,10 +188,6 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 	composer, composerErr := NewPromptComposer(policy)
 	if composerErr != nil {
 		return PromptAssemblyResult{}, projection, composerErr
-	}
-	compiled, err := a.loadCompiledWorkingPersona(ctx, projection)
-	if err != nil {
-		return PromptAssemblyResult{}, projection, err
 	}
 	workingPersona := renderCompiledWorkingPersona(compiled)
 	systemPersona := systemPersonaForProjectionWithWorking(projection, schemaName, workingPersona)

@@ -405,3 +405,27 @@ list deliberate purposes; disclose full instructions/schema only for requested n
 The historical directory <=4608 estimated-token assertion is a static fixture
 size-regression measurement only. It is never a runtime admission, truncation,
 output cap or permission rule; follow the Prompt Composition contract.
+
+## Scenario: Optional context selection cannot stall chat (2026-11-03)
+
+`assembleProjectionPromptForSurface` starts `startKevContextSelection` before
+loading the compiled persona. The whole optional context operation has a 250ms
+wall-clock deadline, including settings reads, concurrency wait, all sections,
+HTTP and raw audit. This effective budget is below the observed external KEV
+gateway timeout of approximately 30s even with saved 60000ms settings. Other
+Kev gates and saved Owner settings retain their existing contracts.
+
+Selection uses a frozen copy of fragment contents and source refs. Required
+facts and complete protocol history are never candidates. Expiry/unavailability
+keeps the complete original input, including sections already filtered by the
+worker; parent cancellation still propagates. A consumer handoff acknowledges
+adoption before final audit statuses become applied. Late results are discarded
+and finalized as original_used; slow final audit writes never extend reply wait.
+
+`TestKevContextBudgetPreemptsThirtySecondGatewayAndRestoresWholeInput`,
+`TestKevContextSlowAuditCannotBlockReply`,
+`TestKevContextPartialSelectionIsDiscardedAndParentCancellationPropagates` and
+`TestKevContextAsyncSnapshotPreservesWireDataAndLiveInput` cover effective wire
+deadlines with 60s saved settings, all-or-original fallback, cancellation, audit
+latency and immutable batch-local wire data. Existing optional/required/history
+and batch projection assertions remain unchanged.

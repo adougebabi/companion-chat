@@ -325,10 +325,11 @@ func (a *App) kevAutomaticGate(ctx context.Context, point, owner, candidate stri
 
 func WithKevOriginal(ctx context.Context) context.Context { return decision.WithOriginal(ctx) }
 
-func (a *App) selectKevContext(ctx context.Context, projection ContextProjection, surface ProviderContextSurface, currentInput string, input WorkingMemoryInput) (WorkingMemoryInput, error) {
+func (a *App) filterKevContext(ctx context.Context, scope decision.Scope, currentInput string, input WorkingMemoryInput) (WorkingMemoryInput, []decision.Result, error) {
+	var pending []decision.Result
 	s := a.kevService()
 	if !s.Enabled(ctx, "context.select") {
-		return input, ctx.Err()
+		return input, pending, ctx.Err()
 	}
 	// Recent history is a contiguous protocol-owned sequence. Never select its
 	// individual messages; only optional memory, summary and runtime fragments.
@@ -344,15 +345,16 @@ func (a *App) selectKevContext(ctx context.Context, projection ContextProjection
 			candidates = append(candidates, decision.Candidate{ID: id, Question: decision.Choice("Is optional context " + id + " relevant to the current task? Keep unresolved commitments and necessary task evidence.")})
 			states[id] = f.Content
 		}
-		results, err := s.DecideWithBatchState(ctx, "context.select", a.kevScope(ctx, projection, string(surface)), candidates, func(batch []decision.Candidate) string {
+		results, err := s.DecideWithBatchState(ctx, "context.select", scope, candidates, func(batch []decision.Candidate) string {
 			batchStates := make(map[string]any, len(batch))
 			for _, candidate := range batch {
 				batchStates[candidate.ID] = states[candidate.ID]
 			}
 			return jsonString(map[string]any{"input": currentInput, "candidates": batchStates})
 		})
+		pending = append(pending, results...)
 		if err != nil {
-			return input, err
+			return input, pending, err
 		}
 		selected := []PromptFragment{}
 		n := 0
@@ -361,24 +363,22 @@ func (a *App) selectKevContext(ctx context.Context, projection ContextProjection
 				selected = append(selected, f)
 				continue
 			}
-			r := results[n]
+			r := &pending[len(pending)-len(results)+n]
 			n++
 			out, err := r.Admit(ctx)
 			if err != nil {
-				return input, err
+				return input, pending, err
 			}
 			if out != decision.No {
 				selected = append(selected, f)
 			}
-			status := "applied"
 			if out == decision.Original {
-				status = "original_used"
+				r.Record.ApplicationStatus = "original_used"
 			}
-			_ = r.Finish(ctx, status, "", "")
 		}
 		*section = selected
 	}
-	return input, nil
+	return input, pending, nil
 }
 
 // KevDecisions is an Owner-only bounded JSON export/list. Filters never grant
