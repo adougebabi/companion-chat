@@ -12,7 +12,7 @@ var replyLedgerField = regexp.MustCompile(`(?i)^(?:[-*]\s*)?(?:发言时间|发�
 var replyProtocolWrapper = regexp.MustCompile("(?i)^(?:```|~~~)(?:markdown|md|text|plaintext)?$")
 var replyBilingualSuffix = regexp.MustCompile(`(?i)\s*[（(](?:reply|response|cognition|reasoning|analysis|ledger|transaction log)[）)]?\s*$`)
 var replyTimestamp = regexp.MustCompile(`^(?:[-*]\s*)?\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$`)
-var replyInlineHeading = regexp.MustCompile(`(?i)(\S[ \t]+)(#{1,6}[ \t]*(?:事务记录|事务日志|认知分析|认知记录|回复正文|回复内容|最终回复|认知|回复|思考|分析|transaction records|transaction record|transaction ledger|transaction log|cognitive analysis|assistant reply|assistant response|final answer|final response|cognition|reasoning|analysis|metadata|thoughts|ledger|response|reply|answer)(?:[ \t:：]|$))`)
+var replyInlineHeading = regexp.MustCompile(`(?i)(\S[ \t]+)(#{1,6}[ \t]*(?:事务记录|事务日志|认知分析|认知记录|回复正文|回复内容|最终回复|发布动态|认知|回复|思考|分析|transaction records|transaction record|transaction ledger|transaction log|cognitive analysis|assistant reply|assistant response|final answer|final response|cognition|reasoning|analysis|metadata|thoughts|ledger|response|reply|answer)(?:[ \t:：]|$))`)
 
 // replySection recognizes protocol labels, not arbitrary Markdown headings or
 // English words in prose. Internal blocks stay private until an explicit reply.
@@ -33,7 +33,7 @@ func replySection(line string) (string, string) {
 	title = strings.ToLower(strings.Trim(title, "*_#[]【】 \t"))
 	title = strings.TrimSpace(replyBilingualSuffix.ReplaceAllString(title, ""))
 	if decorated {
-		for _, label := range []string{"transaction records", "transaction record", "transaction ledger", "transaction log", "cognitive analysis", "assistant response", "assistant reply", "final response", "final answer", "认知分析", "认知记录", "事务记录", "事务日志", "回复正文", "回复内容", "最终回复", "cognition", "reasoning", "analysis", "response", "metadata", "thoughts", "ledger", "answer", "reply", "回复", "认知", "思考", "分析"} {
+		for _, label := range []string{"transaction records", "transaction record", "transaction ledger", "transaction log", "cognitive analysis", "assistant response", "assistant reply", "final response", "final answer", "认知分析", "认知记录", "事务记录", "事务日志", "回复正文", "回复内容", "最终回复", "发布动态", "cognition", "reasoning", "analysis", "response", "metadata", "thoughts", "ledger", "answer", "reply", "回复", "认知", "思考", "分析"} {
 			if strings.HasPrefix(title, label+" ") {
 				kind, _ := replySection(label)
 				return kind, strings.TrimSpace(line[len(label):])
@@ -41,7 +41,7 @@ func replySection(line string) (string, string) {
 		}
 	}
 	switch title {
-	case "回复", "回复正文", "回复内容", "最终回复", "正文", "答复", "回应", "回答", "answer", "reply", "response", "final", "final answer", "final response", "assistant reply", "assistant response":
+	case "回复", "回复正文", "回复内容", "最终回复", "发布动态", "正文", "答复", "回应", "回答", "answer", "reply", "response", "final", "final answer", "final response", "assistant reply", "assistant response":
 		return "reply", inline
 	case "认知", "认知记录", "认知分析", "思考", "思考过程", "分析", "内部思考", "cognition", "cognitive analysis", "reasoning", "analysis", "thought", "thoughts", "internal thoughts", "事务记录", "事务日志", "事务", "ledger", "transaction ledger", "transaction log", "transaction record", "transaction records", "metadata":
 		return "private", ""

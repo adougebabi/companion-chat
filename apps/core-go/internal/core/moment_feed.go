@@ -3,7 +3,9 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -365,11 +367,33 @@ func (a *App) ownerMomentInteraction(ctx context.Context, owner, id, op string, 
 	})
 }
 
+var momentSelfiePlaceholder = regexp.MustCompile(`[\[【]\s*自拍照\s*[:：][^\]】]*[\]】]`)
+
+func momentPublicationText(text string, hasMedia bool) (string, error) {
+	draft, err := parseReplyDraft(text)
+	if err != nil {
+		return "", fmt.Errorf("%w: Moment text is invalid", ErrInvalidArguments)
+	}
+	text = draft.Text
+	if !hasMedia {
+		// A textual media marker cannot stand in for an attached asset.
+		text = normalizeReplyText(momentSelfiePlaceholder.ReplaceAllString(text, ""))
+	}
+	if text == "" {
+		return "", fmt.Errorf("%w: Moment text is invalid", ErrInvalidArguments)
+	}
+	return text, nil
+}
+
 // Both legacy text and fact-only independent Writer publication use the same
 // trusted request fence. Neither model arguments nor browser author IDs grant
 // authority. One request may publish at most one real Moment.
 func (a *App) publishInvocationMomentTx(ctx context.Context, tx pgx.Tx, inv CapabilityInvocation, target DirectToolTarget, text string) (publishedResource, error) {
 	if target.Kind != "owner_moment_request" {
+		text, err := momentPublicationText(text, false)
+		if err != nil {
+			return publishedResource{}, err
+		}
 		return NewToolPublicationService(a).PublishMomentTx(ctx, tx, MomentPublication{FluctlightID: target.FluctlightID, OperationID: capabilityOperationID(inv), CorrelationID: inv.Metadata.CorrelationID, Text: text})
 	}
 	var raw []byte
@@ -395,11 +419,15 @@ func (a *App) publishInvocationMomentTx(ctx context.Context, tx pgx.Tx, inv Capa
 	if err := requireOwnerMutableTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID); err != nil {
 		return publishedResource{}, err
 	}
+	media := stringList(mapValue(request["payload"])["media_ids"])
+	text, err = momentPublicationText(text, len(media) > 0)
+	if err != nil {
+		return publishedResource{}, err
+	}
 	resource, err := NewToolPublicationService(a).PublishMomentTx(ctx, tx, MomentPublication{FluctlightID: target.FluctlightID, OperationID: "owner-moment:" + target.Ref, CorrelationID: inv.Metadata.CorrelationID, Text: text})
 	if err != nil {
 		return resource, err
 	}
-	media := stringList(mapValue(request["payload"])["media_ids"])
 	if err := a.linkMomentMediaTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID, resource.ID, media); err != nil {
 		return resource, err
 	}

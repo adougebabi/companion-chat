@@ -92,6 +92,12 @@ H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制�
 既有私有诊断路径。该防线不改变人格、输入协议或 token 设置，
 `reply_body_integration_test.go` 覆盖真实 Provider HTTP 传输与 PostgreSQL 发布。
 
+动态发布在 `publishInvocationMomentTx` 复用同一正文解析器，识别“发布动态”
+协议标题并保留普通正文回退；没有实际附件时删除 `[自拍照：…]` 占位文本，
+清理后没有正文则拒绝发布。用户建议携带的素材仍须通过原有权限和可读取校验，
+已提交请求继续返回原正文。`moment_body_integration_test.go` 覆盖原生工具、
+独立 Writer、用户建议、实际附件关联与重复请求。
+
 R7 换装回归明确阶段职责：fact-only `conversation_cognition` 自主决定是否接受
 本人生活动作；接受且可执行时先发现、查询和执行，再交 `conversation.reply`。
 未知能力名先空参数查询 catalog，不能猜名字。目录加载和库存查询不算执行。
