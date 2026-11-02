@@ -130,13 +130,13 @@ function createLibraryPageController(__props, context, lifecycle) {
     void w.services.configurationClient
       .read()
       .then((value) => {
-        if (active)
+        if (active && w.state.session?.actorId === owner)
           configured.value = value.bindings.some(
             (b) => b.role === "generic_llm",
-          );
+          ) ? 'bound' : value.endpoints?.length ? 'unbound' : 'missing';
       })
       .catch(() => {
-        if (active) configured.value = null;
+        if (active && w.state.session?.actorId === owner) configured.value = null;
       });
   });
   lifecycle.observe(() => [search.value, filters.value.tag, view.value], saveView);
@@ -185,7 +185,7 @@ function createLibraryPageController(__props, context, lifecycle) {
           </div>
         </article></Card>)}
       </div>
-      {!rows.value.length && !w.state.loading?.library && !readError && (characters.value.length ? <EmptyState variant="page"><h3>没有找到这位相识</h3><p>换一个关键词，或者从一个新的故事开始。</p><Button variant="outline" onClick={()=>{search.value="";filters.value={tag:""};}}>清除筛选</Button></EmptyState> : <EmptyState variant="page"><h3>还没有一起生活的人</h3><p>从一个名字或一段介绍开始，为新的相识准备一个生活世界。</p>{configured.value===false&&<p>还没有连接通用模型。可以先配置模型，也可以选择空白创建。</p>}<div className="library-actions">{configured.value!==true&&<Button variant="outline" asChild><a href="#/settings?section=%E6%A8%A1%E5%9E%8B%E7%94%A8%E9%80%94">先连接模型</a></Button>}{canStart&&<Button asChild><a data-testid="library-create-first" href={createHref}>创建第一个角色</a></Button>}</div></EmptyState>)}
+      {!rows.value.length && !w.state.loading?.library && !readError && (characters.value.length ? <EmptyState variant="page"><h3>没有找到这位相识</h3><p>换一个关键词，或者从一个新的故事开始。</p><Button variant="outline" onClick={()=>{search.value="";filters.value={tag:""};}}>清除筛选</Button></EmptyState> : <EmptyState variant="page"><h3>还没有一起生活的人</h3><p>从一个名字或一段介绍开始，为新的相识准备一个生活世界。</p>{configured.value==='missing'&&<p>还没有连接通用模型。可以先配置模型，也可以选择空白创建。</p>}{configured.value==='unbound'&&<p>模型服务已保存，但尚未绑定通用模型用途。请在「模型用途」中为「思考与通用分析」选择服务和模型，也可以先空白创建。</p>}<div className="library-actions">{configured.value!=='bound'&&<Button variant="outline" asChild><a href={'#/settings?section='+encodeURIComponent(configured.value==='missing'?'服务地址':'模型用途')}>{configured.value==='unbound'?'去绑定通用模型':configured.value==='missing'?'先连接模型':'查看模型配置'}</a></Button>}{canStart&&<Button asChild><a data-testid="library-create-first" href={createHref}>创建第一个角色</a></Button>}</div></EmptyState>)}
       <div className="library-footer"><span><CheckIcon size={12}/>角色资料来自当前工作区</span><Button variant="link" asChild><a href="#/studio?kind=character_template">去创作中心寻找灵感<ChevronRightIcon size={12}/></a></Button></div>
     </div>;
   };

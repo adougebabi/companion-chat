@@ -232,7 +232,7 @@ test("retrying an unreadable publication page retains its original cursor and up
     assert.equal(
       [...v.host.querySelectorAll(".creation-world-card")].find((n) =>
         n.textContent.includes("第二个世界"),
-      ).disabled,
+      ).querySelector('[role=radio]').disabled,
       false,
     );
     assert.deepEqual(

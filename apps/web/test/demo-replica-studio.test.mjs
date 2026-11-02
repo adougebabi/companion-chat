@@ -145,7 +145,8 @@ test("Studio directory reads nine actual resource types, searches and keeps arch
 test("Studio empty directory and failed initial read are distinct and recover via original GET", async () => {
   const empty = await fixture({ scenario: "empty" });
   try {
-    assert.match(empty.v.host.textContent, /没有找到相关资源/);
+    assert.match(empty.v.host.textContent, /还没有创作资源/);
+    assert.doesNotMatch(empty.v.host.textContent, /调整筛选|没有找到相关资源/);
     assert.equal(empty.writes().length, 0);
   } finally {
     await empty.dispose();
@@ -154,6 +155,7 @@ test("Studio empty directory and failed initial read are distinct and recover vi
   try {
     assert.match(failed.v.host.textContent, /服务暂时无法连接/);
     assert.doesNotMatch(failed.v.host.textContent, /没有找到相关资源/);
+    assert.equal(failed.v.host.querySelector('.studio-empty'), null);
     await failed.v.click(button(failed.v.host, "重新读取资源"));
     assert.equal(failed.v.host.querySelectorAll(".r-resource-card").length, 9);
   } finally {

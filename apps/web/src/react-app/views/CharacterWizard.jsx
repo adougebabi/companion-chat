@@ -1,4 +1,4 @@
-import { useEffect,useRef, useState } from "react";
+import { useEffect,useId,useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -145,6 +146,7 @@ export default function CharacterWizardView({ model: m }) {
             : "existing",
     ),
     [search, setSearch] = useState(""),
+    [newWorldSelected, setNewWorldSelected] = useState(false),
     [reviewTab, setReviewTab] = useState("identity"),
     [snapshotOpen, setSnapshotOpen] = useState(false),
     [selectedTask, setSelectedTask] = useState(null),
@@ -159,6 +161,7 @@ export default function CharacterWizardView({ model: m }) {
     recoveryTrigger = useRef(null),
     resetTrigger = useRef(null),
     structuredTrigger = useRef(null);
+  const worldRadioId = useId();
   const showExistingWorlds = !!d.worldSource || !m.worldsConfirmed ||
     !!m.existingWorldLoading || !!m.existingWorldError || m.existingWorlds.length > 0;
   const showPublishedWorlds = !!d.worldResourceId || !m.publishedWorldsConfirmed ||
@@ -312,7 +315,7 @@ export default function CharacterWizardView({ model: m }) {
       return true;
     }))) : definition?.initial_relationships;
   const next = () => {
-    if (index === 0) m.canContinue && c.next();
+    if (index === 0) m.canContinue && !(newWorldSelected && canCreateWorld) && c.next();
     else if (index === 1) m.canContinue && c.analyze();
     else if (index === 2) m.canContinue && c.activate();
   };
@@ -330,6 +333,17 @@ export default function CharacterWizardView({ model: m }) {
   const worldRows = (retainedSelection ? [retainedSelection, ...sourceRows] : sourceRows).filter((row) =>
     [row.name, row.characterName].some((t) => String(t || "").includes(search)),
   );
+  const rowValue = (row, existing) => JSON.stringify(existing ? ['existing', row.id] : ['resource', row.id, row.published_version]);
+  const worldChoice = newWorldSelected && canCreateWorld ? 'new' : d.worldSource
+    ? JSON.stringify(['existing', d.worldSource.worldId]) : d.worldResourceId
+      ? JSON.stringify(['resource', d.worldResourceId, d.worldResourceVersion])
+      : d.useDefaultWorld && d.worldChoiceConfirmed ? 'daily' : '';
+  const newWorldCard = canCreateWorld && <label className={'creation-new-world creation-radio-card'+(worldChoice==='new'?' selected':'')}>
+    <RadioGroupItem value="new" aria-label="创建新的世界底稿" className="creation-card-radio"/>
+    <Plus size={24} aria-hidden="true"/>
+    <strong>创建新的世界底稿</strong>
+    <p>自己定义背景、规则与地点。保存并发布后，<br/>从「角色库」→「继续创建」返回本向导，<br/>再在「已发布的世界底稿」中选择它。</p>
+  </label>;
   return (
     <div ref={m.rootRef} className="replica-creation creation-page">
       <div ref={headingAnchor}>
@@ -427,35 +441,39 @@ export default function CharacterWizardView({ model: m }) {
                 onChange={value => { worldTabChosen.current = true; setWorldTab(value); }}
                 items={worldTabs}
               />}
+              <RadioGroup aria-label="选择生活世界" value={worldChoice} disabled={busy || locked} className="creation-world-choice"
+                onValueChange={value=>{
+                  setNewWorldSelected(value==='new');
+                  if(value==='new')return;
+                  if(value==='daily'){m.chooseWorld(null);return;}
+                  const existing=visibleWorldTab==='existing',row=worldRows.find(row=>rowValue(row,existing)===value);
+                  if(row)(existing?m.chooseExistingWorld(row):m.chooseWorld(row));
+                }}>
               {visibleWorldTab === "daily" ? (
-                <Surface
+                <div className="creation-world-grid">
+                <label
                   className={
-                    "creation-daily" +
-                    (d.useDefaultWorld && d.worldChoiceConfirmed
+                    "creation-world-card creation-daily creation-radio-card" +
+                    (worldChoice==='daily'
                       ? " selected"
                       : "")
                   }
                 >
-                  <WorldArt kind="city" />
                   <div>
+                    <WorldArt kind="city" />
+                    <RadioGroupItem id={worldRadioId+'-daily'} value="daily" aria-label="使用日常生活世界" className="creation-card-radio"/>
                     <Badge variant="outline">轻松开始</Badge>
-                    <h2>日常生活世界</h2>
+                  </div>
+                  <section>
+                    <h3>日常生活世界</h3>
                     <p>
                       确认后建立包含居所、商店、公共地点与社区 NPC 的日常生活世界。
                     </p>
-                    <Button
-                      onClick={() => m.chooseWorld(null)}
-                      disabled={busy || locked}
-                    >
-                      {d.useDefaultWorld && d.worldChoiceConfirmed ? (
-                        <Check size={15} />
-                      ) : (
-                        <Plus size={15} />
-                      )}
-                      使用日常生活世界
-                    </Button>
-                  </div>
-                </Surface>
+                    <footer>使用日常生活世界</footer>
+                  </section>
+                </label>
+                {newWorldCard}
+                </div>
               ) : (
                 <>
                   <div className="creation-world-toolbar">
@@ -512,28 +530,15 @@ export default function CharacterWizardView({ model: m }) {
                   <div className="creation-world-grid">
                     {worldRows.map((row) => {
                       const existing = visibleWorldTab === "existing",
-                        selected = existing
-                          ? d.worldSource?.worldId === row.id
-                          : d.worldResourceId === row.id &&
-                            d.worldResourceVersion === row.published_version;
+                        selected = worldChoice === rowValue(row, existing);
                       return (
-                        <button
-                          type="button"
+                        <label
                           className={
-                            "creation-world-card" +
+                            "creation-world-card creation-radio-card" +
                             (selected ? " selected" : "")
                           }
-                          aria-pressed={selected}
                           key={(row.fluctlightId || "resource") + ":" + row.id +
                             (existing ? "" : ":" + row.published_version)}
-                          disabled={
-                            busy || locked || row.unavailable || (!existing && !row.publication)
-                          }
-                          onClick={() =>
-                            existing
-                              ? m.chooseExistingWorld(row)
-                              : m.chooseWorld(row)
-                          }
                         >
                           <div>
                             <WorldArt
@@ -543,9 +548,8 @@ export default function CharacterWizardView({ model: m }) {
                                   : "city"
                               }
                             />
-                            <span className="creation-select-mark">
-                              {selected && <Check size={12} />}
-                            </span>
+                            <RadioGroupItem value={rowValue(row,existing)} aria-label={row.name} className="creation-card-radio"
+                              disabled={busy || locked || row.unavailable || (!existing && !row.publication)}/>
                             <Badge variant="outline">
                               {existing ? "共享世界" : "世界底稿"}
                             </Badge>
@@ -569,25 +573,10 @@ export default function CharacterWizardView({ model: m }) {
                               <span>{existing ? "加入共享世界" : "固定版本"}</span>
                             </footer>
                           </section>
-                        </button>
+                        </label>
                       );
                     })}
-                    {canCreateWorld && <a
-                      className="creation-new-world"
-                      href="#/studio/edit/new?kind=world"
-                    >
-                      <Plus size={24} />
-                      <strong>创建世界</strong>
-                      <p>
-                        定义背景、规则与地点
-                        <br />
-                        保存发布后，带它回到这里。
-                      </p>
-                      <span>
-                        去创作中心
-                        <ArrowRight size={12} />
-                      </span>
-                    </a>}
+                    {newWorldCard}
                   </div>
                   {visibleWorldTab === "resource" && m.worldCursor && (
                     <Button
@@ -600,16 +589,18 @@ export default function CharacterWizardView({ model: m }) {
                   )}
                 </>
               )}
-              {visibleWorldTab === "daily" && <Button variant="ghost" asChild>
-                <a href="#/studio/edit/new?kind=world"><Plus size={15} />创建世界</a>
-              </Button>}
-              {d.worldChoiceConfirmed && (
+              </RadioGroup>
+              {newWorldSelected && canCreateWorld && <WorkspaceInfo>
+                <p>角色草稿会自动保留。先创建并发布底稿，再从「角色库」的「继续创建」返回，选择已发布的世界底稿后继续。</p>
+                <Button asChild disabled={busy || locked}><a href="#/studio/edit/new?kind=world">去创作中心创建<ArrowRight size={14}/></a></Button>
+              </WorkspaceInfo>}
+              {d.worldChoiceConfirmed && !(newWorldSelected && canCreateWorld) && (
                 <WorkspaceInfo>
                   {d.worldSource
                     ? `将加入「${d.worldSource.name}」的同一世界；地点与 NPC 身份共享，各角色的关系与记忆分别记录。`
                     : d.worldResourceId
                       ? `本次固定使用「${worldName} · ${d.worldResourceVersion}」。之后的底稿修改由你明确重新选择。`
-                      : "已明确选择日常生活配置。世界创建与绑定将在原角色的准备流程中读回。"}
+                      : "将为 TA 准备一个日常生活世界"}
                 </WorkspaceInfo>
               )}
               {m.selectedPublicationError && (
@@ -1603,6 +1594,7 @@ export default function CharacterWizardView({ model: m }) {
                 busy ||
                 locked ||
                 !m.canContinue ||
+                (index === 0 && newWorldSelected && canCreateWorld) ||
                 (index === 1 &&
                   m.configured === false &&
                   d.mode === "description") ||

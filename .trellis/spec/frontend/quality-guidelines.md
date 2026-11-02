@@ -43,6 +43,63 @@ browser layout, focus, keyboard, portal and narrow-screen checks.
 - Browser-side provider calls that would expose MTPLX keys or ComfyUI configuration.
 - Reintroducing the deleted vanilla `src/` entry as a production fallback.
 
+## Deployment entry caching and lazy route recovery (R4)
+
+### Scope / trigger
+
+A tab opened before a deployment may request an old `AuthPage-*.js` or another
+lazy route chunk after that asset has been replaced.
+
+### Signatures
+
+`apps/web/nginx.conf` owns response cache policy. `main.tsx` wraps the full App
+in `ChunkLoadBoundary`; `reloadChunkOnce(error, reload): boolean` uses the tab's
+`sessionStorage['fluctlight:chunk-reload-attempted']` marker.
+
+### Contracts
+
+- `/index.html` and SPA fallback responses send `Cache-Control: no-cache`.
+- Successful `/assets/` responses send `public, max-age=31536000, immutable`.
+  Missing assets stay 404 and must not receive that immutable cache header.
+- Recognized lazy JS/CSS load errors set the marker before auto-reloading.
+  The marker survives reloads for the tab session. Later failures display a
+  shadcn Alert/Feedback with a working manual reload Button.
+- Unavailable session storage and unrelated render errors never auto-reload.
+  The boundary includes unauthenticated AuthPage and nested lazy routes.
+
+### Validation / error matrix
+
+| Condition | Expected behavior |
+| --- | --- |
+| HTML entry or SPA deep link | Revalidate HTML before reusing chunk references |
+| Existing hashed asset | One-year immutable cache |
+| Removed old asset | 404 without immutable cache header |
+| First lazy import failure | Write session marker, then reload once |
+| Same failure after reload | Show manual prompt; no reload loop |
+| Storage denied | Show manual prompt immediately |
+| Ordinary render error | Show fallback without automatic reload |
+
+### Good / base / bad cases
+
+Good: a stale AuthPage reloads once, then the newly served HTML references the
+current asset. Base: a persistent network failure shows a manual retry prompt.
+Bad: immutable HTML or `add_header ... immutable always` caches stale references
+or missing assets; clearing the marker on every boot recreates a reload loop.
+
+### Required tests
+
+`r4-ui-fixes.test.mjs` checks HTML/fallback and asset cache directives, the root
+boundary wiring, rejected React.lazy imports across remounts, storage denial,
+error classification and manual reload. The task's targeted production-browser
+check serves AuthPage chunk 404 twice and asserts exactly one automatic reload,
+then restores the chunk and verifies manual reload reaches the login form.
+
+### Wrong vs correct
+
+Wrong: unconditionally reload on any rejected import, or keep the recovery
+boundary inside the authenticated workspace only. Correct: persist the attempt
+before reloading and wrap App at the production entry, including login.
+
 ## Browser request identity compatibility
 
 All browser pages, JS/MJS renderers, TS providers and stores use

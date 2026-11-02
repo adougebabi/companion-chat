@@ -58,13 +58,15 @@ export default function StudioDirectoryView({ model: m }) {
   const available = m.list.items.filter(
     (r) => r.published_version && r.status !== "archived",
   ).length;
+  const empty = m.list.ready && !m.list.items.length && !m.list.error;
+  const filtered = !!(m.query?.trim() || m.archived || (!m.fixedKind && m.kind));
   return (
     <div className="replica-studio resource-page">
       <WorkspacePageHeader
         eyebrow={m.fixedKind==='world'?'YOUR WORLD / A PLACE TO BELONG':'STUDIO / ROOM FOR IMAGINATION'}
         title={m.fixedKind === "world" ? "世界" : "创作中心"}
         description={m.fixedKind==='world'?'保存背景、规则和地点设定，之后可在创建角色时使用。':'给想象一个落点，再让它进入生活。'}
-        actions={
+        actions={!empty &&
           <>
             {m.fixedKind==='world'?<Button onClick={()=>m.create('world')}><Plus size={16}/>创建世界底稿</Button>:<DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -276,11 +278,11 @@ export default function StudioDirectoryView({ model: m }) {
           );
         })}
       </div>
-      {m.list.ready && !m.list.items.length && (
+      {empty && (
         <EmptyState variant="page" className="studio-empty">
-          <h3>没有找到相关资源</h3>
-          <p>调整筛选，或创建一份新的设定。</p>
-          <Button onClick={() => m.create()}>新建资源</Button>
+          <h3>{filtered ? '没有找到相关资源' : m.fixedKind==='world' ? '还没有世界底稿' : '还没有创作资源'}</h3>
+          <p>{filtered ? '试试其他关键词，或清除筛选查看全部设定。' : m.fixedKind==='world' ? '创建一份背景、规则与地点设定，发布后可在创建角色时选用。' : '从一份新的设定开始，保存你的世界、角色与灵感。'}</p>
+          {filtered ? <Button variant="outline" onClick={()=>{m.setSearch('');m.setQuery('');m.setArchived(false);if(!m.fixedKind)m.setKind('');}}>清除筛选</Button> : <Button onClick={() => m.create(m.fixedKind || undefined)}>{m.fixedKind==='world'?'创建世界底稿':'新建资源'}</Button>}
         </EmptyState>
       )}
       <MediaMore source={m.list} label="资源" />

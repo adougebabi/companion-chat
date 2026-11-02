@@ -39,3 +39,19 @@ D1-D6 fixed with recovery, independent chat/Owner lanes and Reflection fences, b
 Continued `.trellis/tasks/11-02-ft-r2-defects`, preserving D1–D11. Automatic generation records were not consumed by the world page; permanent clocks could fall beyond management's newest 20 tasks. Added exact world/type diagnostic filters, read-only automatic world records/clock links, and management clock merging with independent pagination/retries. Reused existing shadcn components and scoped read hooks.
 
 Validation: 61 Web + 1 BrowserClient tests, 4 Core + 1 browser-boundary Go top-level tests (isolated PostgreSQL), web typecheck/lint and diff check pass. No old assertions changed. Details: task `d12-validation.md`. No commit, staging, accept-tree/env/image edits; no task archive or auto-commit journal script.
+
+## 2026-11-02 — R4 deployment and UI audit fixes
+
+Completed `.trellis/tasks/11-02-r4-ui-fixes`: HTML revalidation, successful hashed
+asset caching, one automatic stale-chunk reload per tab session and manual
+fallback; world RadioGroup cards and return guidance; saved service vs unbound
+generic purpose guidance; one-CTA world Empty; diagnostic creation next step.
+Reused existing shadcn components. No backend/prompt/token changes.
+
+Validation: new 8/8 + related 75/75 tests, strengthened r20 final 10/10,
+web typecheck/lint/build, diff check, and nine Chrome production-dist/isolated
+fixture records pass. Desktop/mobile cards have equal geometry; a real AuthPage
+chunk 404 reloads once, then manual reload recovers after the asset is restored.
+Images only in `/tmp/r4-ui-shots`; text evidence and all changed old assertion
+reasons are in task final-report.md. No staging, commit, accept-tree/env/image
+edits or auto-commit scripts.
