@@ -13,6 +13,17 @@ function workspace(owner='replica-owner'){
  return {state,moves,reads,subscribe:fn=>subscribe(state,fn),getSnapshot:()=>snapshot(state),services:{configurationClient:{read:async()=>({bindings:[]})}},select:id=>{state.selectedId=id;},navigate:page=>moves.push([page,state.selectedId]),load:async page=>reads.push(page)};
 }
 const button=(v,text)=>[...v.host.querySelectorAll('button')].find(node=>node.textContent===text);
+test('character covers derive from each character identity and stay stable after list reordering',async()=>{
+ const w=workspace('entity-covers-owner'),v=await mountReact(vite,Library,{workspace:w});
+ try{
+  const art=id=>v.host.querySelector(`[data-testid="library-card-${id}"] .library-card-art svg`);
+  const a=art('A').outerHTML,b=art('B').outerHTML;
+  assert.notEqual(art('A').dataset.artworkSeed,art('B').dataset.artworkSeed);
+  assert.notEqual(art('A').querySelector('path').getAttribute('fill'),art('B').querySelector('path').getAttribute('fill'));
+  await act(async()=>{w.state.characters.reverse();});await v.flush();
+  assert.equal(art('A').outerHTML,a);assert.equal(art('B').outerHTML,b);
+ }finally{await v.dispose();}
+});
 test('library filters actual tags and text, switches views, navigates the chosen role and restores UI drafts per Owner',async()=>{
  const w=workspace();let v=await mountReact(vite,Library,{workspace:w});
  try{

@@ -29,6 +29,7 @@ import { WorldItemSuggestion } from "@/v3/proto/components/world-items.js";
 import { userInstant } from "@/v3/presentation-time.mjs";
 import { stateLabel, errorMessage } from "@/v3/domain-presentation.mjs";
 import {wardrobeCategoryLabel,wardrobeSlotLabel} from '@/lib/wardrobe-form';
+import { worldEventInScope } from '@/approved-ui/world-event-scope.mjs';
 const check = (row, m, id) => {
   if (
     !row?.id ||
@@ -417,11 +418,7 @@ export function WorldEventsPanel({ model: m }) {
       const page = await w.client.worldLifeEvents(fid, cursor);
       if (
         page.world_id !== m.world.id ||
-        page.items.some(
-          (row) =>
-            row.fluctlight_id !== fid ||
-            (row.world_id && row.world_id !== m.world.id),
-        )
+        page.items.some((row) => !worldEventInScope(row, fid, m.world.id))
       )
         throw Error("世界生活事件范围不匹配。");
       return page;
@@ -434,8 +431,7 @@ export function WorldEventsPanel({ model: m }) {
       const row = await w.client.worldLifeEvent(fid, eventId);
       if (
         row.id !== eventId ||
-        row.fluctlight_id !== fid ||
-        (row.world_id && row.world_id !== m.world.id)
+        !worldEventInScope(row, fid, m.world.id)
       )
         throw Error("生活事件范围不匹配。");
       return { items: [row], next_cursor: "" };
@@ -713,7 +709,7 @@ export function WorldEventsPanel({ model: m }) {
               <b>{row.title}</b>
               <small>
                 {userInstant(row.start_at)} ·{" "}
-                {row.world_id ? "当前世界" : "历史归属未记录"}
+                {row.record_kind === "world_event_execution" ? "世界环境事件" : row.world_id ? "当前世界" : "历史归属未记录"}
               </small>
             </span>
             <Badge variant="outline">{stateLabel(row.status)}</Badge>

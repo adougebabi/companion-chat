@@ -150,6 +150,61 @@ async function openPlace(f) {
   await enter(f);
   await f.v.click(button(f.v.host, "查看与编辑"));
 }
+test('same-name worlds have stable distinct entity covers, including their detail cover', async () => {
+  const api = worldFixture({ owner: 'world-owner', projectionReads: true });
+  const s = api.state('A');
+  s.worlds[1].name = s.worlds[0].name;
+  s.worlds[1].flavor = s.worlds[0].flavor;
+  s.worlds.push({ ...s.worlds[1], id: 'third-daily-world' });
+  const f = await fixture({ api });
+  try {
+    const seeds = [...f.v.host.querySelectorAll('.r-world-image svg[data-artwork-seed]')].map(node => node.dataset.artworkSeed);
+    assert.equal(seeds.length, 3);
+    assert.equal(new Set(seeds).size, 3);
+    const skies = [...f.v.host.querySelectorAll('.r-world-image svg[data-artwork-seed] > path:first-child')].map(node => node.getAttribute('fill'));
+    assert.equal(new Set(skies).size, 3);
+    await f.v.click(f.v.host.querySelector('.r-world-image'));
+    assert.equal(f.v.host.querySelector('.r-world-hero svg').dataset.artworkSeed, seeds[0]);
+    assert.equal(f.writes().length, 0);
+  } finally { await f.dispose(); }
+});
+test('world-only applied rain stays visible and opens its own detail without becoming a character life event', async () => {
+  const api = worldFixture({ owner: 'world-owner', projectionReads: true });
+  api.state('A').events = [{ id: 'ambient-rain', title: 'FT-午后阵雨', fluctlight_id: null, world_id: 'A-world-one', record_kind: 'world_event_execution', context_scope: 'ambient', source: 'world_execution', status: 'applied', life_write: false, start_at: '2026-11-02T08:00:00Z', impacts: [] }];
+  const f = await fixture({ api });
+  try {
+    await enter(f); await tab(f.v, '世界事件');
+    const row = f.v.host.querySelector('.r-event-record');
+    assert.match(row.textContent, /FT-午后阵雨/);
+    assert.match(row.textContent, /世界环境事件/);
+    assert.doesNotMatch(f.v.host.textContent, /世界生活事件范围不匹配/);
+    await f.v.click(row);
+    assert.match(dialog().textContent, /FT-午后阵雨/);
+    assert.doesNotMatch(dialog().textContent, /生活事件范围不匹配/);
+    assert.equal(f.writes().length, 0);
+  } finally { await f.dispose(); }
+});
+test('foreign character or world events still fail the world page read fence', async () => {
+  for (const foreign of [{ fluctlight_id: 'B', world_id: 'A-world-one' }, { fluctlight_id: null, world_id: 'foreign-world', record_kind: 'world_event_execution', context_scope: 'ambient', source: 'world_execution', status: 'applied', life_write: false }]) {
+    const api = worldFixture({ owner: 'world-owner', projectionReads: true });
+    const originalHandler = api.handler;
+    api.handler = async request => {
+      if (request.path === '/api/fluctlights/A/world/events') {
+        request.json(request.res, { world_id: 'A-world-one', items: [{ id: 'foreign-event', title: 'PRIVATE_EVENT_MUST_NOT_RENDER', ...foreign }], next_cursor: '' });
+        return true;
+      }
+      return originalHandler(request);
+    };
+    const f = await fixture({ api });
+    try {
+      await enter(f); await tab(f.v, '世界事件');
+      assert.match(f.v.host.textContent, /世界生活事件范围不匹配/);
+      assert.equal(f.v.host.querySelector('.r-event-record'), null);
+      assert.doesNotMatch(f.v.host.textContent, /PRIVATE_EVENT_MUST_NOT_RENDER/);
+      assert.equal(f.writes().length, 0);
+    } finally { await f.dispose(); }
+  }
+});
 test("world browse/search/back keeps the original filter and inactive catalog tabs cannot switch worlds or read active-world objects", async () => {
   const f = await fixture();
   try {

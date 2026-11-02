@@ -609,15 +609,18 @@ func (a *App) DecorateFluctlightList(ctx context.Context, owner string, items []
 		return items
 	}
 	groups, ok := a.fluctlightGroups(ctx, owner)
-	if !ok {
-		return rows
-	}
 	for _, row := range rows {
-		if groupID, exists := groups[stringValue(row["id"])]; exists {
-			row["group_id"] = groupID
-			continue
+		fid := stringValue(row["id"])
+		if a != nil && a.DB != nil && a.DB.Pool() != nil {
+			a.projectAvatar(ctx, owner, fid, row)
 		}
-		row["group_id"] = nil
+		if ok {
+			if groupID, exists := groups[fid]; exists {
+				row["group_id"] = groupID
+			} else {
+				row["group_id"] = nil
+			}
+		}
 	}
 	return rows
 }

@@ -3019,6 +3019,61 @@
           "owner_switch_status"
         ]
       },
+      "BrowserFluctlightSummary": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "identity": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "unread_count": {
+            "type": "integer"
+          },
+          "last_conversation_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar_state": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "id",
+          "identity",
+          "status"
+        ]
+      },
+      "BrowserFluctlightDirectory": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/BrowserFluctlightSummary"
+        }
+      },
       "BrowserFluctlightDetail": {
         "type": "object",
         "additionalProperties": true,
@@ -16979,7 +17034,19 @@
     },
     "/api/fluctlights": {
       "get": {
-        "operationId": "listFluctlights"
+        "operationId": "listFluctlights",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowserFluctlightDirectory"
+                }
+              }
+            }
+          }
+        }
       },
       "post": {
         "operationId": "createFluctlight",

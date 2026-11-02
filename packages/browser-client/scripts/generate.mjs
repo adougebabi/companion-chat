@@ -37,6 +37,8 @@ const requestTypeNames = [
   "BrowserFluctlightActivationRequest",
   "BrowserInitializationSource",
   "BrowserFluctlightDetail",
+  "BrowserFluctlightSummary",
+  "BrowserFluctlightDirectory",
   "BrowserWardrobeItem",
   "BrowserWardrobePage",
   "BrowserLifeEventRequest",
@@ -261,7 +263,7 @@ export class BrowserClient {
   async createFluctlight(body: BrowserFluctlightCreateRequest): Promise<{ id: string; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlights", { method: "POST", body }) as Promise<{ id: string; identity: Record<string, unknown>; status: string }>; }
   async analyzeFluctlightCreation(input: string | BrowserFluctlightCreationAnalysisRequest, options: { signal?: AbortSignal } = {}): Promise<BrowserFluctlightCreationAnalysis> { const body: BrowserFluctlightCreationAnalysisRequest = typeof input === "string" ? { description: input } : input; return this.json("/api/fluctlight-creations/analysis", { method: "POST", body, signal: options.signal }) as Promise<BrowserFluctlightCreationAnalysis>; }
   async activateFluctlightCreation(body: BrowserFluctlightActivationRequest): Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }> { return this.json("/api/fluctlight-creations/activate", { method: "POST", body }) as Promise<{ id: string; core_persona?: Record<string, unknown>; identity: Record<string, unknown>; status: string }>; }
-  async listFluctlights(): Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>> { return this.json("/api/fluctlights") as Promise<Array<{ id: string; identity: Record<string, unknown>; status: string; unread_count?: number; last_conversation_at?: string | null }>>; }
+  async listFluctlights(): Promise<BrowserFluctlightDirectory> { return this.json("/api/fluctlights") as Promise<BrowserFluctlightDirectory>; }
   async listActorGroups(): Promise<Array<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>> { return this.json("/api/actor-groups") as Promise<Array<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>>; }
   async createActorGroup(name: string): Promise<{ id: string; name: string; actor_ids?: string[]; members?: string[] }> { return this.json("/api/actor-groups", { method: "POST", body: { name } }) as Promise<{ id: string; name: string; actor_ids?: string[]; members?: string[] }>; }
   async assignActorGroupMember(groupId: string, actorId: string): Promise<void> { await this.json(\`/api/actor-groups/\${encodeURIComponent(groupId)}/members\`, { method: "POST", body: { actorId } }); }

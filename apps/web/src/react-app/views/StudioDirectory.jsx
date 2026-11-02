@@ -194,6 +194,7 @@ export default function StudioDirectoryView({ model: m }) {
               >
                 {row.kind === "world" ? (
                   <WorldArt
+                    seed={row.id}
                     kind={/森林|forest/i.test(row.name) ? "forest" : "city"}
                   />
                 ) : (

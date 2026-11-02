@@ -1,4 +1,5 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { avatarInitial, avatarSource } from "@/lib/avatar-presentation.mjs";
 export default function CharacterAvatar({
   name,
   initial,
@@ -12,7 +13,7 @@ export default function CharacterAvatar({
   src?: string | { url?: string };
   className?: string;
 }) {
-  const url = typeof src === "string" ? src : src?.url;
+  const url = avatarSource(src);
   return (
     <Avatar
       className={className ? `avatar ${className}` : "avatar"}
@@ -20,7 +21,7 @@ export default function CharacterAvatar({
     >
       {url && <AvatarImage src={url} alt={`${name || "角色"}的头像`} />}
       <AvatarFallback style={{ background: color }}>
-        {initial || [...(name || "光")][0]}
+        {avatarInitial(name, initial)}
       </AvatarFallback>
     </Avatar>
   );

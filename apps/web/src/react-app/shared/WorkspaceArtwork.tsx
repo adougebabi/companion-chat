@@ -3,6 +3,40 @@
 import { useId } from "react";
 
 type ArtProps = { className?: string };
+// Identity selects decoration only. It never invents a generated cover or world fact.
+export function artworkSeed(identity: string) {
+  let value = 2166136261;
+  for (const character of identity) value = Math.imul(value ^ character.codePointAt(0)!, 16777619);
+  value = Math.imul(value ^ (value >>> 16), 2246822507);
+  return (value ^ (value >>> 13)) >>> 0;
+}
+
+function EntityWorldArt({ kind, seed, className }: ArtProps & { kind: "city" | "forest" | "space"; seed: string }) {
+  const identity = artworkSeed(seed), hue = identity % 360;
+  const number = (index: number) => artworkSeed(seed + ":" + index);
+  const color = (light: number, shift = 0) => `hsl(${(hue + shift) % 360} 20% ${light}%)`;
+  const sunX = 65 + number(1) % 270, sunY = 40 + number(2) % 45;
+  return <svg className={className} viewBox="0 0 400 240" fill="none" role="img" aria-label="根据此实体资料绘制的装饰封面" data-artwork-seed={identity} preserveAspectRatio="xMidYMid slice">
+    <path d="M0 0h400v240H0z" fill={color(91)} />
+    <circle cx={sunX} cy={sunY} r={22 + number(3) % 15} fill={color(80, 45)} />
+    {kind === "space" ? <>
+      <ellipse cx={155 + number(4) % 90} cy="133" rx="122" ry="37" transform={`rotate(${-35 + number(5) % 65} 200 133)`} stroke={color(65)} strokeWidth="9" />
+      <circle cx={155 + number(4) % 90} cy="126" r={48 + number(6) % 25} fill={color(74, 25)} />
+      {Array.from({ length: 22 }, (_, i) => <circle key={i} cx={number(i + 10) % 400} cy={number(i + 40) % 235} r={1 + number(i + 70) % 3} fill={color(99)} />)}
+    </> : <>
+      <path d={`M0 150 ${60 + number(4) % 40} ${65 + number(5) % 40} 182 ${95 + number(6) % 40} 285 ${60 + number(7) % 50} 400 155v85H0Z`} fill={color(79)} />
+      {Array.from({ length: 8 }, (_, i) => {
+        const x = i * 54 - 12, height = 40 + number(i + 10) % 80;
+        return kind === "forest"
+          ? <g key={i}><path d={`M${x + 25} ${187 - height} ${x} 184h50Z`} fill={color(47 + number(i + 30) % 14)} /><path d={`M${x + 25} 158v40`} stroke={color(39)} strokeWidth="3" /></g>
+          : <g key={i}><path d={`M${x} ${190 - height}h43v${height}h-43Z`} fill={color(56 + number(i + 30) % 25)} />{[0, 1, 2].map(row => <path key={row} d={`M${x + 9} ${201 - height + row * 19}h7v10h-7Zm18 0h7v10h-7Z`} fill={color(92)} />)}</g>;
+      })}
+      <path d="M0 190h400v50H0Z" fill={color(73, 20)} />
+      <path d={`M0 ${202 + number(7) % 14}Q100 188 200 211T400 204`} stroke={color(91)} strokeWidth="12" />
+      <path d="M26 226h42m71 3h35m86-10h24m35 13h42" stroke={color(89)} strokeWidth="2" strokeLinecap="round" />
+    </>}
+  </svg>;
+}
 // Decoration follows supplied world data, never an example character ID.
 export function worldArtworkKind(world?: {name?:string;flavor?:string}|null): "city"|"forest"|"space" {
   const text=[world?.name,world?.flavor].filter(Boolean).join(" ");
@@ -11,9 +45,11 @@ export function worldArtworkKind(world?: {name?:string;flavor?:string}|null): "c
 
 export function WorldArt({
   kind,
+  seed,
   className,
-}: ArtProps & { kind: "city" | "forest" | "space" }) {
+}: ArtProps & { kind: "city" | "forest" | "space"; seed?: string }) {
   const id = useId().replace(/:/g, "");
+  if (seed) return <EntityWorldArt kind={kind} seed={seed} className={className} />;
   if (kind === "forest") {
     return (
       <svg

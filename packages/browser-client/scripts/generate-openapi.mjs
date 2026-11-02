@@ -214,6 +214,15 @@ const schema = {
       BrowserPersonaSwitchResult: {type:"object",additionalProperties:false,properties:{request_id:{type:"string"},status:{type:"string",enum:["completed","pending"]},status_url:{type:"string"},source_fact_id:{type:"string"},disposition:{type:"string",enum:["applied","no_change","assessment_pending"]},revision:{type:"integer"},runtime_revision:{type:"integer"},active_profile_id:{type:"string"},previous_profile_id:{type:"string"},audit_id:{type:"string"},persona_action_audit_id:{anyOf:[{type:"string"},{type:"null"}]},request:{type:"object",additionalProperties:true}},required:["request_id","status","disposition","revision","runtime_revision","active_profile_id","previous_profile_id","audit_id","persona_action_audit_id","request"]},
       BrowserPersonaSwitchTerminal: {type:"object",additionalProperties:false,properties:{request_id:{type:"string"},status:{type:"string",enum:["completed","rejected","failed"]},disposition:{type:"string",enum:["applied","no_change"]},revision:{type:"integer"},runtime_revision:{type:"integer"},active_profile_id:{type:"string"},previous_profile_id:{type:"string"},audit_id:{type:"string"},persona_action_audit_id:{anyOf:[{type:"string"},{type:"null"}]},source_fact_id:{type:"string"},error_code:{type:"string"},retryable:{type:"boolean"}},required:["request_id","status"]},
       BrowserPersonaCompilation:{type:"object",additionalProperties:false,properties:{profile_id:{type:"string"},foundation_revision:{type:"integer"},overlay_revision:{type:"integer"},status:{type:"string",enum:["ready","missing","stale","invalid"]},working_persona:{anyOf:[jsonObject,{type:"null"}]},rules_version:{type:"string"},source_hash:{type:"string"},owner_switch_status:{type:"string",enum:["assessment_required"]},owner_switch_targets:{type:"array",items:{type:"object",additionalProperties:false,properties:{rule_id:{type:"string"},target_profile_id:{type:"string"}},required:["rule_id","target_profile_id"]}}},required:["profile_id","foundation_revision","overlay_revision","status","working_persona","owner_switch_targets","owner_switch_status"]},
+      BrowserFluctlightSummary: {
+        type: "object", additionalProperties: true,
+        properties: {
+          id: {type:"string"}, identity: jsonObject, status: {type:"string"},
+          unread_count: {type:"integer"}, last_conversation_at: nullableString,
+          avatar: {anyOf:[jsonObject,{type:"null"}]}, avatar_state: jsonObject,
+        }, required:["id","identity","status"],
+      },
+      BrowserFluctlightDirectory: {type:"array",items:{$ref:"#/components/schemas/BrowserFluctlightSummary"}},
       BrowserFluctlightDetail: {
         type: "object",
         additionalProperties: true,
@@ -335,7 +344,7 @@ const schema = {
     "/api/providers": { get: { operationId: "providerBindings" } },
     "/api/providers/roles": { put: { operationId: "configureModelRole" } },
     "/api/conversations": { post: { operationId: "createConversation" } },
-    "/api/fluctlights": { get: { operationId: "listFluctlights" }, post: { operationId: "createFluctlight", ...requestBody("BrowserFluctlightCreateRequest") } },
+    "/api/fluctlights": { get: { operationId: "listFluctlights", ...jsonResponse("BrowserFluctlightDirectory") }, post: { operationId: "createFluctlight", ...requestBody("BrowserFluctlightCreateRequest") } },
     "/api/actor-groups": { get: { operationId: "listActorGroups" }, post: { operationId: "createActorGroup" } },
     "/api/actor-groups/{groupId}/members": { post: { operationId: "assignActorGroupMember" } },
     "/api/actor-groups/{groupId}/members/{actorId}": { delete: { operationId: "removeActorGroupMember" } },

@@ -1,4 +1,5 @@
 import {createNotificationCounter} from './notification-counter.mjs';
+import {avatarInitial} from '../lib/avatar-presentation.mjs';
 import { approvedHref } from "../approved-ui/routing.mjs";
 import { selector } from "./view-model.ts";
 import { proxy, snapshot, subscribe as subscribeState } from "valtio/vanilla";
@@ -248,7 +249,7 @@ export function createWorkspace({ observable = proxy } = {}) {
         ...previous,
         id: row.id,
         name: row.name,
-        initial: [...(row.name || "光")][0],
+        initial: avatarInitial(row.name),
         color: row.color || ["#e4ede4", "#e6e8ed", "#eee8df"][index % 3],
         bio: row.bio || "",
         job: Object.hasOwn(row,"job") ? row.job : previous.job,
@@ -309,6 +310,10 @@ export function createWorkspace({ observable = proxy } = {}) {
       const persona = raw.core_persona || {},
         identity = raw.identity || persona.identity || {},
         context = raw.context || {};
+      // The directory is the common avatar source for navigation and chat. A
+      // successful detail read also refreshes it, including an explicit clear.
+      if (Object.hasOwn(raw, "avatar") && current.value._directory)
+        current.value._directory.avatar = raw.avatar;
       Object.assign(current.value, {
         detail: raw,
         bio: profileSnapshotFromDetail(raw).bio,

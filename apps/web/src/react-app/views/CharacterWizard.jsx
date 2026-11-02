@@ -549,6 +549,7 @@ export default function CharacterWizardView({ model: m }) {
                         >
                           <div>
                             <WorldArt
+                              seed={row.id}
                               kind={
                                 /森林|forest/i.test(row.name)
                                   ? "forest"
@@ -1530,6 +1531,7 @@ export default function CharacterWizardView({ model: m }) {
             ) : hasWorldChoice ? (
               <div className="creation-aside-world">
                 <WorldArt
+                  seed={d.worldSource?.worldId || d.worldResourceId || undefined}
                   kind={/森林|forest/i.test(worldName) ? "forest" : "city"}
                 />
               </div>

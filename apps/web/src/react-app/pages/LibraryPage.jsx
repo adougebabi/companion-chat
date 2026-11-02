@@ -175,7 +175,7 @@ function createLibraryPageController(__props, context, lifecycle) {
       {w.state.loading?.library && <LoadingState label="正在读取角色资料…"/>}
       <div className={view.value==="grid"?"character-grid":"character-list"} data-testid="library-grid" aria-label="角色卡片">
         {rows.value.map(character=><Card asChild key={character.id} className="library-card"><article data-testid={"library-card-"+character.id}>
-          <div className="library-card-art" aria-hidden="true"><WorldArt kind={worldArtworkKind(character.detail?.world)}/></div>
+          <div className="library-card-art" aria-hidden="true"><WorldArt kind={worldArtworkKind(character.detail?.world)} seed={character.id}/></div>
           <span className={"library-status "+(w.state.selectedId===character.id?"status-current":"")}>{w.state.selectedId===character.id?"当前相处":({active:"生活中",正常:"生活中",paused:"已暂停",已暂停:"已暂停",retired:"已退休",已退休:"已退休",failed:"需要处理",异常:"需要处理"}[character.status] || "准备中")}</span>
           <div className="library-card-content"><div className="library-card-title"><CharacterAvatar className="library-avatar" name={character.name} initial={character.initial} color={character.color} src={character._directory?.avatar}/><div className="library-card-name"><h3>{character.name}</h3><p>{subtitle(character) || "生活资料待补充"}</p></div></div>
           <p>{character.detail?.identity?.tagline || character.bio || "简介尚未填写"}</p>

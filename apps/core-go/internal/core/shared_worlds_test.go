@@ -206,6 +206,32 @@ func TestWorldEventGenerationRequiresKevAndRunsOncePerWorldHour(t *testing.T) {
 				if models != 2 {
 					t.Fatal("new hour did not generate", models)
 				}
+				// Only after independent execution is verified, explicitly join to read history.
+				if _, err := f.app.DispatchWorldSurface(f.ctx, "PUT", "/internal/fluctlights/"+f.fluctlightID+"/world/active", nil, f.ownerID, map[string]any{"world_id": world, "expected_revision": 0, "reason": "read shared event history", "idempotency_key": "read-ambient-history"}); err != nil {
+					t.Fatal(err)
+				}
+				page, err := f.app.worldLifeEvents(f.ctx, f.ownerID, f.fluctlightID, "", url.Values{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				found := false
+				for _, raw := range arrayValue(page["items"]) {
+					row := mapValue(raw)
+					if row["id"] != result["run_id"] {
+						continue
+					}
+					found = true
+					if row["fluctlight_id"] != nil || row["world_id"] != world || row["record_kind"] != "world_event_execution" || row["context_scope"] != "ambient" || row["source"] != "world_execution" || row["life_write"] != false {
+						t.Fatal("world history lost explicit ambient scope", row)
+					}
+				}
+				if !found {
+					t.Fatal("applied shared execution absent from world history", page)
+				}
+				detail, err := f.app.worldLifeEvents(f.ctx, f.ownerID, f.fluctlightID, stringValue(result["run_id"]), nil)
+				if err != nil || detail["id"] != result["run_id"] || detail["fluctlight_id"] != nil || detail["world_id"] != world || detail["life_write"] != false {
+					t.Fatal("world-only detail manufactured character attribution", detail, err)
+				}
 			} else if templates != 0 || runs != 0 {
 				t.Fatal("event entered executable store without explicit Kev Yes", choice, result, templates, runs)
 			}

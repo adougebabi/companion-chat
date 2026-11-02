@@ -124,8 +124,7 @@ export function createProfileModel(lifecycle) {
         .join(" · "),
     );
   const avatar = selector(
-    () =>
-      snapshot.value.avatar || w.current.value._directory?.avatar?.url || "",
+    () => snapshot.value.avatar || "",
   );
   const governance = (kind) =>
     "#/c/" +

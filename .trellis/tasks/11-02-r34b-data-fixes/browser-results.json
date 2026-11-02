@@ -1,0 +1,161 @@
+{
+  "status": "passed",
+  "boundary": "local production dist + isolated loopback HTTP fixture; live GET unauthenticated, no login/real Core writes",
+  "shots": "/tmp/r34-shots",
+  "results": [
+    {
+      "size": "desktop",
+      "item": "avatar-chat",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "chat-details-sheet",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "chat-details-json",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "notification-chinese",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "face-complete-contain",
+      "geometry": {
+        "fit": "contain",
+        "position": "50% 50%",
+        "complete": true,
+        "width": 600,
+        "height": 900,
+        "boxHeight": 420
+      }
+    },
+    {
+      "size": "desktop",
+      "item": "moment-complete-image",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "moment-owner-author",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "world-distinct-covers",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "world-ambient-rain",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "world-ambient-rain-detail",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "wardrobe-linked-missing-failed",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "wardrobe-image-recovery",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "character-distinct-covers",
+      "status": "passed"
+    },
+    {
+      "size": "desktop",
+      "item": "avatar-prefix-menu",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "avatar-chat",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "chat-details-sheet",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "chat-details-json",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "notification-chinese",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "face-complete-contain",
+      "geometry": {
+        "fit": "contain",
+        "position": "50% 50%",
+        "complete": true,
+        "width": 600,
+        "height": 900,
+        "boxHeight": 265
+      }
+    },
+    {
+      "size": "mobile",
+      "item": "moment-complete-image",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "moment-owner-author",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "world-distinct-covers",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "world-ambient-rain",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "world-ambient-rain-detail",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "wardrobe-linked-missing-failed",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "wardrobe-image-recovery",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "character-distinct-covers",
+      "status": "passed"
+    },
+    {
+      "size": "mobile",
+      "item": "avatar-prefix-menu",
+      "status": "passed"
+    }
+  ]
+}

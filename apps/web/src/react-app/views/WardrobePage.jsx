@@ -32,7 +32,8 @@ import { garmentView, slots } from "@/state/workspace.mjs";
 import { errorMessage } from "@/v3/domain-presentation.mjs";
 import WorkspacePageHeader from "../shared/WorkspacePageHeader";
 import WorkspaceDialog from "../shared/WorkspaceDialog";
-import GarmentArt from "../shared/WorkspaceGarmentArt";
+import WardrobeItemArt from "../shared/WardrobeItemArt";
+import { mediaClient } from "@/v3/proto/services.js";
 import WearingSummary from "../shared/WearingSummary";
 import ConfirmationFrame from "../shared/ConfirmationFrame";
 import JsonDetails from "../shared/JsonDetails";
@@ -62,7 +63,7 @@ const field = (label, control, group = false) => {
     </Tag>
   );
 };
-const art = (g) => <GarmentArt type={types[g.type] || g.type} name={g.name} />;
+const art = (g, showStatus = false, allowRetry = false) => <WardrobeItemArt type={types[g.type] || g.type} name={g.name} media={g._source?.media || g.media} urlForAsset={mediaClient.url} showStatus={showStatus} allowRetry={allowRetry} />;
 function RecordHistory({ fid, id, kind }) {
   const w = useWorkspace(),
     scope = w.currentScope(),
@@ -416,7 +417,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
                   aria-label={"查看" + g.name}
                   onClick={(event) => openGarment(g, event)}
                 >
-                  {art(g)}
+                  {art(g, true)}
                   {wearingIds.has(g.id) && (
                     <span className="r-floating-badge">正在穿</span>
                   )}
@@ -535,10 +536,12 @@ export function WardrobePageView({ view, route, preparation = null }) {
                           type: "配饰",
                         };
                         return (
-                          <GarmentArt
+                          <WardrobeItemArt
                             key={id}
-                            type={types[g.type]}
+                            type={types[g.type] || g.type}
                             name={g.name}
+                            media={g._source?.media || g.media}
+                            urlForAsset={mediaClient.url}
                           />
                         );
                       })}
@@ -814,7 +817,7 @@ export function WardrobePageView({ view, route, preparation = null }) {
             }}
           >
             <view.ActionFeedback labels={["衣柜"]} />
-            <div className="r-garment-dialog-art">{art(draft)}</div>
+            <div className="r-garment-dialog-art">{art(draft, true, true)}</div>
             {field(
               "衣服名称 / 描述",
               <FieldInput

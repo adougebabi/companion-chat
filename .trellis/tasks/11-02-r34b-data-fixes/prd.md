@@ -1,0 +1,3 @@
+# R34 B data audit
+Fix all user-reported P1-2, P1-3, P2-1..4. Generated available avatar must display; initials strip FT-. Notification purposes are Chinese. Chat technical details use a right Sheet and collapsed raw JSON. Moment face crop and actual author. World covers differ per entity, world events include FT-午后阵雨 when appropriate. Wardrobe distinguishes ungenerated and failed fetch.
+No Git writes, *.env or /workspace/accept modifications; live 13001 GET only, no login. DB tests isolated. No assertion weakening. Production build/Chrome screenshots /tmp/r34-shots. Web lint/typecheck and targeted JS/Go. 30 minute limit.

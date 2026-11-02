@@ -197,7 +197,7 @@ export function WorldPageView({ view: m }) {
                     onClick={() => m.openWorld(row.id)}
                   >
                     <span aria-hidden="true">
-                      <WorldArt kind={decorativeKind(row)} />
+                      <WorldArt kind={decorativeKind(row)} seed={row.id} />
                     </span>
                     {m.binding?.world_id === row.id && (
                       <span className="r-floating-badge">
@@ -297,7 +297,7 @@ export function WorldPageView({ view: m }) {
           </div>
           <Surface className="r-world-hero">
             <span className="r-world-hero-art" aria-hidden="true">
-              <WorldArt kind={decorativeKind(m.world)} />
+              <WorldArt kind={decorativeKind(m.world)} seed={m.world.id} />
             </span>
             <div>
               <Tiny>{m.world.flavor}</Tiny>

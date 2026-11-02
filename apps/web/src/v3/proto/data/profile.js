@@ -25,7 +25,10 @@ function readOnlyLifecycle(status) {
 
 function avatarUrl(detail, character) {
   const directory = plain(character);
-  for (const candidate of [detail.avatar, directory?.avatar]) {
+  // A returned null is an authoritative clear/unavailable state, not permission
+  // to resurrect an older directory image.
+  const candidates = Object.hasOwn(detail, 'avatar') ? [detail.avatar] : [directory?.avatar];
+  for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate) return candidate;
     const record = plain(candidate);
     if (record && typeof record.url === 'string' && record.url) return record.url;

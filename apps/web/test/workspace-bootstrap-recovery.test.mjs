@@ -63,3 +63,24 @@ test('Now loads its real detail, schedule and wardrobe without unrelated goal, d
   assert.ok(!workspaceReadFeedback(w.state,'此刻',w.currentScope()).errors.some(e=>e.key==='promises'));
  }finally{w.dispose();real.client.detail=oldDetail;}
 });
+
+test('r34 detail refresh updates the shared navigation avatar and honors a returned clear', async () => {
+  const old = { detail: real.client.detail, count: real.client.unreadNotificationCount };
+  let avatar = { asset_id: 'selected-portrait', url: '/api/media/selected-portrait' };
+  real.client.detail = async () => ({ id: 'r34-role', identity: { name: 'FT-青岚' }, avatar });
+  real.client.unreadNotificationCount = async () => ({ count: 0 });
+  const w = createWorkspace();
+  store.replaceSnapshot({ ...store.get(), session: { actorId: 'r34-owner' }, characters: { 'r34-role': { id: 'r34-role', name: 'FT-青岚', avatar: '' } }, ui: { charId: 'r34-role' } });
+  try {
+    assert.equal(w.current.value.initial, '青');
+    await w.detail();
+    assert.deepEqual(w.current.value._directory.avatar, avatar);
+    avatar = null;
+    await w.detail();
+    assert.equal(w.current.value._directory.avatar, null);
+  } finally {
+    w.dispose();
+    real.client.detail = old.detail;
+    real.client.unreadNotificationCount = old.count;
+  }
+});

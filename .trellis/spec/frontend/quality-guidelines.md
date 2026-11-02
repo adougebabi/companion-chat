@@ -400,3 +400,43 @@ Mount retained domain renderers with the current host context, without invented
 legacy dependencies. For append controls test a real failure, newer unsubmitted
 filter edits and retry of the original read while old rows remain. Empty states
 are independent per dataset. Initial untouched forms use neutral guidance.
+
+## R34 B media and entity projections (2026-11-02)
+
+1. **Scope / trigger:** ready display avatars, wardrobe thumbnails, entity covers,
+   shared-world event history, chat failure inspection and notification task kinds.
+2. **Signatures:** `GET /api/fluctlights` exposes optional `avatar` and
+   `avatar_state` using the existing `projectAvatar` projection; the generated
+   BrowserClient directory schema stays synchronized. `worldEventInScope(row,
+   fid, worldId)` validates event reads. `WardrobeItemArt` consumes item-specific
+   `media` and the existing media client's URL resolver.
+3. **Contracts:** directory and successful detail readback share the selected
+   avatar; explicit `avatar:null` clears an older image. Generated but unselected
+   candidates never become avatars. Display initials strip only a leading `FT-`
+   and preserve explicit ordinary initials such as `+`. Entity covers derive
+   from stable own IDs, preserving list/detail identity and reorder stability.
+   Owner-authored Moments show “我”; character scope does not change authorship.
+   Moment previews use centered containment so faces and sheet edges remain
+   visible. Chat diagnostics use the existing right Sheet and collapsed raw JSON.
+4. **Validation / error matrix:** absent item `media` means unknown; `[]` means
+   no associated ready image, not proof generation never occurred; associated
+   assets issue real media GETs; failed GETs show failure and allow an explicit
+   retry in detail. Ambient world history may have null `fluctlight_id` only for
+   the exact world with `record_kind=world_event_execution`,
+   `context_scope=ambient`, `source=world_execution`, `status=applied`, and
+   `life_write=false`. Foreign/unknown attribution remains rejected. Private
+   character history retains its existing legacy null-world behavior.
+5. **Good / base / bad cases:** ready selected avatar appears on cold startup;
+   absent/unavailable selection retains a text fallback; an unreviewed candidate
+   never masquerades as canonical. Different items never share a generated
+   placeholder image. Unapplied Studio event templates are not historical facts.
+6. **Tests required:** `r34-avatar-wardrobe`, `r34b-data-display`,
+   `world-event-scope`, and world/library/wardrobe DOM regressions; Core
+   `TestR34DirectoryDisplaysSelectedReadyAvatarAndWardrobeKeepsOwnMedia` and
+   `TestWorldEventGenerationRequiresKevAndRunsOncePerWorldHour` run in separately
+   created temporary databases. Production Chrome checks cover desktop/390px,
+   real media loads/failures, full faces, unique covers, Sheet focus/Escape and
+   ambient list/detail. Fixture results cannot certify an inaccessible live row.
+7. **Wrong vs correct:** wrong: equate scope with author, empty media with
+   “never generated”, or all null-character events with foreign data. Correct:
+   consume explicit publisher, item references and the strict ambient projection.

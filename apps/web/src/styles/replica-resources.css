@@ -117,6 +117,10 @@
   width: 100%;
   height: 110px;
 }
+.replica-wardrobe .r-outfit-preview > .wardrobe-item-art {
+  width: 100%;
+  height: 110px;
+}
 .replica-wardrobe .r-request-note {
   display: flex;
   align-items: center;
@@ -203,6 +207,10 @@
   width: 100%;
   height: 120px;
 }
+.replica-wardrobe .r-compose-item > .wardrobe-item-art {
+  display: flex;
+  height: 120px;
+}
 .replica-wardrobe .r-compose-item > span {
   display: block;
   font-size: 10px;
@@ -245,6 +253,11 @@
   height: 58px;
   flex-shrink: 0;
 }
+.replica-wardrobe .r-selected-clothes .wardrobe-item-art {
+  width: 60px;
+  height: 58px;
+  flex: 0 0 60px;
+}
 .replica-wardrobe .r-selected-clothes > div > span {
   flex: 1;
   min-width: 0;
@@ -272,6 +285,10 @@
   justify-content: center;
 }
 .replica-wardrobe .r-garment-dialog-art > .r-garment-svg {
+  height: 160px;
+  width: 190px;
+}
+.replica-wardrobe .r-garment-dialog-art > .wardrobe-item-art {
   height: 160px;
   width: 190px;
 }

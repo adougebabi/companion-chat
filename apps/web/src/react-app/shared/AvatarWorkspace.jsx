@@ -9,6 +9,7 @@ import useWorkspaceRead from "./useWorkspaceRead";
 import { MediaReader, MediaMore, SavedMedia, MediaById } from "./MediaParts";
 import { requiredText } from "@/approved-ui/media-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
+import { avatarInitial } from "@/lib/avatar-presentation.mjs";
 export default function AvatarWorkspace({ model: m }) {
   const fid = m.target,
     [search, setSearch] = useState(""),
@@ -166,7 +167,7 @@ export default function AvatarWorkspace({ model: m }) {
                       alt={(m.actor?.name || "角色") + "的当前显示头像"}
                     />
                   ) : (
-                    <span>{[...(m.actor?.name || "角色")][0]}</span>
+                    <span>{avatarInitial(m.actor?.name, "", "角")}</span>
                   )}
                 </div>
                 <h2>{m.actor?.name || "角色"}</h2>
