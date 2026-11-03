@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "max_retries": 3,
-  "max_seconds": 3600,
+  "max_seconds": 0,
   "checks": [],
   "critical_knowledge": [
     "lac-project-entry"
@@ -27,5 +27,6 @@
     "apps/web/dist",
     "test-results",
     "playwright-report"
-  ]
+  ],
+  "lease_seconds": 1800
 }
