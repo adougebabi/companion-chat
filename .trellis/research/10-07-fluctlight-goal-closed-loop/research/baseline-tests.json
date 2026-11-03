@@ -1,0 +1,56 @@
+[
+  {
+    "command": "go test -json ./internal/core -run ^TestGoalIntentionStageS07$ -count=1",
+    "exit_code": 0,
+    "test_events": [
+      {
+        "test": "TestGoalIntentionStageS07/goal_full-field_update_and_lifecycle_CAS",
+        "status": "pass"
+      },
+      {
+        "test": "TestGoalIntentionStageS07/typed_triggers_create_stable_due_facts_without_semantic_matching",
+        "status": "pass"
+      },
+      {
+        "test": "TestGoalIntentionStageS07/freeze_requires_served_refs_and_all_deterministic_gates",
+        "status": "pass"
+      },
+      {
+        "test": "TestGoalIntentionStageS07/outcome_settles_one_attempt_and_only_success_advances_Goal",
+        "status": "pass"
+      },
+      {
+        "test": "TestGoalIntentionStageS07",
+        "status": "pass"
+      }
+    ],
+    "stderr": ""
+  },
+  {
+    "command": "go test -json ./internal/workflow -run ^(TestIntentionTriggerWorkflowUsesDurableTemporalTimerBeforeActivity|TestScheduledActivityResolutionWaitsForEarliestCompletion|TestScheduledActivityDeferralContinuesWithNewDueTime|TestScheduledIntentionStartContinuesIntoActivityTimer|TestWorkflowIntentRetryBudgetsBoundRecoverableFailureLoops)$ -count=1",
+    "exit_code": 0,
+    "test_events": [
+      {
+        "test": "TestIntentionTriggerWorkflowUsesDurableTemporalTimerBeforeActivity",
+        "status": "pass"
+      },
+      {
+        "test": "TestScheduledActivityResolutionWaitsForEarliestCompletion",
+        "status": "pass"
+      },
+      {
+        "test": "TestScheduledActivityDeferralContinuesWithNewDueTime",
+        "status": "pass"
+      },
+      {
+        "test": "TestScheduledIntentionStartContinuesIntoActivityTimer",
+        "status": "pass"
+      },
+      {
+        "test": "TestWorkflowIntentRetryBudgetsBoundRecoverableFailureLoops",
+        "status": "pass"
+      }
+    ],
+    "stderr": ""
+  }
+]

@@ -1,0 +1,9 @@
+{"Time":"2026-09-22T14:16:32.77247+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-09-22T14:16:33.329941+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EScheduleReplan"}
+{"Time":"2026-09-22T14:16:33.33+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EScheduleReplan","Output":"=== RUN   TestIndependentToolE2EScheduleReplan\n"}
+{"Time":"2026-09-22T14:16:34.683345+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EScheduleReplan","Output":"    independent_tools_e2e_test.go:164: schedule must cover complete local day\n"}
+{"Time":"2026-09-22T14:16:34.81563+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EScheduleReplan","Output":"--- FAIL: TestIndependentToolE2EScheduleReplan (1.49s)\n"}
+{"Time":"2026-09-22T14:16:34.815647+08:00","Action":"fail","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EScheduleReplan","Elapsed":1.49}
+{"Time":"2026-09-22T14:16:34.81569+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"FAIL\n"}
+{"Time":"2026-09-22T14:16:34.816639+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"FAIL\tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t2.044s\n"}
+{"Time":"2026-09-22T14:16:34.816656+08:00","Action":"fail","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":2.044}

@@ -1,0 +1,8 @@
+suite=tools
+identity=dual-e2e
+head=32276a1c20ad68462b966c45c16ab6126230b297
+started_at_utc=2026-09-22T06:50:23Z
+selected_tool=memory_event
+selected_agent=<all>
+overall_status=FAIL
+finished_at_utc=2026-09-22T06:50:23Z

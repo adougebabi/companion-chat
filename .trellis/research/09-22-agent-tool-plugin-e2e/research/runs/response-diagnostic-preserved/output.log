@@ -1,0 +1,8 @@
+{"Time":"2026-09-22T21:01:42.870305+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-09-22T21:01:43.248295+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure"}
+{"Time":"2026-09-22T21:01:43.24859+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure","Output":"=== RUN   TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure\n"}
+{"Time":"2026-09-22T21:01:43.268934+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure","Output":"--- PASS: TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure (0.02s)\n"}
+{"Time":"2026-09-22T21:01:43.268949+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestPostgresPhysicalModelResponseSurvivesLaterAgentFailure","Elapsed":0.02}
+{"Time":"2026-09-22T21:01:43.268989+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
+{"Time":"2026-09-22T21:01:43.269894+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t0.399s\n"}
+{"Time":"2026-09-22T21:01:43.269909+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":0.4}

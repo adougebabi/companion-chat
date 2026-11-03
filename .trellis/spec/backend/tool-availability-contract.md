@@ -33,7 +33,7 @@ Native Provider fixtures must check the actual outgoing tools before returning
 a ToolCall. Test discovery→load→execution→durable receipt→readback, plus rejection,
 no-effect claims, stale targets and replay. Returning a pre-scripted wear call
 when its schema was absent is not end-to-end evidence. See
-`docs/design/v62-r6-wear-remediation.md` and `r6_wear_contract_test.go`.
+`r6_wear_contract_test.go`.
 
 R7 separates protocol reachability from model behavior. A scripted Provider that
 chooses catalog/inspect/wear only proves execution of that script. Live acceptance

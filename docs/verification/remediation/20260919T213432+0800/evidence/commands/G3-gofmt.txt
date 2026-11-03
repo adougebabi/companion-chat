@@ -1,3 +1,0 @@
-gofmt=PASS
-
-exit_code=

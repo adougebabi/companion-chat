@@ -1,0 +1,10 @@
+=== RUN   TestFormalAgentE2E
+=== RUN   TestFormalAgentE2E/takeover_judge
+    formal_agent_e2e_test.go:170: real takeover Judge Agent failed: provider request failed: adk_run: [NodeRunError] error, status code: 400, status: 400 Bad Request, message: Prompt (287 tokens) requires ~948MB GPU memory but only ~308MB available. Reduce prompt size or use a smaller model.
+        ------------------------
+        node path: [node_1]
+--- FAIL: TestFormalAgentE2E (1.59s)
+    --- FAIL: TestFormalAgentE2E/takeover_judge (1.59s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	1.942s
+FAIL

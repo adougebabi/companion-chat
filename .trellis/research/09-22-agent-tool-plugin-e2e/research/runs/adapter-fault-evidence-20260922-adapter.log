@@ -1,0 +1,6 @@
+# github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [github.com/fluctlight/local-ai-companion/apps/core-go/internal/core.test]
+internal/core/visual_identity_live_e2e_test.go:317:16: undefined: numberValue
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]
+FAIL
+
+exit_code=1

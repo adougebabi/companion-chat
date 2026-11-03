@@ -1,0 +1,58 @@
+{
+  "goExitCode": 0,
+  "requireAny": false,
+  "expectedTests": [
+    "TestFormalToolEinoAdapterE2E",
+    "TestFormalToolEinoAdapterE2E/memory_event"
+  ],
+  "actual": [
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestFormalToolEinoAdapterE2E/active_memory_event/dependency_failure",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestFormalToolEinoAdapterE2E/active_memory_event/foreign_owner_rejected",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestFormalToolEinoAdapterE2E/active_memory_event",
+      "action": "pass",
+      "elapsed": 0.04
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestFormalToolEinoAdapterE2E/memory_event/dependency_failure",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestFormalToolEinoAdapterE2E/memory_event/foreign_owner_rejected",
+      "action": "pass",
+      "elapsed": 0
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestFormalToolEinoAdapterE2E/memory_event",
+      "action": "pass",
+      "elapsed": 0.02
+    },
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestFormalToolEinoAdapterE2E",
+      "action": "pass",
+      "elapsed": 0.92
+    }
+  ],
+  "malformedLines": [],
+  "blockedLines": [],
+  "explicitFailLines": [],
+  "nonTestTerminalFailures": [],
+  "errors": [],
+  "ok": true
+}

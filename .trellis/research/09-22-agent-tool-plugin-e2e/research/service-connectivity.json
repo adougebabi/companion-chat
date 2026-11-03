@@ -1,0 +1,12 @@
+[
+  {
+    "check": "provider_models",
+    "reachable": false,
+    "error_type": "URLError"
+  },
+  {
+    "check": "comfyui_system",
+    "http_status": 200,
+    "reachable": true
+  }
+]

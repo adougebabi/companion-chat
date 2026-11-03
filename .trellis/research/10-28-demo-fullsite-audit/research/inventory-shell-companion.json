@@ -1,0 +1,2060 @@
+[
+  {
+    "id": "shell-navigation",
+    "area": "shell",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:90",
+    "demo_entry": "全部页面 / 侧栏与品牌",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkspaceNavigation.tsx:11",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/App.tsx:239"
+    ],
+    "fields": [
+      "三组导航16页",
+      "品牌",
+      "当前页面高亮",
+      "通知计数"
+    ],
+    "actions": [
+      "侧栏切页",
+      "Logo回角色库",
+      "角色切换"
+    ],
+    "states": [
+      "展开",
+      "折叠",
+      "移动抽屉",
+      "无角色禁用"
+    ],
+    "data_chain": "WorkspaceShell → workspace.select + approvedHref → hash route → 页面控制器",
+    "source_findings": [
+      "Demo导航分组一致",
+      "正式版无角色时禁用角色专属页面"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "shell-switch",
+    "area": "shell",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:506",
+    "demo_entry": "侧栏正在相处角色选择",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkspaceNavigation.tsx:29",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/App.tsx:239"
+    ],
+    "fields": [
+      "头像",
+      "角色名",
+      "职业",
+      "当前角色"
+    ],
+    "actions": [
+      "选择角色",
+      "继续当前页面"
+    ],
+    "states": [
+      "有角色",
+      "空目录",
+      "移动端关闭"
+    ],
+    "data_chain": "directory avatar → CharacterAvatar; onCharacterChange → select + navigate",
+    "source_findings": [
+      "Demo为Select",
+      "正式为DropdownMenu",
+      "正式折叠时隐藏选择器"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "shell-sidebar",
+    "area": "shell",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:568",
+    "demo_entry": "顶栏收起/展开与移动遮罩",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/App.tsx:242",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkspaceNavigation.tsx:24"
+    ],
+    "fields": [
+      "导航宽度",
+      "移动关闭按钮",
+      "遮罩"
+    ],
+    "actions": [
+      "切换宽度",
+      "关闭移动导航",
+      "切页关闭移动导航"
+    ],
+    "states": [
+      "desktop",
+      "mobile <=700 Demo / <701 formal"
+    ],
+    "data_chain": "Demo useDemoData(sidebar-collapsed); formal SidebarProvider + SidebarTrigger",
+    "source_findings": [],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "shell-jump",
+    "area": "shell",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:624",
+    "demo_entry": "快速前往 / Cmd或Ctrl K",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkspaceQuickJump.tsx:8"
+    ],
+    "fields": [
+      "页面/角色查询",
+      "结果列表"
+    ],
+    "actions": [
+      "快捷键开关",
+      "点击导航",
+      "点击角色进入聊天",
+      "关闭"
+    ],
+    "states": [
+      "空查询",
+      "匹配",
+      "无结果"
+    ],
+    "data_chain": "navigation groups + characters → quick dialog → navigate/select",
+    "source_findings": [
+      "正式版补无结果状态",
+      "Demo搜索包含创建页，正式仅workspaceNavigationGroups，创建入口不在快速前往"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "shell-help-reset",
+    "area": "shell",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:672",
+    "demo_entry": "交互演示/演示说明 → 帮助 → 重置演示数据",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/App.tsx:244"
+    ],
+    "fields": [
+      "四组演示入口",
+      "存储提示",
+      "重置确认"
+    ],
+    "actions": [
+      "跳创建/聊天/创作/设置",
+      "重置确认或取消"
+    ],
+    "states": [
+      "help dialog",
+      "reset confirm",
+      "storage unavailable"
+    ],
+    "data_chain": "Demo resetDemo clears local demo state; formal uses real workspace",
+    "source_findings": [
+      "正式顶栏只有快速前往与通知，无Demo说明/重置入口",
+      "此为Demo专属操作，不能移植为正式数据重置"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "shell-account",
+    "area": "shell",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:548",
+    "demo_entry": "侧栏账户与登录",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/App.tsx:239",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/AuthPage.tsx:10"
+    ],
+    "fields": [
+      "我的空间",
+      "账户菜单"
+    ],
+    "actions": [
+      "账户与设置",
+      "退出登录"
+    ],
+    "states": [
+      "accountBusy",
+      "logout failure toast"
+    ],
+    "data_chain": "workspace.logout → real auth; authenticated shell → AuthPage",
+    "source_findings": [
+      "Demo直接导航auth",
+      "正式提供账户设置与真实退出"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "library-hero",
+    "area": "library",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:120",
+    "demo_entry": "角色库 / 开启新的相识与继续相处",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/LibraryPage.jsx:104"
+    ],
+    "fields": [
+      "Hero",
+      "当前相识",
+      "草稿提醒"
+    ],
+    "actions": [
+      "新建/继续创建",
+      "继续聊天",
+      "查看准备进度"
+    ],
+    "states": [
+      "无草稿",
+      "未激活",
+      "已激活",
+      "损坏草稿"
+    ],
+    "data_chain": "Demo records creation-draft/job → create; formal localStorage owner-scoped draft/history + migrateCreationRecovery → create hash",
+    "source_findings": [
+      "正式提供已激活准备进度入口",
+      "草稿解析失败有反馈"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "library-search-view",
+    "area": "library",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:202",
+    "demo_entry": "角色库 / 搜索、标签、网格列表",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/LibraryPage.jsx:16"
+    ],
+    "fields": [
+      "名字/职业/标签查询",
+      "标签",
+      "网格/列表按钮"
+    ],
+    "actions": [
+      "搜索",
+      "过滤",
+      "切视图",
+      "清空筛选"
+    ],
+    "states": [
+      "结果",
+      "无匹配"
+    ],
+    "data_chain": "Demo state.characters + personality; formal workspace characters + tags; owner-scoped sessionStorage UI prefs",
+    "source_findings": [
+      "Demo标签只取前7含全部，正式展示全部tags",
+      "正式另有清除搜索按钮"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "library-cards",
+    "area": "library",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:248",
+    "demo_entry": "角色库 / 角色卡片",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/LibraryPage.jsx:132"
+    ],
+    "fields": [
+      "世界插画",
+      "头像",
+      "名字",
+      "职业/世界",
+      "简介",
+      "性格标签",
+      "更新时间",
+      "状态"
+    ],
+    "actions": [
+      "角色档案",
+      "进入聊天"
+    ],
+    "states": [
+      "当前相处",
+      "生活中",
+      "正式额外暂停/退休/异常/准备中"
+    ],
+    "data_chain": "正式 _directory.avatar + detail.identity.residence; details/choose → select + navigate",
+    "source_findings": [
+      "Demo yuejian使用forest、其他city",
+      "正式卡片一律WorldArt city (LibraryPage.jsx:134)",
+      "Demo最近相处updatedAt改为正式固定“每一次相处，慢慢了解”"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "library-empty-errors",
+    "area": "library",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:312",
+    "demo_entry": "角色库 / 空筛选和底部创作入口",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/LibraryPage.jsx:126"
+    ],
+    "fields": [
+      "空结果说明",
+      "保存状态",
+      "创作入口"
+    ],
+    "actions": [
+      "清除筛选",
+      "去创作中心",
+      "重读资料"
+    ],
+    "states": [
+      "正式加载/失败/首次空工作区"
+    ],
+    "data_chain": "正式 currentReadError + workspace.load(角色库); configurationClient.read → 首次模型配置提示",
+    "source_findings": [
+      "Demo底部跳studio且kind=character_template",
+      "正式w.navigate(创作中心)未传kind (LibraryPage.jsx:145)，默认入口是否同类需浏览器核验"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "auth-demo-form",
+    "area": "auth",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/App.tsx:338",
+    "demo_entry": "账户 / 登录或注册",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/AuthPage.tsx:10",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/providers/real.ts:46"
+    ],
+    "fields": [
+      "Demo邮箱",
+      "密码至少6位",
+      "注册/登录切换",
+      "直接体验Demo"
+    ],
+    "actions": [
+      "提交",
+      "切注册",
+      "直接进库"
+    ],
+    "states": [
+      "idle",
+      "busy"
+    ],
+    "data_chain": "Demo setTimeout600 → library; formal setupStatus → auth.setup/auth.login → bootstrap",
+    "source_findings": [
+      "正式没有邮箱/注册切换/直接体验",
+      "正式是部署所有者密码≥12，初始化另需令牌≥16与确认密码",
+      "属真实认证契约差异"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "auth-formal-init",
+    "area": "auth",
+    "demo_source": "Demo不适用",
+    "demo_entry": "Demo不适用：纯前端演示无需部署初始化",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/AuthPage.tsx:28"
+    ],
+    "fields": [
+      "初始化令牌",
+      "所有者密码",
+      "确认密码",
+      "错误"
+    ],
+    "actions": [
+      "重新读取初始化状态",
+      "完成初始化",
+      "登录"
+    ],
+    "states": [
+      "checking",
+      "setup available",
+      "busy",
+      "401",
+      "状态读取失败"
+    ],
+    "data_chain": "client.setupStatus → auth.setup/login → client.setup/login + refreshProduct",
+    "source_findings": [
+      "正式额外认证能力必须以真实初始化状态核验"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-room",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:391",
+    "demo_entry": "聊天 / 页首与角色栏",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ChatPage.tsx:225"
+    ],
+    "fields": [
+      "标题",
+      "头像/姓名",
+      "角色切换",
+      "会话历史",
+      "此刻预览"
+    ],
+    "actions": [
+      "切角色",
+      "展开/收起此刻",
+      "会话历史"
+    ],
+    "states": [
+      "loading",
+      "read failure",
+      "read retry"
+    ],
+    "data_chain": "workspace.openConversation → scoped ConversationController; summary preference per owner/fid",
+    "source_findings": [
+      "正式此刻折叠偏好持久化，Demo useState true"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-send",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:361",
+    "demo_entry": "聊天 / 消息输入",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ChatPage.tsx:160",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/state/conversation.ts:867"
+    ],
+    "fields": [
+      "多行消息",
+      "发送按钮"
+    ],
+    "actions": [
+      "输入",
+      "Enter发送/ShiftEnter换行",
+      "发送"
+    ],
+    "states": [
+      "空白禁用",
+      "pending禁用",
+      "输入法composition"
+    ],
+    "data_chain": "Demo local draft+pending timer; formal scoped sessionStorage draft → store.send → true conversation turn; ack后清草稿",
+    "source_findings": [
+      "Demo模拟回应normal/slow/fail选择器 (CompanionPages.tsx:597) 在正式无对应：真实服务决定结果"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-message-cards",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:438",
+    "demo_entry": "聊天 / 消息流与图片",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ChatPage.tsx:254"
+    ],
+    "fields": [
+      "角色/我",
+      "时间",
+      "消息正文",
+      "图片",
+      "状态"
+    ],
+    "actions": [
+      "滚动",
+      "看图片",
+      "回到最新消息"
+    ],
+    "states": [
+      "assistant/user",
+      "空对话",
+      "等待",
+      "失败",
+      "取消"
+    ],
+    "data_chain": "Demo local seeded messages; formal snapshot.messages + attachmentRefs → mediaClient.url",
+    "source_findings": [
+      "Demo linwan专属seedMessages:209",
+      "正式从当前真实会话读消息"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-turn-recovery",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:487",
+    "demo_entry": "聊天 / 原回应重试、停止与运行状态",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ChatPage.tsx:291",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/state/conversation.ts:1352"
+    ],
+    "fields": [
+      "等待说明",
+      "失败说明",
+      "原回应",
+      "运行记录"
+    ],
+    "actions": [
+      "停止",
+      "重试原回应",
+      "查看本次运行",
+      "放下重试"
+    ],
+    "states": [
+      "pending",
+      "slow",
+      "failed",
+      "cancelled",
+      "settling"
+    ],
+    "data_chain": "formal store.cancel/client.cancelTurn; retryMessage/retry keeps original turn identity; diagnosticRoute → DomainPage",
+    "source_findings": [
+      "Demo运行弹窗固定三步模拟超时 (CompanionPages.tsx:758)",
+      "正式打开关联turn诊断抽屉"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-say-prefill",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:349",
+    "demo_entry": "由其他页面say参数进入聊天 / 草稿冲突提示",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ChatPage.tsx:73"
+    ],
+    "fields": [
+      "外来建议正文",
+      "原有草稿",
+      "待放入建议"
+    ],
+    "actions": [
+      "使用建议替换输入",
+      "放下建议"
+    ],
+    "states": [
+      "原草稿空自动填",
+      "已有不同草稿时显示offer"
+    ],
+    "data_chain": "Demo route.params.say → setDraft or promptOffer",
+    "source_findings": [
+      "正式ChatPage当前只读取sessionStorage草稿和historyRoute，没有消费say或offer的对应逻辑",
+      "已确认源码能力缺口，实际来源入口须联测"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-now-preview",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:609",
+    "demo_entry": "聊天 / 此刻侧栏",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ChatPage.tsx:217"
+    ],
+    "fields": [
+      "此刻插画",
+      "位置",
+      "活动",
+      "心情",
+      "穿着",
+      "下一日程"
+    ],
+    "actions": [
+      "去衣柜",
+      "查看全部日程",
+      "折叠侧栏"
+    ],
+    "states": [
+      "穿着加载/失败",
+      "无日程",
+      "无当前活动"
+    ],
+    "data_chain": "正式 current viewmodel + loadWardrobe + schedule._source dates → WearingSummary",
+    "source_findings": [
+      "Demo按角色id选择此刻插画",
+      "正式WorkspaceMomentArt是装饰，与真实头像/生成结果不可混同"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-history",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:666",
+    "demo_entry": "会话历史 / 目录与阅读",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ConversationHistory.tsx:12"
+    ],
+    "fields": [
+      "会话标题",
+      "日期",
+      "消息列表"
+    ],
+    "actions": [
+      "切历史",
+      "关闭保留当前草稿"
+    ],
+    "states": [
+      "今日",
+      "linwan昨日/周末",
+      "正式加载/空/错误"
+    ],
+    "data_chain": "formal client.conversationDirectory → messages; source message scoped checking",
+    "source_findings": [
+      "Demo linwan独有额外两段静态历史 (286)",
+      "正式真实目录"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-history-formal",
+    "area": "chat",
+    "demo_source": "Demo不适用",
+    "demo_entry": "Demo不适用：仅有静态历史阅读",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ConversationHistory.tsx:18"
+    ],
+    "fields": [
+      "全会话搜索",
+      "来源消息",
+      "游标",
+      "继续会话"
+    ],
+    "actions": [
+      "搜索全部会话",
+      "加载更多会话/消息",
+      "重读",
+      "继续所选会话"
+    ],
+    "states": [
+      "source mismatch",
+      "switching",
+      "search no match"
+    ],
+    "data_chain": "conversationMessage + searchConversationMessages + selectDirectConversation → openConversation",
+    "source_findings": [
+      "正式额外能力，不能因为Demo没有搜索/续聊按钮而删除"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "chat-attachment",
+    "area": "chat",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:749",
+    "demo_entry": "对话图片 / 窗边的一个片刻",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/ChatPage.tsx:367"
+    ],
+    "fields": [
+      "图片",
+      "来源",
+      "时间"
+    ],
+    "actions": [
+      "打开",
+      "关闭返回消息"
+    ],
+    "states": [
+      "附件存在",
+      "关闭焦点回触发器"
+    ],
+    "data_chain": "Demo SmallArt books static; formal attachment ID → mediaClient.url → Sheet",
+    "source_findings": [
+      "Demo静态画面",
+      "正式真实附件，需检查404与权限"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-hero",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1644",
+    "demo_entry": "角色档案 / Hero、四页签",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:338",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/CharacterDetailPage.jsx:152"
+    ],
+    "fields": [
+      "头像",
+      "昵称",
+      "年龄性别职业",
+      "性格",
+      "世界",
+      "签名",
+      "当前人格",
+      "准备状态"
+    ],
+    "actions": [
+      "编辑资料",
+      "身份与能力",
+      "切四tab",
+      "查看准备进度"
+    ],
+    "states": [
+      "preparing",
+      "archived/retired只读",
+      "读取失败"
+    ],
+    "data_chain": "client.detail → profileSnapshotFromDetail → hero/render; preparation poll",
+    "source_findings": [
+      "Demo archived禁编辑",
+      "正式多状态只读"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-overview",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1730",
+    "demo_entry": "身份与背景 / 表达与相处",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:433"
+    ],
+    "fields": [
+      "身份与背景",
+      "简介经历",
+      "表达方式",
+      "核心价值观"
+    ],
+    "actions": [
+      "分组编辑",
+      "完整表达设定展开"
+    ],
+    "states": [
+      "未提供字段",
+      "有值"
+    ],
+    "data_chain": "detail.foundation + identity → semantic read model",
+    "source_findings": [
+      "正式含生平和完整表达/相处披露",
+      "以真实字段显示而非Demo种子"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-personas",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1796",
+    "demo_entry": "性格与人格 / 共同性格、人格卡、协作、切换记录",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:523"
+    ],
+    "fields": [
+      "性格维度",
+      "人格名",
+      "表达方式",
+      "边界",
+      "关系协作",
+      "切换时间/原因"
+    ],
+    "actions": [
+      "展开完整性格来源",
+      "打开人格切换"
+    ],
+    "states": [
+      "单人格",
+      "多人格",
+      "无维度",
+      "有历史"
+    ],
+    "data_chain": "detail.foundation.personality_system + personality_runtime",
+    "source_findings": [
+      "Demo seedPersonas:1094含演示人格",
+      "正式从core/运行记录读取"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-life",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1901",
+    "demo_entry": "生活与此刻",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:678"
+    ],
+    "fields": [
+      "生活设定",
+      "所在世界",
+      "地点",
+      "活动",
+      "心情",
+      "当前穿着",
+      "发展自我"
+    ],
+    "actions": [
+      "编辑生活",
+      "看此刻",
+      "看衣柜",
+      "自我详情"
+    ],
+    "states": [
+      "world loading/error",
+      "未设定",
+      "自我空"
+    ],
+    "data_chain": "client.world + current_state + current apparel + selfClaims",
+    "source_findings": [
+      "Demo有按linwan填充自我文案 (1964)",
+      "正式真实claims"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-history-source",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1984",
+    "demo_entry": "修订与来源 / 完整设定与来源弹窗",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:839"
+    ],
+    "fields": [
+      "修订记录",
+      "身份核心提议",
+      "初始来源",
+      "版本",
+      "完整JSON"
+    ],
+    "actions": [
+      "查看提议",
+      "打开完整设定",
+      "正式下载完整档案"
+    ],
+    "states": [
+      "无修订",
+      "多修订",
+      "版本读取失败"
+    ],
+    "data_chain": "governancePage foundation + detail current_revision → JsonDetails",
+    "source_findings": [
+      "Demo来源弹窗固定演示记录",
+      "正式JSON可下载且含真实版本"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-edit-basic",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:994",
+    "demo_entry": "编辑资料 / basic",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileForm.jsx:7",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/CharacterDetailPage.jsx:201",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:970",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/profile-fields.mjs:77"
+    ],
+    "fields": [
+      "名字",
+      "昵称",
+      "性别",
+      "年龄",
+      "职业",
+      "居住地",
+      "生活时区"
+    ],
+    "actions": [
+      "切分组",
+      "修改",
+      "保存资料",
+      "取消",
+      "放下修改确认"
+    ],
+    "states": [
+      "dirty",
+      "saving",
+      "必填名字/时区",
+      "版本冲突",
+      "回读待确认"
+    ],
+    "data_chain": "formal dynamic profile fields → changes + expectedRevision → profileSaveCommand → detail readback",
+    "source_findings": [
+      "Demo固定字段列表",
+      "正式按真实schema/dynamic fields分类，不能仅按分组名称判字段完整"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-edit-expression",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1009",
+    "demo_entry": "编辑资料 / expression",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileForm.jsx:7",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/CharacterDetailPage.jsx:201",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:970",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/profile-fields.mjs:77"
+    ],
+    "fields": [
+      "核心价值观",
+      "回复风格",
+      "消息长短",
+      "直接程度0-1",
+      "主动性0-1",
+      "分歧处理",
+      "拒绝方式"
+    ],
+    "actions": [
+      "切分组",
+      "修改",
+      "保存资料",
+      "取消",
+      "放下修改确认"
+    ],
+    "states": [
+      "dirty",
+      "saving",
+      "必填名字/时区",
+      "版本冲突",
+      "回读待确认"
+    ],
+    "data_chain": "formal dynamic profile fields → changes + expectedRevision → profileSaveCommand → detail readback",
+    "source_findings": [
+      "Demo固定字段列表",
+      "正式按真实schema/dynamic fields分类，不能仅按分组名称判字段完整"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-edit-life",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1022",
+    "demo_entry": "编辑资料 / life",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileForm.jsx:7",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/CharacterDetailPage.jsx:201",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:970",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/profile-fields.mjs:77"
+    ],
+    "fields": [
+      "简介与经历",
+      "兴趣与偏好",
+      "生活习惯",
+      "相处边界",
+      "稳定偏好",
+      "外貌特征",
+      "穿衣偏好"
+    ],
+    "actions": [
+      "切分组",
+      "修改",
+      "保存资料",
+      "取消",
+      "放下修改确认"
+    ],
+    "states": [
+      "dirty",
+      "saving",
+      "必填名字/时区",
+      "版本冲突",
+      "回读待确认"
+    ],
+    "data_chain": "formal dynamic profile fields → changes + expectedRevision → profileSaveCommand → detail readback",
+    "source_findings": [
+      "Demo固定字段列表",
+      "正式按真实schema/dynamic fields分类，不能仅按分组名称判字段完整"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-edit-more",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:1035",
+    "demo_entry": "编辑资料 / more",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileForm.jsx:7",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/CharacterDetailPage.jsx:201",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:970",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/profile-fields.mjs:77"
+    ],
+    "fields": [
+      "生日",
+      "出生地",
+      "身高厘米",
+      "血型",
+      "表情使用",
+      "幽默方式",
+      "开启话题倾向",
+      "回应节奏",
+      "标点习惯",
+      "讽刺倾向",
+      "沉默态度",
+      "情感表达",
+      "亲密表达",
+      "世界观",
+      "备注"
+    ],
+    "actions": [
+      "切分组",
+      "修改",
+      "保存资料",
+      "取消",
+      "放下修改确认"
+    ],
+    "states": [
+      "dirty",
+      "saving",
+      "必填名字/时区",
+      "版本冲突",
+      "回读待确认"
+    ],
+    "data_chain": "formal dynamic profile fields → changes + expectedRevision → profileSaveCommand → detail readback",
+    "source_findings": [
+      "Demo固定字段列表",
+      "正式按真实schema/dynamic fields分类，不能仅按分组名称判字段完整"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-switch-persona",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2163",
+    "demo_entry": "人格切换确认弹窗",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/CharacterDetailPage.jsx:1073",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/CharacterDetailPage.jsx:399"
+    ],
+    "fields": [
+      "目标人格",
+      "切换原因",
+      "明确确认复选框"
+    ],
+    "actions": [
+      "取消",
+      "确认切换",
+      "正式继续核对请求"
+    ],
+    "states": [
+      "无目标禁用",
+      "无原因禁用",
+      "无确认禁用",
+      "request pending/terminal"
+    ],
+    "data_chain": "client.switchPersona → ownerRequest result → detail runtime版本回读",
+    "source_findings": [
+      "Demo本地同步更换active",
+      "正式异步请求需判断完成、准备与读回"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-foundation-proposal",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2210",
+    "demo_entry": "身份与能力 / 身份核心提议",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileGovernance.jsx:147"
+    ],
+    "fields": [
+      "提议标题",
+      "原因",
+      "当前/修订前值",
+      "建议值",
+      "状态"
+    ],
+    "actions": [
+      "接受",
+      "保留原设定",
+      "看资源提议差异"
+    ],
+    "states": [
+      "pending",
+      "accepted",
+      "rejected",
+      "stale"
+    ],
+    "data_chain": "Demo governance+resourceProposals → foundation/profile/revisions/inbox; formal accept/rejectFoundationRevision + detail/object readback",
+    "source_findings": [
+      "Demo seedGovernance:1058只为linwan预置提议",
+      "正式真实治理记录"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-capabilities",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2294",
+    "demo_entry": "身份与能力 / 能力申请",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileGovernance.jsx:260"
+    ],
+    "fields": [
+      "能力名",
+      "说明",
+      "状态",
+      "正式scope/version/history"
+    ],
+    "actions": [
+      "允许",
+      "暂不允许",
+      "收回权限",
+      "重新允许"
+    ],
+    "states": [
+      "pending",
+      "allowed",
+      "denied"
+    ],
+    "data_chain": "formal governancePage/Object/History → reviewScopedCapabilityRequest → verified readback",
+    "source_findings": [
+      "Demo直接toggle权限",
+      "正式审查表单带说明、实现版本与完整审核历史"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-self-claims",
+    "area": "profile",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2371",
+    "demo_entry": "身份与能力 / 发展中的自我",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileGovernance.jsx:126"
+    ],
+    "fields": [
+      "自我认识",
+      "来源",
+      "状态"
+    ],
+    "actions": [
+      "查看完整自我记录",
+      "前往记忆self"
+    ],
+    "states": [
+      "空",
+      "已形成",
+      "reader error"
+    ],
+    "data_chain": "formal client.selfClaims → claims records; Demo local seed with linwan text",
+    "source_findings": [
+      "Demo跳memory?tab=self",
+      "正式自我页显示证据JSON，链接去向需实测"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "profile-formal-recovery",
+    "area": "profile",
+    "demo_source": "Demo不适用",
+    "demo_entry": "Demo不适用：本地同步编辑没有真实提交恢复",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/CharacterDetailPage.jsx:288",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/ProfileGovernance.jsx:200"
+    ],
+    "fields": [
+      "原资料提交",
+      "冲突版本",
+      "人格准备记录"
+    ],
+    "actions": [
+      "恢复原保存",
+      "重读结果",
+      "基于新版本重整",
+      "恢复人格准备",
+      "回滚身份修订"
+    ],
+    "states": [
+      "admission conflict",
+      "unknown outcome",
+      "readbackPending",
+      "preparation failure"
+    ],
+    "data_chain": "persistent command + profileSaveCommand; recoverPersonaPreparation; rollbackFoundationRevision",
+    "source_findings": [
+      "正式额外恢复/回滚能力需保留"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-directory",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2710",
+    "demo_entry": "人物关系 / 世界中的人",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/PeoplePage.jsx:80",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/PeoplePage.jsx:100"
+    ],
+    "fields": [
+      "目录计数",
+      "搜索名字身份故事",
+      "全部/已结识/尚未结识",
+      "人物卡"
+    ],
+    "actions": [
+      "搜索",
+      "过滤",
+      "清除筛选",
+      "刷新目录",
+      "点人物"
+    ],
+    "states": [
+      "目录不完整",
+      "世界不匹配",
+      "关系未读全",
+      "无匹配"
+    ],
+    "data_chain": "listRuntimeNPCs + world + detail → 校验actor/world/place scope → cards",
+    "source_findings": [
+      "正式关系判定从profile读，不能在关系未读时伪装未结识"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-detail",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3005",
+    "demo_entry": "人物详情弹窗",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/PersonDetail.jsx:43"
+    ],
+    "fields": [
+      "人物名/职业",
+      "关系",
+      "背景",
+      "地点",
+      "最近接触",
+      "来源"
+    ],
+    "actions": [
+      "编辑资料",
+      "查看世界",
+      "关闭"
+    ],
+    "states": [
+      "known",
+      "unknown",
+      "loading/error",
+      "readOnly"
+    ],
+    "data_chain": "formal runtimeNPC → check scoped id + world → detail",
+    "source_findings": [
+      "正式额外人物管理治理弹窗，见额外能力行"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-create",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3051",
+    "demo_entry": "新增世界人物 / 编辑世界人物",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/PersonDefinition.jsx:12",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/PersonDetail.jsx:93"
+    ],
+    "fields": [
+      "名字必填",
+      "职业身份必填",
+      "常在地点",
+      "背景性格"
+    ],
+    "actions": [
+      "新增",
+      "编辑",
+      "保存",
+      "取消"
+    ],
+    "states": [
+      "空字段校验",
+      "只读",
+      "正式draft/published/applied"
+    ],
+    "data_chain": "Demo savePerson→people local array; formal create → studio resource draft → publish → preview → apply → catalog world; edit → updateRuntimeNPC",
+    "source_findings": [
+      "显著流程变化：Demo保存即进目录",
+      "正式新增先保存人物定义再发布应用，不能把定义保存当目录人物已建立"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-about-display",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2817",
+    "demo_entry": "关于你 / 自填资料",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/AboutYouPanel.jsx:323",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/people-presentation.mjs:6"
+    ],
+    "fields": [
+      "姓名",
+      "称呼",
+      "年龄",
+      "性别",
+      "职业",
+      "自填关系",
+      "想让她知道的事",
+      "喜好",
+      "交流偏好",
+      "习惯",
+      "边界"
+    ],
+    "actions": [
+      "编辑",
+      "刷新你的资料"
+    ],
+    "states": [
+      "未填",
+      "已有值",
+      "owner/其他human participant"
+    ],
+    "data_chain": "readBackground → actorContext + detail (owner) → authored background; facts separately",
+    "source_findings": [
+      "正式额外支持actor query对应交流参与者，不应将所有actor数据混为owner"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-about-edit",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2838",
+    "demo_entry": "关于你 / 编辑与修订",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/AboutYouPanel.jsx:565",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/providers/real.ts:179"
+    ],
+    "fields": [
+      "11组自填字段",
+      "修改含义change/correct",
+      "修改说明必填"
+    ],
+    "actions": [
+      "保存",
+      "取消",
+      "继续原提交",
+      "读回/冲突核对"
+    ],
+    "states": [
+      "dirty",
+      "invalid",
+      "saving",
+      "expected facts revision conflict"
+    ],
+    "data_chain": "authoredDraft → backgroundPatch → saveBackground → updateActorUserBackground owner / updateActorContext other → prove readback",
+    "source_findings": [
+      "Demo reason max500",
+      "正式owner500/other1000，字段max1024",
+      "额外字段折叠组"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-knowledge",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3105",
+    "demo_entry": "关于你 / 对你的了解弹窗",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/AboutYouPanel.jsx:465"
+    ],
+    "fields": [
+      "认识事实",
+      "说明",
+      "来源",
+      "了解记忆"
+    ],
+    "actions": [
+      "打开",
+      "查看事实原记录",
+      "加载更多"
+    ],
+    "states": [
+      "无认识",
+      "loading/error"
+    ],
+    "data_chain": "formal actor-context user_statement facts + managedMemories target actor; authored facts separate",
+    "source_findings": [
+      "Demo isSeedCharacter使用linwan/jiangyu/yuejian硬编码已知事实",
+      "正式按真实认识与记忆显示"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-relation-basis",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3131",
+    "demo_entry": "关于你 / 关系与交往依据弹窗",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/AboutYouPanel.jsx:204"
+    ],
+    "fields": [
+      "角色视角关系",
+      "说明",
+      "依据",
+      "更新",
+      "完整关系来源"
+    ],
+    "actions": [
+      "打开",
+      "读取依据",
+      "展开原记录"
+    ],
+    "states": [
+      "有关系",
+      "无共同经历",
+      "人格关系范围"
+    ],
+    "data_chain": "relationshipFor(data.relationships, actorId, activeProfile, fid)",
+    "source_findings": [
+      "Demo seed角色固定“书和散步”依据，正式关联真实relationship及active persona"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-authored-history",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3151",
+    "demo_entry": "你的资料修订历史弹窗",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/AboutYouPanel.jsx:535"
+    ],
+    "fields": [
+      "时间",
+      "修订标题",
+      "详情",
+      "原事实版本"
+    ],
+    "actions": [
+      "查看修订",
+      "关闭"
+    ],
+    "states": [
+      "无历史",
+      "多条"
+    ],
+    "data_chain": "owner_defined authoredHistory → 实际事实修订JSON",
+    "source_findings": [
+      "正式按epistemic_kind区分自填与认识"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-relationship-tab",
+    "area": "people",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:2959",
+    "demo_entry": "你们的关系 / 指标与共同片刻",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/AboutYouPanel.jsx:230",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/PeoplePage.jsx:204"
+    ],
+    "fields": [
+      "双方头像",
+      "关系名称",
+      "说明",
+      "指标",
+      "共同经历时间线"
+    ],
+    "actions": [
+      "继续聊聊",
+      "看原关系/变化依据"
+    ],
+    "states": [
+      "初始关系",
+      "共同经历",
+      "指标缺失"
+    ],
+    "data_chain": "formal relationshipFor + relationMetrics + relationship_history",
+    "source_findings": [
+      "Demo指标为演示百分比",
+      "正式只应显示真实关系数值"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "people-formal-management",
+    "area": "people",
+    "demo_source": "Demo不适用",
+    "demo_entry": "Demo不适用：仅人物定义编辑，没有真实接触与治理",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/PersonDetail.jsx:142",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/PersonDetail.jsx:309",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/PersonRecords.jsx:30"
+    ],
+    "fields": [
+      "接触地点",
+      "开始/结束",
+      "实际经过",
+      "证据引用",
+      "实际发生确认",
+      "移除说明",
+      "相遇机会"
+    ],
+    "actions": [
+      "记录真实接触",
+      "看生成事件/记忆",
+      "移除人物",
+      "读取接触/在场/机会记录",
+      "重试相遇判断"
+    ],
+    "states": [
+      "version conflict",
+      "waiting",
+      "failed",
+      "event/memory readback"
+    ],
+    "data_chain": "recordNPCEncounter → worldLifeEvent + managedMemory; deleteRuntimeNPC → catalog readback; npcRecords/npcOpportunity/retryNPCOpportunity",
+    "source_findings": [
+      "正式额外能力必须独立业务验收，不能照Demo虚构接触"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "feed-filter-list",
+    "area": "feed",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3500",
+    "demo_entry": "动态 / 作者范围、搜索、展示状态",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/FeedPage.jsx:24",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/FeedPage.jsx:25"
+    ],
+    "fields": [
+      "所有/我/指定角色",
+      "关键词",
+      "visible/hidden/all",
+      "动态卡"
+    ],
+    "actions": [
+      "切范围",
+      "搜索",
+      "清除",
+      "刷新",
+      "更多"
+    ],
+    "states": [
+      "empty",
+      "partial page",
+      "read error"
+    ],
+    "data_chain": "feedFilters URL → momentsClient.list → momentFeed; author=me applied to loaded rows",
+    "source_findings": [
+      "Demo随输入即时本地搜索",
+      "正式提交搜索表单后服务查询",
+      "“我发布的”只筛已读取页，界面有说明"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "feed-post-actions",
+    "area": "feed",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3410",
+    "demo_entry": "动态卡 / 回应与隐藏恢复",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/FeedPost.jsx:105",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/FeedPage.jsx:205"
+    ],
+    "fields": [
+      "头像",
+      "作者",
+      "时间地点",
+      "正文",
+      "媒体",
+      "回应数",
+      "评论预览",
+      "隐藏徽章"
+    ],
+    "actions": [
+      "赞/取消",
+      "评论",
+      "详情",
+      "隐藏/恢复"
+    ],
+    "states": [
+      "visible",
+      "hidden",
+      "liked",
+      "readback pending"
+    ],
+    "data_chain": "formal interact→reaction/status with expectedRevision+idempotency→momentRecord verify",
+    "source_findings": [
+      "Demo单击立即切liked或hidden",
+      "正式先命令弹窗确认",
+      "回应额外care/celebrate/none"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "feed-detail-comments",
+    "area": "feed",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3630",
+    "demo_entry": "动态详情 / 正文评论与来源",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/FeedDetail.jsx:177",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/providers/moments.ts:11"
+    ],
+    "fields": [
+      "正文",
+      "附件",
+      "作者来源",
+      "评论列表",
+      "评论输入"
+    ],
+    "actions": [
+      "发布评论",
+      "继续加载评论",
+      "收起",
+      "看媒体"
+    ],
+    "states": [
+      "hidden禁止评论",
+      "空评论",
+      "read error",
+      "pending"
+    ],
+    "data_chain": "momentRecord + comments → comment → fresh record/comments verify author+text",
+    "source_findings": [
+      "Demo本地追加我评论",
+      "正式持久命令与分页回读"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "feed-publish",
+    "area": "feed",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3694",
+    "demo_entry": "我来发动态 / 发布弹窗",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/FeedPage.jsx:290",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/FeedMediaPicker.jsx:1"
+    ],
+    "fields": [
+      "正文≤2000",
+      "Demo单张books/river/garden画面",
+      "正式发布范围/媒体列表"
+    ],
+    "actions": [
+      "输入",
+      "选附件",
+      "发布",
+      "取消",
+      "核对草稿"
+    ],
+    "states": [
+      "text empty disabled",
+      "saved receipt",
+      "recovery"
+    ],
+    "data_chain": "formal publish→createMoment → record verify owner identity/text/media/world",
+    "source_findings": [
+      "Demo作者me，静态画面",
+      "正式用户真实身份，可全局或角色范围、最多8个真实附件"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "feed-suggest",
+    "area": "feed",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3343",
+    "demo_entry": "邀请分享近况 / 建议输入和结果",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/FeedPage.jsx:290",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/views/FeedPage.jsx:192"
+    ],
+    "fields": [
+      "建议文本",
+      "正式目标角色",
+      "建议列表",
+      "结果"
+    ],
+    "actions": [
+      "提出建议",
+      "看原请求",
+      "查看发布结果",
+      "失败带回重提"
+    ],
+    "states": [
+      "accepted/declined/failed/running",
+      "receipt恢复"
+    ],
+    "data_chain": "formal suggestMoment → lifeClient.request → actual decision/effects → publishedMomentIds",
+    "source_findings": [
+      "Demo一律同步生成分享+通知，且linwan正文/画面硬编码 (3363/3369)",
+      "正式需区分受理、判断和实际发布"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "feed-formal-npc",
+    "area": "feed",
+    "demo_source": "Demo不适用",
+    "demo_entry": "Demo不适用：没有世界人物在动态中的真实互动",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/FeedDetail.jsx:62",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/providers/moments.ts:7"
+    ],
+    "fields": [
+      "人物互动",
+      "结识来源",
+      "状态",
+      "重试说明"
+    ],
+    "actions": [
+      "读更多互动",
+      "看原引用",
+      "重试失败互动"
+    ],
+    "states": [
+      "failed",
+      "running",
+      "completed",
+      "scope changed"
+    ],
+    "data_chain": "npcInteractions/npcInteraction → retryNPC → version readback",
+    "source_findings": [
+      "正式额外NPC互动治理"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "inbox-list-read",
+    "area": "inbox",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:3986",
+    "demo_entry": "通知 / 全部未读、角色过滤与已读",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/InboxPage.jsx:30",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/providers/operations.ts:17"
+    ],
+    "fields": [
+      "全部/未读计数",
+      "所有/指定角色",
+      "标题正文",
+      "时间",
+      "头像替代图标",
+      "已读"
+    ],
+    "actions": [
+      "打开自动已读",
+      "单条已读",
+      "全部已读",
+      "更多",
+      "重读"
+    ],
+    "states": [
+      "unread",
+      "read",
+      "empty",
+      "error",
+      "bulk busy"
+    ],
+    "data_chain": "notifications(limit30,cursor) → readNotification/readAllNotifications(before=as_of); preview resolver → real source",
+    "source_findings": [
+      "Demo全数组全部已读",
+      "正式以上次服务端as_of为界",
+      "正式列表未显示Demo pending/outcome徽章，待处理已分开"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "inbox-detail-source",
+    "area": "inbox",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:4144",
+    "demo_entry": "通知详情 / 返回与来源链接",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/InboxPage.jsx:43",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/approved-ui/presentation.mjs:1"
+    ],
+    "fields": [
+      "正文",
+      "时间",
+      "原始来源",
+      "标识"
+    ],
+    "actions": [
+      "返回通知",
+      "查看原始来源",
+      "带returnTo回通知"
+    ],
+    "states": [
+      "invalid source link",
+      "read mark failure"
+    ],
+    "data_chain": "notificationPath(row.link) → navigatePath + returnTo=#/inbox",
+    "source_findings": [
+      "Demo依类型显示审阅提议/动态评论/媒体/生活记录按钮",
+      "正式统一“查看原始来源”并展示真实JSON"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "inbox-pending",
+    "area": "inbox",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:4093",
+    "demo_entry": "需要你决定 / 待处理卡",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/InboxPage.jsx:22"
+    ],
+    "fields": [
+      "待处理类别",
+      "数量",
+      "来源标题",
+      "状态",
+      "角色"
+    ],
+    "actions": [
+      "打开真实来源",
+      "重新读取",
+      "分页更多"
+    ],
+    "states": [
+      "partial source",
+      "unknown count",
+      "empty"
+    ],
+    "data_chain": "operationsClient.pending(fid,kind,cursor) → pendingSummary → source href",
+    "source_findings": [
+      "Demo pending只来自notice.pending",
+      "正式从各业务真实pending分组汇总，已读不等处理"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "inbox-task-recover",
+    "area": "inbox",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:4176",
+    "demo_entry": "失败任务通知 / 原任务恢复轨迹",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/InboxPage.jsx:43",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/providers/operations.ts:23",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/TaskDetailPage.tsx:1"
+    ],
+    "fields": [
+      "原任务步骤",
+      "失败/恢复中/完成",
+      "保留外貌输入说明"
+    ],
+    "actions": [
+      "恢复原任务",
+      "前往媒体库"
+    ],
+    "states": [
+      "failed",
+      "running",
+      "done"
+    ],
+    "data_chain": "Demo setTimeout2200→demo-tasks+media-assets; formal notice source link→real TaskDetailPage/workflow operations",
+    "source_findings": [
+      "正式通知详情无内嵌恢复按钮/轨迹，需跳原始任务页",
+      "Demo恢复生成静态结果不代表正式业务成功"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "inbox-back-chat",
+    "area": "inbox",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/pages/CompanionPages.tsx:4131",
+    "demo_entry": "通知 / 回到日常",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/InboxPage.jsx:43"
+    ],
+    "fields": [
+      "当前角色名",
+      "聊天入口"
+    ],
+    "actions": [
+      "和当前角色聊聊"
+    ],
+    "states": [
+      "无当前角色隐藏"
+    ],
+    "data_chain": "workspace.current → navigate(聊天)",
+    "source_findings": [
+      "Demo总有activeCharacter",
+      "正式无角色时不展示"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "inbox-formal-groups",
+    "area": "inbox",
+    "demo_source": "Demo不适用",
+    "demo_entry": "Demo不适用：只模拟几条通知与pending，没有真实多来源运行态",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/InboxPage.jsx:21",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/providers/operations.ts:21"
+    ],
+    "fields": [
+      "能力",
+      "人格身份",
+      "待应用定义",
+      "owner请求",
+      "服务异常"
+    ],
+    "actions": [
+      "读取待处理/进度/服务分类",
+      "翻页",
+      "来源恢复"
+    ],
+    "states": [
+      "source status!=ok",
+      "count unknown",
+      "progress",
+      "service"
+    ],
+    "data_chain": "pendingCategory → attention/progress/service groups with separate readers",
+    "source_findings": [
+      "正式额外“正在处理的请求”“服务状态”区，不能并入需要用户决策"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "avatar-source-all",
+    "area": "shared-avatar",
+    "demo_source": "/private/tmp/fluctlight-demo-replica/fluctlight-workspace-demo/src/components/shared.tsx:247",
+    "demo_entry": "侧栏/角色库/聊天/档案/关系/动态头像",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/CharacterAvatar.tsx:14",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/v3/proto/data/profile.js:26",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/pages/LibraryPage.jsx:117",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/shared/WorkspaceNavigation.tsx:31"
+    ],
+    "fields": [
+      "avatarUrl",
+      "avatarArt/avatarMode",
+      "人物id",
+      "正式detail.avatar/directory.avatar"
+    ],
+    "actions": [
+      "展示图像或文字fallback"
+    ],
+    "states": [
+      "真实图",
+      "世界图",
+      "portrait",
+      "文字",
+      "图像加载失败"
+    ],
+    "data_chain": "Demo data:image → WorldArt mode → CharacterArt portrait or id linwan → name first char; formal detail.avatar then directory.avatar → AvatarImage → initial/last char",
+    "source_findings": [
+      "已确认Demo id===linwan隐式画像 (shared.tsx:271)",
+      "正式CharacterAvatar无id条件且只使用真实url/字",
+      "头像fallback Demo首字与正式末字不同",
+      "不能据此伪造正式头像资源"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  },
+  {
+    "id": "shell-formal-routing",
+    "area": "shell",
+    "demo_source": "Demo不适用",
+    "demo_entry": "Demo不适用：Demo始终有本地种子角色与可用页面",
+    "formal_source": [
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/App.tsx:130",
+      "/Users/vinson/Documents/project/个人/local-ai-companion/apps/web/src/react-app/App.tsx:179"
+    ],
+    "fields": [
+      "会话状态",
+      "路由角色存在性",
+      "页面存在性",
+      "bootstrap error",
+      "读取错误"
+    ],
+    "actions": [
+      "重试启动",
+      "回角色库",
+      "上一页",
+      "打开角色库"
+    ],
+    "states": [
+      "notReady",
+      "unauthenticated",
+      "bootstrap error",
+      "unknown character",
+      "removed/notFound"
+    ],
+    "data_chain": "approvedRoute + bootstrap + state.session + scoped readFeedback",
+    "source_findings": [
+      "正式路由和真实读取防护，独立检验深链接与账号切换"
+    ],
+    "visual_status": "待检查",
+    "interaction_status": "待检查",
+    "business_status": "待检查"
+  }
+]

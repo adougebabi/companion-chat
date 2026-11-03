@@ -1,0 +1,6 @@
+{"ImportPath":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability","Action":"build-output","Output":"# github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability\n"}
+{"ImportPath":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability","Action":"build-output","Output":"internal/capability/capability.go:1498:30: undefined: DeferredCapability\n"}
+{"ImportPath":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability","Action":"build-fail"}
+{"Time":"2026-09-22T17:32:04.109389+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-09-22T17:32:04.109423+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"FAIL\tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core [build failed]\n"}
+{"Time":"2026-09-22T17:32:04.109426+08:00","Action":"fail","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":0,"FailedBuild":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"}

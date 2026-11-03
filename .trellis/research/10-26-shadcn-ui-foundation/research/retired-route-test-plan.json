@@ -1,0 +1,63 @@
+{
+  "fourth-round-regression": [
+    "chat has no image picker or copy control while existing message attachments remain readable"
+  ],
+  "insight-companionship": [
+    "life refresh removes hidden records and reopens a newly grown cursor",
+    "all-memory reading retains explicit false through persisted view URLs"
+  ],
+  "nas-additions": [
+    "chat feedback retains protocol-owned cancellation and mounted drafts; global hover follows the current no-underline design"
+  ],
+  "request-reason-diary": [
+    "actual dynamic suggestion renderer localizes the exact failure and converts UTC to Beijing time",
+    "actual reflection feedback and promise details share localized decisions and original source disclosure",
+    "request detail keeps its complete original record after shared localization",
+    "diary renders only all/favorite filters while generation and independent shared route/sidebar remain"
+  ],
+  "t00-profile": [
+    "UI-01 removes chat chips and picture send while retaining media display and assistant chips",
+    "switch sends dual revisions and idempotency then confirms only authoritative readback",
+    "version conflict preserves drafts and does not claim switch success",
+    "accepted command with failed readback remains unconfirmed and keeps recovery draft",
+    "stale profile read cannot replace a later route, and initial failure exposes retry",
+    "retired and archived details disable bio edit and persona switch; active stays writable"
+  ],
+  "ux-recovery-flows": [
+    "first setup confirms the exact password before calling authentication",
+    "a stale analysis response cannot continue activation using a replacement draft",
+    "analysis without a name returns to editable input and a second creation starts with description",
+    "library shows durable creation continuation and characters whose group has not loaded"
+  ],
+  "ux-report-creation": [
+    "NPC input updates the actual local diff, reverting clears dirty, and whitespace name sends no save",
+    "NPC save settles its saved baseline while edits typed during the pending save remain dirty"
+  ],
+  "ux-report-shell-chat": [
+    "chat reply settings links to a registered configuration section and retains return context"
+  ],
+  "v3-mock-acceptance": [
+    "production entry selects real providers while fixtures are explicit build-time imports",
+    "every original v3 route and all new Mock pages remain registered without shadows"
+  ],
+  "v3-real-provider": [
+    "current chat uses protocol state while keeping the composer mounted during updates"
+  ],
+  "v3-roundtrip": [
+    "Mock acceptance entry keeps wardrobe flow and persistence separate from the real transport"
+  ],
+  "v3-ux-life-reading": [
+    "wardrobe acquisition empty state interpolates and encodes the actual character ID"
+  ],
+  "v3-ux-media-feed-profile": [
+    "feed restores URL filters, persists applied query and opens the actual published receipt",
+    "unreadable post has a localized failure and safe return to the applied feed"
+  ],
+  "v3-ux-scope": [
+    "global media library keeps its Owner scope even when a character remains selected in the shell",
+    "character media stays scoped while global media details do not inherit the selected character"
+  ],
+  "v3-visual-style": [
+    "saving visual guidance updates its origin projection without remounting or clearing new inputs"
+  ]
+}

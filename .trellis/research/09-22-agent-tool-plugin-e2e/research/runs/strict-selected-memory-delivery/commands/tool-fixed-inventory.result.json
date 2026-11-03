@@ -1,0 +1,21 @@
+{
+  "goExitCode": 0,
+  "requireAny": false,
+  "expectedTests": [
+    "TestIndependentToolE2EFixedProductInventory"
+  ],
+  "actual": [
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestIndependentToolE2EFixedProductInventory",
+      "action": "pass",
+      "elapsed": 0
+    }
+  ],
+  "malformedLines": [],
+  "blockedLines": [],
+  "explicitFailLines": [],
+  "nonTestTerminalFailures": [],
+  "errors": [],
+  "ok": true
+}

@@ -1,0 +1,17 @@
+{
+  "command": [
+    "go",
+    "-C",
+    "apps/core-go",
+    "test",
+    "-count=1",
+    "-json",
+    "-run",
+    "^TestConcurrentDailyReviewUsesOneMainProviderCall$",
+    "./internal/core"
+  ],
+  "exit_code": 0,
+  "head": "32276a1c20ad68462b966c45c16ab6126230b297",
+  "diff_sha256": "d77d12fce6541094fc613f9652f8a9a31e09dda28e772a452fec98649404ac8a",
+  "project": "lac-agent-tool-5c2f9f296b"
+}

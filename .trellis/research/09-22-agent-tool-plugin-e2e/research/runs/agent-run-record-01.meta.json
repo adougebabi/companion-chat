@@ -1,0 +1,17 @@
+{
+  "command": [
+    "go",
+    "-C",
+    "apps/core-go",
+    "test",
+    "-count=1",
+    "-json",
+    "-run",
+    "^Test(AgentRunRecord|StructuredAgentOutput)",
+    "./internal/core"
+  ],
+  "exit_code": 0,
+  "head": "32276a1c20ad68462b966c45c16ab6126230b297",
+  "diff_sha256": "d32cf18f350bed21d9f3f3d32fe0fc27bd3cf0b6cbdc6bb1249d128bac27d5ba",
+  "project": "lac-agent-tool-5c2f9f296b"
+}

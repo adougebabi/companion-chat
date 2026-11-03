@@ -1,0 +1,390 @@
+{
+  "kind": "static route resolution; does not prove successful object read or browser action",
+  "rows": [
+    {
+      "path": "/studio/edit/:resId",
+      "owner": "studio-edit",
+      "page": "创作中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/studio/preview",
+      "owner": "studio-preview",
+      "page": "创作中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/studio/material/:materialId",
+      "owner": "studio-material",
+      "page": "创作中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/studio/npc/:resId",
+      "owner": "studio-edit",
+      "page": "创作中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/media/:mdId",
+      "owner": "media",
+      "page": "媒体",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/media/avatar",
+      "owner": "media",
+      "page": "媒体",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/media/identity/edit",
+      "owner": "media",
+      "page": "媒体",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/media/identity",
+      "owner": "media",
+      "page": "媒体",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/media/generate",
+      "owner": "media",
+      "page": "媒体",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/media/:mdId",
+      "owner": "media",
+      "page": "媒体",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/governance/:governanceKind/:governanceId",
+      "owner": "governance",
+      "page": "角色详情",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/governance",
+      "owner": "governance",
+      "page": "角色详情",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/growth/self/claim/:claimId",
+      "owner": "self",
+      "page": "记忆",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/growth/self",
+      "owner": "self",
+      "page": "记忆",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/growth/memory/:memId",
+      "owner": "bounded-domain",
+      "page": "记忆",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/growth/reflection/:refId",
+      "owner": "bounded-domain",
+      "page": "记忆",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/growth/reflection",
+      "owner": "bounded-domain",
+      "page": "记忆",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/life/goal/:goalId",
+      "owner": "bounded-domain",
+      "page": "目标",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/life/planning",
+      "owner": "bounded-domain",
+      "page": "目标",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/life/schedule/planning",
+      "owner": "bounded-domain",
+      "page": "日程",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/life/wardrobe/item/:itemId",
+      "owner": "bounded-domain",
+      "page": "衣柜",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/life/diary/:entryId",
+      "owner": "bounded-domain",
+      "page": "日记",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/life/shared",
+      "owner": "bounded-domain",
+      "page": "日记",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/life/timeline",
+      "owner": "bounded-domain",
+      "page": "此刻",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/chat/history",
+      "owner": "chat-history",
+      "page": "聊天",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/feed/:postId",
+      "owner": "feed",
+      "page": "动态",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/worlds/:worldId/place/:placeId/history",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/worlds/:worldId/place/:placeId/edit",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/worlds/:worldId/place/new",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/worlds/:worldId/edit",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/world/events",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/world/place/:placeId",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/world/scene",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/world/settings",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/world/event/:evId",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/world/items/:itemId",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/world/items",
+      "owner": "bounded-domain",
+      "page": "世界",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/people/npc/:npcId/edit",
+      "owner": "people",
+      "page": "人物关系",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/people/npc/new",
+      "owner": "people",
+      "page": "人物关系",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/people/npcs",
+      "owner": "people",
+      "page": "人物关系",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/people/list",
+      "owner": "people",
+      "page": "人物关系",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/people/npc/:npcId",
+      "owner": "people",
+      "page": "人物关系",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/people/relation/:relId",
+      "owner": "bounded-domain",
+      "page": "人物关系",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/c/:charId/people/owner",
+      "owner": "people",
+      "page": "人物关系",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/diag/task/:taskId",
+      "owner": "task",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/diag/request/:requestId",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/diag/workflow/:workflowId",
+      "owner": "workflow",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/diag/record/:kind/:recordRef",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/diag/pending",
+      "owner": "bounded-domain",
+      "page": "通知与待处理",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/diag/:section",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/data/backup/:backupId",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/data/pack/:packId",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/data/revisions",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/data/rollback",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    },
+    {
+      "path": "/data",
+      "owner": "bounded-domain",
+      "page": "管理中心",
+      "resolves": true,
+      "legacyRejected": true
+    }
+  ]
+}

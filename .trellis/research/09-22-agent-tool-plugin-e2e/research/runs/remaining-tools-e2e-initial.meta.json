@@ -1,0 +1,17 @@
+{
+  "command": [
+    "go",
+    "-C",
+    "apps/core-go",
+    "test",
+    "-count=1",
+    "-json",
+    "-run",
+    "^TestIndependentToolE2E",
+    "./internal/core"
+  ],
+  "exit_code": 1,
+  "head": "32276a1c20ad68462b966c45c16ab6126230b297",
+  "diff_sha256": "76e618d8c740932dc1c57358cb2f7f7278bc297b298bc16b76feba55a7d3fe77",
+  "project": "lac-agent-tool-5c2f9f296b"
+}

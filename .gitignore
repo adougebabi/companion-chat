@@ -47,8 +47,6 @@ apps/*/.gomodcache/
 *.[eE][xX][rR]
 *.[hH][dD][rR]
 image.png
-docs/verification/phase-8/
 .trellis/tasks/**/runs/
 .trellis/tasks/**/research/*.json
 .trellis/tasks/**/research/*.txt
-docs/evidence/v3-mock-acceptance/static-requests.log

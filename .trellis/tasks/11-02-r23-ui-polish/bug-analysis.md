@@ -1,7 +1,0 @@
-# Chat loading retrospective
-
-1. Root cause: implicit assumption (E), with a lifecycle test gap (D). The shared conversation controller set loading during selection, but invalidateRequest advanced the epoch without releasing it. Finally correctly rejected stale epochs, inadvertently leaving loading true forever. A later openConversation session/directory failure before selectFluctlight could not reset it. ChatPage combines its own readLoading with controller.loading, so merely settling its local read did not restore retry.
-2. Existing guards already prevented the ordinary intro/loader render predicates from overlapping; changing that predicate alone would not repair the stuck controller. Ordinary successful read tests and direct-read failure tests did not exercise cancelled read → preflight failure. No backend latency inference is claimed from screenshots alone.
-3. Prevention: selectionLoadingEpoch explicitly owns loading; invalidate releases its own indicator; an obsolete finally cannot clear a newer read. Regression tests use the actual controller/provider/React page and delayed HTTP in Chrome, including read-only recovery.
-4. Scope: retain Owner/role/epoch fences, original commands, cancellation semantics and bootstrap loading. Other domain hooks already fence their own UI state; no generic request framework or prompt/backend behavior change is needed.
-5. Knowledge: concrete contract added to frontend/state-management.md; exact test and production browser evidence recorded in the final report.

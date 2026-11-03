@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
 import {createServer} from 'vite';
 import {proxy,snapshot,subscribe} from 'valtio/vanilla';
 import {installDOM,mountReact} from './helpers/react-dom.mjs';
-const env=installDOM(),vite=await createServer({root:new URL('..',import.meta.url).pathname,server:{middlewareMode:true}});
+const env=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});
 test.after(async()=>{await vite.close();env.restore();});
 const load=path=>vite.ssrLoadModule('/src/'+path);
 const button=(root,text)=>[...root.querySelectorAll('button')].find(n=>n.textContent.trim()===text);

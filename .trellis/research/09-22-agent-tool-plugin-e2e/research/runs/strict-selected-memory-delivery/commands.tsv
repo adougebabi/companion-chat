@@ -1,0 +1,4 @@
+case	label	go_exit	verifier_exit	status
+tool-fixed-inventory	fixed-product-tool-inventory	0	0	PASS
+tool-memory-event-eino-adapter	controlled Tool memory_event formal Eino adapter	0	0	PASS
+tool-memory-event	Tool memory_event	0	0	PASS

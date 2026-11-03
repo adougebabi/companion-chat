@@ -1,0 +1,17 @@
+{
+  "command": [
+    "go",
+    "-C",
+    "apps/core-go",
+    "test",
+    "-count=1",
+    "-json",
+    "-run",
+    "^TestVisualIdentityLiveE2EPreflight$",
+    "./internal/core"
+  ],
+  "exit_code": 1,
+  "head": "32276a1c20ad68462b966c45c16ab6126230b297",
+  "diff_sha256": "3994fa788522f1b2c0aa3578a70974c87d2fb4496e6da8c6a6702fcdbfd1695b",
+  "project": "lac-agent-tool-5c2f9f296b"
+}

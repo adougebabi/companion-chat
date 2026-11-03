@@ -1,0 +1,17 @@
+{
+  "command": [
+    "go",
+    "-C",
+    "apps/core-go",
+    "test",
+    "-count=1",
+    "-json",
+    "-run",
+    "^TestIndependentToolE2EScheduleReplan$",
+    "./internal/core"
+  ],
+  "exit_code": 1,
+  "head": "32276a1c20ad68462b966c45c16ab6126230b297",
+  "diff_sha256": "8400613f44f0f27ed1e14aa8b89e67e140e60ea9b439058da96ac3fcd3045745",
+  "project": "lac-agent-tool-5c2f9f296b"
+}

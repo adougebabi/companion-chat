@@ -1,0 +1,14 @@
+{
+  "project": "fluctlight-demo-audit-20261028",
+  "origin": "http://127.0.0.1:18480",
+  "database_host_port": "127.0.0.1:55438",
+  "private_env": "/private/tmp/fluctlight-demo-audit-20261028/runtime.env",
+  "override": "/private/tmp/fluctlight-demo-audit-20261028/compose.audit.yml",
+  "fresh_project_volumes": true,
+  "base": "ef8e1f92",
+  "status": "healthy-current-Core",
+  "web_source": "ef8e1f92; rebuild Web image before testing latest UI changes",
+  "browser_mode": "user-authorized local Playwright isolated Chrome",
+  "visual_fixture": "http://127.0.0.1:4381",
+  "readonly_demo": "http://127.0.0.1:4179/fluctlight-offline.html"
+}

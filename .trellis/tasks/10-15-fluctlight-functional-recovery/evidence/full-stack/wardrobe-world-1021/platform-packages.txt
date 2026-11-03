@@ -1,3 +1,0 @@
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/migrations	16.979s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/httpapi/browser	0.502s
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/workflow	0.481s

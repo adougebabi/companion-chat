@@ -1,0 +1,21 @@
+{
+  "goExitCode": 0,
+  "requireAny": false,
+  "expectedTests": [
+    "TestDirectToolExecutionMemoryEventAndRecallOwnsCommitAndOperationReplay"
+  ],
+  "actual": [
+    {
+      "package": "github.com/fluctlight/local-ai-companion/apps/core-go/internal/core",
+      "test": "TestDirectToolExecutionMemoryEventAndRecallOwnsCommitAndOperationReplay",
+      "action": "pass",
+      "elapsed": 0.78
+    }
+  ],
+  "malformedLines": [],
+  "blockedLines": [],
+  "explicitFailLines": [],
+  "nonTestTerminalFailures": [],
+  "errors": [],
+  "ok": true
+}

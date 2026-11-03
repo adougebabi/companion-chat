@@ -1,0 +1,17 @@
+{
+  "command": [
+    "go",
+    "-C",
+    "apps/core-go",
+    "test",
+    "-count=1",
+    "-json",
+    "-run",
+    "^TestIndependentToolE2E(FixedProductInventory|SceneEvent|PresenceEvent|AffectEvent|RelationshipLookup|CapabilityRequest|VisualIdentityInitialize)$",
+    "./internal/core"
+  ],
+  "exit_code": 0,
+  "head": "32276a1c20ad68462b966c45c16ab6126230b297",
+  "diff_sha256": "ecae3fd6608d1731b4b992f2fc96b4331e96ed999d97003a4994ba38ef460cae",
+  "project": "lac-agent-tool-5c2f9f296b"
+}

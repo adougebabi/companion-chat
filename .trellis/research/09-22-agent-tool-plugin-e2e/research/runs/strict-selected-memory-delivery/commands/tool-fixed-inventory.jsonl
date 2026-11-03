@@ -1,0 +1,8 @@
+{"Time":"2026-09-22T18:20:42.600928+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
+{"Time":"2026-09-22T18:20:43.148448+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EFixedProductInventory"}
+{"Time":"2026-09-22T18:20:43.148513+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EFixedProductInventory","Output":"=== RUN   TestIndependentToolE2EFixedProductInventory\n"}
+{"Time":"2026-09-22T18:20:43.148979+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EFixedProductInventory","Output":"--- PASS: TestIndependentToolE2EFixedProductInventory (0.00s)\n"}
+{"Time":"2026-09-22T18:20:43.149002+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestIndependentToolE2EFixedProductInventory","Elapsed":0}
+{"Time":"2026-09-22T18:20:43.149016+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
+{"Time":"2026-09-22T18:20:43.14967+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t0.549s\n"}
+{"Time":"2026-09-22T18:20:43.149707+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":0.549}

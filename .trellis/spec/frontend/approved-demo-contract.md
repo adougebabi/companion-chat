@@ -51,7 +51,7 @@ identity before 202. Only completed+disposition=no_change means already wearing;
 accepted without a mutation remains accepted. Use the character/outfit names in
 wardrobe copy and accessible button names instead of demo numeric IDs/gender.
 
-The r4 follow-up in `docs/design/v62-r4-remediation.md` records production-shaped
+The r4 follow-up records production-shaped
 coverage: saved-setting status stays beside the button through receipt readback;
 unused timeout defaults to 120 seconds. Failed preparation successors explicitly
 name the blocker while strict serial admission remains unchanged. Notification
@@ -277,4 +277,4 @@ does not release the original command. No schema migration is required.
 `r10-media-default`, `r10-account` and `r10-world-reuse` cover these boundaries.
 `TestR10WorldConfigurationCopyIsIndependentAtomicAndReplayable` uses disposable
 PostgreSQL. Browser evidence at 1280×800 and 390×844 is separate from model or
-live-business-data acceptance; see docs/design/v62-r10-remediation.md.
+live-business-data acceptance.

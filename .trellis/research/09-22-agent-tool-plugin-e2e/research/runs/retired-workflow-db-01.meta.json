@@ -1,0 +1,17 @@
+{
+  "command": [
+    "go",
+    "-C",
+    "apps/core-go",
+    "test",
+    "-count=1",
+    "-json",
+    "-run",
+    "Test(AutonomyCapabilityActionKeepsCommittedSiblingAndFailsRequiredCommand|CapabilityActionBindsMomentPublishToDurableMomentTarget)$",
+    "./internal/core"
+  ],
+  "exit_code": 0,
+  "head": "32276a1c20ad68462b966c45c16ab6126230b297",
+  "diff_sha256": "cfb85c6191b91e31abdce47a5548d5a1b631ea05ef2447d59ffe5c171ba96242",
+  "project": "lac-agent-tool-5c2f9f296b"
+}

@@ -1,0 +1,412 @@
+[
+  {
+    "file": "apps/web/test/goal-panel.test.mjs",
+    "test": "instance switch releases pending revision pagination and discards its stale failure",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-panel.test.mjs",
+    "test": "refreshing the same Goal fences an old revision page while a new page is pending",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-panel.test.mjs",
+    "test": "CAS conflict preserves the draft, frozen revision and retry identity until explicit reread",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-panel.test.mjs",
+    "test": "capacity errors preserve a create draft and explain the available governance actions",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-panel.test.mjs",
+    "test": "evidence continuation deduplicates stable IDs and rejects a stale selection",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-panel.test.mjs",
+    "test": "the Goal editor rejects empty and whitespace fields without issuing a command",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "manual order and disabled planning are server commands carrying authoritative versions",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "capacity/version failure keeps manual draft and late instance response is fenced",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "Actor conflict retains draft and explicit re-read only advances version",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "Owner background keeps the current-facts CAS and tri-state relationship fields",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "Actor drafts use a new idempotency identity when the payload changes",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "clearing an Actor target fences a late context response",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "Owner revision reasons obey the 500-character boundary while Actor reasons obey the byte budget",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/goal-planning-panel.test.mjs",
+    "test": "failed initial background read can be retried without changing the target",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "media import commits to the target chosen before the file read",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "shared choices preserve empty domain values and only emit configured options",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "cleared visual workflow cannot reappear from a stale successful-save draft",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "Kev continuation uses the applied filter snapshot instead of unsubmitted edits",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "Kev invalid date ranges focus the inline error and never request records",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "authentication forms show inline policy errors before emitting requests and preserve exact credential text",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "lifecycle filters remain a draft until applied and explicit reset clears the applied snapshot",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "changing model roles clears old validation and fences late save feedback",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-interactions.test.mjs",
+    "test": "clear failure stays inside its open dialog and cancelling clears the action error",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/diagnostics.test.mjs",
+    "test": "Lifecycle Diagnostics exposes typed filters and PostgreSQL intent snapshots",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/diagnostics.test.mjs",
+    "test": "diagnostics sources use independent filter epochs",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/diagnostics.test.mjs",
+    "test": "background diagnostics refresh does not request the workflow runtime list",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/diagnostics.test.mjs",
+    "test": "workflow list loader coalesces pending requests and keeps its failure local",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/diagnostics.test.mjs",
+    "test": "Lifecycle Diagnostics renders empty, overdue, no-op, retry and failure states safely on narrow screens",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/diagnostics.test.mjs",
+    "test": "filtered export reuses every active lifecycle filter",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/diagnostics.test.mjs",
+    "test": "loading an older partial page pauses polling independently of row count",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "Telegram-style workspace keeps four primary tabs",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "settings configuration is progressively disclosed by closed drawers",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "web typography does not depend on a runtime Google Fonts stylesheet",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "web controls are backed by the local shadcn-vue component layer",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "diagnostics keeps existing modules and adds a filtered lifecycle disclosure",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "desktop secondary navigation is page-addressable and chat groups stay flat",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "chat owns a fixed-height work surface with an internal message scroller",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/layout.test.mjs",
+    "test": "mobile surfaces keep diagnostics, navigation, and empty states shrink-safe",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/accessibility.test.mjs",
+    "test": "control center keeps keyboard, live-region, and form boundaries explicit",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "detail display has safe object formatting and Chinese field labels",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "provider role settings no longer expose an application output budget",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "detail owns read-only life-world sections and uses timezone-aware timeline formatting",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "detail exposes the recorded wardrobe with a paged read-only view",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "detail exposes a Chinese progressive state drawer",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "read-only details keep Wake-up mutations in explicit governance",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "detail exposes the owner-only initialization source as a collapsed safe panel",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "settings accordion remounts when the selected section changes",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "PC shell and role tabs do not scroll the outer frame",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "schedule timeline highlights the item active at the current instant",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/detail-display.test.mjs",
+    "test": "model run diagnostics show the server creation time",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/life-pages.test.mjs",
+    "test": "phase 3 routes mount the sage pages and keep diary unwired",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/life-pages.test.mjs",
+    "test": "writes stay on the existing revision, reason, evidence and idempotency commands",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/life-pages.test.mjs",
+    "test": "missing life data is labeled unwired and generated images stay non-factual",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "web chat keeps the generated browser client at its boundary",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "web preserves exact identity for explicit retry and supports alternate senders",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "chat clears accepted drafts and keeps every streamed token reactive",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "control center exposes the required product views",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "owner password change explains its policy without trapping the submit button",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "web uses the secure random-ID compatibility helper instead of randomUUID directly",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "creation dialog presents activation failures where the user can act on them",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "persona details expose layered JSON without rendering object coercion",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "diagnostics entry loads records and creation keeps a direct correlation link",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/skeleton.test.mjs",
+    "test": "creation preview has one typed authority, stale-analysis epochs, and a UTF-8 byte limit",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/phase45-routes.test.mjs",
+    "test": "phase 4-5 routes replace studio and world placeholders and keep diary unwired",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/phase45-routes.test.mjs",
+    "test": "bookmarked URLs resolve to the active Mock routes before mounting",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/phase45-routes.test.mjs",
+    "test": "studio preview stays local and world browsing does not move the character",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/phase45-routes.test.mjs",
+    "test": "moments, autonomy, data tools and pending keep honest unwired states",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/phase45-routes.test.mjs",
+    "test": "diagnostics keeps filters, export, paging and confirms dangerous workflow commands",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/phase45-routes.test.mjs",
+    "test": "phase documents cover migration, access and all 53 audit features",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/approved-ui.test.mjs",
+    "test": "shared primitives preserve native DOM and native button types",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/approved-ui.test.mjs",
+    "test": "extracted render primitives update classes, children and listeners after reactive changes",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/approved-ui.test.mjs",
+    "test": "library renderer unwraps computed filter groups and renders real directory records",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/approved-ui.test.mjs",
+    "test": "extracted app replaces page branches repeatedly without stale block references",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/approved-v62.test.mjs",
+    "test": "v6.2 detail and creation retain canonical routes and life navigation",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/ui-contracts.test.mjs",
+    "test": "real SFC rendering and store actions honor loading, accessibility and error scope contracts",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/r4-recovery.test.mjs",
+    "test": "real Management page stays busy through command readback and keeps a local saved receipt",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/r4-recovery.test.mjs",
+    "test": "actual profile and notice components render Chinese traits and collapsed groups",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/r8-recovery.test.mjs",
+    "test": "actual world category save persists through reload and world edits keep their identity",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/actor-user-background.test.mjs",
+    "test": "creation retains actor_user through edited preview and activation",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/actor-user-background.test.mjs",
+    "test": "user background is viewed separately and edited only through owner governance",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/capability-requests.test.mjs",
+    "test": "governance exposes the owner capability request pool",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  },
+  {
+    "file": "apps/web/test/chat-surface.test.mjs",
+    "test": "chat components keep streaming, cancellation and history separate from the store",
+    "reason": "Removed obsolete Vue component/renderer harness; current behavior coverage moves to react-ui/react-flows and retained domain/provider tests."
+  }
+]
