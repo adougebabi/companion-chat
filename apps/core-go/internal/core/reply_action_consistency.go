@@ -100,7 +100,7 @@ func adoptReplyActionCorrection(input ReplyContextInput, original, repaired Repl
 	repaired.Style.FinalText, repaired.Style.FinalDiagnosis = repaired.Text, diagnosis
 	repaired.MediaRequests = append([]ReplyMediaRequest(nil), original.MediaRequests...)
 	repaired.AttachmentRefs = append([]string(nil), original.AttachmentRefs...)
-	if firstString(input.ExpressionVersion, factOnlyReplyPromptVersion) == factOnlyReplyPromptVersion && diagnosis.Status == "high_confidence_narration" {
+	if replyUsesTextChatProtocol(input.ExpressionVersion) && diagnosis.Status == "high_confidence_narration" {
 		return repaired, newCapabilityError("reply_action_check_failed", false, errors.New("fact correction violated the existing reply style contract"))
 	}
 	return repaired, nil

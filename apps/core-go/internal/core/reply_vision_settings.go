@@ -75,7 +75,7 @@ func decodeConversationReplySettings(raw []byte) (ConversationReplySettings, err
 		return value, errors.New("conversation_reply_config_invalid")
 	}
 	if (value.Mode != "legacy" && value.Mode != "fact_only") ||
-		(value.ExpressionVersion != factOnlyReplyPromptVersion && value.ExpressionVersion != factOnlyReplyLegacyPromptVersion) ||
+		(!replyUsesTextChatProtocol(value.ExpressionVersion) && value.ExpressionVersion != factOnlyReplyLegacyPromptVersion) ||
 		(value.ModelRef != "" && value.ModelRef != conversationReplyModelRole) ||
 		(value.FailurePolicy != "error" && value.FailurePolicy != "legacy_fallback") ||
 		math.IsNaN(value.Temperature) || math.IsInf(value.Temperature, 0) || value.Temperature < 0 || value.Temperature > 2 ||

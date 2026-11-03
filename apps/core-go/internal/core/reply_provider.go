@@ -32,13 +32,17 @@ type ReplyDraft struct {
 	CommittedMetadata map[string]any          `json:"committed_metadata,omitempty"`
 }
 
-func parseReplyDraft(text string) (draft ReplyDraft, err error) {
+func parseReplyDraft(text string) (ReplyDraft, error) {
+	return parseReplyDraftForScene(text, "")
+}
+
+func parseReplyDraftForScene(text, scene string) (draft ReplyDraft, err error) {
 	defer func() {
 		if err != nil {
 			draft.Text = ""
 		}
 	}()
-	text = strings.TrimSpace(text)
+	text = trimReplyText(text)
 	// A fenced JSON envelope is still an envelope, never chat prose.
 	if lines := strings.Split(text, "\n"); len(lines) > 1 && replyFence(lines[0]) {
 		lines = lines[1:]
@@ -71,7 +75,7 @@ func parseReplyDraft(text string) (draft ReplyDraft, err error) {
 			if err != nil {
 				return draft, errors.New("reply_envelope_invalid")
 			}
-			draft.Text = strings.TrimSpace(envelope.Text)
+			draft.Text = trimReplyText(envelope.Text)
 			draft.MediaRequests = envelope.MediaRequests
 		} else {
 			draft.Text = replyEnvelopeBody(text)
@@ -81,7 +85,10 @@ func parseReplyDraft(text string) (draft ReplyDraft, err error) {
 		return draft, errors.New("reply_draft_invalid")
 	}
 	draft.Text = extractReplyBody(normalizeReplyText(draft.Text))
-	if draft.Text == "" {
+	if scene != replySceneMoment {
+		draft.Text = stripReplyMarkdownHeadings(draft.Text)
+	}
+	if strings.TrimSpace(draft.Text) == "" {
 		return draft, errors.New("reply_draft_invalid")
 	}
 	for _, request := range draft.MediaRequests {
@@ -96,16 +103,12 @@ func parseReplyDraft(text string) (draft ReplyDraft, err error) {
 func normalizeReplyText(text string) string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	var lines []string
-	fenced, blank := false, false
+	var fence replyMarkdownFence
+	blank := false
 	for _, line := range strings.Split(text, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "```") || strings.HasPrefix(strings.TrimSpace(line), "~~~") {
-			fenced = !fenced
+		if fence.consume(line) || replyIndentedCodeLine(line) {
 			lines = append(lines, line)
 			blank = false
-			continue
-		}
-		if fenced {
-			lines = append(lines, line)
 			continue
 		}
 		segments := strings.Split(line, "`")
@@ -128,7 +131,7 @@ func normalizeReplyText(text string) string {
 			lines = append(lines, part)
 		}
 	}
-	return strings.TrimSpace(strings.Join(lines, "\n"))
+	return trimReplyText(strings.Join(lines, "\n"))
 }
 
 type ConversationReplyTaskInput struct {
@@ -226,7 +229,7 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 		draft = repaired
 	}
 	draft.ExpressionVersion, draft.Expression = contract.Version, contract
-	if !input.Context.StyleRepair && input.Context.Scene != replySceneMoment && contract.Version == factOnlyReplyPromptVersion {
+	if !input.Context.StyleRepair && input.Context.Scene != replySceneMoment && replyUsesTextChatProtocol(contract.Version) {
 		draft, err = a.validateAndRepairReplyStyle(ctx, input, draft, result.Completion.Text)
 		if err != nil {
 			return draft, err
@@ -247,7 +250,7 @@ func decodeReplyCompletion(completion ProviderCompletion, input ReplyContextInpu
 	if completion.FinishReason != "stop" {
 		return draft, errors.New("reply_generation_incomplete")
 	}
-	parsed, err := parseReplyDraft(completion.Text)
+	parsed, err := parseReplyDraftForScene(completion.Text, input.Scene)
 	parsed.RawCandidate, parsed.FinishReason, parsed.ProviderUsage = draft.RawCandidate, draft.FinishReason, draft.ProviderUsage
 	if err != nil {
 		return parsed, err

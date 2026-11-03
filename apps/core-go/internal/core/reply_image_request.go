@@ -22,7 +22,7 @@ func replyWriterDefinitions(input ReplyContextInput) []CapabilityDefinition {
 	if input.CapabilityFacts["image_generation_registered"] == true {
 		definitions = append(definitions, (&replyImageRequestTool{}).Definition())
 	}
-	if input.CapabilityFacts["persona_detail_registered"] == true && firstString(input.ExpressionVersion, factOnlyReplyPromptVersion) == factOnlyReplyPromptVersion {
+	if input.CapabilityFacts["persona_detail_registered"] == true && replyUsesTextChatProtocol(input.ExpressionVersion) {
 		definitions = append(definitions, personaDetailCapabilityDefinition())
 	}
 	return definitions

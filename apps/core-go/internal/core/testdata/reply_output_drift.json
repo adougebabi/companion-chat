@@ -17,7 +17,7 @@
   {"name":"empty_reply","input":"# 回复\n# 认知\n私密分析","want":""},
   {"name":"no_reply_after_private","input":"# Reasoning\nprivate reasoning\n# Ledger\nprivate record\nUnlabelled continuation","want":""},
   {"name":"private_xml","input":"<think>private reasoning</think>\n# 回复\n你好。\n# 事务记录\nprivate","want":"你好。"},
-  {"name":"ordinary_markdown","input":"# 茶的选择\n\n**乌龙茶**和绿茶都不错。\n\n- Earl Grey\n- 龙井","want":"# 茶的选择\n\n**乌龙茶**和绿茶都不错。\n\n- Earl Grey\n- 龙井"},
+  {"name":"ordinary_markdown","input":"# 茶的选择\n\n**乌龙茶**和绿茶都不错。\n\n- Earl Grey\n- 龙井","want":"茶的选择\n\n**乌龙茶**和绿茶都不错。\n\n- Earl Grey\n- 龙井"},
   {"name":"ordinary_english","input":"Response time matters. I simply prefer tea.\n认知科学很有趣，回复也可以慢慢想。","want":"Response time matters. I simply prefer tea.\n认知科学很有趣，回复也可以慢慢想。"},
   {"name":"code_in_reply","input":"# 回复\n示例：\n```python\n# 认知\nprint('hello')\n```\n# 认知\n私密分析","want":"示例：\n```python\n# 认知\nprint('hello')\n```"},
   {"name":"json_reply_envelope","input":"{\"text\":\"# 回复\\n你好。\\n# 认知\\nprivate\"}","want":"你好。"},

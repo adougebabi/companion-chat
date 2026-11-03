@@ -62,16 +62,13 @@ func stripReplyPrivateXML(text string) string {
 	// Only the start of an XML block determines whether it is protocol or a
 	// literal code example. An internal block may itself contain fenced code.
 	code := make([]bool, len(text))
-	fenced, offset := false, 0
+	var fence replyMarkdownFence
+	offset := 0
 	for _, line := range strings.SplitAfter(text, "\n") {
-		isFence := replyFence(line)
-		if fenced || isFence {
+		if fence.consume(strings.TrimSuffix(line, "\n")) || replyIndentedCodeLine(line) {
 			for i := offset; i < offset+len(line); i++ {
 				code[i] = true
 			}
-		}
-		if isFence {
-			fenced = !fenced
 		}
 		offset += len(line)
 	}
@@ -150,7 +147,7 @@ func replyJSONStringEnd(text string, start int) (int, bool) {
 // publication boundary. Ambiguous sections degrade to cleaned plain paragraphs,
 // never the raw envelope; exact repeats are deduped.
 func extractReplyBody(text string) string {
-	text = strings.TrimSpace(stripReplyPrivateXML(strings.ReplaceAll(text, "\r\n", "\n")))
+	text = trimReplyText(stripReplyPrivateXML(strings.ReplaceAll(text, "\r\n", "\n")))
 	// A single ordinary word in a text field is prose, not an empty heading.
 	if !strings.ContainsAny(text, "\n#:：*_[]【】>") {
 		if section, _ := replySection(text); section == "reply" {
@@ -163,7 +160,7 @@ func extractReplyBody(text string) string {
 	if len(lines) > 1 && replyProtocolWrapper.MatchString(strings.TrimSpace(lines[0])) {
 		protocol := false
 		for _, line := range lines[1:] {
-			if section, _ := replySection(line); section != "" {
+			if section, _ := replySection(line); section == "private" {
 				protocol = true
 			}
 		}
@@ -176,29 +173,26 @@ func extractReplyBody(text string) string {
 		}
 	}
 	var expanded []string
-	fenced := false
+	var fence replyMarkdownFence
 	for _, line := range lines {
-		if replyFence(line) {
-			fenced = !fenced
-		}
-		if !fenced {
+		if !fence.consume(line) && !replyIndentedCodeLine(line) {
 			line = replyInlineHeading.ReplaceAllString(line, "$1\n$2")
 		}
 		expanded = append(expanded, strings.Split(line, "\n")...)
 	}
 	lines = expanded
 	hasReply := false
-	fenced = false
+	fence = replyMarkdownFence{}
 	for _, line := range lines {
-		if replyFence(line) {
-			fenced = !fenced
+		if fence.consume(line) || replyIndentedCodeLine(line) {
 			continue
 		}
-		if section, _ := replySection(line); !fenced && section == "reply" {
+		if section, _ := replySection(line); section == "reply" {
 			hasReply = true
 		}
 	}
-	active, fenced := !hasReply, false
+	active := !hasReply
+	fence = replyMarkdownFence{}
 	var chunks []string
 	var body []string
 	flush := func() {
@@ -215,28 +209,25 @@ func extractReplyBody(text string) string {
 		chunks = append(chunks, chunk)
 	}
 	for _, line := range lines {
-		if replyFence(line) {
-			fenced = !fenced
+		if fence.consume(line) || replyIndentedCodeLine(line) {
 			if active {
 				body = append(body, line)
 			}
 			continue
 		}
-		if !fenced {
-			if section, inline := replySection(line); section != "" {
-				flush()
-				active = section == "reply"
-				if active && inline != "" {
-					body = append(body, inline)
-				}
-				continue
+		if section, inline := replySection(line); section != "" {
+			flush()
+			active = section == "reply"
+			if active && inline != "" {
+				body = append(body, inline)
 			}
-			metadata := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(line, "**", ""), "__", ""))
-			if replyLedgerField.MatchString(metadata) || replyTimestamp.MatchString(metadata) {
-				flush()
-				active = false
-				continue
-			}
+			continue
+		}
+		metadata := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(line, "**", ""), "__", ""))
+		if replyLedgerField.MatchString(metadata) || replyTimestamp.MatchString(metadata) {
+			flush()
+			active = false
+			continue
 		}
 		if active {
 			body = append(body, line)

@@ -179,7 +179,7 @@ func (service *ToolPublicationService) PublishConversationReplyTx(ctx context.Co
 			if err := tx.QueryRow(ctx, `SELECT text FROM public.conversation_messages WHERE id=$1`, previousID).Scan(&previousText); err != nil {
 				return publishedResource{}, err
 			}
-			return publishedResource{ID: previousID, DuplicateSuppressed: true, Text: extractReplyBody(previousText)}, nil
+			return publishedResource{ID: previousID, DuplicateSuppressed: true, Text: stripReplyMarkdownHeadings(extractReplyBody(previousText))}, nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return publishedResource{}, err

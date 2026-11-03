@@ -9,7 +9,8 @@ import (
 )
 
 const ProviderContextSurfaceFactOnlyReply ProviderContextSurface = "fact_only_reply"
-const factOnlyReplyPromptVersion = "fact-only-reply.v5"
+const factOnlyReplyPromptVersion = "fact-only-reply.v6"
+const factOnlyReplyV5PromptVersion = "fact-only-reply.v5"
 const factOnlyReplyLegacyPromptVersion = "fact-only-reply.v4"
 const replySceneMoment = "moment"
 

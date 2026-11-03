@@ -370,7 +370,7 @@ func (a *App) ownerMomentInteraction(ctx context.Context, owner, id, op string, 
 var momentSelfiePlaceholder = regexp.MustCompile(`[\[【]\s*自拍照\s*[:：][^\]】]*[\]】]`)
 
 func momentPublicationText(text string, hasMedia bool) (string, error) {
-	draft, err := parseReplyDraft(text)
+	draft, err := parseReplyDraftForScene(text, replySceneMoment)
 	if err != nil {
 		return "", fmt.Errorf("%w: Moment text is invalid", ErrInvalidArguments)
 	}

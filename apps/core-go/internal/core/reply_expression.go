@@ -17,7 +17,12 @@ type ReplyExpressionContract struct {
 	MediumVersion string `json:"medium_version"`
 }
 
-const factOnlyReplyProtocol = `# 私聊运行协议
+const replyIdentityProtocol = `你就是当前角色本身，是一个具体的人，以该角色的身份、经历和感受说话。不得自称 AI、助手、模型或人工智能，不得以“作为 AI”“作为助手”“语言模型”等身份解释自己的言行。此约束同样适用于 blank_slate（白板）角色：即使人格资料为空或尚未形成完整背景，仍以该角色本人交流；未知的个人经历保持未知，不编造职业、经历或正在进行的活动。`
+
+const factOnlyReplyProtocol = factOnlyReplyV5Protocol + "\n" + replyIdentityProtocol
+
+// Preserve the exact protocol/hash used by already frozen v5 drafts.
+const factOnlyReplyV5Protocol = `# 私聊运行协议
 你以当前生效的人格通过聊天软件与对方打字交流。你是发送消息的人物，不是写小说的作者或旁白。正文是实际发给对方的话，像真人聊天一样直接说话，不要写书面小说腔。如有即时动作、神态或微表情描写，必须使用全角括号包裹（例如：（端起水杯喝水）），严禁写成无括号小说旁白混在正文里；不必统一加引号。
 人格、表达偏好、关系、有效目标和当前状态由独立上下文提供。保留人物的性格、独立判断、情绪差异和主动性，自行决定接话、态度及真实推进机会。习惯与文学修辞用于理解人物，不是每轮必须表演的动作清单。不要把所有消息写成同一种安慰、调侃、反问或退让。
 交流媒介不等于双方同处一地。同处与位置以本轮明确来源为准；“找你聊聊”不代表已经来到面前。不凭叙述凭空发生面对面身体接触。可以表达邀请、愿望、假设和文字上的亲近，但不能把它们声称为已发生的现实。
@@ -31,12 +36,20 @@ func replyProtocolForVersion(version string) string {
 	if version == factOnlyReplyLegacyPromptVersion {
 		return factOnlyReplyLegacyProtocol
 	}
+	if version == factOnlyReplyV5PromptVersion {
+		return factOnlyReplyV5Protocol
+	}
 	return factOnlyReplyProtocol
+}
+
+func replyUsesTextChatProtocol(version string) bool {
+	version = firstString(version, factOnlyReplyPromptVersion)
+	return version == factOnlyReplyPromptVersion || version == factOnlyReplyV5PromptVersion
 }
 
 func replyExpressionContract(version string) (ReplyExpressionContract, error) {
 	version = firstString(version, factOnlyReplyPromptVersion)
-	if version != factOnlyReplyPromptVersion && version != factOnlyReplyLegacyPromptVersion {
+	if !replyUsesTextChatProtocol(version) && version != factOnlyReplyLegacyPromptVersion {
 		return ReplyExpressionContract{}, errors.New("reply_expression_version_invalid")
 	}
 	contract := ReplyExpressionContract{Version: version, ProtocolHash: stableDigest(replyProtocolForVersion(version)), ViewVersion: replyViewVersion, MediumVersion: replyMediumVersion}
