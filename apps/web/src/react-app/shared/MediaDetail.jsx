@@ -9,6 +9,7 @@ import useWorkspaceRead from "./useWorkspaceRead";
 import { MediaReader, SavedMedia } from "./MediaParts";
 import MediaGrants from "./MediaGrants";
 import MediaLifecycle from "./MediaLifecycle";
+import MediaSourceResults from "./MediaSourceResults";
 import {
   mediaSource,
   mediaKind,
@@ -238,9 +239,7 @@ export default function MediaDetail({ model: m, id, onClose }) {
                 </a>
               )}
               <Disclosure title="生成时来源与资产校验信息">
-                <pre className="replica-source-record">
-                  {JSON.stringify(asset, null, 2)}
-                </pre>
+                <MediaSourceResults asset={asset} />
               </Disclosure>
               {advanced && (
                 <>
