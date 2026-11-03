@@ -9,6 +9,62 @@ const inlineHeadingPattern = new RegExp(`(\\S[ \\t]+)(#{1,6}[ \\t]*(?:${sectionN
 const metadataPattern = /^\s*(?:[-*]\s*)?(?:\*\*)?(?:发言时间|发送时间|发送消息类型|消息类型|使用工具|工具使用|工具调用|关键数据|时间戳|timestamp|sent\s*(?:at|time)|message\s*type|tools?\s*used|tool calls?|key\s*data)(?:\*\*)?\s*[:：]/i;
 const timestampPattern = /^\s*(?:[-*]\s*)?\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?\s*$/;
 
+// Match Core's fence rules: only the same marker with sufficient width and
+// no trailing content closes a fence. Both boundary lines are protected code.
+function markdownFence() {
+  let marker = '', width = 0;
+  /** @param {string} line */
+  return line => {
+    const match = /^ {0,3}(`+|~+)([\s\S]*)$/.exec(line);
+    if (!match) return width > 0;
+    const run = match[1], rest = match[2];
+    if (width) {
+      if (run[0] === marker && run.length >= width && !rest.trim()) width = 0;
+      return true;
+    }
+    if (run.length >= 3 && (run[0] !== '`' || !rest.includes('`'))) {
+      marker = run[0];
+      width = run.length;
+      return true;
+    }
+    return false;
+  };
+}
+
+/** @param {string} line */
+function indentedCodeLine(line) {
+  return /^(?: {4}| *\t)/.test(line);
+}
+
+/** Trim prose edges without removing indentation or fenced code whitespace.
+ * @param {string} text
+ */
+function trimReplyText(text) {
+  const lines = text.split('\n');
+  while (lines.length && !lines[0].trim()) lines.shift();
+  const consumeFence = markdownFence();
+  const protectedLines = lines.map(line => consumeFence(line) || indentedCodeLine(line));
+  while (lines.length && !protectedLines[lines.length - 1] && !lines.at(-1).trim()) lines.pop();
+  if (!lines.length) return '';
+  if (!protectedLines[0]) lines[0] = lines[0].trimStart();
+  if (!protectedLines[lines.length - 1]) lines[lines.length - 1] = lines.at(-1).trimEnd();
+  return lines.join('\n');
+}
+
+/** Remove ATX heading delimiters, preserving hashes in prose and code.
+ * @param {string} text
+ */
+function stripMarkdownHeadings(text) {
+  const consumeFence = markdownFence();
+  return text.split('\n').map(line => {
+    if (consumeFence(line) || indentedCodeLine(line)) return line;
+    const heading = /^( *)(#{1,6})(?=[ \t]|\r?$)[ \t]*([\s\S]*?)(\r?)$/.exec(line);
+    if (!heading) return line;
+    const body = heading[3].replace(/(?:[ \t]+|^)#+[ \t]*$/, '');
+    return heading[1] + body + heading[4];
+  }).join('\n');
+}
+
 /** @param {string} line */
 function section(line) {
   let value = line.trim();
@@ -38,16 +94,10 @@ function section(line) {
  */
 function cleanProtocolLines(lines) {
   const result = [];
-  let codeFence = '', privateTag = '';
+  const consumeFence = markdownFence();
+  let privateTag = '';
   for (const line of lines) {
-    if (codeFence) {
-      result.push(line);
-      if (line.trim().startsWith(codeFence)) codeFence = '';
-      continue;
-    }
-    const fence = /^\s*(`{3,}|~{3,})/.exec(line);
-    if (!privateTag && fence) {
-      codeFence = fence[1];
+    if (!privateTag && (consumeFence(line) || indentedCodeLine(line))) {
       result.push(line);
       continue;
     }
@@ -120,7 +170,7 @@ function envelopeBody(text) {
  */
 export function replyBodyText(input) {
   if (typeof input !== 'string') return '';
-  let text = input.replace(/\r\n?/g, '\n').trim();
+  let text = trimReplyText(input.replace(/\r\n?/g, '\n'));
   // Legacy records may contain Writer's JSON envelope rather than its text.
   const json = text.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
   if (json.startsWith('{')) {
@@ -134,31 +184,31 @@ export function replyBodyText(input) {
       text = envelopeBody(json);
     }
   }
-  if (!/[\n#:：*_\[\]【】>]/.test(text) && replyNames.includes(text.trim().toLowerCase())) return text.trim();
+  if (!/[\n#:：*_\[\]【】>]/.test(text) && replyNames.includes(text.trim().toLowerCase())) return text;
   let lines = text.split('\n');
-  const wrapped = /^\s*(?:```|~~~)(?:markdown|md|text|plaintext)?\s*$/i.test(lines[0] || '') && lines.some(line => section(line));
+  const wrapped = /^\s*(?:```|~~~)(?:markdown|md|text|plaintext)?\s*$/i.test(lines[0] || '') && lines.slice(1).some(line => section(line)?.reply === false);
   if (wrapped) {
     lines = lines.slice(1);
     if (/^\s*(?:```|~~~)\s*$/.test(lines.at(-1) || '')) lines.pop();
   }
   lines = cleanProtocolLines(lines);
-  let hasReply = false, scanFence = '';
+  let hasReply = false;
+  const scanFence = markdownFence();
   for (const line of lines) {
-    const fence = /^\s*(`{3,}|~{3,})/.exec(line);
-    if (fence) { scanFence = scanFence ? '' : fence[1]; continue; }
-    if (!scanFence && section(line)?.reply) hasReply = true;
+    if (scanFence(line) || indentedCodeLine(line)) continue;
+    if (section(line)?.reply) hasReply = true;
   }
   const chunks = [];
-  let current = [], visible = !hasReply, codeFence = '';
+  const consumeFence = markdownFence();
+  let current = [], visible = !hasReply;
   function flush() {
-    const body = current.join('\n').trim();
+    const body = trimReplyText(current.join('\n'));
     if (body && !chunks.includes(body)) chunks.push(body);
     current = [];
   }
   for (const line of lines) {
-    if (codeFence) {
+    if (consumeFence(line) || indentedCodeLine(line)) {
       if (visible) current.push(line);
-      if (line.trim().startsWith(codeFence)) codeFence = '';
       continue;
     }
     const heading = section(line);
@@ -173,10 +223,8 @@ export function replyBodyText(input) {
       visible = false;
       continue;
     }
-    const fence = /^\s*(`{3,}|~{3,})/.exec(line);
-    if (fence) codeFence = fence[1];
     if (visible) current.push(line);
   }
   flush();
-  return chunks.join('\n\n');
+  return stripMarkdownHeadings(chunks.join('\n\n'));
 }

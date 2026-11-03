@@ -47,12 +47,40 @@ for (const [name, raw, expected] of [
   ['bold label may enclose the colon', '**回复：** 你好。', '你好。'],
   ['flattened historical inbox body', '# 回复 当然可以啊，别客气。 # 认知 内部认知 # 回复 当然可以啊，别客气。 # 事务记录 - 使用工具：无', '当然可以啊，别客气。'],
   ['plain body metadata removed', '当然可以。\n- 发言时间：2026-11-02T20:57:47+08:00\n- 使用工具：无\n2026-11-02T20:57:47+08:00', '当然可以。'],
-  ['normal Markdown, English and code are preserved', '# 周末计划\nLet’s go hiking.\n\n- **带水**\n\n```js\nconsole.log("hello");\n```', '# 周末计划\nLet’s go hiking.\n\n- **带水**\n\n```js\nconsole.log("hello");\n```'],
+  ['normal Markdown, English and code are preserved', '# 周末计划\nLet’s go hiking.\n\n- **带水**\n\n```js\nconsole.log("hello");\n```', '周末计划\nLet’s go hiking.\n\n- **带水**\n\n```js\nconsole.log("hello");\n```'],
   ['ordinary fenced XML and inline protocol comments stay literal', '# 回复\nHTML 示例：\n```html\n<analysis>keep this example</analysis>\n<!-- before # 回复 keep this comment # 认知 literal -->\n```\n# 认知\nprivate', 'HTML 示例：\n```html\n<analysis>keep this example</analysis>\n<!-- before # 回复 keep this comment # 认知 literal -->\n```'],
   ['private XML takes priority over fences inside its content', '<think>\n```html\nprivate reasoning\n```\n</think>\nHello.', 'Hello.'],
   ['ordinary reply prose is not mistaken for a heading', '回复你之前，我想先问问。\nResponse times vary.\n分析这个问题需要一些时间。', '回复你之前，我想先问问。\nResponse times vary.\n分析这个问题需要一些时间。'],
 ]) {
   test(name, () => assert.equal(replyBodyText(raw), expected));
+}
+
+for (const [name, raw, expected] of [
+  ['all six ATX levels', '# 一\n## 二\n### 三\n#### 四\n##### 五\n###### 六', '一\n二\n三\n四\n五\n六'],
+  ['heading indentation and body whitespace', '前文。\n  ## \t标题  \n段落  内空格\t保留。', '前文。\n  标题  \n段落  内空格\t保留。'],
+  ['optional closing hashes', '### 标题 ###  \n# C#\n## 标题 #tag\n#\t制表符\t##', '标题\nC#\n标题 #tag\n制表符'],
+  ['empty heading delimiters', '前文\n#\n## \n### ###\n原正文。', '前文\n\n\n\n原正文。'],
+  ['CRLF headings', '# 标题\r\n原正文。\r\n## 后续', '标题\n原正文。\n后续'],
+  ['hashtags, escaped hashes and inline code', '#话题\n####### 七个不是标题\n正文 # 标记\nC#\n\\# 转义\n`# 内联代码`\n`# Reply`', '#话题\n####### 七个不是标题\n正文 # 标记\nC#\n\\# 转义\n`# 内联代码`\n`# Reply`'],
+  ['other Markdown', '- 列表\n> # 引用\n**加粗**\n标题\n===\n[链接](https://example.com/#anchor)', '- 列表\n> # 引用\n**加粗**\n标题\n===\n[链接](https://example.com/#anchor)'],
+  ['backtick code inside a reply section', '# 回复\n# 标题\n```md\n# 保留\n###### 也保留\n```\n## 后续\n# 认知\nprivate', '标题\n```md\n# 保留\n###### 也保留\n```\n后续'],
+  ['tilde code', '~~~md\n## 保留\n~~~\n# 后续', '~~~md\n## 保留\n~~~\n后续'],
+  ['indented code and three-space heading', '示例：\n    # Reply\n    ## 注释\n\t## 注释\n   ### 标题', '示例：\n    # Reply\n    ## 注释\n\t## 注释\n   标题'],
+  ['standalone indented code', '    # Reply\n    ## 注释\n\t# 注释', '    # Reply\n    ## 注释\n\t# 注释'],
+  ['code at prose whitespace boundaries', '\n   ```python\n# 注释  \n```  \n\n', '   ```python\n# 注释  \n```  '],
+  ['standalone fenced reply label stays code', '```markdown\n# Reply\n## 标题作为代码保留\n```', '```markdown\n# Reply\n## 标题作为代码保留\n```'],
+  ['fence width, marker and trailing text', '````md\n```\n# Reply\n# 保留\n~~~\n## 保留\n```` trailing\n### 保留\n`````\n# 后续', '````md\n```\n# Reply\n# 保留\n~~~\n## 保留\n```` trailing\n### 保留\n`````\n后续'],
+  ['indented fence boundaries', '   ~~~md\n# 保留\n   ~~~~\n# 后续', '   ~~~md\n# 保留\n   ~~~~\n后续'],
+  ['unclosed fence and trailing whitespace', '原正文。\n```md\n# 保留\n## 保留\n  \n', '原正文。\n```md\n# 保留\n## 保留\n  \n'],
+  ['backtick in fence info is not a fence', '```md`literal\n# 标题', '```md`literal\n标题'],
+  ['JSON envelope heading', '{"text":"# 今天的事\\n正文。"}', '今天的事\n正文。'],
+  ['JSON envelope indented code', '{"text":"    # 注释"}', '    # 注释'],
+  ['malformed envelope heading', '{"text":"## 今天的事\\n正文。"', '今天的事\n正文。'],
+]) {
+  test(`reply Markdown cleanup: ${name}`, () => {
+    assert.equal(replyBodyText(raw), expected);
+    assert.equal(replyBodyText(expected), expected, 'cleanup remains idempotent');
+  });
 }
 
 test('active chat filters historical assistant output but preserves the user message and stored text', async () => {
