@@ -55,7 +55,8 @@ func (a *App) RecoverInitialWardrobe(ctx context.Context, owner, fid string, bod
 		}
 		result["status"], result["restarted"] = "pending", true
 		if cause != nil {
-			result["previous_error"] = boundedLifecycleCause(*cause)
+			_, reason := wardrobePreparationFailure(errors.New(*cause))
+			result["previous_error"] = reason
 		}
 	} else if status != "pending" && status != "retry" && status != "started" && status != "running" && status != "completed" {
 		return nil, &SurfaceError{Status: 409, Code: "wardrobe_recovery_unavailable", Message: "原衣橱初始化任务当前不可恢复，请核对任务状态"}
