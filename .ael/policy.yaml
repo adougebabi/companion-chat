@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "max_retries": 3,
+  "max_seconds": 3600,
+  "checks": [],
+  "critical_knowledge": [
+    "lac-project-entry"
+  ],
+  "delivery_requires_confirmation": true,
+  "candidate_exclude": [
+    ".env",
+    "infra/compose/fluctlight.local.env",
+    ".gocache",
+    ".gocache-gateway",
+    ".gomodcache",
+    ".venv",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".pnpm-store",
+    ".worktrees",
+    ".idea",
+    ".trellis",
+    ".v3-regression",
+    "data",
+    "dist",
+    "apps/web/dist",
+    "test-results",
+    "playwright-report"
+  ]
+}

@@ -1,0 +1,855 @@
+---
+{"id":"legacy-68be5396ba3fecfcf55a2f9f","title":"fluctlight-autonomy-contract.md","kind":"spec","status":"conflict","paths":["apps/core-go/internal/core/wake","apps/core-go/internal/core/autonomy","apps/core-go/internal/core/owner_autonomy","apps/core-go/internal/core/goal_evaluation","apps/core-go/internal/core/intention"],"source":".trellis/spec/backend/fluctlight-autonomy-contract.md#sha256=e5cb52873173ad8897307a89da84cbab6aff0002855d1e89f77d2b8d58876995","superseded_by":"","tasks":null,"critical":false,"path":"","hash":"","body":"","reason":""}
+---
+# 迁移审阅说明
+
+当前上位 Prompt Composition 明确禁止应用层 token 上限；本合同后部12000 provider-input bounds不再作为输入门禁，128-source查询数量不得与token上限混同。另有缺会话时拒绝/创建的未裁定矛盾，本文标记conflict，涉及该范围不能据任一段直接放行。
+
+依据：.trellis/spec/backend/prompt-composition-contract.md#sha256=7d74449576eecc2f6cf6c6fceffb4acef7fddff7d6798a0c11328925daca474c
+
+## 保留的原文
+
+# Fluctlight Autonomy Contract
+
+## Scenario: Pre-Authorized Goals, Intentions, And Audited Actions
+
+### 1. Scope / Trigger
+
+- Trigger: a Drive/Event/Human request/Reflection proposes a Goal, a Goal produces an Intention, a trigger becomes due, or an autonomous Action is executed/governed.
+- LLM owns semantic goal/intention/action proposals. Go Core owns lifecycle, permissions, budgets, timing facts, workflow, freeze, execution authorization, and audit.
+- Owner grants policy in advance; normal allowed Actions do not require per-action confirmation.
+
+### 2. Signatures
+
+```python
+propose_goal(command: GoalEvidence) -> GoalCandidate
+accept_goal(command: AcceptGoal, tx: UnitOfWork) -> Goal
+propose_intention(command: IntentionEvidence) -> IntentionCandidate
+qualify_intention(command: QualifyIntention, tx: UnitOfWork) -> Intention
+freeze_action(command: FreezeAutonomousAction, tx: UnitOfWork) -> FrozenAction
+govern(command: PauseResumeCancel, tx: UnitOfWork) -> GovernanceResult
+```
+
+Goal status: `candidate | active | paused | completed | abandoned | cancelled`.
+
+Intention includes Goal/one-shot Event reference, action, preferred time, typed trigger, confidence, expiration, evidence, permission/budget snapshot, status, and revision.
+
+### 3. Contracts
+
+- Goal source is `drive | event | human | self`. A Human request is evidence, not automatic forced execution.
+- Goal has no side effect. A qualified Intention is required for Intention-driven actions; independent
+  Tools use explicit authorization, resources and stable business operations.
+- Time triggers use Temporal durable timers; Event triggers use inbox facts; semantic triggers re-enter LLM assessment and are not keyword listeners.
+- A ready current-local-day Schedule is one typed lifecycle fact. The Worker may
+  enqueue a stable `life_world.daily_review` inbox fact containing the accepted
+  Schedule, active Goals/Intentions, existing direct-conversation target when
+  present, and the frozen Foundation profile. The model decides `no_op`,
+  `proactive_message`, or `moment`; Go Core never derives an action from idle
+  duration or Schedule text.
+- Execution rechecks current permission, per-action budget, quiet hours, cooldown, concurrency, Context, Schedule, Relationship, state revisions, and expiration.
+- Go Core freezes the accepted final decision. Retry reuses it and stable IDs rather than re-assessing implicitly.
+- Background Agents pass `AuthorizationPolicy="autonomy"` explicitly. Each Tool
+  checks actual action permissions, quiet hours, cooldown and budget in its own
+  short transaction. `tool_policy_reservations` reserves budget once per run.
+  Internal cognition continues when external actions are denied. Direct Owner
+  commands remain governed by Owner authorization rather than Agent names.
+- Tool preparation/Provider work occurs outside its transaction. Domain effect,
+  receipt and outbox commit together. Later sibling/model/final-output failure
+  preserves earlier committed effects; retries cannot rerun the entire Agent.
+- Allowed pre-authorized Actions: any installed, preflighted Capability slot plus
+  internal Memory/Relationship/Goal/Intention candidates. Product code does not
+  restrict the semantic Action type; the CapabilityDefinition and Core hard
+  safety/authorization boundary remain authoritative.
+- Forbidden autonomous Actions: identity-anchor/safety/Owner permission change, Provider/infrastructure setting change, destructive other-Actor/Fluctlight data action, budget bypass, or external irreversible action without a future explicit authorization model.
+- Owner may inspect/pause/resume/cancel pending Goal/Intention/workflow and set `autonomy_mode` plus per-action policy. Governance appends history and audit; it does not erase facts.
+- Paused mode blocks new autonomous external Actions but allows time, Context, Schedule, affect/drive decay, inbox facts, and explicit Human interaction.
+- Screen/mute blocks proactive visibility/delivery according to policy without punishing Relationship or stopping internal life.
+- A proactive message requires an already-existing direct Conversation ID at
+  freeze time. A model proposal without that factual target is rejected; code
+  never creates a conversation merely to make a proactive message possible.
+- Autonomous proactive delivery suppresses an exact duplicate assistant text
+  already sent by the same Fluctlight in the same Conversation during the
+  recent duplicate window (12 hours). Suppression completes and audits the
+  Action with `delivery_status=duplicate_suppressed`; it does not alter normal
+  user-triggered reply handling.
+- A Moment is shared-feed content by default (`participants`). The current
+  product exposes the Owner's authorized instances only; future Fluctlight
+  cross-feed/group readers extend consumption without changing Moment history.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Goal/Intention lacks evidence, owner, source, or bounded fields | Reject candidate; no fallback Goal. |
+| Trigger condition is free-form code/keyword matcher | Reject; use typed time/Event or semantic reassessment. |
+| Permission disabled, budget exhausted, quiet hours/cooldown active | Deny/defer by explicit policy and record reason; do not reinterpret semantics. |
+| State/Schedule/Relationship revision changed before freeze | Requalify/re-assess explicitly; do not execute stale action. |
+| Frozen Action retry | Reuse same decision/workflow/Provider IDs; no duplicate action. |
+| Tool commits before later sibling/model/final settlement fails | Preserve committed receipt/effect, record failed run and partial facts; do not replay the whole Agent. |
+| Owner pauses/cancels | Append lifecycle/audit transition, cancel cooperative workflow, preserve history. |
+| Paused Fluctlight receives direct Human message | Process explicit interaction; do not create unrelated autonomous external Actions. |
+| Action targets forbidden infrastructure/destructive capability | Hard reject regardless of LLM confidence. |
+| Proactive proposal has no direct Conversation target | Reject before autonomy freeze; do not create a conversation or fallback message. |
+| Daily review is retried/replayed | Reuse the stable local-date fact ID; do not create duplicate Moment or proactive Action. |
+| Proactive text exactly matches a recent assistant message | Complete the autonomous Action with `duplicate_suppressed`; do not append another visible message. |
+
+When a daily-review activity returns `schedule_pending`, the workflow waits a
+bounded interval and continues as new with an empty `local_date`; the next
+activity recalculates the Fluctlight's current local date and rechecks the
+accepted Schedule before asking the model for an action. Carrying the original
+activation date can leave a permanently pending review after a local-day
+boundary.
+
+### 5. Good / Base / Bad Cases
+
+- Good: intimacy Drive and relationship evidence produce a Goal, a timed Intention, a fresh assessment, one frozen proactive message, and an audited delivery under budget.
+- Good: Owner pauses autonomy; Schedule and affect decay continue while pending external intentions remain paused.
+- Base: a due Intention is denied by quiet hours and explicitly deferred without changing its semantic meaning.
+- Bad: “no message for 10 minutes” directly sends a message, regex creates a Goal, cancellation deletes history, or LLM changes Provider settings.
+- Bad: report a committed Tool as rolled back, replay it after model failure,
+  or bypass the actual action policy by selecting a different surface.
+
+### 6. Tests Required
+
+- Goal/Intention contract tests for every source/status, evidence, revisions, expiration, and typed trigger.
+- Workflow tests for durable time/Event triggers, semantic reassessment, frozen retry, idempotent Action, and restart recovery.
+- Policy tests for permission, budget, quiet hours, cooldown, concurrency, screen/mute, and forbidden Actions.
+- Governance tests for inspect/pause/resume/cancel, cooperative workflow cancellation, immutable history, audit, and active/paused mode.
+- Concurrency tests with direct interaction, lifecycle Event, and due Intention for one Fluctlight inbox.
+- Assert recent exact proactive text is suppressed transactionally while
+  different text and text outside the duplicate window still deliver.
+- Anti-heuristic tests prove time/engagement facts are LLM inputs and code does not infer relationship/action meaning.
+- Local atomicity tests fail receipt/outbox persistence and assert that Tool
+  rolls back; later-sibling failures preserve previously committed receipts.
+
+### T04 Ownership And Governance Persistence
+
+Goal and Intention rows are owned by a Fluctlight. An Intention may reference a
+Goal only when `(fluctlight_id, goal_id)` matches the Goal owner. Qualification,
+pause/resume, completion, expiration, and cancellation append immutable
+governance rows containing actor, old status, new status, reason, and revision;
+they never delete or rewrite prior lifecycle history. A paused Intention cannot
+resume after its expiration and must transition through `expired` instead.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+if now - last_human_message > timedelta(minutes=10):
+    send_proactive_message("I miss you")
+```
+
+#### Correct
+
+```python
+inbox.enqueue(IntentionDueFact(intention_id=intention.id))
+decision = cognition.process_next(fluctlight_id)
+autonomy_policy.freeze_and_schedule(decision, current_policy, tx=tx)
+```
+
+## Scenario: Periodic Wake-Up And Internal-Life Loop
+
+### 1. Scope / Trigger
+
+- Trigger: an active Fluctlight's quiet-period Redis hint expires, or a Worker
+  repairs a completed `wake_up.current` intent after restart.
+- Purpose: give the Fluctlight a bounded internal cycle even when no human or
+  life-world event arrived, while keeping external autonomy governed.
+
+### 2. Signatures
+
+```text
+WakeUpWorkflow(ctx, {fluctlight_id, cycle}) -> WakeUpResult
+ProcessWakeUp(ctx, fluctlight_id, cycle) -> WakeUpResult
+```
+
+`WakeUpResult` contains `wake_up_id`, `cycle`, `status`, `action_type`,
+`action_id`, `reflection_intent_id`, and `interval_seconds`. Wake-up is an
+action assessment only; it does not run a second cognition-stage pass or mutate
+Current State. The persisted `cognition_wakeups` row keeps the current
+`internal_dynamics` snapshot for audit compatibility, the requested/actual
+action type, and the bounded action result. Legacy stage columns remain empty
+for new rows. The corresponding `internal.wake_up` cognition fact is assigned
+the next per-Fluctlight sequence and is marked processed only after its row and
+the `reflection.run` intent are committed.
+
+### 3. Contracts
+
+- Activation writes one stable `wake_up.current` intent with workflow ID
+  `wake_up:<fluctlight_id>` and cycle `0`; each cycle ID is derived from the
+  Fluctlight ID and cycle number, so retries and Worker restarts are idempotent.
+- The default interval is 1800 seconds. Core clamps configured
+  `product.wakeup.interval_seconds` to 300–86400 seconds and accepts
+  `product.wakeup.enabled=false` as an explicit pause of the internal timer.
+- The formal WakeUp Agent owns semantic decisions and native Tool selection.
+  Each Tool executes through `ExecuteTool` and feeds its actual receipt into the
+  next model decision. A legal final no-op completes without visible output;
+  invalid final output, cancellation and runtime errors remain failures.
+- `conversation.reply` and `moment.publish` commit through the existing
+  publication service. Media Tools return actual accepted intents. The outer
+  WakeUp handler consumes committed results and never schedules a second
+  execution of those native calls.
+- Proactive reply requires an explicit authorized direct conversation target.
+  Exact recent duplicate suppression applies only under the autonomy policy.
+  No synthetic user message is needed to execute the Agent or a Tool.
+- A state Tool owns its explicit evidence/business constraints. There is no
+  universal freeze stage or sidecar requirement before Tool execution.
+- Every wake-up commits a processed `internal.wake_up` fact and one stable
+  `reflection.run` intent. Reflection consumes it through the normal evidence
+  window and watermark/CAS boundary; a wake-up does not write self-model or
+  personality values directly.
+- `WakeUpWorkflow` executes one cycle and completes. Core resets a Redis
+  `fluctlight:wakeup:due:<fluctlight_id>` quiet-period hint after a completed
+  user turn and after a successful wake-up; expiry advances the durable intent
+  cycle and dispatches the stable workflow ID again. PostgreSQL/Temporal remain
+  authoritative and Redis is only a debounce/recovery hint. Inactive or
+  disabled Fluctlights do not schedule another quiet-period key.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing/negative cycle or Fluctlight ID | Reject with `wake_up_*_required/invalid`; no fact or action |
+| Wake-up assessment has neither an action decision nor any CapabilityInvocation, returns an unsupported action, or exceeds bounded field size | Reject; no synthetic cognition state or fallback action is persisted |
+| Native Tools execute and a legal final DTO completes | Record actual committed outputs and finish lifecycle once |
+| Provider failure or invalid final JSON | Record failed run and retain committed effects; same-run recovery cannot restart the model decision loop |
+| Autonomy paused or capability is not installed/authorized | Persist the internal cycle as `blocked`/`deferred`; do not create an external Action |
+| Capability arguments or Definition are malformed | Fail closed and persist the internal cycle without an external Action |
+| Proactive action has no direct conversation projection | Core ensures the Owner/Fluctlight direct conversation before freezing the action; only a creation failure remains a bounded workflow error |
+| Duplicate cycle retry | Return the existing `cognition_wakeups` row and stable action/reflection IDs; do not consume another sequence |
+| Reflection has no valid candidate | Advance only its evidence watermark; do not manufacture self-model or personality changes |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a durable wake-up records what the Fluctlight is attending to, freezes
+  one policy-approved action, and feeds the same fact into reflection so later
+  evidence can change its self-model.
+- Base: the model returns a rich internal cycle with `no_op`; the private fact
+  and reflection intent are retained even though no visible message is sent.
+- Bad: scan every Fluctlight from a process ticker, infer loneliness from idle
+  time, store raw chain-of-thought, publish outside the authorized Tool service, or turn a missing capability into a fake
+  successful result.
+
+### 6. Tests Required
+
+- Assert activation creates one `wake_up.current` intent and the dispatcher
+  maps it to the lifecycle queue; assert stable cycle IDs across retries.
+- Assert interval defaults, lower/upper clamps, disabled behavior, and
+  Continue-As-New cycle increment.
+- Assert missing action decisions/invalid actions/provider failures never create
+  a wake fact or an external Action; assert `moment.publish` is registered and
+  binds text to the durable Moment target.
+- Assert a valid wake-up writes one sequenced `internal.wake_up` fact, one
+  `cognition_wakeups` row, and one reflection intent; duplicate execution does
+  not allocate another sequence.
+
+## Scenario: Redis expiration hints for delayed reflection and wake-up
+
+### 1. Scope / Trigger
+
+- Trigger: a user turn needs a quiet reflection delay, or a long-lived wake-up
+  cycle needs a low-latency dispatcher nudge after a Redis TTL expires.
+- PostgreSQL/Temporal remain the durable authority. Redis keyevent Pub/Sub is
+  an optimization and is allowed to lose notifications.
+
+### 2. Signatures
+
+- Reflection hint key: `fluctlight:reflection:due:<intent_id>` with TTL from
+  the existing `product.wakeup.interval_seconds` setting until a dedicated
+  reflection setting is introduced.
+- Wake-up hint key: `fluctlight:wakeup:due:<fluctlight_id>` with the same
+  clamped cadence.
+- `RedisTriggerListener.Run(ctx)` subscribes to
+  `__keyevent@*__:expired` and `HandleRedisExpiredTrigger(ctx, key)` advances
+  only the matching PostgreSQL due state.
+
+### 3. Contracts
+
+- A completed user turn creates one delayed `reflection.run` intent; its
+  action-result fact is included in that same evidence window rather than
+  creating a second reflection call for the turn.
+- Expiration handling advances `next_attempt_at` and the wake-up cycle for a
+  matching completed wake-up intent. It never directly performs a provider call
+  or starts a second workflow.
+- Wake-up executes one Temporal cycle at a time; the Redis wake key is reset
+  after each completed user turn and successful wake-up, and is repaired for
+  completed intents at Worker startup. PostgreSQL/Temporal remain the durable
+  authority.
+- `notify-keyspace-events Ex` is required in the Redis config. Listener
+  reconnect and periodic PostgreSQL due scans cover dropped Pub/Sub messages.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Duplicate expiration event | PG status predicate/stable workflow ID makes it a no-op. |
+| Listener disconnect or Redis restart | Startup repair and periodic durable dispatcher scan still run due work. |
+| Fluctlight paused/inactive/disabled | No new wake-up cycle is created or key renewed. |
+| Multiple reflection source facts | Preserve evidence window/watermark/CAS; do not merge by Fluctlight ID alone. |
+| Redis unavailable | User turn/workflow remains on PG/Temporal path; no business failure. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a key expires, the listener nudges a pending intent, and the existing
+  dispatcher starts one stable workflow.
+- Base: the listener misses the event; the intent's PG `next_attempt_at` and
+  Worker scan start it later.
+- Bad: perform reflection directly inside the Pub/Sub callback, use key payload
+  as the only business data, or replace the Temporal wake-up timer without a
+  durable recovery path.
+
+### 6. Tests Required
+
+- Assert key names/TTL calculation, one delayed reflection intent per user
+  turn, duplicate-event idempotency, listener reconnect, startup repair, and
+  pause/cancel/disabled behavior.
+- Run Redis/Compose expiration tests where local listener ports are available;
+  retain PG/Temporal fallback tests independently.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+case key := <-expired:
+    app.ProcessReflection(context.Background(), key)
+```
+
+#### Correct
+
+```go
+case key := <-expired:
+    app.HandleRedisExpiredTrigger(ctx, key) // durable PG nudge only
+```
+- Assert autonomy mode/allowlist/direct-target gates and frozen action delivery
+  update the wake result without duplicating messages or Moments.
+
+## Scenario: Typed Drive/Preference Slots And Capability Requests
+
+### 1. Scope / Trigger
+
+- Trigger: Reflection proposes a new personality drive/preference, or Agency
+  discovers that a desired capability is absent from the installed catalog.
+
+### 2. Signatures
+
+```text
+DriveSlot {key, label, description, value_schema, value, confidence,
+           evidence_refs, revision, status, decay_policy, update_policy}
+PreferenceSlot {key, label, description, value_schema, value, confidence,
+                evidence_refs, revision, status, update_policy}
+capability.request({capability_key, title, description, rationale,
+                    desired_contract, side_effect_class, priority,
+                    evidence_refs, idempotency_key}) -> CapabilityResult
+```
+
+### 3. Contracts
+
+- Slot keys are instance-scoped stable identifiers, but their semantic names
+  are open-ended. Drive `pressure` values and Preference typed values are
+  validated against their declared schema; slot revisions are immutable and
+  supersede rather than delete prior values.
+- Reflection applies slots only inside the evidence-window transaction with
+  state-revision CAS. Active slots are included in the next ContextProjection,
+  so Attention/Thought/Desire/Agency can change without code redeployment.
+- `capability.request` is a native registry slot always visible to the model.
+  It records a missing capability request and never executes an external
+  provider. Requests are globally aggregated by `capability_key` while each
+  Fluctlight's source fact and evidence remain separate.
+- When an authorized native ToolCall invokes an unknown or uninstalled capability,
+  the runtime records an idempotent bounded `capability.request` row on the
+  authenticated source fact and returns a typed non-execution error (`capability_not_found`).
+  It never claims the unavailable action completed.
+- Owner review moves a request through `proposed`, `reviewing`, `accepted`,
+  `rejected`, `fulfilled`, or `cancelled`. Only a manually registered and
+  preflighted direct `Capability` with a valid `CapabilityDefinition` may be
+  marked fulfilled.
+- Schedule inspection (`schedule.inspect`) and targeted mutation (`schedule.edit`)
+  are exposed as standard capabilities on conversation, wake-up, and native cognition surfaces,
+  preserving schedule immutability and life-world invariants without full-schedule prompt embedding.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Slot key/schema/value/evidence invalid | Reject candidate; no slot or revision |
+| Duplicate slot revision idempotency | Replay existing revision; no second state change |
+| Missing capability request fields or malformed contract | Reject tool call; no request row |
+| Same Fluctlight/tool idempotency replay | Return existing request; no duplicate request or outbox event |
+| Fulfilled request without a registered matching direct Capability | Reject review; keep status unchanged |
+
+### 5. Good/Base/Bad Cases
+
+- Good: three Fluctlights request `calendar.read`; one aggregated need shows
+  three source facts, and a manually preflighted plugin later fulfills it.
+- Base: a new `quiet_evening` Preference slot is persisted with a categorical
+  schema and is visible in the next wake-up projection.
+- Bad: hard-code a fixed Drive enum, let the model write arbitrary JSON into
+  inner state, auto-install a plugin, or hide a missing capability in a prose
+  response.
+
+### 6. Tests Required
+
+- Slot tests cover arbitrary keys, typed schemas, bounds, supersede, CAS,
+  evidence, idempotency and projection visibility.
+- Capability request tests cover Definition catalog exposure, source ownership, contract
+  bounds, global aggregate counts, status transitions and fulfilled-version
+  checks.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+if missingCapability {
+	return "我已经查过日历了"
+}
+```
+
+#### Correct
+
+```go
+return capabilityRequestTool.Call(map[string]any{
+	"capability_key": "calendar.read",
+	"rationale": "需要安排下一步行动",
+})
+```
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+if time.Since(lastMessage) > tenMinutes {
+	return sendMessage("我想你了")
+}
+```
+
+#### Correct
+
+```go
+assessment := provider.Structured("cognitive_assessment", wakeContext)
+fact, reflection := persistWakeUp(assessment, stableCycleID)
+if policy.Allows(assessment.ActionType) {
+	freezeAutonomyAction(assessment, fact, tx)
+}
+```
+
+## Scenario: Goal/Intention Trigger And Outcome Closure
+
+### 1. Scope / Trigger
+
+- Trigger: a V2 Intention becomes `qualified`, a typed trigger becomes due, or
+  a primary ActionOutcome settles an Intention attempt.
+
+### 2. Signatures
+
+```text
+persistIntentionAuthorityTx(... qualified ...) -> intention.trigger intent
+IntentionTriggerWorkflow(Input{intention_id,due_at})
+ProcessIntentionTrigger(ctx,intention_id) -> pending|due|expired
+persistActionOutcomesTx(... primary outcome ...) -> IntentionAttempt settlement
+intention.schedule({goal,action,expected_outcome,action_plan,preferred_start_at?,reason})
+  -> {goal_id,intention_id,schedule_id,schedule_item_id,start_at,status:"scheduled"}
+```
+
+### 3. Contracts
+
+- A qualified Intention creates one revision-scoped `intention.trigger`
+  workflow intent. A time trigger sleeps in Temporal history until `due_at`;
+  event triggers compare typed event identity; semantic triggers only react to
+  the existence of a new processed fact and never inspect keywords.
+- Trigger maturity writes one stable `agency.intention_due` fact and attempt
+  identity. That fact re-enters the ordinary Main cognition/Capability path;
+  it never executes an action directly.
+- A decision serving the due Intention must cite both Goal and Intention opaque
+  refs. The primary completed/failed/cancelled/suppressed ActionOutcome
+  mechanically settles exactly one attempt. An accepted virtual activity stays
+  pending until its later confirmed result settles the external-ref Outcome;
+  start alone cannot complete the Intention. Only a completed, Goal-bound
+  Outcome may support a Reflection V2 Goal progress proposal.
+- `intention.schedule` is the controlled path from a future virtual action to
+  an accepted Schedule item. It commits or reuses the Goal and Intention in
+  the same transaction as the versioned item and time trigger. A typed action
+  link, not Schedule prose, grants execution. At due time Core rechecks the
+  accepted version, action plan, time and Intention status before starting.
+  `agency.intention_due` without such a link still enters Native Cognition.
+- The scheduled activity's confirmed completed Outcome can settle its linked
+  Intention and a sole-criterion Goal. Failure pauses the scheduled Intention
+  for reassessment. Cancellation of the accepted Schedule cancels open linked
+  intentions and a Goal with no other open intentions. A stale link or a
+  previously cancelled run cannot be replayed into a new activity.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Free-form trigger/code/keyword expression | Reject; only time/event/semantic typed shapes are valid. |
+| Same trigger revision is replayed | Return the same due fact, inbox and attempt IDs. |
+| Intention expires before trigger apply | Append `expired`; create no due fact/action. |
+| Due decision omits Goal/Intention influence refs | Fail before freeze; do not execute a Capability. |
+| Failed/cancelled/suppressed Outcome | Requalify or cancel according to mechanical policy; never advance Goal progress. |
+| Same primary Outcome is replayed | Reuse the stored attempt settlement; no second revision. |
+| Planner fails or its selected slot is invalid | Commit no Goal, Intention, accepted Schedule or trigger; report a Tool failure. |
+| Scheduled link is stale or the accepted version was cancelled | Do not start or complete an activity from that link. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a time Intention sleeps durably, emits one due fact, executes one
+  Capability, settles one attempt and later advances Goal progress from its
+  completed Outcome.
+- Base: a due cognition defers/no-ops; the attempt settles suppressed and the
+  Intention becomes eligible for later reassessment.
+- Bad: poll message text for intent keywords, execute from the timer callback,
+  or mark Goal complete because assistant prose says it succeeded.
+
+### 6. Tests Required
+
+- `TestIntentionTriggerWorkflowUsesDurableTemporalTimerBeforeActivity`.
+- `TestIntentionTriggerProductionFlowCreatesDueFactAndSettlesFromOutcome`.
+- Goal progress tests must cover completed versus failed/suppressed Outcomes,
+  criterion indexes, Goal binding, CAS and replay.
+- Scheduled activity PostgreSQL tests assert one atomic Goal/Intention/item
+  commit, duplicate-plan reuse, due start once, cancellation/replan rejection,
+  and confirmed result settlement of the sole-criterion Goal.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+if strings.Contains(message, "remind me") { executeAction() }
+```
+
+#### Correct
+
+```go
+due := ProcessIntentionTrigger(ctx, intentionID)
+// due writes a cognition fact; the normal Main cognition chooses the action.
+```
+
+## Scenario: WakeUp formal Agent boundary
+
+### 1. Scope / Trigger
+
+`WakeUpWorkflow → ProcessWakeUpActivity → App.ProcessWakeUp` starts the formal
+WakeUp Agent with its stable cycle/run identity.
+
+### 2. Signatures
+
+`RunWakeUpTask` delegates to the registered Agent; `ExecuteTool` owns every
+native business call. `agent_runs` and `tool_executions` retain recovery facts.
+
+### 3. Contracts
+
+The shared Eino loop owns feedback. Catalogs select defaults, not execution
+permissions. Autonomy policy is explicit and rechecked per operation. Later
+policy revocation blocks new operations without erasing prior receipts.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Valid no-op | Complete lifecycle without fabricated output |
+| Business rejection | Feed reason back to Agent |
+| Cancellation/invalid final after commit | Failed run, retained effects, no whole-run replay |
+| Repeated completed cycle | Read existing result; no new Provider or publication |
+
+### 5. Good/Base/Bad Cases
+
+Good: committed reply receipt is consumed by the next decision and handler.
+Base: quiet hours reject external publication while internal cognition proceeds.
+Bad: return deferred for all writes or execute trace calls again in the worker.
+
+### 6. Tests Required
+
+Real PostgreSQL tests cover policy denial/revocation, same-run budget reservation,
+no-op, duplicate suppression, committed-effect recovery and run replay. Controlled
+model evidence is separate from strictly serial real Provider acceptance.
+
+### 7. Wrong vs Correct
+
+Wrong: caller freezes native ToolCalls for a second executor.
+Correct: native Runner executes Tools; caller records committed outcome.
+
+## Scenario: Linked Goal Execution Admission And Durable Attempts (0050)
+
+### 1. Scope / Trigger
+A due cognition is claimed, a direct/scheduled Tool starts a linked activity,
+Goal lifecycle/standards change, or an Attempt lease/callback deadline elapses.
+
+### 2. Signatures
+`prepareNativeDueAttempt(ctx,inboxID,fluctlightID)`,
+`admitGoalLinkedToolTx(ctx,tx,ToolExecutionRequest)`,
+`ReconcileGoalAttempts(ctx,limit<=100)`; migration `0050_goal_execution`.
+Goal rows add `criteria_version`, persisted `criterion_ids`, `deadline_policy`.
+Attempt rows retain running/waiting/needs_reconciliation and terminal states,
+operation identity, lease/deadline, wait_ref, reconciliation count and result.
+Intention rows retain next_attempt_at/retry_count/retry_reason/goal_hold_status.
+
+### 3. Contracts
+- Local linked admission and governance share Life -> inbox/domain-row lock order.
+  Provider work stays outside transactions; this is not external atomicity.
+- Claim precedes projection/Provider preparation. Failure records Attempt and
+  failed inbox together. New retry has a new Agent/Attempt, retaining committed
+  receipts; never replay the failed native Agent wholesale.
+- Active Goal, matching instance/profile, live revisions, permissions, window,
+  typed time maturity and next_attempt_at gate new effects. Replayed receipts
+  remain historical facts and do not constitute a new execution.
+- Only completed ACTION receipts settle synchronous action success. QUERY/no_op
+  do not prove business success; async acceptance binds an actual operation.
+  Goal standards require their own versioned evaluation, not action success.
+- Queued intentions pause/cancel with their Goal; standard changes pause them
+  for reassessment. Resume checks expiration. Started operations retain facts.
+- Callback reconciliation reads actual activity/media/visual identity state and
+  requires ready owned assets for media success. Unknown operations are not
+  resubmitted. Six unresolved checks halt automatic checking and hold execution
+  as needs_reconciliation; real late callbacks may still record results.
+- product.goal_retry config accepts max_attempts 1..20, base_seconds 30..3600,
+  max_seconds >=base and <=86400. Defaults are 5/60/3600 with stable <=25% jitter.
+  Explicit denial/refusal does not automatically retry. Suppression does not
+  count as a failed effort. next_attempt_at is also the durable workflow due time.
+- Standard IDs persist across reorder/copy edits; versioned Goal snapshots retain
+  mappings. Mixed standards revision/evaluation is rejected. Standard edits reset
+  old progress and require reevaluation; progress never gains fixed action points.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Inactive Goal/stale due/foreign scope | Suppress/reject before new Tool effect |
+| Future time trigger | intention_trigger_not_due |
+| Hard deadline | Expire unstarted intention; no permanent due/retry |
+| Backoff not elapsed | intention_retry_not_due; preserve queued evidence |
+| Standard revision plus outcome evaluation | goal_standard_revision_and_evaluation_mixed |
+| Stale Goal/criteria evaluation version | goal_evaluation_version_conflict |
+| Resume while operation unresolved | intention_operation_reconciliation_required |
+
+### 5. Good/Base/Bad Cases
+Good: pre-Tool Provider fails; Attempt fails, bounded retry survives App restart.
+Base: original async operation is unresolved; report/check its identity then hold.
+Bad: future Tool bypasses timer, re-send after unknown timeout, or increase Goal
+progress on repeated expressions without evidence of another standard.
+
+### 6. Tests Required
+Goal execution correctness suite covers pre-Tool failure/restart/lease expiry,
+pause/cancel/provider race, future direct start, hard deadline, bounded unknown
+operation, stable criterion identities and stale-version/repeated-points rejection.
+PostgresGoalExecution tests cover upgrade/history/rerun/ledger rollback. Existing
+formal due/start/failure/late-result tests preserve held logical lifecycle and
+independent physical attempt facts. Scripted Provider is not live acceptance.
+
+### 7. Wrong vs Correct
+Wrong: any Tool invocation -> pending; failed inbox alone recovers a due intention.
+Correct: durable claim -> classified actual receipt/operation -> atomic Attempt
+settlement or explicit waiting -> domain backoff/reconciliation -> durable work.
+
+## Scenario: Goal Evaluation Source Admission Under Accumulated Tool History
+
+Goal evaluation retains the complete durable source/CAS snapshot and offers a
+task-owned semantic Provider view without a token ceiling. Repeated Goal inspection snapshots must not be embedded
+as proof; selected Goal standards are already provided separately. Actor facts
+retain subject, value, epistemic kind, status and effective interval, supporting
+both database (`subject_actor_id/value_json/valid_from`) and Tool receipt
+(`actor_id/value/effective_at`) shapes. Domain query results and published
+message text retain their full semantic payload.
+
+Every source in the frozen authorized snapshot reaches the Provider, including
+existing judgment evidence, messages and full domain query results. No 12K or
+other estimated-token threshold, required-input ceiling or physical budget gate
+applies. Keep source order and semantic evidence intact; exact duplicate bodies
+may be represented once while every source event remains independently bound.
+See [Prompt Composition](legacy-9b89c41b4be449b963dcba95.md).
+
+Only offered references may be accepted or marked processed. Unoffered sources
+remain durable and unprocessed; queue a source-remainder evaluation for selected
+active/paused Goals. Preserve existing deferred-Goal batching and claim CAS.
+
+Required regression: accumulated legal inspection receipts and genuine domain
+queries must still admit a recent preference/recommendation, close once without
+fabricated Attempts, preserve a specific unoffered source and consume it in the
+next batch. Actor Tool projection tests use the actual output field names and
+unique subject/value/time assertions, rather than database-shaped mock receipts.
+
+## Scenario: Durable Automatic Assessment Memo (2026-10-08)
+
+### 1. Scope / Trigger
+
+An automatic Goal request is queued despite unchanged already-assessed evidence.
+
+### 2. Signatures
+
+`goalAssessmentMemo` persists in successful goal_evaluation_requests.result;
+`goalAssessmentEligible` removes only covered targets; owner_reassess retains
+forced_goal_ids through pending coalescing. No schema migration/local cache.
+
+### 3. Contracts
+
+- Memo only after complete successful domain transaction; use post-commit Goal,
+  Stage/Commitment authority. Never memo failed/truncated/partial results, apply
+  old output again, or fabricate Evaluation/Attempt/Resolution on a cache hit.
+- Signature includes actual standards/optional policy, target/profile, deadlines,
+  admitted source identity/version/validity, slow relevant persona/permission/
+  Life/schedule/relationship/Actor constraints and effective working profile.
+  Exclude own Goal revision/judgment/Plan IDs, clock instant/as_of/current_time,
+  and mood/drive decay. Coarse deadline/window phases still invalidate on real
+  boundary crossing. A legitimate Foundation revision0 remains valid by CAS.
+- Query persisted stamps by instance/Goal, then match effective profile and
+  constraints; a shared request's empty profile and the same effective profile
+  must not cause repeat calls. Source subsets may reuse a prior stamp, but new
+  proof, withdrawal, standards/constraints changes, due review and Owner force
+  remain eligible. goal_revision is not a meaningful review source watermark.
+- Parenthesize JSONB force-array extraction during coalescing; preserve Owner
+  reason/targets when an automatic request already exists. Never lose force.
+- Both model-backed and skipped settlement revalidate claim, Goal/source and
+  Foundation/effective-Life stamps under lifecycle locks. Preserve finite
+  omitted-source and six-Goal remainder. Mandatory historical proof filling the
+  entire budget without admitting a new pending source fails visibly/boundedly;
+  do not create an infinite skip/remainder loop or consume unseen proof.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Same successful proof after restart | assessment_memo_match; zero model calls |
+| Explicit Owner force merged into pending | fresh model assessment |
+| New/revoked source or changed criteria/window | memo miss |
+| Failed assessment | no stamp; bounded real retry |
+| Authority changes before settlement | conflict; no stale skip/commit |
+| No new proof fits beside mandatory proof | goal_evaluation_new_source_budget_blocked |
+
+### 5. Good / Base / Bad Cases
+
+Good: completed sibling disappears, unchanged remaining Goal uses its persisted
+stamp. Base: ordinary seconds pass with no fact/window change, no new model call.
+Bad: own evaluation increments revision and becomes another assessment reason.
+
+### 6. Tests Required
+
+Real PG repeat/restart, merged Owner force, new proof, criteria revision, failed
+retry, goal_revision review-watermark stability and Stage replay model-call count.
+Unit temporal boundary/clock/mood/no-progress/source-subset tests. Retain all
+source revocation, real query completion, evidence batching and CAS regressions.
+
+### 7. Wrong vs Correct
+
+Wrong: hash the full Projection including instant or mark an unsuccessful run as
+assessed. Correct: persist validated semantic-success stamps and recheck current
+authority before a model-free settlement.
+
+
+## Scenario: Completion Impact Consistency (2026-10-08)
+
+### 1. Scope / Trigger
+A model declares success in prose or satisfies every mandatory criterion while
+returning `impact=progressed`. Do not persist or memoize an active Goal at 100%.
+
+### 2. Signatures
+`ApplyGoalEvaluation(goal,candidate,sources,at)` validates actual sources and
+all/any/optional policy before checking `candidate.Impact`.
+
+### 3. Contracts
+Completion requires validated completion criteria and `impact=completed`.
+Both directions are checked. No prose keyword parsing or automatic field repair.
+Paused Goals retain lifecycle state and existing ready-for-settlement handling;
+relationship confirmation and CAS checks remain mandatory. Core policy is
+`goal.evaluation.v2`; memo `evaluation_policy_version` must match current policy
+(older or missing policy misses cache). This version stays out of model prompts.
+A failed candidate
+uses bounded retry and cannot produce a successful assessment memo.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| complete criteria + non-completed impact | goal_evaluation_completion_impact_mismatch |
+| incomplete criteria + completed impact | goal_completion_criteria_incomplete |
+| duplicate criterion_ref | goal_evaluation_wire_criterion_ref_invalid |
+| missing any claimed Goal evaluation, even with a plan | goal_assessment_coverage_missing |
+
+### 5. Good / Base / Bad Cases
+Good: valid sci-fi recommendation proof satisfies the supplied standard and
+returns completed. Base: incomplete standards return progressed/needs_evidence.
+Bad: invent a book text-percentage threshold or declare completion only in prose.
+
+### 6. Tests Required
+Unit all/any/optional-policy consistency and paused lifecycle; real PG malformed
+output, duplicate judgments and partial coverage preserve Goal revision, source,
+Evaluation and Resolution counts with request retry. Keep relationship guards.
+
+### 7. Wrong vs Correct
+Wrong: cache all-satisfied progressed as a successful assessment.
+Correct: reject the contradiction before any domain write; only commit valid
+completed candidates through the existing sole writer.
+
+
+## Scenario: Evidence continuity and autonomous plan handoff (2026-10-11)
+
+### 1. Scope / Trigger
+An active Goal receives later complementary proof or an accepted plan without an executable Intention. This contract preserves original criteria and autonomous opportunity without interpreting prose as an action.
+
+### 2. Signatures
+`goalEvaluationSnapshot.RecoverySourceIDs` identifies historical source coverage. `goalHistoricalSourceRecoverySQL` reads two bounded 32-row lanes. `execution_hint.execution_handoff` stores plan_id/status/attempts/not_before/last_wake_id. `bindGoalExecutionObligations(values,ReferenceIndex)` binds actual current Goal refs.
+
+### 3. Contracts
+- Unreferenced candidates remain candidates, including sources never admitted to the model. Read processed/rejected historical sources through the original validity/scope fence; order by oldest actual offering and alternate linked/unlinked lanes with fresh proof. A partial accepted root counts as actual offering even if a sibling or final run later fails. Keep the 128-source snapshot and 12000 provider-input bounds.
+- Message sources carry actual same-conversation previous/next context as interpretation_only, with no independent evidence refs. Admit anchor+context atomically. Private neighbor identity/version/profile/time authority stays off the Provider wire and enters source fingerprint/CAS/memo validation. Current evaluation policy is goal.evaluation.v5; old memos miss. Never infer completion from novel/shopping keywords or raise original criteria via optional preferences.
+- A native accepted plan adds a durable reconsideration marker in the same transaction. Existing periodic WakeUp repairs at most five visible legacy plans, presents eligible obligations before Kev and to its own model, and binds them to the actual admitted reference index. Hidden Goals are neither offered nor consumed. No new Agent, manual continuation or synthetic user message.
+- Context review, completed prerequisite review, profile, pause, hard deadline and existing qualified/due/running/paused Intention ownership hold execution. Candidate Intentions remain eligible for real qualification. The LLM decides native Tool execution or an honest wait; Core never converts next_step text to an action.
+- Same plan retains at most three successful reconsiderations with ten-minute backoff; failed/cancelled/sleep/deferred cycles do not consume it. Same wake replay and changed plan IDs cannot consume twice. Exhausted unchanged plans remain exhausted until a genuinely changed accepted plan; root assessments preserve the marker/budget, terminal roots remove it.
+- Only outcomes actually associated with offered Goals enter GoalEvaluation recent outcomes. Execution last_result and linked last_evidence are separate; message evidence never fabricates an Attempt or acquisition failure.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| No complete proof yet | retain candidate; later complementary source may be admitted |
+| Neighbor/source changes | source stale; preserve existing fresh-request recovery |
+| Goal missing from current scoped index | omit obligation; do not consume its marker |
+| Own/prerequisite context review required | normal Planner review first, no bypass |
+| Failed/sleeping/deferred WakeUp | retain handoff budget |
+| Same plan already owns qualified Intention | do not duplicate dispatch |
+
+### 5. Good / Base / Bad Cases
+Good: genuine preference → later reasoned recommendation → original criterion evaluated with both sources. Good: plan → autonomous WakeUp → create+qualify Intention → actual virtual activity → inventory proof → evaluation. Base: external consent/time wait remains valid. Bad: reject unseen evidence, count all instance failures as this Goal failures, or call a text plan executed.
+
+### 6. Tests Required
+`goal_evidence_retention_test.go` covers fair admission, atomic neighbors, private authority isolation and fingerprint changes; PG covers40 candidates, processed/rejected recovery, original completion and terminal stability. `goal_execution_handoff_test.go` covers plan/replay budgets, typed wait, failed settlement, actual refs and Goal failure isolation. PG handoff test runs no-user-message create+qualify/trigger/native life acquisition/closure with current Goal/Intention refs. No isolated DB means SKIP, never business acceptance.
+
+### 7. Wrong vs Correct
+Wrong: reject every omitted source and repeatedly save “安排中”. Correct: preserve real evidence, send a durable bounded decision obligation into the existing native Tool flow, and settle only real effects.
+
+
+## Scenario: Quiet hours by weekday (2026-10-23)
+
+### 1. Scope / Trigger
+The approved management UI can select weekdays for global or character quiet
+hours; the same policy gates new autonomous actions.
+
+### 2. Signatures
+`quiet_hours = {start: "HH:mm", end: "HH:mm", timezone: IANA, days?: number[]}`.
+Owner write uses `quietHours`; persisted/read JSON uses `quiet_hours`. Weekdays
+are 0=Sunday through 6=Saturday. No migration is needed for the optional JSON field.
+
+### 3. Contracts
+Omitted days preserve daily behavior. Provided days contain 1–7 unique integers
+in 0–6. Evaluate time and weekday in the policy timezone. For an overnight
+window, the portion after midnight belongs to the start day, using calendar
+`AddDate(0,0,-1)` rather than subtracting 24 hours. The end boundary is exclusive.
+Policy changes do not defer deadlines or rewrite already accepted requests.
+
+### 4. Validation & Error Matrix
+Empty, duplicate, fractional, string, or out-of-range weekdays reject the policy.
+Unchanged older daily policies still pass without a days field.
+
+### 5. Good / Base / Bad Cases
+Good: Monday 22:00–Tuesday 08:00 is selected by Monday. Base: no days means daily.
+Bad: Tuesday early morning accidentally requires Tuesday to be selected.
+
+### 6. Tests Required
+`autonomy_policy_test.go` covers daily compatibility, selected start days,
+overnight behavior, timezone and exclusive end boundary; policy validation
+rejects malformed weekday lists. Generated Browser/Core schemas include days.
+
+### 7. Wrong vs Correct
+Wrong: compare a UTC weekday to a local quiet-hour clock. Correct: resolve the
+policy timezone, identify the local start day, then check the allowed weekdays.
+

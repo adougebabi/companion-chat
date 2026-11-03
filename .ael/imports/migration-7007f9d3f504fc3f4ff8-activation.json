@@ -1,0 +1,24 @@
+{
+  "migration": "migration-7007f9d3f504fc3f4ff8",
+  "activated_at": "2026-11-03T15:44:26.460812+08:00",
+  "mode": "active",
+  "tool_version": "0.1.1",
+  "code_commit": "e2601f7",
+  "source_count": 1070,
+  "inherited_current_specs": 52,
+  "historical_former_specs": 3,
+  "conflicting_specs": 1,
+  "real_work_items": 0,
+  "retired_paths": [
+    ".agents/skills/mini-trellis-remember/SKILL.md",
+    ".agents/skills/mini-trellis-session-insight/SKILL.md",
+    ".agents/skills/mini-trellis-session-insight/references/cli-quick-reference.md",
+    ".agents/skills/mini-trellis-session-insight/references/triggering-patterns.md",
+    ".agents/skills/mini-trellis-update-spec/SKILL.md",
+    ".codex/hooks/session-start.py"
+  ],
+  "backup_lookup": "ael doctor --project .",
+  "review": "spec-review.json",
+  "audit": "spec-audit.md",
+  "business_acceptance": "not performed by engineering workflow cutover"
+}

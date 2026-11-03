@@ -1,0 +1,2791 @@
+{
+  "digest": "446409e7023d1ae01261004a6f84fa12b1d346c5d3fa53263bead358492000fa",
+  "id": "migration-7007f9d3f504fc3f4ff8",
+  "mapping": [
+    {
+      "after_hash": "2424bdfa9d78c615d5a626872b3b49895e7893584cb47c903c27140c39b0cc78",
+      "before_hash": "",
+      "source_id": "ce1cc95a8cb679faa09c5da9",
+      "target": ".ael/knowledge/research/legacy-ce1cc95a8cb679faa09c5da9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "002108b32defd334c4fb06967896beed1d04d6483eb1b4bed6b44dda4a429925",
+      "before_hash": "",
+      "source_id": "1fc1d7ee1100b78491c836f0",
+      "target": ".ael/knowledge/research/legacy-1fc1d7ee1100b78491c836f0.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "fb7f1fba3437d34d3815c80d3e677a240bb9241aadc86c79266531eeca3f44b6",
+      "before_hash": "",
+      "source_id": "ce7c4191f66767ce72e554f3",
+      "target": ".ael/knowledge/research/legacy-ce7c4191f66767ce72e554f3.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "13b2a5b40d1ca5752fa4c68c09d2578e761d1182e4879cfc0a42907d6226ee52",
+      "before_hash": "",
+      "source_id": "1262d911225336f36f9207ae",
+      "target": ".ael/knowledge/research/legacy-1262d911225336f36f9207ae.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0ca92951a8112aeecfa92e50ef393dbaf34efd42ec1d206a7910378108dcbd15",
+      "before_hash": "",
+      "source_id": "c578b5e89f52b59e8546e170",
+      "target": ".ael/knowledge/research/legacy-c578b5e89f52b59e8546e170.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "846dfb755851f9dfa97d4f652126eb5361b5de5fa7454cce236a41920621481a",
+      "before_hash": "",
+      "source_id": "ebb93ed48a30b53e6214e3d7",
+      "target": ".ael/knowledge/research/legacy-ebb93ed48a30b53e6214e3d7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "80566666c5b25f9a7aec63db2950ef34af6f77b4a39d2ec0ada7558753fa48b0",
+      "before_hash": "",
+      "source_id": "68cad038b1e87145a67ed553",
+      "target": ".ael/knowledge/research/legacy-68cad038b1e87145a67ed553.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d24b410a61ef0e432f27550b8a4f47b8dc6631e25fe03a534372ed4b5820ca7d",
+      "before_hash": "",
+      "source_id": "d2f851c443465ce5111c11c3",
+      "target": ".ael/knowledge/research/legacy-d2f851c443465ce5111c11c3.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3df539c9d1e1582de95206ade5f40fe5524d6f8de10cfbcebb8b16e77cb6a6db",
+      "before_hash": "",
+      "source_id": "93ea9a922c6c945926d6a0b2",
+      "target": ".ael/knowledge/research/legacy-93ea9a922c6c945926d6a0b2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f7f3801c3264796dc76834caf783a23054702ab7c196f807b5c210a1d1f24ffe",
+      "before_hash": "",
+      "source_id": "14fb752258710c3e899109db",
+      "target": ".ael/knowledge/research/legacy-14fb752258710c3e899109db.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8570c6c0714e812b81960b72ea51530416df41cba11b58618eb3ef1628718b78",
+      "before_hash": "",
+      "source_id": "24603eb2212705863a3489f9",
+      "target": ".ael/knowledge/research/legacy-24603eb2212705863a3489f9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2873da7297b381a26180720b5716c7e3b560887ce3cc27d39ef077455de04cc0",
+      "before_hash": "",
+      "source_id": "78391574fad429e8031ad5e1",
+      "target": ".ael/knowledge/research/legacy-78391574fad429e8031ad5e1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c3ba6d84a50ebfa070b5135497e4deaaa8213beb4986c31fd5bdd006eb70c3aa",
+      "before_hash": "",
+      "source_id": "b4799713f029569a9af2bafe",
+      "target": ".ael/knowledge/research/legacy-b4799713f029569a9af2bafe.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "813a103608995e55f4fa4f184952f62e36ef955534048e73237e841ed09d4105",
+      "before_hash": "",
+      "source_id": "00ffdec72444117e6802ac9b",
+      "target": ".ael/knowledge/research/legacy-00ffdec72444117e6802ac9b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "130741e115222f05910d4b7e57193b2aa54dca232315a411c0560a7a0cb425dd",
+      "before_hash": "",
+      "source_id": "3f7d4f9f22088b578481ec89",
+      "target": ".ael/knowledge/research/legacy-3f7d4f9f22088b578481ec89.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1c54f8aab6a18e46330d1e41c828b62f77cd1665babc930747f7aa986e9cd480",
+      "before_hash": "",
+      "source_id": "c1e3eb91e7362047f2f90a7f",
+      "target": ".ael/knowledge/research/legacy-c1e3eb91e7362047f2f90a7f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "da1d564d45878c0e751dd86fe56492833e073df0f10c27a3716c9aff472169f9",
+      "before_hash": "",
+      "source_id": "de43b1f572dc989b33e9c920",
+      "target": ".ael/knowledge/research/legacy-de43b1f572dc989b33e9c920.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "57a775254a4362010d94fc743b67c32016174e57f80f7aa4668e846c56994e42",
+      "before_hash": "",
+      "source_id": "7b831383d31fb58855512511",
+      "target": ".ael/knowledge/research/legacy-7b831383d31fb58855512511.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9f8f46c5ef7a80f89389ed1100d89a521c72ab9fb8f74b2f5800f39b09904cb6",
+      "before_hash": "",
+      "source_id": "10c27c702bd3d2832f160da8",
+      "target": ".ael/knowledge/research/legacy-10c27c702bd3d2832f160da8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f0bc1b176be8ff1219d33aa966168753e161f58af11ff0f415c1254c22fc154d",
+      "before_hash": "",
+      "source_id": "1000f78b49bc2ee3c348738d",
+      "target": ".ael/knowledge/research/legacy-1000f78b49bc2ee3c348738d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "23586f26edb91445cefe5a3810bbec824fe3cead9b5060d4a494f439166e5fcc",
+      "before_hash": "",
+      "source_id": "502acb19433f245d33347a33",
+      "target": ".ael/knowledge/research/legacy-502acb19433f245d33347a33.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4203329aaf751ef8b2eaae767487c241f6b5f9504c8ff794f1c7d123eabf9f58",
+      "before_hash": "",
+      "source_id": "1ecdeccd701ebf9020740b47",
+      "target": ".ael/knowledge/research/legacy-1ecdeccd701ebf9020740b47.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "dbe66739193ddbdafb7400d93227e18a23454330d5fccfe8bdf06c1bb3f2a0cd",
+      "before_hash": "",
+      "source_id": "e6794a17d7b82151e3f9f612",
+      "target": ".ael/knowledge/research/legacy-e6794a17d7b82151e3f9f612.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9d2decf658fbaa32d62cda05132b52a8d03bc1916048f893299eec870993c4f5",
+      "before_hash": "",
+      "source_id": "3745532ca530351b6fb37130",
+      "target": ".ael/knowledge/research/legacy-3745532ca530351b6fb37130.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d03ddcbba403cba4fc6ccc1619b205a746750b0c95ffc75a0c16cf80f39d9956",
+      "before_hash": "",
+      "source_id": "e894720b5e9d3bd0d8c81626",
+      "target": ".ael/knowledge/research/legacy-e894720b5e9d3bd0d8c81626.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "010e005d0400a14930ed9ee6b5bc4eb287f69be53945046e23703a7e10d56a91",
+      "before_hash": "",
+      "source_id": "6bc5b4090249772eef8bb105",
+      "target": ".ael/knowledge/research/legacy-6bc5b4090249772eef8bb105.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "17ff5abc2208c807e4c4057f1c14ab1932c26d2615e5452be9b246990cf45971",
+      "before_hash": "",
+      "source_id": "c2a1d05106c42f6f82f70d95",
+      "target": ".ael/knowledge/research/legacy-c2a1d05106c42f6f82f70d95.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "eb2c0f314663a49b94f4637783fa2f1914c0d3f2b037b814a995f510c9da7106",
+      "before_hash": "",
+      "source_id": "ba312603351c2cab4df63bfd",
+      "target": ".ael/knowledge/research/legacy-ba312603351c2cab4df63bfd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2dfd34076c7452f9e0b9fbb5a928fff3aa79df36d1f59e28c715bf001fa3bded",
+      "before_hash": "",
+      "source_id": "c0efc09c50dcbc38dedab76a",
+      "target": ".ael/knowledge/research/legacy-c0efc09c50dcbc38dedab76a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0c16a26b6867dc0817f71956dab6acffbdd8da87743e94b6a214a180e7d4f65a",
+      "before_hash": "",
+      "source_id": "508530d1f30dc3886350c1c4",
+      "target": ".ael/knowledge/research/legacy-508530d1f30dc3886350c1c4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "de60c2332f8d3680d3e73c6db3b5d47581f7bc1fae4e8eedfa6654f9a1a1c341",
+      "before_hash": "",
+      "source_id": "db80588e3bf31022195439d9",
+      "target": ".ael/knowledge/research/legacy-db80588e3bf31022195439d9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0da2e373692b1f8bc9dbebb3c1daa5c19f696209c9399e040ac551d662be6b1b",
+      "before_hash": "",
+      "source_id": "3bdd21b5ed63ccaf8a2c9966",
+      "target": ".ael/knowledge/research/legacy-3bdd21b5ed63ccaf8a2c9966.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f0be4af6e889c0d2e34e7ba501489d0b25aaecf634d9e202dff9bb79006a72ac",
+      "before_hash": "",
+      "source_id": "7d5265a897340edb68c36270",
+      "target": ".ael/knowledge/research/legacy-7d5265a897340edb68c36270.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3d352e479eeed8002368259bda7624f9606baf279b8a44df5b1092f0f530e6d9",
+      "before_hash": "",
+      "source_id": "042f39c8c00710ec107843f6",
+      "target": ".ael/knowledge/research/legacy-042f39c8c00710ec107843f6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "14e67c5039e035765f448bed9a063d7ff998e0ba579d8662a6e3e6f1222b0bb1",
+      "before_hash": "",
+      "source_id": "884057b3274bd810999213d6",
+      "target": ".ael/knowledge/research/legacy-884057b3274bd810999213d6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a31c78898c541bf999901f731376fd29ff59311edb3ffe5195af7eec5eadf2ff",
+      "before_hash": "",
+      "source_id": "1fbefe4042c2f3fffa8b38ac",
+      "target": ".ael/knowledge/research/legacy-1fbefe4042c2f3fffa8b38ac.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0aa6c19394d896dd537472cc4640cf819b98273fb0169447dd912b3fc06937ff",
+      "before_hash": "",
+      "source_id": "be11ececde6e4f6c4bfb4b27",
+      "target": ".ael/knowledge/research/legacy-be11ececde6e4f6c4bfb4b27.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c3bea364b1602659d4659e4d89f4aa5e9dc1d98108dcaabb47abbd5711267240",
+      "before_hash": "",
+      "source_id": "62ac82ff4b8a899ccf96d02c",
+      "target": ".ael/knowledge/research/legacy-62ac82ff4b8a899ccf96d02c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2ed9e734ca137cefa112eea320e0b60e71bcc857d7a99718e8436c6f1f76a866",
+      "before_hash": "",
+      "source_id": "bf79e77285e0f7997277f6c1",
+      "target": ".ael/knowledge/research/legacy-bf79e77285e0f7997277f6c1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "52b385fd9af636f8d7510309501d57edfd9e47bcbe862f3e1b7eddf3a7cc3ff1",
+      "before_hash": "",
+      "source_id": "134cc9da2200b9f24c9a6752",
+      "target": ".ael/knowledge/research/legacy-134cc9da2200b9f24c9a6752.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0e69b93c27248b5669f45a54bbfd12f823a7b7339d2618f06b98de6f6cf29678",
+      "before_hash": "",
+      "source_id": "729c7e6770962634ed3f9ece",
+      "target": ".ael/knowledge/research/legacy-729c7e6770962634ed3f9ece.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2367c3b7f75bb0e99cdf3b9724fc2663c44c865fc2948c189f7022d4c0f5b837",
+      "before_hash": "",
+      "source_id": "3cab9790574e1024d71b97ce",
+      "target": ".ael/knowledge/research/legacy-3cab9790574e1024d71b97ce.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "97755f53152fa9f767b86388cb3575f61d06912ff1066cbcd7acf5c7ef007f35",
+      "before_hash": "",
+      "source_id": "d0c210806f25328b6cf5189e",
+      "target": ".ael/knowledge/research/legacy-d0c210806f25328b6cf5189e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "93ebba65a21aa377554b4419247c41b12cd87a825b8ed3c9a7b4702dc551d129",
+      "before_hash": "",
+      "source_id": "169686f2edd334a51cec04c2",
+      "target": ".ael/knowledge/research/legacy-169686f2edd334a51cec04c2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1a4e75b35fb0300da89bab563773ab9e405fcc9113cbf5576a61ebd42038900d",
+      "before_hash": "",
+      "source_id": "49aeac0622f718db9196e809",
+      "target": ".ael/knowledge/research/legacy-49aeac0622f718db9196e809.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3b4c392d05225a123ad03b6a36b6485394c6aeb4a3c9b4b5552e46d4dbf8c4ab",
+      "before_hash": "",
+      "source_id": "1c061c164bd6a2bac7ef779e",
+      "target": ".ael/knowledge/research/legacy-1c061c164bd6a2bac7ef779e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0e42391115c32e09b4baaf344b7e616233f1d046d9496f7ce010092e3f71b133",
+      "before_hash": "",
+      "source_id": "270784654d2a4b492c852cdb",
+      "target": ".ael/knowledge/research/legacy-270784654d2a4b492c852cdb.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3c641758f748e429a04b5b8a20e8cfb7f0056b67245ce490e8ce13395aab5672",
+      "before_hash": "",
+      "source_id": "67b99e6d28ab1290cce05ebb",
+      "target": ".ael/knowledge/research/legacy-67b99e6d28ab1290cce05ebb.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3afba55e3082436b81e3d38f8bb2f516fc70fe56ccc0ab011e7c77803573c6c1",
+      "before_hash": "",
+      "source_id": "3fa088f48ddf1d33f6fb3950",
+      "target": ".ael/knowledge/research/legacy-3fa088f48ddf1d33f6fb3950.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e8c4ff29b8ed374e8bb8fd8307434a162864cfcd7c0b0dad338ccd1d1e5c1fae",
+      "before_hash": "",
+      "source_id": "180347dd33d1f66f0dff2c3f",
+      "target": ".ael/knowledge/research/legacy-180347dd33d1f66f0dff2c3f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1756ac0bbd4139e760331438aca1c0de1fb4386f5aeaced5b954591d149f5786",
+      "before_hash": "",
+      "source_id": "cc410cc76eb4bd8137a78319",
+      "target": ".ael/knowledge/research/legacy-cc410cc76eb4bd8137a78319.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6df04f4283f094de42771bef51edb67d5b74e29c7a2f00ec67518b1b43bcc7c6",
+      "before_hash": "",
+      "source_id": "226c2b5e506793b0d4b01184",
+      "target": ".ael/knowledge/research/legacy-226c2b5e506793b0d4b01184.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0e8878d8ebff682b603bdff32c0992522d9f5a075cb847e3a5f8c524d58f37c1",
+      "before_hash": "",
+      "source_id": "b6a86e07a47dc70e30ecea1f",
+      "target": ".ael/knowledge/research/legacy-b6a86e07a47dc70e30ecea1f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9849827f7e87ad45e7bb15ca2917f2f0b3175ec9b3757e619a381c0e15a77056",
+      "before_hash": "",
+      "source_id": "5ef3692a063f49077dc5533c",
+      "target": ".ael/knowledge/research/legacy-5ef3692a063f49077dc5533c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a01d44070286fbb2388cad298e34647fea2f4026133a31048c26682fc1deb2ee",
+      "before_hash": "",
+      "source_id": "42c6f1ae13ec924e10a26899",
+      "target": ".ael/knowledge/research/legacy-42c6f1ae13ec924e10a26899.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c3c594511dcc5fbaa9932b25a7e4c41342a636d882817fa40041e1852ede03eb",
+      "before_hash": "",
+      "source_id": "ef0b513d7c14dc19fad92372",
+      "target": ".ael/knowledge/research/legacy-ef0b513d7c14dc19fad92372.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "eb83ed2f34ea08f5ded8d49a7f08cde0a48d4b3479eb94c43177442ebfcc17fa",
+      "before_hash": "",
+      "source_id": "7b34b0a99e0f289d906559b8",
+      "target": ".ael/knowledge/research/legacy-7b34b0a99e0f289d906559b8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d6725ef3d25c7bb39c93f2723580ab563d668cd1a92a6acf91e52469fa8dcaa8",
+      "before_hash": "",
+      "source_id": "f162feaa7344181ef26d0380",
+      "target": ".ael/knowledge/research/legacy-f162feaa7344181ef26d0380.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "857b0db58b94c126dd05f1b74ec32e2853cc9f3b8416e20274b33cdb87a14503",
+      "before_hash": "",
+      "source_id": "d9ec050dff6a7fd02c8dd92d",
+      "target": ".ael/knowledge/research/legacy-d9ec050dff6a7fd02c8dd92d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c3ecdca0865b3e515a73d99c93f8744b7694136c47cbf9081f5548caca495dfb",
+      "before_hash": "",
+      "source_id": "30f66c0c707ef52983fe1835",
+      "target": ".ael/knowledge/research/legacy-30f66c0c707ef52983fe1835.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "15f673c87825e1f4c9c236fb198c7b7159ca3ae6244fe02407cc07075956ead0",
+      "before_hash": "",
+      "source_id": "ac2d0efde9d3d9984463baf9",
+      "target": ".ael/knowledge/research/legacy-ac2d0efde9d3d9984463baf9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "40dec0e1f6e15613ab268f5ac32cec3ee25c18ea6d300efb26fbe33d14039ff9",
+      "before_hash": "",
+      "source_id": "a2a83f02827268b05853a5e7",
+      "target": ".ael/knowledge/research/legacy-a2a83f02827268b05853a5e7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "90bbcbdb216281affd56c61dd264cc271a57fb3c0bc8344d4c92ede660730752",
+      "before_hash": "",
+      "source_id": "00a172d1eb7ecc469be078fd",
+      "target": ".ael/knowledge/research/legacy-00a172d1eb7ecc469be078fd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ca7c6c18e90421dccc8d750ef4f3830c5ab3204fd69ad4c20685577ac9063b2c",
+      "before_hash": "",
+      "source_id": "9a72e25bd363e9827230174d",
+      "target": ".ael/knowledge/research/legacy-9a72e25bd363e9827230174d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0f81940fcb8698e1c54da40c7548c4f0a04926115860e89ba3386ef4bf56a49f",
+      "before_hash": "",
+      "source_id": "880b2d4bd5835e1ea5aa50a1",
+      "target": ".ael/knowledge/research/legacy-880b2d4bd5835e1ea5aa50a1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3b903f11b9dbe76353406e39776fba50578bb0ef8c4f3b9c9f8a15010cb2d06a",
+      "before_hash": "",
+      "source_id": "fc386ccc509ca17c3b41dbd7",
+      "target": ".ael/knowledge/research/legacy-fc386ccc509ca17c3b41dbd7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9cc968aad863aa8d185d9c14f8d8b63ed0a1492dc0b3d45eb25285143b8ea8fa",
+      "before_hash": "",
+      "source_id": "5c4ec9120d502308dcb0fd0c",
+      "target": ".ael/knowledge/research/legacy-5c4ec9120d502308dcb0fd0c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cced0d34e404142e72f9f18328e9a9e6c250244cd4997ea01a9fab02d14ea367",
+      "before_hash": "",
+      "source_id": "00bdb0dbe2047f49c8b3a384",
+      "target": ".ael/knowledge/research/legacy-00bdb0dbe2047f49c8b3a384.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f64d2a9866fc13a3f6eda0c5be5ae1f5c4896407298a0a51ee8bfd9489b052f1",
+      "before_hash": "",
+      "source_id": "16b81aae472d3a6ba8b2c0f7",
+      "target": ".ael/knowledge/research/legacy-16b81aae472d3a6ba8b2c0f7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "79c50f7eeaad025192c8e567e2656b9a2a2cc98aa027ab31c45449bf7d6a9af6",
+      "before_hash": "",
+      "source_id": "c08483e94b001b123d92e273",
+      "target": ".ael/knowledge/research/legacy-c08483e94b001b123d92e273.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2e4129a7d21decc5bbf0dac9d8c30be5b6e608ff2304122f0a805b955a83f9ac",
+      "before_hash": "",
+      "source_id": "542dc97a1fd303b931d95ea9",
+      "target": ".ael/knowledge/research/legacy-542dc97a1fd303b931d95ea9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "78aac65725b64d59dd2851ab6492c7b9b8e8781f2cbc535b34fc9ed1794ba552",
+      "before_hash": "",
+      "source_id": "054887f6a6b4df361703719d",
+      "target": ".ael/knowledge/research/legacy-054887f6a6b4df361703719d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "dfe916be076184d82c12f6a8748e003cbefa38443c4d6be9075c910281b5391f",
+      "before_hash": "",
+      "source_id": "4ee791cab156783ed9850474",
+      "target": ".ael/knowledge/research/legacy-4ee791cab156783ed9850474.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3377ed9e661016e82933b0db80bfb0fa77091122e2df92d2fdf36addee7b7af2",
+      "before_hash": "",
+      "source_id": "1a6f31f88838995b32d190ba",
+      "target": ".ael/knowledge/research/legacy-1a6f31f88838995b32d190ba.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2f71152c37f04ca471c14799cf23e8a9721175d6d56b20d8ff71ccf895e95456",
+      "before_hash": "",
+      "source_id": "9d5a041db48bfb73339638df",
+      "target": ".ael/knowledge/research/legacy-9d5a041db48bfb73339638df.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f4f7bf85c36d37a528b75fdf261c47d07ab2ba58c2af4f3f06c2462681e8319d",
+      "before_hash": "",
+      "source_id": "c9ba1ebfa6eb2c37e4274509",
+      "target": ".ael/knowledge/research/legacy-c9ba1ebfa6eb2c37e4274509.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "aada827bc716cf2177ef4a2e8225e58697c24380ad861713e84f11fd3631158c",
+      "before_hash": "",
+      "source_id": "807c5e918b45a7ae7c8aecf4",
+      "target": ".ael/knowledge/research/legacy-807c5e918b45a7ae7c8aecf4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "483c11832a61d727f74a12f92a579acdf45f55177e9eccf7afb7e04fbfd8e9c4",
+      "before_hash": "",
+      "source_id": "41ed6739ce425bd56a7305d0",
+      "target": ".ael/knowledge/research/legacy-41ed6739ce425bd56a7305d0.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "189a3b59f695a125c147f76c1a87c9bf15a126e8a2afad5b3d6603239239bda1",
+      "before_hash": "",
+      "source_id": "8b479e8af878b4bdc23e4d51",
+      "target": ".ael/knowledge/research/legacy-8b479e8af878b4bdc23e4d51.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a35f65ce2644a80770daa3de40145bf618f904889bd583985ae25f04d7408217",
+      "before_hash": "",
+      "source_id": "1f2f475e3b803567beea9106",
+      "target": ".ael/knowledge/research/legacy-1f2f475e3b803567beea9106.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9dcdbe822844489d96405f9683e3b53945769d6653e868ba17f4e3eba52185db",
+      "before_hash": "",
+      "source_id": "11c249ca453877b97c46a2ff",
+      "target": ".ael/knowledge/research/legacy-11c249ca453877b97c46a2ff.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "97d39807b4c038c77b3d774c5b09804ea91a18e2cebd2de2c23329bcc1048f69",
+      "before_hash": "",
+      "source_id": "58adec2e32f978e4531c1137",
+      "target": ".ael/knowledge/research/legacy-58adec2e32f978e4531c1137.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d4d8d9065e5fd06462e8d579b29b5c1be9c34a49d10cc021e6a78060e70e459f",
+      "before_hash": "",
+      "source_id": "fc25419b3cdf1fab57d86a80",
+      "target": ".ael/knowledge/research/legacy-fc25419b3cdf1fab57d86a80.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7d5700af43b52fa9ca1be067ba99d9e6a605691632b9a9618f259257afcd69ea",
+      "before_hash": "",
+      "source_id": "f6eae1645af3daf39484e4a9",
+      "target": ".ael/knowledge/research/legacy-f6eae1645af3daf39484e4a9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d028f7f63bc7c41e2ec8726e08233da72fa7b198efc109f5f3badaaa78bbcb62",
+      "before_hash": "",
+      "source_id": "296a1df89c7fff8a4f04edbb",
+      "target": ".ael/knowledge/research/legacy-296a1df89c7fff8a4f04edbb.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7de8100fa702378bf59f17a443896a5ca9dae23648fce8137ca70a44b8f964c8",
+      "before_hash": "",
+      "source_id": "c57ec8aab334486fe86e3e4e",
+      "target": ".ael/knowledge/research/legacy-c57ec8aab334486fe86e3e4e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "88580d6c9f7d4fc2a1dd02486e30c2f079e0c7081ff06aff8c6631a07acf43fb",
+      "before_hash": "",
+      "source_id": "0d97a0fec6531541725b5f8b",
+      "target": ".ael/knowledge/research/legacy-0d97a0fec6531541725b5f8b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0e4820caed92e6d6f225dea413ceda962fdf03dcda1fae83aa1bf7529e486b60",
+      "before_hash": "",
+      "source_id": "2c46a3db480f632f0de07ad6",
+      "target": ".ael/knowledge/research/legacy-2c46a3db480f632f0de07ad6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6b8a4dff2f9a8836f46e081e3738e5585ae00e87b61aee515cf6e37472c8dc34",
+      "before_hash": "",
+      "source_id": "4eaa72007f26644a2faf43db",
+      "target": ".ael/knowledge/research/legacy-4eaa72007f26644a2faf43db.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8bceac2695a0d4ce70c5371f8c9b045844689590af90cb457649c6abf80a1103",
+      "before_hash": "",
+      "source_id": "878d8119fda6d74fba54689c",
+      "target": ".ael/knowledge/research/legacy-878d8119fda6d74fba54689c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "98c5feedeba19f83c6b33bab41a107a1c7bf75d17fa2d54d63cb2909743d0393",
+      "before_hash": "",
+      "source_id": "0a64f9671654687c7d3dca1c",
+      "target": ".ael/knowledge/research/legacy-0a64f9671654687c7d3dca1c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c3519915d5d7569dee35dc95030f7a4c575499ce908013d4b676636dfd17f6a6",
+      "before_hash": "",
+      "source_id": "ce3c187c8103f351e2220ca4",
+      "target": ".ael/knowledge/research/legacy-ce3c187c8103f351e2220ca4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "814d4cc8cdeb0ca66b8d06667e38ed0eb95592c4506813e2efdeed01919b4265",
+      "before_hash": "",
+      "source_id": "d2054bb936a26ad34973ad4e",
+      "target": ".ael/knowledge/research/legacy-d2054bb936a26ad34973ad4e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "964744846356fad3f3bcd0b5a0f898a0de2fd0f2634f7c46a19338393d3d083a",
+      "before_hash": "",
+      "source_id": "1e42cc62f6889f9685633b27",
+      "target": ".ael/knowledge/research/legacy-1e42cc62f6889f9685633b27.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "14358b33262f92d8cb89596caa222786d53df1e6749513f00d1f362f542fd32f",
+      "before_hash": "",
+      "source_id": "a49b3d7086e7670010800774",
+      "target": ".ael/knowledge/research/legacy-a49b3d7086e7670010800774.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "09174b89bf005fd78ce5b5deb7505801e8a7d9708bc792417fff0d92a4e44bfc",
+      "before_hash": "",
+      "source_id": "550159e902d9be41bf99c0b8",
+      "target": ".ael/knowledge/research/legacy-550159e902d9be41bf99c0b8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cd0c8efeca73f286134391dceed97f2e02e086760000f3ea000553f5f7709d05",
+      "before_hash": "",
+      "source_id": "bf67e10d16a87ba78b9d0cb5",
+      "target": ".ael/knowledge/research/legacy-bf67e10d16a87ba78b9d0cb5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "562f7b8e25d49d8f7878528e76a19be617bc2c956e6ea8de6695c0b74706c3da",
+      "before_hash": "",
+      "source_id": "fcff634bd6ab7a227254f31a",
+      "target": ".ael/knowledge/research/legacy-fcff634bd6ab7a227254f31a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ae257a45def421e696fa2019bb29092be9b167d913bde256bd8bcbf8763ce12c",
+      "before_hash": "",
+      "source_id": "637dd7e50e407a944a4c56da",
+      "target": ".ael/knowledge/research/legacy-637dd7e50e407a944a4c56da.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e3e32ca7ee0117994e8e2cd2ff8c3a7b81bb7b23009d81c8fb4adb862e5d9cc9",
+      "before_hash": "",
+      "source_id": "c2a1cf46536a22427c13f0a0",
+      "target": ".ael/knowledge/research/legacy-c2a1cf46536a22427c13f0a0.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "efeb027c44bddbb2dafc7b01570610add336954c4c16aa6a296689113b0a9c5c",
+      "before_hash": "",
+      "source_id": "316d13888018cdf1bd8bdbdf",
+      "target": ".ael/knowledge/research/legacy-316d13888018cdf1bd8bdbdf.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b049c7f3174efa34a3b55079b2439168342e987185de06f59a2a85f43de2350c",
+      "before_hash": "",
+      "source_id": "9e7c840fa13870e88448dcf5",
+      "target": ".ael/knowledge/research/legacy-9e7c840fa13870e88448dcf5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6b751356d9dce6a35cc6686c96afea1e572b17a8fe8f07e51f71dd22bf78970e",
+      "before_hash": "",
+      "source_id": "bfc4eaa0f43ddff373f72b83",
+      "target": ".ael/knowledge/research/legacy-bfc4eaa0f43ddff373f72b83.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "807273cb9a985fc789fcf62ed4cec988f1b618c7c9db2190cf8588aed7bec02f",
+      "before_hash": "",
+      "source_id": "f420cc2b2d0cf77b99af04a9",
+      "target": ".ael/knowledge/research/legacy-f420cc2b2d0cf77b99af04a9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ab4d25345d1e5a75b0daa9e80e3eef6a9d9b087b42c754c97e4fa8ed39186a6c",
+      "before_hash": "",
+      "source_id": "aec566172591c7f36477ef08",
+      "target": ".ael/knowledge/research/legacy-aec566172591c7f36477ef08.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "14b22f35dbe0d066e708688360e1f9e09d9e065888fe30d055414c60cbedd3b1",
+      "before_hash": "",
+      "source_id": "b81c1b5bf2469809013aca03",
+      "target": ".ael/knowledge/research/legacy-b81c1b5bf2469809013aca03.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "25bd64cf86fc7fbcfb93c088e8a90e15312342fe798745fec634e774cb2e72e0",
+      "before_hash": "",
+      "source_id": "a0bdc52ca29a11169fbebd62",
+      "target": ".ael/knowledge/research/legacy-a0bdc52ca29a11169fbebd62.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "73cc2ce7e9760f3a741fd02e6215694520dd04a5abc1fb05647c2388957069b4",
+      "before_hash": "",
+      "source_id": "533acd9aaedcdef0f15d1416",
+      "target": ".ael/knowledge/research/legacy-533acd9aaedcdef0f15d1416.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a43e91b5f81a693901530fe2159fe1f4d8f26c35b7df160ab060d6b0f7ed04ce",
+      "before_hash": "",
+      "source_id": "44aed2147f3a4ad61110b874",
+      "target": ".ael/knowledge/research/legacy-44aed2147f3a4ad61110b874.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f2708068c1bfd8fa7ed07cf91657078dc359bd5a122012835731660b9bd964b1",
+      "before_hash": "",
+      "source_id": "5679b6d5be8d47819f0bc641",
+      "target": ".ael/knowledge/research/legacy-5679b6d5be8d47819f0bc641.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "efaeaebcbd8eca638cc0bcb3455cf2386d4a7e9a2c2238092e6b985f8d168241",
+      "before_hash": "",
+      "source_id": "7474d587d006f11229c89aac",
+      "target": ".ael/knowledge/research/legacy-7474d587d006f11229c89aac.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b990b6e4c08a76c1943388493211a03ea27c9b7a1ad1268dfb11a1502daed7e7",
+      "before_hash": "",
+      "source_id": "d304e66484b42997ff299f89",
+      "target": ".ael/knowledge/research/legacy-d304e66484b42997ff299f89.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "85ec7d1f0ebba0cc79b2f42bf2fccfde4c495d4fab85d9b571f322a8fca584ba",
+      "before_hash": "",
+      "source_id": "54ecce25e6fbce73561ad690",
+      "target": ".ael/knowledge/research/legacy-54ecce25e6fbce73561ad690.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "88a1bec41e4f1711e061c2b59b692bec79cb616226f8e96f7dca9a074c331867",
+      "before_hash": "",
+      "source_id": "82420817745cefa08013a688",
+      "target": ".ael/knowledge/research/legacy-82420817745cefa08013a688.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2165624fdff02726c4125d1cbf5764413ecfdc6e422d0e3a4b4d6cdee5a818b9",
+      "before_hash": "",
+      "source_id": "84e2b5ff512539afda018058",
+      "target": ".ael/knowledge/research/legacy-84e2b5ff512539afda018058.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "403ebbcd6e22c6be8d8b2ec10da356a5c15ba84648f9fa3ea38a0f8e158b1c08",
+      "before_hash": "",
+      "source_id": "8a634aeb7979207addd6c8b7",
+      "target": ".ael/knowledge/research/legacy-8a634aeb7979207addd6c8b7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "53246bc4aac16904da916b421fd98e7788f826523c4dec561595cc7298888129",
+      "before_hash": "",
+      "source_id": "26765a4651a4ebeebb021fff",
+      "target": ".ael/knowledge/research/legacy-26765a4651a4ebeebb021fff.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a94a4e9e3d0daf556114c4d70029e8c2ece4838b2a8af6260154f9b239ba187e",
+      "before_hash": "",
+      "source_id": "04ee4d2af8c3924b19a441c6",
+      "target": ".ael/knowledge/research/legacy-04ee4d2af8c3924b19a441c6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c9df611b2f6fe8925bd89900fa8a2ad7db2641d26c6c84be8efb1254fab434cf",
+      "before_hash": "",
+      "source_id": "7ffe92f4c27f931ef0912eda",
+      "target": ".ael/knowledge/research/legacy-7ffe92f4c27f931ef0912eda.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6b02d4c25de4b124148c0c2179229f10e5c736d47aeca3467f73b137c6020bc8",
+      "before_hash": "",
+      "source_id": "7563a022b5505ed58d9a8a4c",
+      "target": ".ael/knowledge/research/legacy-7563a022b5505ed58d9a8a4c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2ba3a8790e6673e7cc6fbd428792fdb49bdf9746084ffe67678cab54d761393f",
+      "before_hash": "",
+      "source_id": "81d2b0db70cc29f18d1ed04e",
+      "target": ".ael/knowledge/research/legacy-81d2b0db70cc29f18d1ed04e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cb6f132b4a2c5ffdb83429d3cad13c83b9ee2b44950081a7dcfc9ade0ff0b45b",
+      "before_hash": "",
+      "source_id": "9ed05acaa2a9461cef66c2ed",
+      "target": ".ael/knowledge/research/legacy-9ed05acaa2a9461cef66c2ed.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9591ce49bbae114026e595eb1403f5e47a71f8463c3b08d2852b0073edc980b3",
+      "before_hash": "",
+      "source_id": "2b5496fe37a4c67d40c773e4",
+      "target": ".ael/knowledge/research/legacy-2b5496fe37a4c67d40c773e4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "75a1a72ed5585cb3f7a00f8e8785df51b8c76768698a352a4fc9e2ed1d58941c",
+      "before_hash": "",
+      "source_id": "091526dd474a77b4363be74b",
+      "target": ".ael/knowledge/research/legacy-091526dd474a77b4363be74b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2c787fac0d45087fbf93cba5fc393d1458148858bf0e61568ef2d038904108e2",
+      "before_hash": "",
+      "source_id": "9ae86d0b902dfe97858439fc",
+      "target": ".ael/knowledge/research/legacy-9ae86d0b902dfe97858439fc.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1108a6c2c1dcd69738bd1a889984fb32b5246bae93bd5d277432250405a09ac2",
+      "before_hash": "",
+      "source_id": "75aa1eadd0cb659beedd6777",
+      "target": ".ael/knowledge/research/legacy-75aa1eadd0cb659beedd6777.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e1f226663e2f58e9f76dd1646dafc96899e02ea9a6c88ce57a7039b2b106acf0",
+      "before_hash": "",
+      "source_id": "cf70baa3300e4ff4492f9c5d",
+      "target": ".ael/knowledge/research/legacy-cf70baa3300e4ff4492f9c5d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a723db81ac49424b1244ff5fe4428a706c025e26312a80ac601bbd8dd2f48ed1",
+      "before_hash": "",
+      "source_id": "28791bb769f67d7a164d244a",
+      "target": ".ael/knowledge/research/legacy-28791bb769f67d7a164d244a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ea0b6e1c7dfa6457392710bf43ab8ee49032113b552b2da06a63dbbc8534795a",
+      "before_hash": "",
+      "source_id": "d8f5393afa9d4a22a94cbad0",
+      "target": ".ael/knowledge/research/legacy-d8f5393afa9d4a22a94cbad0.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2839e8e79a86e67bfe10f5b20abb21bc29b9f17c3cf6c74eacb6305735ece368",
+      "before_hash": "",
+      "source_id": "a03c57bee51e64e0bde5f619",
+      "target": ".ael/knowledge/research/legacy-a03c57bee51e64e0bde5f619.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c176c71dc88b6dc873f5a9cdcfb6b9d604e389cda9631a7efdd891953e767fad",
+      "before_hash": "",
+      "source_id": "8ed2d38ed7e585cfac09263c",
+      "target": ".ael/knowledge/research/legacy-8ed2d38ed7e585cfac09263c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e0f2670e12894504603974df6b70d1532c4d2b5951ee1b3570d99ecc7501b17b",
+      "before_hash": "",
+      "source_id": "eab9334a6e325576ca35f3a5",
+      "target": ".ael/knowledge/research/legacy-eab9334a6e325576ca35f3a5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ed5ffe983fac4562cbdfb771ca9352e0e27440233db9f8155b10e19341356b4d",
+      "before_hash": "",
+      "source_id": "d6e593a9145ba9e1202820d9",
+      "target": ".ael/knowledge/research/legacy-d6e593a9145ba9e1202820d9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a7e27b2e1af60cf421cbc92f2c06b8e190abd4cd7dd45eb7e726e8366f674d3c",
+      "before_hash": "",
+      "source_id": "065f39696569f98d2481750d",
+      "target": ".ael/knowledge/research/legacy-065f39696569f98d2481750d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e3eaf01d58a2da419187ad1a5573dd8466b0646b3cfb8948cff61a6d54dd8d3c",
+      "before_hash": "",
+      "source_id": "cb1ede4c1beeb625bb8a2176",
+      "target": ".ael/knowledge/research/legacy-cb1ede4c1beeb625bb8a2176.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5c34e10e3a206572d1232e92dfec0db0fd0acb47e22ebee67bb1ae98c7302c0e",
+      "before_hash": "",
+      "source_id": "88f078a269612cba2b9ddee6",
+      "target": ".ael/knowledge/research/legacy-88f078a269612cba2b9ddee6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "14d8d5cbdb9a54bc95503819f0f8bb5221171e29df01cba0f10588d61b0792df",
+      "before_hash": "",
+      "source_id": "4a363f9df8fc0e53311c7ec9",
+      "target": ".ael/knowledge/research/legacy-4a363f9df8fc0e53311c7ec9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "af069d31ea3a63a7b6f3af7e7b143833dd2c2bf8b88f1b26363e043a8c60f885",
+      "before_hash": "",
+      "source_id": "c8464a999ae307fb1195a1e7",
+      "target": ".ael/knowledge/research/legacy-c8464a999ae307fb1195a1e7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5111e78119ad4b1545341b0aab7300f699ed71d8fdb79bca18d1cc960163c32f",
+      "before_hash": "",
+      "source_id": "39d88c8c7d47a514a59eaaaa",
+      "target": ".ael/knowledge/research/legacy-39d88c8c7d47a514a59eaaaa.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4a89b5841e122cb4af7a1bb90d35113f73f0d827779d0ab5b33246c9c9b4ecdd",
+      "before_hash": "",
+      "source_id": "5ad7e28897c0f27b177038fd",
+      "target": ".ael/knowledge/research/legacy-5ad7e28897c0f27b177038fd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "180e4014412e992d12fbebd315fb5ba677125af6278c6f2ecd206a9fe275ea15",
+      "before_hash": "",
+      "source_id": "4b9f56b77699d34b2f2b9c66",
+      "target": ".ael/knowledge/research/legacy-4b9f56b77699d34b2f2b9c66.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "57e58b2979076a53cd30c7631181602c60128c79f48f705cb3abfcc03808cb85",
+      "before_hash": "",
+      "source_id": "a7af2665dccc353906c6063e",
+      "target": ".ael/knowledge/research/legacy-a7af2665dccc353906c6063e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cbc2458c5f0f0245b5fd468ba6a84e775b561c5ba5629f23979492a07ebed50b",
+      "before_hash": "",
+      "source_id": "c0485ff7ee561bbd7c9a7da2",
+      "target": ".ael/knowledge/research/legacy-c0485ff7ee561bbd7c9a7da2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1e9576508e51eb75bb9be2fd0f694b4e16b59f6fd9ed8d9899647ebed73fff5d",
+      "before_hash": "",
+      "source_id": "95cc73af589adff3fad6633a",
+      "target": ".ael/knowledge/research/legacy-95cc73af589adff3fad6633a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "39f28971ad9d9725d1a7ecc7201a2e62ba1842cb29b3f6981edd63804e16feb9",
+      "before_hash": "",
+      "source_id": "a52f74d8ae74e819cb17f383",
+      "target": ".ael/knowledge/research/legacy-a52f74d8ae74e819cb17f383.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "29dd5138693c6c468912c7e8b71e3bd8ef32967cb2c657f15b0e9d97470e477e",
+      "before_hash": "",
+      "source_id": "3c2db4cf43bc21aa8625ffce",
+      "target": ".ael/knowledge/research/legacy-3c2db4cf43bc21aa8625ffce.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "70dd7e13b30a2fdcd499c3397c99d4e956c0a023f2866c8460cc4649fcf077ec",
+      "before_hash": "",
+      "source_id": "cf7451295eaa0dbe61f80f9d",
+      "target": ".ael/knowledge/research/legacy-cf7451295eaa0dbe61f80f9d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cc41c84ba989fe592794e1764950ff7da4d50d34d21a6bc7c83f505a9ffb9290",
+      "before_hash": "",
+      "source_id": "5a1467e4390cda00a8491011",
+      "target": ".ael/knowledge/research/legacy-5a1467e4390cda00a8491011.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "bada741ff0b55019b6777f54874497fe58058f061c5d5fcce0cf71dd778ad439",
+      "before_hash": "",
+      "source_id": "191b4632f0a0a1a927161c9e",
+      "target": ".ael/knowledge/research/legacy-191b4632f0a0a1a927161c9e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "967a7b6965ccbbb42aef8111fd1b1b39ff2e6d5db77d450ee88d1abba46d0e53",
+      "before_hash": "",
+      "source_id": "557a02d1577b3c895ad8f8f3",
+      "target": ".ael/knowledge/research/legacy-557a02d1577b3c895ad8f8f3.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "05f2676bd05f3ed83d9951c77f984f821fcffe925885d51e631a7e009974a29d",
+      "before_hash": "",
+      "source_id": "1b2c5c00e8cefa35449f326c",
+      "target": ".ael/knowledge/research/legacy-1b2c5c00e8cefa35449f326c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7090850af14c438671c24ecbb5f92c56c51f1b41333d2f1b3fddd5d86343d70b",
+      "before_hash": "",
+      "source_id": "31b2c8f1aa5fd39e0c33152a",
+      "target": ".ael/knowledge/research/legacy-31b2c8f1aa5fd39e0c33152a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "df2ab5b050e1cae731a6150a3d66a47a0a2d24273f1a57b9a7390c52029a35e8",
+      "before_hash": "",
+      "source_id": "830f622fd5ff9f0289483629",
+      "target": ".ael/knowledge/research/legacy-830f622fd5ff9f0289483629.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4b3100346c3b2caf9e1098a745de567ea185da3bfe1caffadc9cd53ff7a14ffe",
+      "before_hash": "",
+      "source_id": "0d3a103ee07fb5a443cf7d26",
+      "target": ".ael/knowledge/research/legacy-0d3a103ee07fb5a443cf7d26.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d5be6e62a0b7896c0d893743085f524e64d1d8e3a9713c92fb6d52244f4d8da0",
+      "before_hash": "",
+      "source_id": "ce16e109af5b118f29003eb1",
+      "target": ".ael/knowledge/research/legacy-ce16e109af5b118f29003eb1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1285cb3af1c540d186719623a1e9152478feebd3d295d0c4ef61af4e2136a721",
+      "before_hash": "",
+      "source_id": "70dc66b597b2a361f2e69f78",
+      "target": ".ael/knowledge/research/legacy-70dc66b597b2a361f2e69f78.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5b62c0a42c2d250057fb2126275e7df0e75535819fc9d228f2ec8e3c4946b335",
+      "before_hash": "",
+      "source_id": "d00a2ce93a00c0593da7bf66",
+      "target": ".ael/knowledge/research/legacy-d00a2ce93a00c0593da7bf66.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4aadd3884a4bea2467af105631360d30a7d90d5e383eb0608cfd837d1020e0a9",
+      "before_hash": "",
+      "source_id": "417b59614c590363aa2de8fe",
+      "target": ".ael/knowledge/research/legacy-417b59614c590363aa2de8fe.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "612769c33d706228ca29d612637096a12fb4da24901550dc9976c10041c7d01a",
+      "before_hash": "",
+      "source_id": "4b32f079d7e0da09944ff5ff",
+      "target": ".ael/knowledge/research/legacy-4b32f079d7e0da09944ff5ff.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "068cc7d5664298d727ad7d1380652e366c527da4bc75ee374955f678d3b12e98",
+      "before_hash": "",
+      "source_id": "ad0205a108e36754ece1b305",
+      "target": ".ael/knowledge/research/legacy-ad0205a108e36754ece1b305.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "74d34abdd35d160a65a3c4253eec651ad4484f8d20e2faca2ce78d28ffad959d",
+      "before_hash": "",
+      "source_id": "f1bb049a9d55d01058f376e1",
+      "target": ".ael/knowledge/research/legacy-f1bb049a9d55d01058f376e1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f69ed00bebd80fca72d158e4141fdccb5c5397570efef10233532240be1f1fc7",
+      "before_hash": "",
+      "source_id": "35b4381adacedefb5b8d637d",
+      "target": ".ael/knowledge/research/legacy-35b4381adacedefb5b8d637d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "67b71648a993d6069eed21d47c5be04a0258f24ef9e50ae877f3eb80e3f6c6eb",
+      "before_hash": "",
+      "source_id": "bca3348fdfb6fa1e54009c20",
+      "target": ".ael/knowledge/research/legacy-bca3348fdfb6fa1e54009c20.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "773559ab7226dc9f2d51d3037dd4062d4be0930f523815f03c8125edca9ddcb2",
+      "before_hash": "",
+      "source_id": "9fcf725eb38430fbf816ca49",
+      "target": ".ael/knowledge/research/legacy-9fcf725eb38430fbf816ca49.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b1f0d70926e2be33c472299e6bb81251411d1ecccc37386d7ba721cc4fb8ad59",
+      "before_hash": "",
+      "source_id": "d1e71e86c2ced56a70ebb5c4",
+      "target": ".ael/knowledge/research/legacy-d1e71e86c2ced56a70ebb5c4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "662d12906a4cd5caac4f734c079ee7f94e3db2131d45554c1bbf1e26aec68593",
+      "before_hash": "",
+      "source_id": "2c006278940e242db55c27ff",
+      "target": ".ael/knowledge/research/legacy-2c006278940e242db55c27ff.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cc7ad439f64bb7e630e1dc9cb0f9d08d192ce4540d36d095bac0df6da28017a0",
+      "before_hash": "",
+      "source_id": "85542a497c87f7e4dc0e72b2",
+      "target": ".ael/knowledge/research/legacy-85542a497c87f7e4dc0e72b2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5145392d14168d3be7d330d4c5f8c3d06997f277d54d3271a24e20a18c27fdc1",
+      "before_hash": "",
+      "source_id": "06b3920007795439cac9dff0",
+      "target": ".ael/knowledge/research/legacy-06b3920007795439cac9dff0.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f0f6134df07f664cf334dd06c5b3998c0ee0dfb09d732b55dfe0c15e4da26d48",
+      "before_hash": "",
+      "source_id": "5ae65c57f3f45a72dbd10ca9",
+      "target": ".ael/knowledge/research/legacy-5ae65c57f3f45a72dbd10ca9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7c5bf7e574f2bdc39043969408e8b127b6e3c42ab64629b6ba842bedae4438ef",
+      "before_hash": "",
+      "source_id": "427f3fe42934bb4db87d101a",
+      "target": ".ael/knowledge/research/legacy-427f3fe42934bb4db87d101a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "855947fc8aaafcb6cbdb864500e0608cfb53ec84c8244e632588c8d17d4ebd70",
+      "before_hash": "",
+      "source_id": "3018442c7e94a7f1b90bee6e",
+      "target": ".ael/knowledge/research/legacy-3018442c7e94a7f1b90bee6e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a815117959d1b0426577c030c95cf873a059e0aeb12c42448e5efbb7da5a0e37",
+      "before_hash": "",
+      "source_id": "870815dc138979dcf61f8eea",
+      "target": ".ael/knowledge/research/legacy-870815dc138979dcf61f8eea.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9e10bd08b2b4ca6153e19ae55b04f13fd57c908a41c4bdcbefc768fa8f2d4f6f",
+      "before_hash": "",
+      "source_id": "e2559affe982bbf4dfb67415",
+      "target": ".ael/knowledge/research/legacy-e2559affe982bbf4dfb67415.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "01479124edb48e35e8b8b6bf4c3c222fe80014667a0394092f1ea31f61283cbc",
+      "before_hash": "",
+      "source_id": "1c4861d507e82f876426f855",
+      "target": ".ael/knowledge/research/legacy-1c4861d507e82f876426f855.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4d3d3b9e06fb1c19fdc9ffd8638f97b3d526d0ece7210bf723a6b05d517f0b97",
+      "before_hash": "",
+      "source_id": "a125e03f315448fbf302b66c",
+      "target": ".ael/knowledge/research/legacy-a125e03f315448fbf302b66c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8066132aa727c899da68857dc48cba1b636eb50e8b19c50a7b428398bb87bf77",
+      "before_hash": "",
+      "source_id": "8cd002fb080ee35abfd45f0e",
+      "target": ".ael/knowledge/research/legacy-8cd002fb080ee35abfd45f0e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a26876b13750d5cc2322a29ce7dd43a4681f118bad6af12ba348841801c2e010",
+      "before_hash": "",
+      "source_id": "971f2479246078efc59a44c6",
+      "target": ".ael/knowledge/research/legacy-971f2479246078efc59a44c6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8eafd302393966e53cfcc097aa2941cde89bfb14c37e56b7970a600ad54b9f6b",
+      "before_hash": "",
+      "source_id": "34455776854bc9c85907d5be",
+      "target": ".ael/knowledge/research/legacy-34455776854bc9c85907d5be.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0a55e48c23b1ecd58d71405e8e35b388bcfb44c67b99cbe47f987e59e03d6c7d",
+      "before_hash": "",
+      "source_id": "68e2f12ae2d24c5867db4edd",
+      "target": ".ael/knowledge/research/legacy-68e2f12ae2d24c5867db4edd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a95e2b456710a552783d688da1a52eca5cca95ebbcbc9ba5274048cb8e44be4a",
+      "before_hash": "",
+      "source_id": "e97e47d7308215302e794023",
+      "target": ".ael/knowledge/research/legacy-e97e47d7308215302e794023.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0d0b6583ef727738998feb7bac95056648785e554aab41ab3370c1d2cdbe9eed",
+      "before_hash": "",
+      "source_id": "065b9060da8deb40cb031ea7",
+      "target": ".ael/knowledge/research/legacy-065b9060da8deb40cb031ea7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d9d43fb4a8fd0064b9768a8dce4d707fba0ce47b6ddbec3e1f8131fd97d3cf37",
+      "before_hash": "",
+      "source_id": "530e85e209bf98b359c8794d",
+      "target": ".ael/knowledge/research/legacy-530e85e209bf98b359c8794d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "985019893bcb8f4e6a615c6b86f50b2678cb78c2f7433cf9740f58439d8cac9f",
+      "before_hash": "",
+      "source_id": "8edf6c963c3c0ce74439df06",
+      "target": ".ael/knowledge/research/legacy-8edf6c963c3c0ce74439df06.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "32f34e46779d4271483c3831f1a6048d2bd2d160a944aaeb1c17217979ef33e3",
+      "before_hash": "",
+      "source_id": "7cba6ca652cacb8df86a3ad3",
+      "target": ".ael/knowledge/research/legacy-7cba6ca652cacb8df86a3ad3.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "af88760503e8cf317cb14ac0b76599f0a3e33ae6b6f51336a3f0c3e07d9b7b6b",
+      "before_hash": "",
+      "source_id": "67f999efee443d98d519546e",
+      "target": ".ael/knowledge/research/legacy-67f999efee443d98d519546e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4fbbfc97c2d7b8d6eaf8041d75ab69ac6b1905c95738eefa6c59d1bc084c5fa8",
+      "before_hash": "",
+      "source_id": "a53b97fb1bf05b1c84b64017",
+      "target": ".ael/knowledge/research/legacy-a53b97fb1bf05b1c84b64017.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "fe9f7555d404f226adefd07bccd462828dc8bb09c6248a6d95b029dffbf4198f",
+      "before_hash": "",
+      "source_id": "e1ef04cfd5d55c3a13f7a3c1",
+      "target": ".ael/knowledge/research/legacy-e1ef04cfd5d55c3a13f7a3c1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "afbc19425245c6258f4b3149d0f3be3aeed9fe8b45f0cd7aaf2769e8836600fd",
+      "before_hash": "",
+      "source_id": "7cc89bc85185fd7bf3d3d821",
+      "target": ".ael/knowledge/research/legacy-7cc89bc85185fd7bf3d3d821.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1a727b560caa486664b350da3e271dcbdb9f2fed4f7f75f7f44dcab2c0bc2823",
+      "before_hash": "",
+      "source_id": "3c64eb2f34553c63d2ffd461",
+      "target": ".ael/knowledge/research/legacy-3c64eb2f34553c63d2ffd461.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a875c1cba21808ef9c87278d937b6977cfb876f3c521b38479e9805a8e05d14a",
+      "before_hash": "",
+      "source_id": "374ff747f85189fef72ea236",
+      "target": ".ael/knowledge/research/legacy-374ff747f85189fef72ea236.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ef5c395ebdb0b34f255e6d7500dc24e7eea372cae9446f0bb1e1478dc96f889f",
+      "before_hash": "",
+      "source_id": "df07f5a13c74187550e1c7b5",
+      "target": ".ael/knowledge/research/legacy-df07f5a13c74187550e1c7b5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a6e4ee8345a204814ab36917463be6c700db2fd329559666fb3441ce9b5c76be",
+      "before_hash": "",
+      "source_id": "24a004e154d11e04be3271d6",
+      "target": ".ael/knowledge/research/legacy-24a004e154d11e04be3271d6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "16415527ea4f7f2075347c3926e813779a3158bfe13549fdd30f7e413da05d2d",
+      "before_hash": "",
+      "source_id": "1a14aa522f2a7cf3b3545a06",
+      "target": ".ael/knowledge/research/legacy-1a14aa522f2a7cf3b3545a06.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d704f8640080c13a877d4c30b8339a68febe5f1eb2a9affc812fbc5fd19c06e5",
+      "before_hash": "",
+      "source_id": "cfcbdb1b14e75dd8337892b5",
+      "target": ".ael/knowledge/research/legacy-cfcbdb1b14e75dd8337892b5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d3f4520a7da65e9a88d80f53a8cb1043330a249e592719538f911705dd402156",
+      "before_hash": "",
+      "source_id": "f14c64866dc7017031635dfd",
+      "target": ".ael/knowledge/research/legacy-f14c64866dc7017031635dfd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e0ad3da82acb950e8876970ba28ae6d8cbca1acc2b36a2fd52122c960ae8876a",
+      "before_hash": "",
+      "source_id": "c638470160872237829b5b9c",
+      "target": ".ael/knowledge/research/legacy-c638470160872237829b5b9c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "aa8ba44f2d104f3743d0fc4b70966963277abc14d8b1b8481d591ec1e696d80d",
+      "before_hash": "",
+      "source_id": "072abf613a0ce7f3c3b43c5d",
+      "target": ".ael/knowledge/research/legacy-072abf613a0ce7f3c3b43c5d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b0ee3c488c4a6592fa0136dd2b28a7fcefeb20c6f9676e32aef5b40a9608c0f2",
+      "before_hash": "",
+      "source_id": "77d3cee39d9dd1768ae0325e",
+      "target": ".ael/knowledge/research/legacy-77d3cee39d9dd1768ae0325e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d722253c48ac04854fdde118889f2c6f00efa260709e16a4a3548fe41192a3dd",
+      "before_hash": "",
+      "source_id": "21ecfc3bddb59972283d3711",
+      "target": ".ael/knowledge/research/legacy-21ecfc3bddb59972283d3711.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4659069ddbd8be57fbefb66a508193444cbfe3814b55837eea7578979a068e5a",
+      "before_hash": "",
+      "source_id": "ff7861b037655b18ebc149bf",
+      "target": ".ael/knowledge/research/legacy-ff7861b037655b18ebc149bf.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "50e79f4013277f5964bc0a5fb03233e71ff3d259ba2d25a7466febf2e570ffa4",
+      "before_hash": "",
+      "source_id": "5eae56962b513ffdf1945d69",
+      "target": ".ael/knowledge/research/legacy-5eae56962b513ffdf1945d69.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "531269b059c3b31ca3d8bd0a8f4e27e49636922e96702c52cd526022f9d9b9bc",
+      "before_hash": "",
+      "source_id": "a36d9320da1731ae6cfeb986",
+      "target": ".ael/knowledge/research/legacy-a36d9320da1731ae6cfeb986.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9dc05dbac9c9617e41b8727915bd352c196713d5a58732faa539062927e035d8",
+      "before_hash": "",
+      "source_id": "d3a7433cfd57eb286893ab33",
+      "target": ".ael/knowledge/research/legacy-d3a7433cfd57eb286893ab33.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "833a3beb9bd71fefcede6ced6f3de9598dc2ddd8734a481d3ae6f29b90dd76fa",
+      "before_hash": "",
+      "source_id": "e602f5aab24a3f7464bd0342",
+      "target": ".ael/knowledge/research/legacy-e602f5aab24a3f7464bd0342.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f46114c6f39cec3cbd2b92145cf337e864d9615407d88be10767f097916bc63f",
+      "before_hash": "",
+      "source_id": "4ce3a7ca0b564f386e4acaab",
+      "target": ".ael/knowledge/research/legacy-4ce3a7ca0b564f386e4acaab.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c85e5f67ce26bed73d04a1b7abf6f831ae9c96e122cc29db5f379458c58ae33f",
+      "before_hash": "",
+      "source_id": "e59223906ff79948b2f4e408",
+      "target": ".ael/knowledge/research/legacy-e59223906ff79948b2f4e408.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "06ef3d6ed0a4745376abf667c7dcb8d3b5590a22d02035dba3f13bb0529b46f1",
+      "before_hash": "",
+      "source_id": "8000316e8f32d4bddee59b30",
+      "target": ".ael/knowledge/research/legacy-8000316e8f32d4bddee59b30.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "09a5984f6316227f2c506f5d25ff17deb44be6269917bcd6c89c57903681098d",
+      "before_hash": "",
+      "source_id": "0c1ebedc47d8a02cbd64b991",
+      "target": ".ael/knowledge/research/legacy-0c1ebedc47d8a02cbd64b991.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3379e777896cfb3aad947f378c31166940236e6a22462aa759f4aeeca6a859e5",
+      "before_hash": "",
+      "source_id": "92254eebc680e38281082ab1",
+      "target": ".ael/knowledge/research/legacy-92254eebc680e38281082ab1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "66674654f16f5e1eeb2e1a83007504ddf89d822fa7f21af447292c2987c683d0",
+      "before_hash": "",
+      "source_id": "cf3469b5062c19b1785ad764",
+      "target": ".ael/knowledge/research/legacy-cf3469b5062c19b1785ad764.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c5245f9c900649be00e16f536d7585f23fb6bb892811310530687154ca761fff",
+      "before_hash": "",
+      "source_id": "2afbb45ba47e5bd3687de793",
+      "target": ".ael/knowledge/research/legacy-2afbb45ba47e5bd3687de793.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "525c975cd41bd7db2c3aef9f830bcfa1ff8caa023413a5fd5c1d0bd8e4a59821",
+      "before_hash": "",
+      "source_id": "a34ed912523841aa49d4b04e",
+      "target": ".ael/knowledge/research/legacy-a34ed912523841aa49d4b04e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3fbefca0ca312e51fbd07b1693b4cc245e577f563338d4e6d8a10798c9d30861",
+      "before_hash": "",
+      "source_id": "2d7c61eaa4324969f0a1d09a",
+      "target": ".ael/knowledge/research/legacy-2d7c61eaa4324969f0a1d09a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9b07daab33a98a42cc8b81cfb851e064280de9a34ad5279e471d7e2a89bd623d",
+      "before_hash": "",
+      "source_id": "3e09680643b411aebc558627",
+      "target": ".ael/knowledge/research/legacy-3e09680643b411aebc558627.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3b49775d78d70eb60e99db54c59a5c8529914a191a1cffda8ae3b4aca51fa470",
+      "before_hash": "",
+      "source_id": "4abf14961b679febbd41c205",
+      "target": ".ael/knowledge/research/legacy-4abf14961b679febbd41c205.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2c5daf5649c55ad0a54eb449522c550aa8ac109467e84329ae069894c59b8f20",
+      "before_hash": "",
+      "source_id": "307558659c1ab189055b4d4f",
+      "target": ".ael/knowledge/research/legacy-307558659c1ab189055b4d4f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5ffe315a58e05fc7b7b886c0bfabc622e0e66ca811cb1dd670818f9062fddab0",
+      "before_hash": "",
+      "source_id": "043e9d28990a2137b9296d5a",
+      "target": ".ael/knowledge/research/legacy-043e9d28990a2137b9296d5a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "79b044f7c2a5f24302f0e94cbb69841b3cb733807f4351818b038325b43069c8",
+      "before_hash": "",
+      "source_id": "9a64570446c6ba5fd0d6d48c",
+      "target": ".ael/knowledge/research/legacy-9a64570446c6ba5fd0d6d48c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0beb5981da9ce385b22176e2878127d3f21ef15413ccd1e5c7123677d264ce35",
+      "before_hash": "",
+      "source_id": "3d043d55d913f1ec782f1da4",
+      "target": ".ael/knowledge/research/legacy-3d043d55d913f1ec782f1da4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cc832200a0d3bf87369daa05cfa453ae4e321cc1509cd8093630f8699691867e",
+      "before_hash": "",
+      "source_id": "d8b80e670b2935a7a7b9f60b",
+      "target": ".ael/knowledge/research/legacy-d8b80e670b2935a7a7b9f60b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6e984cf80a439d237d82cd1f3cf2d2af412a2eaf9e2204a7e77071d83ac38431",
+      "before_hash": "",
+      "source_id": "5a4f94313accfa44fb8d679a",
+      "target": ".ael/knowledge/research/legacy-5a4f94313accfa44fb8d679a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ca1acd504f1c66a34166734a8ace52820115c44d1fba2937a317e69f5daa5c78",
+      "before_hash": "",
+      "source_id": "740d5676034cd30701a12b40",
+      "target": ".ael/knowledge/research/legacy-740d5676034cd30701a12b40.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e87632ae1ae81c5987d6c991661a8638f69d52b65528471397490d765197af1c",
+      "before_hash": "",
+      "source_id": "17e99312167400d5807d89ef",
+      "target": ".ael/knowledge/research/legacy-17e99312167400d5807d89ef.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "88951ca1df0b72da6a1b0a9591bc6b7859276345bcfa77a4c33d50f5e8847c21",
+      "before_hash": "",
+      "source_id": "e240b857423a872c13253393",
+      "target": ".ael/knowledge/research/legacy-e240b857423a872c13253393.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b35197e1d000ca2a3ebe4b72e638d7e99e33f1b17b8725307d67f7e863e95aa3",
+      "before_hash": "",
+      "source_id": "b8bc1448f39607fd2c602415",
+      "target": ".ael/knowledge/research/legacy-b8bc1448f39607fd2c602415.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "81f4a1bb58ea23d629fad38dfe06fad76babe0fa0abc116b43e3c615d37e5052",
+      "before_hash": "",
+      "source_id": "7c02b0bc9a5a754d445f4c6c",
+      "target": ".ael/knowledge/research/legacy-7c02b0bc9a5a754d445f4c6c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "efcaa01cceeafc56e1e5faeaecec25067c0b849b8f8a8ee5133cd2c48fc9c0e0",
+      "before_hash": "",
+      "source_id": "32af950ffb7c929e5cbe04fb",
+      "target": ".ael/knowledge/research/legacy-32af950ffb7c929e5cbe04fb.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "295ffe713f1724c16a6f0e0e5ef140d33d395dd627f9757dfdae441aaae2db23",
+      "before_hash": "",
+      "source_id": "20e702cc21d1cdc99c8b609e",
+      "target": ".ael/knowledge/research/legacy-20e702cc21d1cdc99c8b609e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ae6ea27bc03739a81140af7d07b043e59bf1988fe259d4ec3e6963f7773958f4",
+      "before_hash": "",
+      "source_id": "eea83a1d8a1da8147aa138ce",
+      "target": ".ael/knowledge/research/legacy-eea83a1d8a1da8147aa138ce.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e8bd07ebfa17ca617ad0e0a6f1f3524220e8b4f4618619060f9a42cb8f56d75b",
+      "before_hash": "",
+      "source_id": "9ff3077ddcfc7300da47c7ec",
+      "target": ".ael/knowledge/research/legacy-9ff3077ddcfc7300da47c7ec.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ea6ca7d87eb11bd50ea5c27d75a67540a587229e8a169220af1d850b835eb6c5",
+      "before_hash": "",
+      "source_id": "99c5b15e1ac99cab8077ac41",
+      "target": ".ael/knowledge/research/legacy-99c5b15e1ac99cab8077ac41.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "435e78b94be9eda2a8fc95e40aefa415c8ec3e4b2ac0cf8750ffdcf3916770fd",
+      "before_hash": "",
+      "source_id": "8bc1a293d7ad63d3de5cfda7",
+      "target": ".ael/knowledge/research/legacy-8bc1a293d7ad63d3de5cfda7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4366ccc985d4061e95f02e88b88b79e5d791b658246f7071248e3027e1ee33e6",
+      "before_hash": "",
+      "source_id": "b3cad4abaca14e624fe894f1",
+      "target": ".ael/knowledge/research/legacy-b3cad4abaca14e624fe894f1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "97cf8763c44f05c9c184c0ff7625a0edd7e4bfdabf97a329f645a7bf2428df35",
+      "before_hash": "",
+      "source_id": "590763db3e10b85b207f7b25",
+      "target": ".ael/knowledge/research/legacy-590763db3e10b85b207f7b25.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6c71ba360d275fc9f25681d5b41b7c11a47b1bf27a78dca20304b2794d842652",
+      "before_hash": "",
+      "source_id": "f22f1b57f5957b2f668846f4",
+      "target": ".ael/knowledge/research/legacy-f22f1b57f5957b2f668846f4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1372d5a94051110ba135f7c8a2c54d8e76f75d102305944381f3b3645b2bf3ee",
+      "before_hash": "",
+      "source_id": "b51121e56c25c0e2fc9633f7",
+      "target": ".ael/knowledge/research/legacy-b51121e56c25c0e2fc9633f7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "889dd8f6a6e47ab6b4eb3a99fd1938dba1e961cd6fc5fe529cd1a2edb4897cf1",
+      "before_hash": "",
+      "source_id": "a1648103753bea415d5739b8",
+      "target": ".ael/knowledge/research/legacy-a1648103753bea415d5739b8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c7b5cf18549598317d7b998e847e4f8d4e87bd8a1361f5a30d22937163e5463c",
+      "before_hash": "",
+      "source_id": "d3b38a8f7acafd2c78695715",
+      "target": ".ael/knowledge/research/legacy-d3b38a8f7acafd2c78695715.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0b33a9ba86d8f0899975146a2864a333d6616271d360599384933def7708ba65",
+      "before_hash": "",
+      "source_id": "91d05e56b721c6baf607a272",
+      "target": ".ael/knowledge/research/legacy-91d05e56b721c6baf607a272.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a0ca26074c661ea017b587dc65c3cea2cfd0c380b6050651676e30c91421e92e",
+      "before_hash": "",
+      "source_id": "25c77042b78ee880504e6f9f",
+      "target": ".ael/knowledge/research/legacy-25c77042b78ee880504e6f9f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "494c0567f83c64124c3d8dfdd3664736fc5e7bd46faf2e1873fb73538656965d",
+      "before_hash": "",
+      "source_id": "e1934223e301b644689e0802",
+      "target": ".ael/knowledge/research/legacy-e1934223e301b644689e0802.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6547efe32fc10b9bf41a001fc301cddadc5823527c5c9be53c8da319770611c8",
+      "before_hash": "",
+      "source_id": "b834034f4c072ddc1edd8cae",
+      "target": ".ael/knowledge/research/legacy-b834034f4c072ddc1edd8cae.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9cc103e9148e71d232da2444b12618f8c6b4c34bdc82f3557b4c17698b535903",
+      "before_hash": "",
+      "source_id": "d4c0664246af5cd88e43d6d4",
+      "target": ".ael/knowledge/research/legacy-d4c0664246af5cd88e43d6d4.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "94cc8e8fa491049328d9deb611ed136b2a95171c0612aefc724eb8b3a8c49179",
+      "before_hash": "",
+      "source_id": "8e001280a4cbd18795c432e9",
+      "target": ".ael/knowledge/research/legacy-8e001280a4cbd18795c432e9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "82a1726d11b46f111e52efab40aff317fddcfcce896e2c2c7996e8eb95f47756",
+      "before_hash": "",
+      "source_id": "6993b72acc6e7816111e2166",
+      "target": ".ael/knowledge/research/legacy-6993b72acc6e7816111e2166.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d15849af2a98a32b7db5525b6588d276787616fedfcb992a85b819fde3c574a7",
+      "before_hash": "",
+      "source_id": "ce25927f7656b26b069e0a44",
+      "target": ".ael/knowledge/research/legacy-ce25927f7656b26b069e0a44.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4fbab1b1498e30e4a6682f1a950ee0d0002b9588d9ba8c7dee1bab4023f96199",
+      "before_hash": "",
+      "source_id": "52fac90d7a4f22799e94477a",
+      "target": ".ael/knowledge/research/legacy-52fac90d7a4f22799e94477a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "90b444025f0bad45287c86b9ec4e66511716790f67ec67c53fd507ccd3848ca2",
+      "before_hash": "",
+      "source_id": "4c9a29fc2768d33b62a89e8a",
+      "target": ".ael/knowledge/research/legacy-4c9a29fc2768d33b62a89e8a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "181e856c58a11ffc2ab815e238fb5d4cf49a618c85d74c88a53136ed8b5819b4",
+      "before_hash": "",
+      "source_id": "01b8ab0240ad8d834cbb0fb5",
+      "target": ".ael/knowledge/research/legacy-01b8ab0240ad8d834cbb0fb5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f0548848a608d8756ad97d9852c4e44fef40e1d54374f67320fcc2774f54ba01",
+      "before_hash": "",
+      "source_id": "d310e7e8c8343cebdafdf851",
+      "target": ".ael/knowledge/research/legacy-d310e7e8c8343cebdafdf851.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f303d92f6987fa461f80bfd7872e902a96e275b3eb0724a20ffb030664ad621c",
+      "before_hash": "",
+      "source_id": "22de248507ff09ab022b4ef1",
+      "target": ".ael/knowledge/research/legacy-22de248507ff09ab022b4ef1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "49d0edc5a8fae9d3bee9b8eb03be00f282ffe3617a636a3d9b17a501037e8c08",
+      "before_hash": "",
+      "source_id": "1a572a3fdf8adf494a795c31",
+      "target": ".ael/knowledge/research/legacy-1a572a3fdf8adf494a795c31.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1440e5068776ce3dccbc624c1bfd0edef6ba3e6c234bc9627f3b803a77c78cea",
+      "before_hash": "",
+      "source_id": "13a6210376000b9b6e6f1438",
+      "target": ".ael/knowledge/research/legacy-13a6210376000b9b6e6f1438.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5a28ef748516bd98e1d00b88ab54915a7151d56a104c15372ca51a47ff035db8",
+      "before_hash": "",
+      "source_id": "cdeab383d7c18d8d77cc9d64",
+      "target": ".ael/knowledge/research/legacy-cdeab383d7c18d8d77cc9d64.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f230a5da4072ee9f7b3ca609b1cd4a56c42700e55e0b7347adf6547288ecf920",
+      "before_hash": "",
+      "source_id": "1260157666985fb4bff17bda",
+      "target": ".ael/knowledge/research/legacy-1260157666985fb4bff17bda.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b14c23a5634f24632f5a0c60f2c29b1e1f256aef13eb37f578d202664efabd6c",
+      "before_hash": "",
+      "source_id": "ca44c80b59c756ee9cc45b59",
+      "target": ".ael/knowledge/research/legacy-ca44c80b59c756ee9cc45b59.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8347574b94ecf4586774fd265c434166b87b9e5a21ab1f1e2ca5947b1d18e88c",
+      "before_hash": "",
+      "source_id": "b606985bd5234e17006595cb",
+      "target": ".ael/knowledge/research/legacy-b606985bd5234e17006595cb.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c90306872b365a5a4715ba9a944b2abc97f7b4a39253ff122cc11f7978bdc675",
+      "before_hash": "",
+      "source_id": "fb7eac20cb58656cd030b9e9",
+      "target": ".ael/knowledge/research/legacy-fb7eac20cb58656cd030b9e9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d7a1b9c5384be1de425cb9d24f364bb0258d3b8b720488b1a2d0963d95a9d1a5",
+      "before_hash": "",
+      "source_id": "ed311bebe486120f9a3a8925",
+      "target": ".ael/knowledge/research/legacy-ed311bebe486120f9a3a8925.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e48767155d55f8b872bbde9ac2647124d52c93f8958fcf5681a274ea1865754e",
+      "before_hash": "",
+      "source_id": "83b109fb9638396d5612663e",
+      "target": ".ael/knowledge/research/legacy-83b109fb9638396d5612663e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "fb37ee5ce2b2b1a4bf94320a305f9d67d3a5209f048e50394f34cc59714a901c",
+      "before_hash": "",
+      "source_id": "b6619804f52cf9a06ce21666",
+      "target": ".ael/knowledge/research/legacy-b6619804f52cf9a06ce21666.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6769fa774000c98d48298e2c3100557b78de7440d4dcf007ff1f305b5e716372",
+      "before_hash": "",
+      "source_id": "4e9f7807da79f3c874cfa7f8",
+      "target": ".ael/knowledge/research/legacy-4e9f7807da79f3c874cfa7f8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2b9b19e4539e7d0a0d234f3e856d30781288257cfa2497270e5ed0abea96859f",
+      "before_hash": "",
+      "source_id": "b7a2a50f5d04a6707a62734e",
+      "target": ".ael/knowledge/research/legacy-b7a2a50f5d04a6707a62734e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "303fde483e29799064f7fd2082b22dbc47051097c22f05a34adceba631551d74",
+      "before_hash": "",
+      "source_id": "d3636c0dc72f4aa9d64bebae",
+      "target": ".ael/knowledge/research/legacy-d3636c0dc72f4aa9d64bebae.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "be161f25458d6a8c72d0b3e6542f6e89d71924f888ae703eb7839e60b866b83f",
+      "before_hash": "",
+      "source_id": "f50312ee392d11f507e0f289",
+      "target": ".ael/knowledge/research/legacy-f50312ee392d11f507e0f289.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "18f6a7fc82f9dcd8d82a2972c4225830cd23e355590209ab5d13adb8ff950504",
+      "before_hash": "",
+      "source_id": "e01b479b40bfb1be1bfde3e7",
+      "target": ".ael/knowledge/research/legacy-e01b479b40bfb1be1bfde3e7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9900691f8de0f5e9e4875a1db3adac8638e2dd2d49fb12df78767c35af9ace67",
+      "before_hash": "",
+      "source_id": "466fe8764066d9090a572ca2",
+      "target": ".ael/knowledge/research/legacy-466fe8764066d9090a572ca2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7163f40a2330c91ada7e2adc7a15cbe5ffc385ca783ccb60c1dff14febb77c38",
+      "before_hash": "",
+      "source_id": "2248e70f22ac8833c3f63aa6",
+      "target": ".ael/knowledge/research/legacy-2248e70f22ac8833c3f63aa6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0b5b4bc27c64f2e9186d32c6c684451584c26b648f5b559b50eb33e82837443e",
+      "before_hash": "",
+      "source_id": "91a8625901f777c0d5cd2a8b",
+      "target": ".ael/knowledge/research/legacy-91a8625901f777c0d5cd2a8b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7eee5806219c7b18be8df7f5ba667a13f1f8434b02183ec221ff6df2dbe7d9e8",
+      "before_hash": "",
+      "source_id": "400a8460d00b11a0f5ab6d3e",
+      "target": ".ael/knowledge/research/legacy-400a8460d00b11a0f5ab6d3e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b30cf5b0e359f4d18ffd8d3bbc3cc842c33ee8757d4ed045d3d732aa1016f700",
+      "before_hash": "",
+      "source_id": "bcb69c9b0f9fea4c130af3ca",
+      "target": ".ael/knowledge/research/legacy-bcb69c9b0f9fea4c130af3ca.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e1068399189844a60daa0d825a374b64cab1e1074ddecd81129d288c2639b910",
+      "before_hash": "",
+      "source_id": "5bbda6004440f4a863132293",
+      "target": ".ael/knowledge/research/legacy-5bbda6004440f4a863132293.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "06c498bf77a8e102aa805510e1c33cc6f6c9c3bd437c76bb6915e00e57bf80d2",
+      "before_hash": "",
+      "source_id": "e27153f6f3ede4b51ce4d18c",
+      "target": ".ael/knowledge/research/legacy-e27153f6f3ede4b51ce4d18c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "38acc6b52d8b24afadf4c7fd269be9420dc9caa9f720f3a9fe922ae8b6757c6f",
+      "before_hash": "",
+      "source_id": "f1e47c9e5746d2e264554af8",
+      "target": ".ael/knowledge/research/legacy-f1e47c9e5746d2e264554af8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "74701c160a1b3933e6f4bde29432f6a862c72141b980c19c4a4abd3fb1e707f7",
+      "before_hash": "",
+      "source_id": "d8d62fd7ffe4e8de3c37549e",
+      "target": ".ael/knowledge/research/legacy-d8d62fd7ffe4e8de3c37549e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "76b3440290a51f88aec1ed7e8d14adce9c73147526dd9b5fd08ac42b2fd672db",
+      "before_hash": "",
+      "source_id": "c25f79a0530f805cd80e9acd",
+      "target": ".ael/knowledge/research/legacy-c25f79a0530f805cd80e9acd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8a82d77d5d8e1167a4beb4ffba0cdfb3a9eb9ac685fa0ba453e32d8e2dd35303",
+      "before_hash": "",
+      "source_id": "125224a797c83a1a9cd489d6",
+      "target": ".ael/knowledge/research/legacy-125224a797c83a1a9cd489d6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "82950716397e869c315ebfe4b4e28f859c6adcd2404e69d61e9576ae0cc134b8",
+      "before_hash": "",
+      "source_id": "1f4bef0de52233cf3175f741",
+      "target": ".ael/knowledge/research/legacy-1f4bef0de52233cf3175f741.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "89c50057247df8c00fe7968e3dd658994eea69cd536905cfef82bb117b8ec247",
+      "before_hash": "",
+      "source_id": "32d225600ff86c1272045d9a",
+      "target": ".ael/knowledge/research/legacy-32d225600ff86c1272045d9a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8cacc40b0bc2cf50421395426929f2d210a58e5144f45fe58860eeb70af176c3",
+      "before_hash": "",
+      "source_id": "29abb1cd14afb08e37298091",
+      "target": ".ael/knowledge/research/legacy-29abb1cd14afb08e37298091.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b38a66471cdb9cecb60dbbc9d9633efc78055e206e79443845b6ebfdbbbe1488",
+      "before_hash": "",
+      "source_id": "a4b3d9565981a063a062ba54",
+      "target": ".ael/knowledge/research/legacy-a4b3d9565981a063a062ba54.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c68365387c6387010ab34143bc19f48b3d611f96bdc46c7cf2a0c37dce77431d",
+      "before_hash": "",
+      "source_id": "d21f40e31b8dd01dac2848c9",
+      "target": ".ael/knowledge/research/legacy-d21f40e31b8dd01dac2848c9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e00147b5c256dcf4913fb8e6c6b73021747ef7269406ee926d2e3d1acb4e08be",
+      "before_hash": "",
+      "source_id": "ca2729f2406bc0848d1718d1",
+      "target": ".ael/knowledge/research/legacy-ca2729f2406bc0848d1718d1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7fe54304484ee241fe6dabc8e9cb3bb0c0edc30ad5be68673a9dcc510ddcc849",
+      "before_hash": "",
+      "source_id": "763673b112d872f31e137baf",
+      "target": ".ael/knowledge/research/legacy-763673b112d872f31e137baf.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a71bf401adb57d5076677c1a2e285aefec5942def07082d0a317576916fb7b08",
+      "before_hash": "",
+      "source_id": "4f63885821b85badb387bba3",
+      "target": ".ael/knowledge/research/legacy-4f63885821b85badb387bba3.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4652ff24d645316a4c57d7d530a1e1c8acf2bb0437ab56ed004379c879547efa",
+      "before_hash": "",
+      "source_id": "dd087e645822abbf661a5891",
+      "target": ".ael/knowledge/research/legacy-dd087e645822abbf661a5891.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "17b16d903bc1c131fa312917c0dec83c7eb2264adf6130ad2f3cdfd5510e4bc8",
+      "before_hash": "",
+      "source_id": "3d285aa4c44193fdc0e16fa6",
+      "target": ".ael/knowledge/research/legacy-3d285aa4c44193fdc0e16fa6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "00b3c50a8d7d1b12c5b72a3b253355bfd9ae0877e9f6c4b4eca8501d6c6c8263",
+      "before_hash": "",
+      "source_id": "1ee06643fe644e1f505dfbea",
+      "target": ".ael/knowledge/research/legacy-1ee06643fe644e1f505dfbea.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f5613cbe58c27be67a19e0b0d0009bcc41c14b965da57fa520896b4becf09327",
+      "before_hash": "",
+      "source_id": "648593afc2073d3afd0299b3",
+      "target": ".ael/knowledge/research/legacy-648593afc2073d3afd0299b3.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6f5a41838be5aec5e6f1cd5b30b1acddea82482897ce88da9cdce491b1ac82b6",
+      "before_hash": "",
+      "source_id": "aa46337d3fdb5475a79622a5",
+      "target": ".ael/knowledge/research/legacy-aa46337d3fdb5475a79622a5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "64d7ca63df142687fc7e9b85bd1017b4de04000262748a213a30ad15ca2a91aa",
+      "before_hash": "",
+      "source_id": "8f53a50b11cb83820178d0c2",
+      "target": ".ael/knowledge/research/legacy-8f53a50b11cb83820178d0c2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c758e4137ffacbd85ef0f6093fd9dd9de4db86f0c76c4482a4d64b9ef735d131",
+      "before_hash": "",
+      "source_id": "c57127bef0225aa50c8b364b",
+      "target": ".ael/knowledge/research/legacy-c57127bef0225aa50c8b364b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "035b043bad26eb77c5a14535c6739531a9948209eacee38f07683a89f060e790",
+      "before_hash": "",
+      "source_id": "330187bbaddc4089fde72822",
+      "target": ".ael/knowledge/research/legacy-330187bbaddc4089fde72822.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f4b0e7e4efe0da2a296749213583b33cf3e4ae2a01873d142c45a3357ecb78f9",
+      "before_hash": "",
+      "source_id": "9073131e92e968d6967c02d8",
+      "target": ".ael/knowledge/research/legacy-9073131e92e968d6967c02d8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e85ac7b642957ccf79acbd0656a2ee9375d156b5ac7cb97bc8a5fdb9ddd9147a",
+      "before_hash": "",
+      "source_id": "46bacf6266a7a641d7354018",
+      "target": ".ael/knowledge/research/legacy-46bacf6266a7a641d7354018.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7baface79c0b8d394844bf36fb13d145e9f0d2f87196e4e844a95177210a3ef0",
+      "before_hash": "",
+      "source_id": "950de7b53aafcc6008daa6b6",
+      "target": ".ael/knowledge/research/legacy-950de7b53aafcc6008daa6b6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5b00c495bf2fc6941d6ba38ff05108ddc580d913df2084b2180ca6d1f58b2c3a",
+      "before_hash": "",
+      "source_id": "f2f9ad44442e474a5dcc8838",
+      "target": ".ael/knowledge/research/legacy-f2f9ad44442e474a5dcc8838.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "aeb9dc76719cdf133673672a21abc37dce184d0ba4ef301fc3824de313a777e8",
+      "before_hash": "",
+      "source_id": "4372fb0ed0f63b14e2f4adf8",
+      "target": ".ael/knowledge/research/legacy-4372fb0ed0f63b14e2f4adf8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e3f7600e080f55ffb6597a09933f4bded2ea4b86d9a743ff600158e303d5fc79",
+      "before_hash": "",
+      "source_id": "fae402d9a91d7b10749471ea",
+      "target": ".ael/knowledge/research/legacy-fae402d9a91d7b10749471ea.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8d831779a1da79b53d6778d9498fd3320570d6cffbb4dca359c65c529ebeb661",
+      "before_hash": "",
+      "source_id": "0c66f7d11c0274abe9b026ea",
+      "target": ".ael/knowledge/research/legacy-0c66f7d11c0274abe9b026ea.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8239982549c3bb8d0f48dc39ec3913c2c1ff49a536bf79903c589f20c884d67d",
+      "before_hash": "",
+      "source_id": "9f36d4f01095a5bda4d8cd6a",
+      "target": ".ael/knowledge/research/legacy-9f36d4f01095a5bda4d8cd6a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "9b8fadff606d65e28dd2135620be4a09ec3111faa6758efa13bd8b6ea7ac67e6",
+      "before_hash": "",
+      "source_id": "8a4f27d82a743354f2a6dc16",
+      "target": ".ael/knowledge/research/legacy-8a4f27d82a743354f2a6dc16.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "720ad2de5755e534968427163a3a60785af009a143a836d5314e6f1684364c62",
+      "before_hash": "",
+      "source_id": "cddc59f58b6ad0d42cbd19f2",
+      "target": ".ael/knowledge/research/legacy-cddc59f58b6ad0d42cbd19f2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f9e76b69ee78a7fb83b7ef7393ed79102268081b532b9a9c15a469a47a7ce6b0",
+      "before_hash": "",
+      "source_id": "01d72a6784396bc858f6da9e",
+      "target": ".ael/knowledge/research/legacy-01d72a6784396bc858f6da9e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2b2234f9d466413d23ecee96189f09f470b00b290304cd2387a2a7911cdfda2d",
+      "before_hash": "",
+      "source_id": "4b827790b94e94b6f0006632",
+      "target": ".ael/knowledge/research/legacy-4b827790b94e94b6f0006632.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "da4391523471c4435372b317103c11be8f85229f45f177738310535d943d7132",
+      "before_hash": "",
+      "source_id": "363345f305a6b8ed46d3b18c",
+      "target": ".ael/knowledge/research/legacy-363345f305a6b8ed46d3b18c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7d386f4bfb0f5cccc0847543bdcfbcd0e2cc9016317e1a8645a6acdc7433d6f2",
+      "before_hash": "",
+      "source_id": "dacaac699b63f76af3aaa038",
+      "target": ".ael/knowledge/research/legacy-dacaac699b63f76af3aaa038.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "52263a6f041677ea8356d3c8f0e3464ad4889f0434b133102a2ea3d7e0b4770a",
+      "before_hash": "",
+      "source_id": "08ae4c834c03615cd8c1521d",
+      "target": ".ael/knowledge/research/legacy-08ae4c834c03615cd8c1521d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2d83f18a9ea3cb862d8268a01f4b55877fbb725173c2045545eabc616061776c",
+      "before_hash": "",
+      "source_id": "3cfb2e442ce7051b4c0b2507",
+      "target": ".ael/knowledge/research/legacy-3cfb2e442ce7051b4c0b2507.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "16a53a5453751a4a6af88c43fc8c332742eab709ea0dd4f2f2e7669e9347f863",
+      "before_hash": "",
+      "source_id": "d2ae289b0d2782270eab6705",
+      "target": ".ael/knowledge/research/legacy-d2ae289b0d2782270eab6705.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e404ca6fe0b45644e047270c57da469a2a7040273e845f7126192561654424bc",
+      "before_hash": "",
+      "source_id": "872f986310dec7f258d356e3",
+      "target": ".ael/knowledge/research/legacy-872f986310dec7f258d356e3.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ee5bb752826b9e1ecf6c4070577950dfb746fed27791f2612b8e9a8e22178331",
+      "before_hash": "",
+      "source_id": "911da6fa9f800068da221dab",
+      "target": ".ael/knowledge/research/legacy-911da6fa9f800068da221dab.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6174e017101554c28374ee630dd7d612a49d1022e19e2925808da3dddc8e528a",
+      "before_hash": "",
+      "source_id": "69f739c0517e61b221720092",
+      "target": ".ael/knowledge/research/legacy-69f739c0517e61b221720092.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c84e18a854fba27b36652373cc087080ab3ddcada4ec8c0081004861e1abd056",
+      "before_hash": "",
+      "source_id": "8c8474d3eed81c69eab3a5aa",
+      "target": ".ael/knowledge/research/legacy-8c8474d3eed81c69eab3a5aa.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1cb98a68438f33369cf1613807a6ff605fe597aee64fc084b59a93eb029a6595",
+      "before_hash": "",
+      "source_id": "bef3954caed4f293d15c9e3f",
+      "target": ".ael/knowledge/research/legacy-bef3954caed4f293d15c9e3f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5cdddba1e2214504b22adf1d1d5894f521a1b85bcc82a177045a753ef4bec1b7",
+      "before_hash": "",
+      "source_id": "a637f8bad0a3fa9e5c89043a",
+      "target": ".ael/knowledge/research/legacy-a637f8bad0a3fa9e5c89043a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "49e449a198ec1d705cb91e24de23095e3225d8eda3a03a19fc1a6d94e5f95e8c",
+      "before_hash": "",
+      "source_id": "0af8090d887a70811d184161",
+      "target": ".ael/knowledge/research/legacy-0af8090d887a70811d184161.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8f5034a90ebaed80954b4358c4173e793bbf365a72b8c26fa0ada293f9464f2c",
+      "before_hash": "",
+      "source_id": "204c6cd38456a0d0490dcbaa",
+      "target": ".ael/knowledge/research/legacy-204c6cd38456a0d0490dcbaa.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "aabed7f0326bb1a273059e23b63adb1b635b0e7b89a27278350bdfeb8bcf1f42",
+      "before_hash": "",
+      "source_id": "9dcdbcccf89e2f975e9ca4f7",
+      "target": ".ael/knowledge/research/legacy-9dcdbcccf89e2f975e9ca4f7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "408ef4c6b43de1c553783bf5006d3c39b943fb3e63518c61973fec053ca4bafa",
+      "before_hash": "",
+      "source_id": "ea32d02311cf82124a484efd",
+      "target": ".ael/knowledge/research/legacy-ea32d02311cf82124a484efd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e13fe839dea40b7b8d6df2c703604d4054a60501b431b39149921212fa20b67f",
+      "before_hash": "",
+      "source_id": "72903cc90014bd4ebd94e68e",
+      "target": ".ael/knowledge/research/legacy-72903cc90014bd4ebd94e68e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e0dbe184731fca8390de295f6391de141af841be0c50b9d6e6d48e3483de72b5",
+      "before_hash": "",
+      "source_id": "99ff5285a9686e3a3d42afb2",
+      "target": ".ael/knowledge/research/legacy-99ff5285a9686e3a3d42afb2.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c76064ffb1356c858291bb7c0018f2973a4f38beccc33d01434156ad0dac3be8",
+      "before_hash": "",
+      "source_id": "f976c6c81ad3366d724fd3d7",
+      "target": ".ael/knowledge/research/legacy-f976c6c81ad3366d724fd3d7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "111e258b6da988621c704a3c97407607429af927576621edb464f755529614cf",
+      "before_hash": "",
+      "source_id": "d4780ee28e22c239448bf389",
+      "target": ".ael/knowledge/research/legacy-d4780ee28e22c239448bf389.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2d1061d94df8699e247f0f6cef681886a8413a883c45e641b11a3cde4bc7cfd9",
+      "before_hash": "",
+      "source_id": "7e4342725d6c95889df24579",
+      "target": ".ael/knowledge/research/legacy-7e4342725d6c95889df24579.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b96e917e13e394c7435537dd292eef0345b91c2383ac6e84aaf2ed0bb47e9d70",
+      "before_hash": "",
+      "source_id": "56da80b6cc4cdc70593a1227",
+      "target": ".ael/knowledge/research/legacy-56da80b6cc4cdc70593a1227.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1799098d4c32e15a1445746efbcfd0506ab8eb6b75f49cbaa1a602f4b335e7e8",
+      "before_hash": "",
+      "source_id": "8a4480109a2d160325674a09",
+      "target": ".ael/knowledge/research/legacy-8a4480109a2d160325674a09.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e99df7f6c8dffe98855a11517d379110f48cb693cff0d9ec457e6e83b3a096c4",
+      "before_hash": "",
+      "source_id": "d19b952db637a53e63347365",
+      "target": ".ael/knowledge/research/legacy-d19b952db637a53e63347365.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "48a94d16352431d00c8afef14d16a27ebe1cf5a048f4b60d42fcebec35670f0f",
+      "before_hash": "",
+      "source_id": "5bc09e84f97ef843a62f36f0",
+      "target": ".ael/knowledge/research/legacy-5bc09e84f97ef843a62f36f0.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3f9a9127d349059d8015c8f8eb0d96b26333401fe5b9e76522ff0d9d61bc4266",
+      "before_hash": "",
+      "source_id": "5a6a6e37d4358f587a50b0ef",
+      "target": ".ael/knowledge/spec/legacy-5a6a6e37d4358f587a50b0ef.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a629716f9bb734938364908c7a052b512a15399b61ba4b15a7fbf7ee4c0212f6",
+      "before_hash": "",
+      "source_id": "38a4f720010f179755bfc21b",
+      "target": ".ael/knowledge/spec/legacy-38a4f720010f179755bfc21b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "4bb78dddbe646742f4fa75d77b1d5e334f0e61ccf480d24442d0601114af2cad",
+      "before_hash": "",
+      "source_id": "4bc80c68710c2ca549e16e7e",
+      "target": ".ael/knowledge/spec/legacy-4bc80c68710c2ca549e16e7e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "89e1a3c5dbe5191d669ccd7f7e1b12a52ae7b95e485eccfe0c75d999ed7f0a83",
+      "before_hash": "",
+      "source_id": "c5accd8e2637bd6567b4aaac",
+      "target": ".ael/knowledge/spec/legacy-c5accd8e2637bd6567b4aaac.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "087845c838acbd539f3678d214093f953d90b69cd48b5d48e33f148455f86a8c",
+      "before_hash": "",
+      "source_id": "c8a6bb354225ca2576f759a1",
+      "target": ".ael/knowledge/spec/legacy-c8a6bb354225ca2576f759a1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "927358282f8ad04ca2bde718fc0114c54fe4bc5478f441e6257261b201f7968f",
+      "before_hash": "",
+      "source_id": "68be5396ba3fecfcf55a2f9f",
+      "target": ".ael/knowledge/spec/legacy-68be5396ba3fecfcf55a2f9f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "304da603f8ab70298d57d05b8844f83eaf2acfddcd5bd5b245a85822fadd424a",
+      "before_hash": "",
+      "source_id": "fb329dd1f2b4a2bdcebda2c9",
+      "target": ".ael/knowledge/spec/legacy-fb329dd1f2b4a2bdcebda2c9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3cb51744b02f4e79ad00b584963a46c7becf6aceeeb4d7a87dcd89a6ab0b538b",
+      "before_hash": "",
+      "source_id": "afcb2db4ef2f7d6eaa8662ca",
+      "target": ".ael/knowledge/spec/legacy-afcb2db4ef2f7d6eaa8662ca.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "834f46cb107f4066dd1419ada4734694d0161670f846b01f5d3a3b5bc26833e0",
+      "before_hash": "",
+      "source_id": "a19b324f3d0e36b3681b9e87",
+      "target": ".ael/knowledge/spec/legacy-a19b324f3d0e36b3681b9e87.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6e3ba6b63eeee19ee9650015e75d6820bb2dd5613ad84212f82fe24544b4b1d6",
+      "before_hash": "",
+      "source_id": "5d5463aca143e1265d6b6a59",
+      "target": ".ael/knowledge/spec/legacy-5d5463aca143e1265d6b6a59.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "df08d6cee4339c542f4e1042ce5ff36ceaf3bd9d83b07c932cfe8fd734d1d315",
+      "before_hash": "",
+      "source_id": "b1389371420bc3c166879175",
+      "target": ".ael/knowledge/spec/legacy-b1389371420bc3c166879175.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8495d5a93b8c26fc8fe0f2b0304be360749130be4dc3dbca48e12665f082efaa",
+      "before_hash": "",
+      "source_id": "c8dbdb59473e6ec1f5cec243",
+      "target": ".ael/knowledge/spec/legacy-c8dbdb59473e6ec1f5cec243.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d7d72fa64b9327c9482cd8518babb4198e197aabe9cca53c72e0f4bffe5c825f",
+      "before_hash": "",
+      "source_id": "ca9d998ac0924c2be8e56e6e",
+      "target": ".ael/knowledge/spec/legacy-ca9d998ac0924c2be8e56e6e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e02a57818e203fac8f49f8753bae1f2b254d83e34ddaa2b0b5c25096ff36f72f",
+      "before_hash": "",
+      "source_id": "880a140250e48fec52748a49",
+      "target": ".ael/knowledge/spec/legacy-880a140250e48fec52748a49.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "51fc8090d24522459ab82ed8347352767aa8a6d6e0fdd0876961d5e0fe985cd0",
+      "before_hash": "",
+      "source_id": "c513863a7ee899bc5e933bad",
+      "target": ".ael/knowledge/spec/legacy-c513863a7ee899bc5e933bad.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ef285659f8da27914e628c87d30edbc703c016ac3da32af23d786a7e84e1738a",
+      "before_hash": "",
+      "source_id": "cd194e76215c171ff6edc5c6",
+      "target": ".ael/knowledge/spec/legacy-cd194e76215c171ff6edc5c6.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d5798424f9397ee1d977184b8ea1c51f55be1c14992d1a12ae028f361070530b",
+      "before_hash": "",
+      "source_id": "59423a08873346eecfd129f8",
+      "target": ".ael/knowledge/spec/legacy-59423a08873346eecfd129f8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "732b03ef0b835348f784ecf73a55721eb629dabd93c60b8f4ff8f4a07edd39ec",
+      "before_hash": "",
+      "source_id": "c2aca3c655fcadadf030b601",
+      "target": ".ael/knowledge/spec/legacy-c2aca3c655fcadadf030b601.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "bc03def223ed4aaa03e2a5e12081b7b48a984f9cf3336aaff679e636ae4ca4a2",
+      "before_hash": "",
+      "source_id": "942f35b99a9df37a002a5b20",
+      "target": ".ael/knowledge/spec/legacy-942f35b99a9df37a002a5b20.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "38264ab816c28069862d648dbe71b4443edfe697d5acdde284b40cb804b7a530",
+      "before_hash": "",
+      "source_id": "c937f77348000bc693bd71da",
+      "target": ".ael/knowledge/spec/legacy-c937f77348000bc693bd71da.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0567979ea9190ddba0ff8d884a85256ed1b77dc67f0ad8d0c70acca4c2313ba9",
+      "before_hash": "",
+      "source_id": "07e9eea9eac442a10f9d34f1",
+      "target": ".ael/knowledge/spec/legacy-07e9eea9eac442a10f9d34f1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ed6c0f90d0cd474149a3354687f7637de24b9ff84bb68047a326b320c00fe064",
+      "before_hash": "",
+      "source_id": "cb41a9af66866f54759af7f1",
+      "target": ".ael/knowledge/spec/legacy-cb41a9af66866f54759af7f1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "140043d468045001cc6fac9142f8b482d47a1e99555dc1a652c722a0114cb297",
+      "before_hash": "",
+      "source_id": "45e4a958da0e6f675ccf8a53",
+      "target": ".ael/knowledge/spec/legacy-45e4a958da0e6f675ccf8a53.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "47b98f0bba32bb521c47e824212ac66a8ace659ce60190c5709e7dc48814a52f",
+      "before_hash": "",
+      "source_id": "1674c11f45ee41bcfc4d5239",
+      "target": ".ael/knowledge/spec/legacy-1674c11f45ee41bcfc4d5239.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "6bc797fef26d6e3e3d35bfab098d49615c068d38dd4e5471fd2e10d78b5f59fc",
+      "before_hash": "",
+      "source_id": "287d88efcd22fd08eb3fad44",
+      "target": ".ael/knowledge/spec/legacy-287d88efcd22fd08eb3fad44.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "b5bba26df9aad104f462d18409ce97d614011dde317b9d179e0191f43b11c88d",
+      "before_hash": "",
+      "source_id": "193952f1f161064b47b7a03f",
+      "target": ".ael/knowledge/spec/legacy-193952f1f161064b47b7a03f.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "fc63f80646b5e9379edfbd3fbee39e68a78596036f7b20512884c0fd01ae2658",
+      "before_hash": "",
+      "source_id": "48ab1c123aa1d08699e1c771",
+      "target": ".ael/knowledge/spec/legacy-48ab1c123aa1d08699e1c771.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c4a8e32bff1b7332d2265109bfa79036f3b34f0364486622f92e5e0917f0be40",
+      "before_hash": "",
+      "source_id": "f5c764d7d40d27e61da7e095",
+      "target": ".ael/knowledge/spec/legacy-f5c764d7d40d27e61da7e095.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2745447f9c865ceef1f90ffb5a31a7f170252077559b629f3d7f18c72f90dd8b",
+      "before_hash": "",
+      "source_id": "f5bfb4c746561fb9a78b07c7",
+      "target": ".ael/knowledge/spec/legacy-f5bfb4c746561fb9a78b07c7.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "dfc48c15af9b992c901b93b5551bc16efd84de7753f2a1f54561f1f205ef7679",
+      "before_hash": "",
+      "source_id": "9b89c41b4be449b963dcba95",
+      "target": ".ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "60a4ce4333d0343b48a4136e405ed49d5266604591f87f6cc7c6d7c1fa6173c7",
+      "before_hash": "",
+      "source_id": "fc3636bd1efca411dc0130dd",
+      "target": ".ael/knowledge/spec/legacy-fc3636bd1efca411dc0130dd.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "52fd1ec84ae69fbdc9f283dbd20933cdd53b9c320f0d034f2ceb1ea7fc6a4bb1",
+      "before_hash": "",
+      "source_id": "78bd0f07be62d7ed619b4cd0",
+      "target": ".ael/knowledge/spec/legacy-78bd0f07be62d7ed619b4cd0.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "fe766ab71554f75656e341ccb78bd79e153b02ba4ffc128611380969c288a43d",
+      "before_hash": "",
+      "source_id": "62b09df75f5f6c7cc221ca74",
+      "target": ".ael/knowledge/spec/legacy-62b09df75f5f6c7cc221ca74.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "0cb89cf227d8be7a1a26d4d153135d30a1985ff654d64082afbd682c59246863",
+      "before_hash": "",
+      "source_id": "798b28c9a1eb2ddd90e0fa2d",
+      "target": ".ael/knowledge/spec/legacy-798b28c9a1eb2ddd90e0fa2d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3aa5bf2a947a34efa6ed5f469ba5bb48c150f8d1666adff64a25719a1cf21cd8",
+      "before_hash": "",
+      "source_id": "411c55a6831516ad36ec63e9",
+      "target": ".ael/knowledge/spec/legacy-411c55a6831516ad36ec63e9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2425f283eb7a7e3729c6fde11dd26dcc5678a96c5bb5a59a6389bc489c568fc1",
+      "before_hash": "",
+      "source_id": "738e45dfddc64d5b25cf4871",
+      "target": ".ael/knowledge/spec/legacy-738e45dfddc64d5b25cf4871.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "d047c7501f196c8c707190d92fd742f70c91ce44a63d1d81ba924b924f86011c",
+      "before_hash": "",
+      "source_id": "07362c9912e0162f959cf673",
+      "target": ".ael/knowledge/spec/legacy-07362c9912e0162f959cf673.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "de115971d1ad6071384e295cc901f079f265656bc38b4616109ad91b80b8e4f4",
+      "before_hash": "",
+      "source_id": "753711cbce16f60f93967f16",
+      "target": ".ael/knowledge/spec/legacy-753711cbce16f60f93967f16.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "37661167dbe1331b883df44c311fece0734a2f16641471ddcab22593e1d51cf3",
+      "before_hash": "",
+      "source_id": "0d14aeae4e47cc42a75edb51",
+      "target": ".ael/knowledge/spec/legacy-0d14aeae4e47cc42a75edb51.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e7f2620d2ede5dbe6d9b78547de9f013f620c446e0dd732eab5637ea1a4b4dfc",
+      "before_hash": "",
+      "source_id": "41e5709f50ec980f8b77d957",
+      "target": ".ael/knowledge/spec/legacy-41e5709f50ec980f8b77d957.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f4716f5346f72b2f9bad9193510385ef95ee8ca250d34daa09a02172b27cb960",
+      "before_hash": "",
+      "source_id": "31398abb573f22003edc6b54",
+      "target": ".ael/knowledge/spec/legacy-31398abb573f22003edc6b54.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "8902eb5d738d5e22913e5d79615a02435a192d7a4d6051508afd99e05f8b47b6",
+      "before_hash": "",
+      "source_id": "3db1e40a6981da3372a3aec8",
+      "target": ".ael/knowledge/spec/legacy-3db1e40a6981da3372a3aec8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "885346008e9488515662f54832c9b8e5f0b5dea6a3bcd98d09fd33e15107e5e1",
+      "before_hash": "",
+      "source_id": "5d25ca7e3d2e577dbe8e453e",
+      "target": ".ael/knowledge/spec/legacy-5d25ca7e3d2e577dbe8e453e.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "eb63365d89ebd02b2f3caf3b939073f1cecaa57249292bce2bc2fba0d47def53",
+      "before_hash": "",
+      "source_id": "06ee604f35703db92034f4c1",
+      "target": ".ael/knowledge/spec/legacy-06ee604f35703db92034f4c1.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "70060391eb8a9c1fb64da6dab781c5ef1c8dfe63e47a381eb903b4b08a21b752",
+      "before_hash": "",
+      "source_id": "b2a35cfc8572ec340d29ce72",
+      "target": ".ael/knowledge/spec/legacy-b2a35cfc8572ec340d29ce72.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "3f3ad2b58fa6a8e2f8c46e5ad07c679454da4e84cfec2c6b80a968bd4f64faeb",
+      "before_hash": "",
+      "source_id": "8aab7b7fa7d31265f44af775",
+      "target": ".ael/knowledge/spec/legacy-8aab7b7fa7d31265f44af775.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "861eb097a1c5990c845ae13638a4be00ec3c21755fc86851d6f503fc43db919f",
+      "before_hash": "",
+      "source_id": "722dd21dcc7d29b46323c4a8",
+      "target": ".ael/knowledge/spec/legacy-722dd21dcc7d29b46323c4a8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "e09e3ea6cbfd2746c43ad6a7ec6ac6ac623813425c3ef60934eadb01b329c8c0",
+      "before_hash": "",
+      "source_id": "e520759f460237a5f3d354e8",
+      "target": ".ael/knowledge/spec/legacy-e520759f460237a5f3d354e8.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "f838280cc4112e8f19e704a058c2be3c013acef97b0013465dbf51c92825adbd",
+      "before_hash": "",
+      "source_id": "b67d1a8d520771fd1be03cd9",
+      "target": ".ael/knowledge/spec/legacy-b67d1a8d520771fd1be03cd9.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "7e71a067d2a635f17987ae2dccb19eb636c10738de11ee935e1b6484e7a4dbc5",
+      "before_hash": "",
+      "source_id": "84db67c88ef5cb22d2135e4d",
+      "target": ".ael/knowledge/spec/legacy-84db67c88ef5cb22d2135e4d.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "61be624e754e66461daba3917b6f0063f4a01a94aa7ce8cf65afda82bd2ed750",
+      "before_hash": "",
+      "source_id": "b98cb585876a94318684c053",
+      "target": ".ael/knowledge/spec/legacy-b98cb585876a94318684c053.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "2e11718c115dde63559073c92d66c4976f82cc3139b39996df0a1ae2d577b1b7",
+      "before_hash": "",
+      "source_id": "2f8bba785897aa4cc4029a3a",
+      "target": ".ael/knowledge/spec/legacy-2f8bba785897aa4cc4029a3a.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cb94f8a07969f49dfb632d8cb18c96d72684571079eb8c0dcad988ef91326a1c",
+      "before_hash": "",
+      "source_id": "4d7782183909ad88d16d2241",
+      "target": ".ael/knowledge/spec/legacy-4d7782183909ad88d16d2241.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "a02124caa04e8574bda4d36a14e83d4dbae36fd28f2d49144f254112a57f8c02",
+      "before_hash": "",
+      "source_id": "97cd1715a4521ead426fc469",
+      "target": ".ael/knowledge/spec/legacy-97cd1715a4521ead426fc469.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1c87171f717077be257842126a76e2806379e11bc7b0335b6551210a2ff499f2",
+      "before_hash": "",
+      "source_id": "831a414805d8e689a664019b",
+      "target": ".ael/knowledge/spec/legacy-831a414805d8e689a664019b.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "1c73ceaf4bacd65cb9620cbf9675066433bf0b531453a4384a7cc5054f25f5b3",
+      "before_hash": "",
+      "source_id": "a3a9be5fea0df4f0ca12465c",
+      "target": ".ael/knowledge/spec/legacy-a3a9be5fea0df4f0ca12465c.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "5d951c8fed6b8af35ad9423fdcd68ce195ac5e4424f62dd08335ca72f1a619d9",
+      "before_hash": "",
+      "source_id": "1f426c5892a3957df8dabe40",
+      "target": ".ael/knowledge/research/legacy-1f426c5892a3957df8dabe40.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "40b04a722c6771c059100ba0f0aeefd8e74bed707fdc539df7616f8f9e4ad607",
+      "before_hash": "",
+      "source_id": "1c433ff56f71f418cc54db95",
+      "target": ".ael/knowledge/research/legacy-1c433ff56f71f418cc54db95.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "cb9a5fd44fb4c31bf48e4480d3999506218117ead69ee0ea9d7a47b930bc35dc",
+      "before_hash": "",
+      "source_id": "440f32577aa286706fc7dfef",
+      "target": ".ael/knowledge/research/legacy-440f32577aa286706fc7dfef.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c58fd46ac26ee189cc3135e2cb88f9cd5c771f8dc200367baeeb7e4be11cd32d",
+      "before_hash": "",
+      "source_id": "f2dfc2b4eaa8838081e83b78",
+      "target": ".ael/knowledge/research/legacy-f2dfc2b4eaa8838081e83b78.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "ce04336ad0ece1712468b68b4ec883086a3867a98250bbc2b2ffd90cb18a174e",
+      "before_hash": "",
+      "source_id": "bdf78c3955c9e65ab58b2ca5",
+      "target": ".ael/knowledge/research/legacy-bdf78c3955c9e65ab58b2ca5.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "c679e9e7cc807053fb363d27b08e792417cd0cfe2b6870c5fe9963af7c62b1d3",
+      "before_hash": "",
+      "source_id": "4f806d51994895d391037f68",
+      "target": ".ael/knowledge/research/legacy-4f806d51994895d391037f68.md",
+      "task_id": ""
+    },
+    {
+      "after_hash": "64ddc8cb1f6b6935881c4afd38ab268801e73e34d7f7010128402e385719adaf",
+      "before_hash": "",
+      "source_id": "a44d590b2f4eb387bd46baa1",
+      "target": ".ael/knowledge/decision/legacy-a44d590b2f4eb387bd46baa1.md",
+      "task_id": ""
+    }
+  ],
+  "sources": 1070,
+  "warnings": [
+    "unresolved link: .trellis/research/09-08-project-health-evolution/design.md -\u003e goals-progression.md",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/runtime/runtime.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/application/chat-turn-flow.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/http/chat-turn-sse-adapter.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/http/chat-turn-sse-adapter.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/runtime/runtime.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../web/src/composables/useChatStream.ts",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../web/src/composables/useChatStream.ts",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../web/src/stores/conversations.ts",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../web/src/components/chat/MessageBubble.vue",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/application/chat-turn-flow.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/application/chat-turn-flow.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/application/chat-turn-flow.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/contracts/index.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/http/chat-turn-sse-adapter.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../web/src/api/contracts.ts",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../web/src/components/chat/MessageBubble.vue",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../test/companion-api-modular-provider-debug.test.mjs",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../test/llm-provider.test.mjs",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../test/chat-turn-flow.test.mjs",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../test/chat-turn-sse-adapter.test.mjs",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../.trellis/spec/backend/structured-turn-contract.md",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../.trellis/spec/backend/error-handling.md",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../.trellis/spec/guides/cross-layer-thinking-guide.md",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../.trellis/tasks/archive/2026-08/08-20-fluctlight-architecture-performance-modernization/research/mtplx-tool-call-results.md",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/research/archive/2026-08/08-23-image-generation-compensation/research/thinking-output-audit.md -\u003e ../../../../server/infrastructure/llm-provider.js",
+    "unresolved link: .trellis/workspace/codex/index.md -\u003e ../../tasks/10-30-r22-p1-uiux/final-report.md",
+    "unresolved link: .trellis/workspace/codex/index.md -\u003e ../../tasks/archive/2026-11/11-02-ft-r1-defects/validation.md",
+    "unresolved link: .trellis/workspace/codex/index.md -\u003e ../../tasks/11-02-r4-ui-fixes/final-report.md"
+  ]
+}

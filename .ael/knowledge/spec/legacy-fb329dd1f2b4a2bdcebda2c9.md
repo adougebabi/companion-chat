@@ -1,0 +1,220 @@
+---
+{"id":"legacy-fb329dd1f2b4a2bdcebda2c9","title":"fluctlight-bff-contract.md","kind":"spec","status":"current","paths":["apps/core-go","packages/core-client","packages/browser-client","infra"],"source":".trellis/spec/backend/fluctlight-bff-contract.md#sha256=13e6325b1947fe659a1b9576f1994a89dac060ff7ffb0d44113d4bc508e2cb2d","superseded_by":"","tasks":null,"critical":false,"path":"","hash":"","body":"","reason":""}
+---
+# 迁移审阅说明
+
+本合同关于 Go 进程内浏览器边界、传输和权限的规则继续作为规范基线。第10行 Vue/Pinia 及历史 Fastify 示例不代表当前宿主；现行前端以2026-10-26 React/Radix契约为准，后端以本合同明确的 Go HTTP + in-process App 为准，不恢复旧 Node/Vue 运行入口。
+
+依据：.trellis/spec/frontend/react-shadcn-contract.md#sha256=77662cf4db25cc6778e20da2caf45d4dbacb476506361fcb5db51518dde13eea; .trellis/spec/backend/index.md#sha256=e949ac8e9b929bc1ee8f140a9e0cf826aa1b3c6e547e4874a34661f68c6fddb6
+
+## 保留的原文
+
+# Fluctlight Browser Boundary Contract
+
+## Scenario: Typed Browser Boundary Without Domain Ownership
+
+### 1. Scope / Trigger
+
+- Trigger: a browser command/query/stream/media request crosses the public
+  browser boundary, or browser boundary calls the in-process Core App.
+- The active and only browser boundary uses Go's standard library HTTP server and an in-process App backend.
+  Browser uses Vue 3/Vite/Pinia; no Node browser boundary runtime remains.
+- browser boundary owns browser transport/session/DTOs but no Fluctlight domain state, persistence, workflow, or semantic policy.
+
+### 2. Signatures
+
+- `packages/core-client`: generated from the Go Core OpenAPI contract.
+- `packages/browser-client`: generated from the checked browser OpenAPI artifact;
+  the Go browser boundary must preserve this contract even though it does not generate the
+  artifact itself.
+- Browser turn transport: POST `fetch()` with `application/x-ndjson` response.
+- browser boundary package interfaces: browser API, stream translator, media proxy, health,
+  and session transport.
+- Core composition signature: `browser.New(browser.Options{Backend, TrustedOrigin, SecureCookies})`;
+  `Backend` exposes direct `DoJSON/DoAny/DoValue`, `StreamTurn`, and `Media` operations and
+  must not expose URL or HTTP-client methods.
+- Required API startup environment: `FLUCTLIGHT_TRUSTED_ORIGIN`; optional
+  `FLUCTLIGHT_SECURE_COOKIES` overrides the scheme-derived cookie flag. Missing or malformed
+  origin configuration fails startup instead of enabling anonymous mode.
+
+Browser stream envelope:
+
+```text
+BrowserTurnEventV1
+  type: token | message | media | completed | error | heartbeat
+  turn_id
+  sequence
+  payload
+```
+
+### 3. Contracts
+
+- Go routes validate body/query/params/headers and call the typed in-process
+  browser Backend; transport modules never issue a second HTTP request.
+- browser boundary cannot import PostgreSQL/Redis/Temporal clients, Core module internals, domain repositories, or semantic rule modules.
+- Go Core and browser OpenAPI artifacts and their generated clients are
+  committed/reviewed together; hand-written duplicate DTOs are prohibited.
+- Internal Core NDJSON is parsed incrementally across arbitrary byte/chunk boundaries, schema-validated, redacted, and mapped to browser events.
+- One browser turn has monotonic sequence and exactly one terminal event. browser boundary never forwards hidden assessment, Provider chunks, credentials, database rows, or workflow internals.
+- Optimistic/queued/stream drafts use a local message/turn/idempotency identity
+  and never guess an authoritative server sequence. An authoritative assistant
+  may replace only the draft bound to its own turn; it cannot match an unrelated
+  queued user bubble merely because a sequence number or text happens to match.
+- Post-stream history is merged monotonically under the request epoch. A stale
+  history response cannot erase stream-confirmed/queued messages or overwrite a
+  later selected conversation; refresh/crash recovery keeps queued text bound
+  to its original conversation until durable submission.
+- Browser retry/queued state is provisional client state; the accepted user's
+  `turnStatus`, `turnErrorCode`, and `turnRetryable` in server history are
+  authoritative after refresh. During clean-start,
+  server reset, persona deletion or conversation recreation, an identity that
+  no longer belongs to an available Fluctlight/current direct conversation is
+  pruned before send. Before a retry from another available conversation can
+  block a new send, the browser reconciles that conversation's authoritative
+  history by `turnId`/`idempotencyKey`, never by equal text. A retry whose user message already has its assistant message is
+  cleared, while an unresolved retry remains recoverable and is never mistaken
+  for the current turn.
+- Browser disconnect/abort cancels the in-process observer read and suppresses
+  later browser writes. Accepted cognition continues in the Worker. Only the
+  authenticated turn cancel command requests Provider/Temporal cancellation.
+- browser boundary media route obtains Core authorization and streams only the granted object/version/range with bounded headers.
+- Go package boundaries organize transport/config lifecycle; the browser boundary is not a
+  location for Fluctlight business behavior.
+- browser boundary errors use stable browser codes/messages and correlation IDs mapped from Core errors without leaking stack/provider bodies.
+- Core error `details` are untrusted internal data: before they cross the
+  browser boundary, retain only bounded JSON values and drop credential,
+  secret, token, prompt, reasoning, stack, and raw provider-response keys.
+- A successful Core media status with a missing or empty response body is a
+  bounded `media_unavailable` failure; the browser boundary never defers `Close` on a nil
+  body or forwards an empty object-storage response as a successful asset.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Browser input fails the browser schema | Return stable 400 browser error; do not call Core. |
+| Generated client is stale against OpenAPI | CI failure; regenerate and review. |
+| Core stream has invalid JSON/schema/sequence | Emit one bounded browser error, abort upstream, record correlation diagnostic. |
+| Core emits hidden/internal fields | Reject/redact contract violation; never forward them. |
+| Core error details contain sensitive or oversized values | Drop those fields and cap nested collections/strings before returning the browser error. |
+| Browser aborts | Stop observing and writing frames; preserve the accepted Worker execution. |
+| Explicit turn cancel | Require session and CSRF, invoke Core cancel for the owned conversation/turn, then read authoritative status. |
+| Core returns typed domain error | Map by error code/status table; do not parse message text. |
+| Media grant expired/range mismatched | Stop proxy and return bounded media error; do not mint another grant implicitly. |
+| Core returns a successful media status without a body | Return bounded `media_unavailable`; do not panic or emit a false successful response. |
+| Older retry assistant arrives while a newer user message is queued | Reconcile by local turn identity; preserve the queued user bubble and send it under its original conversation binding. |
+| Post-stream history or previous-conversation request returns late | Epoch check and monotonic merge ignore stale regression; newer selection/messages remain authoritative. |
+| Persisted retry references a deleted Fluctlight or recreated conversation | Prune the orphaned retry/queued identity and allow a new current-conversation send; do not block with “another conversation pending”. |
+| Persisted retry's authoritative assistant already exists | Clear the provisional retry after history reconciliation and allow the current-conversation send; do not ask the user to retry a completed turn. |
+| browser boundary code imports storage/workflow/domain internals | Architecture-test failure. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a browser turn uses generated client types, browser boundary validates input, maps ordered Core NDJSON, and aborts cleanly on navigation.
+- Good: a video range request is authorized by Go Core and proxied without exposing bucket/key/credentials.
+- Base: a typed query returns one browser boundary DTO composed from Core application results.
+- Bad: hand-write matching DTOs, directly proxy raw Core JSON, parse Core error text, query Redis for domain state, or add a relationship rule in a transport handler.
+
+### 6. Tests Required
+
+- Semantic OpenAPI diff and generated-client no-drift tests for Core and browser contracts.
+- `net/http/httptest` tests for schema-equivalent validation, stable errors,
+  status codes, headers, session context, and server lifecycle.
+- Incremental NDJSON tests for split/multiple frames, UTF-8 boundaries, invalid schema, redaction, sequence, heartbeat, terminal uniqueness, backpressure, and abort.
+- End-to-end browser→API→Core App disconnect tests with no writes after
+  disconnect and one later Worker result; explicit cancel tests verify the
+  separate authenticated command.
+- Media proxy tests for authorization grant, expiry, Range, ETag, MIME, stream failure, and no storage detail leakage.
+- Browser OpenAPI method/path artifact versus Go route inventory parity, plus
+  a real HTTP browser→API→Core App auth/conversation/NDJSON smoke and downstream
+  disconnect cancellation test.
+- Public error-detail sanitization tests for safe validation fields, sensitive
+  keys, nesting depth, collection size, and string limits; media nil-body and
+  header allow-list tests.
+- Architecture tests rejecting browser boundary imports of PostgreSQL, Redis, Temporal, Core internals, domain repositories, and semantic heuristic modules.
+- Browser tests consume generated client types and do not duplicate wire DTO definitions.
+- Browser API composition tests prove `/api/*` reaches the in-process boundary while
+  `/internal/*` without service identity remains unauthorized; architecture tests reject
+  `http.Client`, `http.NewRequest`, and Core URL forwarding in the Backend.
+- Conversation-delivery regressions cover successful old retry plus queued new
+  user turn, stale post-stream history, repeated text, conversation switching,
+  and authoritative Core→browser boundary message fields.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```typescript
+fastify.post('/turn', async (request) => {
+  const mood = request.body.text.includes('sorry') ? 'better' : 'same';
+  await redis.set(`mood:${request.body.fluctlightId}`, mood);
+  return core.rawTurn(request.body);
+});
+```
+
+#### Correct
+
+```typescript
+fastify.post('/turn', {schema: turnRouteSchema}, async (request, reply) => {
+  const result = await apiBackend.acceptTurn(mapBrowserTurn(request));
+  return encodeBrowserNdjson(result, reply, request.signal);
+});
+```
+
+## Scenario: Nineteen-field Owner Background Compatibility
+
+### 1. Scope / Trigger
+
+The unified background editor uses the existing Owner current-facts command.
+Browser validation must agree with the checked OpenAPI and Core field contract.
+
+### 2. Signatures
+
+`PUT /api/fluctlights/:id/actor-user-background` takes `background`,
+`operation`, `reason`, `idempotencyKey`, `expectedCurrentFactsRevision`.
+The route maps to Core's snake_case current-facts command. The separate Actor
+context command retains `expectedContextVersion` and must not replace this CAS.
+
+### 3. Contracts
+
+Allowed background keys are `name`, `occupation`, `background`, `interests`,
+`preferences`, `location_scope`, `location`, `timezone`,
+`relationship_distance`, `meeting_confirmed`,
+`full_name`, `age`, `gender`, `personality`, `habits`, `relationship_description`,
+`shared_information`, `wants_you_to_know`, `rules`. All 19 accept explicit null;
+`meeting_confirmed` otherwise requires a boolean, other values require strings
+of 1–1024 code points. Reason is 1–500 code points; operation is correct/change.
+Unknown keys remain rejected even when null. Subject identity is server owned.
+This synchronizes existing fields; it adds no domain state, migration or policy.
+
+### 4. Validation & Error Matrix
+
+| Condition | Boundary behavior |
+| --- | --- |
+| All 19 supported keys with null/false | Accept and preserve values into Core mapping |
+| interests/preferences is an array | Reject before Core |
+| Unknown background or forged top-level Actor field | Reject before Core |
+| 500 Chinese characters in reason | Accept length validation |
+| 501 characters in reason | Reject |
+| Stale current-facts revision | Keep Core conflict and frontend draft recovery |
+
+### 5. Good / Base / Bad Cases
+
+Good: 19-field UI payload reaches the existing current-facts command. Base:
+unknown interests remains null. Bad: fixture accepts interests while the live
+browser validator rejects it, or an Actor context token substitutes facts CAS.
+
+### 6. Tests Required
+
+`TestActorUserSettingsBoundaryKeepsSubjectServerOwnedAndNullExplicit` covers
+supported string/null values, false, unknown keys/types and 500/501 reasons.
+The authenticated HTTP route matrix uses the complete 19-field payload.
+Run browser package race tests, vet/build, generator parity and workspace checks.
+Do not treat fixture success as a real Provider/DB acceptance run.
+
+### 7. Wrong vs Correct
+
+Wrong: copy the historical eight-key validator into a new 19-field editor.
+Correct: validate the same 19 keys as OpenAPI/Core, preserving strict
+types, unknown-field rejection, Owner authorization and current-facts CAS.
+

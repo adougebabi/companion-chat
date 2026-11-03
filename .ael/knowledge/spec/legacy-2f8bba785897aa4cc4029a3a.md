@@ -1,0 +1,571 @@
+---
+{"id":"legacy-2f8bba785897aa4cc4029a3a","title":"state-management.md","kind":"spec","status":"current","paths":["apps/web","packages/browser-client"],"source":".trellis/spec/frontend/state-management.md#sha256=744f3a81b14ef7daafd1e1ab95449f3b4b504b6aea51faabc2075cc5be422de2","superseded_by":"","tasks":null,"critical":false,"path":"","hash":"","body":"","reason":""}
+---
+# 迁移审阅说明
+
+按本文首部2026-10-26 Current React state owners声明执行：Valtio/React控制器拥有现行状态。后部 Pinia/App.vue/Vue示例以及旧 companion 路由是历史宿主或线协议示例，不能作为恢复旧组件/路由的授权；实际接口以当前生成的 BrowserClient/OpenAPI 为准，身份、草稿、时序及回执约束仍保留。
+
+依据：.trellis/spec/frontend/react-shadcn-contract.md#sha256=77662cf4db25cc6778e20da2caf45d4dbacb476506361fcb5db51518dde13eea; .trellis/spec/frontend/index.md#sha256=f44520b6da12d7178e0eaf5ac5b68fc734a8436bd0dd9702c3915ce44b889b66
+
+## 保留的原文
+
+# Client State And Synchronization
+
+## Current React state owners (2026-10-26)
+
+`state/workspace.mjs`, `state/conversation.ts` and `state/creation-controller.mjs`
+own the domain state. Valtio vanilla supplies observable state and immutable,
+cached snapshots; React subscribes with useSyncExternalStore. UI-only state uses
+React hooks or a named long-lived controller model. Pinia and Vue wrappers have
+been removed. Historical scenario names below describe domain behavior, not an
+authorization to restore old components.
+
+AbortController and DOM nodes are untracked references. Model subscription,
+visibility listeners, observers and timers are released by the owning React
+lifecycle. DOM-focused effects run after commit, never before a new step exists.
+
+
+## Current v3 bounded startup (2026-10-20)
+
+The initial shell needs only actual Owner session and character directory.
+Optional modules load afterward and retain their own loading/failed/forbidden/
+unconfigured states. JSON GET deadlines cover response headers and body; session
+is bounded to 8 seconds, other JSON reads default to 15 seconds. Only real 401
+means logged out. Timeout keeps credentials and provides a fresh read attempt.
+Do not apply these short read deadlines to model-triggering writes or NDJSON.
+
+`refreshProduct` epochs publish only the newest read. A successful group move
+merges the confirmed directory projection into the same snapshot and starts
+background refresh; it must not replace all optional data with an initial-only
+snapshot. Post-activation optional reads must not delay receipt checkpointing.
+
+## State Categories
+
+Domain controller state is the server snapshot (`settings`, `personas`, `groups`, and
+activity flags). The conversations store keeps the currently loaded page(s) of
+each active 摇光实例 conversation, not necessarily the complete history.
+`activePersonaId` is persisted only in `localStorage` under the existing
+`companion-active-persona` key. Draft, selection, history anchor, attachments,
+`isSending`, and `isComposing` remain transient composable/UI state.
+
+## Server State Rules
+
+Use the generated browser client at the browser boundary for JSON endpoints; it throws on
+non-2xx responses using the server's `error` field. `bootstrap()` loads
+contacts first; selecting a 摇光实例 loads the latest bounded message page,
+and history pagination requests older pages by cursor. Background refresh must
+not eagerly fetch or replace the active conversation page. Polling is disabled
+while sending, composing, or while the document is hidden.
+
+Do not treat optimistic messages as persisted until the server stream emits `done` or a later refresh returns them. A streamed chat may end in several separately persisted assistant records: read ordered `payload.messages` first, then fall back to `[payload.message]` for a pre-migration server. Replace the one transient typing entry with that whole collection in order; do not leave the transient entry between or after persisted messages. History pages merge by message ID at the head; new messages merge at the tail. An initial or background page is authoritative for any matching message ID, while local-only optimistic messages are retained and ordered by timestamp. This prevents a queued media placeholder from overwriting the server's later ready projection. Generation jobs are queued through the server chat contract and restored from conversation state after a refresh.
+
+For a new turn, capture `senderTimezone`, `senderUtcOffsetMinutes` (local minus UTC), and `senderSentAt` once when its `RetryTurn`/`QueuedTurn` identity is created. Persist and reuse the same three fields through offline queue, retry, optimistic bubble and stream/history reconciliation; never recapture the device zone on retry. Display a committed message using its frozen sender offset, and label legacy rows with unknown provenance rather than silently using the viewer zone. Activation similarly freezes the device IANA timezone with its request ID and sends it only as a fallback to an explicit/model-recognized identity timezone.
+
+## Scenario: Durable Private Chat State After Refresh
+
+### 1. Scope / Trigger
+
+- Trigger: a private turn is accepted, its observer disconnects, the page
+  reloads, or the user explicitly cancels generation.
+
+### 2. Signatures
+
+```text
+BrowserMessage.turnId?: string
+BrowserMessage.idempotencyKey?: string
+BrowserMessage.turnStatus?: pending | running | completed | failed | cancelled
+BrowserMessage.turnErrorCode?: string
+BrowserMessage.turnRetryable?: boolean
+BrowserClient.cancelTurn(conversationId, turnId): Promise<void>
+```
+
+### 3. Contracts
+
+- Persist a newly submitted identity before opening the observer. On reload,
+  reconcile it against history by `turnId` or message ID. Text equality is
+  never an identity check.
+- `pending`/`running` are server processing states; a transport error must not
+  turn either into a model failure or expose a model retry button. Poll the
+  selected conversation while a visible turn remains pending or a cancellation
+  is settling. Preserve the composer while polling.
+- Only `failed`/`cancelled` with `turnRetryable=true` show model retry. The
+  retry reuses the original turn/idempotency and user message. If server
+  acceptance cannot be confirmed, show a distinct resend action using the
+  same identity.
+- The cancel button calls `cancelTurn`. Navigation, refresh, and local stream
+  abort only close observation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Observer loses its connection after acceptance | Read history; show processing without a model retry. |
+| Refresh returns pending/running | Show pending status and resume bounded history reads. |
+| Refresh returns failed/cancelled with `turnRetryable=false` | Show settlement progress unless `turnErrorCode=agent_partial_committed`; that is a terminal blocked retry, not polling/settling. |
+| Refresh returns failed/cancelled with `turnRetryable=true` | Offer retry using the same durable identity. |
+| Equal text appears in another message | Do not match it to the pending turn. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: refresh during cognition, keep the message pending, and display the
+  committed reply after the next history read.
+- Base: explicit cancel settles, then the original user bubble offers retry.
+- Bad: label a browser `AbortError` as a cancelled model run.
+
+### 6. Tests Required
+
+- Store tests cover pending refresh, transport loss after acceptance, explicit
+  cancel, retry readiness, and turn identity matching with duplicate text.
+- Browser client/route tests cover the generated cancel operation and status
+  projection.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+catch (error) { retryTurn = request; errorMessage = "回复已取消"; }
+```
+
+#### Correct
+
+```ts
+const page = await client.messages(conversationId);
+syncServerTurnState(page.messages); // server status decides retry eligibility
+```
+
+## Derived UI
+
+Compute counts and labels from `state` during `renderMemory()`/`renderPersonaList()` instead of maintaining duplicate counters. When switching personas, update `activePersonaId`, `localStorage`, `messages`, and the input hint together, as `switchPersona()` does.
+
+The Schedule timeline labels the item spanning the current clock time as
+`当前时段`, and shows the linked Intention status separately. Time overlap alone
+must not turn a planned or cancelled item into `正在进行`; the current activity
+comes from the server's effective Life state and confirmed events.
+
+## Common Mistakes
+
+- Reading `state.personas[0]` when the saved active persona was deleted; `boot()` must fall back first.
+- Refreshing during an active stream and overwriting incremental `messages`.
+- Replacing the composer DOM during polling, pagination, or streaming and closing a mobile IME.
+- Clearing a draft because a background request completed or a provider call is still pending.
+- Sending duplicate chat requests; `send()` guards with `isSending` and disables the send button.
+- Assuming localStorage contains server truth; it stores only the selected persona ID.
+
+## Scenario: Timeline and deferred-chat projection
+
+### 1. Scope / Trigger
+
+- Trigger: the companion API exposes current scene/location, timeline decisions, or deferred sleep-reply diagnostics.
+
+### 2. Signatures
+
+- Ordinary persona detail `state` includes `scene`, `location`, and `room` in addition to situation/mood/source.
+- Debug-only `GET /api/companion/personas/:personaId/lifecycle` additionally includes `timeline`, `decisions`, and `deferredBatches`.
+- A deferred chat response emits the normal SSE `done` shape with `messages: []`; it does not emit a synthetic assistant message or a new SSE event name.
+
+### 3. Contracts
+
+- Ordinary UI renders the user-facing scene/location only; it never renders batch delivery time, random draw, intimacy score, or decision rationale.
+- The debug inspector may render timeline and batch summaries only when `debugInspector` is true.
+- Treat an empty `done.messages` as a completed transport response, not an error or a typing entry that should remain on screen.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Deferred batch chosen | Remove transient typing state; render no fake assistant message. |
+| Poll later returns real assistant reply | Render it as an ordinary persisted message. |
+| Debug flag disabled | Never request lifecycle-only decision/batch fields. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a sleeping persona replies later with a normal message and no visible “queued” state.
+- Base: detail view shows `图书馆自习区 · 学校` as current scene/location.
+- Bad: displaying an internal `deliverAt`, probability, or raw deferred-batch JSON to the user.
+
+### 6. Tests Required
+
+- Verify the client safely handles `done.messages = []`.
+- Verify ordinary detail UI consumes scene/location fields and inspector-only fields remain gated.
+- Verify background polling does not manufacture a duplicate reply after a deferred batch settles.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+messages.push({role: 'assistant', text: '她正在睡觉，稍后回复'});
+```
+
+#### Correct
+
+```js
+// Keep the user message; wait for the later persisted assistant reply.
+activeMessages = activeMessages.filter(message => message !== typingEntry);
+```
+
+## Scenario: Trusted Time Facts
+
+### 1. Scope / Trigger
+
+- Trigger: persona detail or chat uses a server-projected state with an end boundary, time fact, or next boundary.
+
+### 2. Signatures
+
+- State payloads expose scene, location, room, start time, end time, time fact, and next boundary.
+
+### 3. Contracts
+
+- UI labels use server-projected scene and location; browser code never infers class, work, or an end time from role text.
+- A daily-plan baseline such as sleep or lying in is a real state, not an empty or loading state.
+- An unknown time fact means no client-side end-time claim can be rendered or constructed.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Server says daily-plan baseline | Render its sleep/rest situation normally. |
+| Server says known time fact | Display a supplied boundary only where the UI needs it. |
+| Server says unknown time fact | Do not fabricate an end-time hint. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: a sleep baseline remains visible before a 10:00 plan slot.
+- Bad: showing 上课中 because the persona role includes 学生.
+
+### 6. Tests Required
+
+- Verify the detail view uses server scene, location, and room.
+- Verify a plan baseline and explicit plan slot do not cause routine labels to leak into chat.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+    const status = /学生/.test(persona.role) ? '上课中' : persona.currentSituation;
+
+#### Correct
+
+    const status = persona.currentSituation;
+
+## Scenario: Visual Identity Timeline Projection
+
+### 1. Scope / Trigger
+
+- Trigger: Fluctlight detail includes the server-owned `visual_identity` snapshot and its image-generation timeline.
+
+### 2. Signatures
+
+- Detail field: `visual_identity = {status, current_revision, renderer_constraints, canonical_asset_id?, character_sheet_asset_id?, timeline[]}`.
+- Timeline event: `{stage, status, summary, asset_ids, metadata, occurred_at}`; images load only through `/api/media/:assetId`.
+
+### 3. Contracts
+
+- The server is authoritative for stage order, attempt status, `accepted`/`regenerate`, and identity-match decisions. The frontend never judges image content or parses prompts.
+- The detail dialog may refresh the projection while a visual identity session is non-terminal; once `status=active`, polling stops.
+- Timeline timestamps render through `formatTimelineTime()` in the resolved persona timezone (`今天 HH:mm`/`昨天 HH:mm`/`MM月DD日 HH:mm`), while `<time datetime>` retains the original RFC3339 value.
+- Candidate images remain visible beside later attempts. Stable image boxes use `overflow-anchor: none` so late media cannot move the reader.
+- Transport retry is distinct from Visual Identity regeneration; no client retry reuses a completed turn to create a new attempt.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing `visual_identity` | Render a quiet “尚未创建” state; do not infer defaults. |
+| Queued/running timeline | Show stage/status and refresh boundedly while dialog is open. |
+| Asset not ready or proxy fails | Keep stage and show the image error state; never call ComfyUI directly. |
+| `media` stream event contains `message` or `messages` | Merge by message ID/sequence without replacing newer ready projections with queued placeholders. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `image_ready → vision_ready → patch_ready → regenerate` remains visible with both candidate images and a later canonical/character-sheet card.
+- Base: an old detail payload has no visual identity field; the dialog still renders the rest of the persona detail.
+- Bad: deciding “不是自己” from alt text/file name, deleting rejected attempts, or fetching an internal provider URL.
+
+### 6. Tests Required
+
+- Assert the dialog renders status, stage, attempt timeline, canonical and character-sheet images with safe alt text.
+- Assert bounded refresh stops at active and does not overwrite user-composed chat state.
+- Assert `media` events merge one or multiple messages and late image loading preserves layout anchors.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+if (message.text.includes("不是自己")) startRegeneration();
+```
+
+#### Correct
+
+```ts
+// Render the server projection; only the backend patch decision advances an attempt.
+renderVisualIdentityTimeline(detail.visual_identity);
+```
+
+## Scenario: Settings Section Switching And Payload Normalization
+
+### 1. Scope / Trigger
+
+- Trigger: a settings section is changed without a route-level component
+  remount, or a migrated API payload uses an older field name.
+
+### 2. Signatures
+
+- `SettingsView` receives `section?: SettingsSection | null` and renders one
+  matching Accordion item.
+- `normalizeActorGroups(values: unknown): ActorGroupSnapshot[]` is the single
+  browser owner for group payload compatibility.
+
+### 3. Contracts
+
+- Section-specific Accordion roots use a key derived from `currentSection` (or
+  a controlled model) so the selected item opens immediately when the prop
+  changes; the whole app must not reload.
+- Server snapshots are normalized before entering the domain controller. Every stored actor
+  group has `actor_ids: string[]`, even when the server temporarily returns
+  legacy `members`.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Settings section changes | The new section content is visible without refresh. |
+| Accordion trigger is clicked | The user can still collapse/reopen the section. |
+| Group payload has `members` | It is copied to `actor_ids` before derived filters run. |
+| Group payload is malformed | It is dropped or treated as empty; no `undefined.includes` call. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: navigating from model-role to media changes the visible form in the
+  same view instance.
+- Base: a cached group payload with `members` remains selectable on mobile.
+- Bad: passing a changing `default-value` to a reused uncontrolled Accordion or
+  storing raw group JSON in the domain controller.
+
+### 6. Tests Required
+
+- Static/component test for section key or controlled Accordion state.
+- Normalizer tests for current and legacy group payloads plus empty fields.
+- Narrow viewport regression pass for group tabs and section content.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```vue
+<Accordion :default-value="currentSection">
+```
+
+#### Correct
+
+```vue
+<Accordion :key="currentSection" :default-value="currentSection">
+```
+
+## Scenario: Mobile composer and image-safe background refresh
+
+### 1. Scope / Trigger
+
+- Trigger: background bootstrap/conversation polling runs while a mobile user is composing or reading messages that contain late-loading images.
+
+### 2. Signatures
+
+- `chatViewSnapshot()` captures the textarea draft, selection, stream scroll position, and whether the reader is near the bottom.
+- `renderChat({followLatest?})` restores that snapshot after a controlled chat redraw.
+- `refreshQuietly()` skips chat refresh while composing and only rebuilds the chat when the conversation payload changed.
+
+### 3. Contracts
+
+- Only a deliberate accepted send clears `chatDraft`; polling, bootstrap, detail refresh, persona refresh, and keyboard focus changes must not clear or refocus it.
+- A reader away from the bottom keeps their prior scroll position after a chat redraw. Auto-follow is reserved for sends, stream tokens, and readers already at the bottom.
+- Do not refresh chat from `window.focus`: mobile software keyboards create focus transitions unrelated to a user request.
+- Media boxes use `overflow-anchor: none` so late image dimension resolution cannot move a reader to a different message.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Textarea focused or nonempty | Poll skips chat rebuild. |
+| Conversation unchanged | Refresh updates only sidebar state. |
+| Reader is scrolled up | Restore previous `scrollTop`, not bottom. |
+| Reader is at bottom and a new response arrives | Follow the latest message. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: type half a message on a phone during polling; the keyboard and draft remain intact.
+- Base: an idle, empty composer receives a new assistant message and follows it naturally.
+- Bad: using `window.focus` to refresh, recreating the textarea, and forcing `scrollTop = scrollHeight` for every render.
+
+### 6. Tests Required
+
+- Manual mobile pass: type with the virtual keyboard open through several polling intervals and verify the draft/selection stay intact.
+- Manual scroll pass: read older text above a late-loading image and verify the viewport stays anchored.
+- Client regression check: unchanged poll does not call a full chat render.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+window.addEventListener('focus', refreshQuietly);
+renderChat(); // always forces the stream to the bottom
+```
+
+#### Correct
+
+```js
+if (editing || chatDraft) return;
+if (conversationChanged) renderChat({followLatest: false});
+else renderSidebar();
+```
+
+## Scenario: Bounded Workflow Diagnostics Reads
+
+### 1. Scope / Trigger
+
+- Trigger: the Owner opens Diagnostics, which polls lifecycle/events/model runs/media prompts while the page is visible, or explicitly opens Workflow Control.
+
+### 2. Signatures
+
+- `useControlCenterStore.loadDiagnostics()` reads the four database-backed diagnostic sources.
+- `useControlCenterStore.loadWorkflows()` calls `BrowserClient.listWorkflows()` only on Workflow Control entry or manual refresh.
+- `GET /api/diagnostics/workflows?query=` maps to `App.WorkflowList(ctx, ownerActorID, query)` and then `WorkflowRuntime.List(ctx, query, 200)`.
+
+### 3. Contracts
+
+- The visible-page 2-second timer must not call the Temporal workflow list. Workflow list loading has its own in-flight guard, results, and warning state.
+- A second entry/refresh while a list call is running does not start another call. Clearing PostgreSQL diagnostics does not cancel, reset the guard for, or erase the separate Temporal workflow list.
+- Core authorizes the Owner and gives the Temporal list call a 5-second deadline; query text and the 200-item limit remain unchanged. Other diagnostics continue when that call fails.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Diagnostics is visible but Workflow Control is not selected | Poll only lifecycle, events, model runs, and media prompts. |
+| Workflow Control opens or the Owner clicks refresh | Make one list request; show loading state. |
+| Refresh is clicked while a list call is in flight | Keep the existing request; do not overlap calls. |
+| Temporal is unavailable or exceeds the list deadline | Return `workflow_runtime_unavailable`; show a Workflow Control warning without replacing other diagnostics. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a slow Temporal list times out within five seconds, while model runs and events continue refreshing.
+- Base: opening Workflow Control once lists workflows; the Owner can refresh on demand.
+- Bad: every 2-second diagnostics tick calls an unfiltered 200-item Temporal list, including while the Owner reads a different diagnostic section.
+
+### 6. Tests Required
+
+- Frontend regression checks that `loadDiagnostics()` has no workflow list call, Workflow Control entry/manual refresh invoke `loadWorkflows()`, and the store blocks overlapping list calls.
+- Core integration test asserts Owner-scoped list keeps `query` and limit 200, supplies a deadline of at most five seconds, and returns a typed runtime error when the runtime blocks.
+- Typecheck, browser tests, Vite build, and relevant Go tests/vet/build must pass.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+setInterval(() => loadDiagnostics(), 2000);
+// loadDiagnostics also awaits client.listWorkflows().
+```
+
+#### Correct
+
+```ts
+setInterval(() => loadDiagnostics(), 2000); // database-backed sources only
+if (section === "workflows") void loadWorkflows(); // entry or manual refresh
+```
+
+## Scenario: Kev diagnostic server pages
+
+Kev rows/cursor/filter epoch belong to the control-center Pinia store. The Kev
+component keeps filter drafts and delegates reads to generated BrowserClient via
+store actions. Its cursor and epoch are independent of Agent/model pages. Export
+uses the same server filters/cursor snapshot, preserves raw question/request IDs,
+and explicitly includes complete=false/next_cursor if capped at 10000 records.
+Render raw diagnostics through text bindings/pre; never v-html. Show the selected
+IANA timezone. New filters reset only Kev pages; another diagnostic loader must
+not overwrite this source's server snapshot.
+
+## Navigation declaration is the section authority
+
+App URL parsing and active-section selection use isSettingsSection/isDiagnosticsSection,
+which derive directly from settingsSections/diagnosticsSections. Never maintain a
+second list of string IDs in App.vue: a new sidebar item can otherwise disappear
+on click or refresh. kev-routing.test.mjs executes the actual App parser/computed
+expressions for both Kev sections; adding a section must preserve both paths.
+
+
+## Scenario: Failed retry preserves the accepted sender snapshot (2026-10-12)
+
+### 1. Scope / Trigger
+A failed persisted message reconstructs RetryTurn after reload or error reconciliation. Missing original sender clock fields make same-key retry conflict with the accepted message.
+
+### 2. Signatures
+`syncServerTurnState()` copies BrowserMessage senderTimezone/senderUtcOffsetMinutes/senderSentAt into RetryTurn. Existing turnErrorCode adds agent_partial_committed without adding a public field.
+
+### 3. Contracts
+Reuse original message ID, turn, idempotency key, author, attachments and all three sender fields; do not recapture device time. Zero offset is preserved; legacy null/unknown remains omitted. Local retry/queued bubbles retain those identities and clock fields. In-flight retry remains visibly disabled with request progress even while canRetry is false; do not mark a stored message server-pending before acceptance. On409 retain identity/draft and show actual rejection plus original failure.
+
+History declares committed mutation retries nonretryable using actual capability SideEffectClass metadata and the existing partial receipt predicate. agent_partial_committed is terminal blocked, not settlement in progress: no endless poll or model retry. The existing mutation replay fence remains intact. Ordinary no-effect failures may reopen the same durable inbox with a fresh attempt.
+
+### 4. Validation & Error Matrix
+| Condition | Behavior |
+| --- | --- |
+| Failed message with frozen sender clock | same three fields on retry POST |
+| UTC zero offset | send0, not omit |
+| Legacy null clock | omit unknown fields, do not fabricate |
+|409 retry rejection | keep original identity and failure explanation |
+| retrying=true | visible disabled progress button |
+| Partial mutation committed | blocked message, no retry/settlement polling |
+
+### 5. Good / Base / Bad Cases
+Good: reload failed message → same-clock POST → fresh backend attempt. Base: no clock provenance remains unknown. Bad: generate a new turn or timestamp merely to bypass409.
+
+### 6. Tests Required
+Conversation delivery tests exercise actual frozen-clock POST, zero/null fields, deferred409 and ChatView SSR, bubble identity and partial blocked state. PG durable tests assert one user message, new run attempt, single reply and History/acceptance retry fence agreement; absent DB means SKIP.
+
+### 7. Wrong vs Correct
+Wrong: restore text/key only and let the button disappear while retrying. Correct: restore the accepted identity snapshot and show accurate request progress.
+
+
+## NAS regression seams (2026-10-20)
+
+- `BrowserClient.goals(fid,{history:false,limit:50,cursor})` owns current Goals.
+  `history:true` is a terminal-only partition, never “include history”. Keep test
+  transport fixtures partition-faithful; an aggregate detail fallback hides this bug.
+- `planWindow(start,end,now)` compares RFC3339 instants with [start,end) boundaries.
+  Label current/historical **plan windows**, never infer actual execution/completion.
+  Clock refresh updates only markers and disposes its timer/listener on navigation.
+- Use shared Avatar for missing/broken chat media, with actual-name fallback;
+  no demo-persona substitution. Bind load failure after rendering, escape values.
+- Only chat status/error presentation translates technical codes. Preserve original
+  user/assistant message text, retry identity, canCancel/canRetry and mounted composer.
+- Successful worn-items=[] means no registered wear; wardrobe has no wearing_state
+  authority and cannot claim the character is naked. Card-link hover is scoped;
+  inline text links retain their link affordance.
+
+Regression: `v3-life-provider.test.mjs` asserts the real query and errors;
+`nas-additions.test.mjs` asserts offsets/midnight/DST/half-open windows, original
+message content, avatar failure, truthful wardrobe and failure links. Browser
+fixtures remain explicit local tests and are not real model/NAS acceptance.
+
+## Conversation selection loading belongs to its read epoch
+
+`selectFluctlight(id, {loading?, current?})` records `selectionLoadingEpoch`
+only when it owns the loading indicator. `invalidateRequest()` synchronously
+releases that indicator before invalidating the request. A selection's `finally`
+clears it only if its recorded epoch is still the owner. Bootstrap's directory
+loading remains independent when selection uses `{loading:false}`.
+
+Cancellation is a completed local lifecycle even when the HTTP promise is still
+pending. Checking the epoch only in `finally` without releasing loading on
+invalidation strands `loading=true`; a later session/directory failure before
+selection then leaves ChatPage's retry permanently disabled. Do not hide this
+with a timer or by suppressing the controller's progress in the view.
+
+`r23-ui.test.mjs` verifies cancelled A → pending B → late A → completed B,
+ChatPage unmount during selection followed by failed preflight and successful
+read-only retry, and mutually exclusive loading/empty UI. The R23 production
+browser verifier exercises that same navigation/recovery with delayed HTTP.
+

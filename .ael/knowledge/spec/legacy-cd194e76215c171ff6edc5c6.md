@@ -1,0 +1,1198 @@
+---
+{"id":"legacy-cd194e76215c171ff6edc5c6","title":"fluctlight-provider-contract.md","kind":"spec","status":"current","paths":["apps/core-go","packages/core-client","packages/browser-client","infra"],"source":".trellis/spec/backend/fluctlight-provider-contract.md#sha256=10b8176927202f87120d4d200795a1dab405e1b1ea36b0601afb59ba30adbd06","superseded_by":"","tasks":null,"critical":false,"path":"","hash":"","body":"","reason":""}
+---
+# Fluctlight Provider Contract
+
+## Scenario: Application token limits removed (2026-10-23)
+
+### 1. Scope / Trigger
+The Owner explicitly cancelled prompt input/output limits. This section
+supersedes every earlier token capacity, reserve, section-cap, optional-target,
+compaction and binding-budget requirement in this document and related specs.
+
+### 2. Signatures
+`AssemblePromptContext`, `ResolveWorkingMemory`, `preparePhysicalInput`,
+`enforcePhysicalInputBudget`, `generateWithEino`, `generateWithADK`,
+`streamWithEino`, raw Provider payload builders. Browser role writes require
+role/endpointId/modelId/timeoutSeconds/expectedVersions/idempotencyKey;
+legacy token fields are optional compatibility inputs and are ignored.
+
+### 3. Contracts
+Do not send max_tokens/max_completion_tokens on production model requests.
+Do not reject, drop, trim or compact a prompt/Tool result based on token estimates.
+Both ordinary and native Generate/Stream retain supplied content, including
+required state and complete unsummarized turns. Preserve source deduplication,
+summary coverage, semantic projections and query result-count contracts.
+Goal evaluation admits every source in its frozen authorized snapshot, without
+the former 12K token threshold. Memory retrieval no longer excludes authorized
+results by its former character budget or query token budget; query scope,
+semantic cues and result counts retain their existing contracts.
+Keep estimated/actual usage metrics with policy_version=prompt-unlimited.v1;
+do not describe old budget metadata as an effective request limit.
+
+Remove binding/reply token controls from active and compatibility editors. Existing
+model_roles positive columns and catalog metadata remain compatible storage only;
+no migration is required. Old conversation.reply max_tokens/max_input_tokens
+decode, then normalize to zero/omitted; they cannot reject configuration or clamp
+the Writer. Service/model preflight, CAS, timeout, cancellation, queue concurrency,
+media limits and structured/authority validation remain independent contracts.
+An upstream context/length failure stays a real Provider failure.
+
+### 4. Validation & Error Matrix
+Old tiny/conflicting token metadata → request still admitted. Large valid current
+input/schema/Tool result → complete physical request. Provider length stop →
+existing truncation/contract error. Missing model or invalid timeout → existing
+configuration failure. Old binding JSON → readable without recreating limits.
+
+### 5. Good/Base/Bad Cases
+Good: a third native Tool result exceeds a legacy 5K limit and reaches the fourth
+model request intact, once. Base: ordinary structured/streaming requests omit
+both output cap keys. Bad: hide form fields while Eino still sends a default cap.
+
+### 6. Tests Required
+Actual captured HTTP payloads for ordinary, streaming, formal Agent and Writer
+paths; full-content assertions; legacy-setting decode and disposable PG binding
+save; source deduplication/history ordering; generated schema/client parity;
+timeout/cancel regression. Finite fixtures must end explicitly instead of relying
+on a removed token-budget error to stop an infinite test model.
+
+### 7. Wrong vs Correct
+Wrong: use zero in positive legacy database columns as a new unlimited sentinel.
+Correct: keep compatible storage, ignore those values in selection/admission,
+and omit the output limit from the actual Provider request.
+
+## Scenario: Explicit Model Roles With Capability Validation
+
+### 1. Scope / Trigger
+
+- Trigger: a model endpoint is configured, a role is assigned, capability preflight runs, or initialization/assessment/realization/reflection/embedding/media-prompt inference executes.
+- Provider adapters normalize protocol and transport. They do not own Fluctlight semantics, numeric state, policy, or side effects.
+- First delivery supports explicit role assignment without implicit fallback chains.
+
+### 2. Signatures
+
+```text
+ProviderEndpoint
+  id / kind / base_url / encrypted_api_key
+  capability_status / checked_at
+
+ModelRole
+  role: initialization | cognitive_assessment | action_realization |
+        reflection | embedding | media_prompt
+  provider_endpoint_id / model_id
+  required_capabilities
+  token_budget / context_window_tokens / max_input_tokens (legacy storage only)
+  prompt_budget_policy_version / timeout / retry_policy
+```
+
+## Scenario: Shared native Agent execution
+
+### 1. Scope / Trigger
+
+Every complete non-embedding task uses a registered formal Agent and the pinned
+Eino v0.7.37 ChatModelAgent/Runner. Embedding retains its separate queue/API.
+
+### 2. Signatures
+
+```go
+App.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput)
+App.RunVisualIdentityAgent(ctx, VisualIdentityAgentInput)
+App.ExecuteTool(ctx, ToolExecutionRequest) (ToolExecutionReceipt, error)
+RunADKLoop(ctx, ADKLoopConfig, []*schema.Message)
+```
+
+### 3. Contracts
+
+- Agent definitions own task prompt, typed context, model role, Tools and final
+  decoder. Existing typed Task methods delegate to those definitions; no
+  single-call schema allowlist bypass remains.
+- The shared native loop consumes actual Tool receipts and continues after
+  reads, writes and business rejection. MaxIterations, timeout and cancellation
+  are failure guards, never successful completion conditions. No two-round or
+  query-only limit and no write-Tool early stop exists.
+- Tools call the same `ExecuteTool` boundary as independent callers. Mutations
+  commit their domain effect, receipt and outbox in a short local transaction.
+  `accepted` means a durable asynchronous task exists, not that media is ready.
+- Each physical Generate/Stream obtains its own queue lease, cancellation,
+  request identity and physical input diagnostics. No lease or transaction
+  spans the decision loop.
+- Native IDs are preserved. Direct operations use separate business operation
+  identities and never invent native ToolCall or Provider request facts.
+- Surface catalogs select default Tools; explicit canonical Tool installation
+  is allowed. Resource ownership, authorization and business conditions still
+  apply, but surface/source/Agent names are not execution gates.
+- Final output is validated only after native loop completion. JSON-looking
+  text is valid for a text-output Agent. Invalid final DTOs fail without using
+  an earlier message; an empty visible field never publishes the raw DTO.
+- `agent_runs` fences whole-run replay. Later model error/cancellation preserves
+  committed Tool effects and partial facts; no caller re-executes trace calls.
+- Production streaming uses the native streaming Runner. Publication uses the
+  existing message/outbox service, including Tool publication and natural final
+  output. A committed explicit reply is not published twice.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Missing role/model or unsupported capability | Fail before model I/O |
+| Missing native ID, malformed arguments, unknown Tool | Fail closed; no invented identity |
+| Tool business rejection | Return explicit receipt to the next model decision |
+| Dependency error, cancellation or iteration exhaustion | Error with committed facts retained |
+| Same operation with changed payload/target/profile | Conflict, no new side effect |
+| Model fails after Tool commit | Failed run; replay cannot rerun the whole loop |
+
+### 5. Good/Base/Bad Cases
+
+- Good: write Memory, recall the committed row, then produce a final answer.
+- Base: a no-tool Agent completes in one model decision.
+- Bad: return deferred for every mutation, fabricate IDs or count exhaustion as success.
+
+### 6. Tests Required
+
+- Fixed Agent/Tool inventories in phase8_contract_matrix_test.go; the independent tool-free conversation_reply Agent brings the Agent set to 22. Every Tool direct and native adapter path remains required.
+- Multi-round, same-round multiple calls, write/read, business rejection, stream,
+  cancellation, final-schema failure and committed-effect recovery.
+- Real Provider Agent evidence is separate from controlled HTTP regressions.
+- Disconnect feedback and skip actual writes in test-only subprocess probes;
+  the corresponding assertions must fail, then pass with production behavior.
+
+### 7. Wrong vs Correct
+
+Wrong: freeze native calls for later caller execution and end after two models.
+Correct: native Runner → `ExecuteTool` → committed receipt → next model decision.
+
+```python
+preflight(role: ModelRole) -> CapabilityReport
+complete_structured(role, schema, input) -> StructuredResult
+stream_realization(role, input) -> AsyncIterator[ProviderChunk]
+embed(role, inputs) -> VersionedEmbeddings
+```
+
+### 3. Contracts
+
+- Generative roles may share one endpoint/model, but remain independent settings and provenance.
+- `cognitive_assessment` and `reflection` require strict JSON Schema output.
+  `initialization` uses JSON-object mode plus a compact canonical skeleton and
+  Core-owned default completion/semantic validation; the full initialization
+  schema remains a code contract but is not sent to mlx-style constrained
+  decoding.
+- Initialization retains its operation-owned ten-minute timeout. No output reserve
+  or token-headroom gate applies; legacy binding token fields are ignored.
+- `action_realization` requires streaming, abort propagation, bounded diagnostics, and correct UTF-8/chunk handling.
+- `embedding` requires an embedding endpoint and fixed dimensions recorded with each vector/index version.
+- `media_prompt` requires its declared structured/text output contract and cannot execute media generation itself.
+- `media_prompt` may serve both B text prompt generation and C structured multimodal acceptance using the same configured role/model; C transport, vision-capability, timeout, or schema failures are surfaced to the owning media flow as an infrastructure condition, never inferred as a content `pass` or `reject`.
+- Settings cannot activate a role until preflight proves required capabilities. Health may later degrade without making Core readiness false.
+- Every result records role, endpoint/model ID, capability/model version when available, prompt/schema version, timing, token usage/budget, and correlation IDs.
+- No implicit role/model fallback. Failure follows explicit interaction/workflow retry/deferred/no-op/terminal rules.
+- Fact-only reply, conversation cognition, initialization, persona compilation, owner life request, and studio text tasks retry one physical model call at most twice when the upstream returns HTTP 500/502/503/504 or get_channel_failed. Backoff is exponential with jitter. The same idempotency key is reused. 4xx and quota errors are terminal. Exhausted retries return the provider error. Tool execution stays outside that retry. Wake-up, reflection, autonomy, and media/visual workflow retries are unchanged.
+- Provider adapter returns normalized transport/structured results and bounded parse diagnostics. It does not parse visible prose for semantic effects or choose domain actions.
+- A direct conversation may contain any mix of capability calls, including an
+  action-only response with no `conversation.reply`. Every valid native call is
+  executed through the same independent Tool boundary;
+  missing visible text is a successful tool-only turn rather than a global
+  `cognition_visible_text_missing` failure. A `conversation.reply` call still
+  owns private text delivery when present. When a request advertises more than
+  one capability definition, the OpenAI-compatible wire payload sets
+  `parallel_tool_calls=true`; a single-capability payload omits the hint. This
+  transport flag does not change Registry validation, execution ordering, or
+  the one `conversation_messages` delivery path.
+- Structured parsing accepts a complete object in the formal Content channel,
+  either bare or enclosed by exactly one whole Markdown `json`/unlabeled fence.
+  r4 diagnostics prove complete fenced persona outputs occur in production.
+  Prelude/trailing prose, `<think>`, reasoning-only content, encoded JSON strings,
+  multiple objects and unclosed fences remain invalid. Never infer native Tool
+  execution from parsed content. Visible-message code blocks retain their text.
+- Thinking is operation-owned and never becomes visible output or Tool execution
+  authority. Final structured output must satisfy the Agent contract; no
+  reasoning/prose fallback supplies missing native calls or a failed final DTO.
+- When final structured content is malformed or violates schema/influence-reference
+  contracts, the runtime triggers a single bounded, tool-free correction call
+  (except complete initialization, which remains one physical generation per
+  user attempt). Correction retains the prior final output and actual tool
+  transcript as data; it cannot execute tools again. The `initialization_response`
+  object-format exception never exempts persona compilation's independent schema.
+- An omitted `appraisal.evidence_refs` field is interpreted as "no evidence" and
+  is normalized to `[]` before schema evaluation; it never synthesizes or fabricates
+  context references.
+- Native cognition may complete a tool-only task with an explicit legal final
+  DTO and committed receipts. It does not fabricate semantic state from calls.
+  The native cognition depth guard still bounds recursive life facts.
+- The Provider boundary emits at most one `system` message, and it must be
+  the first message. Operation, context-authority, and language instructions
+  are concatenated in caller order; `user`/`assistant` history keeps its order
+  after that merged system message. This prevents strict chat templates such
+  as mlx-serve from rejecting a late or repeated system role.
+- API keys are resolved only in Go Core through the configuration secret contract.
+  Ordinary product/settings responses do not expose them. Owner-only Diagnostics
+  may retain an available credential-bearing non-image value; image data is replaced.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Role has no endpoint/model assignment | Role unavailable with explicit configuration error; no fallback. |
+| Structured role returns an empty/mismatched transport shape | Normalize only the affected fields (missing → typed empty, object ↔ array container repair), preserve native tool calls independently, and let the owning domain validator decide whether the resulting semantic payload is usable; never parse arbitrary prose. |
+| One native call entry is malformed while sibling entries are valid | Keep the valid entries in the normalized completion, record a bounded diagnostic for the malformed entry, and never execute the malformed entry or discard its valid siblings. |
+| Initialization Provider omits fields or uses a known alias | Preserve returned values, fill missing defaults/typed empties, mechanically map the alias, then validate explicit values. |
+| Initialization is sent through the full JSON Schema constrained decoder | Contract failure; use `response_format.type=json_object` and the canonical prompt skeleton to avoid local-provider timeout/empty fallback. |
+| Realization role lacks streaming/abort | Preflight fails; role cannot activate. |
+| Embedding dimensions change unexpectedly | Reject vectors, mark role/index mismatch, require new embedding version. |
+| Timeout or actual upstream length failure | Follow the owning retry/terminal policy; no local token-budget gate. |
+| Initialization uses a generic binding | Apply the existing ten-minute timeout; ignore legacy token metadata and omit output caps. |
+| Initialization reaches its effective deadline | Persist one `timeout/request_timeout` model run and return `initialization_provider_timeout`; do not store a raw URL/error string as `error_code`. |
+| Initialization returns non-empty content that cannot be parsed | Return `initialization_response_invalid_json` directly; do not construct an empty StructuredFallback that later appears as semantic-empty. |
+| Provider reports `finish_reason=length` or delimiters are unbalanced | Record `structured_response_truncated` with framing, candidate lengths, balance and syntax offset metadata; never repair or activate the partial object. |
+| Direct conversation returns valid ACTION calls without `conversation.reply` | Settle each call independently, complete cognition without fabricating assistant prose, and keep each per-call failure isolated; do not use ACTION arguments or reasoning as visible text. |
+| Provider/model is temporarily unavailable | Report degraded role health; request/workflow handles explicit failure. |
+| API key decryption fails | Configuration error; do not use env/old-key fallback. |
+| Provider returns reasoning/raw diagnostics | Keep available non-image text in Owner-only Diagnostics; do not promote it to ordinary chat or product DTOs. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: one local chat model passes five role preflights with separate bindings; every artifact records its actual role/model/prompt version.
+- Good: a dense initialization retains its operation deadline and complete
+  source, without application input/output token caps.
+- Base: the model wraps one complete formal object in a whole Markdown JSON
+  fence; Core unwraps only that framing and validates ordinary task semantics.
+- Bad: append missing braces to a `finish_reason=length` response or turn its
+  half-populated object into a default Persona.
+- Good: an embedding model upgrade creates a new dimension/model index and background rebuild without mixing distances.
+- Base: reflection role is degraded while realization remains healthy; interactions continue, reflection workflows retry explicitly.
+- Bad: one global model string with unknown capabilities, silently substitute realization for assessment, parse malformed structured output as prose, or hide fallback under Provider adapter logic.
+
+### 6. Tests Required
+
+- Endpoint/settings tests for encrypted keys, safe summaries, role assignment, shared model mapping, and atomic invalid-patch rollback.
+- Role-specific preflight tests for initialization JSON-object parsing,
+  cognition/reflection structured schema, stream/abort/chunking, embedding
+  dimensions, media-prompt output, timeout, and omission of token caps.
+- Real initialization regression calls the configured LLM with a complex
+  multi-personality description and asserts non-empty distinct raw profiles
+  before Core defaults; mocks are not sufficient for this gate.
+- Provenance tests assert every result stores role/endpoint/model/prompt/schema/correlation metadata; Owner-only diagnostics retain available non-image text and replace images.
+- Failure tests prove one degraded role does not silently use another and follows owning interaction/workflow policy.
+- Initialization scenario tests assert the operation floor, insufficient
+  full-input retention, typed timeout/cancellation codes, outer HTTP deadline, and a
+  configured-LLM dense multi-card completion using the same effective values.
+- Parser tests cover a greater-than-12,000-character embedded complete fence,
+  double encoding, thinking wrappers, malformed JSON, unbalanced/truncated
+  output, non-object root, typed failure, and image-sanitized original-text diagnostics.
+- Provider adapter contract suite runs against fake normalized adapters and configured OpenAI-compatible test endpoints.
+- The opt-in live conversation regression asserts that a media ACTION is
+  returned together with `conversation.reply`, that both native calls normalize
+  to canonical capabilities with non-empty reply text, and that Core loads
+  the committed reply exactly once without `cognition_visible_text_missing`.
+- Assert every real payload has exactly one leading system message and that
+  merging preserves every operation/context/language instruction; media-prompt
+  calls may omit the language instruction but follow the same single-system
+  invariant.
+- Architecture tests prevent Provider adapters from importing domain policy/repositories or implementing semantic regex/keyword fallbacks.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```python
+model = settings.default_model
+try:
+    return await provider.complete(model, prompt)
+except Exception:
+    return await provider.complete(settings.fallback_model, prompt)
+```
+
+#### Correct
+
+```python
+role = model_roles.require("cognitive_assessment")
+role.require_capability("structured_output", schema_version)
+return await provider.complete_structured(
+    role=role,
+    schema=SemanticAssessmentV1,
+    input=assessment_input,
+)
+
+## Scenario: Go Provider Preflight And Explicit Media Failure
+
+### 1. Scope / Trigger
+
+- Trigger: Go Core configures a model role or a media workflow receives an
+  endpoint/model capability error.
+
+### 2. Signatures
+
+- `ConfigureProviderRole(ctx, actorID, payload)` persists a preflight only
+  after the endpoint model list contains the selected model.
+- Provider calls carry deterministic idempotency/request headers.
+- `ProviderModels(ctx, actorID, endpointID)` normalizes common model-list
+  envelopes: OpenAI-style `data[]` and Ollama-style `models[]`, accepting
+  string entries and object `id`/`name`/`model` fields. Unknown envelopes stay
+  empty and cannot activate a role.
+
+### 3. Contracts
+
+- Endpoint reconfiguration invalidates bound roles until the next preflight.
+- A missing ComfyUI model is a bounded failure; no alternate model is chosen.
+- Successful and failed model runs retain original non-image text in Owner-only diagnostics and replace image payloads.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| endpoint/model missing or unavailable | reject role; return `provider_endpoint_not_found`, `provider_models_unavailable`, or `provider_model_not_available`; no role row |
+| model list uses a supported `data[]`/`models[]` envelope | normalize IDs, deduplicate and sort before matching |
+| model list is empty or has an unsupported envelope | reject role with `provider_model_not_available`; no role row |
+| configured media model absent | retry, then mark media intent `failed` |
+| Owner diagnostic contains credentials/available reasoning | Retain non-image text under Owner authorization; operational stdout stays credential-redacted. |
+
+### 5. Good/Base/Bad Cases
+
+- Good: preflight passes and retries reuse one request ID.
+- Base: a previously healthy endpoint degrades and returns a bounded Provider
+  error while Core readiness remains healthy.
+- Bad: silently selecting the first available transformer after a 400.
+
+### 6. Tests Required
+
+- Fake `/models` preflight success/unknown-model tests.
+- Header idempotency, Owner authorization and image-only diagnostic replacement tests.
+- Real ComfyUI model-not-found test asserting failed durable media state.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+workflow["transformer"] = firstAvailableModel()
+```
+
+#### Correct
+
+```go
+markMediaIntentFailed("provider_model_not_available")
+return err
+```
+
+## Scenario: Bounded native Tool diagnostics
+
+- Only `schema.Message.ToolCalls` authorizes execution. Body, reasoning and
+  structured `tool_calls` fields never create calls.
+- Missing IDs fail as `tool_call_invalid`; never derive `call_derived_*`.
+- Diagnostics retain bounded shape/reason metadata, physical request identity,
+  formal correlation and available non-image arguments/reasoning/credentials
+  under Owner authorization.
+- Invalid siblings never execute; previously committed valid calls remain facts.
+- Cancellation/timeout terminal writes retain scenario/attempt values through
+  bounded `context.WithoutCancel`; first-terminal-wins remains authoritative.
+- Tests assert malformed call rejection, argument fidelity in Owner diagnostics, physical
+  request/Tool/result association and cancelled-run diagnostic persistence.
+
+## Scenario: Compact Provider Cognition Context
+
+### 1. Scope / Trigger
+
+- Trigger: a cognition, wake-up, daily-review, reflection, native-cognition,
+  or action-realization call serializes a `ContextProjection` for the Provider.
+- The full projection remains an internal/replay value; the Provider receives
+  a role-facing semantic projection only.
+
+### 2. Signatures
+
+```text
+compactCognitionContext(ContextProjection) -> ProviderContext
+```
+
+`compactCognitionContext` is an internal/replay-safe DTO. The final Provider
+input is produced by `ProviderContextSurface` and is narrower than that DTO;
+it does not expose database identifiers or state-machine bookkeeping fields.
+
+### 3. Contracts
+
+- `core_persona` is the only place for identity, personality,
+  behavioral-policy, and life-profile data; parallel aliases are omitted.
+- `current_state.data` is the only place for `inner_state` and `life_context`;
+  revision, persistence timestamps, and numeric decay-control parameters stay
+  in Core.
+- `life_context.current_time` is the current local wall-clock time formatted
+  with the Fluctlight's canonical IANA `timezone`; it is the semantic time fact
+  used by wake-up, cognition, reply, daily-review, and reflection decisions.
+  The raw RFC3339 `instant` used for Core snapshots is not Provider input.
+- `visual_identity` in ordinary conversation/wake-up cognition is limited to
+  availability/missing state. Renderer constraints, identity snapshots,
+  workflow timeline stages, asset lists, and adapter/revision metadata stay in
+  Core/media workflows. Media prompt input uses its separate bounded projection;
+  reference asset IDs remain only in the durable Core concept for renderer
+  lookup.
+- `recent_messages` keeps semantic order/kind/text/time, but omits message IDs,
+  `author_actor_id`, `source`, and attachment arrays.
+- Memory input keeps type/content/confidence/importance/emotional significance,
+  creation time, and an opaque `ContextReference` `ref` only when it resolves
+  in the frozen index. Raw Memory IDs, evidence IDs, storage status, revision,
+  visibility, conversation foreign keys, and source/event IDs stay in Core.
+- Empty optional collections are omitted. Native Provider `tools` remains the
+  sole complete capability schema; `context.capabilities` is never duplicated.
+- The current conversation message is carried once by its owning operation;
+  `recent_messages` excludes that newest user entry when it is already present
+  as the operation input.
+- The full `ContextProjection` may still be persisted inside a frozen decision
+  for replay; compaction only affects Provider-facing user content.
+
+Action realization, reflection, and native cognition also use operation-owned
+semantic projections: realization receives a compact response plan and only
+tool outcome fields, reflection evidence uses a short `sequence:N`
+`evidence_ref` plus a metadata-free payload, and native cognition receives a
+metadata-free fact. Frozen Core records retain the complete protocol objects.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| canonical Core Persona envelope is missing but legacy parallel fields exist | reconstruct one canonical envelope before serialization; do not duplicate aliases |
+| optional evidence collection is empty | omit the field from Provider content |
+| optional evidence collection is non-empty | preserve its semantic values and required evidence references |
+| native tools are present | omit full capability manifests from user context |
+| persisted/replay projection contains old full fields | continue deserializing it; compact only at the Provider boundary |
+
+### 5. Good/Base/Bad Cases
+
+- Good: wake-up receives one three-layer context and native tools once, with no
+  random database IDs or duplicate persona envelope.
+- Base: a legacy instance with only parallel identity fields is reconstructed
+  into the canonical Core Persona before the model call.
+- Bad: send `persona_profile` beside `context`, repeat tools under
+  `context.capabilities`, or let model input expose `message_<random-id>` and
+  state revision bookkeeping.
+
+### 6. Tests Required
+
+- Assert compact context contains one canonical three-layer shape and omits
+  all parallel aliases, database IDs, revisions, timestamps, and empty lists.
+- Assert the Provider projection keeps the local `current_time` and canonical
+  `timezone` while omitting the raw Core `instant`.
+- Assert Visual Identity workflow timeline/asset metadata is absent from
+  cognition and media prompt projections while renderer constraints remain.
+- Assert realization plans/results and reflection/native evidence facts keep
+  semantic outcomes while omitting protocol IDs, schemas, revisions, and
+  transport metadata.
+- Assert non-empty recent messages and memories retain semantic values; typed
+  evolution slots are available only on surfaces that explicitly need them,
+  and no raw evidence/identifier field crosses the ordinary conversation
+  boundary.
+- Assert legacy projection reconstruction does not lose Core Persona data.
+- Assert every Provider system payload still has one leading system message;
+  this context compaction must not alter native tools or persisted decisions.
+
+## Scenario: Operation-Owned Provider Context Surfaces
+
+### 1. Scope / Trigger
+
+- Trigger: the same `ContextProjection` is used by Main conversation,
+  takeover reply, wake-up, daily review, native cognition, persistent-switch
+  assessment, and Reflection.
+- A broad internal projection must not be promoted wholesale into every
+  `[RUNTIME CONTEXT]` message. This boundary also prevents invalid database
+  IDs, revisions, authority/persistence metadata, and duplicate actor/drive/
+  presence copies from becoming model input.
+
+### 2. Signatures
+
+```go
+type ProviderContextSurface string
+
+compactCognitionContextForSurface(ContextProjection, ProviderContextSurface) map[string]any
+workingMemoryInputFromProjectionForSurface(ContextProjection, ProviderContextSurface, active, summaries) WorkingMemoryInput
+App.assembleProjectionPromptForSurface(ctx, surface, projection, role, rules, input, tools, schemaName, schema)
+```
+
+### 3. Contracts
+
+- `ContextProjection` remains the complete Core read model. Surface filtering is
+  applied only before Working Memory fragments are built; capability snapshots,
+  frozen actions, and CAS validation keep the full projection.
+- `conversation_main`, `takeover_reply`, and
+  `persistent_switch_assessment` retain semantic current state, local time and
+  timezone, current speaker, relationship, schedule, agency, outcome, memory,
+  and recent conversation facts. They omit actor rosters, top-level presence,
+  duplicate drive slots, preference/trigger slots, raw hypotheses, and visual
+  renderer constraints.
+- `native_cognition` and `reflection` do not receive interactive recent
+  history or conversation summaries unless a future surface explicitly opts
+  in. Wake-up and daily review retain their operation-owned schedule/memory
+  context.
+- Current state is projected as mood/PAD/momentum/drive/regulation and
+  scene/activity/location/current local time/timezone. `ref`, `*_id`, revision,
+  `authority`, `source`, persistence timestamps, and schedule/presence linkage
+  fields are Core-only in the ordinary surface.
+- Actor objects use display/type/role/label. An arbitrary actor/database ID is
+  never a Provider fact; only the explicit `actor_user`/`actor_self` aliases
+  may be used as display aliases.
+- Runtime summaries contain semantic `summary` text only. `source_digest`,
+  source kind, sequence bounds, completion timestamps, and summary row IDs are
+  retrieval metadata and do not enter the wire context.
+- Memory and capability target refs are retained only when they resolve in the
+  frozen `ContextReferenceIndex`; an opaque-looking but unresolved `ref` is
+  dropped. Approximate content similarity is not used as a Core-side merge or
+  prompt dedupe rule.
+- Conversation retrieval uses current input, recent topic, and active-memory
+  cues. Foundation/state/goal cues remain available in the prompt but do not
+  make every old episodic row a conversation search hit. Interactive retrieval
+  is capped at six durable results; duplicate lexical query tokens count once.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unknown operation surface | Use the compatibility/default projection only at internal test seams; production callers pass an explicit surface. |
+| `id`, `*_id`, revision, persistence, source, authority, or unresolved `ref` appears in ordinary Runtime Context | Drop the field; never stringify it into a semantic fact. |
+| Current speaker lacks a display name and has an arbitrary ref | Keep only type/role/label; do not expose the arbitrary ref. |
+| Summary has no non-empty semantic text | Omit the summary fragment. |
+| Native cognition/Reflection projection has interactive history or summaries | Suppress those fragments unless the surface policy changes explicitly. |
+| Conversation memory query repeats the same lexical token | Score the token once; do not amplify relevance by repetition. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a conversation prompt retains “工作室 / 剪假发 / Asia/Shanghai / 当前
+  关系” and a few relevant memories, while the same prompt has no
+  `actor_id`, `event_ref`, `expected_revision`, renderer adapter data, or
+  repeated drive/presence roster.
+- Base: Core still keeps the full projection and reference index for a tool
+  call; only the Provider-facing Runtime Context is reduced.
+- Bad: loop over every key in `compactCognitionContext` and turn it into a
+  Runtime Fact, or assume a field is valid merely because its name is `ref` or
+  `*_id`.
+
+### 6. Tests Required
+
+- Surface fixture with current state, life context, actors, duplicate drives,
+  top-level/nested presence, visual renderer constraints, invalid IDs, and
+  summary metadata; assert field paths in the final `[RUNTIME CONTEXT]` JSON.
+- Assert valid `ContextReference` refs survive only on surfaces that need them,
+  while unresolved refs and raw entity IDs are absent.
+- Assert native cognition/Reflection omit recent messages/summaries and Main
+  retains current time, scene, relationship and bounded memory facts.
+- Assert conversation retrieval limits durable results and repeated query
+  tokens do not increase lexical overlap scoring.
+- Run a Provider wire smoke with a real `ContextProjection` when a live
+  Provider is configured; do not treat a fake payload as live-token evidence.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+for key, value := range compactCognitionContext(projection) {
+	input.RuntimeFacts = append(input.RuntimeFacts, fact(key, value))
+}
+```
+
+#### Correct
+
+```go
+compact := compactCognitionContextForSurface(projection, surface)
+input := workingMemoryInputFromProjectionForSurface(projection, surface, active, summaries)
+```
+
+## Scenario: Shared prompt composition and physical diagnostics
+
+The executable contract is [LLM Prompt Composition](legacy-9b89c41b4be449b963dcba95.md).
+`ResolveWorkingMemory` and `AssemblePromptContext` retain authorized semantic
+facts, complete unsummarized turns and native Tool feedback without token-based
+selection. `PromptComposer` owns deterministic JSON business data; transport
+preserves original user text, images and native results. System rules and each
+fact have one owner. A task with no persona has no empty persona section.
+
+Physical order is system, optional stable task JSON, optional runtime JSON,
+explicitly enabled history, current input once. WakeUp and Moment treat old
+messages as historical data. Tools/response schemas remain native protocol.
+Stable prefixes and actual physical bytes/characters/estimated tokens remain
+observable. Counts are diagnostics, not admission limits. All production request
+paths omit max_tokens/max_completion_tokens; legacy model_roles token columns
+are compatibility storage only.
+
+Regression: full content for ordinary structured/stream/Writer/native rounds;
+source-exact deduplication and whole-turn coverage; semantic metadata omission;
+JSON/multimodal preservation; current-input uniqueness and frozen ref hydration.
+
+## Scenario: Task-Owned Model Operation Contracts
+
+### 1. Scope / Trigger
+
+- Trigger: any non-embedding domain operation needs a model call, including
+  media prompt/quality, Visual Identity, conversation summary, schedule
+  generation/replan, initialization, Native Cognition, Daily Review,
+  Reflection, or persistent-switch assessment.
+- The operation-owned formal Agent (exposed by typed Task methods) is the layer that selects prompt fragments,
+  combines them with bounded business facts, selects the response schema,
+  invokes Eino, and normalizes the result. Domain code owns authorization,
+  semantic validation, freeze, prepare, transaction and settlement.
+
+### 2. Signatures
+
+```go
+RunMediaPromptTask(ctx, MediaPromptTaskInput) (string, error)
+RunMediaQualityTask(ctx, MediaQualityTaskInput) (MediaQualityAcceptance, error)
+RunReflectionProposalTask(ctx, ReflectionProposalTaskInput) (ProjectionTaskResult, error)
+RunNativeCognitionTask(ctx, NativeCognitionTaskInput) (ProjectionTaskResult, error)
+RunScheduleGenerationTask(ctx, ScheduleGenerationTaskInput) (map[string]any, error)
+RunFrozenEmbeddingTask(ctx, text, frozenAssignment) (modelID string, vector []float64, error)
+```
+
+`ProjectionTaskResult` contains the normalized Provider completion, the
+assembled projection used by the request, and bounded prompt diagnostics. The
+ADK bridge accepts one `PromptAssemblyResult`; it does not expose independent
+raw `Messages`/`Schema` forwarding fields.
+
+### 3. Contracts
+
+- Task inputs are typed operation facts. A caller does not pass a complete
+  system prompt, arbitrary provider message list, response schema or tool
+  catalog to a generic forwarding wrapper.
+- Each Task owns its instruction constants, selected slots, schema and output
+  decoder. Shared Eino/queue/diagnostic support remains below the Task; no
+  second Provider/Composer/Agent engine is introduced.
+- Projection-backed Tasks select one explicit `ProviderContextSurface`, build
+  the operation rules and capability catalog, and return the exact assembled
+  projection for later domain validation. Installed Tools own their commits;
+  callers never replay those effects.
+- Media, Visual Identity and summary Tasks keep their existing multimodal or
+  language-specific format and do not enter the ordinary cognition composer.
+- Embedding remains an independent contract. A durable retry uses its frozen
+  endpoint/model assignment and cannot silently re-resolve a role.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Task input missing required business facts | Return a typed task validation error before Provider I/O. |
+| Generic caller attempts to supply arbitrary messages/schema | No generic forwarding API exists; compile-time boundary prevents the path. |
+| Prompt is larger than legacy token settings | Retain all selected valid content; no budget rejection. |
+| Provider structured output is malformed | Task returns the bounded provider parse/normalization error; domain retry policy decides whether to retry. |
+| Task result is semantically invalid for the domain | Domain validator rejects it; Task never fabricates a fallback. |
+| Frozen embedding assignment is unavailable on retry | Return the explicit assignment error; never switch models implicitly. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `RunReflectionProposalTask` receives evidence and a projection,
+  selects the Reflection surface/schema, and returns a normalized proposal for
+  Core's evolution compiler.
+- Base: `RunScheduleGenerationTask` retries with the same typed facts and a
+  bounded compact-output reminder; schedule continuity remains domain-owned.
+- Bad: `RunStructuredTask(ctx, task, messages, schema)` lets every caller
+  inject a different system prompt, schema and raw user payload while the
+  supposed Task only forwards them.
+
+### 6. Tests Required
+
+- Assert each production model entry uses its concrete Task boundary and no
+  deleted generic wrapper remains in production callers.
+- Assert media/quality/Visual Identity/summary/schedule Tasks select their own
+  instruction and schema and return bounded decoded values.
+- Assert projection Tasks preserve surface isolation, selected slots, tool
+  catalog, omitted output caps and frozen projection identity.
+- Assert ADK bridge rejects invalid assembled PromptAssemblyResult before
+  Provider I/O and preserves request-scoped capability trace.
+- Assert a frozen embedding retry sends the original endpoint/model tuple.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+func RunStructuredTask(ctx context.Context, task ModelTask,
+    messages []map[string]any, schema map[string]any) (map[string]any, error) {
+    return provider.StructuredWithSchema(ctx, task.Role, messages, task.SchemaName, schema, false)
+}
+```
+
+#### Correct
+
+```go
+func (a *App) RunReflectionProposalTask(ctx context.Context,
+    input ReflectionProposalTaskInput) (ProjectionTaskResult, error) {
+    // select reflection surface/rules/schema, assemble bounded projection,
+    // invoke the shared Eino runtime, and return the normalized proposal.
+}
+```
+
+## Scenario: Native Eino ToolCall Authority And Fail-Closed ADK Projection
+
+### 1. Scope / Trigger
+
+- Trigger: an Eino `schema.Message` contains native ToolCalls, an ADK Runner
+  returns AgentEvents, or a fixed structured Task returns a JSON sidecar that
+  also contains a `tool_calls` field.
+
+### 2. Signatures
+
+```go
+normalizeEinoNativeToolCalls(*schema.Message, providerRequestID)
+normalizeEinoNativeToolCallsIndependently(*schema.Message, providerRequestID)
+RunADKLoop(ctx, ADKLoopConfig, []*schema.Message)
+```
+
+### 3. Contracts
+
+- ADK and fixed-task model ToolCalls enter the Core contract only from
+  `schema.Message.ToolCalls`; accepted calls retain the model's formal ID,
+  name and object arguments.
+- Missing/conflicting/duplicate IDs, invalid names, malformed arguments and
+  unknown tools fail closed. No ID may be derived from request ID, position,
+  capability name, prose, Markdown or reasoning.
+- A malformed sibling may produce a bounded diagnostic while valid typed
+  siblings remain available; the malformed sibling never executes.
+- A final structured body can be decoded for the Agent DTO, but
+  its `tool_calls` field is never a second execution authority on an ADK
+  completion. The Provider must not normalize the same ADK call twice.
+- `RunADKLoop` propagates `ErrExceedMaxIterations`, cancellation and model/tool
+  errors. It may project AgentEvents and request-scoped trace, but it may not
+  swallow an upper-limit error as success or run another model/tool loop.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Native call has no ID or conflicting identity fields | bounded `tool_call_invalid`; no invocation |
+| Native arguments are not a JSON object | bounded `arguments_not_object`/`arguments_invalid_json`; no invocation |
+| Valid and malformed native siblings share a response | valid sibling retained; malformed sibling rejected and diagnosed |
+| Sidecar repeats a native ADK call | native Eino call remains sole authority; sidecar tool call ignored |
+| ADK reaches max iterations | typed failure; no fabricated success |
+
+### 5. Good/Base/Bad Cases
+
+- Good: `call-7` appears unchanged in the assistant ToolCall, invoker trace,
+  tool result and next model input.
+- Base: a fixed Task parses a strict DTO while a sidecar `tool_calls` field is
+  ignored for execution.
+- Bad: derive `call_derived_*`, scan visible prose for a tool, or use the last
+  non-empty assistant text after a failed/empty final event.
+
+### 6. Tests Required
+
+- Native formal identity, malformed sibling, sidecar conflict, tool feedback,
+  model/tool failure, cancellation and iteration-limit tests.
+- Production Conversation/WakeUp/Takeover Runner tests must assert the actual
+  next input contains the matching assistant/tool pair and that only the
+  existing settlement boundary publishes.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```go
+id := "call_derived_" + stableDigest(providerRequestID+name+arguments)
+```
+
+#### Correct
+
+```go
+id := toolCall.ID // copied from Eino schema.Message.ToolCalls
+```
+
+### Formal request projection boundary (0037)
+
+Every formal task reaches a read-only source-map and physical-input measurement immediately before Provider egress. Main, WakeUp, Native, and Daily reproject authorized current System/Runtime context after a successful mutating Tool; the outbound message copy changes, while original Eino messages, multimodal parts, ToolCall IDs, and matching ToolResults remain intact. The final settlement follows the first context generation through committed Tool receipts. Diagnostics identify source versions, measured sections, omitted categories, and the final physical request mapping. The current token estimator is a rune heuristic and must be labeled as an estimate, not exact tokenizer usage.
+
+The native Tool adapter also passes the Core-owned snapshot from the same projection to `ExecuteTool` for contextful calls. A Tool that resolves an opaque reference must see the exact map exposed on its preceding physical model request. `ExecuteTool` validates snapshot identity and accepts this path only for a native ToolCall with a Provider request ID; independent direct Tools continue without a caller-supplied snapshot.
+
+Provider claim `evidence_refs` use only the opaque references exposed in Runtime Context. Before persistence, Core resolves an exact entry through its frozen `ContextReferenceIndex`; current life/state references become the turn's source fact anchor, and durable entity references become authorized internal IDs. Each normalized claim must carry Core's private proof that every submitted ref came from an exact visible token. An unknown token, raw entity ID, or model-supplied imitation of that proof remains invalid. Do not validate a model-visible `kind:ctx_...` token against an allowlist of raw database IDs.
+
+Current body and wearing also carry an `appearance:ctx_...` reference in the compact Runtime view. This token is generated from the same effective snapshot without its read timestamp and is valid for claims and influences about current appearance; the underlying body and wardrobe tables remain authoritative. Wardrobe item IDs are business Tool arguments, not context references, and must never be joined to a `wardrobe:ctx_` prefix.
+
+## Scenario: Task-Specific Model-Visible Input And Tool Result Projection
+
+### 1. Scope / Trigger
+
+- Trigger: a Formal Agent or a later ADK Tool result is about to become a physical Provider message. Core may hold richer durable state than the model needs.
+
+### 2. Signatures
+
+```go
+scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]any
+scheduleReplanModelInput(input SchedulePlanInput) map[string]any
+modelFacingToolResult(receipt ToolExecutionReceipt, definition CapabilityDefinition) map[string]any
+```
+
+### 3. Contracts
+
+- Keep Core-owned storage IDs, CAS revisions, hashes, workflow coordinates and renderer adapter values in durable state and Tool receipts. Provider-facing task projections select only semantic fields and valid model selection keys. `ModelResultOmitFields` may name a nested path such as `items.revision`; it acts on a deep copy and never mutates the Core receipt.
+- The model-facing `wardrobe.inspect` list contains at most twelve entries per
+  page; if more were returned, it retains the real last item ID as
+  `next_cursor` and reports `has_more=true`. Long descriptions are marked
+  `description_truncated` and can be read in full with the authorized
+  `detail` operation. The canonical Tool receipt remains complete.
+- `intention.inspect` list exposes ten rows per page with an integer
+  `next_cursor`; a further independent call with the same `include_closed`
+  filter retrieves the next page. IDs and lifecycle status remain in each row.
+- Visual Identity Agent input retains the actual image, current action, bounded attempt status, visual traits and review feedback, but not session/Fluctlight/media/asset IDs or narrative `background`/`background_story`. Media prompt/quality keep image/visual/scene/retry semantics; ComfyUI retains renderer weights outside the LLM message.
+- Schedule generation removes `foundation:*`, initial goal/intention IDs, revisions and same-value aliases. Schedule replan sees one schedule item list plus current life/agency meaning. A linked item `intention_id` is retained because the model output must preserve it; `expected_revision`, local date/timezone and completion boundary are bound by Core before CAS validation, not required from the model.
+- Wake-up hides its Core-bound wake ID and redundant nested `life_context.schedule_ref`; the separate schedule fact preserves activity/time/status and legitimate influence refs. Other surfaces keep `kind:ctx_*` evidence/target refs when their output schema or Tool selection needs them. Personality switch profile/rule IDs, active activity IDs and worn-item IDs remain valid business selection keys.
+- Persona compilation receives one copy of the selected personality/behavior traits and target rune budget; the profile ID, rules version and source hash remain Core-owned. Conversation summary/segment/daily memory already use narrow semantic inputs. Dormant legacy Agent definitions are not evidence that production egress is clean.
+- Diagnostics must inspect the actual `messages[].content` or multimodal text part, not interpret the OpenAI-compatible JSON envelope or Owner UI message container as an embedded JSON prompt.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Frozen media concept is malformed | Fail before Provider I/O; do not send raw persisted bytes as prompt text. |
+| Model omits Core-owned schedule revision/boundary | Core installs frozen values before `validatePreparedSchedulePlan`; stale CAS still fails closed. |
+| A Tool receipt contains workflow IDs or revisions | Keep them in the Core receipt, omit them from the next model message. |
+| A Tool result contains an ID accepted by the next Tool or output schema | Preserve that specific selection key; do not apply a global `*_id` deletion. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: `schedule_replan_planner` sees one semantic item list and returns `items`/`reschedule_policy`; Core binds revision and completed boundary. The next ADK round sees a media Tool's status without its internal workflow ID.
+- Base: a historical stored concept contains extra fields; a task-specific projector removes them while durable state remains unchanged.
+- Bad: send a raw goal DTO, duplicate full schedule under `current_life`, remove a Tool-required `activity_id`, or delete renderer weight from the ComfyUI path merely because the LLM should not see it.
+
+### 6. Tests Required
+
+- Capture final physical Provider HTTP requests for Visual Identity, schedule generation/replan, media prompt/quality, wake-up, persona compilation and virtual activity. Assert forbidden IDs/revisions/duplicates are absent while images and task semantics remain.
+- Compare multimodal wire messages with Owner model-run diagnostics; the image bytes belong only on Provider wire and Owner diagnostics contain `REDACTED_IMAGE_DATA`.
+- Test model-facing Tool output per capability and assert the full Core receipt, legitimate chaining keys, stale-CAS checks and durable settlement remain intact.
+
+### 7. Wrong vs Correct
+
+```go
+// Wrong: a database DTO becomes the model's task packet.
+prompt := jsonString(map[string]any{"goals": agencyProfileGoals, "schedule": fullSchedule})
+
+// Correct: each task owns a semantic projection; Core keeps authoritative IDs.
+prompt := jsonString(scheduleReplanModelInput(frozenPlanInput))
+```
+
+## Scenario: Goal Assessment Semantic Protocol And Stable Task Prefix (2026-10-08)
+
+### 1. Scope / Trigger
+
+Goal Evaluation was sending full Core authority in actual assembled HTTP user
+content. The assembled path bypasses generic formatting, so diagnostics JSON
+was the real request. All Goal model inputs/schemas must obey semantic egress;
+Core snapshots, audits and domain commands keep their complete identifiers.
+
+### 2. Signatures
+
+`goalEvaluationWireInput(snapshot) -> (binding,stableDefinitions,current,error)`.
+`binding.hydrateOutput(refOnlyJSON) -> GoalEvaluationTaskOutput`.
+`withProviderStableTaskContext(ctx,map)`;
+`PromptAssemblyInput.StableTaskContext map[string]any`.
+Existing schema transport name remains `goal_evaluation_v1`; the closed output
+fields are `goal_ref`, `criterion_ref`, `object_ref`, `target_actor_ref`,
+`dependency_refs` and `evidence_refs`, never expected_revision/criteria_version.
+
+### 3. Contracts
+
+- Build one immutable typed short-ref binding per admitted claim. Core injects
+  entity IDs/revisions/criterion versions from that exact snapshot after model
+  output. Unknown/wrong-kind/duplicate/cross-Goal refs fail closed. No permissive
+  legacy raw-ID/version Provider fallback. Existing domain CAS, real source
+  validity, profile and relationship guards remain mandatory.
+- Build the Provider response schema from the same frozen typed binding used
+  for hydration. Reference enums contain only offered short refs, sorted for
+  deterministic serialization; empty refs are not enum members. Omit Stage and
+  Commitment evaluation properties when no corresponding objects were served;
+  omit review.stage_ref and plan object_ref where no existing objects apply.
+  New Stage/Commitment plans remain available without an object_ref. No-source
+  evidence arrays permit zero items only. Keep binder ownership/source/CAS checks
+  after formal Task schema validation; never drop a non-null invalid object.
+- Every claimed Goal requires exactly one evaluation, regardless of plans.
+  Completed Goals should not receive a same-Goal plan; existing terminal plan
+  handling is a no-op and cannot create further Stage/Commitment or reopen them.
+  One judgment per criterion combines applicable evidence; quotation, hypothesis,
+  plan and report cannot be positive event proof. Completed policy requires
+  impact=completed; prose must agree and cannot add thresholds to standards.
+  Omit absent Stage/Commitment evaluation objects; new plan objects omit
+  object_ref, existing operations select only offered same-kind refs. A review
+  without a Stage omits stage_ref, never descriptive prose in ref fields.
+- Persisted GoalAuthority omits EntityID/TargetActorID; restore only from the
+  claim entry's explicit GoalID/TargetActorID on a private copy. JSON replay
+  and in-memory inputs produce identical bindings without snapshot mutation.
+- Shared Goal evidence retains actual Actor messages across publishing profiles;
+  private Goal/Stage/Commitment binding keeps current-profile isolation. Actor
+  participants and business objects use typed local refs. Source refs use eN,
+  distinct from the journal's source:N namespace.
+- Keep full criteria, actual message text, semantic facts/domain query results,
+  booleans/zero, business times/windows/deadline policy. Convert actual all/any
+  policy optional_ids to optional_refs; do not leak criterion storage IDs.
+- Inspect the whole HTTP payload, including common Runtime Goals and compiled
+  portrait wrappers, not only the new current-input packet. Goal-only portrait
+  projection omits profile/storage metadata but preserves semantic prose and
+  legacy JSON-shaped portrait facts. Native persona switching keeps its own
+  existing authorized selector protocol.
+- Physical order: one protocol/persona system, optional required
+  [STABLE TASK CONTEXT] user facts, optional [RUNTIME CONTEXT] user facts,
+  original chronological recent role messages, current input once as final
+  user. This optional stable task message extends the former B-layout without
+  moving user facts into system policy. Slow runtime facts precede volatile
+  clock/state/evidence; selection priority remains independent of presentation.
+- Canonicalize nested typed policy objects before shared JSON copying. Stable
+  facts are never pruned, are retained without optional runtime facts, and count
+  in physical bytes/characters/estimated tokens and diagnostic sections.
+- Use deterministic JSON for all structured model input. Do not retain a second
+  YAML/TOON renderer or choose syntax by size. Preserve full proof/criteria;
+  token settings never prune or reject the request.
+- Byte-prefix equality and conservative EstimatePromptTokens are measurements
+  of this implementation, not proof of actual tokenizer count, KV-cache hits
+  or Provider latency. Those require the user's real local server metrics.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Raw IDs/revisions in model output | goal_evaluation_wire_output_invalid |
+| Unknown/wrong kind/foreign object ref | typed wire-ref rejection; no business commit |
+| Source changed after claim | existing source/CAS rejection |
+| Required stable context exceeds legacy settings | Retain complete input; no local token limit |
+| Same Agent/definitions, clock/evidence changes | identical system+stable message prefix |
+| Different stable definitions | appropriate later prefix changes |
+
+### 5. Good / Base / Bad Cases
+
+Good: criterion:1.1 and e1 select frozen proof; Core fills actual criterion ID and
+version. Base: nested and tabular facts use the same JSON representation. Bad: echo random UUIDs/revisions, promote evidence to system authority,
+reuse an alias against a different snapshot, or call estimated savings KV hits.
+
+### 6. Tests Required
+
+Capture actual HTTP messages/schema for metadata omission; shared and private
+scope, frozen hydration, unknown refs, optional policy, source validity, full
+proof preservation and persisted-claim replay. Prefix tests preserve chronology,
+full required-data retention and copy-on-write/read. Real disposable PG tests cover
+successful Goal completion and rejection with the strict protocol. Encoding
+benchmarks report same-data byte and conservative-token comparisons separately
+from actual model semantics. SKIP is not positive acceptance.
+
+### 7. Wrong vs Correct
+
+Wrong: model returns goal_id/revision, or drop top-level IDs while Runtime Context
+and portrait JSON still leak the same authority.
+Correct: model returns typed per-call refs, Core binds authority and validates
+frozen provenance; capture the complete final HTTP payload in regression tests.
+
+
+## Scenario: Goal Evaluation scoped output and visible settlement (2026-10-09)
+
+### 1. Scope / Trigger
+A physical model response can succeed while cross-goal references prevent the atomic domain transaction. A completed impact in one evaluation must not hide rejection elsewhere in its batch.
+
+### 2. Signatures
+`goalEvaluationResponseSchema(snapshot, binding)` scopes alternatives by goal_ref.
+`runGoalEvaluationWithCorrection(input, binding, messages, run)` validates a candidate and permits one complete replacement for wire/coverage errors.
+`decorateGoalEvaluationSettlement(ctx, runs)` enriches diagnostic model runs from goal_evaluation_requests. Core field `goal_evaluation` maps to Browser `goalEvaluation`.
+
+### 3. Contracts
+- Each goal alternative offers only its own criteria, stages, commitments, dependencies and relationship target. Object judgments offer only that object's criteria; root judgments offer Goal criteria. Reviews are required for Goals in snapshot.Reviews.
+- Stage/Commitment create omits object_ref. Stage adjust/skip and Commitment adjust/abandon require an offered reference owned by that goal. Frozen hydration remains authoritative after schema validation.
+- Wire/coverage failure requests one complete replacement, then rehydrates and checks coverage. A failed replacement is terminal. Framework final-contract repair is separate; this does not promise a global limit of two physical calls for every mixed failure.
+- All goal_evaluation_wire_* and exhausted ADK final-contract errors are terminal, avoiding the ordinary one-minute/five-attempt retry cycle for invalid output.
+- Diagnostic enrichment preserves physical status and adds request_id/status/error_code/result for domain settlement. Lookup failures use unavailable/settlement_status_unavailable; missing rows use unknown/settlement_status_unknown. Successful result.goal_outcomes includes goal_id/status/progress/ready_for_settlement.
+- Atomic submission, evidence ownership, CAS and pause governance remain required. Active eligible Goals can complete; paused Goals stay paused with ready_for_settlement=true when satisfied. No new migration.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| goal:2 review selects stage:1.1 | goal_evaluation_wire_review_stage_ref_invalid |
+| Foreign stage plan reference | goal_evaluation_wire_stage_ref_invalid |
+| Unsupported operation or create with object_ref | goal_evaluation_wire_stage_operation_invalid / goal_evaluation_wire_commitment_operation_invalid |
+| Replacement still fails hydration/coverage | Terminal failure; no partial batch commit |
+| Physical completed, request failed | Both statuses visible; physical status preserved |
+
+### 5. Good / Base / Bad Cases
+Good: goal:2 creates a Stage without object_ref, alongside a satisfied goal:1 evaluation. Base: a valid single-Goal schema remains flat. Bad: every review copies stage:1.1 or an absent Stage uses adjust.
+
+### 6. Tests Required
+TestGoalEvaluationSchemaCannotAdvertiseOtherGoalsStage proves cross-goal alternatives cannot advertise foreign refs (RED→GREEN). TestGoalEvaluationCrossGoalReviewGetsOneReplacement checks replacement validation and bounded recovery. TestGoalEvaluationOutputFailuresAreTerminalAfterCorrection checks terminal classification. TestGoalEvaluationModelSuccessDoesNotHideSettlementFailure checks independent diagnostic statuses.
+
+### 7. Wrong vs Correct
+Wrong: show completed model status as proof of Goal completion; expose a global union of Stage refs to every Goal.
+Correct: show the domain request outcome separately, and offer only references owned by each selected goal_ref.
+
+
+## Scenario: Incomplete Goal batch under bounded thinking output (2026-10-09)
+
+### 1. Scope / Trigger
+Deployed response inspection showed four offered Goals but only goal:1 in both initial and replacement evaluations; domain request failed goal_assessment_coverage_missing. Reasoning sidecar discussed remaining Goals but is not authoritative DTO content. The UI did not expose finish_reason/usage, so token exhaustion is a hypothesis, not a verified production cause.
+
+### 2. Signatures
+`goalEvaluationResponseSchema(binding)` sets evaluations.minItems/maxItems to offered Goal count and plans.maxItems to that count. `RunGoalEvaluationTask` passes enableThinking=false. Direct/ADK Eino ExtraFields and providerChatPayloadWithSchema explicitly send enable_thinking=false for goal_evaluation_v1 when not enabled.
+
+### 3. Contracts
+Missing evaluations fail formal schema validation before hydration, allowing existing ADK final-contract repair to request a complete result. Hydration still rejects duplicate/foreign refs; exact array length alone does not prove uniqueness. Goal Evaluation explicitly disables server-default thinking for its task-owned output contract. No token limit changes or changes to other Agent thinking policies. No salvage of a valid sibling from an invalid atomic batch.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| evaluations shorter/longer than offered count | minItems/maxItems rejection at formal schema boundary |
+| Correct length but repeated goal_ref | existing wire duplicate/scope rejection |
+| Server defaults thinking on | Goal Evaluation explicitly sends false |
+| Complete replacement after ADK repair | Revalidate, then hydrate and settle atomically |
+
+### 5. Good / Base / Bad Cases
+Good: four offered Goals produce four evaluations, including waiting Goals. Base: one offered Goal produces exactly one. Bad: one completed Goal evaluation plus a plan for another Goal; plans do not satisfy coverage.
+
+### 6. Tests Required
+TestGoalEvaluationSchemaRejectsMissingGoalBeforeHydration covers full/missing/excess arrays (RED→GREEN). TestGoalEvaluationPhysicalContractDisablesThinkingAndRepairsMissingGoal captures actual direct/ADK HTTP schema and thinking false; ADK receives an incomplete result then a complete repair. Existing PostgreSQL memo integration asserts thinking false through the production Goal Evaluation entry (opt-in; SKIP without database).
+
+### 7. Wrong vs Correct
+Wrong: rely only on prompt prose to require all Goals, or omit enable_thinking and assume the server disables it.
+Correct: enforce count in the transmitted schema, explicitly disable Goal Evaluation thinking, and retain full semantic ownership/coverage validation before commit.
+
+
+## Scenario: Frozen completion requirements and semantic preflight (2026-10-10)
+
+### 1. Scope / Trigger
+A valid four-Goal batch may commit a wrong negative verdict because the model invents finer preference or later-feedback requirements. Stage/Commitment previously permitted all criteria satisfied with completed=false.
+
+### 2. Signatures
+`validateGoalCompletionSemantics(goal,candidate,sources)` is shared by pure preflight and ApplyGoalEvaluation. `validateGoalEvaluationOutput(snapshot,output)` runs after hydration/coverage. `validateGoalObjectEvaluation(parent,candidate,kind,stages,commitments,sources)` runs both in preflight and transaction. Policy is goal.evaluation.v3.
+
+### 3. Contracts
+- Physical judgment fields criterion_quote and optional_improvement are required strings. For not_satisfied, criterion_quote must be a nonempty literal substring of that exact frozen Goal/Stage/Commitment criterion; quote <=500 runes, improvement <=1000. satisfied/unknown may use an empty quote. These are wire-only fields; public/persisted judgment JSON is unchanged.
+- Original criteria remain authoritative. Refinements belong in optional_improvement and cannot become completion gates. Direct actual author statements can be assertion; discussing a novel does not make a statement quotation. Fiction, third-party quotes and reports remain non-event evidence.
+- Preflight checks frozen evidence authority and reciprocal parent/object completion. It performs no writes and does not replace final live-source/revision/CAS checks. Objects with all criteria satisfied must have completed=true; incomplete objects cannot have completed=true. Active and paused governance remain distinct.
+- Wire, coverage, completion/object and judgment contract errors receive the existing one complete replacement. A repeated correctable error is terminal; there is no new outer retry/correction loop. Source/CAS changes during live commit remain authoritative failures.
+- v3 invalidates v1/v2 assessment memo reuse on the next eligible evaluation; no automatic historical goal completion or migration. A missing/null output field cannot be treated as a semantic positive.
+- Literal quote membership does not prove arbitrary semantic reasoning. A model can still incorrectly interpret a genuine criterion phrase; scripted completion is engineering validation, not live model acceptance.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Negative quote absent from frozen criterion / empty | goal_evaluation_wire_criterion_quote_invalid |
+| Complete parent criteria + non-completed impact | goal_evaluation_completion_impact_mismatch |
+| Complete object criteria + completed=false | goal_object_evaluation_completion_mismatch |
+| Positive quotation or unauthorized evidence | existing goal_judgment_* rejection, bounded correction |
+| Repeated correctable invalid replacement | terminal contract error, no domain commit |
+| Prior policy memo | no memo reuse under v3 |
+
+### 5. Good / Base / Bad Cases
+Good: actual preference + sent specific recommendation/reason can settle active Goal at progress=1; later feedback is optional. Base: an actually absent original requirement remains not_satisfied. Bad: require reading feedback absent from criterion, or retain an incomplete object flag after all its standards are satisfied.
+
+### 6. Tests Required
+TestGoalObjectCompletionMustMatchSatisfiedCriteria covers Stage and Commitment reciprocity. TestGoalCompletionMismatchGetsOneCompleteReplacement and TestGoalObjectInvalidReplacementIsTerminal cover bounded repair. TestGoalEvaluationRejectsInventedUnmetClauseAndCorrectsCompleteRecommendation checks literal extra-gate rejection and actual ApplyGoalEvaluation active/paused outcomes. TestGoalEvaluationDirectUtteranceDiscourseGetsCorrection covers evidence classification. Prior-policy memo test rejects v2.
+
+### 7. Wrong vs Correct
+Wrong: reuse a v2 negative assessment indefinitely or interpret a desire for a better recommendation as an unmet original requirement.
+Correct: anchor the claimed missing clause to frozen standards, isolate optional improvements, validate before transaction, and re-read live evidence before final settlement.
+
+
+## Scenario: Conversation reply requires an actual output channel (2026-10-10)
+
+### 1. Scope / Trigger
+Live direct conversation returned action_type=reply without conversation.reply or visible_text. Optional visible_text passed the formal schema, then publication failed. The same schema existed before Kev integration.
+
+### 2. Signatures
+`conversationNeedsVisibleFinal(call,trace)` scopes the extra guard to conversation_turn_response exposing visible_text. generateWithADK clones its final validation schema when no committed message or accepted media exists.
+
+### 3. Contracts
+Without actual output receipts, require visible_text with minLength=1, maxLength=32000 and nonwhitespace pattern at final validation. Missing/empty/whitespace enters the existing one tool-free final repair with explicit output instruction; repair validates the strengthened schema. A concrete completed conversation.reply receipt or accepted/completed media intent preserves the already committed output path. Failed/query-only results cannot satisfy this requirement. Other task/custom DTO contracts stay unchanged. Do not force tool_choice=required or fabricate ToolCalls.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| reply sidecar with no visible channel | existing single final repair |
+| repair still lacks output | final-contract failure; no publication |
+| committed message or accepted media | no extra output required; no duplicate reply |
+| failed/query-only tool | visible final remains required |
+
+### 5. Good / Base / Bad Cases
+Good: no ToolCall final contains actual natural reply. Base: Tool published reply and final sidecar only settles cognition. Bad: action_type reply and plan prose silently treated as a sent message.
+
+### 6. Tests Required
+TestConversationFinalWithoutOutputGetsOneToolFreeRepair captures HTTP omitted/empty/whitespace and verifies exactly one repair with no tools. TestConversationVisibleFinalRequirementRespectsCommittedOutputs checks committed message/media and failed/query outcomes. Legacy no-reply integration allows two HTTP requests and expects final-contract failure without a message.
+
+### 7. Wrong vs Correct
+Wrong: repair only malformed JSON while a schema-valid reply plan has no output.
+Correct: validate the existence of an actual output channel before returning a completed conversation model result; preserve committed effects and use the existing tool-free repair.
+
+
+## Scenario: Surface-owned WakeUp protocol and historical evidence (2026-10-10)
+
+### 1. Scope / Trigger
+Periodic WakeUp previously inherited stacked chat/life instructions, physical historical chat roles, glued Runtime Context sections and unconstrained message intents. It could mistake an old unanswered user question for the current request.
+
+### 2. Signatures
+`PromptAssemblyInput.Surface`; `renderProviderSystemForSurface(surface,operationRules,persona,actorContext,role)`; `assemblePromptMessagesForSurface(surface,...)`. Wake fixed source is wakeUpProviderFixedProtocol; review copy docs/wake-up-fixed-prompt.md. Native current-run ToolCall/ToolResult processing is unchanged.
+
+### 3. Contracts
+- Wake uses explicit ProviderContextSurfaceWakeUp. One coherent fixed protocol covers task, authority/unknown/history, declared persona, action/no-op, native Tool execution and result truth. Do not stack the shared runtime/authority/life fragments onto it. Persona remains dynamic and separate. Other surfaces retain their prior fixed protocols.
+- Wake and Moment recent messages become historical_conversation data: preserve role/content/sender/time/source and group, do not emit them as physical current user/assistant messages. The final user message remains the periodic trigger. Summaries are historical evidence, not current state. A past failed reply is historical unmet need requiring a fresh proactive justification, not a current command.
+- Wake Goal projection omits last_evaluation prose and internal evaluation errors while retaining original criteria, refs, state, current stage, actual last result, next/wait state and pending status. Operate on copies.
+- Runtime top-level sections on ALL surfaces are joined by one LF; renderer-trimmed sections must never concatenate keys. Required/optional admission estimates and final wire use the same surface assembler. No evidence truncation or native protocol wrapping.
+- Wake action enum is no_op/proactive_message/moment/capability. Persisted action derives from real receipts: completed concrete message/Moment, other completed/accepted capabilities, else no_op. duplicate_suppressed reply is not new publication and must not reset the idle epoch from the old target message. Preserve real effects even if the final model says no_op or fails.
+
+### 4. Validation & Error Matrix
+| Condition | Result |
+| --- | --- |
+| Adjacent top-level runtime keys | one LF separator, valid boundaries |
+| Historical trailing user under Wake | historical evidence block, not current chat turn |
+| Arbitrary action_type message/reply/send_message | schema/normalization rejection; existing contract repair |
+| Claimed proactive/Moment without actual receipt | persisted no_op |
+| Suppressed duplicate with old target | no proactive effect or idle-clock reset |
+| Real committed output with model no_op | real receipt remains authoritative |
+
+### 5. Good / Base / Bad Cases
+Good: periodic check uses current facts to justify action or silence. Base: ordinary chat keeps physical chronology. Bad: replay an old question automatically, trust summary to fill unknown user facts, or count suppressed duplicate as a new message.
+
+### 6. Tests Required
+Runtime JSON tests, surface-aware measured-wire equality, dangling-history preservation/source immutability, Wake-only Goal compaction, explicit surface/deduplicated fixed rules, enum rejection and receipt truth. TestWakeUpSuppressedReplyCannotResetIdleEpoch rejects old-message clock input. Real model compliance remains distinct from scripted engineering tests.
+
+### 7. Wrong vs Correct
+Wrong: append yet another rule to generic chat instructions and concatenate trimmed context sections.
+Correct: a dedicated compact Wake protocol, labeled historical evidence, honest result classification and actual physical-input accounting.
+
+## Scenario: Per-call deadlines and consolidated budget recovery (2026-10-22)
+
+### 1. Scope / Trigger
+
+Multi-round native Agent execution, malformed final evidence, and upgrades from
+0097 with a legacy-derived generic model binding.
+
+### 2. Signatures
+
+`providerCompletionContext(ctx, timeout, adk)`; `normalizeAbsentAppraisalEvidence(value, schema)`;
+0098 `genericModelBudgetRepairSQL`; `ownerRequestFailureReason(error)`.
+
+### 3. Contracts
+
+ADK keeps the caller's cancellation/deadline; each physical Generate/Stream owns
+the configured execution timeout starting after Redis/local queue admission,
+plus the independent `llm.queue.queue_wait_timeout_seconds` wait budget. A single-call task retains its outer
+timeout. Missing/null influences become an empty list only when declared by the
+final schema; malformed objects/strings and invalid references still fail and
+enter the existing tool-free repair. Preparation and final validation use the
+same strict-wrapper/null preparation before decoding references. Native model
+callbacks may already observe a returned message: canonical tool-name conversion
+clones the message and ToolCalls slice before writing, including stream chunks.
+
+Generic-role seeding copies context window, max input and policy along with the
+other binding fields. 0098 restores an accidentally defaulted 65536/49152/v1
+binding only when every copied field matches the selected legacy source, its
+configuration revision is 1 and no explicit generic-binding audit exists. These token fields remain compatibility storage only; no runtime limit applies. The configuration revision trigger fences stale UI
+saves. Request/wardrobe failure reasons are fixed categories; provider payloads,
+SQL errors and secrets stay in diagnostics. Failure notices carry that reason.
+
+### 4. Validation & Error Matrix
+
+Two individually timely calls may exceed one request timeout in aggregate. A
+slow physical call or cancelled parent still fails. Nonempty malformed evidence
+cannot become an empty successful judgment. Revised/audited/different-model
+bindings retain their stored metadata; repeated migration is idempotent.
+
+### 5. Good / Base / Bad Cases
+
+Good: a delayed final correction has its own request time. Base: an untouched
+legacy consolidation preserves stored metadata without enforcing caps. Bad:
+remove deadlines, erase invalid evidence, or restore application token limits.
+
+### 6. Tests Required
+
+`ux_request_recovery_test.go` executes two controlled HTTP calls, parent
+cancellation, empty/malformed evidence and failure notice redaction.
+`generic_model_budget_test.go` uses disposable PostgreSQL for recovery,
+explicit-binding preservation and rerun; missing DB configuration is SKIP,
+never migration acceptance. Live model/service availability is separate.
+
+### 7. Wrong vs Correct
+
+Wrong: give the entire native loop one physical-request deadline. Correct:
+retain the business context and independently bound every physical request.
+

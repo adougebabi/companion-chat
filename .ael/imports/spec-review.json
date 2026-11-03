@@ -1,0 +1,650 @@
+{
+  "migration": "migration-7007f9d3f504fc3f4ff8",
+  "review_scope": "all-file structural statistics; targeted semantic checks; not full business acceptance",
+  "reviewed_at": "2026-11-03T15:44:26.460812+08:00",
+  "records": [
+    {
+      "source_path": ".trellis/spec/backend/directory-structure.md",
+      "source_hash": "52d23d565849d17252af9de7f981511527788caece1532a038bbe065c2f6b965",
+      "target": ".ael/knowledge/spec/legacy-5a6a6e37d4358f587a50b0ef.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "目录示意中的 Vue/Vite 是旧宿主称谓。apps/web 的现行框架由 React shadcn 契约和 frontend/index 定义；Go Core 与唯一浏览器边界的分层规则继续有效。",
+      "references": [
+        ".trellis/spec/frontend/react-shadcn-contract.md",
+        ".trellis/spec/frontend/index.md"
+      ]
+    },
+    {
+      "source_path": ".trellis/spec/backend/effective-life-contract.md",
+      "source_hash": "1d2e096def3f6b5646fa58a94d0ca99b31f742c5f84d1c44425c49c256b14a37",
+      "target": ".ael/knowledge/spec/legacy-38a4f720010f179755bfc21b.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fact-only-reply-contract.md",
+      "source_hash": "137a1c7110ce671cfa08ee280c7c85d2bcad662894d042975990d629cbab12f2",
+      "target": ".ael/knowledge/spec/legacy-4bc80c68710c2ca549e16e7e.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-api-contract.md",
+      "source_hash": "c482c44d51e8ae1fc723b59a1630052bcfe11e78cf4ed6969508da142b044e59",
+      "target": ".ael/knowledge/spec/legacy-c5accd8e2637bd6567b4aaac.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "取消与重试契约保留；Pinia/旧组件称谓不授权恢复旧宿主，当前前端遵守 React/Radix 契约并使用当前生成接口。",
+      "references": [
+        ".trellis/spec/frontend/react-shadcn-contract.md"
+      ]
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-auth-contract.md",
+      "source_hash": "77772742910bc1404a9e9ea0bf7c456d6c371ec1ef165d0e1c7f9bc96c6f42bb",
+      "target": ".ael/knowledge/spec/legacy-c8a6bb354225ca2576f759a1.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-autonomy-contract.md",
+      "source_hash": "e5cb52873173ad8897307a89da84cbab6aff0002855d1e89f77d2b8d58876995",
+      "target": ".ael/knowledge/spec/legacy-68be5396ba3fecfcf55a2f9f.md",
+      "kind": "spec",
+      "status": "conflict",
+      "reason": "保留领域合同，但内部存在未裁定的主动对话目标行为差异；不自动取追加段落覆盖旧授权。",
+      "pending": "缺少direct Conversation时，文首要求拒绝且不创建；WakeUp矩阵又称确保会话并允许创建失败。需要独立业务核验/Owner确认。",
+      "review_note": "当前上位 Prompt Composition 明确禁止应用层 token 上限；本合同后部12000 provider-input bounds不再作为输入门禁，128-source查询数量不得与token上限混同。另有缺会话时拒绝/创建的未裁定矛盾，本文标记conflict，涉及该范围不能据任一段直接放行。",
+      "references": [
+        ".trellis/spec/backend/prompt-composition-contract.md"
+      ]
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-bff-contract.md",
+      "source_hash": "13e6325b1947fe659a1b9576f1994a89dac060ff7ffb0d44113d4bc508e2cb2d",
+      "target": ".ael/knowledge/spec/legacy-fb329dd1f2b4a2bdcebda2c9.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "本合同关于 Go 进程内浏览器边界、传输和权限的规则继续作为规范基线。第10行 Vue/Pinia 及历史 Fastify 示例不代表当前宿主；现行前端以2026-10-26 React/Radix契约为准，后端以本合同明确的 Go HTTP + in-process App 为准，不恢复旧 Node/Vue 运行入口。",
+      "references": [
+        ".trellis/spec/frontend/react-shadcn-contract.md",
+        ".trellis/spec/backend/index.md"
+      ]
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-cognitive-runtime.md",
+      "source_hash": "51e52ec0451cec32f8254a46a95a8c9fb9226b8230a7eede1261ca3fb1a6d6bf",
+      "target": ".ael/knowledge/spec/legacy-afcb2db4ef2f7d6eaa8662ca.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-configuration-contract.md",
+      "source_hash": "17c1e2023563e93983037d51c6e4b29ac593d1a0fe76a3444be77246ab215d8a",
+      "target": ".ael/knowledge/spec/legacy-a19b324f3d0e36b3681b9e87.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-diagnostics-contract.md",
+      "source_hash": "c05960c1d253b24c68afcaa9497eada2c564fec96690e1ad0682d67b3da85a7b",
+      "target": ".ael/knowledge/spec/legacy-5d5463aca143e1265d6b6a59.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-event-contract.md",
+      "source_hash": "9563d751642a4a13d391277bca86e14cf5c2050ceb9dd98ddab6efeb1b98e58b",
+      "target": ".ael/knowledge/spec/legacy-b1389371420bc3c166879175.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-life-world-contract.md",
+      "source_hash": "9340b264fae1b830dddca1c01779487559c8c5bf304fec1b8a0614913f208924",
+      "target": ".ael/knowledge/spec/legacy-c8dbdb59473e6ec1f5cec243.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-media-contract.md",
+      "source_hash": "999e97035fb98f7ce2e2aa141da0246b63fa88e4cf86bb5d412c9889c9eed82d",
+      "target": ".ael/knowledge/spec/legacy-ca9d998ac0924c2be8e56e6e.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-memory-contract.md",
+      "source_hash": "4fede92f5348ee37b7b27a34fae8f70d91f78e599c35b14383c6d86a7ceace0e",
+      "target": ".ael/knowledge/spec/legacy-880a140250e48fec52748a49.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-persistence-contract.md",
+      "source_hash": "b95ff97957b285e7c341fdd8adf8eaf76f83f50f3e7b7e7fe456c45509eddb97",
+      "target": ".ael/knowledge/spec/legacy-c513863a7ee899bc5e933bad.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-provider-contract.md",
+      "source_hash": "10b8176927202f87120d4d200795a1dab405e1b1ea36b0601afb59ba30adbd06",
+      "target": ".ael/knowledge/spec/legacy-cd194e76215c171ff6edc5c6.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-provider-queue-contract.md",
+      "source_hash": "710e3a3e8b3c7be5d737b0ce80a2c9cc7e7c84acb73270d5d9568afd148c7661",
+      "target": ".ael/knowledge/spec/legacy-59423a08873346eecfd129f8.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/fluctlight-workflow-contract.md",
+      "source_hash": "5f0c666f2208f795bdb12d11fda982f4f6e27e3f55346864c47a23452ef0b75d",
+      "target": ".ael/knowledge/spec/legacy-c2aca3c655fcadadf030b601.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/goal-life-consistency-contract.md",
+      "source_hash": "02a577c86a2999535469161920ea0b0f0a3fc302724aa646fcb3f96941b2f3a8",
+      "target": ".ael/knowledge/spec/legacy-942f35b99a9df37a002a5b20.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/goal-planner-contract.md",
+      "source_hash": "8e9f10006f0c669c17099bf88e5d33213228768ebc1f51ff6d93e718b550f9db",
+      "target": ".ael/knowledge/spec/legacy-c937f77348000bc693bd71da.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/index.md",
+      "source_hash": "e949ac8e9b929bc1ee8f140a9e0cf826aa1b3c6e547e4874a34661f68c6fddb6",
+      "target": ".ael/knowledge/spec/legacy-07e9eea9eac442a10f9d34f1.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/initialization-preparation-contract.md",
+      "source_hash": "73418e8300e04b1b03edf46dff8bfd65f41c7826edfffce626653ac3b7c51ba0",
+      "target": ".ael/knowledge/spec/legacy-cb41a9af66866f54759af7f1.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/kev-decision-contract.md",
+      "source_hash": "ae737504a188a2bfa78d014a35cba1121b346edde2b6db30e15e281671f5fed6",
+      "target": ".ael/knowledge/spec/legacy-45e4a958da0e6f675ccf8a53.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "Vue editor 是旧宿主称谓，当前编辑器按 React 契约。10000ms 超时和选择阶段 wall-clock 预算不是 token 上限；本合同文首 r22 的 media_enabled=false 默认值优先于后面历史章节 media_enabled=true，已保存 Owner 配置不因此覆盖。2026-11-03 optional-context 250ms 规则按其明确范围执行。",
+      "references": [
+        ".trellis/spec/frontend/react-shadcn-contract.md",
+        ".trellis/spec/backend/prompt-composition-contract.md"
+      ]
+    },
+    {
+      "source_path": ".trellis/spec/backend/media-capture-plan-contract.md",
+      "source_hash": "9f737f87082d67ff0fa76aeeeddc7c32d4399226417de28d0e0a1b3c1aff0779",
+      "target": ".ael/knowledge/spec/legacy-1674c11f45ee41bcfc4d5239.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/media-prompt-contract.md",
+      "source_hash": "1f4cc8f257e1389001fca366ff2b65a83b4b8d908efb01cc6225681fcd2c1cd9",
+      "target": ".ael/knowledge/spec/legacy-287d88efcd22fd08eb3fad44.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/npc-runtime-contract.md",
+      "source_hash": "5848ce30d057fafc8d70d0a58f025d68aa7e5c8b293f00d776cbae1a5f68eb4e",
+      "target": ".ael/knowledge/spec/legacy-193952f1f161064b47b7a03f.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/owner-promise-contract.md",
+      "source_hash": "2cff0147b9c91a30f9a224e3f1bcf8213ce1ecfe996d8e72fb9500cbdbfa3f2f",
+      "target": ".ael/knowledge/spec/legacy-48ab1c123aa1d08699e1c771.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/owner-schedule-story-contract.md",
+      "source_hash": "d1f10b01c8ba5c013f2f06bc93ed697720cdf3a0f83930df7dabac5e65fcc412",
+      "target": ".ael/knowledge/spec/legacy-f5c764d7d40d27e61da7e095.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/persona-layer-contract.md",
+      "source_hash": "878f65e1c80b798fbca56e0d01ab07249fbae7122e672e821e5c06aafc6b397c",
+      "target": ".ael/knowledge/spec/legacy-f5bfb4c746561fb9a78b07c7.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/prompt-composition-contract.md",
+      "source_hash": "7d74449576eecc2f6cf6c6fceffb4acef7fddff7d6798a0c11328925daca474c",
+      "target": ".ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/quality-guidelines.md",
+      "source_hash": "9a0905ed4b69ca1cded83c46092e7ebf739fb074b138622c4710eddf1a33ba6e",
+      "target": ".ael/knowledge/spec/legacy-fc3636bd1efca411dc0130dd.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/r3-recovery-contract.md",
+      "source_hash": "cb21adea92ba15a01264c61a8013f301ddc62db37d5c5410bd00ae6009a93f7e",
+      "target": ".ael/knowledge/spec/legacy-78bd0f07be62d7ed619b4cd0.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/r8-recovery-contract.md",
+      "source_hash": "fa0a594a9b663c24d01e924bf68683e8a344a596285e98e9cb6af5e901af6af7",
+      "target": ".ael/knowledge/spec/legacy-62b09df75f5f6c7cc221ca74.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/shared-world-contract.md",
+      "source_hash": "8721eb4b4ff03b47e943791122f7ec70e7052e2ebd5c2f890648998bfb1bf2d7",
+      "target": ".ael/knowledge/spec/legacy-798b28c9a1eb2ddd90e0fa2d.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/structured-turn-contract.md",
+      "source_hash": "8ffebd8888ef42628db0c0c2b8d56c36ca51533164fea55e3f1e9a888151ad4e",
+      "target": ".ael/knowledge/spec/legacy-411c55a6831516ad36ec63e9.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/studio-contract.md",
+      "source_hash": "ad8c534949eeaabbf50f285db0f4e4e40c9e5f83373da239c3594a898c12fe0f",
+      "target": ".ael/knowledge/spec/legacy-738e45dfddc64d5b25cf4871.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/tool-availability-contract.md",
+      "source_hash": "3832d36045a9ae5a4dc10fc3e0c28a81e4b6b1d7aae20c9cb7a22d4dfa854354",
+      "target": ".ael/knowledge/spec/legacy-07362c9912e0162f959cf673.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/visual-identity-contract.md",
+      "source_hash": "412b632ff8f791e82ade2b40350a1c815432bad2d34abbdfff84f46534d9cdc5",
+      "target": ".ael/knowledge/spec/legacy-753711cbce16f60f93967f16.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/wardrobe-failure-feedback-contract.md",
+      "source_hash": "3a2cc0aac6f924ec35090799e5e7185f564363db1043369a3bdb7582a0844860",
+      "target": ".ael/knowledge/spec/legacy-0d14aeae4e47cc42a75edb51.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/backend/world-event-contract.md",
+      "source_hash": "2003606c9ba067cc1708ba53a847d7bc334eb1044af31f36b909d368b56ee32f",
+      "target": ".ael/knowledge/spec/legacy-41e5709f50ec980f8b77d957.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/approved-demo-contract.md",
+      "source_hash": "0beeddf857321254e005fc80659a64fec0fb4a6366f3918ec290a6f2f5a823d7",
+      "target": ".ael/knowledge/spec/legacy-31398abb573f22003edc6b54.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/command-receipt-draft-recovery.md",
+      "source_hash": "382747bd66ab0d80cead7eef06656ad4a8915680c59397886f6e38c40a159777",
+      "target": ".ael/knowledge/spec/legacy-3db1e40a6981da3372a3aec8.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/component-guidelines.md",
+      "source_hash": "03fa21c313fb1f6a0e9c5d5b76369782c199ff4cba644d38bb6e1b8a259c7c8d",
+      "target": ".ael/knowledge/spec/legacy-5d25ca7e3d2e577dbe8e453e.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/directory-structure.md",
+      "source_hash": "1495ec393703c0618431f49db03dd6739bed4f30e79f82ce88417c7ff26bf334",
+      "target": ".ael/knowledge/spec/legacy-06ee604f35703db92034f4c1.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/feedback-ux-contract.md",
+      "source_hash": "75ded7f827c5457e801635b09c3523dbfb36b6ac02f5b1ddd3150ce748472616",
+      "target": ".ael/knowledge/spec/legacy-b2a35cfc8572ec340d29ce72.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/goal-planner-governance-contract.md",
+      "source_hash": "153ff5af8a805689acb83bcd666ccf8eb0ceda847eadb5149d36335a6dd59d3e",
+      "target": ".ael/knowledge/spec/legacy-8aab7b7fa7d31265f44af775.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/index.md",
+      "source_hash": "f44520b6da12d7178e0eaf5ac5b68fc734a8436bd0dd9702c3915ce44b889b66",
+      "target": ".ael/knowledge/spec/legacy-722dd21dcc7d29b46323c4a8.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/pen-interaction-contract.md",
+      "source_hash": "288e3846f8109b298bdefc209884f6229f0687848da0dd804508fad8ff4e642f",
+      "target": ".ael/knowledge/spec/legacy-e520759f460237a5f3d354e8.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/product-ui-contract.md",
+      "source_hash": "daf6ab578cb652e0ef7de65a2fa3a5f58e1a1a67bf152881673169c6f5bb2ad7",
+      "target": ".ael/knowledge/spec/legacy-b67d1a8d520771fd1be03cd9.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/quality-guidelines.md",
+      "source_hash": "f4237ac4ebbad3abe4b3222c74b5acff49d7aa701977f97d84a7101c398bfee7",
+      "target": ".ael/knowledge/spec/legacy-84db67c88ef5cb22d2135e4d.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/react-shadcn-contract.md",
+      "source_hash": "77662cf4db25cc6778e20da2caf45d4dbacb476506361fcb5db51518dde13eea",
+      "target": ".ael/knowledge/spec/legacy-b98cb585876a94318684c053.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/state-management.md",
+      "source_hash": "744f3a81b14ef7daafd1e1ab95449f3b4b504b6aea51faabc2075cc5be422de2",
+      "target": ".ael/knowledge/spec/legacy-2f8bba785897aa4cc4029a3a.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "按本文首部2026-10-26 Current React state owners声明执行：Valtio/React控制器拥有现行状态。后部 Pinia/App.vue/Vue示例以及旧 companion 路由是历史宿主或线协议示例，不能作为恢复旧组件/路由的授权；实际接口以当前生成的 BrowserClient/OpenAPI 为准，身份、草稿、时序及回执约束仍保留。",
+      "references": [
+        ".trellis/spec/frontend/react-shadcn-contract.md",
+        ".trellis/spec/frontend/index.md"
+      ]
+    },
+    {
+      "source_path": ".trellis/spec/frontend/v3-mock-acceptance-contract.md",
+      "source_hash": "e5909ebaaaee6ea5d89cdfad8ac2b6b6012eb1933f8ebaa0e261f76c92fc085f",
+      "target": ".ael/knowledge/spec/legacy-4d7782183909ad88d16d2241.md",
+      "kind": "reference",
+      "status": "historical",
+      "reason": "旧阶段/旧工程记忆工作流的原文保留；本次切换后不作为活动规范。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/frontend/workspace-replica-contract.md",
+      "source_hash": "004aa7e63267479c47b5a367558f29b64dbf424ff72b764a670d5956351b1b0a",
+      "target": ".ael/knowledge/spec/legacy-97cd1715a4521ead426fc469.md",
+      "kind": "spec",
+      "status": "current",
+      "reason": "继承当前项目既有规范身份与模块入口关系，不声明全部条款已语义重审，也不声明业务实现已经通过验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/guides/index.md",
+      "source_hash": "b2e66dda803f38dcd899da55a0d47da6832ff4ac79cda6534b0c7463132043f5",
+      "target": ".ael/knowledge/spec/legacy-831a414805d8e689a664019b.md",
+      "kind": "reference",
+      "status": "historical",
+      "reason": "旧阶段/旧工程记忆工作流的原文保留；本次切换后不作为活动规范。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": ".trellis/spec/guides/mini-memory.md",
+      "source_hash": "2ff1d907c8b95ad74c4f12072239efefc106a834681aa14db94bc6c1c81bb03d",
+      "target": ".ael/knowledge/spec/legacy-a3a9be5fea0df4f0ca12465c.md",
+      "kind": "reference",
+      "status": "historical",
+      "reason": "旧阶段/旧工程记忆工作流的原文保留；本次切换后不作为活动规范。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    },
+    {
+      "source_path": "docs/adr/0001-shared-world-independent-actors.md",
+      "source_hash": "63f10cff9db72f07e6a1c62b6f7420ac07ac187fb952e0fca05981f7eec7dd50",
+      "target": ".ael/knowledge/decision/legacy-a44d590b2f4eb387bd46baa1.md",
+      "kind": "decision",
+      "status": "current",
+      "reason": "ADR明确记录Owner于2026-10-30确认的共享世界/独立Actor取舍，继承既有决定，不生成新的业务验收。",
+      "pending": "",
+      "review_note": "",
+      "references": []
+    }
+  ]
+}

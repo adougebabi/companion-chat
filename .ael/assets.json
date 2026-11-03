@@ -1,0 +1,9 @@
+{
+  ".ael/executor.example.json": "bb4eca12a2e8f00a6fe364c6dddbb94cd34e4c2af4003c6dd02264b40800b4f9",
+  ".ael/policy.yaml": "2942d2ed22bfc2653ae4f517e3c543c660b051f43c4852a5c390cd0d0538ae77",
+  ".ael/project.md": "75e1800748d717a6a9259bacc25551756e88aa58f3ef1d707c7604dcc606332e",
+  ".ael/project.yaml": "e4f9e57cb32a88f527afe3c5d8ac37eda515b747abc6006c9e61bd51873b5c03",
+  ".agents/skills/ael-migrate-legacy/SKILL.md": "14aeb59efff46672f87d5658a4392c38471a5d2d53823934ad5d414555270c5e",
+  ".agents/skills/ael-work/SKILL.md": "a6c0a77d546e30bfc90357e664ce8da109b23b292bdfd535db564ba944866890",
+  "AGENTS:block": "eda13fc00c235078f593ed6dfd53e312fb93db47a5ec7c297b6f9815f481c81a"
+}

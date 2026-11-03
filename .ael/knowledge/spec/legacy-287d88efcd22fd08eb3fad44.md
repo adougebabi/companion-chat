@@ -1,0 +1,428 @@
+---
+{"id":"legacy-287d88efcd22fd08eb3fad44","title":"media-prompt-contract.md","kind":"spec","status":"current","paths":["apps/core-go","packages/core-client","packages/browser-client","infra"],"source":".trellis/spec/backend/media-prompt-contract.md#sha256=1f4cc8f257e1389001fca366ff2b65a83b4b8d908efb01cc6225681fcd2c1cd9","superseded_by":"","tasks":null,"critical":false,"path":"","hash":"","body":"","reason":""}
+---
+# Media Prompt Contract
+
+> Active media ownership is Go Core + Go Worker. Any legacy SQLite/Node
+> examples in this contract are historical reference only.
+
+> Current ordinary image behavior is governed by **Branch-first media capture v1** below. Earlier selfie defaults, free rewriting of explicit framing and first-person/full-body recovery describe legacy contracts and must not be reintroduced into new media tasks.
+
+## Explicit image text exclusion (2026-11-02)
+
+The Owner requires every image prompt, including available negative conditioning,
+to forbid text, pseudo-text, letters, numbers, captions, signatures, logos and
+watermarks. The ordinary/retry/normalization model protocols carry this policy.
+The common `submitComfyPrompt` boundary appends the same fixed positive policy
+and negative terms to declared textual conditioning inputs; it follows the
+actual graph's `negative` / `negative_prompt` edges and supports direct named
+negative fields and `{{negative_prompt}}`. This is an explicit output policy.
+Shared upstream text encoders reached by positive conditioning retain the
+positive no-text instruction, including Flux negative conditioning derived
+through `ConditioningZeroOut`; do not append raw exclusion tokens to them.
+This is not permission to infer or rewrite visual subjects, capture geometry or user
+facts. Keep original exclusions, native image references, numeric renderer
+values and the frozen model prompt intact. Do not invent negative-channel nodes
+for models that only support positive conditioning. Diagnostics preserve the
+actual submitted graph. Physical HTTP request regressions cover ordinary,
+Visual Identity and Studio submissions; prompt rules do not certify live image
+quality or guarantee that a model cannot produce stray characters.
+
+## Scenario: AI-owned media concept, prompt-master template, and durable jobs
+
+### 1. Scope / Trigger
+
+- Trigger: the final application-owned system-capability layer asks a persona to fulfil an image/video request or a definite media-delivery commitment.
+- This crosses chat SSE, activity/debug producers, durable SQLite jobs, the AI-persona concept call, the image prompt master, ComfyUI/H3, and the conversation renderer.
+
+### 2. Signatures
+
+- `extractMediaIntent(modelText) -> {text, media: {kind, request?, count?} | null}`
+- `mediaConceptEnvelopeFor(persona, {kind, request?, event?, trigger}) -> MediaConceptEnvelopeV1`
+- `generatePersonaMediaConcept(envelope) -> PersonaMediaConceptV1`
+- `fillMediaPromptTemplate({envelope, concept}) -> MediaPromptTemplateV1`
+- `renderMediaPromptTemplate(template) -> string`
+- `createChatMediaRequest(personaId, {kind, request?}) -> {jobId, message}`
+- `media_event({kind, request, count, personaMediaConcept}) -> durable chat image/video placeholders/jobs`
+- `POST /api/companion/chat` emits ordered `done.messages`, including any queued media placeholder messages.
+
+### 3. Contracts
+
+- Runtime media authorization comes from either a validated `media_event` model tool call or a valid `<media-intent>` emitted under the final application-owned system-capability layer. `mediaRequestFromText()` is compatibility-only and must not be called by live chat dispatch. Free prose alone never creates a job.
+- In live chat, `media_event` is preferred when the provider advertises tools; the marker remains a compatibility fallback. A turn must not create duplicate jobs when both forms appear.
+- A supported native `media_event` attempt is authoritative for that turn even when malformed or duplicated; the matching marker is redacted but not executed. If no native media call is present, a valid marker may execute once for compatibility.
+- The same system contract requires a marker both for explicit user requests and definite first-person commitments (for example, “我待会拍一张，拍完发你”). Free prose alone never creates a job. The marker authorizes media delivery; it is not a server instruction to extract visual semantics from its prose.
+- For every producer (chat image/video, direct activity, model-driven activity, and debug inspector), the AI persona's capability call must provide a validated `MediaCapabilityCallV2` containing `personaMediaConcept`, `currentEvent`, and `temporaryAppearance`. The server creates `MediaConceptEnvelopeV1` with requested kind/count, channel/trigger, immutable identity facts, active life/event facts, temporary appearance, and the original request/event instruction. The server may authenticate, attach authoritative facts, check keys/types/size/provider/kind, redact, persist, and retry provider work; it must not infer visual content.
+- Every provider-bound request then receives a `PersonaMediaConceptV1` from the AI persona. The concept contains bounded JSON fields for scene, action, mood, explicitly visible `humanSubjects`, separate `nonHumanObjects`, and declared capture intent (`selfie`, `external_capture`, `operator_pov`, `first_person`, or `other`) with operator/device/framing intent. The concept is AI-owned even when its source is a direct activity or debug request.
+- `imagePromptMasterContract` receives the envelope facts and persona concept, then returns a complete `MediaPromptTemplateV1`, not a partial “refinement” patch. The fixed template order is: capture and camera relationship → explicit human subjects → identity and continuity → scene and action → wardrobe and non-human props → lighting and mood → photography style and color → constraints/exclusions.
+- `renderMediaPromptTemplate()` may only concatenate/label the returned fixed template sections in their prescribed order. It cannot translate capture modes, add defaults, count/rename subjects, derive camera geometry, append negatives, or otherwise change semantics.
+- Prompt compactness is owned by `imagePromptMasterContract`: it must remove repetition and prioritise essential visual facts. The server must not truncate, summarise, reject solely for length, or otherwise rewrite a structurally valid master template, because that would silently remove model-owned visual facts.
+- The master must render the declared capture relationship coherently: a `selfie` concept has a plausible self-capture treatment; an `external_capture` concept describes an external camera/photographer relationship; an `operator_pov` or `first_person` concept describes the declared off-camera point of view. These are image-prompt-master responsibilities, not server branches.
+- When the concept leaves framing or capture incomplete, the image-prompt master reasons from the requested framing before choosing a camera relationship. For one or more human subjects, a body-part/partial-body close-up maps to rear-camera phone self-capture, an upper-body/face close-up maps to front-camera phone self-capture, and a self-captured full-body image requires a sufficiently large full-length mirror; an external third-person capture may use any framing but keeps the photographer and their camera/phone out of frame. A non-mirror selfie keeps the held phone out of frame, while a mirror photo may and normally should show the phone in the reflection. If neither framing nor capture is specified, the master conservatively defaults to an upper-body/face close-up (single subject) or an upper-body close group selfie (multiple subjects), both using the front camera with the phone out of frame. Explicit capture, camera, mirror, device-visibility, framing, angle, and composition requirements override these defaults. This completion policy belongs in the `media_prompt` model instruction; it must never become server-side keyword, regex, counting, or fallback logic.
+- The master must list the explicit human subjects rather than generate a broad “共 X 人” clause. Clothes, props, animals, reflections, screens, environmental objects, and other `nonHumanObjects` are never semantically counted or reclassified by the server as people.
+- Provider-facing prompts are continuous natural-language photography/video descriptions, never `field=value`, internal enum, raw user-direction prefix, or an unstructured direct model answer.
+- The `media_prompt` user message is the already-normalized, TOON-capable media concept;
+  do not prepend a prose authority wrapper around it. Before formatting, Core
+  keeps only the bounded visual-semantic allowlist (scene, action, appearance,
+  explicit human/non-human subjects, capture/framing, lighting/style,
+  exclusions, visual identity, context binding, and renderer constraints),
+  dropping transport/request wrappers such as `user_request` or `character`
+  metadata.
+- `count` is bounded to 1–3 and queues separate durable placeholders/jobs; it is asset quantity, never a server-derived in-frame human count.
+- Native media calls carry a bounded call id, causation message id, and deterministic idempotency key in the existing job payload. Replays return the existing placeholders/jobs; no internal call id or dedupe key is sent in visible chat text.
+- Semantic visual-rule code is forbidden in `mediaIntentFor`, `compileMediaPrompt`, replacement helpers, parsers, and job producers. Do not add keyword/regex/default branches that infer or override people, personhood, scene occupancy, selfie/POV/external capture, device visibility, camera geometry, pose, expression, wardrobe, lighting, composition, exclusions, or negative prompt text.
+- The most recent completed result may be attached as persona-scoped continuity context for the AI persona/master. It cannot be turned into a server default or override current facts.
+- A malformed or schema-invalid capability call is rejected before a new media job is created. A new job always freezes the validated persona concept and facts; the worker never calls a concept LLM to recreate them. A missing frozen concept on an old job is terminal migration failure, with no B/provider call. A malformed/unavailable prompt-master result remains retryable; after normal retry exhaustion, fail only the media placeholder/activity media state with a safe diagnostic. Never submit a deterministic/heuristic fallback prompt or claim a media delivery succeeded.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Valid model marker | Queue one to three durable chat jobs after the model completion; their provider submission waits for a valid persona concept and master template. |
+| Missing/invalid marker | Queue no job, including for free-text promises. |
+| Unsupported envelope kind/provider/count or malformed transport JSON | Reject/mark invalid before provider submission; never generate a semantic replacement. |
+| Capability call is unavailable, malformed, or violates the structural schema | Reject the media intent before creating a durable provider job. |
+| Existing job lacks its frozen persona concept | Terminally fail the media target as a legacy-contract migration failure; do not call any concept/master/provider stage. |
+| Prompt-master result is unavailable, malformed, or violates the fixed-template structural schema | Record the master-stage failure and retry the durable source media job. |
+| Concept/master retries are exhausted | Mark only the media message/activity target failed; retain parent text/activity and do not submit a fallback prompt. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: the AI persona declares two human subjects, an in-frame phone as a non-human object, a `selfie` capture relationship, an interaction, and light intent; the prompt master fills the selfie sections coherently without any server-side keyword detection.
+- Good: the AI persona declares the friend as the only human subject and the persona as off-camera operator; the master makes the photographer POV explicit without server code deciding who “给谁拍照”.
+- Base: a request with no valid model marker queues no job rather than being guessed by server text matching.
+- Bad: a helper uses `/自拍|POV|宠物|两人/`, participant defaults, or a “共 X 人” formatter to decide the visual output; a source job submits a handcrafted fallback prompt when either model stage fails.
+
+### 6. Tests Required
+
+- Assert a valid model marker queues the right durable job kind and a commitment without a marker queues none.
+- Assert all producer paths persist the same envelope, persona concept, master template, and rendered final prompt before provider submission.
+- Assert the fixed template renders its eight sections in order and does not add a generic “共 X 人” clause.
+- With model fixtures, assert a selfie concept yields the fixture's coherent selfie template, an external-capture concept yields the fixture's external template, and a photographer-POV concept yields the fixture's declared in-frame/out-of-frame treatment; these tests must not rely on server keyword parsing.
+- With model fixtures, assert framing-first completion for single and multi-subject body-part close-ups (rear camera), upper-body/face close-ups (front camera), full-body self-capture (full-length mirror), and unspecified framing/capture (conservative front-camera close-up defaults), including device and photographer visibility constraints; these tests must not rely on server keyword parsing.
+- Assert a clothing/prop/animal/reflection/screen fixture remains in `nonHumanObjects` and is not converted into a human subject by server code.
+- Assert source code/regression tests reject semantic regex/default branches in media-boundary helpers and prevent raw request text from becoming a provider-priority prefix.
+- Assert malformed/unavailable persona-concept and master-template responses retry, then fail only the media target after exhaustion; assert no provider submission or heuristic fallback prompt occurs.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+const requested = mediaRequestFromText(userText);
+if (requested) createChatMediaRequest(personaId, requested);
+// Server wording heuristics have become media authorization.
+```
+
+#### Correct
+
+```js
+const envelope = mediaConceptEnvelopeFor(persona, source);
+const concept = await generatePersonaMediaConcept(envelope);
+const template = await fillMediaPromptTemplate({envelope, concept});
+const prompt = renderMediaPromptTemplate(template); // joins fixed slots only
+```
+
+## Scenario: Go frozen capture, compact context and multimodal reviewer input
+
+### 1. Scope / Trigger
+
+- Trigger: `media.image.generate` freezes an image intent, the `media_prompt` Agent writes the Provider prompt, or `media_quality_acceptance`/Visual Identity reviews an image with a multimodal text+image message.
+- The durable media concept remains Core-owned and complete; only the model-facing semantic copy is compacted.
+
+### 2. Signatures
+
+```text
+media.image.generate input: {intent: string[1..4000], capture?: {
+  mode?: selfie|mirror_selfie|external_capture|operator_pov|first_person,
+  framing?: string[0..256], angle?: string[0..256],
+  camera?: front|rear|external, mirror?: boolean,
+  device_visibility?: visible|hidden
+}}
+compactMediaConceptObjectForProvider(frozenJSON) -> bounded object
+FormatMessagesForRole(messages, "media_prompt") -> TOON-capable text parts + unchanged image parts
+```
+
+### 3. Contracts
+
+- The model declares capture/framing when the request or persona intent supports it. Core validates a closed bounded schema, freezes the declared object, and checks replay against the same declared values; Core never derives selfie/angle/camera from keywords. Old frozen intents with only `intent` remain valid, with missing capture completed by the Prompt Agent under the framing-first rule above.
+- Prompt Agent instructions begin with camera relationship and preserve explicit mode, mirror, device visibility, framing and angle. Without capture/framing they use the conservative front-camera self-capture completion above. Fixed age, body type, gender, cup size or editorial aesthetic never overrides frozen identity/current appearance/user style.
+- Model-facing `context_binding.appearance` keeps known body values as homogeneous `{field,value}` rows, explicit cleared state and current wearing semantics; unknown body fields, capture timestamps and revision metadata are excluded. Worn-item storage IDs are omitted from media prose. Model-facing `current_state` keeps mood and active drive labels, not zero-pressure built-in template descriptions/direction/key. `visual_identity.identity_snapshot` always uses a visual-field allowlist: with current appearance bound it keeps stable name/face/eye/skin/body traits and excludes historical mutable hair/clothing prose; without current appearance it may include relevant hair/clothing traits but never narrative `background`/`background_story`. Model-facing current life omits CAS revisions and opaque storage refs. LoRA weight/applicability remain in the durable Core→ComfyUI concept, not the LLM prompt; the visual cup fact may remain. The full durable concept keeps revision/IDs for Core retries and stale-capture detection.
+- A malformed frozen media concept fails before Provider I/O. Initial media prompt does not fall back to sending its raw persisted string; quality acceptance already follows this rule.
+- The initial media concept is rendered with TOON tables for homogeneous rows. Quality and retry payloads embed `frozen_media_concept` as an object, not a JSON string inside another JSON/YAML document. The common formatter transforms only `type=text` parts of multimodal `content[]`; `image_url` parts and encoded image data are byte-preserved. Native `role=tool`/`role=function` result JSON and ToolCall protocol fields are never reformatted. The same text-part path handles Visual Identity vision/formal Agent messages.
+- Quality verdicts compare candidate pixels to frozen capture/identity facts; transport or vision failure remains an infrastructure error, not a content pass/reject. Native ToolCall/ToolResult JSON remains the provider protocol and is not converted to TOON.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unknown capture mode or extra capture key | Reject closed Tool input before a new media intent. |
+| Replay changes declared capture | `prepared media capture does not match provider arguments`; no second intent. |
+| Legacy intent has no capture | Keep its original intent; Prompt Agent applies bounded framing-first completion. |
+| Frozen concept is invalid at quality stage | Fail that media quality task; do not send a raw/nested JSON fallback to the reviewer. |
+| Multimodal message contains text and image parts | Render structured text as compact TOON/YAML hybrid; preserve image URL/data exactly. |
+| Candidate visibly conflicts with declared camera/mirror relationship | Reviewer returns factual retry/reject guidance under its existing verdict schema. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a mirror selfie with a full-body framing keeps `mirror_selfie` and visible device in the frozen concept, Provider prompt and quality input; the model describes a physically plausible reflection.
+- Base: an older media intent has only free-text intent and no capture object; the Prompt Agent can conservatively choose a front-camera upper-body selfie without Core semantic code.
+- Bad: an unconditional “不是普通自拍” system rule turns every photo into external third-person portrait, or `frozen_media_concept` appears as an escaped JSON scalar inside the quality text part.
+
+### 6. Tests Required
+
+- Tool schema rejects invalid mode/extra fields; Prepare/replay and real two-round media Tool execution retain explicit capture in `media_intents.prompt`.
+- Selfie, mirror, first-person/operator POV and external capture fixtures preserve declared camera fields through prompt and quality input; controlled/real-model acceptance separately checks visual physics.
+- Provider text tests exclude unknown body fields, zero-meaning drive descriptions, frozen transport metadata, nested JSON escapes and fixed age/body defaults; homogeneous body rows render as TOON.
+- Multimodal tests prove image part equality before/after formatting in media quality and Visual Identity, while text becomes readable structure; provider vision/schema errors do not become verdict pass.
+
+### 7. Wrong vs Correct
+
+Wrong: `qualityText = JSON.stringify({frozen_media_concept: compactMediaConceptForProvider(raw)})` when `compactMediaConceptForProvider` already returns a JSON string.
+
+Correct: place the bounded concept **object** in the quality payload, render only its text part, and carry the image part unchanged.
+
+## Scenario: Provider-selected durable media execution
+
+### 1. Scope / Trigger
+
+- Trigger: an image/video job must be sent to a built-in HTTP provider or a server-owned local command provider.
+- This crosses persisted settings, `companion_jobs`, the worker lease, media assets, the proxy route, and the Companion settings UI.
+
+### 2. Signatures
+
+- `providerFor(kind, providerId) -> MediaProvider`
+- `MediaProvider.submit({kind, prompt, payload, settings}) -> {externalId, pending, files?}`
+- `MediaProvider.poll({kind, externalId, settings}) -> {status, files?, error?}`
+- Settings: `imageProvider`, `videoProvider`, `h3Defaults`, and the `H3_*` environment defaults.
+
+### 3. Contracts
+
+- A job captures its provider ID at creation. Existing payloads without one resolve to `comfyui` for compatibility; changing the default later never retargets queued jobs.
+- The server, not the browser, owns submit, poll, and asset reads. `companion_media_assets.provider` selects the adapter for `/api/companion/media/:mediaId`.
+- A local `h3` adapter must call `spawn(executable, args, {shell:false})` with a fixed argument allowlist. It validates the model/output roots, `.mp4` extension, nonempty output, exit code, and timeout before completing the job.
+- An h3 job lease is at least the configured process timeout plus a small settle margin. A fixed short lease is invalid for an in-process video command because it can expire before the guarded completion write.
+- Public bootstrap exposes provider capabilities and non-sensitive h3 numeric defaults only. It never returns executable, model, output, or allowed-root paths.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Unknown provider or unsupported media kind | Reject settings/request before a job is created. |
+| Legacy job lacks provider | Use `comfyui`. |
+| h3 timeout, launch error, nonzero exit, absent/empty MP4 | Retry through the existing job policy, then mark the original placeholder failed. |
+| Asset provider is unavailable or locator leaves its allowed root | Return a safe provider/asset error; never read an arbitrary local path. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a queued video records `provider: 'h3'`, runs the configured executable with an argument array, and returns the MP4 through the existing media URL.
+- Base: ComfyUI continues to inject `{{prompt}}`, poll history, and proxy `/view` for old and new Comfy jobs.
+- Bad: start a long h3 process under the generic 90-second lease, build a shell command from user text, or have the browser fetch a provider directly.
+
+### 6. Tests Required
+
+- Assert capability validation rejects `h3` for image and persisted provider selection reaches a queued job.
+- Assert h3 arguments include only configured whitelist values, including numeric `--reuse` and `--ssd-streaming`.
+- Assert paths outside the allowed root are rejected, public settings omit local paths, and h3 leases outlast the configured timeout.
+- Preserve ComfyUI create/settle/asset compatibility tests.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+spawn(`/path/to/h3 -p ${prompt} -o ${output}`, {shell: true});
+```
+
+#### Correct
+
+```js
+spawn(executable, ['-p', prompt, '-o', output], {shell: false});
+```
+
+## Scenario: AI daily plan and live state projection
+
+### 1. Scope / Trigger
+
+- Each persona receives one `daily_plan` durable job per local date; the local model returns 2-6 ordinary, reversible daily items.
+
+### 2. Signatures
+
+- `ensureDailyPlan(personaId, date?) -> {id, personaId, planDate, status}`
+- `companion_daily_plans` has unique `(persona_id, plan_date)` and stores the validated JSON plan.
+
+### 3. Contracts
+
+- Planner JSON is only `items[{title, scene, situation, startsAt, endsAt}]`; accepted items become `companion_schedule_items.source = 'ai_daily_plan'`.
+- `resolvedStateFor()` is the common read-time projection for UI, chat, and media: active event → active schedule → routine. Do not join a schedule scene with a stale persisted action.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Invalid planner JSON/range | Keep the job retryable; write no schedules. |
+| Existing plan for person/date | Reuse it; never enqueue a duplicate job. |
+| Persona deletion | Delete daily plans in the same persona transaction. |
+
+### 5. Good / Base / Bad Cases
+
+- Good: an active library plan supplies both library scene and library action to chat/media.
+- Base: an unavailable model leaves a retryable planner job, not a static-routine substitute.
+- Bad: `scheduledState().scene` plus `stateFor().situation` in one media request.
+
+### 6. Tests Required
+
+- Assert persona creation creates one daily-plan record/job.
+- Assert active plan drives both context and media intent scene/action.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```js
+const scene = scheduledState(persona).scene;
+const action = stateFor(persona.id).situation;
+```
+
+#### Correct
+
+```js
+const state = resolvedStateFor(persona.id);
+const event = {scene: state.resolved_scene, situation: state.situation};
+```
+
+## Scenario: Owner-Authorized Current-Capture Framing Recovery
+
+### 1. Scope / Trigger
+
+On 2026-10-05 the user explicitly requested first-person full-body recovery for
+invalid framing enum values. This narrowly supersedes the no-server-fallback
+rule above for current-capture **framing only**. Ordinary free-text media master,
+transport errors, missing snapshots, forbidden facts and workflow overrides
+retain their existing failure behavior.
+
+### 2. Signatures
+
+`resolveCurrentCapturePlan(concept,raw) -> (canonicalPlan,fallbackMetadata,error)`.
+`MediaPromptTaskResult.CaptureFallback` is Core-owned. Prepared concepts persist
+`capture_plan` and optional `capture_plan_fallback={mode:first_person,
+framing:full_body,reason_code:invalid_framing_enum,invalid_fields:[framing]}`.
+
+### 3. Contracts
+
+- Generate explicit allowed-value instructions from currentCapturePlanSchema;
+  keep the same response schema. Canonical framing: closeup, upper_body,
+  full_body, body_detail, scene. Documented aliases normalize first.
+- Unknown/missing framing with no usable explicit source framing recovers to
+  full_body and an effective first_person/rear-camera/hidden-device relationship.
+  Known explicit framing remains authoritative during normal valid generation.
+- Other invalid enum fields and extra fields remain errors; in particular a
+  pose string containing wardrobe prose is not accepted by fallback. Consume
+  documented key aliases only; do not silently discard physical override fields.
+- Preserve original capture and all context_binding/body/worn/used/reference
+  facts. Persist recovery metadata before submit so cached prompt re-render
+  agrees. Rendering and quality projection use the same effective capture.
+- A fresh model generation clears an old recovery override before composing
+  input; it can return to the original explicit capture if now valid.
+- Record media.current_capture.plan_fallback with field names/reason, not new
+  life facts. No acquisition, wearing, usage or completion follows from recovery.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Framing enum invalid or unspecified without supported frozen framing | first_person/full_body recovery |
+| Supported explicit framing and supported but conflicting plan | current_capture_framing_conflict |
+| Extra clothes/body/objects/reference/prompt field | reject, no submit |
+| Non-framing enum invalid | reject |
+| Unknown wearing/source/unsupported angle/workflow override | retain existing failure |
+| Bad recovery metadata or cached prompt mismatch | reject |
+
+### 5. Good / Base / Bad Cases
+
+Good: medium_long_shot typo becomes a full-body first-person composition using
+only the frozen white shirt. Base: valid upper_body stays upper_body.
+Bad: treating “seated wearing invented boots” as a recoverable pose.
+
+### 6. Tests Required
+
+Enum instruction/schema parity; invalid/null/type framing; alias/explicit-frame
+compatibility; persist→reload re-render equality; quality effective camera;
+immutable source snapshot; forbidden extras and wearing failures; real isolated
+PG worker through formal MediaPrompt to captured Comfy submission. Transport
+fixtures do not prove actual pixel fidelity.
+
+### 7. Wrong vs Correct
+
+Wrong: reject every unknown framing token forever, or replace the whole frozen
+concept with a generic prose prompt.
+Correct: persist a canonical framing recovery and render the same frozen facts.
+
+## Scenario: MediaPrompt Normalizes Photo Intent Rather Than Policing Hints
+
+### 1. Scope / Trigger
+
+User clarification on 2026-10-05: MediaPrompt turns vague upstream image
+instructions into an accurate standard photograph description. This supersedes
+literal capture/framing preservation and framing-conflict behavior above.
+
+### 2. Signatures
+
+Current-capture plan: `{framing,pose,expression,lighting,style,capture?:{
+mode,camera?,angle?,mirror?,device_visibility?}}`. The standard camera object is
+requested for new model outputs; legacy five-field plans stay readable.
+`effectiveCurrentCaptureCamera(concept)` prefers the prepared standard plan.
+
+### 3. Contracts
+
+- Main's intent and capture/framing fields are semantic hints, not another
+  immutable photo-layout authority. MediaPrompt interprets their meaning,
+  resolves vague wording and emits a consistent standard layout/camera.
+- The system instruction explicitly owns this normalization. It lists output
+  vocabulary and asks for camera/mirror/device relationships, including
+  physically coherent full-body self-capture.
+- Only the prepared plan controls photo rendering. Do not compare its framing
+  literally with the upstream hint and emit current_capture_framing_conflict.
+- Preserve original hints for audit. Prepared plan and fallback persist; quality
+  views consume the same effective standard capture as final submission.
+- Legacy hints contribute only recognized camera values; unresolved geometric
+  prose is not concatenated into prompts or treated as a hard renderer error.
+- Body, actual clothing, inventory/use, identity and scene facts remain frozen
+  authority. This does not let the model create or override them. Invalid
+  facts/references/workflow overrides keep their existing checks. If framing
+  output cannot be standardized, use the authorized first_person/full_body fallback.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+| --- | --- |
+| Vague upstream framing, valid standard output | use standard output |
+| Different upstream and standard framing | normalize; no literal conflict |
+| Camera standardized by MediaPrompt | use it for render and quality |
+| Legacy camera hints contain unknown geometry | retain recognized hints only |
+| Framing output invalid | authorized first_person/full_body fallback |
+| Model supplies physical override or snapshot invalid | retain fact validation |
+
+### 5. Good / Base / Bad Cases
+
+Good: upstream portrait/selfie/front hints + full-body photo intent become a
+full_body/mirror_selfie/rear/visible-device standard description.
+Base: old standard five-field plan still renders without a layout conflict.
+Bad: use the prompt normalizer as a literal validator of Main's wording.
+
+### 6. Tests Required
+
+Vague and differing hints normalize without error; standard camera changes
+rendered mirror/device/camera semantics; original source remains unchanged;
+quality matches standard output; actual PG worker traverses formal MediaPrompt
+and captured submission; snapshot/garment/workflow negatives remain covered.
+
+### 7. Wrong vs Correct
+
+Wrong: raw capture.framing must equal the master's canonical framing string.
+Correct: interpret input hints, then render one consistent standard photo plan.
+
+## Current image branch contract
+
+See [Media Capture Plan Contract](legacy-1674c11f45ee41bcfc4d5239.md) for branch-first v1, scoped subject data, Kev supplementation, normalization and final graph checks.
+
