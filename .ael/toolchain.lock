@@ -1,0 +1,6 @@
+version 0.1.2
+darwin-amd64 753f92b658fbd4901a39568c3d9dc7dabc738e3e72f4389ec8b80a4393f0e605 bin/darwin-amd64/ael
+darwin-arm64 db8c21bece361481a087d7bbd339a32062d878c0b8f8e9be682391fe803aadb4 bin/darwin-arm64/ael
+linux-amd64 4c16c577e86d7b68de3533ec6f4307bf771868190916916c398fafe82500264b bin/linux-amd64/ael
+linux-arm64 ebc2270e434459b604ee576cb0bed522720a7aa35ec9c436d664be2f12a793ff bin/linux-arm64/ael
+notice 2e38527ea8bf50b7b10c9252a5f368f86552aa8c2e56528c57d5a9439d517095 THIRD_PARTY_NOTICES.txt

@@ -25,7 +25,7 @@
   [Agent 提示词组成清单](docs/llm-prompt-composition.md)和真实请求回归。
 
 <!-- AEL:BEGIN -->
-AEL project (active). Run `ael doctor --project .`, then `ael context --task <id>`.
+AEL project (active). From the project root run `./ael doctor`, then `./ael context --task <id>`.
 Use $ael-work for authorized task execution; $ael-migrate-legacy only for reviewed legacy proposals.
 Do not treat historical imports as current constraints or verified checks.
 <!-- AEL:END -->
