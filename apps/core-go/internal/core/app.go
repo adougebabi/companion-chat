@@ -350,6 +350,8 @@ const initializationProfileVoiceOwnershipInstruction = `For each profile, preser
 
 const initializationConstraintOwnershipInstruction = `Preserve every explicit always/never rule, professional-impersonation prohibition, fact-invention prohibition, sensory boundary, and fixed behavioral constraint as a separate entry in core_persona.life_profile.character_constraints. Do not collapse several source-defined constraints into one generic safety summary or omit a constraint merely because another boundary was preserved.`
 
+const initializationNameOwnershipInstruction = `Preserve the Owner's explicitly supplied complete character name verbatim in core_persona.identity.name, including all prefixes, hyphens, and other name punctuation. For example, FT-林夏 is the complete name, not name=林夏 with nickname=FT-林夏. Never split or strip a name's prefix or hyphenated parts. Use nickname only for a separately supplied nickname; names of the Owner, other people, or personality profiles do not replace the character's name.`
+
 func (a *App) AnalyzeDescription(ctx context.Context, actorID, description string) (map[string]any, error) {
 	if strings.TrimSpace(actorID) == "" {
 		return nil, ErrUnauthorized
@@ -392,7 +394,7 @@ func (a *App) AnalyzeDescription(ctx context.Context, actorID, description strin
 			return nil, failure
 		}
 		var prepErr error
-		prepared, prepErr = prepareInitializationResponse(result)
+		prepared, prepErr = prepareAnalyzedInitializationResponse(description, result)
 		if prepErr != nil {
 			failure := initializationErrorWithCorrelation(prepErr, correlationID)
 			details := failure.PublicDetails()
@@ -486,7 +488,7 @@ func validInitializationDescription(description string) bool {
 
 func initializationAnalysisMessages(description string) []map[string]any {
 	return []map[string]any{
-		{"role": "system", "content": "Analyze the Owner's description as a structured persona analyst. Do not roleplay as actor_self, simulate a conversation, choose a current dominant personality, action, or reply. Return one exhaustive JSON object without markdown. Current State is server-owned and must not be returned. Developing Self claims need category and claim. Goals need description; intentions need action and may reference a zero-based goal_index. " + initializationSemanticCoverageInstruction + " " + initializationMediaOwnershipInstruction + " " + initializationPersonalitySystemOwnershipInstruction + " " + initializationProfileVoiceOwnershipInstruction + " " + initializationConstraintOwnershipInstruction + " " + initializationResponseShapeInstruction},
+		{"role": "system", "content": "Analyze the Owner's description as a structured persona analyst. Do not roleplay as actor_self, simulate a conversation, choose a current dominant personality, action, or reply. Return one exhaustive JSON object without markdown. Current State is server-owned and must not be returned. Developing Self claims need category and claim. Goals need description; intentions need action and may reference a zero-based goal_index. " + initializationSemanticCoverageInstruction + " " + initializationMediaOwnershipInstruction + " " + initializationPersonalitySystemOwnershipInstruction + " " + initializationProfileVoiceOwnershipInstruction + " " + initializationConstraintOwnershipInstruction + " " + initializationNameOwnershipInstruction + " " + initializationResponseShapeInstruction},
 		{"role": "system", "content": "Canonical visual appearance contract: if the description specifies a chest cup, put only the normalized label A/B/C/D in exactly core_persona.life_profile.appearance.chest_cup (example: {\"life_profile\":{\"appearance\":{\"chest_cup\":\"A\"}}}). Do not put cup labels in identity.body_type, identity.build, identity.chest, life_profile.physical_traits, or free-form visible_text. For male or non-applicable bodies, omit chest_cup; the renderer will mark it not_applicable. Keep other appearance fields under life_profile.appearance."},
 		{"role": "user", "content": description},
 	}
