@@ -1,8 +1,0 @@
-{"Time":"2026-09-22T14:22:32.973474+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
-{"Time":"2026-09-22T14:22:33.552889+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestConcurrentDailyReviewUsesOneMainProviderCall"}
-{"Time":"2026-09-22T14:22:33.552997+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestConcurrentDailyReviewUsesOneMainProviderCall","Output":"=== RUN   TestConcurrentDailyReviewUsesOneMainProviderCall\n"}
-{"Time":"2026-09-22T14:22:34.667219+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestConcurrentDailyReviewUsesOneMainProviderCall","Output":"--- PASS: TestConcurrentDailyReviewUsesOneMainProviderCall (1.11s)\n"}
-{"Time":"2026-09-22T14:22:34.667244+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestConcurrentDailyReviewUsesOneMainProviderCall","Elapsed":1.11}
-{"Time":"2026-09-22T14:22:34.667351+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
-{"Time":"2026-09-22T14:22:34.66963+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t1.696s\n"}
-{"Time":"2026-09-22T14:22:34.669667+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":1.696}

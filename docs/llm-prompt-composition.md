@@ -1,7 +1,7 @@
 # LLM 提示词组成清单
 
 更新：2026-10-30。代码权威是 `apps/core-go/internal/core/formal_agents.go`
-与各 typed task，规范在 [Prompt Composition Contract](../.trellis/spec/backend/prompt-composition-contract.md)。
+与各 typed task，规范在 [Prompt Composition Contract](../.ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md)。
 
 ## 统一构造
 

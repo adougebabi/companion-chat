@@ -230,7 +230,7 @@ Core 采用官方 CloudWeGo Eino 生态统一模型契约：
 | `infra/acceptance/` | Compose bind mount、OpenAPI、路由边界、迁移和平台验收脚本。 |
 | `infra/backup/` | PostgreSQL、Temporal、MinIO/S3 和部署环境的备份清单、校验与恢复演练。 |
 | `infra/minio/`、`infra/postgres/`、`infra/redis/` | MinIO bucket、Temporal 数据库初始化 SQL 和 Redis 配置等部署默认值。 |
-| `.trellis/` | 项目开发流程、领域/分层规范、任务规划和工作记录，不参与运行时部署。 |
+| `.ael/` | AEL工程入口、按需规范、任务定义与迁移摘要；运行库和完整旧资料归档在仓库外。 |
 | `CONTEXT.md` | 项目全局领域事实与实体名词标准规范。 |
 
 ## 本地开发与检查
@@ -443,5 +443,5 @@ FLUCTLIGHT_LIVE_PROVIDER_TEST_REGEX='TestLiveHandleTurnUsesRealProviderForPostCo
 - 领域事实、修订、证据、审计和媒体引用应保持可追溯；清理诊断数据不能删除这些
   事实，也不能绕过媒体引用失效和校验流程。
 
-更多细节请查看各目录 README、`.trellis/spec/` 中的契约文档，以及
+更多细节请查看各目录 README、`.ael/knowledge/spec/project-entry.md` 中索引的契约文档，以及
 `infra/compose/fluctlight.env.example` 的配置注释。

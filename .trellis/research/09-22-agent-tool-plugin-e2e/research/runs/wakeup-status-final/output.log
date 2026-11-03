@@ -1,8 +1,0 @@
-{"Time":"2026-09-22T21:18:26.534661+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
-{"Time":"2026-09-22T21:18:27.114078+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider"}
-{"Time":"2026-09-22T21:18:27.11413+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider","Output":"=== RUN   TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider\n"}
-{"Time":"2026-09-22T21:18:27.972808+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider","Output":"--- PASS: TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider (0.86s)\n"}
-{"Time":"2026-09-22T21:18:27.972829+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestWakeUpFinalAgentFailurePersistsCycleAndReplaySkipsProvider","Elapsed":0.86}
-{"Time":"2026-09-22T21:18:27.972927+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
-{"Time":"2026-09-22T21:18:27.974552+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t1.440s\n"}
-{"Time":"2026-09-22T21:18:27.974577+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":1.44}

@@ -1,8 +1,0 @@
-{"Time":"2026-09-22T17:04:00.740791+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
-{"Time":"2026-09-22T17:04:01.353059+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome"}
-{"Time":"2026-09-22T17:04:01.3531+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome","Output":"=== RUN   TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome\n"}
-{"Time":"2026-09-22T17:04:02.243024+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome","Output":"--- PASS: TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome (0.89s)\n"}
-{"Time":"2026-09-22T17:04:02.243049+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestProcessReflectionV2AdvancesGoalOnlyFromBoundCompletedOutcome","Elapsed":0.89}
-{"Time":"2026-09-22T17:04:02.24308+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
-{"Time":"2026-09-22T17:04:02.245161+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t1.504s\n"}
-{"Time":"2026-09-22T17:04:02.245175+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":1.504}

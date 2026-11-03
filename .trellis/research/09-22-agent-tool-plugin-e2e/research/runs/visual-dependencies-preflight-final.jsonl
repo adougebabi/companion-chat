@@ -1,9 +1,0 @@
-{"Time":"2026-09-22T17:59:42.906542+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
-{"Time":"2026-09-22T17:59:43.282671+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight"}
-{"Time":"2026-09-22T17:59:43.283017+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight","Output":"=== RUN   TestVisualIdentityLiveE2EPreflight\n"}
-{"Time":"2026-09-22T17:59:43.470324+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight","Output":"    visual_identity_live_e2e_test.go:47: ComfyUI preflight failed: Get \"http://host.docker.internal:8188/system_stats\": EOF\n"}
-{"Time":"2026-09-22T17:59:43.470389+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight","Output":"--- FAIL: TestVisualIdentityLiveE2EPreflight (0.19s)\n"}
-{"Time":"2026-09-22T17:59:43.470397+08:00","Action":"fail","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight","Elapsed":0.19}
-{"Time":"2026-09-22T17:59:43.470766+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"FAIL\n"}
-{"Time":"2026-09-22T17:59:43.473098+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"FAIL\tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t0.566s\n"}
-{"Time":"2026-09-22T17:59:43.473134+08:00","Action":"fail","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":0.567}

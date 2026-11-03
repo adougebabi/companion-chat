@@ -1,8 +1,0 @@
-{"Time":"2026-09-22T18:01:09.962577+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
-{"Time":"2026-09-22T18:01:10.543553+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight"}
-{"Time":"2026-09-22T18:01:10.543583+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight","Output":"=== RUN   TestVisualIdentityLiveE2EPreflight\n"}
-{"Time":"2026-09-22T18:01:10.711483+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight","Output":"--- PASS: TestVisualIdentityLiveE2EPreflight (0.17s)\n"}
-{"Time":"2026-09-22T18:01:10.711501+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestVisualIdentityLiveE2EPreflight","Elapsed":0.17}
-{"Time":"2026-09-22T18:01:10.711527+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
-{"Time":"2026-09-22T18:01:10.712276+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t0.749s\n"}
-{"Time":"2026-09-22T18:01:10.712291+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":0.75}

@@ -1,1 +1,0 @@
-The 60-row matrix is authoritative at docs/verification/goal-planner/20261009/acceptance-matrix.csv. PASS_SCOPE/PASS_SCRIPT_PROVIDER do not certify real-model quality. Partial rows list missing combinations. Real Provider is unconfigured; do not archive task as fully business-accepted.

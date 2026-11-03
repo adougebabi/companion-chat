@@ -1,8 +1,0 @@
-{"Time":"2026-09-22T13:50:08.575785+08:00","Action":"start","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core"}
-{"Time":"2026-09-22T13:50:08.969474+08:00","Action":"run","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestLiveProviderRecognizesImageGenerationIntent"}
-{"Time":"2026-09-22T13:50:08.969561+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestLiveProviderRecognizesImageGenerationIntent","Output":"=== RUN   TestLiveProviderRecognizesImageGenerationIntent\n"}
-{"Time":"2026-09-22T13:50:34.442192+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestLiveProviderRecognizesImageGenerationIntent","Output":"--- PASS: TestLiveProviderRecognizesImageGenerationIntent (25.47s)\n"}
-{"Time":"2026-09-22T13:50:34.442251+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Test":"TestLiveProviderRecognizesImageGenerationIntent","Elapsed":25.47}
-{"Time":"2026-09-22T13:50:34.442683+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"PASS\n"}
-{"Time":"2026-09-22T13:50:34.445316+08:00","Action":"output","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Output":"ok  \tgithub.com/fluctlight/local-ai-companion/apps/core-go/internal/core\t25.869s\n"}
-{"Time":"2026-09-22T13:50:34.44536+08:00","Action":"pass","Package":"github.com/fluctlight/local-ai-companion/apps/core-go/internal/core","Elapsed":25.87}

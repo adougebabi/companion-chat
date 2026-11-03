@@ -1,5 +1,0 @@
-=== RUN   TestFormalConversationAgentRecallsRandomDatabaseSecretThroughRealToolBridge
-2026/09/22 14:28:26 INFO capability lifecycle capability=memory.recall call_id=formal-recall-call type=query surface=conversation required_context=[memory_scope] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
---- PASS: TestFormalConversationAgentRecallsRandomDatabaseSecretThroughRealToolBridge (1.34s)
-PASS
-ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	1.737s

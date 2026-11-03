@@ -9,9 +9,9 @@
 
 | 页面 | 冻结基线 | 当前真实页面 |
 | --- | --- | --- |
-| 关于你 · 桌面1440×900 | [基线](evidence/v3-mock-acceptance/about-you-desktop.png) | [真实保存读回](../.trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/about-you-desktop-final.jpg) |
-| 关于你 · 移动390×962 | [基线](evidence/v3-mock-acceptance/about-you-mobile.png) | [真实页面，无水平溢出](../.trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/about-you-mobile-final.jpg) |
-| NPC编辑 · 桌面1440×900 | [基线](evidence/v3-mock-acceptance/npc-desktop.png) | [真实规律保存并刷新保持](../.trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/concentrated-nonllm/npc-editor-desktop.jpg) |
+| 关于你 · 桌面1440×900 | [基线](evidence/v3-mock-acceptance/about-you-desktop.png) | [真实保存读回](../.ael/imports/legacy-retirement.md#missing-originals) |
+| 关于你 · 移动390×962 | [基线](evidence/v3-mock-acceptance/about-you-mobile.png) | [真实页面，无水平溢出](../.ael/imports/legacy-retirement.md#missing-originals) |
+| NPC编辑 · 桌面1440×900 | [基线](evidence/v3-mock-acceptance/npc-desktop.png) | [真实规律保存并刷新保持](../.ael/imports/legacy-retirement.md#missing-originals) |
 
 “关于你”保留共享头像卡片、默认五项和折叠区，三个标签的19项完整字段已用真实DOM核对；两窗口409保稿/明确重基线、跨角色不串资料有实际浏览器证据。通知配置保存/刷新/恢复原值、NPC规律保存/刷新且不结识、世界浏览不移动，以及11个主读面有实际记录。实际浏览器与对应PG/受控模型测试分别记录，不能互相替代。
 
@@ -94,7 +94,7 @@ Foundation提议保存完整创建基线、提交事务CAS与持久幂等回执�
 
 当前验收入口：`http://127.0.0.1:5175`，API8081。旧 `localhost:5173` 保留。原来两个 localhost 端口共享同名 Cookie，旧环境对新环境会话返回 401 并清 Cookie，已真实复现；改为不同主机后登录及刷新保持。没有关闭鉴权或重置数据库。
 
-证据位于 [execution-1016.json](../.trellis/tasks/10-15-fluctlight-functional-recovery/evidence/full-stack/execution-1016.json)、同目录测试日志和 browser 截图。组件/transport fixture、真实 PG、当前应用浏览器、真实模型分别记录。尚未全量交付或用户验收，继续完整 WP-01—18/E01—22。
+证据位于 [execution-1016.json](../.ael/imports/legacy-retirement.md#missing-originals)、同目录测试日志和 browser 截图。组件/transport fixture、真实 PG、当前应用浏览器、真实模型分别记录。尚未全量交付或用户验收，继续完整 WP-01—18/E01—22。
 
 ## 上一阶段历史 Mock 页面验收（以下不作为当前真实验收结论）
 

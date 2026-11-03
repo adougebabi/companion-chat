@@ -340,7 +340,7 @@ acquire_lock() {
 
 acquire_lock || exit 1
 
-run_root=${FLUCTLIGHT_LIVE_PROVIDER_RUN_ROOT:-$repo_root/.trellis/tasks/09-22-agent-tool-plugin-e2e/research/runs}
+run_root=${FLUCTLIGHT_LIVE_PROVIDER_RUN_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/fluctlight/acceptance/go-live-provider-smoke}
 timestamp=$(date -u +%Y%m%dT%H%M%SZ)
 if [[ -n "$requested_run_dir" ]]; then
   if [[ "$requested_run_dir" = /* ]]; then run_dir=$requested_run_dir; else run_dir="$repo_root/$requested_run_dir"; fi

@@ -47,6 +47,5 @@ apps/*/.gomodcache/
 *.[eE][xX][rR]
 *.[hH][dD][rR]
 image.png
-.trellis/tasks/**/runs/
-.trellis/tasks/**/research/*.json
-.trellis/tasks/**/research/*.txt
+.trellis/
+

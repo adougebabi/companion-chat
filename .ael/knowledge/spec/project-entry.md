@@ -13,7 +13,7 @@
 
 此文是入口与来源索引，不声明业务实现已通过验收。
 
-- 活动工程流程仅为 AEL。`.trellis/` 保留为只读历史，不继续运行旧 remember/update-spec/session-start 工作流，也不双写旧 journal。
+- 活动工程流程仅为 AEL。旧 `.trellis/` 已完整归档到仓库外并移出工作树；历史出处路径通过 `.ael/imports/legacy-retirement.json` 定位，不继续运行旧 remember/update-spec/session-start 工作流，也不双写旧 journal。
 - 项目概念和现行用户规则以 [CONTEXT.md](../../../CONTEXT.md) 与 [AGENTS.md](../../../AGENTS.md) 为准；AEL 的任务/租约不进入业务领域模型。
 - 禁止向 Git 提交图片，含既有图片的修改。截图、日志、运行库与备份置于仓库外；不跳过图片提交钩子。
 - 产品前端以已确认的 React/shadcn Radix 规范为准，不根据 README 中的旧 Vue/Pinia 描述恢复旧框架。模型输入不得恢复应用层 token 上限；时间超时和领域查询数量限制与 token 限制分别处理。
