@@ -404,3 +404,33 @@ test('r21 wardrobe preparation stays within today wearing and retains read failu
     await v.click(button(preparation,'重新读取准备状态'));assert.equal(reads,2);assert.ok(root.querySelector('.approved-preparation'));assert.doesNotMatch(root.querySelector('.approved-preparation').textContent,/preparation unavailable/);
   }finally{await v.dispose();}
 });
+
+test('queued wardrobe with failed persona exposes retry and rereads the resumed preparation', async () => {
+  const w = workspace();
+  let recovered = false;
+  const message = '人格准备失败，初始衣柜暂时无法继续。请重试此环节，将先恢复人格准备，完成后自动继续衣柜准备。';
+  w.services.inventoryClient.preparation = async () => recovered
+    ? {status: 'queued', can_recover: false, result: {}}
+    : {status: 'queued', can_recover: true, error_code: 'persona_preparation_failed', result: {failure_reason: message}};
+  w.services.inventoryClient.current = async () => ({revision: 4});
+  w.client = {prepareInventory: async (fid, body) => {
+    w.calls.push(['prepare', fid, body]);
+    recovered = true;
+    return {status: 'queued', message: '已重新发起人格准备，完成后将自动继续初始衣柜准备。'};
+  }};
+  const v = await mount(w);
+  try {
+    const preparation = v.host.querySelector('.wardrobe-preparation-inline');
+    assert.ok(preparation);
+    assert.ok(preparation.textContent.includes(message));
+    const retry = button(preparation, '重试此环节');
+    assert.ok(retry);
+    await v.click(retry);
+    assert.deepEqual(w.calls.find(c => c[0] === 'prepare'), ['prepare', 'A', {
+      expectedRevision: 4, reason: '恢复当前角色的初始穿搭准备', idempotencyKey: 'wardrobe-original-key'
+    }]);
+    assert.ok(w.calls.some(c => c[0] === 'readback'));
+    assert.equal(button(preparation, '重试此环节'), undefined);
+    assert.doesNotMatch(preparation.textContent, /人格准备失败/);
+  } finally { await v.dispose(); }
+});

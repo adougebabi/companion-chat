@@ -61,5 +61,38 @@ func (a *App) RecoverInitialWardrobe(ctx context.Context, owner, fid string, bod
 	} else if status != "pending" && status != "retry" && status != "started" && status != "running" && status != "completed" {
 		return nil, &SurfaceError{Status: 409, Code: "wardrobe_recovery_unavailable", Message: "原衣橱初始化任务当前不可恢复，请核对任务状态"}
 	}
+	if restarted, err := recoverWardrobePersonaPreparationTx(ctx, tx, owner, fid, stringValue(body["idempotency_key"])); err != nil {
+		return nil, err
+	} else if restarted {
+		result["restarted"] = true
+		result["message"] = wardrobePersonaRecoveryMessage
+	}
 	return result, nil
+}
+
+const wardrobePersonaFailureMessage = "人格准备失败，初始衣柜暂时无法继续。请重试此环节，将先恢复人格准备，完成后自动继续衣柜准备。"
+const wardrobePersonaRecoveryMessage = "已重新发起人格准备，完成后将自动继续初始衣柜准备。"
+
+func wardrobePersonaPreparationFailed(status string) bool {
+	switch status {
+	case "failed", "dead_letter", "cancelled", "terminated":
+		return true
+	}
+	return false
+}
+
+// Both wardrobe recovery entry points hold the life-context lock. Reuse the
+// persona recovery enqueue operation in their transaction, without reopening
+// its terminal execution or replacing the waiting wardrobe checkpoint.
+func recoverWardrobePersonaPreparationTx(ctx context.Context, tx pgx.Tx, owner, fid, key string) (bool, error) {
+	status, err := readPersonaPreparationStatus(ctx, tx, fid)
+	if err != nil || !wardrobePersonaPreparationFailed(status) {
+		return false, err
+	}
+	var revision int
+	if err := tx.QueryRow(ctx, `SELECT current_revision FROM public.fluctlights WHERE id=$1 AND created_by_actor_id=$2 FOR UPDATE`, fid, owner).Scan(&revision); err != nil {
+		return false, err
+	}
+	_, err = enqueuePersonaPreparationTx(ctx, tx, owner, fid, revision, "owner_recovery", "wardrobe:"+key)
+	return err == nil, err
 }

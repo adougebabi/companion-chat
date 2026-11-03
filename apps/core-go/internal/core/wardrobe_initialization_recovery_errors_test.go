@@ -69,6 +69,9 @@ func (tx *wardrobeRecoveryErrorTx) Exec(context.Context, string, ...any) (pgconn
 }
 
 func (tx *wardrobeRecoveryErrorTx) QueryRow(_ context.Context, query string, _ ...any) pgx.Row {
+	if strings.Contains(query, "p.intent_type='persona.compile'") {
+		return wardrobeRecoveryErrorRow(func(...any) error { return pgx.ErrNoRows })
+	}
 	if strings.Contains(query, "SELECT status FROM public.fluctlights") {
 		return wardrobeRecoveryErrorRow(func(dest ...any) error {
 			*dest[0].(*string) = "active"

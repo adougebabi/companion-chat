@@ -48,6 +48,19 @@ func (a *App) OwnerWardrobePreparation(ctx context.Context, owner, fid string) (
 	}
 	out := decodeObject(raw)
 	out["task_id"] = out["intent_id"]
+	if out["status"] != "completed" {
+		status, err := readPersonaPreparationStatus(ctx, a.DB.Pool(), fid)
+		if err != nil {
+			return nil, err
+		}
+		if wardrobePersonaPreparationFailed(status) {
+			out["can_recover"] = true
+			out["error_code"] = "persona_preparation_failed"
+			result := mapValue(out["result"])
+			result["failure_reason"] = wardrobePersonaFailureMessage
+			out["result"] = result
+		}
+	}
 	return out, nil
 }
 func (a *App) RequestOwnerWardrobePreparation(ctx context.Context, owner, fid string, body map[string]any) (map[string]any, error) {
@@ -95,6 +108,13 @@ func (a *App) RequestOwnerWardrobePreparation(ctx context.Context, owner, fid st
 	}
 	out := decodeObject(raw)
 	out["task_id"] = out["intent_id"]
+	if out["status"] != "completed" {
+		if restarted, err := recoverWardrobePersonaPreparationTx(ctx, tx, owner, fid, stringValue(body["idempotency_key"])); err != nil {
+			return nil, err
+		} else if restarted {
+			out["message"] = wardrobePersonaRecoveryMessage
+		}
+	}
 	return out, nil
 }
 

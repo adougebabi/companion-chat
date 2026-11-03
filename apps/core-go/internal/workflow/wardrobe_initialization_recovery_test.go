@@ -168,3 +168,42 @@ func TestPostgresWardrobeBackoffExhaustionAndOwnerRecoveryDispatch(t *testing.T)
 		t.Fatal("recovery invented a schedule or duplicated intent", schedules, intents, err)
 	}
 }
+
+func TestPostgresWardrobePersonaRecoveryUnblocksOriginalInitializer(t *testing.T) {
+	ctx, app := scheduleRecoveryRepository(t)
+	if _, err := app.DB.Pool().Exec(ctx, `
+ INSERT INTO public.life_worlds(id,fluctlight_id,name) VALUES('recovery-world','retry-role','恢复测试世界');
+ INSERT INTO public.fluctlight_world_bindings(fluctlight_id,world_id,revision) VALUES('retry-role','recovery-world',1);
+ INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status)
+ VALUES('failed-persona','failed-persona','lifecycle','persona.compile','{"fluctlight_id":"retry-role","owner_actor_id":"retry-owner","expected_revision":0,"source":"initialization"}','failed');
+ INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload)
+ SELECT intent_id,intent_id,'lifecycle','wardrobe.initialize',jsonb_build_object('fluctlight_id',fluctlight_id,'session_id',id) FROM public.fluctlight_wardrobe_preparations WHERE fluctlight_id='retry-role'`); err != nil {
+		t.Fatal(err)
+	}
+	eligible := func(kind string, want bool) {
+		t.Helper()
+		var actual bool
+		if err := app.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM (`+dispatcherCandidateQuery()+`) ready WHERE ready.intent_type=$2)`, 100, kind).Scan(&actual); err != nil || actual != want {
+			t.Fatalf("%s dispatchable=%v want=%v err=%v", kind, actual, want, err)
+		}
+	}
+	eligible("wardrobe.initialize", false)
+	out, err := app.DispatchOwnerSurface(ctx, "POST", "/internal/fluctlights/retry-role/wardrobe/recover", nil, "retry-owner", map[string]any{"reason": "恢复上游准备", "idempotency_key": "recover-persona"})
+	if err != nil || out["restarted"] != true || out["intent_id"] != "wardrobe_initialize:retry-role" || out["message"] != "已重新发起人格准备，完成后将自动继续初始衣柜准备。" {
+		t.Fatal("wardrobe recovery did not resume dependency", out, err)
+	}
+	eligible("persona.compile", true)
+	eligible("wardrobe.initialize", false)
+	var persona string
+	if err := app.DB.Pool().QueryRow(ctx, `SELECT intent_id FROM public.platform_workflow_intents WHERE intent_type='persona.compile' AND status='pending'`).Scan(&persona); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.ProcessPersonaPreparationIntent(ctx, persona); err != nil {
+		t.Fatal("recovered persona could not complete", err)
+	}
+	eligible("wardrobe.initialize", true)
+	var count int
+	if err := app.DB.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_workflow_intents WHERE intent_type='wardrobe.initialize'`).Scan(&count); err != nil || count != 1 {
+		t.Fatal("recovery replaced or duplicated wardrobe initializer", count, err)
+	}
+}
