@@ -35,6 +35,13 @@ func (b *browserBackend) Health(ctx context.Context) error {
 func (b *browserBackend) DoJSON(ctx context.Context, method, endpoint, session string, body any) (map[string]any, error) {
 	value, err := b.dispatch(ctx, method, endpoint, session, body)
 	if err != nil {
+		if strings.HasPrefix(endpoint, "/internal/fluctlights/") && strings.Contains(endpoint, "/wardrobe") {
+			var mapped *browser.CoreError
+			if errors.As(err, &mapped) {
+				return nil, err
+			}
+			return nil, browserBackendError(err, "wardrobe_operation_failed")
+		}
 		if strings.Contains(endpoint, "/goals") || strings.Contains(endpoint, "/goal-set") || strings.Contains(endpoint, "/actor-context/") {
 			return nil, browserBackendError(err, "goal_operation_failed")
 		}

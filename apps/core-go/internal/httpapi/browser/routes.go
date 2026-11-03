@@ -716,11 +716,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wardrobe"); ok && methodName == http.MethodGet {
 		cursor := request.URL.Query().Get("cursor")
 		if len(cursor) > 128 {
-			writeError(response, http.StatusBadRequest, "wardrobe_cursor_invalid", "Invalid wardrobe cursor")
+			writeError(response, http.StatusBadRequest, "wardrobe_cursor_invalid", "衣橱分页参数无效，请刷新后重试")
 			return
 		}
 		response.Header().Set("Cache-Control", "no-store, private")
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe?cursor="+url.QueryEscape(cursor), http.MethodGet, nil, s.readOnlyError(http.StatusNotFound, "wardrobe_unavailable", "Wardrobe is unavailable"), nil)
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe?cursor="+url.QueryEscape(cursor), http.MethodGet, nil, wardrobeRouteError(http.StatusNotFound, "wardrobe_unavailable", "暂时无法读取衣橱，请稍后重试"), nil)
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wardrobe/items"); ok && methodName == http.MethodPost {
@@ -728,7 +728,7 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !ok {
 			return
 		}
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items", http.MethodPost, body, s.readOnlyError(422, "wardrobe_add_failed", "Wardrobe items could not be added"), nil)
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items", http.MethodPost, body, wardrobeRouteError(422, "wardrobe_add_failed", "衣橱物品添加失败，请稍后重试"), nil)
 		return
 	}
 	if fluctlightID, itemID, ok := match2(path, "/api/fluctlights/:fluctlightId/wardrobe/items/:itemId"); ok && methodName == http.MethodPut {
@@ -736,11 +736,11 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 		if !ok {
 			return
 		}
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items/"+escape(itemID), http.MethodPut, body, s.readOnlyError(422, "wardrobe_update_failed", "Wardrobe item could not be updated"), nil)
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items/"+escape(itemID), http.MethodPut, body, wardrobeRouteError(422, "wardrobe_update_failed", "衣橱物品更新失败，请稍后重试"), nil)
 		return
 	}
 	if fluctlightID, itemID, ok := match2(path, "/api/fluctlights/:fluctlightId/wardrobe/items/:itemId"); ok && methodName == http.MethodDelete {
-		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items/"+escape(itemID), http.MethodDelete, nil, s.readOnlyError(422, "wardrobe_delete_failed", "Wardrobe item could not be deleted"), nil)
+		s.callMap(response, request, "/internal/fluctlights/"+escape(fluctlightID)+"/wardrobe/items/"+escape(itemID), http.MethodDelete, nil, wardrobeRouteError(422, "wardrobe_delete_failed", "衣橱物品删除失败，请稍后重试"), nil)
 		return
 	}
 	if fluctlightID, ok := match(path, "/api/fluctlights/:fluctlightId/wake-up"); ok && methodName == http.MethodPost {

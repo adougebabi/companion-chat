@@ -389,6 +389,9 @@ func (s *Server) dispatchSurface(response http.ResponseWriter, request *http.Req
 }
 
 func (s *Server) writeSurfaceError(response http.ResponseWriter, err error) {
+	if writeWardrobePublicError(response, err) {
+		return
+	}
 	var coreErr *CoreError
 	if errors.As(err, &coreErr) && coreErr.Status >= 400 {
 		if coreErr.Replay {

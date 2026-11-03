@@ -584,85 +584,14 @@ func (a *App) AddWardrobeItems(ctx context.Context, actorID, fluctlightID string
 	if _, err := a.DB.GetFluctlight(ctx, fluctlightID, actorID); err != nil {
 		return nil, err
 	}
-	var rawItems []any
-	if items, ok := payload["items"].([]any); ok && len(items) > 0 {
-		rawItems = items
-	} else if len(payload) > 0 {
-		rawItems = []any{payload}
-	}
-	if len(rawItems) == 0 {
-		return nil, errors.New("no_wardrobe_items_provided")
-	}
-
-	type itemToAdd struct {
-		clothingType string
-		seasons      []string
-		seasonsSet   bool
-		id           string
-		itemKind     string
-		category     string
-		slot         string
-		description  string
-		ownership    string
-		availability string
-		worn         bool
-	}
-
-	toAdd := make([]itemToAdd, 0, len(rawItems))
-	for i, raw := range rawItems {
-		m := mapValue(raw)
-		itemKind := firstString(m["item_kind"], "wearable")
-		category := strings.TrimSpace(stringValue(m["category"]))
-		slot := strings.TrimSpace(stringValue(m["slot"]))
-		description := strings.TrimSpace(stringValue(m["description"]))
-		ownership := strings.TrimSpace(stringValue(m["ownership"]))
-		if ownership == "" {
-			ownership = "owned"
-		}
-		availability := strings.TrimSpace(stringValue(m["availability"]))
-		if availability == "" {
-			availability = "available"
-		}
-		if (itemKind != "wearable" && itemKind != "object") || category == "" || description == "" || (itemKind == "wearable" && slot == "") || (itemKind == "object" && slot != "") {
-			return nil, fmt.Errorf("item %d: category and description are required; wearable items need a slot and ordinary objects must have no slot", i)
-		}
-		if ownership != "owned" && ownership != "borrowed" && ownership != "unknown" {
-			return nil, fmt.Errorf("item %d: invalid ownership %q", i, ownership)
-		}
-		if availability != "available" && availability != "unavailable" && availability != "lost" {
-			return nil, fmt.Errorf("item %d: invalid availability %q", i, availability)
-		}
-		id := strings.TrimSpace(stringValue(m["id"]))
-		if id == "" {
-			id = "wardrobe_" + randomID("item_")
-		}
-		worn, _ := m["worn"].(bool)
-		if itemKind == "object" && worn {
-			return nil, fmt.Errorf("item %d: ordinary objects cannot be worn", i)
-		}
-		metadata := cloneMap(m)
-		metadata["item_kind"] = itemKind
-		metadata["slot"] = slot
-		clothing, seasons, metaErr := wardrobeMetadata(metadata)
-		if metaErr != nil {
-			return nil, metaErr
-		}
-		_, seasonsSet := m["seasons"]
-		toAdd = append(toAdd, itemToAdd{
-			id: id, clothingType: clothing, seasons: seasons, seasonsSet: seasonsSet,
-			itemKind:     itemKind,
-			category:     category,
-			slot:         slot,
-			description:  description,
-			ownership:    ownership,
-			availability: availability,
-			worn:         worn,
-		})
+	toAdd, err := parseOwnerWardrobeItems(payload)
+	if err != nil {
+		return nil, err
 	}
 
 	var newRevision int
 	createdItems := make([]map[string]any, 0, len(toAdd))
-	err := a.withOwnerInventoryTransaction(ctx, actorID, fluctlightID, func(tx pgx.Tx) error {
+	err = a.withOwnerInventoryTransaction(ctx, actorID, fluctlightID, func(tx pgx.Tx) error {
 		var wardrobeRevision int
 		if err := tx.QueryRow(ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1 FOR UPDATE`, fluctlightID).Scan(&wardrobeRevision); err != nil {
 			return err
@@ -738,6 +667,9 @@ func (a *App) UpdateWardrobeItem(ctx context.Context, actorID, fluctlightID, ite
 	if itemID == "" {
 		return nil, ErrInvalidArguments
 	}
+	if err := validateWardrobeItemFieldTypes(payload, -1); err != nil {
+		return nil, err
+	}
 	var newRevision int
 	var updatedItem map[string]any
 	err := a.withOwnerInventoryTransaction(ctx, actorID, fluctlightID, func(tx pgx.Tx) error {
@@ -766,18 +698,24 @@ func (a *App) UpdateWardrobeItem(ctx context.Context, actorID, fluctlightID, ite
 		}
 		if val := strings.TrimSpace(stringValue(payload["ownership"])); val != "" {
 			if val != "owned" && val != "borrowed" && val != "unknown" {
-				return errors.New("invalid_ownership")
+				return wardrobeItemInputError(-1, "ownership", "invalid")
 			}
 			ownership = val
 		}
 		if val := strings.TrimSpace(stringValue(payload["availability"])); val != "" {
 			if val != "available" && val != "unavailable" && val != "lost" {
-				return errors.New("invalid_availability")
+				return wardrobeItemInputError(-1, "availability", "invalid")
 			}
 			availability = val
 		}
-		if (itemKind != "wearable" && itemKind != "object") || (itemKind == "object" && slot != "") || (itemKind == "wearable" && slot == "") {
-			return ErrInvalidArguments
+		if itemKind != "wearable" && itemKind != "object" {
+			return wardrobeItemInputError(-1, "item_kind", "invalid")
+		}
+		if itemKind == "object" && slot != "" {
+			return wardrobeItemInputError(-1, "slot", "must_be_empty")
+		}
+		if itemKind == "wearable" && slot == "" {
+			return wardrobeItemInputError(-1, "slot", "required")
 		}
 		if itemKind != "object" || availability != "available" || (ownership != "owned" && ownership != "borrowed") {
 			if err := clearUnavailableItemUseTx(ctx, tx, fluctlightID, itemID, "owner:"+actorID, a.now()); err != nil {
@@ -797,7 +735,7 @@ func (a *App) UpdateWardrobeItem(ctx context.Context, actorID, fluctlightID, ite
 			meta["seasons"] = seasons
 		}
 		var metaErr error
-		clothing, seasons, metaErr = wardrobeMetadata(meta)
+		clothing, seasons, metaErr = ownerWardrobeMetadata(meta, -1)
 		if metaErr != nil {
 			return metaErr
 		}
