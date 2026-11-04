@@ -49,6 +49,10 @@ const policyNumbers = new Set([
   "response_delay",
   "emotional_expression",
 ]);
+const policyText = new Set([
+  "response_style", "message_length", "punctuation_style", "humor_style",
+  "conflict_style", "refusal_style", "intimacy_expression",
+]);
 const technical = (key) =>
   /^(?:id|schema_version|provenance|extensions|evidence_refs|update_policy|active_profile_id)$/.test(
     key,
@@ -96,26 +100,35 @@ export function profileFields(core, label = (key) => key) {
       ["recurring_commitments", "injuries"].includes(key)
     )
       return;
-    const numeric =
-        typeof value === "number" ||
-        (path[0] === "behavioral_policy" && policyNumbers.has(key)),
+    const policyField = path[0] === "behavioral_policy",
+      // Some older analyses contain descriptive delay text or numbers where a
+      // descriptive policy string is expected. Keep the original value until
+      // the user edits it, but present each field according to its semantics.
+      numeric = policyField && policyText.has(key)
+        ? false
+        : policyField && policyNumbers.has(key)
+          ? value == null || value === "" || typeof value === "number" ||
+            (typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value.trim()))
+          : typeof value === "number",
       kind =
         Array.isArray(value) ||
         (path[0] === "identity" && key === "core_values")
           ? "lines"
-          : typeof value === "boolean"
-            ? "boolean"
-            : numeric
-              ? "number"
-              : path[0] === "behavioral_policy" && fieldOptions[key]
-                ? "select"
-                : "text";
+          : policyField && fieldOptions[key]
+            ? "select"
+            : policyField && policyText.has(key)
+              ? "text"
+              : typeof value === "boolean"
+                ? "boolean"
+                : numeric
+                  ? "number"
+                  : "text";
     const display =
       kind === "lines"
         ? Array.isArray(value)
           ? value.join("\n")
           : (value ?? "")
-        : (value ?? "");
+        : kind === "text" && value != null ? String(value) : (value ?? "");
     fields.push({
       path,
       label: path
@@ -135,7 +148,7 @@ export function profileFields(core, label = (key) => key) {
               { value: "", label: "尚未填写" },
               ...fieldOptions[key].map(([value, label]) => ({ value, label })),
               ...(!fieldOptions[key].some(([option]) => option === value) &&
-              value
+              value !== undefined && value !== null && value !== ""
                 ? [{ value, label: String(value) }]
                 : []),
             ]

@@ -13,7 +13,11 @@ const env = installDOM(),
   }),
   { default: View } = await vite.ssrLoadModule(
     "/src/react-app/views/CharacterWizard.jsx",
-  );
+  ),
+  { profileFields, profileChanges } = await vite.ssrLoadModule(
+    "/src/approved-ui/profile-fields.mjs",
+  ),
+  { createCreationController } = await vite.ssrLoadModule("/src/state/creation-controller.mjs");
 test.after(async () => {
   await vite.close();
   env.restore();
@@ -72,6 +76,54 @@ async function selectTab(f, name) {
   );
   await f.v.flush();
 }
+test("policy fields follow their actual types without rewriting legacy analysis", () => {
+  const core = {identity:{}, behavioral_policy:{punctuation_style:2, humor_style:3, response_delay:"随当前活动自然回复", emoji_frequency:0.35}, life_profile:{}};
+  const fields = profileFields(core), find = key => fields.find(field => field.path.at(-1) === key);
+  assert.equal(find("punctuation_style").kind, "text");
+  assert.equal(find("punctuation_style").value, "2");
+  assert.equal(find("humor_style").kind, "text");
+  assert.equal(find("response_delay").kind, "text");
+  assert.equal(find("emoji_frequency").kind, "number");
+  assert.equal(find("emoji_frequency").max, 1);
+  assert.deepEqual(profileChanges(core, fields), {}, "untouched legacy values remain intact");
+  find("punctuation_style").value = "自然使用标点";
+  assert.deepEqual(profileChanges(core, fields), {behavioral_policy:{punctuation_style:"自然使用标点"}});
+  const delay = profileFields({identity:{},behavioral_policy:{response_delay:45},life_profile:{}}).find(field => field.path.at(-1) === "response_delay");
+  assert.equal(delay.kind, "number");assert.equal(delay.max, undefined);
+  const legacy = profileFields({identity:{},behavioral_policy:{humor_style:false,message_length:0},life_profile:{}});
+  assert.equal(legacy.find(field => field.path.at(-1) === "humor_style").kind,"text");
+  assert.ok(legacy.find(field => field.path.at(-1) === "message_length").options.some(option => option.value === 0));
+});
+
+test("expression preview explains real ranges, keeps free text and uses Select for message length", async () => {
+  const f = await preview();
+  try {
+    const definition = f.c.previewDefinition();
+    definition.core_persona.personality.openness = 0.25;
+    definition.core_persona.behavioral_policy = {emoji_frequency:0.3, punctuation_style:2, humor_style:"温柔的冷幽默", response_delay:45, message_length:"medium", response_style:"自然随和"};
+    f.c.updatePreviewDefinition(definition);
+    f.m.previewFields = f.c.previewFields.value;
+    await f.v.update({model:f.m});
+    await selectTab(f,"性格与表达");
+    const root=f.v.host;
+    assert.ok(root.querySelector('[role=slider][aria-label="开放性"]'));
+    assert.match(root.textContent,/0 · 偏稳妥熟悉/);assert.match(root.textContent,/1 · 愿意探索新事物/);
+    assert.ok(root.querySelector('[aria-label="了解开放性的数值含义"]'));
+    assert.ok(root.querySelector('[role=slider][aria-label="表情频率"]'));
+    assert.match(root.textContent,/0 · 很少使用表情/);assert.match(root.textContent,/1 · 更常使用表情/);
+    assert.equal(root.querySelector('[aria-label="标点习惯"]').type,'text');
+    assert.equal(root.querySelector('[aria-label="标点习惯"]').value,'2');
+    assert.equal(root.querySelector('[aria-label="幽默方式"]').type,'text');
+    assert.equal(root.querySelector('[aria-label="回应节奏"]').type,'number');
+    assert.equal(root.querySelector('[aria-label="回应节奏"]').value,'45');
+    assert.match(root.textContent,/单位：秒/);
+    for(const label of ['回复风格','消息长短','分歧处理','拒绝方式']) assert.equal(root.querySelector(`[aria-label="${label}"]`).dataset.slot,'select-trigger');
+    const emoji = f.c.previewFields.value.find(field=>field.path.at(-1)==='emoji_frequency');
+    emoji.value=0.73;
+    assert.equal(f.c.previewDefinition().core_persona.behavioral_policy.emoji_frequency,0.73);
+    assert.equal(f.c.previewDefinition().core_persona.behavioral_policy.punctuation_style,2);
+  } finally {await f.v.dispose();f.c.dispose();}
+});
 test("opening and applying a nullable structured extension preserves null without manufacturing an empty collection", async () => {
   const f = await preview();
   try {
@@ -80,8 +132,9 @@ test("opening and applying a nullable structured extension preserves null withou
       (n) => n.querySelector("h2")?.textContent === "其他设定 1",
     );
     await f.v.click(button(card, "编辑内容"));
-    assert.equal(dialog().querySelector("textarea").value, "null");
-    await f.v.click(button(dialog(), "应用修改"));
+    assert.equal(dialog(), undefined, "theme editing is inline");
+    assert.match(card.textContent, /尚未填写/);
+    await f.v.click(button(card, "应用修改"));
     assert.equal(
       f.c.draft.analysis.core_persona.life_profile.custom_extension,
       null,
@@ -100,8 +153,8 @@ test("cancelling a structured edit leaves its original scalar type and value unc
       (n) => n.textContent.includes("生活习惯"),
     );
     await f.v.click(button(card, "编辑内容"));
-    await f.v.input(dialog().querySelector("textarea"), '"取消的输入"');
-    await f.v.click(button(dialog(), "取消"));
+    await f.v.input(card.querySelector("textarea"), "取消的输入");
+    await f.v.click(button(card, "取消"));
     assert.equal(
       f.c.draft.analysis.core_persona.life_profile.life_habits,
       "阅读",
@@ -309,11 +362,10 @@ test('initial wardrobe preview reads and edits the canonical appearance items wi
     const wardrobe = [...f.v.host.querySelectorAll('.creation-structured')].find(n => n.querySelector('h2')?.textContent === '初始衣物');
     assert.match(wardrobe.textContent, /白衬衫/);
     await f.v.click(button(wardrobe, '编辑内容'));
-    const items = JSON.parse(dialog().querySelector('textarea').value);
-    assert.equal(items[0].currently_worn, false);
-    items[0].description = '白色亚麻衬衫';
-    await f.v.input(dialog().querySelector('textarea'), JSON.stringify(items));
-    await f.v.click(button(dialog(), '应用修改'));
+    assert.equal(dialog(), undefined);
+    assert.match(wardrobe.querySelector('[aria-label="是否正在穿着"]').textContent, /否/);
+    await f.v.input(wardrobe.querySelector('[aria-label="说明"]'), '白色亚麻衬衫');
+    await f.v.click(button(wardrobe, '应用修改'));
     const after = f.c.previewDefinition().core_persona.life_profile;
     assert.equal(after.appearance.wardrobe_items[0].description, '白色亚麻衬衫');
     assert.equal(after.appearance.wardrobe_items[0].currently_worn, false);
@@ -335,8 +387,71 @@ test('missing initial wardrobe opens an empty array without adding it when cance
     const wardrobe = [...f.v.host.querySelectorAll('.creation-structured')].find(n => n.querySelector('h2')?.textContent === '初始衣物');
     assert.match(wardrobe.textContent, /尚未记录/);
     await f.v.click(button(wardrobe, '编辑内容'));
-    assert.deepEqual(JSON.parse(dialog().querySelector('textarea').value), []);
-    await f.v.click(button(dialog(), '取消'));
+    assert.match(wardrobe.textContent, /还没有内容/);
+    assert.ok(button(wardrobe, '添加衣物'));
+    await f.v.click(button(wardrobe, '取消'));
     assert.equal(JSON.stringify(f.c.previewDefinition()), before);
   } finally {await f.v.dispose(); f.c.dispose();}
+});
+
+test('inline life and relationship forms add records while preserving untouched nested extensions', async () => {
+  const f = await preview();
+  try {
+    const definition=f.c.previewDefinition();
+    definition.core_persona.life_profile.social_background={future:{flag:false,count:0,missing:null}};
+    definition.initial_relationships=[];definition.initial_goals=[];definition.initial_intentions=[];
+    f.c.updatePreviewDefinition(definition);
+    await selectTab(f,'生活设定');
+    const card = title => [...f.v.host.querySelectorAll('.creation-structured')].find(node => node.querySelector('h2')?.textContent === title);
+    const social=card('社会背景');
+    await f.v.click(button(social,'编辑内容'));
+    await f.v.click(social.querySelector('[aria-label="补充常用字段"]'));
+    await f.v.click([...document.querySelectorAll('[role=option]')].find(node=>node.textContent==='家庭背景'));
+    await f.v.input(social.querySelector('[aria-label="家庭背景"]'),'与家人保持联系');
+    await f.v.click(button(social,'应用修改'));
+    assert.deepEqual(f.c.previewDefinition().core_persona.life_profile.social_background,{future:{flag:false,count:0,missing:null},family:'与家人保持联系'});
+    await selectTab(f,'人格与关系');
+    const relation=card('初始关系');
+    await f.v.click(button(relation,'编辑内容'));await f.v.click(button(relation,'添加与你的关系'));
+    assert.match(relation.querySelector('[aria-label="关系对象"]').textContent,/你/);
+    await f.v.input(relation.querySelector('[aria-label="关系"]'),'朋友');
+    await f.v.input(relation.querySelector('[aria-label="关系摘要"]'),'一起散步');
+    await f.v.click(button(relation,'应用修改'));
+    assert.deepEqual(f.c.previewDefinition().initial_relationships,[{target_actor_id:'actor_user',role:'朋友',summary:'一起散步'}]);
+    const goals=card('初始目标');
+    await f.v.click(button(goals,'编辑内容'));await f.v.click(button(goals,'添加目标'));
+    await f.v.input(goals.querySelector('[aria-label="说明"]'),'学习摄影');await f.v.click(button(goals,'应用修改'));
+    assert.deepEqual(f.c.previewDefinition().initial_goals,[{description:'学习摄影'}]);
+    const intentions=card('初始意图');
+    await f.v.click(button(intentions,'编辑内容'));await f.v.click(button(intentions,'添加意图'));
+    await f.v.input(intentions.querySelector('[aria-label="意图"]'),'周末去拍照');await f.v.click(button(intentions,'应用修改'));
+    assert.deepEqual(f.c.previewDefinition().initial_intentions,[{action:'周末去拍照'}]);
+  } finally {await f.v.dispose();f.c.dispose();}
+});
+
+test('unfinished inline edits survive a fresh controller and prevent activation until resolved', async () => {
+  const f=await preview();
+  let restored, second;
+  try {
+    await selectTab(f,'生活设定');
+    const habits=[...f.v.host.querySelectorAll('.creation-structured')].find(node=>node.querySelector('h2')?.textContent==='生活习惯');
+    await f.v.click(button(habits,'编辑内容'));
+    await f.v.input(habits.querySelector('textarea'),'刷新后仍保留的习惯');
+    assert.equal(button(f.v.host,'确认，准备相遇').disabled,true);
+    assert.match(f.v.host.textContent,/分组修改已保留/);
+    const saved=JSON.parse(f.saved.getItem('fluctlight-creation:owner:draft'));
+    assert.equal(saved.structureDraft.value,'刷新后仍保留的习惯');
+    await f.v.dispose();
+    restored=createCreationController({owner:'owner',storage:f.saved,client:f.client,directory:f.directory,ownerCurrent:()=>true,label:key=>key,
+      analysisToActivation:(analysis,name,requestId,timezone)=>({requestId,name,corePersona:analysis.core_persona,initializationTimezone:timezone})});
+    const model={...f.m,c:restored,draft:restored.draft,previewFields:restored.previewFields.value};
+    second=await mountReact(vite,View,{props:{model}});
+    const resumed=[...second.host.querySelectorAll('.creation-structured')].find(node=>node.querySelector('h2')?.textContent==='生活习惯');
+    assert.equal(resumed.querySelector('textarea').value,'刷新后仍保留的习惯');
+    assert.equal(button(second.host,'确认，准备相遇').disabled,true);
+    await second.click(button(resumed,'应用修改'));
+    assert.equal(restored.previewDefinition().core_persona.life_profile.life_habits,'刷新后仍保留的习惯');
+    assert.equal(restored.draft.structureDraft,undefined);
+    assert.equal(button(second.host,'确认，准备相遇').disabled,false);
+  } finally {if(second)await second.dispose();else await f.v.dispose();restored?.dispose();f.c.dispose();}
 });

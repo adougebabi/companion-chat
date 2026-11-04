@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "id": "initialization-review-experience",
+  "definition_hash": "22fe3d492426d62698eb90b41ebc6a24b2d35acd1f3bb5362e86a32239be076f",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-04T07:57:45.352153Z",
+  "updated": "2026-11-04T08:22:53.665981Z",
+  "completed": "2026-11-04T08:22:53.665854Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-cbb5ecfca75d97c921e5",
+        "unit": "define",
+        "executor": "codex-initialization-review",
+        "input_version": "97f6f855ec4cf0c1c491fb89fc4b3b1587b32e894ddc619357963538bd49c161",
+        "candidate_version": "97f6f855ec4cf0c1c491fb89fc4b3b1587b32e894ddc619357963538bd49c161",
+        "started": "2026-11-04T07:58:03.146369Z",
+        "ended": "2026-11-04T08:01:36.703983Z",
+        "status": "pass",
+        "reason": "已核对初始化 schema、预览与草稿链路及 React/shadcn 规范：性别组件的自定义状态可能滞后；标点和幽默为文字，回应延迟是无上限非负秒数，七项表达倾向和共同性格为 0–1。使用项目 Select 保留自定义选项；将主题 JSON 弹窗替换为保留原值和扩展的内联结构化编辑；完整 JSON 与来源审阅链路保留。执行后以回归、类型、构建和真实桌面/窄屏场景核验。"
+      },
+      {
+        "id": "AT-c86a9dcc2d644890592b",
+        "unit": "execute",
+        "executor": "codex-initialization-review",
+        "input_version": "97f6f855ec4cf0c1c491fb89fc4b3b1587b32e894ddc619357963538bd49c161",
+        "candidate_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "started": "2026-11-04T08:02:03.326921Z",
+        "ended": "2026-11-04T08:19:22.845961Z",
+        "status": "pass",
+        "reason": "已完成性别显示与外部值同步、按 schema 区分文字/延迟与 0–1 倾向、端点及焦点提示、初始化 shadcn Select 外观统一、生活/人格/关系的内联结构化编辑与未应用草稿恢复。实际生产页面在隔离 fixture 上核验性别、键盘选择、滑块、桌面/390px 和刷新恢复；1015 项 web 测试、类型检查与构建通过，记录位于 Git 忽略目录。"
+      },
+      {
+        "id": "AT-0bcb2cd0c362a70a52bb",
+        "unit": "check:web-initialization",
+        "executor": "codex-initialization-review",
+        "input_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "candidate_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "started": "2026-11-04T08:20:00.700513Z",
+        "ended": "2026-11-04T08:20:11.489153Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-ca9e0f0c3ee30f350cb8",
+        "unit": "check:web-typecheck",
+        "executor": "codex-initialization-review",
+        "input_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "candidate_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "started": "2026-11-04T08:20:40.744536Z",
+        "ended": "2026-11-04T08:20:56.746504Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-d99897e2e86d2fc2b49c",
+        "unit": "check:web-build",
+        "executor": "codex-initialization-review",
+        "input_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "candidate_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "started": "2026-11-04T08:21:22.587705Z",
+        "ended": "2026-11-04T08:21:37.20509Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-37269939b46095649c6a",
+        "unit": "check:initialization-ui",
+        "executor": "codex-initialization-review",
+        "input_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "candidate_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "started": "2026-11-04T08:22:05.733491Z",
+        "ended": "2026-11-04T08:22:05.79458Z",
+        "status": "pass",
+        "reason": "实际生产构建和隔离 fixture 已验证性别、下拉选择、数值端点/键盘提示、内联编辑及刷新恢复；截图和详细步骤已记录。"
+      },
+      {
+        "id": "AT-1f975108e65d2bc6159a",
+        "unit": "check:ui",
+        "executor": "codex-initialization-review",
+        "input_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "candidate_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "started": "2026-11-04T08:22:27.72281Z",
+        "ended": "2026-11-04T08:22:27.777691Z",
+        "status": "pass",
+        "reason": "实际页面已核对桌面及 390px 下拉、控件与分组编辑；菜单与触发器等宽、窄屏单列且无横向溢出。"
+      },
+      {
+        "id": "AT-465e457bc8d822014741",
+        "unit": "check:ux",
+        "executor": "codex-initialization-review",
+        "input_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "candidate_version": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+        "started": "2026-11-04T08:22:49.074402Z",
+        "ended": "2026-11-04T08:22:49.127541Z",
+        "status": "pass",
+        "reason": "实际页面与自动回归已验证文本、秒数、滑块含义、Select 自定义、结构编辑及未应用草稿保护；未发现阻断任务的交互问题。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "web-initialization",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "870e101d8b592471a8532a9294937e45faad9dff28e71c05872f3cf07569f04e",
+        "at": "2026-11-04T08:20:00.801597Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-0bcb2cd0c362a70a52bb.log": "aa2962a9c7a8aefadd177440e9ed62d0444f08f1a6641a880cba476e6f69fe32"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "53a7c569e670d6731e77702ab128bbe2f86235b78d211aad23fc0f1d05d1bbb8",
+        "at": "2026-11-04T08:20:40.891165Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-ca9e0f0c3ee30f350cb8.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "4c642cff77f8b473f745f06d5f734dc7900e59028b9e0d596a1ed721bff146f6",
+        "at": "2026-11-04T08:21:22.731454Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-d99897e2e86d2fc2b49c.log": "3302e11c4de1d5e66f81f21c9a9ba2aca2d6351602ced01b6684905c3a4e28bc"
+        }
+      },
+      {
+        "id": "initialization-ui",
+        "result": "pass",
+        "source": "scenario:codex-initialization-review",
+        "config_hash": "47fac57c56ee42caac0ebe75e4aa166384536718eff537f30b7e8e9c9651fe11",
+        "at": "2026-11-04T08:22:05.794247Z",
+        "artifact_hashes": {
+          ".v3-regression/initialization-review/desktop-editor.jpg": "68b781cf5e1c33e0ec17d6318c7b0bb657be8b4449caea5ecdc0d8875f5ffef3",
+          ".v3-regression/initialization-review/desktop-select.jpg": "166ae238905a7730022617939b9f18cad2612a60df23cb595989b052b2801bac",
+          ".v3-regression/initialization-review/mobile-select.jpg": "1d562705208fb9ac2fdfddeabd449cfc6c549556d7cdd9e97c60ebdb52850fc5",
+          ".v3-regression/initialization-review/mobile-traits.jpg": "aeda74d2386aea7bf95edaf21426cce84c12143df54399f56c4f81cb578c9be6",
+          ".v3-regression/initialization-review/verification.md": "22d62baabdec41a988a079bb8094494b86cf30c3445fc1d1dcbe742c768230d9",
+          "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+          "apps/web/src/approved-ui/profile-fields.mjs": "deedd1758ea16d800a69da2acc082d0fce497fd25942ccef08b21103e1db1083",
+          "apps/web/src/react-app/controls.tsx": "c0e06352eac98e2161d4f47361b9cec88f8098216b45ee52268575aabd795f40",
+          "apps/web/src/react-app/shared/CreationScaleHint.jsx": "a90214a7dc68c88782425f0e6724427fb52a4ef798c6c1aee884e33c1172d5ed",
+          "apps/web/src/react-app/shared/CreationStructureEditor.jsx": "368e4e906f05652a0c3347a4aa596db78463c91910f0da1bb954acea95d91a59",
+          "apps/web/src/react-app/shared/ProfileField.tsx": "769e1531d5630f11708124abb0237c9e0e1124ddc336e1edc35a6041d6c89472",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "d85dfb357b562a20c7a841c1a1ebaa5b8133a4bc0f16bafbddab3f8f1b9a14f4",
+          "apps/web/src/styles/replica-creation.css": "e88dcb34452457b3638ec11d5f2716eb71106b78e6b64f0af166f40350230508"
+        }
+      },
+      {
+        "id": "ui",
+        "result": "pass",
+        "source": "scenario:codex-initialization-review",
+        "config_hash": "99d8205beba64070206041794aa383d7dcf2b5a2ada22207362d0b43ff70ceee",
+        "at": "2026-11-04T08:22:27.77733Z",
+        "artifact_hashes": {
+          ".v3-regression/initialization-review/desktop-editor.jpg": "68b781cf5e1c33e0ec17d6318c7b0bb657be8b4449caea5ecdc0d8875f5ffef3",
+          ".v3-regression/initialization-review/desktop-select.jpg": "166ae238905a7730022617939b9f18cad2612a60df23cb595989b052b2801bac",
+          ".v3-regression/initialization-review/mobile-select.jpg": "1d562705208fb9ac2fdfddeabd449cfc6c549556d7cdd9e97c60ebdb52850fc5",
+          ".v3-regression/initialization-review/mobile-traits.jpg": "aeda74d2386aea7bf95edaf21426cce84c12143df54399f56c4f81cb578c9be6",
+          ".v3-regression/initialization-review/verification.md": "22d62baabdec41a988a079bb8094494b86cf30c3445fc1d1dcbe742c768230d9",
+          "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+          "apps/web/src/approved-ui/profile-fields.mjs": "deedd1758ea16d800a69da2acc082d0fce497fd25942ccef08b21103e1db1083",
+          "apps/web/src/react-app/controls.tsx": "c0e06352eac98e2161d4f47361b9cec88f8098216b45ee52268575aabd795f40",
+          "apps/web/src/react-app/shared/CreationScaleHint.jsx": "a90214a7dc68c88782425f0e6724427fb52a4ef798c6c1aee884e33c1172d5ed",
+          "apps/web/src/react-app/shared/CreationStructureEditor.jsx": "368e4e906f05652a0c3347a4aa596db78463c91910f0da1bb954acea95d91a59",
+          "apps/web/src/react-app/shared/ProfileField.tsx": "769e1531d5630f11708124abb0237c9e0e1124ddc336e1edc35a6041d6c89472",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "d85dfb357b562a20c7a841c1a1ebaa5b8133a4bc0f16bafbddab3f8f1b9a14f4",
+          "apps/web/src/styles/replica-creation.css": "e88dcb34452457b3638ec11d5f2716eb71106b78e6b64f0af166f40350230508"
+        }
+      },
+      {
+        "id": "ux",
+        "result": "pass",
+        "source": "scenario:codex-initialization-review",
+        "config_hash": "19a6588090a54709839005142b80659751e2797d1d088584f4e948d600ce6113",
+        "at": "2026-11-04T08:22:49.127145Z",
+        "artifact_hashes": {
+          ".v3-regression/initialization-review/desktop-editor.jpg": "68b781cf5e1c33e0ec17d6318c7b0bb657be8b4449caea5ecdc0d8875f5ffef3",
+          ".v3-regression/initialization-review/desktop-select.jpg": "166ae238905a7730022617939b9f18cad2612a60df23cb595989b052b2801bac",
+          ".v3-regression/initialization-review/mobile-select.jpg": "1d562705208fb9ac2fdfddeabd449cfc6c549556d7cdd9e97c60ebdb52850fc5",
+          ".v3-regression/initialization-review/mobile-traits.jpg": "aeda74d2386aea7bf95edaf21426cce84c12143df54399f56c4f81cb578c9be6",
+          ".v3-regression/initialization-review/verification.md": "22d62baabdec41a988a079bb8094494b86cf30c3445fc1d1dcbe742c768230d9",
+          "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+          "apps/web/src/approved-ui/profile-fields.mjs": "deedd1758ea16d800a69da2acc082d0fce497fd25942ccef08b21103e1db1083",
+          "apps/web/src/react-app/controls.tsx": "c0e06352eac98e2161d4f47361b9cec88f8098216b45ee52268575aabd795f40",
+          "apps/web/src/react-app/shared/CreationScaleHint.jsx": "a90214a7dc68c88782425f0e6724427fb52a4ef798c6c1aee884e33c1172d5ed",
+          "apps/web/src/react-app/shared/CreationStructureEditor.jsx": "368e4e906f05652a0c3347a4aa596db78463c91910f0da1bb954acea95d91a59",
+          "apps/web/src/react-app/shared/ProfileField.tsx": "769e1531d5630f11708124abb0237c9e0e1124ddc336e1edc35a6041d6c89472",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "d85dfb357b562a20c7a841c1a1ebaa5b8133a4bc0f16bafbddab3f8f1b9a14f4",
+          "apps/web/src/styles/replica-creation.css": "e88dcb34452457b3638ec11d5f2716eb71106b78e6b64f0af166f40350230508"
+        }
+      }
+    ]
+  }
+}

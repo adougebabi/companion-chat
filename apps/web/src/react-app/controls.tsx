@@ -187,6 +187,8 @@ export function ChoiceSelect({
   id,
   name,
   required,
+  contentClassName,
+  contentPosition,
   ...props
 }: any) {
   const options = flatten(children).filter((item) => item.type === "option").filter((item, index, all) => all.findIndex(candidate => Object.is(optionValue(candidate), optionValue(item))) === index);
@@ -222,7 +224,8 @@ export function ChoiceSelect({
           {selected >= 0 ? options[selected].props.children : undefined}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent position={contentPosition} align={contentPosition === "popper" ? "start" : undefined}
+        sideOffset={contentPosition === "popper" ? 4 : undefined} className={contentClassName}>
         {options.map((option, index) => (
           <SelectItem
             key={String(option.key ?? index)}

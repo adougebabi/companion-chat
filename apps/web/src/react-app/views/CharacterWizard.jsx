@@ -44,6 +44,8 @@ import TaskRecordDialog from "../shared/TaskRecordDialog";
 import SemanticTree from "../shared/SemanticTree";
 import JsonDetails from "../shared/JsonDetails";
 import CreationPreviewValue, {creationPreviewLabel, hasCreationPreviewValue} from "../shared/CreationPreviewValue";
+import CreationStructureEditor from "../shared/CreationStructureEditor";
+import CreationScaleHint, { CreationScaleEnds } from "../shared/CreationScaleHint";
 import Combobox from "../shared/Combobox";
 import { WorldArt } from "../shared/WorkspaceArtwork";
 import WorkspaceCharacterSketch from "../shared/WorkspaceCharacterSketch";
@@ -136,6 +138,8 @@ export default function CharacterWizardView({ model: m }) {
   const { c, draft: d, step, busy, pending, currentStep: index } = m,
     locked = !!d.activatedId || !!pending,
     fields = m.previewFields;
+  const resumedStructure = index === 2 && !locked && d.structureDraft?.analysisId === d.analysis?.analysis_id && d.structureDraft?.requestId === d.requestId &&
+    Array.isArray(d.structureDraft?.path) && typeof d.structureDraft?.base === "string" ? d.structureDraft : null;
   const [worldTab, setWorldTab] = useState(
       d.worldSource
         ? "existing"
@@ -147,20 +151,19 @@ export default function CharacterWizardView({ model: m }) {
     ),
     [search, setSearch] = useState(""),
     [newWorldSelected, setNewWorldSelected] = useState(false),
-    [reviewTab, setReviewTab] = useState("identity"),
+    [reviewTab, setReviewTab] = useState(resumedStructure ? (resumedStructure.path[0] === "core_persona" && resumedStructure.path[1] === "life_profile" ? "life" : "relationships") : "identity"),
     [snapshotOpen, setSnapshotOpen] = useState(false),
     [selectedTask, setSelectedTask] = useState(null),
     [skipStage, setSkipStage] = useState(null),
     [resetOpen, setResetOpen] = useState(false),
-    [structured, setStructured] = useState(null),
+    [structured, setStructured] = useState(resumedStructure),
     [structuredError, setStructuredError] = useState("");
   const worldTabChosen = useRef(false),
     taskTrigger = useRef(null),
     skipTrigger = useRef(null),
     snapshotTrigger = useRef(null),
     recoveryTrigger = useRef(null),
-    resetTrigger = useRef(null),
-    structuredTrigger = useRef(null);
+    resetTrigger = useRef(null);
   const worldRadioId = useId();
   const showExistingWorlds = !!d.worldSource || !m.worldsConfirmed ||
     !!m.existingWorldLoading || !!m.existingWorldError || m.existingWorlds.length > 0;
@@ -260,26 +263,27 @@ export default function CharacterWizardView({ model: m }) {
       m.showError("请先应用或还原完整 JSON 修改，再编辑其他结构。");
       return;
     }
-    structuredTrigger.current = event.currentTarget;
-    setStructured({
+    const listFields = new Set(["wardrobe_items", "life_habits", "recurring_commitments", "character_constraints", "relationship_seeds", "initial_relationships", "initial_goals", "initial_intentions"]);
+    const initial = value === undefined ? (listFields.has(path.at(-1)) ? [] : {}) : copy(value);
+    const draft = {
       label,
       path,
-      text: JSON.stringify(
-        value === undefined
-          ? (path[0] === "core_persona" && path.at(-1) !== "wardrobe_items" ? {} : [])
-          : value,
-        null,
-        2,
-      ),
-      kind: Array.isArray(value)
-        ? "array"
-        : value === undefined
-          ? "missing"
-          : value === null
-            ? "null"
-            : typeof value,
+      value: initial,
+      initial: JSON.stringify(initial),
+      missing: value === undefined,
       base: JSON.stringify(definition),
-    });
+      analysisId: d.analysis?.analysis_id,
+      requestId: d.requestId,
+    };
+    d.structureDraft = draft;
+    c.persist();
+    setStructured(draft);
+    setStructuredError("");
+  };
+  const closeStructure = () => {
+    delete d.structureDraft;
+    c.persist();
+    setStructured(null);
     setStructuredError("");
   };
   const setPath = (root, path, value) => {
@@ -288,23 +292,48 @@ export default function CharacterWizardView({ model: m }) {
     at[path.at(-1)] = value;
     return root;
   };
-  const renderStructure = (label, path, value, {compact = false, preview = value} = {}) => (
-    <Surface className="creation-structured" key={path.join(".")}>
+  const renderStructure = (label, path, value, {compact = false, preview = value} = {}) => {
+    const editing = structured && JSON.stringify(structured.path) === JSON.stringify(path);
+    return <Surface className="creation-structured" key={path.join(".")}>
       <div className="creation-section-heading">
         <h2>{label}</h2>
-        <Button
+        {!editing && <Button
           type="button"
           size="sm"
           variant="ghost"
-          disabled={busy || locked || !!definitionError}
+          disabled={busy || locked || !!definitionError || !!structured}
           onClick={(event) => editStructure(event, label, path, value)}
         >
           编辑内容
-        </Button>
+        </Button>}
       </div>
-      <CreationPreviewValue value={preview} field={path.at(-1)} compact={compact} />
-    </Surface>
-  );
+      {editing ? <>
+        <CreationStructureEditor value={structured.value} field={path.at(-1)} disabled={busy || locked}
+          onChange={(next) => {
+            const draft = { ...structured, value: next };
+            d.structureDraft = draft;
+            c.persist();
+            setStructured(draft);
+          }}/>
+        {structuredError && <InlineFeedback role="alert">{structuredError}</InlineFeedback>}
+        <div className="creation-action-row creation-structure-actions">
+          <Button type="button" variant="outline" onClick={closeStructure}>取消</Button>
+          <Button type="button" disabled={busy || locked} onClick={() => {
+            try {
+              if (structured.analysisId !== d.analysis?.analysis_id || structured.requestId !== d.requestId || JSON.stringify(definition) !== structured.base)
+                throw Error("预览设定已变化，请保留输入并重新核对。");
+              if (structured.missing && JSON.stringify(structured.value) === structured.initial) {
+                closeStructure();
+                return;
+              }
+              if (applyDefinition(setPath(copy(definition), structured.path, structured.value),
+                { relationshipInput: structured.path[0] === "initial_relationships" })) closeStructure();
+            } catch (cause) { setStructuredError(cause.message); }
+          }}>应用修改</Button>
+        </div>
+      </> : <CreationPreviewValue value={preview} field={path.at(-1)} compact={compact} />}
+    </Surface>;
+  };
   const personalityDetails = Object.fromEntries(Object.entries(definition?.core_persona?.personality_system || {}).filter(([key, value]) =>
     key !== 'mode' && !(key === 'active_profile_id' && value === 'default') && hasCreationPreviewValue(value)));
   // Core normalizes all creation modes. Owner/stable can be fallbacks, so only
@@ -324,6 +353,7 @@ export default function CharacterWizardView({ model: m }) {
       return true;
     }))) : definition?.initial_relationships;
   const next = () => {
+    if (structured) return;
     if (index === 0) m.canContinue && !(newWorldSelected && canCreateWorld) && c.next();
     else if (index === 1) m.canContinue && c.analyze();
     else if (index === 2) m.canContinue && c.activate();
@@ -398,7 +428,7 @@ export default function CharacterWizardView({ model: m }) {
               (index > i ? " done" : "")
             }
             aria-current={index === i ? "step" : undefined}
-            disabled={busy || locked || i > index || (i === 3 && index < 3)}
+            disabled={busy || locked || !!structured || i > index || (i === 3 && index < 3)}
             onClick={() => m.goStep(i)}
           >
             <span className="creation-step-icon">
@@ -754,7 +784,7 @@ export default function CharacterWizardView({ model: m }) {
                     </Label>
                     <Label className="full-field">
                       角色分组
-                      <ChoiceSelect
+                      <ChoiceSelect contentPosition="popper" contentClassName="creation-select-content"
                         aria-label="角色分组"
                         disabled={m.groupsLoading}
                         value={d.groupId || ""}
@@ -1065,7 +1095,8 @@ export default function CharacterWizardView({ model: m }) {
                           <ProfileField
                             key={JSON.stringify(f.path)}
                             field={f}
-                            disabled={busy || locked}
+                            creation
+                            disabled={busy || locked || !!structured}
                           />
                         ))}
                     </div>
@@ -1085,7 +1116,7 @@ export default function CharacterWizardView({ model: m }) {
                         return (
                           <div className="creation-trait" key={key}>
                             <div>
-                              <strong>{label}</strong>
+                              <strong>{label} <CreationScaleHint field={key} label={label}/></strong>
                               {typeof value === "number" ? (
                                 <span>{value.toFixed(2)}</span>
                               ) : (
@@ -1095,6 +1126,7 @@ export default function CharacterWizardView({ model: m }) {
                                   disabled={
                                     busy ||
                                     locked ||
+                                    !!structured ||
                                     !!definitionError ||
                                     (value !== undefined && value !== null)
                                   }
@@ -1121,6 +1153,7 @@ export default function CharacterWizardView({ model: m }) {
                               disabled={
                                 busy ||
                                 locked ||
+                                !!structured ||
                                 typeof value !== "number" ||
                                 !!definitionError ||
                                 d.previewJsonText !== undefined
@@ -1129,6 +1162,7 @@ export default function CharacterWizardView({ model: m }) {
                                 applyDefinition(setPath(copy(definition),['core_persona','personality',key],v));
                               }}
                             />
+                            <CreationScaleEnds field={key}/>
                           </div>
                         );
                       })}
@@ -1153,7 +1187,7 @@ export default function CharacterWizardView({ model: m }) {
                           if (f.kind === "number" && f.min === 0 && f.max === 1) {
                             const value = f.value === "" ? null : Number(f.value);
                             const hasValue = value !== null && Number.isFinite(value);
-                            const disabled = busy || locked || !!definitionError ||
+                            const disabled = busy || locked || !!structured || !!definitionError ||
                               d.previewJsonText !== undefined;
                             const setValue = (value) => {
                               f.value = value;
@@ -1161,7 +1195,7 @@ export default function CharacterWizardView({ model: m }) {
                             return (
                               <div className="creation-trait" key={key}>
                                 <div>
-                                  <strong>{f.label}</strong>
+                                  <strong>{f.label} <CreationScaleHint field={f.path.at(-1)} label={f.label}/></strong>
                                   {hasValue ? (
                                     <span>{value.toFixed(2)}</span>
                                   ) : (
@@ -1185,6 +1219,7 @@ export default function CharacterWizardView({ model: m }) {
                                   disabled={disabled || !hasValue}
                                   onValueChange={([value]) => setValue(value)}
                                 />
+                                <CreationScaleEnds field={f.path.at(-1)}/>
                               </div>
                             );
                           }
@@ -1192,7 +1227,8 @@ export default function CharacterWizardView({ model: m }) {
                             <ProfileField
                               key={key}
                               field={f}
-                              disabled={busy || locked}
+                              creation
+                              disabled={busy || locked || !!structured}
                             />
                           );
                         })}
@@ -1238,21 +1274,26 @@ export default function CharacterWizardView({ model: m }) {
                     </div>
                     <Label>
                       人格模式
-                      <ChoiceSelect aria-label="人格模式"
+                      <ChoiceSelect aria-label="人格模式" contentPosition="popper" contentClassName="creation-select-content"
                         value={['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) ? definition.core_persona.personality_system.mode : '__recorded'}
-                        disabled={busy || locked || !!definitionError || d.previewJsonText !== undefined || (definition?.core_persona?.personality_system != null && (typeof definition.core_persona.personality_system !== 'object' || Array.isArray(definition.core_persona.personality_system)))}
+                        disabled={busy || locked || !!structured || !!definitionError || d.previewJsonText !== undefined || (definition?.core_persona?.personality_system != null && (typeof definition.core_persona.personality_system !== 'object' || Array.isArray(definition.core_persona.personality_system)))}
                         onChange={event => applyDefinition(setPath(copy(definition), ['core_persona','personality_system','mode'], event.target.value))}>
                         {!['single','multiple'].includes(definition?.core_persona?.personality_system?.mode) && <option value="__recorded">{definition?.core_persona?.personality_system?.mode == null ? '尚未提供' : '自定义模式'}</option>}
                         <option value="single">单一人格</option>
                         <option value="multiple">多重人格</option>
                       </ChoiceSelect>
                     </Label>
-                    {hasCreationPreviewValue(personalityDetails) && renderStructure(
+                    {(definition?.core_persona?.personality_system?.mode === 'multiple' || hasCreationPreviewValue(personalityDetails) || structured?.path?.join('.') === 'core_persona.personality_system') && renderStructure(
                       "人格档案与切换规则",
                       ["core_persona", "personality_system"],
                       definition?.core_persona?.personality_system,
                       {compact: true, preview: personalityDetails},
                     )}
+                    {definition?.core_persona?.personality_system?.mode !== 'multiple' && !hasCreationPreviewValue(personalityDetails) && !structured &&
+                      <Button type="button" variant="outline" disabled={busy || locked || !!definitionError}
+                        onClick={(event) => editStructure(event, "人格档案与切换规则", ["core_persona", "personality_system"], definition?.core_persona?.personality_system)}>
+                        添加人格档案与切换规则
+                      </Button>}
                     {[
                       ["initial_relationships", "初始关系"],
                       ["initial_goals", "初始目标"],
@@ -1289,6 +1330,7 @@ export default function CharacterWizardView({ model: m }) {
                   <div className="creation-stack">
                     <WorkspaceInfo>
                       这是本次预览的完整嵌套设定。未知扩展保留，分析来源由原记录维护。明确应用后同步各主题。
+                      {structured && "当前分组有未应用的修改，请先返回该分组应用或取消。"}
                     </WorkspaceInfo>
                     <Label>
                       完整设定 JSON
@@ -1297,7 +1339,7 @@ export default function CharacterWizardView({ model: m }) {
                         aria-label="完整设定 JSON"
                         rows={16}
                         spellCheck={false}
-                        disabled={busy || locked || !!definitionError}
+                        disabled={busy || locked || !!structured || !!definitionError}
                         value={
                           d.previewJsonText ??
                           JSON.stringify(definition, null, 2)
@@ -1315,6 +1357,7 @@ export default function CharacterWizardView({ model: m }) {
                         variant="outline"
                         disabled={
                           busy ||
+                          !!structured ||
                           locked ||
                           d.previewJsonText === undefined ||
                           !!definitionError
@@ -1339,7 +1382,7 @@ export default function CharacterWizardView({ model: m }) {
                       </Button>
                       <Button
                         variant="ghost"
-                        disabled={busy || locked}
+                        disabled={busy || locked || !!structured}
                         onClick={() => {
                           delete d.previewJsonText;
                           delete d.previewJsonBase;
@@ -1628,7 +1671,7 @@ export default function CharacterWizardView({ model: m }) {
               草稿自动保留
             </span>
             <small>
-              {index === 2
+              {structured ? "分组修改已保留，请先应用或取消。" : index === 2
                 ? "确认后将创建角色，并开始准备生活。"
                 : "返回与切换页面，保留这次输入。"}
             </small>
@@ -1637,7 +1680,7 @@ export default function CharacterWizardView({ model: m }) {
             {index > 0 && (
               <Button
                 variant="outline"
-                disabled={busy || locked}
+                disabled={busy || locked || !!structured}
                 onClick={back}
               >
                 <ArrowLeft size={15} />
@@ -1649,6 +1692,7 @@ export default function CharacterWizardView({ model: m }) {
               disabled={
                 busy ||
                 locked ||
+                !!structured ||
                 !m.canContinue ||
                 (index === 0 && newWorldSelected && canCreateWorld) ||
                 (index === 1 &&
@@ -1794,71 +1838,6 @@ export default function CharacterWizardView({ model: m }) {
         }
       >
         <p>可以稍后从原角色的初始化进度继续核对。</p>
-      </WorkspaceDialog>
-      <WorkspaceDialog
-        open={!!structured}
-        onOpenChange={(open) => {
-          if (!open) setStructured(null);
-        }}
-        title={"编辑" + (structured?.label || "内容")}
-        description="保留原数据类型、完整结构与未知扩展。"
-        className="replica-creation"
-        returnFocus={() => structuredTrigger.current}
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setStructured(null)}>
-              取消
-            </Button>
-            <Button
-              disabled={busy || locked}
-              onClick={() => {
-                try {
-                  if (JSON.stringify(definition) !== structured.base)
-                    throw Error("预览设定已变化，请保留输入并重新核对。");
-                  const value = JSON.parse(structured.text);
-                  if (
-                    (structured.kind === "array" && !Array.isArray(value)) ||
-                    (structured.kind === "object" &&
-                      (value === null ||
-                        typeof value !== "object" ||
-                        Array.isArray(value))) ||
-                    (structured.kind === "null" && value !== null) ||
-                    (!["array", "object", "missing", "null"].includes(
-                      structured.kind,
-                    ) &&
-                      typeof value !== structured.kind)
-                  )
-                    throw Error("请保留原数据类型。");
-                  if (
-                    applyDefinition(
-                      setPath(copy(definition), structured.path, value),
-                      {relationshipInput: structured.path[0] === 'initial_relationships'},
-                    )
-                  )
-                    setStructured(null);
-                } catch (cause) {
-                  setStructuredError(cause.message);
-                }
-              }}
-            >
-              应用修改
-            </Button>
-          </>
-        }
-      >
-        <Textarea
-          aria-label={"编辑" + (structured?.label || "内容")}
-          className="creation-json"
-          rows={13}
-          spellCheck={false}
-          value={structured?.text || ""}
-          onChange={(e) =>
-            setStructured({ ...structured, text: e.target.value })
-          }
-        />
-        {structuredError && (
-          <InlineFeedback role="alert">{structuredError}</InlineFeedback>
-        )}
       </WorkspaceDialog>
     </div>
   );

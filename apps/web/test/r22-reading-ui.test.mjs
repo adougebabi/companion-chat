@@ -105,7 +105,8 @@ test('r22 A3 single persona omits empty default blocks and inferred relationship
     assert.match(persona.textContent,/0/);assert.match(persona.textContent,/否/);
     assert.doesNotMatch(card(v,'初始关系').textContent,/关系对象|趋势/,'unrelated edits do not adopt inferred relationship facts');
     await v.click(button(card(v,'初始关系'),'编辑内容'));
-    await v.click(button(document.querySelector('[role=dialog]'),'应用修改'));
+    assert.equal(document.querySelector('[role=dialog]'),null);
+    await v.click(button(card(v,'初始关系'),'应用修改'));
     assert.match(card(v,'初始关系').textContent,/关系对象你/,'explicit relationship document remains visible');
     assert.deepEqual(f.c.previewDefinition(),next);
   } finally {await v.dispose();f.c.dispose();}
@@ -130,9 +131,9 @@ for (const mode of ['description','template']) test(`r22 A3 ${mode} preview keep
     assert.equal(JSON.stringify(f.c.previewDefinition()),before,'reading never changes the normalized command source');
     if(mode==='description') {
       await v.click(button(card(v,'初始关系'),'编辑内容'));
-      const editor=document.querySelector('[role=dialog]');
-      assert.match(editor.querySelector('textarea').value,/"target_actor_id": "owner"/);
-      assert.match(editor.querySelector('textarea').value,/"trend": "stable"/);
+      const editor=card(v,'初始关系');
+      assert.match(editor.querySelector('[aria-label="关系对象"]').textContent,/你/);
+      assert.equal(editor.querySelector('[aria-label="趋势"]').value,'stable');
       await v.click(button(editor,'应用修改'));
     } else {
       await tab(v,'完整设定');

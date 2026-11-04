@@ -1,0 +1,108 @@
+{
+  "id": "initialization-review-experience",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "b058ad2d0fde1794c2345cde341c1cc4e6c253b1b8e82aa190eed4f20b58193f",
+  "completed": "2026-11-04T08:22:53.665854Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "web-initialization",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "870e101d8b592471a8532a9294937e45faad9dff28e71c05872f3cf07569f04e",
+      "at": "2026-11-04T08:20:00.801597Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-0bcb2cd0c362a70a52bb.log": "aa2962a9c7a8aefadd177440e9ed62d0444f08f1a6641a880cba476e6f69fe32"
+      }
+    },
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "53a7c569e670d6731e77702ab128bbe2f86235b78d211aad23fc0f1d05d1bbb8",
+      "at": "2026-11-04T08:20:40.891165Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-ca9e0f0c3ee30f350cb8.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "4c642cff77f8b473f745f06d5f734dc7900e59028b9e0d596a1ed721bff146f6",
+      "at": "2026-11-04T08:21:22.731454Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-d99897e2e86d2fc2b49c.log": "3302e11c4de1d5e66f81f21c9a9ba2aca2d6351602ced01b6684905c3a4e28bc"
+      }
+    },
+    {
+      "id": "initialization-ui",
+      "result": "pass",
+      "source": "scenario:codex-initialization-review",
+      "config_hash": "47fac57c56ee42caac0ebe75e4aa166384536718eff537f30b7e8e9c9651fe11",
+      "at": "2026-11-04T08:22:05.794247Z",
+      "artifact_hashes": {
+        ".v3-regression/initialization-review/desktop-editor.jpg": "68b781cf5e1c33e0ec17d6318c7b0bb657be8b4449caea5ecdc0d8875f5ffef3",
+        ".v3-regression/initialization-review/desktop-select.jpg": "166ae238905a7730022617939b9f18cad2612a60df23cb595989b052b2801bac",
+        ".v3-regression/initialization-review/mobile-select.jpg": "1d562705208fb9ac2fdfddeabd449cfc6c549556d7cdd9e97c60ebdb52850fc5",
+        ".v3-regression/initialization-review/mobile-traits.jpg": "aeda74d2386aea7bf95edaf21426cce84c12143df54399f56c4f81cb578c9be6",
+        ".v3-regression/initialization-review/verification.md": "22d62baabdec41a988a079bb8094494b86cf30c3445fc1d1dcbe742c768230d9",
+        "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+        "apps/web/src/approved-ui/profile-fields.mjs": "deedd1758ea16d800a69da2acc082d0fce497fd25942ccef08b21103e1db1083",
+        "apps/web/src/react-app/controls.tsx": "c0e06352eac98e2161d4f47361b9cec88f8098216b45ee52268575aabd795f40",
+        "apps/web/src/react-app/shared/CreationScaleHint.jsx": "a90214a7dc68c88782425f0e6724427fb52a4ef798c6c1aee884e33c1172d5ed",
+        "apps/web/src/react-app/shared/CreationStructureEditor.jsx": "368e4e906f05652a0c3347a4aa596db78463c91910f0da1bb954acea95d91a59",
+        "apps/web/src/react-app/shared/ProfileField.tsx": "769e1531d5630f11708124abb0237c9e0e1124ddc336e1edc35a6041d6c89472",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "d85dfb357b562a20c7a841c1a1ebaa5b8133a4bc0f16bafbddab3f8f1b9a14f4",
+        "apps/web/src/styles/replica-creation.css": "e88dcb34452457b3638ec11d5f2716eb71106b78e6b64f0af166f40350230508"
+      }
+    },
+    {
+      "id": "ui",
+      "result": "pass",
+      "source": "scenario:codex-initialization-review",
+      "config_hash": "99d8205beba64070206041794aa383d7dcf2b5a2ada22207362d0b43ff70ceee",
+      "at": "2026-11-04T08:22:27.77733Z",
+      "artifact_hashes": {
+        ".v3-regression/initialization-review/desktop-editor.jpg": "68b781cf5e1c33e0ec17d6318c7b0bb657be8b4449caea5ecdc0d8875f5ffef3",
+        ".v3-regression/initialization-review/desktop-select.jpg": "166ae238905a7730022617939b9f18cad2612a60df23cb595989b052b2801bac",
+        ".v3-regression/initialization-review/mobile-select.jpg": "1d562705208fb9ac2fdfddeabd449cfc6c549556d7cdd9e97c60ebdb52850fc5",
+        ".v3-regression/initialization-review/mobile-traits.jpg": "aeda74d2386aea7bf95edaf21426cce84c12143df54399f56c4f81cb578c9be6",
+        ".v3-regression/initialization-review/verification.md": "22d62baabdec41a988a079bb8094494b86cf30c3445fc1d1dcbe742c768230d9",
+        "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+        "apps/web/src/approved-ui/profile-fields.mjs": "deedd1758ea16d800a69da2acc082d0fce497fd25942ccef08b21103e1db1083",
+        "apps/web/src/react-app/controls.tsx": "c0e06352eac98e2161d4f47361b9cec88f8098216b45ee52268575aabd795f40",
+        "apps/web/src/react-app/shared/CreationScaleHint.jsx": "a90214a7dc68c88782425f0e6724427fb52a4ef798c6c1aee884e33c1172d5ed",
+        "apps/web/src/react-app/shared/CreationStructureEditor.jsx": "368e4e906f05652a0c3347a4aa596db78463c91910f0da1bb954acea95d91a59",
+        "apps/web/src/react-app/shared/ProfileField.tsx": "769e1531d5630f11708124abb0237c9e0e1124ddc336e1edc35a6041d6c89472",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "d85dfb357b562a20c7a841c1a1ebaa5b8133a4bc0f16bafbddab3f8f1b9a14f4",
+        "apps/web/src/styles/replica-creation.css": "e88dcb34452457b3638ec11d5f2716eb71106b78e6b64f0af166f40350230508"
+      }
+    },
+    {
+      "id": "ux",
+      "result": "pass",
+      "source": "scenario:codex-initialization-review",
+      "config_hash": "19a6588090a54709839005142b80659751e2797d1d088584f4e948d600ce6113",
+      "at": "2026-11-04T08:22:49.127145Z",
+      "artifact_hashes": {
+        ".v3-regression/initialization-review/desktop-editor.jpg": "68b781cf5e1c33e0ec17d6318c7b0bb657be8b4449caea5ecdc0d8875f5ffef3",
+        ".v3-regression/initialization-review/desktop-select.jpg": "166ae238905a7730022617939b9f18cad2612a60df23cb595989b052b2801bac",
+        ".v3-regression/initialization-review/mobile-select.jpg": "1d562705208fb9ac2fdfddeabd449cfc6c549556d7cdd9e97c60ebdb52850fc5",
+        ".v3-regression/initialization-review/mobile-traits.jpg": "aeda74d2386aea7bf95edaf21426cce84c12143df54399f56c4f81cb578c9be6",
+        ".v3-regression/initialization-review/verification.md": "22d62baabdec41a988a079bb8094494b86cf30c3445fc1d1dcbe742c768230d9",
+        "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+        "apps/web/src/approved-ui/profile-fields.mjs": "deedd1758ea16d800a69da2acc082d0fce497fd25942ccef08b21103e1db1083",
+        "apps/web/src/react-app/controls.tsx": "c0e06352eac98e2161d4f47361b9cec88f8098216b45ee52268575aabd795f40",
+        "apps/web/src/react-app/shared/CreationScaleHint.jsx": "a90214a7dc68c88782425f0e6724427fb52a4ef798c6c1aee884e33c1172d5ed",
+        "apps/web/src/react-app/shared/CreationStructureEditor.jsx": "368e4e906f05652a0c3347a4aa596db78463c91910f0da1bb954acea95d91a59",
+        "apps/web/src/react-app/shared/ProfileField.tsx": "769e1531d5630f11708124abb0237c9e0e1124ddc336e1edc35a6041d6c89472",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "d85dfb357b562a20c7a841c1a1ebaa5b8133a4bc0f16bafbddab3f8f1b9a14f4",
+        "apps/web/src/styles/replica-creation.css": "e88dcb34452457b3638ec11d5f2716eb71106b78e6b64f0af166f40350230508"
+      }
+    }
+  ]
+}

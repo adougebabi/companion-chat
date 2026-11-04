@@ -16,6 +16,36 @@ test('profile text controls stay mounted and focused crossing 80 characters in e
  function View(){return useController((_p,_e,c)=>{field=c.model({path:['identity','occupation'],kind:'text',label:'职业',value:'a'.repeat(80)});return()=>React.createElement(ProfileField,{field});},{});}
  const v=await mountReact(vite,View,{workspace});try{const input=v.host.querySelector('input');input.focus();await v.input(input,'a'.repeat(81));assert.equal(v.host.querySelector('input'),input);assert.equal(document.activeElement,input);assert.equal(input.value.length,81);await v.input(input,'a'.repeat(79));assert.equal(v.host.querySelector('input'),input);assert.equal(document.activeElement,input);field.value='外部更新';await v.flush();assert.equal(input.value,'外部更新');}finally{await v.dispose();}
 });
+test('gender select follows external preview changes and retains aliases and custom text',async()=>{
+ let field;
+ function View(){return useController((_p,_e,c)=>{field=c.model({path:['identity','gender'],kind:'text',label:'性别',value:'自定义身份'});return()=>React.createElement(ProfileField,{field});},{});}
+ const v=await mountReact(vite,View,{workspace});
+ try {
+  const select=()=>v.host.querySelector('[role=combobox][aria-label="性别"]');
+  assert.match(select().textContent,/自定义/);assert.equal(v.host.querySelector('[aria-label="自定义性别"]').value,'自定义身份');
+  for(const [value,label] of [['female','女'],['male','男'],[' Female ','女'],['女性','女'],['nonbinary','非二元']]){
+   field.value=value;await v.flush();assert.equal(select().textContent.trim(),label);assert.equal(v.host.querySelector('[aria-label="自定义性别"]'),null);assert.equal(field.value,value);
+  }
+  await v.click(select());await v.click([...document.querySelectorAll('[role=option]')].find(n=>n.textContent==='自定义'));
+  await v.input(v.host.querySelector('[aria-label="自定义性别"]'),'双性');assert.equal(field.value,'双性');
+  field.value='female';await v.flush();assert.equal(select().textContent.trim(),'女');assert.equal(v.host.querySelector('[aria-label="自定义性别"]'),null);
+  field.value='';await v.flush();assert.match(select().textContent,/尚未填写/);
+ } finally {await v.dispose();}
+});
+test('short expression choices use Select and retain existing or newly written custom values',async()=>{
+ let field;
+ function View(){return useController((_p,_e,c)=>{field=c.model({path:['behavioral_policy','response_style'],kind:'text',label:'回复风格',value:'诗意'});return()=>React.createElement(ProfileField,{field});},{});}
+ const v=await mountReact(vite,View,{workspace});
+ try {
+  const select=()=>v.host.querySelector('[aria-label="回复风格"]');
+  assert.equal(select().dataset.slot,'select-trigger');assert.match(select().textContent,/自定义/);assert.equal(v.host.querySelector('[aria-label="自定义回复风格"]').value,'诗意');
+  await v.click(select());await v.click([...document.querySelectorAll('[role=option]')].find(n=>n.textContent==='温和细腻'));
+  assert.equal(field.value,'温和细腻');assert.equal(v.host.querySelector('[aria-label="自定义回复风格"]'),null);
+  await v.click(select());await v.click([...document.querySelectorAll('[role=option]')].find(n=>n.textContent==='自定义'));
+  await v.input(v.host.querySelector('[aria-label="自定义回复风格"]'),'简练而有趣');assert.equal(field.value,'简练而有趣');
+  field.value='简洁直接';await v.flush();assert.equal(select().textContent.trim(),'简洁直接');
+ } finally {await v.dispose();}
+});
 test('controller inputs preserve the immediate native value and composition across background notifications',async()=>{
  for(const Component of [FieldInput,Textarea]){
   let cell,background;

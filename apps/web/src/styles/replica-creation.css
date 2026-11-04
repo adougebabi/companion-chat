@@ -741,6 +741,73 @@
   height: 12px;
   border-width: 1px;
 }
+.replica-creation .creation-trait strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.replica-creation .creation-trait .creation-scale-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-ink);
+  cursor: help;
+}
+.replica-creation .creation-trait .creation-scale-info:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.replica-creation .creation-trait > .creation-scale-ends {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.replica-creation .creation-trait .creation-scale-ends span {
+  font-size: 11px;
+  color: var(--muted-ink);
+}
+.replica-creation .creation-scale-ends span:last-child { text-align: right; }
+.replica-creation .creation-structure-editor,
+.replica-creation .creation-structure-fields,
+.replica-creation .creation-structure-list,
+.replica-creation .creation-structure-field {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+.replica-creation .creation-structure-item {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+}
+.replica-creation .creation-structure-item legend { padding: 0 4px; color: var(--muted-ink); }
+.replica-creation .creation-structure-item > button { justify-self: start; }
+.replica-creation .creation-structure-add,
+.replica-creation .creation-structure-custom {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.replica-creation .creation-structure-add > span { flex: 1 1 180px; }
+.replica-creation .creation-structure-custom > label { flex: 1 1 180px; }
+.replica-creation .creation-structure-actions { margin-top: 16px; }
+@media (max-width: 640px) {
+  .replica-creation .creation-traits-grid { grid-template-columns: 1fr; }
+  .replica-creation .creation-trait strong { font-size: 12px; }
+  .replica-creation .creation-trait .creation-scale-ends span { font-size: 12px; }
+  .replica-creation .creation-trait .creation-scale-info { min-width: 40px; min-height: 40px; }
+}
 .replica-creation .creation-structured {
   padding: 16px;
   border-radius: 8px;
@@ -1325,6 +1392,41 @@
   background: #fff;
   font-size: 12px;
 }
+.replica-creation [data-slot="select-trigger"] {
+  padding-inline: 12px;
+  border-color: #dce4d7;
+  border-radius: 8px;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(43 58 35 / 4%);
+}
+.replica-creation [data-slot="select-trigger"]:hover:not(:disabled) {
+  border-color: #a9b99c;
+}
+/* Select content is portalled, so it needs its own creation-specific class. */
+.creation-select-content[data-slot="select-content"] {
+  width: var(--radix-select-trigger-width);
+  max-width: calc(100vw - 32px);
+  border: 1px solid #e2e7de;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgb(43 58 35 / 12%);
+}
+.creation-select-content [data-slot="select-viewport"] {
+  height: auto;
+  min-width: 0;
+  padding: 4px;
+}
+.creation-select-content [data-slot="select-item"] {
+  min-height: 36px;
+  padding: 8px 32px 8px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.creation-select-content [data-slot="select-item"][data-highlighted] {
+  background: #f1f5ed;
+}
 .replica-creation .creation-footer .creation-action-row > [data-slot="button"] {
   height: 36px;
   min-height: 36px;
@@ -1343,6 +1445,7 @@
     height: 44px;
     min-height: 44px;
   }
+  .creation-select-content [data-slot="select-item"] { min-height: 44px; }
   .replica-creation
     .creation-footer
     .creation-action-row
