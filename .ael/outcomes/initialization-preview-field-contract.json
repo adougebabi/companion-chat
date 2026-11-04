@@ -1,0 +1,32 @@
+{
+  "id": "initialization-preview-field-contract",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "35529ab684abad844102a42cc93dcf170fba6640ef3e3a9c5874e6b0ab86af04",
+  "completed": "2026-11-04T07:29:05.085811Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "core-preview-contract",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "15e7af998545701d26bbc6201714ca6a70873bb922d9f5e67f44d7b45972363b",
+      "at": "2026-11-04T07:27:57.128224Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-49fd3496e4670f75d1ec.log": "ebe363deda60874bec5be4507e690aad86e70c472150ccf251e8858eda83c1e2"
+      }
+    },
+    {
+      "id": "web-preview",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "ffc4503b4e892f1f1da3f0bc4cc0607e6b0c81433f8738fc416908c3a56c5ff4",
+      "at": "2026-11-04T07:28:40.573524Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-32f8c48f031ab010887c.log": "3b5dd40d00a3db5208bb5ffabff410a4b83299ecb0045438b12531eb6778c6e6"
+      }
+    }
+  ]
+}

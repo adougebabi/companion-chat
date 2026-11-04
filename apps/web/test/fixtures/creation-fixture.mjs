@@ -50,18 +50,21 @@ export function creationHttpFixture({
       life_profile: {
         life_habits: "空闲时阅读与绘画。",
         preferences: { likes: ["水彩", "旧书"], dislikes: [], custom: false },
-        appearance: { description: "外貌留待明确的视觉定义。" },
+        appearance: {
+          description: "外貌留待明确的视觉定义。",
+          wardrobe_items: [
+            {
+              description: "亚麻衬衫",
+              category: "top",
+              slot: "upper_body",
+              ownership: "owned",
+              available: true,
+              currently_worn: false,
+              custom: { keep: true },
+            },
+          ],
+        },
         recurring_commitments: [],
-        wardrobe_items: [
-          {
-            description: "亚麻衬衫",
-            category: "top",
-            slot: "upper_body",
-            ownership: "owned",
-            currently_worn: false,
-            custom: { keep: true },
-          },
-        ],
       },
       personality_system: { mode: "single", profiles: [] },
     },

@@ -265,7 +265,9 @@ export default function CharacterWizardView({ model: m }) {
       label,
       path,
       text: JSON.stringify(
-        value === undefined ? (path[0] === "core_persona" ? {} : []) : value,
+        value === undefined
+          ? (path[0] === "core_persona" && path.at(-1) !== "wardrobe_items" ? {} : [])
+          : value,
         null,
         2,
       ),
@@ -1203,13 +1205,19 @@ export default function CharacterWizardView({ model: m }) {
                       <h2>生活有自己的纹理</h2>
                       <p>偏好、日常约定和初始衣物，保留各自完整结构。</p>
                     </div>
-                    {Object.entries(lifeFields).map(([key, label]) =>
-                      renderStructure(
-                        label,
-                        ["core_persona", "life_profile", key],
-                        definition?.core_persona?.life_profile?.[key],
-                      ),
-                    )}
+                    {Object.entries(lifeFields).map(([key, label]) => {
+                      const life = definition?.core_persona?.life_profile;
+                      // Initialization stores wardrobe items under appearance.
+                      // Keep an existing legacy root value editable if that is
+                      // the only location present in a retained preview.
+                      const appearanceWardrobe = key === "wardrobe_items" &&
+                        (Object.hasOwn(life?.appearance || {}, key) || !Object.hasOwn(life || {}, key));
+                      const path = appearanceWardrobe
+                        ? ["core_persona", "life_profile", "appearance", key]
+                        : ["core_persona", "life_profile", key];
+                      const value = appearanceWardrobe ? life?.appearance?.[key] : life?.[key];
+                      return renderStructure(label, path, value);
+                    })}
                     {definition?.core_persona?.life_profile &&
                       Object.keys(definition.core_persona.life_profile)
                         .filter((k) => !Object.hasOwn(lifeFields, k))

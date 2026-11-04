@@ -294,3 +294,49 @@ test('r21 personality mode edits use the original preview update and preserve nu
     assert.deepEqual(after.initial_relationships,definition.initial_relationships);
   } finally {await f.v.dispose();f.c.dispose();}
 });
+
+test('initial wardrobe preview reads and edits the canonical appearance items without changing other facts', async () => {
+  const f = await preview();
+  try {
+    const definition = f.c.previewDefinition();
+    definition.core_persona.life_profile.appearance = {
+      description: '黑色长发',
+      wardrobe_items: [{category:'upper', slot:'shirt', description:'白衬衫', ownership:'owned', available:true, currently_worn:false}],
+    };
+    definition.core_persona.life_profile.social_background = {family:'教师家庭'};
+    f.c.updatePreviewDefinition(definition);
+    await selectTab(f, '生活设定');
+    const wardrobe = [...f.v.host.querySelectorAll('.creation-structured')].find(n => n.querySelector('h2')?.textContent === '初始衣物');
+    assert.match(wardrobe.textContent, /白衬衫/);
+    await f.v.click(button(wardrobe, '编辑内容'));
+    const items = JSON.parse(dialog().querySelector('textarea').value);
+    assert.equal(items[0].currently_worn, false);
+    items[0].description = '白色亚麻衬衫';
+    await f.v.input(dialog().querySelector('textarea'), JSON.stringify(items));
+    await f.v.click(button(dialog(), '应用修改'));
+    const after = f.c.previewDefinition().core_persona.life_profile;
+    assert.equal(after.appearance.wardrobe_items[0].description, '白色亚麻衬衫');
+    assert.equal(after.appearance.wardrobe_items[0].currently_worn, false);
+    assert.equal(after.appearance.description, '黑色长发');
+    assert.deepEqual(after.social_background, {family:'教师家庭'});
+    assert.deepEqual(after.wardrobe_items, []);
+  } finally {await f.v.dispose(); f.c.dispose();}
+});
+
+test('missing initial wardrobe opens an empty array without adding it when cancelled', async () => {
+  const f = await preview();
+  try {
+    const definition = f.c.previewDefinition();
+    delete definition.core_persona.life_profile.wardrobe_items;
+    definition.core_persona.life_profile.appearance = {description:'黑色长发'};
+    f.c.updatePreviewDefinition(definition);
+    const before = JSON.stringify(f.c.previewDefinition());
+    await selectTab(f, '生活设定');
+    const wardrobe = [...f.v.host.querySelectorAll('.creation-structured')].find(n => n.querySelector('h2')?.textContent === '初始衣物');
+    assert.match(wardrobe.textContent, /尚未记录/);
+    await f.v.click(button(wardrobe, '编辑内容'));
+    assert.deepEqual(JSON.parse(dialog().querySelector('textarea').value), []);
+    await f.v.click(button(dialog(), '取消'));
+    assert.equal(JSON.stringify(f.c.previewDefinition()), before);
+  } finally {await f.v.dispose(); f.c.dispose();}
+});
