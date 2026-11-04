@@ -193,6 +193,100 @@ test("legacy creation without a local world checkpoint exposes meeting after act
   }
 });
 
+test("preparation actions use a keyboard menu and preserve actions and dialog focus", async () => {
+  const f = await preview();
+  let refreshes = 0;
+  try {
+    f.c.draft.activatedId = "created /角色";
+    f.c.refreshProgress = async () => { refreshes++; };
+    const model = {
+      ...f.m,
+      step: "progress",
+      currentStep: 3,
+      progress: { complete: false, stages: [] },
+    };
+    await f.v.update({ model });
+    const actions = f.v.host.querySelector(".creation-progress-actions");
+    const trigger = button(actions, "更多准备操作");
+    const openMenu = async () => {
+      await act(async () => trigger.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true })));
+      await f.v.flush();
+      return document.querySelector("[role=menu]");
+    };
+    assert.equal(actions.querySelector('a[href="#/library"]').textContent, "保留进度，返回角色库");
+    assert.equal(document.querySelector("[role=menu]"), null);
+    let menu = await openMenu();
+    assert.ok(menu);
+    assert.deepEqual([...menu.querySelectorAll("[role=menuitem]")].map(item => item.textContent), ["重新读取进度", "角色详情", "开启另一段相识"]);
+    assert.equal(menu.querySelector('a[role=menuitem]').getAttribute("href"), "#/c/created%20%2F%E8%A7%92%E8%89%B2/profile");
+    await f.v.click(menu.querySelector("[role=menuitem]"));
+    assert.equal(refreshes, 1);
+    assert.equal(document.querySelector("[role=menu]"), null);
+
+    menu = await openMenu();
+    await f.v.click([...menu.querySelectorAll("[role=menuitem]")].find(item => item.textContent === "开启另一段相识"));
+    assert.match(dialog().textContent, /开启另一段新的相识/);
+    assert.ok(dialog().contains(document.activeElement));
+    await f.v.click(button(dialog(), "取消"));
+    assert.equal(dialog(), undefined);
+    assert.equal(document.activeElement, trigger);
+
+    const snapshot = button(actions, "查看创建资料");
+    await f.v.click(snapshot);
+    assert.match(dialog().textContent, /这次相遇的起点/);
+    await act(async () => document.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    await f.v.flush();
+    assert.equal(dialog(), undefined);
+    assert.equal(document.activeElement, snapshot);
+  } finally {
+    await f.v.dispose();
+    f.c.dispose();
+  }
+});
+
+test("preparation menu retains disabled and hidden action conditions", async () => {
+  const f = await preview();
+  try {
+    const model = { ...f.m, step: "progress", currentStep: 3, progress: { complete: false, stages: [] } };
+    const openMenu = async () => {
+      const trigger = button(f.v.host, "更多准备操作");
+      await act(async () => trigger.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true, button: 0 })));
+      await f.v.flush();
+      return document.querySelector("[role=menu]");
+    };
+    const closeMenu = async () => {
+      await act(async () => document.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+      await f.v.flush();
+    };
+    await f.v.update({ model });
+    let menu = await openMenu();
+    assert.deepEqual([...menu.querySelectorAll("[role=menuitem]")].map(item => item.textContent), ["重新读取进度"]);
+    assert.equal(menu.querySelector("[role=menuitem]").getAttribute("aria-disabled"), "true");
+    await closeMenu();
+
+    f.c.draft.activatedId = "created";
+    await f.v.update({ model: { ...model, busy: true } });
+    menu = await openMenu();
+    assert.equal(menu.querySelector("[role=menuitem]").getAttribute("aria-disabled"), "true");
+    assert.equal([...menu.querySelectorAll("[role=menuitem]")].at(-1).getAttribute("aria-disabled"), "true");
+    await closeMenu();
+
+    f.c.archived = true;
+    await f.v.update({ model: { ...model, busy: false } });
+    menu = await openMenu();
+    assert.deepEqual([...menu.querySelectorAll("[role=menuitem]")].map(item => item.textContent), ["重新读取进度", "角色详情"]);
+    await closeMenu();
+
+    f.c.archived = false;
+    await f.v.update({ model: { ...model, pending: { value: {} } } });
+    menu = await openMenu();
+    assert.deepEqual([...menu.querySelectorAll("[role=menuitem]")].map(item => item.textContent), ["重新读取进度", "角色详情"]);
+  } finally {
+    await f.v.dispose();
+    f.c.dispose();
+  }
+});
+
 test("retrying an unreadable publication page retains its original cursor and updates existing cards without appending duplicates", async () => {
   const { proxy, snapshot, subscribe } = await import("valtio/vanilla"),
     { default: Page } = await vite.ssrLoadModule(

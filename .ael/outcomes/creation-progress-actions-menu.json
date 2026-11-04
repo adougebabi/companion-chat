@@ -1,0 +1,58 @@
+{
+  "id": "creation-progress-actions-menu",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+  "completed": "2026-11-04T08:58:59.457692Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "creation-ui-tests",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "82e4cddf539fce754207081fcea283d5440b711ec30ac31bab9db86ce0130204",
+      "at": "2026-11-04T08:56:44.473592Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-3060701de876cc327d6c.log": "1d952b9fdc5617aa9c40e58aa77dba6e811591e070495d8526166241396d1044"
+      }
+    },
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "1feb063108e34890e6644d9686e003b1db34f5e664f333306d6ad0847abcfffb",
+      "at": "2026-11-04T08:57:13.2495Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-4fa189f4816348edce37.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "7a5256f6f1eb9ea2d564369f2fc9199750a0b122cf8afac8d157e703eb0b74a5",
+      "at": "2026-11-04T08:57:51.517644Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-85e446f460af13f00814.log": "55478dfa6a3df944c45995797ced8505ed73f95310ee08d1e8302fa97729c404"
+      }
+    },
+    {
+      "id": "creation-actions-ui",
+      "result": "pass",
+      "source": "scenario:codex-creation-menu",
+      "config_hash": "5bf62bb19e004c7de5f6c165b0e888a980c0911888ae56b45309623624e00ecf",
+      "at": "2026-11-04T08:58:54.994115Z",
+      "artifact_hashes": {
+        "apps/web/src/components/ui/dropdown-menu.tsx": "ad5093fd8863d8f006530ba38c5d95950c12781b0035b9417b03e295e4f5cfd3",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "9fa120c2b6b94cbd5bca1f0fcf1c331d18abba944b68152e84bc11b4e00b927b",
+        "apps/web/src/styles/replica-creation.css": "1a8add40f1954691787590a581081e21c7d91c3572cb9335e79ada755339fb5d",
+        "apps/web/test/demo-replica-creation-ui.test.mjs": "25b6dac5e4c20b3b50369f0ede4753268736d2c4c1650ffd73251b6e4ce3683f",
+        "runtime:artifacts/creation-progress-actions-menu/creation-actions-desktop.jpg": "71c1035a44f10be6e1e8f34cc3f510379c564b5ad55d80f17c108951ea0af746",
+        "runtime:artifacts/creation-progress-actions-menu/creation-actions-mobile.jpg": "acaff5b9cc6e3edd80596a6fb0ed5fdab65b421fb72249f0c4391a741baeea39",
+        "runtime:artifacts/creation-progress-actions-menu/creation-actions-verification.md": "f73026b551c7ea1d4f2480c206f71dd50bc8a9153688d47f3e1c6dec0fbd16ec"
+      }
+    }
+  ]
+}

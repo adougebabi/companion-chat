@@ -5,6 +5,7 @@ import {
   BookOpen,
   Braces,
   Check,
+  ChevronDown,
   ChevronRight,
   FilePlus2,
   Globe2,
@@ -21,6 +22,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -163,7 +170,8 @@ export default function CharacterWizardView({ model: m }) {
     skipTrigger = useRef(null),
     snapshotTrigger = useRef(null),
     recoveryTrigger = useRef(null),
-    resetTrigger = useRef(null);
+    resetTrigger = useRef(null),
+    resetOpeningFromMenu = useRef(false);
   const worldRadioId = useId();
   const showExistingWorlds = !!d.worldSource || !m.worldsConfirmed ||
     !!m.existingWorldLoading || !!m.existingWorldError || m.existingWorlds.length > 0;
@@ -1574,40 +1582,53 @@ export default function CharacterWizardView({ model: m }) {
                 <Button variant="ghost" asChild>
                   <a href="#/library">保留进度，返回角色库</a>
                 </Button>
-                <Disclosure title="更多准备操作">
-                  <div className="creation-action-row">
-                <Button
-                  variant="outline"
-                  disabled={busy || !d.activatedId}
-                  onClick={() => void c.refreshProgress()}
-                >
-                  重新读取进度
-                </Button>
-                {d.activatedId && (
-                  <Button variant="ghost" asChild>
-                    <a
-                      href={
-                        "#/c/" + encodeURIComponent(d.activatedId) + "/profile"
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button ref={resetTrigger} variant="ghost">
+                      更多准备操作 <ChevronDown size={15} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    collisionPadding={8}
+                    className="min-w-40"
+                    onCloseAutoFocus={(event) => {
+                      if (resetOpeningFromMenu.current) {
+                        event.preventDefault();
+                        resetOpeningFromMenu.current = false;
                       }
-                    >
-                      角色详情
-                    </a>
-                  </Button>
-                )}
-                {d.activatedId && !c.archived && !pending && (
-                  <Button
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={(e) => {
-                      resetTrigger.current = e.currentTarget;
-                      setResetOpen(true);
                     }}
                   >
-                    开启另一段相识
-                  </Button>
-                )}
-                  </div>
-                </Disclosure>
+                    <DropdownMenuItem
+                      disabled={busy || !d.activatedId}
+                      onSelect={() => void c.refreshProgress()}
+                    >
+                      重新读取进度
+                    </DropdownMenuItem>
+                    {d.activatedId && (
+                      <DropdownMenuItem asChild>
+                        <a
+                          href={
+                            "#/c/" + encodeURIComponent(d.activatedId) + "/profile"
+                          }
+                        >
+                          角色详情
+                        </a>
+                      </DropdownMenuItem>
+                    )}
+                    {d.activatedId && !c.archived && !pending && (
+                      <DropdownMenuItem
+                        disabled={busy}
+                        onSelect={() => {
+                          resetOpeningFromMenu.current = true;
+                          setResetOpen(true);
+                        }}
+                      >
+                        开启另一段相识
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </>
           )}

@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "id": "creation-progress-menu-mobile-font",
+  "definition_hash": "c5f448017cdba77fef9c49d278a5790feb88a2e65a7382b24af9b77530d53b48",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-04T08:59:46.352413Z",
+  "updated": "2026-11-04T10:00:49.385093Z",
+  "completed": "2026-11-04T10:00:49.384605Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-fb6b337f9dbc5e10f55d",
+        "unit": "define",
+        "executor": "codex-creation-menu",
+        "input_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "candidate_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "started": "2026-11-04T08:59:56.144262Z",
+        "ended": "2026-11-04T09:00:14.095164Z",
+        "status": "pass",
+        "reason": "复核发现 700px 以下原选择器仅覆盖 data-slot=button，而 Radix 菜单触发器的 slot 为 dropdown-menu-trigger；应使用同组直接子项选择器，沿用原字号。仅改 CSS，并重验生产构建和真实浏览器窄屏几何。"
+      },
+      {
+        "id": "AT-acc2c91773d71494cbbd",
+        "unit": "execute",
+        "executor": "codex-creation-menu",
+        "input_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "candidate_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "started": "2026-11-04T09:00:28.742853Z",
+        "ended": "2026-11-04T09:02:11.738402Z",
+        "status": "pass",
+        "reason": "将 700px 以下进度操作字号选择器扩展到菜单触发器，使三个入口继承原有 10px 规则；最终生产页面 320px、390px 与 700px 字号一致，390px 同行对齐、320px 自然换行，无横向溢出。"
+      },
+      {
+        "id": "AT-94b94a293e4563069cfd",
+        "unit": "check:mobile-font-ui",
+        "executor": "codex-creation-menu",
+        "input_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "candidate_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "started": "2026-11-04T09:03:53.386769Z",
+        "ended": "2026-11-04T09:03:53.43858Z",
+        "status": "pass",
+        "reason": "隔离生产构建页面已实测 320px、390px 和 700px 三个操作字号一致；390px 同行对齐，320px 自然换行，均无横向溢出，键盘菜单可用。"
+      },
+      {
+        "id": "AT-dad36e1b646f553da550",
+        "unit": "execute",
+        "executor": "codex-creation-menu",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:54:06.558454Z",
+        "ended": "2026-11-04T09:54:29.458456Z",
+        "status": "pass",
+        "reason": "已复核 CharacterWizard 与 replica-creation.css 的文件哈希和此前场景证据一致；另一任务新增的样式限定在视觉审核与命令操作范围。保留其他工作区改动，以当前候选重新执行构建并核验窄屏场景。"
+      },
+      {
+        "id": "AT-0114cfce50611d287169",
+        "unit": "check:web-build",
+        "executor": "codex-creation-menu",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:55:08.486328Z",
+        "ended": "2026-11-04T09:55:24.27255Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-fdfebd9a210f6d6859f1",
+        "unit": "execute",
+        "executor": "codex-creation-menu",
+        "input_version": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+        "candidate_version": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+        "started": "2026-11-04T09:58:06.661373Z",
+        "ended": "2026-11-04T09:58:33.723534Z",
+        "status": "pass",
+        "reason": "另一任务已提交其视觉审核改动；已核对本任务 CharacterWizard、replica-creation.css 和测试文件的内容未变。以当前提交和保留的本任务改动作为最终候选重新核验。"
+      },
+      {
+        "id": "AT-daae499725724c82a025",
+        "unit": "check:web-build",
+        "executor": "codex-creation-menu",
+        "input_version": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+        "candidate_version": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+        "started": "2026-11-04T09:58:56.430827Z",
+        "ended": "2026-11-04T09:59:05.406779Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-ed5988092aff3ea98ed8",
+        "unit": "check:mobile-font-ui",
+        "executor": "codex-creation-menu",
+        "input_version": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+        "candidate_version": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+        "started": "2026-11-04T10:00:39.352655Z",
+        "ended": "2026-11-04T10:00:39.48068Z",
+        "status": "pass",
+        "reason": "最终生产构建在隔离页面重验 320px、390px 和 700px：三个操作字号一致，390px 同行对齐，320px 自然换行，均无横向溢出，键盘菜单可用；模拟 API 不证明真实后台。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "mobile-font-ui",
+        "result": "pass",
+        "source": "scenario:codex-creation-menu",
+        "config_hash": "a676ecc1642235942dcae8506cf6556c839653a5de74a717f89bde1fa17b19c1",
+        "at": "2026-11-04T09:03:53.438301Z",
+        "artifact_hashes": {
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "9fa120c2b6b94cbd5bca1f0fcf1c331d18abba944b68152e84bc11b4e00b927b",
+          "apps/web/src/styles/replica-creation.css": "2cdfd1568af10c38d24c193bc97a2bce94de8938a032f8dc1359a83cbf581031",
+          "runtime:artifacts/creation-progress-menu-mobile-font/creation-actions-mobile-final.jpg": "6d4c87bd3b02a87748e2665b4101a225d9710f3998e1800e219a815ad81c2a0a",
+          "runtime:artifacts/creation-progress-menu-mobile-font/creation-menu-font-verification.md": "f57b8553787126104a4181b5142d13e081008534d7eaae01230c5d8471b94226"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "0519cc6cdcbedd61954e8e25551232ebddb7cfc495f2ecba9a329674eec9cafc",
+        "at": "2026-11-04T09:55:08.604883Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-0114cfce50611d287169.log": "b369bc8fe39ef1119f6dd9facb8c98d44f21f938ca89a308c33459d27d757919"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "0519cc6cdcbedd61954e8e25551232ebddb7cfc495f2ecba9a329674eec9cafc",
+        "at": "2026-11-04T09:58:56.542581Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-daae499725724c82a025.log": "0b257db57b114bdbc5a55605b690f6fcc2b3a06d358f2685c6d0fbf5e8a3b1fb"
+        }
+      },
+      {
+        "id": "mobile-font-ui",
+        "result": "pass",
+        "source": "scenario:codex-creation-menu",
+        "config_hash": "a676ecc1642235942dcae8506cf6556c839653a5de74a717f89bde1fa17b19c1",
+        "at": "2026-11-04T10:00:39.480258Z",
+        "artifact_hashes": {
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "9fa120c2b6b94cbd5bca1f0fcf1c331d18abba944b68152e84bc11b4e00b927b",
+          "apps/web/src/styles/replica-creation.css": "2cdfd1568af10c38d24c193bc97a2bce94de8938a032f8dc1359a83cbf581031",
+          "runtime:artifacts/creation-progress-menu-mobile-font-final/creation-actions-mobile-last.jpg": "6d4c87bd3b02a87748e2665b4101a225d9710f3998e1800e219a815ad81c2a0a",
+          "runtime:artifacts/creation-progress-menu-mobile-font-final/creation-menu-font-last-verification.md": "a0fae76cf60434dffafa854e1e010d9f7228ce0561820a12169947ea97d3e809"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "id": "creation-progress-actions-menu",
+  "definition_hash": "b2afd0a8a2e1aecfe70e433baf3772bc94c8881d6befcc68db4dcf1c1a9e538c",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-04T08:48:28.359086Z",
+  "updated": "2026-11-04T08:59:46.352595Z",
+  "completed": "2026-11-04T08:58:59.457692Z",
+  "feedback": [
+    "creation-progress-menu-mobile-font"
+  ],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-5a7f35c21b4dfc7df721",
+        "unit": "define",
+        "executor": "codex-creation-menu",
+        "input_version": "2f29921e257b461963db66f6e35e6c461102670ff51b5c3ec2951f55fddf793e",
+        "candidate_version": "2f29921e257b461963db66f6e35e6c461102670ff51b5c3ec2951f55fddf793e",
+        "started": "2026-11-04T08:48:47.617084Z",
+        "ended": "2026-11-04T08:49:21.958296Z",
+        "status": "pass",
+        "reason": "已核对项目入口、领域上下文、React/shadcn 合同与创建进度现状。进度操作容器当前缺少交叉轴对齐，更多操作使用折叠内容；方案复用现有 Radix 下拉菜单，保持条件、动作和确认弹窗的焦点返回。通过针对性 DOM 测试、类型检查、构建和桌面/窄屏真实浏览器场景覆盖验收。"
+      },
+      {
+        "id": "AT-e5ec795c9cfe5ef8523f",
+        "unit": "execute",
+        "executor": "codex-creation-menu",
+        "input_version": "2f29921e257b461963db66f6e35e6c461102670ff51b5c3ec2951f55fddf793e",
+        "candidate_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "started": "2026-11-04T08:49:55.556089Z",
+        "ended": "2026-11-04T08:56:16.394002Z",
+        "status": "pass",
+        "reason": "已统一进度区操作对齐与窄屏间距，复用 Radix 下拉菜单承载三项原操作并保留显示、禁用和焦点返回。新增交互回归，目标测试、类型检查、最终构建和隔离生产页面桌面/390px/320px场景通过。截图与报告留在仓库外。"
+      },
+      {
+        "id": "AT-3060701de876cc327d6c",
+        "unit": "check:creation-ui-tests",
+        "executor": "codex-creation-menu",
+        "input_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "candidate_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "started": "2026-11-04T08:56:44.38052Z",
+        "ended": "2026-11-04T08:56:54.501127Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-4fa189f4816348edce37",
+        "unit": "check:web-typecheck",
+        "executor": "codex-creation-menu",
+        "input_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "candidate_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "started": "2026-11-04T08:57:13.15492Z",
+        "ended": "2026-11-04T08:57:23.058652Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-85e446f460af13f00814",
+        "unit": "check:web-build",
+        "executor": "codex-creation-menu",
+        "input_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "candidate_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "started": "2026-11-04T08:57:51.423475Z",
+        "ended": "2026-11-04T08:57:59.201884Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-58f414bb8cf491a90f9a",
+        "unit": "check:creation-actions-ui",
+        "executor": "codex-creation-menu",
+        "input_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "candidate_version": "c2cafa3f88649e61fc1b78ddaf4c7223679bc5d09f95a960decbb46742f3e115",
+        "started": "2026-11-04T08:58:54.939994Z",
+        "ended": "2026-11-04T08:58:54.994425Z",
+        "status": "pass",
+        "reason": "隔离生产构建页面已实测 1280px、390px 对齐及 320px 换行和菜单避让；键盘打开、重新读取、原链接、资料弹窗及菜单转确认弹窗的焦点恢复均通过。模拟 API 不证明真实后台。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "creation-ui-tests",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "82e4cddf539fce754207081fcea283d5440b711ec30ac31bab9db86ce0130204",
+        "at": "2026-11-04T08:56:44.473592Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-3060701de876cc327d6c.log": "1d952b9fdc5617aa9c40e58aa77dba6e811591e070495d8526166241396d1044"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "1feb063108e34890e6644d9686e003b1db34f5e664f333306d6ad0847abcfffb",
+        "at": "2026-11-04T08:57:13.2495Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-4fa189f4816348edce37.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "7a5256f6f1eb9ea2d564369f2fc9199750a0b122cf8afac8d157e703eb0b74a5",
+        "at": "2026-11-04T08:57:51.517644Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-85e446f460af13f00814.log": "55478dfa6a3df944c45995797ced8505ed73f95310ee08d1e8302fa97729c404"
+        }
+      },
+      {
+        "id": "creation-actions-ui",
+        "result": "pass",
+        "source": "scenario:codex-creation-menu",
+        "config_hash": "5bf62bb19e004c7de5f6c165b0e888a980c0911888ae56b45309623624e00ecf",
+        "at": "2026-11-04T08:58:54.994115Z",
+        "artifact_hashes": {
+          "apps/web/src/components/ui/dropdown-menu.tsx": "ad5093fd8863d8f006530ba38c5d95950c12781b0035b9417b03e295e4f5cfd3",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "9fa120c2b6b94cbd5bca1f0fcf1c331d18abba944b68152e84bc11b4e00b927b",
+          "apps/web/src/styles/replica-creation.css": "1a8add40f1954691787590a581081e21c7d91c3572cb9335e79ada755339fb5d",
+          "apps/web/test/demo-replica-creation-ui.test.mjs": "25b6dac5e4c20b3b50369f0ede4753268736d2c4c1650ffd73251b6e4ce3683f",
+          "runtime:artifacts/creation-progress-actions-menu/creation-actions-desktop.jpg": "71c1035a44f10be6e1e8f34cc3f510379c564b5ad55d80f17c108951ea0af746",
+          "runtime:artifacts/creation-progress-actions-menu/creation-actions-mobile.jpg": "acaff5b9cc6e3edd80596a6fb0ed5fdab65b421fb72249f0c4391a741baeea39",
+          "runtime:artifacts/creation-progress-actions-menu/creation-actions-verification.md": "f73026b551c7ea1d4f2480c206f71dd50bc8a9153688d47f3e1c6dec0fbd16ec"
+        }
+      }
+    ]
+  }
+}

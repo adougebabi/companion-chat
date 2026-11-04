@@ -1075,9 +1075,19 @@
 }
 .replica-creation .creation-progress-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-top: 19px;
   flex-wrap: wrap;
+}
+@media (max-width: 640px) {
+  .replica-creation .creation-progress-actions {
+    gap: 4px;
+  }
+  .replica-creation .creation-progress-actions > [data-slot] {
+    min-height: 40px;
+    padding-inline: 10px;
+  }
 }
 .replica-creation .creation-review-image {
   height: 310px;
@@ -1275,7 +1285,7 @@
   .replica-creation .creation-meet {
     flex-wrap: wrap;
   }
-  .replica-creation .creation-progress-actions [data-slot="button"] {
+  .replica-creation .creation-progress-actions > [data-slot] {
     font-size: 10px;
   }
 }

@@ -1,0 +1,58 @@
+{
+  "id": "creation-progress-menu-mobile-font",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "4cf56911ca1a59b2867fcd1559fc65b8bcb43b2c9012a8b1a2187da57a87ac50",
+  "completed": "2026-11-04T10:00:49.384605Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "mobile-font-ui",
+      "result": "pass",
+      "source": "scenario:codex-creation-menu",
+      "config_hash": "a676ecc1642235942dcae8506cf6556c839653a5de74a717f89bde1fa17b19c1",
+      "at": "2026-11-04T09:03:53.438301Z",
+      "artifact_hashes": {
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "9fa120c2b6b94cbd5bca1f0fcf1c331d18abba944b68152e84bc11b4e00b927b",
+        "apps/web/src/styles/replica-creation.css": "2cdfd1568af10c38d24c193bc97a2bce94de8938a032f8dc1359a83cbf581031",
+        "runtime:artifacts/creation-progress-menu-mobile-font/creation-actions-mobile-final.jpg": "6d4c87bd3b02a87748e2665b4101a225d9710f3998e1800e219a815ad81c2a0a",
+        "runtime:artifacts/creation-progress-menu-mobile-font/creation-menu-font-verification.md": "f57b8553787126104a4181b5142d13e081008534d7eaae01230c5d8471b94226"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "0519cc6cdcbedd61954e8e25551232ebddb7cfc495f2ecba9a329674eec9cafc",
+      "at": "2026-11-04T09:55:08.604883Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-0114cfce50611d287169.log": "b369bc8fe39ef1119f6dd9facb8c98d44f21f938ca89a308c33459d27d757919"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "0519cc6cdcbedd61954e8e25551232ebddb7cfc495f2ecba9a329674eec9cafc",
+      "at": "2026-11-04T09:58:56.542581Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-daae499725724c82a025.log": "0b257db57b114bdbc5a55605b690f6fcc2b3a06d358f2685c6d0fbf5e8a3b1fb"
+      }
+    },
+    {
+      "id": "mobile-font-ui",
+      "result": "pass",
+      "source": "scenario:codex-creation-menu",
+      "config_hash": "a676ecc1642235942dcae8506cf6556c839653a5de74a717f89bde1fa17b19c1",
+      "at": "2026-11-04T10:00:39.480258Z",
+      "artifact_hashes": {
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "9fa120c2b6b94cbd5bca1f0fcf1c331d18abba944b68152e84bc11b4e00b927b",
+        "apps/web/src/styles/replica-creation.css": "2cdfd1568af10c38d24c193bc97a2bce94de8938a032f8dc1359a83cbf581031",
+        "runtime:artifacts/creation-progress-menu-mobile-font-final/creation-actions-mobile-last.jpg": "6d4c87bd3b02a87748e2665b4101a225d9710f3998e1800e219a815ad81c2a0a",
+        "runtime:artifacts/creation-progress-menu-mobile-font-final/creation-menu-font-last-verification.md": "a0fae76cf60434dffafa854e1e010d9f7228ce0561820a12169947ea97d3e809"
+      }
+    }
+  ]
+}
