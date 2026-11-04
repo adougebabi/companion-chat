@@ -1,0 +1,242 @@
+{
+  "schema": 1,
+  "sources": [
+    {
+      "path": "AGENTS.md",
+      "hash": "5238c1655c677f6c2e7c28dc838c0ad818d98a2b45b67839ae87dccd32de3dcc",
+      "action": "connected",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:AGENTS.md",
+        "title": "AGENTS.md",
+        "kind": "spec",
+        "status": "current",
+        "paths": null,
+        "source": "AGENTS.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": true,
+        "path": "AGENTS.md",
+        "hash": "5238c1655c677f6c2e7c28dc838c0ad818d98a2b45b67839ae87dccd32de3dcc",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "README.md",
+      "hash": "ab5be6727287587fd14f58975ec7feddec1265ac0bdc7bed34fdc28bbd5f4fde",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:README.md",
+        "title": "README.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "README.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "README.md",
+        "hash": "ab5be6727287587fd14f58975ec7feddec1265ac0bdc7bed34fdc28bbd5f4fde",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "authority_path": ".ael/knowledge/decision/legacy-a44d590b2f4eb387bd46baa1.md",
+      "path": "docs/adr/0001-shared-world-independent-actors.md",
+      "hash": "63f10cff9db72f07e6a1c62b6f7420ac07ac187fb952e0fca05981f7eec7dd50",
+      "action": "retired",
+      "reason": "explicit migrated authority: .ael/knowledge/decision/legacy-a44d590b2f4eb387bd46baa1.md; original retained as read-only history, never dual-written",
+      "record": {
+        "id": "source:docs/adr/0001-shared-world-independent-actors.md",
+        "title": "0001-shared-world-independent-actors.md",
+        "kind": "decision",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/adr/0001-shared-world-independent-actors.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/adr/0001-shared-world-independent-actors.md",
+        "hash": "63f10cff9db72f07e6a1c62b6f7420ac07ac187fb952e0fca05981f7eec7dd50",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/capability-architecture.md",
+      "hash": "542587b042085c8575984b7a24314aa5c97455c27d0d7d52d81e5dbe09017c88",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/capability-architecture.md",
+        "title": "capability-architecture.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/capability-architecture.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/capability-architecture.md",
+        "hash": "542587b042085c8575984b7a24314aa5c97455c27d0d7d52d81e5dbe09017c88",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/llm-prompt-composition.md",
+      "hash": "8c7d41d4bf6b05b4a448cf0a83b63aa1d958324838968fe0f29b68b02d38bbe3",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/llm-prompt-composition.md",
+        "title": "llm-prompt-composition.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/llm-prompt-composition.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/llm-prompt-composition.md",
+        "hash": "8c7d41d4bf6b05b4a448cf0a83b63aa1d958324838968fe0f29b68b02d38bbe3",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/v3-llm-acceptance.md",
+      "hash": "f27a8bccbcf69842f5d1a9c902ded4a31c2f311a282608a47f7a8f07a2407a4a",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/v3-llm-acceptance.md",
+        "title": "v3-llm-acceptance.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/v3-llm-acceptance.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/v3-llm-acceptance.md",
+        "hash": "f27a8bccbcf69842f5d1a9c902ded4a31c2f311a282608a47f7a8f07a2407a4a",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/v3-page-acceptance.md",
+      "hash": "4db1a6fe5c5ce798c2f1bac8dfafeae64a458b36aa008c8fee7c81f0b385acb9",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/v3-page-acceptance.md",
+        "title": "v3-page-acceptance.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/v3-page-acceptance.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/v3-page-acceptance.md",
+        "hash": "4db1a6fe5c5ce798c2f1bac8dfafeae64a458b36aa008c8fee7c81f0b385acb9",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/verification/r10-live-controls-20261103.md",
+      "hash": "43ae4b4eafee59702ed3b0de7add7a67e308599e88b4b46a1b52ee9c77e687e4",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/r10-live-controls-20261103.md",
+        "title": "r10-live-controls-20261103.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/r10-live-controls-20261103.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/r10-live-controls-20261103.md",
+        "hash": "43ae4b4eafee59702ed3b0de7add7a67e308599e88b4b46a1b52ee9c77e687e4",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/verification/r8-button-adoption-20261103.md",
+      "hash": "cb4e31fdcd801dfe9735c88ee0cd4f3a826758af8e971112f8ff7d6f16d489ea",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/r8-button-adoption-20261103.md",
+        "title": "r8-button-adoption-20261103.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/r8-button-adoption-20261103.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/r8-button-adoption-20261103.md",
+        "hash": "cb4e31fdcd801dfe9735c88ee0cd4f3a826758af8e971112f8ff7d6f16d489ea",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/verification/r9-control-accessibility-20261103.md",
+      "hash": "9fdd9c5fcc8f66c2bf9b6ba870b642068c43eb70775c2af7a30e66f839bd8df7",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/r9-control-accessibility-20261103.md",
+        "title": "r9-control-accessibility-20261103.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/r9-control-accessibility-20261103.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/r9-control-accessibility-20261103.md",
+        "hash": "9fdd9c5fcc8f66c2bf9b6ba870b642068c43eb70775c2af7a30e66f839bd8df7",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/wake-up-fixed-prompt.md",
+      "hash": "39b068ee18db434684291ca986c55801fea658b95f110745889c36c5f67bbf43",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/wake-up-fixed-prompt.md",
+        "title": "wake-up-fixed-prompt.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/wake-up-fixed-prompt.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/wake-up-fixed-prompt.md",
+        "hash": "39b068ee18db434684291ca986c55801fea658b95f110745889c36c5f67bbf43",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    }
+  ],
+  "counts": {
+    "connected": 1,
+    "historical": 9,
+    "retired": 1
+  }
+}

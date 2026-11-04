@@ -1,19 +1,18 @@
 ---
 name: ael-work
-description: 在已初始化 AEL 项目中领取并推进明确的工程任务，支持当前 Agent 连续执行或节点交接；普通讨论和资料查询不创建任务。
+description: 在已初始化 AEL 工程接到已授权的开发、修复、调研或验收工作时使用；优先恢复任务，按规范执行、验证修复或交接并交付。普通讨论和查询不建立工作项。
 ---
 
-从项目根目录使用仓库自带的 `./ael`，无需全局安装。先运行 `./ael doctor --project .` 和 `./ael task list --project .`。若入口/锁文件/对应平台二进制缺失，报告工具资产不完整；不要用其他全局版本代替，也不要重做项目初始化。shadow 模式只能预览，不能伪造执行。
+从项目根使用 `./ael`。先运行 doctor 和 task list，核对真实项目、数据路径、工具版本及知识健康；只在用户请求持久推进工作时创建任务。复用已有目标与已验证步骤，不逐步请求继续，不自行发明后续需求。
 
-选择用户要求的任务；实施但无任务时用 `./ael task create --file definition.json` 建立最小定义。阅读验收和计划，然后：
+唯一流程来源：[通用工程协议 v1.0](references/workflow.md)。开始时读取第 1—4 节和当前责任节点；W1 界定工作、W2 分析、W3 执行、W4 验证/回退、W5 交付及知识回写按需读取相应章节。项目原文是契约来源，索引和看板是投影；历史、决策、任务与证据保持身份区别。
 
-1. `./ael claim --task ID --executor SESSION --owner-pid PID`；PID 必须是本次 Agent 的常驻进程，不是短命 shell、AEL 自身或任意无关进程。独立续约器在模型排队/工具等待时每 20 秒续约，提交或 owner 退出时停止。无法可靠识别常驻 PID 时省略此参数，使用下述租约规则。记录返回的 attempt.id、token、workspace 与修订。
-2. `./ael context --task ID` 获取有来源的约束。只处理当前步骤；不启动嵌套 loop。
-3. 完成当前步骤，用 `./ael submit --file submission.json` 提交 StepResult。提交格式见 `./ael help`。写入型执行至少附真实交付物相对路径；验证命令用 `./ael verify --task ID --check CHECK`，主观 pass 不能替代它。
-4. 按 next_action 继续 claim、交接、等待依赖/确认或结束。交接提交后无需自行调度下一个 Bot。默认租约 30 分钟，policy.lease_seconds 可配置；未绑定 owner 的长步骤在有效期内用 heartbeat 续约，不假装有后台续约。Managed 已独立续约，续约失败会停止子执行器。
+实际命令：[命令与恢复](references/commands.md)，数据结构以 `./ael help` 为准。
 
-默认无任务时间上限；显式正数预算仍生效。已有任务的旧预算需要调整时用 `./ael task budget --task ID --max-seconds 0 --reason 理由`，0 表示不限时；只改变调度预算，不改变验收条件。误建任务用 `./ael task delete --task ID --reason 理由` 真正删除；有活跃执行或被其他任务引用时须先处理对应阻塞。test、qa、verify 是合法类型。
+1. 按 W1/W2 明确目标、范围、权限与每项验收覆盖；领取当前单元，再 context 取得同源正文、版本、理由。修改前先读取；新增影响范围重新加载。未索引、加载失败、缺关键资料和真实冲突按具体原因处理，不能当成无规范。
+2. 按 W3 做实际工作，在开始、重要结果、阻塞、交接时记录事实、产物与下一步。submit 的普通进展不改任务定义。只负责当前领取单元，不启动嵌套 loop；Managed 子执行器只返回当前结果，由父运行器推进。
+3. 按 W4 运行真实命令/场景，或提交标为 model 的语义审查及具体输入和报告。缺能力是 blocked；不可把进程退出、总结或状态提交当作验收。只验收任务的报告写 runtime，不能修业务源码。
+4. 消费 next_action：continue/repair 连续执行；失败按实现/方案/环境分类回路，保留失败；handoff 提交后结束本角色，下游可领取；等待项说明解除条件和恢复节点。无活跃执行者/调度器不声称后台运行。
+5. 按 W5 核对最终候选、覆盖与知识变化，result.knowledge 写更新工件或无需变更理由。知识收尾若改受检输入必须重新验证。达到原定交付目标后结束；新反馈建立 feedback_of 新任务，不降低目标。
 
-任务检查点和脱敏历史自动写入 `.ael/records/`，与定义一起提交 Git。新机器读取后须确认恢复并重新验证，不能沿用旧租约或授权。Git 不同步运行日志/截图等原始产物；需要它们时另做 `storage backup/restore`。
-
-未经用户明确授权，不发布、切换真实旧工作流或降低必需门禁。过期 Attempt 先核实旧进程已停止，再 resume --ack-stopped。定义变化须确认准确修订。完成后新反馈建立 feedback_of 关联任务，保留原历史。普通已授权范围持续执行，不逐步询问。
+Attached 长步骤可在 claim 绑定本次宿主的可靠常驻 owner-pid；未知就不猜，租约有效期内 heartbeat。过期写入者先核实停止再 resume --ack-stopped；活 owner 不可抢占。重装/update 不覆盖用户资产；缺离线工具包准确报错。未经授权不激活旧流程、改 hooks、迁移业务数据或发布。

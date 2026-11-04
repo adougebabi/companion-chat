@@ -23,6 +23,18 @@ else
 fi
 [ "$actual" = "$expected" ] || { echo "AEL_BINARY_CHECKSUM_MISMATCH: $relative" >&2; exit 1; }
 [ -x "$binary" ] || chmod u+x "$binary"
+command_name=
+skip_value=false
+for argument in "$@"; do
+ if [ "$skip_value" = true ]; then skip_value=false; continue; fi
+ case "$argument" in
+  --*=*) continue ;;
+  --project|--from|--bundle-dir|--prefix) skip_value=true; continue ;;
+  --*) continue ;;
+  *) command_name=$argument; break ;;
+ esac
+done
+if [ "$command_name" = upgrade ]; then exec "$binary" "$@"; fi
 for argument in "$@"; do
  case "$argument" in --project|--project=*) exec "$binary" "$@" ;; esac
 done

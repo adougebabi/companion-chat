@@ -1,3 +1,4 @@
 # Versioned AEL runtime assets travel with the project.
 !bin/
 !bin/**
+tool-update.lock/
