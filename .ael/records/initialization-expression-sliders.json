@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "id": "initialization-expression-sliders",
+  "definition_hash": "ccebef6728550c891c58a3dd1c511adb94e74677d7bfd347c0808ac4be3b2fcf",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 2,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "small explicit change",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+  "failure": "definition revised; relevant inputs and acceptance require revalidation",
+  "result": "verified",
+  "created": "2026-11-04T06:29:50.482576Z",
+  "updated": "2026-11-04T06:43:15.950655Z",
+  "completed": "2026-11-04T06:43:15.950519Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-0ecd49e86a9a9cab84fc",
+        "unit": "define",
+        "executor": "codex-expression-sliders",
+        "input_version": "c4f695d55254966f8d44483dd59288b527db9bcc9975f84d69c87dc4909280a9",
+        "candidate_version": "c4f695d55254966f8d44483dd59288b527db9bcc9975f84d69c87dc4909280a9",
+        "started": "2026-11-04T06:30:17.547648Z",
+        "ended": "2026-11-04T06:31:44.44209Z",
+        "status": "pass",
+        "reason": "已核对 provider_schemas.go 的 0–1 number schema 与 defaultPolicy 小数默认值。方案仅在 CharacterWizard 初始化表达字段中将 kind=number,min=0,max=1 的字段改为现有 creation-trait + Slider（0.01）组合；保持 field.value 保存链，空值经显式设定为 0.5，其他字段继续 ProfileField。检查覆盖类型、构建、真实页面桌面/窄屏交互与草稿/预览。适用规范：AGENTS.md、project-entry、CONTEXT.md、React/shadcn、组件指南、初始化与草稿保持合同；版本由本次 context 固定。"
+      },
+      {
+        "id": "AT-fa4f82b5200ddebb103d",
+        "unit": "execute",
+        "executor": "codex-expression-sliders",
+        "input_version": "c4f695d55254966f8d44483dd59288b527db9bcc9975f84d69c87dc4909280a9",
+        "candidate_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "started": "2026-11-04T06:32:05.437752Z",
+        "ended": "2026-11-04T06:39:29.809491Z",
+        "status": "pass",
+        "reason": "已在初始化 CharacterWizard 的表达与相处字段中，对 kind=number,min=0,max=1 复用 creation-trait 和 Slider；步长 0.01、两位小数、显式空值设定。继续直接修改 field.value，沿用预览草稿保存。其他页面和回应节奏不变。最终构建与 24 项初始化测试通过；实际生产页面已验证小数、嵌套字段、刷新恢复、边界、空值、JSON 编辑锁定、桌面/390px 和无控制台错误。 全量 web 测试 1007/1007 通过。截图与运行日志位于 /tmp，仅作为本地验证。"
+      },
+      {
+        "id": "AT-c812c7713230126cae60",
+        "unit": "check:web-typecheck",
+        "executor": "codex-expression-sliders",
+        "input_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "candidate_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "started": "2026-11-04T06:39:56.949468Z",
+        "ended": "2026-11-04T06:40:13.122416Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-36fba6cf76a3ed638af5",
+        "unit": "check:web-build",
+        "executor": "codex-expression-sliders",
+        "input_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "candidate_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "started": "2026-11-04T06:40:22.925735Z",
+        "ended": "2026-11-04T06:40:31.323163Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-c884b4413d2a73b3164d",
+        "unit": "check:expression-ui",
+        "executor": "codex-expression-sliders",
+        "input_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "candidate_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "started": "2026-11-04T06:40:51.311464Z",
+        "ended": "2026-11-04T06:40:51.364806Z",
+        "status": "pass",
+        "reason": "实际生产 dist 页面已完成小数步长、边界、嵌套字段、空值显式设定、完整 JSON、刷新恢复、编辑锁定、桌面和390px布局核验；日志与截图均在 Git 忽略目录，完整步骤见报告。"
+      },
+      {
+        "id": "AT-75e5fe0a6d9fe8fe56a9",
+        "unit": "check:web-typecheck",
+        "executor": "codex-expression-sliders",
+        "input_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "candidate_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "started": "2026-11-04T06:42:35.504241Z",
+        "ended": "2026-11-04T06:42:45.211717Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-4c1df49f7fb7fd4b2a11",
+        "unit": "check:web-build",
+        "executor": "codex-expression-sliders",
+        "input_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "candidate_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "started": "2026-11-04T06:42:54.427573Z",
+        "ended": "2026-11-04T06:43:02.694442Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-2b4d48921efe94971827",
+        "unit": "check:expression-ui",
+        "executor": "codex-expression-sliders",
+        "input_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "candidate_version": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+        "started": "2026-11-04T06:43:11.497228Z",
+        "ended": "2026-11-04T06:43:11.562434Z",
+        "status": "pass",
+        "reason": "实际生产 dist 页面已完成小数步长、边界、嵌套字段、空值显式设定、完整 JSON、刷新恢复、编辑锁定、桌面和390px布局核验；日志与截图均在 Git 忽略目录，完整步骤见报告。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "311c7929d4a420fb84d2869f1f4be232a4aa1d7018016d1ef7d3cb174e49756b",
+        "at": "2026-11-04T06:39:57.093419Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-c812c7713230126cae60.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "c8003ade3ef5029e3e4a92a837973e8922e567037f5fb7bb8f0938e5c2527ac1",
+        "at": "2026-11-04T06:40:23.030996Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-36fba6cf76a3ed638af5.log": "aaefa377234fb15307a5cc5332d5867e104dff6c73858d4f694eac81c679b20d"
+        }
+      },
+      {
+        "id": "expression-ui",
+        "result": "pass",
+        "source": "scenario:codex-expression-sliders",
+        "config_hash": "2f7fa13a9171593b5bc00f20e47126380ee6cb5dfeb0895fd3bc2c41f6a2b942",
+        "at": "2026-11-04T06:40:51.364504Z",
+        "artifact_hashes": {
+          ".v3-regression/expression-sliders/expression-sliders-desktop.png": "eb6d3db8b66691415ada6b91fd79d73c99270e57f063074996b43466de9933ec",
+          ".v3-regression/expression-sliders/expression-sliders-mobile.png": "e4ada80f36d3f989b4586972e8d7ce8114e0b1e786e2495a264b9c3d3e942ac8",
+          ".v3-regression/expression-sliders/verification.md": "24d270904cc98e7e38ea7bfd9fa49860556727da181d9a7ce744288718c64a5a",
+          "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+          "apps/web/src/approved-ui/profile-fields.mjs": "f8db4b8679012fb57c14671c6cd1b0681e3a7dc2dbf0baf754fff8242e72b5b1",
+          "apps/web/src/components/ui/slider.tsx": "228dfc77ce1c31101387c7d561c91e81a0fbc5d4512581f50cdac1b92a6f1ccf",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "02dbe13620276d51256b86c8112379d3e519ea7cab47ee8150d97bd9d633b309"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "108d778786048718b4003e47a7316407ad74089267ce2eb7755bf740d0db7f25",
+        "at": "2026-11-04T06:42:35.596535Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-75e5fe0a6d9fe8fe56a9.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "ae16a96a6274bb2f10f980eb7134bda27bb00dfb65c39c84ad018d264cd7201d",
+        "at": "2026-11-04T06:42:54.543253Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-4c1df49f7fb7fd4b2a11.log": "3bf22776f79c70257a2aeddd8561fe47be06dfbcd71089e0e8b8bf357fc51b96"
+        }
+      },
+      {
+        "id": "expression-ui",
+        "result": "pass",
+        "source": "scenario:codex-expression-sliders",
+        "config_hash": "fd63f303fa4004819dac0653299113f158e09e98e956bbc54a860b2f0f9bf084",
+        "at": "2026-11-04T06:43:11.56204Z",
+        "artifact_hashes": {
+          ".v3-regression/expression-sliders/expression-sliders-desktop.png": "eb6d3db8b66691415ada6b91fd79d73c99270e57f063074996b43466de9933ec",
+          ".v3-regression/expression-sliders/expression-sliders-mobile.png": "e4ada80f36d3f989b4586972e8d7ce8114e0b1e786e2495a264b9c3d3e942ac8",
+          ".v3-regression/expression-sliders/verification.md": "24d270904cc98e7e38ea7bfd9fa49860556727da181d9a7ce744288718c64a5a",
+          "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+          "apps/web/src/approved-ui/profile-fields.mjs": "f8db4b8679012fb57c14671c6cd1b0681e3a7dc2dbf0baf754fff8242e72b5b1",
+          "apps/web/src/components/ui/slider.tsx": "228dfc77ce1c31101387c7d561c91e81a0fbc5d4512581f50cdac1b92a6f1ccf",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "02dbe13620276d51256b86c8112379d3e519ea7cab47ee8150d97bd9d633b309"
+        }
+      }
+    ]
+  }
+}

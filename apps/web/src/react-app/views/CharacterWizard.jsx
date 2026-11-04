@@ -1146,13 +1146,54 @@ export default function CharacterWizardView({ model: m }) {
                             (f.path[0] === "personality" &&
                               !Object.hasOwn(traits, f.path.at(-1))),
                         )
-                        .map((f) => (
-                          <ProfileField
-                            key={JSON.stringify(f.path)}
-                            field={f}
-                            disabled={busy || locked}
-                          />
-                        ))}
+                        .map((f) => {
+                          const key = JSON.stringify(f.path);
+                          if (f.kind === "number" && f.min === 0 && f.max === 1) {
+                            const value = f.value === "" ? null : Number(f.value);
+                            const hasValue = value !== null && Number.isFinite(value);
+                            const disabled = busy || locked || !!definitionError ||
+                              d.previewJsonText !== undefined;
+                            const setValue = (value) => {
+                              f.value = value;
+                            };
+                            return (
+                              <div className="creation-trait" key={key}>
+                                <div>
+                                  <strong>{f.label}</strong>
+                                  {hasValue ? (
+                                    <span>{value.toFixed(2)}</span>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      aria-label={`设定${f.label}`}
+                                      disabled={disabled}
+                                      onClick={() => setValue(0.5)}
+                                    >
+                                      待补充 · 设定
+                                    </Button>
+                                  )}
+                                </div>
+                                <Slider
+                                  aria-label={f.label}
+                                  min={0}
+                                  max={1}
+                                  step={0.01}
+                                  value={[hasValue ? value : 0]}
+                                  disabled={disabled || !hasValue}
+                                  onValueChange={([value]) => setValue(value)}
+                                />
+                              </div>
+                            );
+                          }
+                          return (
+                            <ProfileField
+                              key={key}
+                              field={f}
+                              disabled={busy || locked}
+                            />
+                          );
+                        })}
                     </div>
                   </>
                 )}

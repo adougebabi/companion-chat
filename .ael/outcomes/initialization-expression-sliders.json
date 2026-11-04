@@ -1,0 +1,84 @@
+{
+  "id": "initialization-expression-sliders",
+  "definition_revision": 2,
+  "plan_revision": 2,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "e583dd523bdab28826443dc4701810590037de3dbddc52e47eb0de9781b57201",
+  "completed": "2026-11-04T06:43:15.950519Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "311c7929d4a420fb84d2869f1f4be232a4aa1d7018016d1ef7d3cb174e49756b",
+      "at": "2026-11-04T06:39:57.093419Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-c812c7713230126cae60.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "c8003ade3ef5029e3e4a92a837973e8922e567037f5fb7bb8f0938e5c2527ac1",
+      "at": "2026-11-04T06:40:23.030996Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-36fba6cf76a3ed638af5.log": "aaefa377234fb15307a5cc5332d5867e104dff6c73858d4f694eac81c679b20d"
+      }
+    },
+    {
+      "id": "expression-ui",
+      "result": "pass",
+      "source": "scenario:codex-expression-sliders",
+      "config_hash": "2f7fa13a9171593b5bc00f20e47126380ee6cb5dfeb0895fd3bc2c41f6a2b942",
+      "at": "2026-11-04T06:40:51.364504Z",
+      "artifact_hashes": {
+        ".v3-regression/expression-sliders/expression-sliders-desktop.png": "eb6d3db8b66691415ada6b91fd79d73c99270e57f063074996b43466de9933ec",
+        ".v3-regression/expression-sliders/expression-sliders-mobile.png": "e4ada80f36d3f989b4586972e8d7ce8114e0b1e786e2495a264b9c3d3e942ac8",
+        ".v3-regression/expression-sliders/verification.md": "24d270904cc98e7e38ea7bfd9fa49860556727da181d9a7ce744288718c64a5a",
+        "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+        "apps/web/src/approved-ui/profile-fields.mjs": "f8db4b8679012fb57c14671c6cd1b0681e3a7dc2dbf0baf754fff8242e72b5b1",
+        "apps/web/src/components/ui/slider.tsx": "228dfc77ce1c31101387c7d561c91e81a0fbc5d4512581f50cdac1b92a6f1ccf",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "02dbe13620276d51256b86c8112379d3e519ea7cab47ee8150d97bd9d633b309"
+      }
+    },
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "108d778786048718b4003e47a7316407ad74089267ce2eb7755bf740d0db7f25",
+      "at": "2026-11-04T06:42:35.596535Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-75e5fe0a6d9fe8fe56a9.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "ae16a96a6274bb2f10f980eb7134bda27bb00dfb65c39c84ad018d264cd7201d",
+      "at": "2026-11-04T06:42:54.543253Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-4c1df49f7fb7fd4b2a11.log": "3bf22776f79c70257a2aeddd8561fe47be06dfbcd71089e0e8b8bf357fc51b96"
+      }
+    },
+    {
+      "id": "expression-ui",
+      "result": "pass",
+      "source": "scenario:codex-expression-sliders",
+      "config_hash": "fd63f303fa4004819dac0653299113f158e09e98e956bbc54a860b2f0f9bf084",
+      "at": "2026-11-04T06:43:11.56204Z",
+      "artifact_hashes": {
+        ".v3-regression/expression-sliders/expression-sliders-desktop.png": "eb6d3db8b66691415ada6b91fd79d73c99270e57f063074996b43466de9933ec",
+        ".v3-regression/expression-sliders/expression-sliders-mobile.png": "e4ada80f36d3f989b4586972e8d7ce8114e0b1e786e2495a264b9c3d3e942ac8",
+        ".v3-regression/expression-sliders/verification.md": "24d270904cc98e7e38ea7bfd9fa49860556727da181d9a7ce744288718c64a5a",
+        "apps/core-go/internal/core/provider_schemas.go": "df3dcffd38229428e7fdf400aa652deb91cfebf572dbc0d732843742b2297440",
+        "apps/web/src/approved-ui/profile-fields.mjs": "f8db4b8679012fb57c14671c6cd1b0681e3a7dc2dbf0baf754fff8242e72b5b1",
+        "apps/web/src/components/ui/slider.tsx": "228dfc77ce1c31101387c7d561c91e81a0fbc5d4512581f50cdac1b92a6f1ccf",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "02dbe13620276d51256b86c8112379d3e519ea7cab47ee8150d97bd9d633b309"
+      }
+    }
+  ]
+}
