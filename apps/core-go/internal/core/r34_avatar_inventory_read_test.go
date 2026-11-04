@@ -27,7 +27,17 @@ func TestR34DirectoryDisplaysSelectedReadyAvatarAndWardrobeKeepsOwnMedia(t *test
 	if len(before) != 1 || before[0]["avatar"] != nil {
 		t.Fatal("unselected generated image became an avatar", before)
 	}
-	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,canonical_asset_id) VALUES($1,$2,'active',$3)`, "r34_visual_"+f.suffix, f.fluctlightID, asset); err != nil {
+	reference := "r34_reference_" + f.suffix
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) VALUES($1,$2,'v1','image','image/png',68,'reference-digest','isolated','not-fetched','r34-reference-provider','r34-reference-workflow','ready',now())`, reference, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_visual_identities(id,fluctlight_id,status,canonical_asset_id) VALUES($1,$2,'active',$3)`, "r34_visual_"+f.suffix, f.fluctlightID, reference); err != nil {
+		t.Fatal(err)
+	}
+	if rows()[0]["avatar"] != nil {
+		t.Fatal("reference image was reused as an avatar")
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_visual_identities SET generated_avatar_asset_id=$2 WHERE fluctlight_id=$1`, f.fluctlightID, asset); err != nil {
 		t.Fatal(err)
 	}
 	after := rows()

@@ -133,11 +133,17 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 			// generic media prompt model to rewrite. Persist the filled template
 			// so retries and diagnostics use the same text.
 			prompt = visualIdentityPromptFromConcept(concept)
+			if intent.QualityRetryCount > 0 && (stringValue(concept["stage"]) == "avatar" || stringValue(concept["stage"]) == "character_sheet") && len(intent.QualityRetryFeedback) > 0 {
+				prompt += "\n\n上一张图片的视觉检查反馈：" + jsonString(intent.QualityRetryFeedback)
+			}
 			if prompt != strings.TrimSpace(intent.ProviderPrompt) {
 				if err := a.persistMediaProviderPrompt(ctx, intent.ID, prompt); err != nil {
 					return nil, err
 				}
+				intent.QualityVerdict = ""
+				intent.QualityCandidateSHA = ""
 			}
+			intent.ProviderPrompt = prompt
 		} else if prompt == "" || intent.QualityVerdict == mediaQualityVerdictRetry || (hasCurrentCapture(concept) && len(mapValue(concept["capture_plan"])) == 0) || (isBranchedMedia(concept) && len(mapValue(concept["normalized_output"])) == 0) {
 			recordMediaHeartbeat(ctx, map[string]any{"intent_id": intentID, "phase": "prompt"})
 			providerCtx := WithProviderCorrelation(WithProviderScenario(ctx, "media_prompt"), "media:"+intent.ID)
@@ -350,10 +356,13 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 	candidateSHA := hex.EncodeToString(digest[:])
 	quality := mediaQualityAcceptance{}
 	qualityCheckVerdict := ""
+	qualityReason := ""
+	qualityFresh := false
 	if (intent.QualityVerdict == mediaQualityVerdictPass || intent.QualityVerdict == mediaQualityVerdictSkip) && intent.QualityCandidateSHA == candidateSHA {
 		quality.Verdict = intent.QualityVerdict
 		qualityCheckVerdict = quality.Verdict
 	} else {
+		qualityFresh = true
 		quality, err = a.evaluateMediaQuality(ctx, intent, contentType, content)
 		if err != nil {
 			if errors.Is(err, context.Canceled) && ctx.Err() != nil {
@@ -361,8 +370,8 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 			}
 			quality = mediaQualityAcceptance{SchemaVersion: mediaQualitySchemaVersion, Verdict: mediaQualityVerdictSkip}
 			qualityCheckVerdict = quality.Verdict
-			reason := mediaQualityInfrastructureReason(err)
-			a.recordDiagnosticEvent(ctx, "media.quality.acceptance", "warn", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, mediaQualityDiagnostic(quality, reason, candidateSHA, intent.QualityRetryCount))
+			qualityReason = mediaQualityInfrastructureReason(err)
+			a.recordDiagnosticEvent(ctx, "media.quality.acceptance", "warn", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, mediaQualityDiagnostic(quality, qualityReason, candidateSHA, intent.QualityRetryCount))
 			if err := a.persistMediaQualityVerdict(ctx, intent.ID, providerJobID, mediaQualityVerdictSkip, candidateSHA); err != nil {
 				return nil, err
 			}
@@ -399,6 +408,11 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 			default:
 				return nil, errors.New("media quality verdict invalid")
 			}
+		}
+	}
+	if qualityFresh && stringValue(concept["purpose"]) == "visual_identity" && (stringValue(concept["stage"]) == "character_sheet" || stringValue(concept["stage"]) == "avatar") {
+		if err := a.recordVisualAssetQuality(ctx, intent.ID, quality, qualityCheckVerdict, qualityReason, candidateSHA); err != nil {
+			return nil, err
 		}
 	}
 	if err := a.studioMediaActive(ctx, intent); err != nil {
@@ -551,6 +565,12 @@ func (a *App) markMediaIntentCompleted(ctx context.Context, intentID, assetID st
 				return err
 			}
 		}
+		concept := decodeObject([]byte(prompt))
+		if stringValue(concept["purpose"]) == "visual_identity" && (stringValue(concept["stage"]) == "character_sheet" || stringValue(concept["stage"]) == "avatar") {
+			if err := a.settleVisualAssetCandidateTx(ctx, tx, owner, intentID, assetID); err != nil {
+				return err
+			}
+		}
 		_, err := a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeCompleted, observed, "")
 		return err
 	})
@@ -680,12 +700,12 @@ func selectComfyWorkflow(config map[string]any, prompt string, fallback map[stri
 		variants := mapValue(config[key])
 		if stage != "" {
 			if selected := mapValue(variants[stage]); len(selected) > 0 {
-				return selected
+				return cloneMap(selected)
 			}
 		}
-		if len(variants) > 0 && key == "visual_identity_workflow" {
-			return variants
-		}
+	}
+	if shared := mapValue(config["visual_identity_workflow"]); len(shared) > 0 && validateComfyGraph(shared) == nil {
+		return cloneMap(shared)
 	}
 	return fallback
 }

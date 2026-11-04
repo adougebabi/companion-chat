@@ -706,6 +706,14 @@ func (a *App) executeVisualIdentityFinalizeTx(ctx context.Context, tx pgx.Tx, in
 		err := errors.New("visual identity character-sheet asset is not ready or not owned by the session Fluctlight")
 		return failedCapabilityResultDetail(invocation, "visual_identity_character_sheet_asset_invalid", false, err.Error()), newCapabilityError("visual_identity_character_sheet_asset_invalid", false, err)
 	}
+	var reviewStatus, reviewedAsset string
+	reviewErr := tx.QueryRow(ctx, `SELECT status,COALESCE(candidate_asset_id,'') FROM public.fluctlight_visual_asset_reviews WHERE media_intent_id=$1 FOR SHARE`, session.CharacterMediaIntentID).Scan(&reviewStatus, &reviewedAsset)
+	if reviewErr != nil && !errors.Is(reviewErr, pgx.ErrNoRows) {
+		return failedCapabilityResultDetail(invocation, "visual_identity_character_sheet_review_load_failed", true, reviewErr.Error()), reviewErr
+	}
+	if reviewErr == nil && (reviewStatus != "accepted" || reviewedAsset != assetID) {
+		return visualIdentityBusinessRejection(invocation, "visual_identity_character_sheet_review_required", sessionID, session.Attempt, reviewStatus), nil
+	}
 	profileCommand, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='active',character_sheet_asset_id=$2,active_session_id=$3,updated_at=now() WHERE id=$1`, session.ProfileID, assetID, sessionID)
 	if err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_profile_finalize_failed", true, err.Error()), err

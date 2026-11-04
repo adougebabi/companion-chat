@@ -215,7 +215,8 @@ func TestVisualIdentityAgentCheckpointIdentityIsStableAndAdvancesWithDurableStat
 }
 
 func TestVisualIdentityStageCatalogExposesOnlyExpectedCanonicalTool(t *testing.T) {
-	registry := (&App{}).capabilityRegistry()
+	app := &App{}
+	registry := app.capabilityRegistry()
 	full := capabilityCatalog(registry, CapabilitySurfaceVisualIdentity)
 	if len(full) != 3 {
 		t.Fatalf("canonical Visual Identity catalog size=%d", len(full))
@@ -228,6 +229,9 @@ func TestVisualIdentityStageCatalogExposesOnlyExpectedCanonicalTool(t *testing.T
 		stage := visualIdentityStageDefinitions(full, action)
 		if len(stage) != 1 || stage[0].Name != action {
 			t.Fatalf("stage catalog for %q = %#v", action, stage)
+		}
+		if err := validateADKCapabilityDefinitions(app, stage, CapabilitySurfaceVisualIdentity); err != nil {
+			t.Fatalf("stage %q is not the registered canonical tool: %v", action, err)
 		}
 	}
 	if stage := visualIdentityStageDefinitions(full, "kev.decide"); len(stage) != 0 {
@@ -262,6 +266,34 @@ func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
 	}
 	if got := enforceVisualIdentityTurnaroundPrompt("front view", "review"); got != "front view" {
 		t.Fatalf("review prompt should not receive seed layout constraint: %s", got)
+	}
+}
+
+func TestVisualIdentityAvatarUsesDedicatedPortraitPrompt(t *testing.T) {
+	snapshot := map[string]any{
+		"identity":           map[string]any{"name": "测试姓名", "age": 29, "appearance": map[string]any{"description": "深棕色短发，琥珀色眼睛"}},
+		"owner_visual_brief": map[string]any{"appearance": "柔和自然光"},
+		"previous_review":    map[string]any{"feedback": "补齐三视图"},
+	}
+	concept := map[string]any{"purpose": "visual_identity", "stage": "seed", "visual_identity": map[string]any{"identity_snapshot": snapshot}}
+	seed := visualIdentityPromptFromConcept(concept)
+	concept["stage"] = "character_sheet"
+	concept["visual_identity"] = snapshot
+	sheet := visualIdentityPromptFromConcept(concept)
+	if seed != sheet || !strings.Contains(seed, "正面/侧面/背面三视图") {
+		t.Fatalf("reference and sheet must retain the shared card prompt: seed=%q sheet=%q", seed, sheet)
+	}
+	concept["stage"] = "avatar"
+	avatar := visualIdentityPromptFromConcept(concept)
+	for _, required := range []string{"角色头像", "正方形", "头部和肩部", "深棕色短发", "琥珀色眼睛", "柔和自然光"} {
+		if !strings.Contains(avatar, required) {
+			t.Fatalf("avatar prompt missing %q: %s", required, avatar)
+		}
+	}
+	for _, forbidden := range []string{"测试姓名", "29", "正面/侧面/背面三视图", "补齐三视图", "固定三栏构图"} {
+		if strings.Contains(avatar, forbidden) {
+			t.Fatalf("avatar prompt included unrelated card requirement %q: %s", forbidden, avatar)
+		}
 	}
 }
 

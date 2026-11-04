@@ -57,6 +57,15 @@ func TestSelectComfyWorkflowUsesExplicitVisualIdentityStage(t *testing.T) {
 	if got := selectComfyWorkflow(config, `{"purpose":"scene"}`, fallback); len(got) != 1 || got["node"] == nil {
 		t.Fatalf("legacy workflow fallback = %#v", got)
 	}
+	base := map[string]any{"base": map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}}}
+	avatar := map[string]any{"avatar": map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}}}
+	config = map[string]any{"visual_identity_workflow": base, "visual_identity_workflows": map[string]any{"avatar": avatar}}
+	if got := selectComfyWorkflow(config, `{"purpose":"visual_identity","stage":"avatar"}`, fallback); got["avatar"] == nil {
+		t.Fatalf("avatar-specific workflow was hidden by the shared graph: %#v", got)
+	}
+	if got := selectComfyWorkflow(config, `{"purpose":"visual_identity","stage":"seed"}`, fallback); got["base"] == nil {
+		t.Fatalf("seed should keep the shared visual workflow: %#v", got)
+	}
 }
 
 func TestReplaceMediaPlaceholdersKeepsPromptAndNumericLoRAType(t *testing.T) {

@@ -1,0 +1,85 @@
+{
+  "id": "independent-generated-avatar",
+  "definition_revision": 5,
+  "plan_revision": 5,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "c156503cebf532ac41804efced8587495fb762e49ea56083259672b67a5d9127",
+  "completed": "2026-11-04T11:46:04.263956Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "web-test",
+      "result": "blocked",
+      "source": "command",
+      "config_hash": "2b96e2c668f28b3af798054f8d1dbc065dcadab2c46b2a4482c4eaff97340315",
+      "at": "2026-11-04T11:31:26.221157Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-3b77fdb81cbc599f7685.log": "2e3bd90d810bfaafb59872102f856ff29f2d80e9b06f8293e850006424073013"
+      }
+    },
+    {
+      "id": "web-test",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "b25a292af3907ac5a6c6b5f5bedda694bf17ca42f49f53d29f9785605a0f5cf0",
+      "at": "2026-11-04T11:39:40.49115Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-4e2c9beca92821848abf.log": "7b5a197e52f1f067609c041d1045968764dc90e1f40f712089ef965ee9d9a810"
+      }
+    },
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "f30f13b1f7ac4f99a8aa1d0e1142d33cb31481e02c334dd19a8b76b2fb0d6ba0",
+      "at": "2026-11-04T11:42:58.1159Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-446391bb48fea0baac94.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "86648550aeea8fb8f3ff6937effdeb656d35013a92112e2cc3a2c19a01d00625",
+      "at": "2026-11-04T11:43:51.090292Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-a570c7e50ea60f7a3750.log": "e24196316984e06e094493d2029c86b6a5f0b2d7d5f697a10cfc9893c5e9ff8d"
+      }
+    },
+    {
+      "id": "avatar-ui",
+      "result": "pass",
+      "source": "scenario:codex-avatar-generation",
+      "config_hash": "298d3df1536a418cd5f58efe49478f91169c7f78cb1a39fb0169c2f714d22fd9",
+      "at": "2026-11-04T11:44:39.5352Z",
+      "artifact_hashes": {
+        ".v3-regression/independent-avatar/review-mobile.png": "09cfc9506ec1e1297e93fb7f60198a875953c7bb650853a127b2d27521d65d80",
+        ".v3-regression/independent-avatar/verification.md": "361ca33ab0a1e608c2216a09e8b313035cbcb11f1c394ea7aa04e020b8f315cf",
+        "apps/web/src/approved-ui/creation-progress.mjs": "03bc2a527f6c86f3c4887d0ae54ee1b678fc97bf6cb470c3e0bc42346aa0a49f",
+        "apps/web/src/react-app/shared/AvatarWorkspace.jsx": "f5d00825df866ae474640f54005e3b473b070532a32671f1bd990a20ffb4f4a8",
+        "apps/web/src/react-app/shared/VisualWorkspace.jsx": "0d77054f553321f7d6fa979ec69d691fb6d3c20f559cbe2179ff8252b10ecab0",
+        "apps/web/test/fixtures/media-fixture.mjs": "f8e5ee00ee2efa5e93e0d11900c06e9e9acfbdcef4911dd7551c1d46e67c6203"
+      }
+    },
+    {
+      "id": "avatar-core",
+      "result": "pass",
+      "source": "scenario:codex-avatar-generation",
+      "config_hash": "ae458d8050016dff0347bdac9f50e38de3cbb22f07d7d3d9d802b7045bb29367",
+      "at": "2026-11-04T11:45:59.377704Z",
+      "artifact_hashes": {
+        ".v3-regression/independent-avatar/core-e2e.log": "8c2d0eedf8a861079884bcf4e9ad750216dc369752e30b92398bf8c5e5d69ef7",
+        ".v3-regression/independent-avatar/verification.md": "361ca33ab0a1e608c2216a09e8b313035cbcb11f1c394ea7aa04e020b8f315cf",
+        "apps/core-go/internal/core/formal_tool_adapter_e2e_test.go": "1851aada81c15b1e8d8fa1636e2edcc192e61b040feb2e77abd24b7d3194b7dc",
+        "apps/core-go/internal/core/generated_avatar.go": "04308f862ee78032a067b48a1b0348a7b3370c5c1ddf465359901886ca976f6b",
+        "apps/core-go/internal/core/generated_avatar_test.go": "2aba293e198370b878160c213983e66ebe321706f563715d3f34f1317e664818",
+        "apps/core-go/internal/core/media.go": "b4e12bf8cb46bdefb0388726c3e66c6bc201d080229609980512dbb341040e19",
+        "apps/core-go/internal/core/visual_asset_review.go": "2c35fd26d9b2ced3be3b987c0edca57e3b0ba7fa201eb0a057e929518b6c773c",
+        "apps/core-go/internal/core/visual_identity.go": "0a73172ba5c024d614329476803dffecf0c8af4881b4ad07b5348e0f6c3181ac",
+        "apps/core-go/internal/core/visual_identity_agent.go": "6793eb134fdf95363beea06174ddf3d9dad30e2607a346aa906c396ad2242b37"
+      }
+    }
+  ]
+}

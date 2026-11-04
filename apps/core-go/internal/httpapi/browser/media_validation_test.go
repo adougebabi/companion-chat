@@ -42,6 +42,33 @@ func TestDisplayAvatarOnlySelectsExplicitImageOrCanonical(t *testing.T) {
 		t.Fatal("canonical mode rejected")
 	}
 }
+
+func TestGeneratedVisualCommandsRequireVersionsAndHonestFeedback(t *testing.T) {
+	generation := map[string]any{"expectedVisualRevision": float64(1), "idempotencyKey": "avatar-generation"}
+	if !validGeneratedAvatarRequest(generation) {
+		t.Fatal("valid explicit avatar generation rejected")
+	}
+	generation["assetId"] = "foreign"
+	if validGeneratedAvatarRequest(generation) {
+		t.Fatal("avatar generation accepted an undeclared asset")
+	}
+	review := map[string]any{"decision": "accepted", "expectedVisualRevision": float64(1), "expectedReviewRevision": float64(1), "idempotencyKey": "derived-review"}
+	if !validGeneratedVisualReview(review) {
+		t.Fatal("manual acceptance should not require a reason")
+	}
+	review["decision"] = "regenerate"
+	if validGeneratedVisualReview(review) {
+		t.Fatal("regeneration without feedback was accepted")
+	}
+	review["feedback"] = "侧面视图缺失"
+	if !validGeneratedVisualReview(review) {
+		t.Fatal("review with correction feedback rejected")
+	}
+	review["reviewSource"] = "vision"
+	if validGeneratedVisualReview(review) {
+		t.Fatal("client could forge model provenance")
+	}
+}
 func TestExplicitMediaReferenceBodyRequiresScopePurposeConfirmationAndGrantPair(t *testing.T) {
 	body := map[string]any{"assetId": "actual", "expectedAssetRevision": float64(1), "targetScope": "studio_resource", "targetId": "target", "purpose": "person", "confirm": true, "reason": "Owner permits exact use", "idempotencyKey": "same"}
 	if !validMediaReferenceGrant("/api/media-reference-grants", body) {

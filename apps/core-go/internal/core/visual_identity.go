@@ -123,6 +123,12 @@ const visualIdentityPromptTemplate = `角色设定卡
 所有分区只用版式、人物小图、示意图、色块和留白表达，禁止生成任何文字、字母、数字、标题、标签、签名或伪文字；不要添加资料栏、人物简介、性格关键词或签名区。
 整体视觉：真实真人、高级商业摄影、柔和棚拍光、高清皮肤纹理、服装材质真实、人物五官统一、三视图保持同一张脸、非动漫、非Q版。`
 
+const visualIdentityAvatarPromptTemplate = `角色头像
+%s
+生成一张正方形（1:1）的单人写实头像，用于角色库和聊天。以已确认的角色形象为准，保持同一人的脸型、五官、肤色和发型等可识别特征。
+头部和肩部近景，人物居中，面部清晰完整，适合圆形或方形头像裁切；自然表情、柔和光线、简洁背景，保留真实皮肤和发丝质感。
+画面只包含一个人，不使用角色档案卡排版、表情分区、服装拆解或色卡。禁止文字、字母、数字、标签、签名、徽标和水印；非动漫、非Q版。`
+
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
 // the current visual identity aggregate. Large model responses and provider
 // diagnostics stay in attempt rows and are never copied into this snapshot.
@@ -584,9 +590,9 @@ func visualIdentityBoundedText(value string, limit int) string {
 	return value
 }
 
-// visualIdentityPromptFromConcept renders the owner's exact three-panel
-// template. The Provider may still be called for ordinary media prompts, but
-// it must not rewrite this Visual Identity composition.
+// visualIdentityPromptFromConcept renders the shared character-card template
+// or the separate avatar portrait template. Ordinary media prompt generation
+// must not rewrite either Visual Identity composition.
 func visualIdentityPromptFromConcept(concept map[string]any) string {
 	target := mapValue(concept["visual_identity"])
 	if len(target) == 0 {
@@ -595,14 +601,30 @@ func visualIdentityPromptFromConcept(concept map[string]any) string {
 	if len(target) == 0 {
 		target = concept
 	}
+	snapshot := mapValue(target["identity_snapshot"])
+	if len(snapshot) == 0 {
+		snapshot = target
+	}
 	description := visualIdentityCharacterDescription(target)
 	if description == "" {
 		description = "保持同一张脸的角色"
 	}
+	if stringValue(concept["stage"]) == "avatar" {
+		prompt := fmt.Sprintf(visualIdentityAvatarPromptTemplate, description) + visualAvatarBriefPrompt(snapshot)
+		if feedback := stringValue(concept["derived_review_feedback"]); strings.TrimSpace(feedback) != "" {
+			prompt += "\n\n上一张头像的修改要求：" + feedback
+		}
+		return prompt
+	}
 	prompt := fmt.Sprintf(visualIdentityPromptTemplate, description)
-	prompt += visualBriefPrompt(mapValue(target["identity_snapshot"]))
-	if guidance := visualIdentityReviewGuidance(mapValue(target["identity_snapshot"])); guidance != "" {
+	prompt += visualBriefPrompt(snapshot)
+	if guidance := visualIdentityReviewGuidance(snapshot); guidance != "" {
 		prompt += "\n\n上一轮评审修正要求：" + guidance
+	}
+	if stringValue(concept["stage"]) == "character_sheet" {
+		if feedback := stringValue(concept["derived_review_feedback"]); strings.TrimSpace(feedback) != "" {
+			prompt += "\n\n上一张角色设定图的修改要求：" + feedback
+		}
 	}
 	return prompt
 }
@@ -1357,7 +1379,7 @@ func (a *App) promoteVisualIdentityCanonicalTx(ctx context.Context, tx pgx.Tx, s
 	}
 	newRevision := revision + 1
 	revisionID := "visual_identity_revision_" + stableDigest(sessionID+":"+attemptID)
-	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='active',current_revision=$2,identity_snapshot=$3,renderer_constraints=$4,canonical_asset_id=$5,active_session_id=$6,updated_at=now() WHERE id=$1`, profileID, newRevision, jsonBytes(identitySnapshot), jsonBytes(constraints), assetID, sessionID); err != nil {
+	if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identities SET status='active',current_revision=$2,identity_snapshot=$3,renderer_constraints=$4,canonical_asset_id=$5,character_sheet_asset_id=NULL,active_session_id=$6,updated_at=now() WHERE id=$1`, profileID, newRevision, jsonBytes(identitySnapshot), jsonBytes(constraints), assetID, sessionID); err != nil {
 		return "", err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_visual_identity_revisions(id,visual_identity_id,fluctlight_id,revision,base_revision,identity_snapshot,renderer_constraints,canonical_asset_id,adapter_version,source,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$11,$10)`, revisionID, profileID, fluctlightID, newRevision, revision, jsonBytes(identitySnapshot), jsonBytes(constraints), assetID, visualIdentityAdapterVersion, "visual-identity:"+sessionID+":"+attemptID, source); err != nil {
@@ -1366,11 +1388,17 @@ func (a *App) promoteVisualIdentityCanonicalTx(ctx context.Context, tx pgx.Tx, s
 	characterIntentID := "media_intent_" + stableDigest(attemptID+":character-sheet")
 	characterWorkflowID := "media_workflow_" + stableDigest(characterIntentID)
 	characterRequestID := "media_request_" + stableDigest(characterIntentID)
-	characterConcept := map[string]any{"purpose": "visual_identity", "stage": "character_sheet", "canonical_asset_id": assetID, "visual_identity": identitySnapshot, "renderer_constraints": constraints}
+	characterConcept := map[string]any{"purpose": "visual_identity", "stage": "character_sheet", "canonical_asset_id": assetID, "visual_identity_reference_asset_id": assetID, "visual_identity": identitySnapshot, "renderer_constraints": constraints}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,status,revision) VALUES($1,$2,'image','image/png',$3,$4,$5,'pending',0)`, characterIntentID, fluctlightID, jsonString(characterConcept), characterRequestID, characterWorkflowID); err != nil {
 		return "", err
 	}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'media','media.generation',$3)`, "media_workflow_intent:"+characterIntentID, characterWorkflowID, jsonBytes(map[string]any{"intent_id": characterIntentID, "provider_request_id": characterRequestID, "fluctlight_id": fluctlightID})); err != nil {
+		return "", err
+	}
+	if err := createVisualAssetReviewTx(ctx, tx, fluctlightID, profileID, assetID, sessionID, "character_sheet", characterIntentID, newRevision); err != nil {
+		return "", err
+	}
+	if _, err := a.enqueueGeneratedAvatarTx(ctx, tx, fluctlightID, profileID, assetID, sessionID, attemptID, newRevision, identitySnapshot, constraints, false, ""); err != nil {
 		return "", err
 	}
 	command, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='character_sheet_pending',character_sheet_media_intent_id=$2,updated_at=now() WHERE id=$1 AND current_attempt=(SELECT attempt_number FROM public.fluctlight_visual_identity_attempts WHERE id=$3) AND status IN ('queued','running')`, sessionID, characterIntentID, attemptID)

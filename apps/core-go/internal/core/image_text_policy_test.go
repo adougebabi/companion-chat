@@ -5,10 +5,59 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestAvatarPromptAndReferenceReachComfyHTTP(t *testing.T) {
+	concept := map[string]any{
+		"purpose": "visual_identity", "stage": "avatar",
+		"visual_identity_reference_asset_id": "accepted-reference",
+		"visual_identity":                    map[string]any{"identity_snapshot": map[string]any{"identity": map[string]any{"appearance": "深棕色短发"}}},
+	}
+	avatarGraph := map[string]any{
+		"positive":  map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}},
+		"reference": map[string]any{"class_type": "LoadImage", "inputs": map[string]any{"image": "{{visual_identity_reference_image}}"}},
+	}
+	config := map[string]any{"visual_identity_workflows": map[string]any{"avatar": avatarGraph}}
+	selected := selectComfyWorkflow(config, jsonString(concept), map[string]any{"fallback": map[string]any{}})
+	prompt := visualIdentityPromptFromConcept(concept)
+	workflow, err := replaceMediaPlaceholdersWithReference(selected, prompt, nil, "uploaded-reference.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		called = true
+		var payload map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Error(err)
+			return
+		}
+		actual := mapValue(payload["prompt"])
+		text := stringValue(mapValue(mapValue(actual["positive"])["inputs"])["text"])
+		if !strings.Contains(text, "角色头像") || !strings.Contains(text, "头部和肩部") || strings.Contains(text, "正面/侧面/背面三视图") {
+			t.Errorf("wrong avatar prompt on physical request: %s", text)
+		}
+		if image := stringValue(mapValue(mapValue(actual["reference"])["inputs"])["image"]); image != "uploaded-reference.png" {
+			t.Errorf("reference image was not wired: %q", image)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"prompt_id":"avatar-test"}`)
+	}))
+	defer server.Close()
+	app := &App{Provider: &ProviderClient{HTTP: server.Client()}}
+	response, err := app.submitComfyPrompt(context.Background(), mediaIntent{}, concept, workflow, prompt, server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if !called || visualIdentityReferenceAssetID(concept) != "accepted-reference" {
+		t.Fatal("avatar request did not preserve the chosen reference")
+	}
+}
 
 func TestImageSubmissionForbidsTextInPositiveAndNegativeProviderInputs(t *testing.T) {
 	for _, purpose := range []string{"scene", "visual_identity", "studio_definition"} {

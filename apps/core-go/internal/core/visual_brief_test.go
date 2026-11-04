@@ -156,3 +156,40 @@ func TestOwnerVisualManualRejectionCarriesFeedbackToNextAttempt(t *testing.T) {
 		t.Fatalf("manual feedback missing from timeline: %q, %v", timelineSummary, err)
 	}
 }
+
+func TestAcceptedReferenceQueuesIndependentAvatarAndCharacterSheet(t *testing.T) {
+	f := newVisualIdentityToolFixture(t)
+	candidate := f.generateCandidate(t, "avatar-source-candidate")
+	media := stringValue(mapValue(candidate.Result.Output)["media_intent_id"])
+	canonical := f.makeCurrentCandidateReady(t, media)
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='awaiting_review' WHERE id=$1`, f.sessionID); err != nil {
+		t.Fatal(err)
+	}
+	body := map[string]any{"decision": "accepted", "expected_attempt": 1, "expected_visual_revision": 0, "idempotency_key": "avatar-source-review"}
+	path := "/internal/fluctlights/" + f.fluctlightID + "/visual-sessions/" + f.sessionID + "/review"
+	if _, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, body); err != nil {
+		t.Fatal(err)
+	}
+	var avatarIntent, sheetIntent string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT COALESCE(v.generated_avatar_media_intent_id,''),COALESCE(s.character_sheet_media_intent_id,'') FROM public.fluctlight_visual_identities v JOIN public.fluctlight_visual_identity_sessions s ON s.visual_identity_id=v.id WHERE s.id=$1`, f.sessionID).Scan(&avatarIntent, &sheetIntent); err != nil {
+		t.Fatal(err)
+	}
+	if avatarIntent == "" || sheetIntent == "" || avatarIntent == sheetIntent || "asset_"+avatarIntent == canonical {
+		t.Fatalf("three separate image identities not queued: reference=%q sheet=%q avatar=%q", canonical, sheetIntent, avatarIntent)
+	}
+	var raw string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT prompt FROM public.media_intents WHERE id=$1`, avatarIntent).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	concept := decodeObject([]byte(raw))
+	if stringValue(concept["stage"]) != "avatar" || visualIdentityReferenceAssetID(concept) != canonical || !strings.Contains(visualIdentityPromptFromConcept(concept), "角色头像") {
+		t.Fatalf("avatar intent lost its dedicated prompt or accepted reference: %#v", concept)
+	}
+	if _, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, body); err != nil {
+		t.Fatalf("replay failed: %v", err)
+	}
+	var count int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1 AND id=$2`, f.fluctlightID, avatarIntent).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("avatar intent duplicated: count=%d err=%v", count, err)
+	}
+}

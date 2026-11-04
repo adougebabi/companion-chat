@@ -153,7 +153,7 @@ test('creation waiting for candidate review explains the human action without co
   const progress=await readApprovedCreationProgress(client,draft),reference=progress.stages.find(s=>s.key==='reference');
   assert.equal(reference.state,'pending');assert.match(reference.note,/等待明确评审/);assert.equal(reference.linkLabel,'前往审阅候选');assert.equal(reference.href,'#/c/A/media/identity');assert.equal(progress.complete,false);assert.equal(progress.stages.filter(s=>s.state==='ready').length,4);
   client.visualIdentityManagement=async()=>({fluctlight_id:'A',canonical_asset_id:'C',character_sheet_asset_id:'S',session:{id:'session',status:'awaiting_review'}});
-  client.displayAvatar=async()=>({fluctlight_id:'A',avatar:{url:'/api/media/C'}});
+  client.displayAvatar=async()=>({fluctlight_id:'A',avatar:{url:'/api/media/avatar',asset_id:'avatar'},generation:{status:'accepted',candidate_asset_id:'avatar'}});
   const confirmed=await readApprovedCreationProgress(client,draft);
   assert.equal(confirmed.complete,true);assert.equal(confirmed.stages.find(s=>s.key==='reference').linkLabel,undefined);
 });

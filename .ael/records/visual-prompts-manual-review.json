@@ -22,9 +22,11 @@
   "failure": "",
   "result": "verified",
   "created": "2026-11-04T09:02:09.127506Z",
-  "updated": "2026-11-04T09:52:00.689037Z",
+  "updated": "2026-11-04T10:12:22.066302Z",
   "completed": "2026-11-04T09:52:00.688916Z",
-  "feedback": [],
+  "feedback": [
+    "independent-generated-avatar"
+  ],
   "history": {
     "attempts": [
       {

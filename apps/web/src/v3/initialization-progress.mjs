@@ -12,7 +12,13 @@ export async function readInitializationProgress(client,fid){
  ]);
  return {fid,identity,avatar,timeline,task};
 }
-export const initializationRunning=value=>value?.identity?.state==='ready'&&['queued','running','character_sheet_pending'].includes(value.identity.value.session?.status);
+export const initializationRunning=value=>{
+ const identity=value?.identity?.state==='ready'?value.identity.value:null;
+ const sheet=identity?.generated_reviews?.character_sheet;
+ return ['queued','running'].includes(identity?.session?.status)||
+  (identity?.session?.status==='character_sheet_pending'&&!['awaiting_review','failed'].includes(sheet?.status))||
+  value?.avatar?.value?.generation?.status==='generating';
+};
 
 // The creation wizard reads four independent authorities. It never starts work.
 export async function readCreationProgress(client,fid,{localDate,worldId}={}){

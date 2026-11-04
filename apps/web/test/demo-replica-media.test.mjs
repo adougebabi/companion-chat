@@ -386,6 +386,105 @@ test("rejection details are optional and switching to pass hides them without se
     await f.dispose();
   }
 });
+function addDerivedReview(api, kind) {
+  const state = api.state();
+  const id = "fixture-" + kind + "-review";
+  const assetId = "fixture-" + kind + "-candidate";
+  const source = api.assets.get("A-replica-candidate");
+  api.assets.set(assetId, { ...clone(source), id: assetId, title: kind === "avatar" ? "待审核头像" : "待审核设定图", url: "/api/media/" + assetId });
+  const review = { id, kind, visual_revision: state.visual.current_revision, revision: 1, candidate_asset_id: assetId, reference_asset_id: state.visual.canonical_asset_id, media_intent_id: "intent-" + id, status: "awaiting_review", media_status: "completed", review_source: null, review_data: {}, feedback: "", created_at: "2026-10-28T03:00:00.000Z", updated_at: "2026-10-28T03:00:00.000Z" };
+  state.visual.generated_reviews ||= {};
+  state.visual.generated_reviews[kind] = review;
+  state.generatedReviewRecords.set(id, review);
+  return review;
+}
+
+test("generated avatar and character sheet are reviewed separately", async () => {
+  const api = mediaFixture();
+  const avatarReview = addDerivedReview(api, "avatar");
+  const sheetReview = addDerivedReview(api, "character_sheet");
+  const canonical = api.state().visual.canonical_asset_id;
+  const f = await fixture({ api, tab: "identity" });
+  try {
+    assert.ok(button(f.v.host, "查看并审核头像"));
+    assert.ok(button(f.v.host, "查看并审核角色设定图"));
+    await f.v.click(button(f.v.host, "查看并审核头像"));
+    assert.equal(dialog().querySelectorAll(".r-derived-comparison img").length, 2);
+    await f.v.click(dialog().querySelector('[role="radio"][aria-label="通过"]'));
+    await f.v.click(button(dialog(), "提交人工评审"));
+    assert.equal(api.state().generatedAvatarAssetId, avatarReview.candidate_asset_id);
+    assert.equal(sheetReview.status, "awaiting_review");
+    assert.equal(api.state().visual.canonical_asset_id, canonical);
+    assert.equal(f.writes()[0].body.decision, "accepted");
+    assert.equal("feedback" in f.writes()[0].body, false);
+  } finally {
+    await f.dispose();
+  }
+});
+
+test("derived image rejection retains feedback and original review across a lost reply", async () => {
+  const api = mediaFixture({ scenario: "unknown" });
+  const review = addDerivedReview(api, "character_sheet");
+  let f = await fixture({ api, tab: "identity" });
+  try {
+    await f.v.click(button(f.v.host, "查看并审核角色设定图"));
+    await f.v.click(dialog().querySelector('[role="radio"][aria-label="不通过"]'));
+    await f.v.input(dialog().querySelector('[aria-label="不通过的原因"]'), "补齐侧面视图");
+    await f.v.click(button(dialog(), "提交人工评审"));
+    assert.ok(button(dialog(), "核对或重试原提交"));
+    const original = clone(f.writes()[0]);
+    await f.dispose();
+    f = await fixture({ api, tab: "identity", retainStorage: true });
+    await f.v.click(button(f.v.host, "继续核对角色设定图评审"));
+    await f.v.click(button(dialog(), "核对或重试原提交"));
+    assert.deepEqual(f.writes()[1], original);
+    assert.equal(review.feedback, "补齐侧面视图");
+    assert.equal(review.status, "rejected");
+  } finally {
+    await f.dispose();
+  }
+});
+
+test("an existing reference can explicitly queue a separate avatar", async () => {
+  const api = mediaFixture();
+  api.state().generatedAvatarAssetId = null;
+  delete api.state().visual.generated_reviews.avatar;
+  const f = await fixture({ api, tab: "avatar" });
+  try {
+    await f.v.click(button(f.v.host, "生成头像"));
+    await f.v.click(button(dialog(), "开始生成头像"));
+    const write = f.writes()[0];
+    assert.match(write.path, /display-avatar\/generate$/);
+    assert.equal(write.body.expectedVisualRevision, 1);
+    assert.equal(api.state().visual.generated_reviews.avatar.status, "generating");
+  } finally {
+    await f.dispose();
+  }
+});
+
+test("a lost avatar generation receipt remains recoverable after the reference changes", async () => {
+  const api = mediaFixture({ scenario: "unknown" });
+  api.state().generatedAvatarAssetId = null;
+  delete api.state().visual.generated_reviews.avatar;
+  let f = await fixture({ api, tab: "avatar" });
+  try {
+    await f.v.click(button(f.v.host, "生成头像"));
+    await f.v.click(button(dialog(), "开始生成头像"));
+    const original = clone(f.writes()[0]);
+    assert.ok(button(dialog(), "核对或重试原提交"));
+    api.state().visual.current_revision = 2;
+    api.state().visual.canonical_asset_id = "A-replica-candidate";
+    api.state().visual.generated_reviews = {};
+    await f.dispose();
+    f = await fixture({ api, tab: "avatar", retainStorage: true });
+    await f.v.click(button(f.v.host, "生成头像"));
+    await f.v.click(button(dialog(), "核对或重试原提交"));
+    assert.deepEqual(f.writes()[1], original);
+    assert.match(f.v.host.textContent, /原头像任务已记录；当前形象已变化/);
+  } finally {
+    await f.dispose();
+  }
+});
 test("avatar selection saves its own revision and actual asset version without replacing canonical identity", async () => {
   const f = await fixture({ tab: "avatar" });
   try {

@@ -53,10 +53,12 @@ export default function VisualWorkspace({ model: m }) {
   const identity = useMediaFollow({
       identity: ["visual-identity", fid],
       read: readIdentity,
-      pending: (r) =>
-        ["queued", "running", "character_sheet_pending"].includes(
-          r.session?.status,
-        ),
+      pending: (r) => {
+        const sheet = r.generated_reviews?.character_sheet;
+        const visualPending = ["queued", "running"].includes(r.session?.status) ||
+          (r.session?.status === "character_sheet_pending" && !["awaiting_review", "failed"].includes(sheet?.status));
+        return visualPending || Object.values(r.generated_reviews || {}).some((row) => row?.status === "generating");
+      },
       guard: (old, row) => old.session?.id === row.session?.id,
     }),
     brief = useWorkspaceRead({
@@ -563,7 +565,99 @@ export default function VisualWorkspace({ model: m }) {
       ),
     });
   }
+  function reviewGenerated(event, row) {
+    if (!row?.id || !row?.candidate_asset_id || !row?.reference_asset_id) return;
+    m.assertCurrent();
+    trigger.current = event.currentTarget;
+    const reviewId = row.id,
+      kind = row.kind,
+      candidate = row.candidate_asset_id,
+      reference = row.reference_asset_id,
+      title = kind === "avatar" ? "头像" : "角色设定图";
+    studioDraftStorage().setItem(prefix + ":generated-review-context:" + reviewId, JSON.stringify(row));
+    setAction({
+      ...base("generated-review:" + reviewId),
+      title: `评审${title}`,
+      description: "查看这张图片后选择通过或不通过，结果会记录为人工评审。",
+      wide: true,
+      submitLabel: "提交人工评审",
+      disabled: m.readOnly,
+      preAdmissionConflicts: ["visual_review_conflict", "revision_conflict"],
+      initial: { decision: "", feedback: "", visualRevision: row.visual_revision, reviewRevision: row.revision, reviewed: false },
+      canSubmit: (d) => !d?.reviewed,
+      validate: (d) => {
+        if (d.reviewed) throw Error("这张图片已经评审，请重新读取状态。");
+        if (!["accepted", "regenerate"].includes(d.decision)) throw Error("请选择通过或不通过。");
+        if (d.decision === "regenerate" && !d.feedback?.trim()) throw Error("请说明图片哪里不符合，以及希望怎样修改。");
+        if ([...(d.feedback || "")].length > 2000) throw Error("不通过的原因最多2000个字符。");
+      },
+      build: (d) => ({
+        decision: d.decision,
+        expectedVisualRevision: d.visualRevision,
+        expectedReviewRevision: d.reviewRevision,
+        ...(d.decision === "regenerate" ? { feedback: d.feedback } : {}),
+      }),
+      execute: async (body, key) => {
+        m.assertWritable();
+        const r = await client.reviewGeneratedVisualAsset(fid, reviewId, { ...body, idempotencyKey: key });
+        if (r.fluctlight_id !== fid || r.id !== reviewId || r.kind !== kind || r.decision !== body.decision || r.candidate_asset_id !== candidate)
+          throw Error("原图片的人工评审回执尚未完整确认。");
+        return r;
+      },
+      afterAcknowledged: (d) => ({ ...d, reviewed: true }),
+      readLatest: readIdentity,
+      adoptLatest: (d, fresh) => {
+        const currentReview = fresh.generated_reviews?.[kind];
+        if (fresh.current_revision !== row.visual_revision || currentReview?.id !== reviewId || currentReview?.status !== "awaiting_review")
+          throw Error("原图片已变化或已评审，请保留输入并重新读取状态。");
+        return { ...d, reviewRevision: currentReview.revision };
+      },
+      onSaved: async (_result, body) => {
+        const original = await client.generatedVisualAssetReview(fid, reviewId);
+        const expectedStatus = body.decision === "accepted" ? "accepted" : "rejected";
+        if (original.fluctlight_id !== fid || original.id !== reviewId || original.kind !== kind || original.candidate_asset_id !== candidate || original.reference_asset_id !== reference || original.status !== expectedStatus || original.review_source !== "manual")
+          throw Error("原图片的人工评审尚未完整读回。");
+        const fresh = await readIdentity();
+        if (m.live()) {
+          identityRef.current.adopt({ items: [fresh], next_cursor: "" });
+          setNotice(body.decision === "accepted" ? `${title}已通过人工评审。` : `${title}的修改要求已记录，新的候选正在准备。`);
+          await timeline.load();
+          if (kind === "avatar" && body.decision === "accepted" && m.live()) {
+            try {
+              await m.service.refresh();
+            } catch {
+              if (m.live()) setNotice("头像已通过审核；其他页面暂未刷新，可重新读取头像。");
+            }
+          }
+        }
+      },
+      fields: (d, edit) => (
+        <div className="r-review-layout">
+          <div className="r-derived-comparison">
+            <div><p>已确认的形象参考</p><MediaById id={reference} model={m} className="r-review-art" /></div>
+            <div><p>待审核{title}</p><MediaById id={candidate} model={m} className="r-review-art" /></div>
+          </div>
+          <div className="r-form-stack">
+            <div className="replica-field">
+              <span>评审结果</span>
+              <RadioGroup aria-label="评审结果" value={d.decision || ""} onValueChange={(decision) => edit({ decision })} className="r-review-choices">
+                {[["accepted", "通过", "接受这张图片"], ["regenerate", "不通过", "说明需要修改的地方，重新生成"]].map(([value, label, description]) => (
+                  <label className="r-review-choice" key={value}>
+                    <RadioGroupItem value={value} aria-label={label} />
+                    <span><b>{label}</b><small>{description}</small></span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+            {d.decision === "regenerate" && <label className="replica-field"><span>不通过的原因 · 必填</span><Textarea aria-label="不通过的原因" aria-required="true" value={d.feedback || ""} onChange={(e) => edit({ feedback: e.target.value })} /><span>这些修改要求会用于下一次生成。</span></label>}
+            {d.reviewed && <WorkspaceInfo>这张图片已经评审，请重新读取下一阶段。</WorkspaceInfo>}
+          </div>
+        </div>
+      ),
+    });
+  }
   let reviewRecovery = [];
+  let generatedReviewRecovery = [];
   try {
     const storage = studioDraftStorage();
     reviewRecovery = Object.keys(storage)
@@ -584,6 +678,11 @@ export default function VisualWorkspace({ model: m }) {
           ),
         ),
       );
+    generatedReviewRecovery = Object.keys(storage)
+      .filter((key) => key.startsWith(prefix + ":generated-review-context:"))
+      .map((key) => JSON.parse(storage.getItem(key)))
+      .filter((row) => typeof row?.id === "string" && typeof row.candidate_asset_id === "string" && typeof row.reference_asset_id === "string" && ["avatar", "character_sheet"].includes(row.kind) && Number.isSafeInteger(row.visual_revision) && Number.isSafeInteger(row.revision))
+      .filter((row) => [":draft", ":command", ":command:outcome"].some((suffix) => storage.getItem(prefix + ":generated-review:" + row.id + suffix)));
   } catch {}
   return (
     <div className="r-form-stack">
@@ -598,6 +697,25 @@ export default function VisualWorkspace({ model: m }) {
             继续核对第{row.attempt}次人工评审
           </Button>
         </WorkspaceInfo>
+      ))}
+      {generatedReviewRecovery.map((row) => (
+        <WorkspaceInfo key={row.id}>
+          原图片的人工评审输入或回执仍保留。
+          <Button variant="outline" onClick={(event) => reviewGenerated(event, row)}>继续核对{row.kind === "avatar" ? "头像" : "角色设定图"}评审</Button>
+        </WorkspaceInfo>
+      ))}
+      {Object.values(visual?.generated_reviews || {}).filter((row) => row?.status === "awaiting_review" && row?.candidate_asset_id && row?.reference_asset_id).map((row) => (
+        <Surface className="panel r-padded r-form-stack" key={row.id}>
+          <h2 className="r-inline-title">{row.kind === "avatar" ? "头像" : "角色设定图"}等待人工审核</h2>
+          <MediaById id={row.candidate_asset_id} model={m} className="r-identity-image" />
+          <p>请查看这张实际图片，再选择通过或不通过。</p>
+          {row.review_data?.reason && <p>{errorMessage({ code: row.review_data.reason }, "视觉模型暂时无法审核，请人工查看。")}</p>}
+          {Array.isArray(row.review_data?.violations) && row.review_data.violations.length > 0 && (
+            <ul>{row.review_data.violations.map((item, index) => <li key={index}>{item.detail || "视觉检查发现问题"}</li>)}</ul>
+          )}
+          {row.review_data?.retry_guidance && <p>模型建议：{row.review_data.retry_guidance}</p>}
+          <Button disabled={m.readOnly} onClick={(event) => reviewGenerated(event, row)}>查看并审核{row.kind === "avatar" ? "头像" : "角色设定图"}</Button>
+        </Surface>
       ))}
       <div className="r-toolbar">
         <div className="r-grow">

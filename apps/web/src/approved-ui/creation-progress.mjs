@@ -54,7 +54,9 @@ export async function readApprovedCreationProgress(client, draft) {
         : visual.identity.state === "failed"
           ? visual.identity.message
           : "";
-  const [reference, sheet] = await Promise.all([
+  const avatarGeneration = visual.avatar.value?.generation,
+    sheetReview = identity?.generated_reviews?.character_sheet;
+  const [reference, sheet, generatedAvatar] = await Promise.all([
     identity?.canonical_asset_id
       ? part(() => client.ownerMediaAsset(identity.canonical_asset_id, fid))
       : null,
@@ -62,6 +64,9 @@ export async function readApprovedCreationProgress(client, draft) {
       ? part(() =>
           client.ownerMediaAsset(identity.character_sheet_asset_id, fid),
         )
+      : null,
+    avatarGeneration?.status === "accepted" && avatarGeneration.candidate_asset_id
+      ? part(() => client.ownerMediaAsset(avatarGeneration.candidate_asset_id, fid))
       : null,
   ]);
   const imageStage = (key, title, asset) => ({
@@ -73,16 +78,20 @@ export async function readApprovedCreationProgress(client, draft) {
         ? "unknown"
         : visual.identity.state === "failed"
           ? "unknown"
+          : key === "sheet" && sheetReview?.status === "failed"
+            ? "failed"
+            : key === "sheet" && sheetReview?.status === "awaiting_review"
+              ? "pending"
           : visualState,
     note: asset?.value?.readable
       ? "已读回可以显示的图片"
-      : asset?.errorMessage || visualReason || (waitingForReview
+      : asset?.errorMessage || (key === "sheet" && sheetReview?.status === "awaiting_review" ? "角色设定图已生成，等待人工审核。" : "") || visualReason || (waitingForReview
         ? key === "reference"
           ? "当前候选等待明确评审；接受后才会成为规范参考。"
           : "等待候选被接受后，继续准备角色设定图。"
         : "等待实际图片任务与产物"),
     href: `#/c/${encodeURIComponent(fid)}/media/identity`,
-    linkLabel: waitingForReview && !asset?.value?.readable && asset?.state !== "unknown"
+    linkLabel: (waitingForReview || (key === "sheet" && sheetReview?.status === "awaiting_review")) && !asset?.value?.readable && asset?.state !== "unknown"
       ? "前往审阅候选" : undefined,
     configSection: "图片（ComfyUI）",
     retryable: visualState === "failed" && !!identity,
@@ -146,16 +155,27 @@ export async function readApprovedCreationProgress(client, draft) {
       state:
         visual.avatar.state === "failed"
           ? "unknown"
-          : visual.avatar.value?.avatar?.url
+          : generatedAvatar?.value?.readable
             ? "ready"
-            : visualState,
+            : generatedAvatar?.state === "unknown"
+              ? "unknown"
+              : avatarGeneration?.status === "failed"
+                ? "failed"
+                : avatarGeneration?.status === "generating"
+                  ? "running"
+                  : "pending",
       note:
         visual.avatar.state === "failed"
           ? visual.avatar.message
-          : visual.avatar.value?.avatar?.url
-            ? "已读回可显示头像"
-            : visualReason || "等待头像生成并读回",
-      href: `#/c/${encodeURIComponent(fid)}/media/avatar`,
+          : generatedAvatar?.value?.readable
+            ? "已读回通过审核的独立头像"
+            : avatarGeneration?.status === "awaiting_review"
+              ? "头像已生成，等待人工审核。"
+              : avatarGeneration?.status === "failed"
+                ? "头像生成未完成，请查看头像页面。"
+                : generatedAvatar?.errorMessage || "等待独立头像生成并审核",
+      href: `#/c/${encodeURIComponent(fid)}/media/${avatarGeneration?.status === "awaiting_review" ? "identity" : "avatar"}`,
+      linkLabel: avatarGeneration?.status === "awaiting_review" ? "前往审核头像" : undefined,
       configSection: "图片（ComfyUI）",
     },
     {

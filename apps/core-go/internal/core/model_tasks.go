@@ -196,6 +196,28 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
+	if isDerivedVisualIdentityMedia(input.Intent) {
+		concept := decodeObject([]byte(input.Intent.Prompt))
+		referenceID := visualIdentityReferenceAssetID(concept)
+		if referenceID == "" {
+			return mediaQualityAcceptance{}, errors.New("visual_identity_reference_image_missing")
+		}
+		mimeType, reference, err := a.readMediaAssetContent(ctx, input.Intent.Owner, referenceID)
+		if err != nil {
+			return mediaQualityAcceptance{}, err
+		}
+		referenceURL, err := mediaQualityImageDataURL(mimeType, reference)
+		if err != nil {
+			return mediaQualityAcceptance{}, err
+		}
+		parts := arrayValue(messages[1]["content"])
+		messages[1]["content"] = []any{
+			parts[0],
+			map[string]any{"type": "text", "text": "第一张图片是已确认的形象参考，第二张是待审核候选；检查候选是否保持同一人的可识别特征，并符合本次图片用途。"},
+			map[string]any{"type": "image_url", "image_url": map[string]any{"url": referenceURL}},
+			parts[1],
+		}
+	}
 	messages = formatProviderMessagesForRole(messages, "media_prompt")
 	run, err := a.runFormalStructuredTask(
 		WithProviderScenario(ctx, "media_quality_acceptance"),
@@ -204,7 +226,13 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
-	return normalizeMediaQualityAcceptance(run.Completion.Structured)
+	result, err := normalizeMediaQualityAcceptance(run.Completion.Structured)
+	if err != nil {
+		return mediaQualityAcceptance{}, err
+	}
+	result.VisionConfigVersion = vision.Version
+	result.VisionModelID = vision.Assignment.ModelID
+	return result, nil
 }
 
 type VisualIdentityVisionTaskInput struct {

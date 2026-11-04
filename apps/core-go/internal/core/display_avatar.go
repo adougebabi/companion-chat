@@ -9,12 +9,15 @@ import (
 )
 
 func displayAvatarRoute(method string, p []string) bool {
-	return len(p) >= 3 && p[0] == "fluctlights" && ((len(p) == 3 && p[2] == "display-avatar" && (method == "GET" || method == "PUT")) || (len(p) == 4 && p[2] == "display-avatar" && p[3] == "history" && method == "GET") || (len(p) == 3 && p[2] == "visual-identity" && method == "PUT"))
+	return len(p) >= 3 && p[0] == "fluctlights" && ((len(p) == 3 && p[2] == "display-avatar" && (method == "GET" || method == "PUT")) || (len(p) == 4 && p[2] == "display-avatar" && ((p[3] == "history" && method == "GET") || (p[3] == "generate" && method == "POST"))) || (len(p) == 3 && p[2] == "visual-identity" && method == "PUT"))
 }
 func (a *App) dispatchDisplayAvatar(ctx context.Context, method string, p []string, q url.Values, owner string, body map[string]any) (map[string]any, error) {
 	fid := p[1]
 	if _, err := a.DB.GetFluctlight(ctx, fid, owner); err != nil {
 		return nil, err
+	}
+	if method == "POST" && len(p) == 4 && p[3] == "generate" {
+		return a.generateOwnerAvatar(ctx, owner, fid, body)
 	}
 	if method == "GET" && len(p) == 4 {
 		return a.ownerDisplayAvatarHistory(ctx, owner, fid, q)
@@ -109,12 +112,26 @@ func (a *App) displayAvatarWith(ctx context.Context, q lifeContextQuerier, owner
 		}
 	}
 	result := map[string]any{"fluctlight_id": fid, "revision": revision, "mode": mode, "selection": selection, "avatar": nil, "read_state": "not_configured"}
+	var visualRevision int
+	var canonicalID, generatedID string
+	err = q.QueryRow(ctx, `SELECT current_revision,COALESCE(canonical_asset_id,''),COALESCE(generated_avatar_asset_id,'') FROM public.fluctlight_visual_identities WHERE fluctlight_id=$1`, fid).Scan(&visualRevision, &canonicalID, &generatedID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	result["visual_revision"] = visualRevision
+	result["reference_available"] = canonicalID != ""
+	reviews, err := readCurrentVisualAssetReviewsWith(ctx, q, fid, visualRevision)
+	if err != nil {
+		return nil, err
+	}
+	generation := mapValue(reviews["avatar"])
+	result["generation"] = nil
+	if len(generation) > 0 {
+		result["generation"] = generation
+	}
 	var id string
 	if mode == "canonical" {
-		err = q.QueryRow(ctx, `SELECT COALESCE(canonical_asset_id,'') FROM public.fluctlight_visual_identities WHERE fluctlight_id=$1`, fid).Scan(&id)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, err
-		}
+		id = generatedID
 	} else {
 		id = stringValue(selection["asset_id"])
 	}
@@ -123,6 +140,9 @@ func (a *App) displayAvatarWith(ctx context.Context, q lifeContextQuerier, owner
 		return result, nil
 	}
 	if id == "" {
+		if mode == "canonical" && canonicalID != "" {
+			result["read_state"] = firstString(stringValue(generation["status"]), "generation_needed")
+		}
 		return result, nil
 	}
 	asset, err := a.ownerMediaAssetWith(ctx, q, owner, id, false)

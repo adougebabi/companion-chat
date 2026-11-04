@@ -705,6 +705,13 @@
 }
 .replica-media .r-review-choice span { display: grid; gap: 4px; }
 .replica-media .r-review-choice small { color: #778172; line-height: 1.5; }
+.replica-media .r-derived-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.replica-media .r-derived-comparison p { margin: 0 0 8px; font-size: 12px; }
+.replica-media .r-derived-comparison .r-review-art { height: 240px; position: static; }
 .replica-media .r-review-score-heading {
   display: flex;
   align-items: center;

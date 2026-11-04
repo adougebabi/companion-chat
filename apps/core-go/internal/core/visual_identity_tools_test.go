@@ -36,6 +36,16 @@ type visualIdentityRequestPolicyInvoker struct {
 
 type visualIdentityReviewWireInvoker struct{ progressed bool }
 
+func (i *visualIdentityReviewWireInvoker) NativeDefinitions(definitions []CapabilityDefinition) []CapabilityDefinition {
+	result := append([]CapabilityDefinition(nil), definitions...)
+	for index, definition := range result {
+		if definition.Name == visualIdentityCommitReviewCapabilityName {
+			result[index] = (visualIdentityReviewCapability{}).NativeDefinition()
+		}
+	}
+	return result
+}
+
 func (i *visualIdentityReviewWireInvoker) Execute(ctx context.Context, name, args string) (string, error) {
 	return i.ExecuteWithID(ctx, "", name, args)
 }
@@ -390,7 +400,23 @@ func TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion(t
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) SELECT $2,owner_fluctlight_id,'v1','image','image/png',68,$3,'visual-test-bucket',$4,provider_request_id,workflow_id,'ready',now() FROM public.media_intents WHERE id=$1`, characterIntentID, characterAssetID, stableDigest(characterAssetID), "visual/"+characterAssetID+".png"); err != nil {
 		t.Fatal(err)
 	}
-	finalizeRequest.OperationID += "-asset-ready"
+	finalizeRequest.OperationID += "-unreviewed"
+	if unreviewed, err := fixture.app.ExecuteTool(fixture.ctx, finalizeRequest); err != nil || unreviewed.Result.Status != "rejected" || unreviewed.Result.ErrorCode != "visual_identity_character_sheet_review_required" {
+		t.Fatalf("unreviewed sheet was finalized: %#v %v", unreviewed, err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.media_intents SET quality_verdict='pass',quality_candidate_sha256=$2 WHERE id=$1`, characterIntentID, stableDigest(characterAssetID)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.runtime_settings(key,value_json,revision) VALUES('vision.understanding','{"enabled":true,"model_ref":"vision_understanding"}',1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=1`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_visual_asset_reviews SET review_data='{"vision_config_version":1,"vision_model_id":"controlled"}' WHERE media_intent_id=$1`, characterIntentID); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.app.markMediaIntentCompleted(fixture.ctx, characterIntentID, characterAssetID); err != nil {
+		t.Fatal(err)
+	}
+	finalizeRequest.OperationID += "-reviewed"
 	finalized, err := fixture.app.ExecuteTool(fixture.ctx, finalizeRequest)
 	if err != nil || finalized.Result.Status != "completed" || stringValue(mapValue(finalized.Result.Output)["character_sheet_asset_id"]) != characterAssetID {
 		t.Fatalf("finalize receipt=%#v err=%v", finalized, err)

@@ -79,9 +79,12 @@ export function mediaFixture({
     if (!stores.has(fid)) {
       const empty = scenario === "empty",
         canonical = empty ? null : fid + "-replica-canonical",
-        candidate = empty ? null : fid + "-replica-candidate";
+        candidate = empty ? null : fid + "-replica-candidate",
+        generatedAvatar = empty ? null : fid + "-replica-avatar";
       if (canonical) asset(canonical, "已接受的规范参考", "fluctlight", fid);
       if (candidate) asset(candidate, "当前视觉候选", "fluctlight", fid);
+      if (generatedAvatar) asset(generatedAvatar, "已审核头像", "fluctlight", fid);
+      const avatarReview = generatedAvatar ? { id: fid + "-avatar-review", kind: "avatar", visual_revision: 1, revision: 1, candidate_asset_id: generatedAvatar, reference_asset_id: canonical, media_intent_id: "intent-" + fid + "-avatar-review", status: "accepted", media_status: "completed", review_source: "vision", review_data: {}, feedback: "", created_at: date, updated_at: date } : null;
       const brief = {
         fluctlight_id: fid,
         revision: empty ? 0 : 2,
@@ -105,6 +108,7 @@ export function mediaFixture({
         renderer_constraints: { keep_unknown: { enabled: true } },
         canonical_asset_id: canonical,
         character_sheet_asset_id: null,
+        generated_reviews: avatarReview ? { avatar: avatarReview } : {},
         session: empty
           ? null
           : {
@@ -171,11 +175,16 @@ export function mediaFixture({
           revision: 1,
           mode: "canonical",
           selection: null,
-          avatar: canonical
-            ? { asset_id: canonical, url: "/api/media/" + canonical }
+          avatar: generatedAvatar
+            ? { asset_id: generatedAvatar, url: "/api/media/" + generatedAvatar }
             : null,
-          read_state: canonical ? "readable" : "not_configured",
+          read_state: generatedAvatar ? "readable" : "not_configured",
+          visual_revision: empty ? 0 : 1,
+          reference_available: !!canonical,
+          generation: avatarReview,
         },
+        generatedAvatarAssetId: generatedAvatar,
+        generatedReviewRecords: new Map(avatarReview ? [[avatarReview.id, avatarReview]] : []),
         avatarHistory: [],
         requests: new Map(),
         visualReads: 0,
@@ -209,7 +218,7 @@ export function mediaFixture({
   if (scenario !== "empty") addGrant("replica-landscape");
   async function handler({ path, method, body = {}, url, json, res }) {
     const scoped = path.match(
-        /^\/api\/fluctlights\/([^/]+)\/(visual-brief|visual-identity|visual-sessions|display-avatar|media-generations)(?:\/(.*))?$/,
+        /^\/api\/fluctlights\/([^/]+)\/(visual-brief|visual-identity|visual-sessions|visual-assets|display-avatar|media-generations)(?:\/(.*))?$/,
       ),
       fid = scoped ? decodeURIComponent(scoped[1]) : null,
       s = scoped ? state(fid) : null;
@@ -638,14 +647,12 @@ export function mediaFixture({
           s.visual.session?.status === "character_sheet_pending" &&
           ++s.visualReads >= 3
         ) {
-          const a = asset(
-            fid + "-replica-sheet",
-            "角色设定图",
-            "fluctlight",
-            fid,
-          );
-          s.visual.character_sheet_asset_id = a.id;
-          s.visual.session.status = "completed";
+          for (const [kind, name] of [["character_sheet", "角色设定图"], ["avatar", "独立头像"]]) {
+            const review = s.visual.generated_reviews?.[kind];
+            if (review?.status !== "generating") continue;
+            const a = asset(fid + "-replica-" + kind + "-" + review.id, name, "fluctlight", fid);
+            Object.assign(review, { candidate_asset_id: a.id, status: "awaiting_review", media_status: "completed", revision: 1 });
+          }
         }
         return send(s.visual);
       }
@@ -728,6 +735,16 @@ export function mediaFixture({
       if (body.decision === "accepted") {
         v.canonical_asset_id = attempt.candidate_asset_id;
         v.current_revision++;
+        v.character_sheet_asset_id = null;
+        s.generatedAvatarAssetId = null;
+        v.generated_reviews = {};
+        for (const kind of ["character_sheet", "avatar"]) {
+          const review = { id: "derived-review-" + ++seq, kind, visual_revision: v.current_revision, revision: 0, candidate_asset_id: null, reference_asset_id: s.visual.canonical_asset_id, status: "generating", media_status: "pending", review_source: null, review_data: {}, feedback: "", created_at: date, updated_at: date };
+          v.generated_reviews[kind] = review;
+          review.media_intent_id = "intent-" + review.id;
+          s.generatedReviewRecords.set(review.id, review);
+        }
+        s.visualReads = 0;
         session.status = "character_sheet_pending";
         Object.assign(r.result, {
           status: "character_sheet_pending",
@@ -752,6 +769,34 @@ export function mediaFixture({
       });
       return accept(r, "review");
     }
+    if (kind === "visual-assets") {
+      const reviewId = tail.split("/")[0];
+      const review = s.generatedReviewRecords.get(reviewId);
+      if (!review) return error("not_found", 404);
+      if (method === "GET") return send({ ...review, fluctlight_id: fid });
+      const hit = replay();
+      if (hit) return hit;
+      if (s.visual.current_revision !== body.expectedVisualRevision || review.revision !== body.expectedReviewRevision || review.status !== "awaiting_review") return error("visual_review_conflict");
+      review.status = body.decision === "accepted" ? "accepted" : "rejected";
+      review.review_source = "manual";
+      review.feedback = body.feedback || "";
+      review.revision++;
+      const result = { id: review.id, fluctlight_id: fid, kind: review.kind, decision: body.decision, candidate_asset_id: review.candidate_asset_id, visual_revision: review.visual_revision, status: review.status };
+      if (body.decision === "accepted" && review.kind === "avatar") s.generatedAvatarAssetId = review.candidate_asset_id;
+      if (body.decision === "accepted" && review.kind === "character_sheet") {
+        s.visual.character_sheet_asset_id = review.candidate_asset_id;
+        s.visual.session.status = "completed";
+      }
+      if (body.decision === "regenerate") {
+        const next = { id: "derived-review-" + ++seq, kind: review.kind, visual_revision: s.visual.current_revision, revision: 0, candidate_asset_id: null, reference_asset_id: s.visual.canonical_asset_id, status: "generating", media_status: "pending", review_source: null, review_data: {}, feedback: "", created_at: date, updated_at: date };
+        next.media_intent_id = "intent-" + next.id;
+        s.generatedReviewRecords.set(next.id, next);
+        s.visual.generated_reviews[review.kind] = next;
+        result.next_intent_id = "intent-" + next.id;
+        s.visualReads = 0;
+      }
+      return accept(result, "derived-review");
+    }
     if (kind === "display-avatar") {
       if (method === "GET") {
         if (tail === "history")
@@ -763,22 +808,37 @@ export function mediaFixture({
             ),
           );
         if (s.avatar.mode === "canonical") {
-          const image = assets.get(s.visual.canonical_asset_id);
+          const image = assets.get(s.generatedAvatarAssetId);
           s.avatar.avatar = image?.readable
             ? { asset_id: image.id, url: "/api/media/" + image.id }
             : null;
-          s.avatar.read_state = image?.readable ? "readable" : "not_configured";
+          s.avatar.read_state = image?.readable ? "readable" : s.visual.generated_reviews?.avatar?.status || (s.visual.canonical_asset_id ? "generation_needed" : "not_configured");
         }
+        s.avatar.visual_revision = s.visual.current_revision;
+        s.avatar.reference_available = !!s.visual.canonical_asset_id;
+        s.avatar.generation = s.visual.generated_reviews?.avatar || null;
         return send(s.avatar);
       }
       const hit = replay();
       if (hit) return hit;
+      if (method === "POST" && tail === "generate") {
+        if (body.expectedVisualRevision !== s.visual.current_revision || !s.visual.canonical_asset_id) return error("visual_generation_conflict");
+        let review = s.visual.generated_reviews?.avatar;
+        if (!review || !["generating", "awaiting_review"].includes(review.status)) {
+          review = { id: "derived-review-" + ++seq, kind: "avatar", visual_revision: s.visual.current_revision, revision: 0, candidate_asset_id: null, reference_asset_id: s.visual.canonical_asset_id, status: "generating", media_status: "pending", review_source: null, review_data: {}, feedback: "", created_at: date, updated_at: date };
+          review.media_intent_id = "intent-" + review.id;
+          s.generatedReviewRecords.set(review.id, review);
+          s.visual.generated_reviews ||= {};
+          s.visual.generated_reviews.avatar = review;
+        }
+        return accept({ id: "intent-" + review.id, review_id: review.id, fluctlight_id: fid, visual_revision: s.visual.current_revision, status: "queued" }, "avatar-generate");
+      }
       if (body.expectedRevision !== s.avatar.revision)
         return error("revision_conflict");
       const a =
         body.mode === "asset"
           ? assets.get(body.assetId)
-          : assets.get(s.visual.canonical_asset_id);
+          : assets.get(s.generatedAvatarAssetId);
       if (
         body.mode === "asset" &&
         (!a?.readable || a.asset_revision !== body.expectedAssetRevision)

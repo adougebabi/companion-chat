@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { proxy as reactive } from "valtio/vanilla";
 import { profileFields, profileChanges, profileSaveCommand, rebaseProfileFields } from "../src/approved-ui/profile-fields.mjs";
 import { createCreationController } from "../src/state/creation-controller.mjs";
+import { readApprovedCreationProgress } from "../src/approved-ui/creation-progress.mjs";
 import { scheduleProjection, diagnosticProjection, pendingIssues, readableSummary } from "../src/approved-ui/presentation.mjs";
 const storage = () => {
   const values = new Map();
@@ -103,8 +104,10 @@ function fixture({
     displayAvatar: async fid => ({
       fluctlight_id: fid,
       avatar: {
-        url: "/api/media/avatar"
-      }
+        url: "/api/media/avatar",
+        asset_id: "avatar"
+      },
+      generation: { status: "accepted", candidate_asset_id: "avatar" }
     }),
     visualIdentityTimeline: async () => ({
       items: []
@@ -165,6 +168,16 @@ function fixture({
     client
   };
 }
+test("creation progress waits for the separate avatar to be reviewed", async () => {
+  const f = fixture();
+  f.client.displayAvatar = async fid => ({ fluctlight_id: fid, avatar: { asset_id: "reference", url: "/api/media/reference" }, generation: { status: "awaiting_review", candidate_asset_id: "avatar-candidate" } });
+  const result = await readApprovedCreationProgress(f.client, { activatedId: "new-character", activationDate: "2026-10-23", groupConfirmed: true });
+  assert.equal(result.stages.find(stage => stage.key === "reference").state, "ready");
+  assert.equal(result.stages.find(stage => stage.key === "sheet").state, "ready");
+  assert.equal(result.stages.find(stage => stage.key === "avatar").state, "pending");
+  assert.match(result.stages.find(stage => stage.key === "avatar").note, /等待人工审核/);
+  assert.equal(result.complete, false);
+});
 test("malformed and incomplete analyses keep the editable original input until a valid retry", async () => {
   let attempt = 0;
   const f = fixture({

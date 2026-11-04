@@ -6,6 +6,7 @@ import { Surface, Disclosure, FieldInput, Textarea, Badge } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceInfo from "./WorkspaceInfo";
 import useWorkspaceRead from "./useWorkspaceRead";
+import useMediaFollow from "./useMediaFollow";
 import { MediaReader, MediaMore, SavedMedia, MediaById } from "./MediaParts";
 import { requiredText } from "@/approved-ui/media-presentation.mjs";
 import { userInstant } from "@/v3/presentation-time.mjs";
@@ -16,17 +17,19 @@ export default function AvatarWorkspace({ model: m }) {
     [query, setQuery] = useState(""),
     [epoch, setEpoch] = useState(0),
     [notice, setNotice] = useState(null),
+    [generationAction, setGenerationAction] = useState(null),
     freshRef = useRef(null),
-    formRoot = useRef(null);
-  const avatar = useWorkspaceRead({
+    formRoot = useRef(null),
+    generationTrigger = useRef(null);
+  const avatar = useMediaFollow({
     identity: ["display-avatar", fid],
-    characterScoped: false,
     read: async () => {
       const r = await m.service.avatar(fid);
       if (r.fluctlight_id !== fid || !Number.isSafeInteger(r.revision))
         throw Error("头像范围或版本不匹配。");
-      return { items: [r], next_cursor: "" };
+      return r;
     },
+    pending: (r) => r.generation?.status === "generating",
   });
   useEffect(()=>setNotice(null),[fid,m.owner]);
   async function refreshRelated(){
@@ -46,6 +49,47 @@ export default function AvatarWorkspace({ model: m }) {
       read: (cursor) => m.service.avatarHistory(fid, cursor),
     }),
     value = avatar.items[0];
+  function generateAvatar(event) {
+    if (!value?.reference_available || !Number.isSafeInteger(value.visual_revision)) return;
+    m.assertWritable();
+    generationTrigger.current = event.currentTarget;
+    setGenerationAction({
+      identity: "generated-avatar:" + fid,
+      scope: ["generated-avatar", fid],
+      storageKey: `fluctlight-media:${m.owner}:${fid}:generated-avatar`,
+      title: "生成独立头像",
+      description: "根据已确认的形象参考生成单独的头像；已手动选择的显示头像不会被覆盖。",
+      submitLabel: "开始生成头像",
+      initial: { visualRevision: value.visual_revision },
+      build: (d) => ({ expectedVisualRevision: d.visualRevision }),
+      execute: async (body, key) => {
+        m.assertWritable();
+        const result = await m.service.generateAvatar(fid, { ...body, idempotencyKey: key });
+        if (result.fluctlight_id !== fid || result.visual_revision !== body.expectedVisualRevision || typeof result.id !== "string" || !result.id || typeof result.review_id !== "string" || !result.review_id)
+          throw Error("头像生成回执尚未完整确认。");
+        return result;
+      },
+      readLatest: () => m.service.avatar(fid),
+      adoptLatest: (d, row) => {
+        if (row.fluctlight_id !== fid || !row.reference_available || !Number.isSafeInteger(row.visual_revision))
+          throw Error("形象参考尚未确认，请重新读取后生成头像。");
+        return { ...d, visualRevision: row.visual_revision };
+      },
+      onSaved: async (result, body) => {
+        const original = await m.w.client.generatedVisualAssetReview(fid, result.review_id);
+        if (original.fluctlight_id !== fid || original.id !== result.review_id || original.kind !== "avatar" || original.media_intent_id !== result.id || original.visual_revision !== body.expectedVisualRevision)
+          throw Error("原头像生成任务尚未完整读回。");
+        const fresh = await m.service.avatar(fid);
+        if (fresh.fluctlight_id !== fid || !Number.isSafeInteger(fresh.visual_revision)) throw Error("当前头像状态尚未完整读回。");
+        if (m.live()) {
+          freshRef.current.adopt({ items: [fresh], next_cursor: "" });
+          const sameTask = fresh.visual_revision === body.expectedVisualRevision && fresh.generation?.media_intent_id === result.id;
+          setNotice({ kind: "information", text: !sameTask ? "原头像任务已记录；当前形象已变化，请以当前状态为准。" : fresh.generation?.status === "awaiting_review" ? "头像已生成，等待审核。" : "头像生成已排队，完成后按实际审核状态显示。" });
+        }
+      },
+      fields: () => <p>生成完成后会单独审核，头像与形象参考图分别保存。</p>,
+    });
+  }
   const linkedId = m.route.query?.get("asset");
   const link = useWorkspaceRead({
     identity: ["linked-avatar-asset", linkedId],
@@ -171,14 +215,22 @@ export default function AvatarWorkspace({ model: m }) {
                   )}
                 </div>
                 <h2>{m.actor?.name || "角色"}</h2>
-                <p>{m.actor?.job || (d.mode === "asset" ? "明确选择的素材" : "跟随规范参考")}</p>
+                <p>{m.actor?.job || (d.mode === "asset" ? "明确选择的素材" : "使用生成的头像")}</p>
                 <Badge variant="outline" className="r-avatar-independent">显示头像独立保存</Badge>
                 <small>
                   更换头像不会替换角色的规范参考图。
                 </small>
                 {!value.avatar && (
                   <p className="r-fineprint">
-                    当前保存的头像来源尚不可用，实际显示回退为名字首字。
+                    {value.read_state === "generation_needed"
+                      ? "尚未生成独立头像，可以在右侧开始生成。"
+                      : value.read_state === "generating"
+                        ? "独立头像正在生成，完成后会进入审核。"
+                        : value.read_state === "awaiting_review"
+                          ? "独立头像已生成，等待人工审核。"
+                          : value.read_state === "failed"
+                            ? "独立头像生成未完成，可以重新生成。"
+                            : "当前头像来源暂不可用，实际显示回退为名字首字。"}
                   </p>
                 )}
               </Surface>
@@ -193,6 +245,15 @@ export default function AvatarWorkspace({ model: m }) {
                   <p className="r-muted">
                     角色库、聊天和资料会使用实际保存的头像。
                   </p>
+                  {value.generation?.status === "awaiting_review" && (
+                    <WorkspaceInfo>
+                      独立头像已生成，等待审核。
+                      <Button variant="outline" asChild><a href={`#/c/${encodeURIComponent(fid)}/media/identity`}>前往审核头像</a></Button>
+                    </WorkspaceInfo>
+                  )}
+                  <Button type="button" variant="outline" disabled={m.readOnly || !value.reference_available || !Number.isSafeInteger(value.visual_revision)} onClick={generateAvatar}>
+                    {value.generation?.status === "generating" ? "查看头像生成" : value.generation?.status === "failed" ? "重新生成头像" : value.generation?.status === "accepted" ? "生成新头像" : "生成头像"}
+                  </Button>
                 </div>
                 {link.items[0] && (
                   <Button
@@ -222,8 +283,8 @@ export default function AvatarWorkspace({ model: m }) {
                   {[
                     [
                       "canonical",
-                      "跟随规范参考",
-                      "使用当前已接受的视觉身份图片。",
+                      "使用生成的头像",
+                      "使用根据已确认形象单独生成并通过审核的头像。",
                     ],
                     [
                       "asset",
@@ -343,6 +404,13 @@ export default function AvatarWorkspace({ model: m }) {
             formRoot.current?.querySelector('button[type="submit"]')
           }
           onClose={() => setEpoch((e) => e + 1)}
+        />
+      )}
+      {generationAction && (
+        <WorkspaceCommandDialog
+          action={generationAction}
+          returnFocus={() => generationTrigger.current}
+          onClose={() => setGenerationAction(null)}
         />
       )}
       <Surface className="panel r-padded">

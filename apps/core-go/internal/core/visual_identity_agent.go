@@ -47,6 +47,7 @@ type visualIdentityAgentState struct {
 	MaxAttempts            int
 	CharacterMediaIntentID string
 	CharacterMediaStatus   string
+	CharacterReviewStatus  string
 	CharacterSheetAssetID  string
 	CharacterAssetReady    bool
 	CanonicalAssetID       string
@@ -213,9 +214,6 @@ func visualIdentityStageDefinitions(definitions []CapabilityDefinition, action s
 	stageDefinitions := make([]CapabilityDefinition, 0, 1)
 	for _, definition := range definitions {
 		if definition.Name == action {
-			if definition.Name == visualIdentityCommitReviewCapabilityName {
-				definition.InputSchema = visualIdentityModelCommitReviewCapabilityDefinition().InputSchema
-			}
 			stageDefinitions = append(stageDefinitions, definition)
 		}
 	}
@@ -420,6 +418,10 @@ func (a *App) loadVisualIdentityAgentState(ctx context.Context, sessionID string
 			return state, err
 		}
 		if state.CharacterMediaStatus == "completed" {
+			reviewErr := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.fluctlight_visual_asset_reviews WHERE media_intent_id=$1`, state.CharacterMediaIntentID).Scan(&state.CharacterReviewStatus)
+			if reviewErr != nil && !errors.Is(reviewErr, pgx.ErrNoRows) {
+				return state, reviewErr
+			}
 			assetID := "asset_" + state.CharacterMediaIntentID
 			var owner, status string
 			err := a.DB.Pool().QueryRow(ctx, `SELECT owner_fluctlight_id,status FROM public.media_assets WHERE id=$1`, assetID).Scan(&owner, &status)
@@ -466,6 +468,10 @@ func classifyVisualIdentityAgentState(state *visualIdentityAgentState) error {
 		if state.CharacterMediaStatus == "completed" {
 			if !state.CharacterAssetReady {
 				return errors.New("visual_identity_character_sheet_asset_not_ready")
+			}
+			if state.CharacterReviewStatus != "" && state.CharacterReviewStatus != "accepted" {
+				state.WaitingStage = "character_sheet_awaiting_review"
+				return nil
 			}
 			assetID := "asset_" + state.CharacterMediaIntentID
 			if state.CharacterSheetAssetID == "" {
@@ -523,6 +529,9 @@ func visualIdentityAgentOutputFromState(state visualIdentityAgentState, summary 
 	case "failed", "cancelled":
 		result.Status, result.Stage, result.Accepted = "failed", state.SessionStatus, false
 		result.ErrorCode = "visual_identity_session_" + state.SessionStatus
+	}
+	if state.WaitingStage == "character_sheet_awaiting_review" {
+		result.Status, result.Stage, result.Accepted = "awaiting_review", state.WaitingStage, false
 	}
 	return result
 }

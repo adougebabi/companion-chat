@@ -22,6 +22,20 @@ func validDisplayAvatar(body map[string]any) bool {
 	return body["mode"] == "canonical" && !hasID && !hasRevision
 }
 
+func validGeneratedAvatarRequest(body map[string]any) bool {
+	return onlyKeys(body, "expectedVisualRevision", "idempotencyKey") && validateInteger(body["expectedVisualRevision"], 0) && validateString(body["idempotencyKey"], 1, 256) && strings.TrimSpace(stringValue(body["idempotencyKey"])) != ""
+}
+
+func validGeneratedVisualReview(body map[string]any) bool {
+	if !onlyKeys(body, "decision", "feedback", "expectedVisualRevision", "expectedReviewRevision", "idempotencyKey") || !validateInteger(body["expectedVisualRevision"], 0) || !validateInteger(body["expectedReviewRevision"], 0) || !validateString(body["idempotencyKey"], 1, 256) || strings.TrimSpace(stringValue(body["idempotencyKey"])) == "" {
+		return false
+	}
+	if feedback, present := body["feedback"]; present && !validateString(feedback, 0, 2000) {
+		return false
+	}
+	return body["decision"] == "accepted" || (body["decision"] == "regenerate" && strings.TrimSpace(stringValue(body["feedback"])) != "")
+}
+
 func validMediaReferenceGrant(path string, b map[string]any) bool {
 	if strings.HasSuffix(path, "/revoke") {
 		return onlyKeys(b, "expectedRevision", "reason", "idempotencyKey") && validateInteger(b["expectedRevision"], 1) && validateString(b["reason"], 1, 1000) && validateString(b["idempotencyKey"], 1, 256)

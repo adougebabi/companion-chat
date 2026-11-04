@@ -177,6 +177,7 @@ export function creationHttpFixture({
       path.startsWith("/api/studio/resources/creation-") ||
       path === "/api/media-assets/creation-reference" ||
       path === "/api/media-assets/creation-sheet" ||
+      path === "/api/media-assets/creation-avatar" ||
       (match &&
         [
           "world/catalog",
@@ -343,7 +344,8 @@ export function creationHttpFixture({
     }
     if (
       path === "/api/media-assets/creation-reference" ||
-      path === "/api/media-assets/creation-sheet"
+      path === "/api/media-assets/creation-sheet" ||
+      path === "/api/media-assets/creation-avatar"
     )
       return send({
         id: path.split("/").at(-1),
@@ -536,10 +538,11 @@ export function creationHttpFixture({
           revision: state.ready ? 1 : 0,
           avatar: state.ready
             ? {
-                url: "/api/media/creation-reference",
-                asset_id: "creation-reference",
+                url: "/api/media/creation-avatar",
+                asset_id: "creation-avatar",
               }
             : null,
+          generation: state.ready ? { status: "accepted", candidate_asset_id: "creation-avatar" } : null,
         });
     }
     return false;

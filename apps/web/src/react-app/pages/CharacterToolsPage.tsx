@@ -228,7 +228,7 @@ export default function CharacterToolsPage({
               disabled={busy}
               onClick={() => void chooseAvatar(null)}
             >
-              使用已确认的标准形象
+              使用独立生成头像
             </Button>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               {assets

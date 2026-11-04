@@ -38,11 +38,13 @@ type mediaQualityViolation struct {
 }
 
 type mediaQualityAcceptance struct {
-	SchemaVersion int
-	Verdict       string
-	Violations    []mediaQualityViolation
-	ObservedFacts map[string]bool
-	RetryGuidance string
+	SchemaVersion       int
+	Verdict             string
+	Violations          []mediaQualityViolation
+	ObservedFacts       map[string]bool
+	RetryGuidance       string
+	VisionConfigVersion int64
+	VisionModelID       string
 }
 
 func normalizeMediaQualityAcceptance(value map[string]any) (mediaQualityAcceptance, error) {
@@ -152,10 +154,20 @@ func mediaQualityMessages(intent mediaIntent, contentType string, content []byte
 		map[string]any{"type": "text", "text": string(textContent)},
 		map[string]any{"type": "image_url", "image_url": map[string]any{"url": dataURL}},
 	}
+	instruction := mediaQualityAcceptanceSystemInstruction()
+	if isDerivedVisualIdentityMedia(intent) {
+		instruction = strings.Replace(instruction, "The application retries any first non-pass once with this feedback and delivers the second candidate even when its verdict is retry or reject.", "The application may retry a non-pass with this feedback. Only a genuine pass accepts this image; otherwise the candidate can await explicit human review.", 1)
+	}
 	return []map[string]any{
-		{"role": "system", "content": mediaQualityAcceptanceSystemInstruction()},
+		{"role": "system", "content": instruction},
 		{"role": "user", "content": contentParts},
 	}, nil
+}
+
+func isDerivedVisualIdentityMedia(intent mediaIntent) bool {
+	concept := decodeObject([]byte(intent.Prompt))
+	stage := stringValue(concept["stage"])
+	return stringValue(concept["purpose"]) == "visual_identity" && (stage == "character_sheet" || stage == "avatar")
 }
 
 func mediaQualityAcceptanceSystemInstruction() string {

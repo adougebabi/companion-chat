@@ -1017,6 +1017,18 @@ func (fixture *formalToolAdapterFixture) makeVisualCharacterSheetReady(t *testin
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status,ready_at) SELECT $2,owner_fluctlight_id,'v1','image','image/png',68,$3,'adapter-bucket',$4,provider_request_id,workflow_id,'ready',now() FROM public.media_intents WHERE id=$1`, fixture.visualCharacterIntent, assetID, stableDigest(assetID), "adapter/"+assetID+".png"); err != nil {
 		t.Fatal(err)
 	}
+	// This fixture simulates a completed, model-approved sheet. Reference-image
+	// review above exercises the real model request; sheet finalization must also
+	// see an accepted review for this exact asset under the current vision config.
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.media_intents SET quality_verdict='pass',quality_candidate_sha256=$2 WHERE id=$1`, fixture.visualCharacterIntent, stableDigest(assetID)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.fluctlight_visual_asset_reviews SET review_data=jsonb_build_object('vision_config_version',(SELECT revision FROM public.runtime_settings WHERE key='vision.understanding'),'vision_model_id','controlled') WHERE media_intent_id=$1`, fixture.visualCharacterIntent); err != nil {
+		t.Fatal(err)
+	}
+	if err := fixture.app.markMediaIntentCompleted(fixture.ctx, fixture.visualCharacterIntent, assetID); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func requireFormalAdapterVisualSession(t *testing.T, fixture *formalToolAdapterFixture) {

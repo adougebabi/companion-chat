@@ -1,4 +1,4 @@
-import type {BrowserClient,BrowserMediaMetadataBody,BrowserMediaAvatarBody,BrowserMediaReferenceGrantBody,BrowserMediaReferenceRevokeBody,BrowserMediaGenerateBody,BrowserMediaPhotoBody,BrowserMediaDeleteBody,BrowserMediaDeleteRetryBody} from '@fluctlight/browser-client';
+import type {BrowserClient,BrowserMediaMetadataBody,BrowserMediaAvatarBody,BrowserMediaAvatarGenerateBody,BrowserMediaReferenceGrantBody,BrowserMediaReferenceRevokeBody,BrowserMediaGenerateBody,BrowserMediaPhotoBody,BrowserMediaDeleteBody,BrowserMediaDeleteRetryBody} from '@fluctlight/browser-client';
 // v3 service facade
 import {configureDomainService} from '../proto/services.js';
 import {apiOrigin} from '../../runtime-config';
@@ -19,6 +19,7 @@ export function createMediaProvider(client:BrowserClient,refreshProduct:()=>Prom
  revokeGrant:(id:string,body:BrowserMediaReferenceRevokeBody)=>client.revokeMediaReferenceGrant(id,body),
  grantRecords:(id:string,kind:'history'|'uses',cursor='')=>client.mediaReferenceGrantRecords(id,kind,cursor),
  avatar:(fid:string)=>client.displayAvatar(fid),
+ generateAvatar:(fid:string,body:BrowserMediaAvatarGenerateBody)=>client.generateDisplayAvatar(fid,body),
  selectAvatar:(fid:string,body:BrowserMediaAvatarBody)=>client.selectDisplayAvatar(fid,body),
  avatarHistory:(fid:string,cursor='')=>client.displayAvatarHistory(fid,cursor),
  list:(options:Parameters<BrowserClient['ownerMediaLibrary']>[0])=>client.ownerMediaLibrary(options),

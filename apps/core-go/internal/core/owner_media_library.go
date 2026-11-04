@@ -30,6 +30,9 @@ func MatchOwnerMediaSurface(method, path string) bool {
 	if displayAvatarRoute(method, p) {
 		return true
 	}
+	if visualAssetReviewRoute(method, p) {
+		return true
+	}
 	if len(p) == 1 && p[0] == "media-library" {
 		return method == "GET"
 	}
@@ -58,6 +61,15 @@ func (a *App) DispatchOwnerMediaSurface(ctx context.Context, method, path string
 	}
 	if displayAvatarRoute(method, p) {
 		return a.dispatchDisplayAvatar(ctx, method, p, q, owner, body)
+	}
+	if visualAssetReviewRoute(method, p) {
+		if _, err := a.DB.GetFluctlight(ctx, p[1], owner); err != nil {
+			return nil, err
+		}
+		if method == "GET" {
+			return a.ownerVisualAssetReview(ctx, p[1], p[3])
+		}
+		return a.reviewOwnerVisualAsset(ctx, owner, p[1], p[3], body)
 	}
 	if p[0] == "media-uploads" {
 		key := strings.TrimSpace(q.Get("key"))

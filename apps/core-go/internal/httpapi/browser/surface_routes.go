@@ -47,6 +47,9 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/display-avatar"},
 	{http.MethodPut, "/api/fluctlights/:fluctlightId/display-avatar"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/display-avatar/history"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/display-avatar/generate"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/visual-assets/:reviewId"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/visual-assets/:reviewId/review"},
 	{http.MethodGet, "/api/media-assets/:assetId"},
 	{http.MethodPut, "/api/media-assets/:assetId"},
 	{http.MethodGet, "/api/media-uploads/by-key"},
@@ -245,6 +248,14 @@ func (s *Server) dispatchSurface(response http.ResponseWriter, request *http.Req
 		}
 		if (strings.HasSuffix(request.URL.Path, "/display-avatar") || strings.HasSuffix(request.URL.Path, "/visual-identity")) && !validDisplayAvatar(parsed) {
 			writeError(response, 400, "invalid_request", "Invalid display avatar selection")
+			return
+		}
+		if strings.HasSuffix(request.URL.Path, "/display-avatar/generate") && !validGeneratedAvatarRequest(parsed) {
+			writeError(response, 400, "invalid_request", "Invalid avatar generation request")
+			return
+		}
+		if strings.Contains(request.URL.Path, "/visual-assets/") && strings.HasSuffix(request.URL.Path, "/review") && !validGeneratedVisualReview(parsed) {
+			writeError(response, 400, "invalid_request", "Invalid generated visual review")
 			return
 		}
 		if (strings.HasSuffix(request.URL.Path, "/media-generations") || strings.HasSuffix(request.URL.Path, "/photos")) && !validOwnerMediaRequest(request.URL.Path, parsed) {

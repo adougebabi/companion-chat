@@ -38,7 +38,7 @@ export function renderRealVisualIdentity(el,ctx){
   if(!live())return;
   if(identity){patch(el.querySelector('[data-identity]'),VisualIdentityState(identity));const review=el.querySelector('[data-manual-review]');if(review)review.onclick=()=>{if(get('characters',fid)?.status!=='已退休')visualReview(fid,identity,()=>refresh());};}
   else el.querySelector('[data-identity]').innerHTML=errors.identity?'<p>规范参考读取失败，可重新读取。</p>':'正在读取规范参考与候选…';
-  if(avatar){patch(el.querySelector('[data-avatar]'),`<h3>当前显示头像</h3>${Avatar({src:avatar.avatar?.url?mediaClient.url(avatar.avatar.asset_id):'',name:get('characters',fid)?.name||'角色',size:'lg'})}<p class="small muted">${avatar.mode==='asset'?'使用选定素材':avatar.mode==='canonical'?'跟随规范参考':'显示方式待确认'}</p><p class="small muted">显示头像与规范参考分别保存。</p>`);bindAvatars(el.querySelector('[data-avatar]'));}
+  if(avatar){patch(el.querySelector('[data-avatar]'),`<h3>当前显示头像</h3>${Avatar({src:avatar.avatar?.url?mediaClient.url(avatar.avatar.asset_id):'',name:get('characters',fid)?.name||'角色',size:'lg'})}<p class="small muted">${avatar.mode==='asset'?'使用选定素材':avatar.mode==='canonical'?'使用独立生成头像':'显示方式待确认'}</p><p class="small muted">显示头像与规范参考分别保存。</p>`);bindAvatars(el.querySelector('[data-avatar]'));}
   else if(errors.avatar)el.querySelector('[data-avatar]').innerHTML='<h3>显示头像</h3><p>读取失败，可重新读取。</p>';
   el.querySelector('[data-generation-error]').textContent=Object.values(errors).filter(Boolean).join('；');
   el.querySelector('[data-observer-status]').textContent=busy?'正在读取已有状态…':pending()?reads>=60?'自动跟进已暂停；原任务仍保留，不代表超时失败。可以重新读取。':'正在自动跟进这次视觉准备。':'';
