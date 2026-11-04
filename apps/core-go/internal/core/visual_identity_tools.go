@@ -27,6 +27,20 @@ type visualIdentityAgentCapability struct {
 	name    string
 }
 
+// The model keeps its complete inspection contract; direct Owner reviews may
+// omit evidence when accepting a candidate.
+type visualIdentityReviewCapability struct{ visualIdentityAgentCapability }
+
+func (c visualIdentityReviewCapability) NativeDefinition() CapabilityDefinition {
+	return visualIdentityModelCommitReviewCapabilityDefinition()
+}
+func (c visualIdentityReviewCapability) BindNativeArguments(raw json.RawMessage, _ ContextProjection) (json.RawMessage, error) {
+	return raw, nil
+}
+func (c visualIdentityReviewCapability) NativeOutput(value any, _ ContextProjection) any {
+	return value
+}
+
 type visualIdentityAgentToolService interface {
 	executeVisualIdentityGenerateCandidateTx(context.Context, pgx.Tx, CapabilityInvocation, DirectToolTarget, string) (CapabilityResult, error)
 	executeVisualIdentityCommitReviewTx(context.Context, pgx.Tx, CapabilityInvocation, DirectToolTarget, string) (CapabilityResult, error)
@@ -40,7 +54,7 @@ func visualIdentityAgentCapabilities(app *App) []Capability {
 	}
 	return []Capability{
 		visualIdentityAgentCapability{service: service, name: visualIdentityGenerateCandidateCapabilityName},
-		visualIdentityAgentCapability{service: service, name: visualIdentityCommitReviewCapabilityName},
+		visualIdentityReviewCapability{visualIdentityAgentCapability{service: service, name: visualIdentityCommitReviewCapabilityName}},
 		visualIdentityAgentCapability{service: service, name: visualIdentityFinalizeCapabilityName},
 	}
 }
@@ -121,6 +135,22 @@ func visualIdentityGenerateCandidateCapabilityDefinition() CapabilityDefinition 
 }
 
 func visualIdentityCommitReviewCapabilityDefinition() CapabilityDefinition {
+	definition := visualIdentityModelCommitReviewCapabilityDefinition()
+	schema := cloneMap(definition.InputSchema)
+	schema["required"] = []any{"decision"}
+	schema["anyOf"] = []any{
+		map[string]any{"required": []any{"review_source"}, "properties": map[string]any{"review_source": enumStringSchema("manual")}},
+		map[string]any{"required": []any{"decision", "identity_match", "confidence", "observations", "missing_sections", "summary", "feedback"}},
+	}
+	properties := mapValue(schema["properties"])
+	mapValue(properties["summary"])["minLength"] = 0
+	observations := mapValue(properties["observations"])
+	mapValue(arrayValue(observations["anyOf"])[0])["minItems"] = 0
+	definition.InputSchema = schema
+	return definition
+}
+
+func visualIdentityModelCommitReviewCapabilityDefinition() CapabilityDefinition {
 	return CapabilityDefinition{
 		Name: visualIdentityCommitReviewCapabilityName, Version: "v1", Type: CapabilityTypeAction,
 		Description: "Persist the real-image review. Prefer observations as 1–24 short strings; one text or a flat object of text observations is also accepted.",
@@ -366,12 +396,32 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 			return failedCapabilityResult(invocation, "vision_admission_changed", false), newCapabilityError("vision_admission_changed", false, ErrConflict)
 		}
 	}
-	observations, err := normalizeVisualIdentityObservations(review["observations"])
-	if err != nil {
+	if !manual {
+		if err := validateRequiredSchemaFields(review, visualIdentityModelCommitReviewCapabilityDefinition().InputSchema); err != nil {
+			return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
+		}
+	}
+	if value, present := review["observations"]; !manual || (present && len(arrayValue(value)) > 0) {
+		observations, err := normalizeVisualIdentityObservations(value)
+		if err != nil {
+			return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
+		}
+		review["observations"] = observations
+	} else if manual && present {
+		// String and object observation shapes must still be normalized when supplied.
+		if _, isArray := value.([]any); !isArray {
+			observations, err := normalizeVisualIdentityObservations(value)
+			if err != nil {
+				return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
+			}
+			review["observations"] = observations
+		}
+	}
+	decision := stringValue(review["decision"])
+	if manual && decision == "regenerate" && !visualIdentityReviewHasCorrectionEvidence(review) {
+		err := errors.New("manual regeneration requires actual correction evidence")
 		return failedCapabilityResultDetail(invocation, "visual_identity_review_invalid", false, err.Error()), newCapabilityError("visual_identity_review_invalid", false, err)
 	}
-	review["observations"] = observations
-	decision := stringValue(review["decision"])
 	if decision == "accepted" && len(arrayValue(review["missing_sections"])) > 0 {
 		err := errors.New("accepted review cannot report missing required sections")
 		return failedCapabilityResultDetail(invocation, "visual_identity_review_inconsistent", false, err.Error()), newCapabilityError("visual_identity_review_inconsistent", false, err)
@@ -466,7 +516,8 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		}
 	}
 	if decision == "regenerate" {
-		if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, visualIdentityStageRegenerate, "rejected_not_self", visualIdentityBoundedText(stringValue(review["summary"]), 512), []string{assetID}, map[string]any{"decision": decision}, "visual_identity:"+sessionID); err != nil {
+		summary := firstString(stringValue(review["summary"]), stringValue(review["feedback"]))
+		if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, visualIdentityStageRegenerate, "rejected_not_self", visualIdentityBoundedText(summary, 512), []string{assetID}, map[string]any{"decision": decision}, "visual_identity:"+sessionID); err != nil {
 			return failedCapabilityResultDetail(invocation, "visual_identity_timeline_failed", true, err.Error()), err
 		}
 		if session.Attempt >= session.MaxAttempts {
@@ -525,6 +576,22 @@ func (a *App) executeVisualIdentityCommitReviewTx(ctx context.Context, tx pgx.Tx
 		"session_id": sessionID, "attempt": session.Attempt, "status": "character_sheet_pending", "decision": decision,
 		"candidate_asset_id": assetID, "canonical_asset_id": assetID, "character_sheet_media_intent_id": characterIntentID, "replayed": false,
 	}), nil
+}
+
+func visualIdentityReviewHasCorrectionEvidence(review map[string]any) bool {
+	for _, key := range []string{"summary", "feedback"} {
+		if strings.TrimSpace(stringValue(review[key])) != "" {
+			return true
+		}
+	}
+	for _, key := range []string{"observations", "missing_sections"} {
+		for _, item := range arrayValue(review[key]) {
+			if strings.TrimSpace(stringValue(item)) != "" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func normalizeVisualIdentityObservations(value any) ([]any, error) {

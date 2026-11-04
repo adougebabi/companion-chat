@@ -1,0 +1,87 @@
+{
+  "id": "visual-prompts-manual-review",
+  "definition_revision": 2,
+  "plan_revision": 2,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+  "completed": "2026-11-04T09:52:00.688916Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "web-test",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "34fc3599caf02aaf6a8ed52ac5a2119b4f0bc2a04f1857c342e65c1bdef28f7c",
+      "at": "2026-11-04T09:48:14.475295Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-551460184cccf413356a.log": "a4c0c65d3f2f9cdc9dbeb5f7f993ef7f5d66ef7401175779021ccba03b97ba64"
+      }
+    },
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "eaea46348cf70ade5eed4974b1805e7b44a4371667cf200938ec5c4b37120cdc",
+      "at": "2026-11-04T09:49:29.958149Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-82c62e44649ec5b30c83.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "6be75390389229f0af574bd5f85ec298239fe73c63404c8d1bdf80bf0d3ae16f",
+      "at": "2026-11-04T09:50:09.933608Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-73815ef1965855f69a61.log": "886938f4835ae95413da18e4a8e8a75ae3839879b4ef878171c9ab1b0dbee6cd"
+      }
+    },
+    {
+      "id": "prompt-audit",
+      "result": "pass",
+      "source": "model:codex-visual-review",
+      "config_hash": "aa98d8031bbf836909872224fe99176a5f65086c9f5b520c7a93486c5dff7391",
+      "at": "2026-11-04T09:51:16.534914Z",
+      "artifact_hashes": {
+        ".v3-regression/visual-review/verification.md": "cdc631e15d1cd4d6c5ab7f1f45baa60ca11b9d6ee7b8595b0b376517c889059d",
+        "apps/core-go/internal/core/display_avatar.go": "f4696b0d39b19a4381edfe136431caba65452839a53e57389c813e7a26b9a2ea",
+        "apps/core-go/internal/core/media.go": "9735267c49d46f22af5c111774d3ed4b48c93fa6f69219c526a279fe11ad58be",
+        "apps/core-go/internal/core/visual_identity.go": "1bf9b058aa9ef047ed9a1140e1618dd7a7dfbeb5bd74c6bbedccd1fdb1fbda50",
+        "apps/core-go/internal/core/visual_identity_tools.go": "6049bd8af7786d00927e3b5bdf4c6b4690baf069d10ee864564fcc81d25335d8"
+      }
+    },
+    {
+      "id": "manual-review-core",
+      "result": "pass",
+      "source": "scenario:codex-visual-review",
+      "config_hash": "5e60c61647107cb6ab309f37d0f9fe3f9c909463c645d88a135ec796827df32d",
+      "at": "2026-11-04T09:51:36.490995Z",
+      "artifact_hashes": {
+        ".v3-regression/visual-review/verification.md": "cdc631e15d1cd4d6c5ab7f1f45baa60ca11b9d6ee7b8595b0b376517c889059d",
+        "apps/core-go/internal/core/owner_visual_review.go": "2fb10cff36e26435a7e581c21019c231f17e99c2ab87bd4fe46c05cc9a536c4d",
+        "apps/core-go/internal/core/visual_brief_test.go": "69bcb8edc89fbb1d3137748fd5d1a7c83962239f26ab2fce173ab2eda727f489",
+        "apps/core-go/internal/core/visual_identity_agent.go": "b784b9301daf67a13fe000c94f8d09ffd9f64823f8271497fe4ed7f6fdcbbb6c",
+        "apps/core-go/internal/core/visual_identity_tools.go": "6049bd8af7786d00927e3b5bdf4c6b4690baf069d10ee864564fcc81d25335d8",
+        "apps/core-go/internal/core/visual_identity_tools_test.go": "878da3c1df9eafdec83eefeca4af6e2932520266551d989a708fea0256c2d85e",
+        "apps/core-go/internal/httpapi/browser/visual_brief_validation.go": "f263f629e6f88d001beb2a926577ca751cb97d6f697469a480bb72c0c3144a3a"
+      }
+    },
+    {
+      "id": "manual-review-ui",
+      "result": "pass",
+      "source": "scenario:codex-visual-review",
+      "config_hash": "d453268704226aed9ce0045c639d056c1d77df8a7ea4f6dcd2aab235b9c15dfc",
+      "at": "2026-11-04T09:51:56.148672Z",
+      "artifact_hashes": {
+        ".v3-regression/visual-review/verification.md": "cdc631e15d1cd4d6c5ab7f1f45baa60ca11b9d6ee7b8595b0b376517c889059d",
+        "apps/web/src/react-app/shared/VisualWorkspace.jsx": "44e24d1c7e547597649e30453a13811c977dc1b605a05168fae7db720266f9ec",
+        "apps/web/src/react-app/shared/WorkspaceCommandDialog.jsx": "f1b8636238d8946623a9063496c30d4b70c5c756f835bf1dc65a704b3a92e1b7",
+        "apps/web/src/styles/replica-chat.css": "3a3cc9a0dde50611d76c293ad229a81aeb50aa5b855fd40f0f1545823feddfa1",
+        "apps/web/src/styles/replica-media.css": "874c5a8dcce96de3420023d344bd244df8f4a4b8bfc97abe91a44a9f9893fa72",
+        "apps/web/test/demo-replica-media.test.mjs": "098dd3d3a40543c9ac693e047143a5f2a2f4a76cffe02d5da3562ab9d55eb9d0"
+      }
+    }
+  ]
+}

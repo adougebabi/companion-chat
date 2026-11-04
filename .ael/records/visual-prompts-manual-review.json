@@ -1,0 +1,241 @@
+{
+  "schema": 1,
+  "id": "visual-prompts-manual-review",
+  "definition_hash": "ec5193fdabe97ed681790834aa2370fbdd5ed51e2b8c9249dfa2209ecf1b7c5d",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 2,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-04T09:02:09.127506Z",
+  "updated": "2026-11-04T09:52:00.689037Z",
+  "completed": "2026-11-04T09:52:00.688916Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-dc7d53e884ebe3fdb086",
+        "unit": "define",
+        "executor": "codex-visual-review",
+        "input_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "candidate_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "started": "2026-11-04T09:02:21.642752Z",
+        "ended": "2026-11-04T09:03:48.949066Z",
+        "status": "pass",
+        "reason": "用户确认视觉理解启用时模型审核、关闭时人工审核；用户实际症状是提交人工审核无网络请求或控制台错误。范围包括核对三个图片提示词、在隔离环境复现和修复人工审核，且不自动接受真实候选或改写提示词。初步检查现有前端模拟测试可通过，Go 数据库集成测试因缺少隔离数据库而跳过，需要补充真实浏览器复现。"
+      },
+      {
+        "id": "AT-96c0eb5edef05c1c2e87",
+        "unit": "analysis",
+        "executor": "codex-visual-review",
+        "input_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "candidate_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "started": "2026-11-04T09:04:10.30592Z",
+        "ended": "2026-11-04T09:07:01.250506Z",
+        "status": "pass",
+        "reason": "隔离生产构建页面复现与用户一致的无可见反馈：填写底部表单而未设置两项评分时，提交本地校验失败，错误显示于已滚出视口的表单顶部，且无审核请求；显式设置评分后样本审核成功。评分初始显示0但真实值为null，按Home无法显式选择0。真实用户是否处于同一状态仍待核对。拟将共享命令弹窗错误放在固定操作区，提供明确的0值设置，并用真实交互回归验证；保持候选接受、人工审核和模型审核边界。适用：project-entry、AGENTS、visual-identity-contract、pen-interaction-contract。"
+      },
+      {
+        "id": "AT-8a8dd440befb0867bb2a",
+        "unit": "execute",
+        "executor": "codex-visual-review",
+        "input_version": "952d579c2bb045e22660f9fcc3dc921cf54a42f0537dea34443470cf72bd5fac",
+        "candidate_version": "3514ab81b83834cf91d65025bfb646e78f38d472e7099b60a758c1e41a64d309",
+        "started": "2026-11-04T09:07:18.917303Z",
+        "ended": "2026-11-04T09:18:12.84913Z",
+        "status": "pass",
+        "reason": "已复现并修复人工审核本地校验错误被滚出视口的问题，添加提交失败 Sonner 提示和保留原提交的恢复入口。用户随后明确要求改为 Radio Group 通过/不通过联动：通过无需评分、观察或操作理由；不通过收集下次生图的真实问题，模型评审证据也应能用于生成。原修复仅为中间结果，后续须修订任务并完成前端、浏览器边界和 Core 契约。修改后的现有前端测试 1019 项、typecheck、构建通过；后续变更需要重新验证。"
+      },
+      {
+        "id": "AT-44a6a6518c645c424ec0",
+        "unit": "define",
+        "executor": "codex-visual-review",
+        "input_version": "3514ab81b83834cf91d65025bfb646e78f38d472e7099b60a758c1e41a64d309",
+        "candidate_version": "3514ab81b83834cf91d65025bfb646e78f38d472e7099b60a758c1e41a64d309",
+        "started": "2026-11-04T09:19:34.087531Z",
+        "ended": "2026-11-04T09:19:58.73133Z",
+        "status": "pass",
+        "reason": "用户明确要求 Radio Group 通过/不通过联动，通过不需要评分、观察、摘要或理由；不通过的信息供重新生成使用，视觉模型开启时仍通过真实图像评审并提供失败证据；错误以 Sonner 提示。沿用原任务与受控验证范围。"
+      },
+      {
+        "id": "AT-b7c5184c8abd376bee1d",
+        "unit": "analysis",
+        "executor": "codex-visual-review",
+        "input_version": "3514ab81b83834cf91d65025bfb646e78f38d472e7099b60a758c1e41a64d309",
+        "candidate_version": "3514ab81b83834cf91d65025bfb646e78f38d472e7099b60a758c1e41a64d309",
+        "started": "2026-11-04T09:20:14.418027Z",
+        "ended": "2026-11-04T09:23:12.924114Z",
+        "status": "pass",
+        "reason": "已核对人工审核请求在 React、Browser API、Core 共享工具 schema 三层均强制模型式字段；模型审核实际收到图片并产出决定和观察，当前下一次生图遗漏观察及评分。方案：Radio Group 显式选择；人工通过只传决定和版本，未填字段不造值；人工不通过填写真实修改建议并可补充证据；分别约束人工与模型 schema，保留 Owner、CAS、幂等、候选授权和模型真实图片来源。将失败的真实证据传到下一次生成，保留现有完整模型审核契约；同步 API schema 与规范。隔离 PostgreSQL 尚不可用，先执行无需数据库的契约测试并继续寻找安全验证条件。"
+      },
+      {
+        "id": "AT-c58864c6b032cbf66c19",
+        "unit": "execute",
+        "executor": "codex-visual-review",
+        "input_version": "3514ab81b83834cf91d65025bfb646e78f38d472e7099b60a758c1e41a64d309",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:23:34.098335Z",
+        "ended": "2026-11-04T09:47:20.670647Z",
+        "status": "pass",
+        "reason": "已按用户要求改为 Radio Group 通过/不通过联动，人工通过仅提交决定及版本，不伪造评分/观察/理由；不通过提交修改要求并可选补充细节。Sonner 和按钮旁反馈解决不可见错误，旧提交恢复入口固定可见。Browser API、客户端 schema 和 Core 支持新契约，保留模型真实图片、完整评审字段、Owner/CAS/幂等与人工来源；人工和模型失败证据传递至下次生成。隔离 PostgreSQL 实际验证通过/不通过、续跑与重复请求；受控模型 HTTP 图片/字段回归通过；桌面及390px页面交互已核对。真实外部模型/ComfyUI/对象存储未调用。"
+      },
+      {
+        "id": "AT-551460184cccf413356a",
+        "unit": "check:web-test",
+        "executor": "codex-visual-review",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:48:14.324574Z",
+        "ended": "2026-11-04T09:48:55.1143Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-82c62e44649ec5b30c83",
+        "unit": "check:web-typecheck",
+        "executor": "codex-visual-review",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:49:29.813881Z",
+        "ended": "2026-11-04T09:49:45.902193Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-73815ef1965855f69a61",
+        "unit": "check:web-build",
+        "executor": "codex-visual-review",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:50:09.832923Z",
+        "ended": "2026-11-04T09:50:18.51069Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-29e90718cdd12522ef48",
+        "unit": "check:prompt-audit",
+        "executor": "codex-visual-review",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:51:16.482185Z",
+        "ended": "2026-11-04T09:51:16.535399Z",
+        "status": "pass",
+        "reason": "已核对候选与设定图共用的固定模板、动态外观和上轮反馈，以及头像只选择素材；结论是模型对指定源码的语义审阅。"
+      },
+      {
+        "id": "AT-46d5bfd5ff5ddb26f0c1",
+        "unit": "check:manual-review-core",
+        "executor": "codex-visual-review",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:51:36.434854Z",
+        "ended": "2026-11-04T09:51:36.49154Z",
+        "status": "pass",
+        "reason": "在任务专用临时 PostgreSQL 实际运行人工通过、不通过、视觉关闭、幂等和续跑回归；受控 Provider HTTP 测试验证图片与模型字段。真实外部模型及对象存储未调用。"
+      },
+      {
+        "id": "AT-0d6cb518681b947936fe",
+        "unit": "check:manual-review-ui",
+        "executor": "codex-visual-review",
+        "input_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "candidate_version": "b900463ed5763e17692d9641b6a77a6dd5fc844a51a98e5c04f816c002afbcaf",
+        "started": "2026-11-04T09:51:56.091792Z",
+        "ended": "2026-11-04T09:51:56.149247Z",
+        "status": "pass",
+        "reason": "在隔离生产构建页面实际操作桌面与390px审核：单选联动、通过无需输入、拒绝原因、Sonner、错误清除和下一次候选状态；28项媒体交互测试通过。截图在本地工具中查看，不提交图片。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "web-test",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "34fc3599caf02aaf6a8ed52ac5a2119b4f0bc2a04f1857c342e65c1bdef28f7c",
+        "at": "2026-11-04T09:48:14.475295Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-551460184cccf413356a.log": "a4c0c65d3f2f9cdc9dbeb5f7f993ef7f5d66ef7401175779021ccba03b97ba64"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "eaea46348cf70ade5eed4974b1805e7b44a4371667cf200938ec5c4b37120cdc",
+        "at": "2026-11-04T09:49:29.958149Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-82c62e44649ec5b30c83.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "6be75390389229f0af574bd5f85ec298239fe73c63404c8d1bdf80bf0d3ae16f",
+        "at": "2026-11-04T09:50:09.933608Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-73815ef1965855f69a61.log": "886938f4835ae95413da18e4a8e8a75ae3839879b4ef878171c9ab1b0dbee6cd"
+        }
+      },
+      {
+        "id": "prompt-audit",
+        "result": "pass",
+        "source": "model:codex-visual-review",
+        "config_hash": "aa98d8031bbf836909872224fe99176a5f65086c9f5b520c7a93486c5dff7391",
+        "at": "2026-11-04T09:51:16.534914Z",
+        "artifact_hashes": {
+          ".v3-regression/visual-review/verification.md": "cdc631e15d1cd4d6c5ab7f1f45baa60ca11b9d6ee7b8595b0b376517c889059d",
+          "apps/core-go/internal/core/display_avatar.go": "f4696b0d39b19a4381edfe136431caba65452839a53e57389c813e7a26b9a2ea",
+          "apps/core-go/internal/core/media.go": "9735267c49d46f22af5c111774d3ed4b48c93fa6f69219c526a279fe11ad58be",
+          "apps/core-go/internal/core/visual_identity.go": "1bf9b058aa9ef047ed9a1140e1618dd7a7dfbeb5bd74c6bbedccd1fdb1fbda50",
+          "apps/core-go/internal/core/visual_identity_tools.go": "6049bd8af7786d00927e3b5bdf4c6b4690baf069d10ee864564fcc81d25335d8"
+        }
+      },
+      {
+        "id": "manual-review-core",
+        "result": "pass",
+        "source": "scenario:codex-visual-review",
+        "config_hash": "5e60c61647107cb6ab309f37d0f9fe3f9c909463c645d88a135ec796827df32d",
+        "at": "2026-11-04T09:51:36.490995Z",
+        "artifact_hashes": {
+          ".v3-regression/visual-review/verification.md": "cdc631e15d1cd4d6c5ab7f1f45baa60ca11b9d6ee7b8595b0b376517c889059d",
+          "apps/core-go/internal/core/owner_visual_review.go": "2fb10cff36e26435a7e581c21019c231f17e99c2ab87bd4fe46c05cc9a536c4d",
+          "apps/core-go/internal/core/visual_brief_test.go": "69bcb8edc89fbb1d3137748fd5d1a7c83962239f26ab2fce173ab2eda727f489",
+          "apps/core-go/internal/core/visual_identity_agent.go": "b784b9301daf67a13fe000c94f8d09ffd9f64823f8271497fe4ed7f6fdcbbb6c",
+          "apps/core-go/internal/core/visual_identity_tools.go": "6049bd8af7786d00927e3b5bdf4c6b4690baf069d10ee864564fcc81d25335d8",
+          "apps/core-go/internal/core/visual_identity_tools_test.go": "878da3c1df9eafdec83eefeca4af6e2932520266551d989a708fea0256c2d85e",
+          "apps/core-go/internal/httpapi/browser/visual_brief_validation.go": "f263f629e6f88d001beb2a926577ca751cb97d6f697469a480bb72c0c3144a3a"
+        }
+      },
+      {
+        "id": "manual-review-ui",
+        "result": "pass",
+        "source": "scenario:codex-visual-review",
+        "config_hash": "d453268704226aed9ce0045c639d056c1d77df8a7ea4f6dcd2aab235b9c15dfc",
+        "at": "2026-11-04T09:51:56.148672Z",
+        "artifact_hashes": {
+          ".v3-regression/visual-review/verification.md": "cdc631e15d1cd4d6c5ab7f1f45baa60ca11b9d6ee7b8595b0b376517c889059d",
+          "apps/web/src/react-app/shared/VisualWorkspace.jsx": "44e24d1c7e547597649e30453a13811c977dc1b605a05168fae7db720266f9ec",
+          "apps/web/src/react-app/shared/WorkspaceCommandDialog.jsx": "f1b8636238d8946623a9063496c30d4b70c5c756f835bf1dc65a704b3a92e1b7",
+          "apps/web/src/styles/replica-chat.css": "3a3cc9a0dde50611d76c293ad229a81aeb50aa5b855fd40f0f1545823feddfa1",
+          "apps/web/src/styles/replica-media.css": "874c5a8dcce96de3420023d344bd244df8f4a4b8bfc97abe91a44a9f9893fa72",
+          "apps/web/test/demo-replica-media.test.mjs": "098dd3d3a40543c9ac693e047143a5f2a2f4a76cffe02d5da3562ab9d55eb9d0"
+        }
+      }
+    ]
+  }
+}

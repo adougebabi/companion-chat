@@ -3,13 +3,13 @@ import { StoryMark } from "./WorkspaceArtwork";
 import { Pencil, Wand2, ImageIcon, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Surface,
   Badge,
   Disclosure,
   Textarea,
   FieldInput,
-  ChoiceSelect,
 } from "../controls";
 import WorkspaceCommandDialog from "./WorkspaceCommandDialog";
 import WorkspaceDialog from "./WorkspaceDialog";
@@ -322,13 +322,13 @@ export default function VisualWorkspace({ model: m }) {
       ...base("review:" + sessionId + ":" + attempt),
       title: "评审这次视觉候选",
       description:
-        "实际查看候选，记录Owner人工观察；人工接受不冒充模型视觉通过。",
+        "查看候选后选择通过或不通过，结果会记录为人工评审。",
       wide: true,
       submitLabel: "提交人工评审",
       disabled: m.readOnly,
       preAdmissionConflicts: ["visual_review_conflict", "revision_conflict"],
       initial: {
-        decision: "accepted",
+        decision: "",
         identityMatch: null,
         confidence: null,
         observations: "",
@@ -343,49 +343,54 @@ export default function VisualWorkspace({ model: m }) {
       canSubmit: (d) => !d?.reviewed,
       validate: (d) => {
         if (d.reviewed) throw Error("原候选已经评审，请重新读取下一阶段。");
+        if (!["accepted", "regenerate"].includes(d.decision))
+          throw Error("请选择通过或不通过。");
+        if (d.decision === "accepted") return;
+        if (!d.feedback?.trim())
+          throw Error("请说明图片哪里不符合，以及希望怎样修改。");
         for (const k of ["identityMatch", "confidence"])
-          if (typeof d[k] !== "number" || d[k] < 0 || d[k] > 1)
-            throw Error("请明确设置两项评审程度，范围为0—100%。");
+          if (d[k] != null && (typeof d[k] !== "number" || !Number.isFinite(d[k]) || d[k] < 0 || d[k] > 1))
+            throw Error("评审程度须在0—100%之间。");
         const lines = (v) =>
-            v
+            (v || "")
               .split("\n")
               .map((s) => s.trim())
               .filter(Boolean),
           obs = lines(d.observations),
           missing = lines(d.missingSections);
         if (
-          !obs.length ||
           obs.length > 24 ||
           obs.some((s) => [...s].length > 500)
         )
-          throw Error("实际观察需要1—24项，每项最多500个字符。");
+          throw Error("实际观察最多24项，每项最多500个字符。");
         if (missing.length > 16 || missing.some((s) => [...s].length > 200))
           throw Error("缺失分区最多16项，每项200个字符。");
-        if (d.decision === "accepted" && missing.length)
-          throw Error("仍有缺失分区，不能接受候选。");
-        requiredText(d.summary, "评审摘要", 1000);
-        requiredText(d.reason, "操作理由", 1024);
+        if ([...(d.summary || "")].length > 1000)
+          throw Error("评审摘要最多1000个字符。");
+        if ([...(d.reason || "")].length > 1024)
+          throw Error("操作理由最多1024个字符。");
         if ([...d.feedback].length > 2000)
-          throw Error("修正建议最多2000个字符。");
+          throw Error("不通过的原因最多2000个字符。");
       },
-      build: (d) => ({
-        decision: d.decision,
-        identityMatch: d.identityMatch,
-        confidence: d.confidence,
-        observations: d.observations
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        missingSections: d.missingSections
-          .split("\n")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        summary: d.summary,
-        feedback: d.feedback,
-        reason: d.reason,
-        expectedAttempt: d.attempt,
-        expectedVisualRevision: d.visualRevision,
-      }),
+      build: (d) => {
+        const body = {
+          decision: d.decision,
+          expectedAttempt: d.attempt,
+          expectedVisualRevision: d.visualRevision,
+        };
+        if (d.decision === "regenerate") {
+          body.feedback = d.feedback;
+          for (const key of ["identityMatch", "confidence"])
+            if (d[key] != null) body[key] = d[key];
+          for (const key of ["observations", "missingSections"]) {
+            const lines = (d[key] || "").split("\n").map((s) => s.trim()).filter(Boolean);
+            if (lines.length) body[key] = lines;
+          }
+          for (const key of ["summary", "reason"])
+            if (d[key]?.trim()) body[key] = d[key];
+        }
+        return body;
+      },
       execute: async (body, key) => {
         m.assertWritable();
         const r = await client.reviewVisualIdentity(fid, sessionId, {
@@ -483,52 +488,71 @@ export default function VisualWorkspace({ model: m }) {
             <p className="r-fineprint">第 {attempt} 次尝试 · 人工评审</p>
           </div>
           <div className="r-form-stack">
-            <label className="replica-field">
-              <span>评审决定</span>
-              <ChoiceSelect
-                aria-label="评审决定"
-                value={d.decision}
-                onChange={(e) => edit({ decision: e.target.value })}
+            <div className="replica-field">
+              <span>评审结果</span>
+              <RadioGroup
+                aria-label="评审结果"
+                value={d.decision || ""}
+                onValueChange={(decision) => edit({ decision })}
+                className="r-review-choices"
               >
-                <option value="accepted">接受这个候选</option>
-                <option value="regenerate">需要重新生成</option>
-              </ChoiceSelect>
-            </label>
-            {[
-              ["identityMatch", "身份符合程度"],
-              ["confidence", "评审置信程度"],
-            ].map(([key, label]) => (
-              <label className="replica-field" key={key}>
-                <span>
-                  {label} ·{" "}
-                  {d[key] === null ? "请设置" : Math.round(d[key] * 100) + "%"}
-                </span>
-                <Slider
-                  aria-label={label}
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={[d[key] === null ? 0 : Math.round(d[key] * 100)]}
-                  onValueChange={(v) => edit({ [key]: v[0] / 100 })}
-                />
-              </label>
-            ))}
-            {[
-              ["observations", "实际观察（一行一项）"],
-              ["missingSections", "缺失分区（一行一项）"],
-              ["summary", "评审摘要"],
-              ["feedback", "修正建议"],
-              ["reason", "操作理由"],
-            ].map(([key, label]) => (
-              <label className="replica-field" key={key}>
-                <span>{label}</span>
-                <Textarea
-                  aria-label={label}
-                  value={d[key]}
-                  onChange={(e) => edit({ [key]: e.target.value })}
-                />
-              </label>
-            ))}
+                {[
+                  ["accepted", "通过", "接受这张候选图作为形象参考"],
+                  ["regenerate", "不通过", "说明需要修改的地方，重新生成"],
+                ].map(([value, label, description]) => (
+                  <label className="r-review-choice" key={value}>
+                    <RadioGroupItem value={value} aria-label={label} />
+                    <span><b>{label}</b><small>{description}</small></span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+            {d.decision === "regenerate" && (
+              <>
+                <label className="replica-field">
+                  <span>不通过的原因 · 必填</span>
+                  <Textarea
+                    aria-label="不通过的原因"
+                    aria-required="true"
+                    placeholder="例如：侧面视图缺失，服装颜色与参考不一致"
+                    value={d.feedback || ""}
+                    onChange={(e) => edit({ feedback: e.target.value })}
+                  />
+                  <span>这些修改要求会用于下一次生成。</span>
+                </label>
+                <Disclosure title="补充评审细节（选填）">
+                  <div className="r-form-stack">
+                    {[["identityMatch", "身份符合程度"], ["confidence", "评审置信程度"]].map(([key, label]) => (
+                      <div className="replica-field" key={key}>
+                        <div className="r-review-score-heading">
+                          <span>{label} · {d[key] == null ? "未设置" : Math.round(d[key] * 100) + "%"}</span>
+                          {d[key] == null && (
+                            <Button type="button" variant="outline" size="sm"
+                              aria-label={`将${label}设为0%`}
+                              onClick={() => edit({ [key]: 0 })}>设为 0%</Button>
+                          )}
+                        </div>
+                        <Slider aria-label={label} min={0} max={100} step={1}
+                          value={[d[key] == null ? 0 : Math.round(d[key] * 100)]}
+                          onValueChange={(v) => edit({ [key]: v[0] / 100 })} />
+                      </div>
+                    ))}
+                    {[
+                      ["observations", "实际观察（一行一项）"],
+                      ["missingSections", "图片缺少的内容（一行一项）"],
+                      ["summary", "评审摘要"],
+                      ["reason", "操作理由"],
+                    ].map(([key, label]) => (
+                      <label className="replica-field" key={key}>
+                        <span>{label} · 选填</span>
+                        <Textarea aria-label={label} value={d[key] || ""}
+                          onChange={(e) => edit({ [key]: e.target.value })} />
+                      </label>
+                    ))}
+                  </div>
+                </Disclosure>
+              </>
+            )}
             {d.reviewed && (
               <WorkspaceInfo>
                 原候选已经评审，后续输入只作保留；请关闭后重新读取下一阶段。
@@ -692,7 +716,7 @@ export default function VisualWorkspace({ model: m }) {
             </b>
             <p>
               {canReview
-                ? "候选已到达待评审状态，请查看实际图片后记录观察。"
+                ? "候选已到达待评审状态，请查看图片并选择通过或不通过。"
                 : "已接受的规范与后续设定图保持独立状态。"}
             </p>
             <Button disabled={!canReview || m.readOnly} onClick={review}>
@@ -757,7 +781,7 @@ export default function VisualWorkspace({ model: m }) {
                 {row.review?.summary || ""}
                 {row.review?.source
                   ? " · " +
-                    (row.review.source === "owner_manual"
+                    (["manual", "owner_manual"].includes(row.review.source)
                       ? "人工评审"
                       : "记录来源：" + row.review.source)
                   : ""}

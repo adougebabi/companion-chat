@@ -123,7 +123,7 @@ export function mediaFixture({
                   decision: "accepted",
                   brief_revision: 1,
                   created_at: date,
-                  review: { source: "owner_manual", summary: "原规范已接受。" },
+                  review: { source: "manual", summary: "原规范已接受。" },
                 },
                 {
                   id: fid + "-attempt-two",
@@ -163,7 +163,7 @@ export function mediaFixture({
                 summary: "已接受初始规范参考",
                 asset_ids: [canonical],
                 occurred_at: date,
-                review: { source: "owner_manual", summary: "保留实际观察。" },
+                review: { source: "manual", summary: "保留实际观察。" },
               },
             ],
         avatar: {
@@ -712,7 +712,7 @@ export function mediaFixture({
       )
         return error("visual_review_conflict");
       attempt.decision = body.decision;
-      attempt.review = { source: "owner_manual", ...clone(body) };
+      attempt.review = { source: "manual", ...clone(body) };
       const r = {
         fluctlight_id: fid,
         session_id: sid,
@@ -745,7 +745,7 @@ export function mediaFixture({
         id: r.operation_id,
         stage: body.decision,
         status: session.status,
-        summary: body.summary,
+        summary: body.summary || body.feedback || "",
         asset_ids: [attempt.candidate_asset_id],
         review: attempt.review,
         occurred_at: date,

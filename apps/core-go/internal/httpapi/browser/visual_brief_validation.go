@@ -1,5 +1,7 @@
 package browser
 
+import "strings"
+
 func validVisualBrief(body map[string]any) bool {
 	if !onlyKeys(body, "appearance", "clothing", "constraints", "references", "expectedRevision", "reason", "idempotencyKey") || !validateRevisionReason(body) || !validateString(body["idempotencyKey"], 1, 256) {
 		return false
@@ -19,28 +21,36 @@ func validVisualGeneration(body map[string]any) bool {
 }
 
 func validManualVisualReview(body map[string]any) bool {
-	if !onlyKeys(body, "expectedAttempt", "expectedVisualRevision", "decision", "identityMatch", "confidence", "observations", "missingSections", "summary", "feedback", "reason", "idempotencyKey") || !validateInteger(body["expectedAttempt"], 1) || !validateInteger(body["expectedVisualRevision"], 0) || !validateString(body["summary"], 1, 1000) || !validateString(body["feedback"], 0, 2000) || !validateString(body["reason"], 1, 1024) || !validateString(body["idempotencyKey"], 1, 256) {
+	if !onlyKeys(body, "expectedAttempt", "expectedVisualRevision", "decision", "identityMatch", "confidence", "observations", "missingSections", "summary", "feedback", "reason", "idempotencyKey") || !validateInteger(body["expectedAttempt"], 1) || !validateInteger(body["expectedVisualRevision"], 0) || !validateString(body["idempotencyKey"], 1, 256) {
 		return false
 	}
 	for _, key := range []string{"identityMatch", "confidence"} {
-		value, ok := body[key].(float64)
-		if !ok || value < 0 || value > 1 {
+		if value, present := body[key]; present && !validateNumber(value, 0, 1) {
 			return false
 		}
 	}
-	if !isStringArray(body["observations"]) || len(array(body["observations"])) < 1 || len(array(body["observations"])) > 24 || !isStringArray(body["missingSections"]) || len(array(body["missingSections"])) > 16 {
-		return false
-	}
-	for _, value := range array(body["observations"]) {
-		if !validateString(value, 1, 500) {
+	for key, max := range map[string]int{"summary": 1000, "feedback": 2000, "reason": 1024} {
+		if value, present := body[key]; present && !validateString(value, 0, max) {
 			return false
 		}
 	}
-	for _, value := range array(body["missingSections"]) {
-		if !validateString(value, 1, 200) {
+	for key, limits := range map[string][2]int{"observations": {24, 500}, "missingSections": {16, 200}} {
+		value, present := body[key]
+		if !present {
+			continue
+		}
+		if !isStringArray(value) || len(array(value)) > limits[0] {
 			return false
+		}
+		for _, item := range array(value) {
+			if !validateString(item, 1, limits[1]) || strings.TrimSpace(stringValue(item)) == "" {
+				return false
+			}
 		}
 	}
 	decision := stringValue(body["decision"])
-	return (decision == "accepted" && len(array(body["missingSections"])) == 0) || decision == "regenerate"
+	if decision == "accepted" {
+		return len(array(body["missingSections"])) == 0
+	}
+	return decision == "regenerate" && (strings.TrimSpace(stringValue(body["feedback"])) != "" || strings.TrimSpace(stringValue(body["summary"])) != "" || len(array(body["observations"])) > 0 || len(array(body["missingSections"])) > 0)
 }

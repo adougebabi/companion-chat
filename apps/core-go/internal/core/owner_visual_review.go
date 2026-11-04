@@ -26,12 +26,19 @@ func (a *App) dispatchOwnerVisualReview(ctx context.Context, method, path string
 	revision, revOK := parseRevision(body["expected_visual_revision"])
 	key := strings.TrimSpace(stringValue(body["idempotency_key"]))
 	reason := strings.TrimSpace(stringValue(body["reason"]))
-	if !ok || attempt < 1 || !revOK || revision < 0 || key == "" || len(key) > 256 || reason == "" || len([]rune(reason)) > 1024 {
-		return nil, invalid("manual visual review versions and reason required")
+	if !ok || attempt < 1 || !revOK || revision < 0 || key == "" || len(key) > 256 || len([]rune(reason)) > 1024 {
+		return nil, invalid("manual visual review versions and idempotency key required")
+	}
+	if value, present := body["reason"]; present {
+		if _, ok := value.(string); !ok {
+			return nil, invalid("manual visual review reason must be text")
+		}
 	}
 	arguments := map[string]any{"review_source": "manual"}
 	for _, key := range []string{"decision", "identity_match", "confidence", "observations", "missing_sections", "summary", "feedback"} {
-		arguments[key] = body[key]
+		if value, present := body[key]; present {
+			arguments[key] = value
+		}
 	}
 	scope := context.WithValue(ctx, ownerVisualReviewFenceKey{}, ownerVisualReviewFence{Owner: owner, Attempt: attempt, VisualRevision: revision, Reason: reason})
 	operation := "owner-visual-review:" + stableDigest(owner+"\x1f"+fid+"\x1f"+key)

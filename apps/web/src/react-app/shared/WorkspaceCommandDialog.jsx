@@ -7,6 +7,7 @@ import {
   useRef,
 } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { createDomainCommand } from "@/state/domain-command.mjs";
 import { useWorkspace, afterPaint } from "../page";
 import WorkspaceDialog from "./WorkspaceDialog";
@@ -54,9 +55,29 @@ export default function WorkspaceCommandDialog({
     model.getSnapshot,
     model.getSnapshot,
   );
-  const [discardOpen, setDiscardOpen] = useState(false),reviewHeading=useRef(null);
+  const [discardOpen, setDiscardOpen] = useState(false),
+    [editedError, setEditedError] = useState(""),
+    reviewHeading=useRef(null);
   useEffect(()=>{if(state.review)void afterPaint(()=>{if(reviewHeading.current?.isConnected){reviewHeading.current.scrollIntoView({block:'nearest'});reviewHeading.current.focus({preventScroll:true});}});},[state.review]);
   const syncAvailable=action.readLatest&&(!action.canReviewLatest||action.canReviewLatest(state.draft));
+  const recoveryMessage = state.readbackPending
+    ? "原操作已有回执，请只读恢复页面结果。"
+    : state.pending && !state.pending.rejection
+      ? "上一次提交的结果尚未确认，请先核对或重试原提交。"
+      : state.needsRebase || state.pending?.rejection
+        ? "请先同步并核对最新资料，当前输入仍会保留。"
+        : "";
+  const visibleError = state.error && state.error !== editedError ? state.error : "";
+  const editDraft = (values) => {
+    if (!state.pending && !state.readbackPending && !state.needsRebase)
+      setEditedError(state.error);
+    model.edit(values);
+  };
+  const submitCommand = async (retry = false) => {
+    setEditedError("");
+    await model.submit(retry);
+    if (model.live() && model.state.error) toast.error(model.state.error);
+  };
   useEffect(() => {
     model.start();
     return () => model.dispose();
@@ -123,34 +144,56 @@ export default function WorkspaceCommandDialog({
           "核对后提交；未确认的原请求和已接受的回执会保留。"
         }
         footer={
-          <>
-            {syncAvailable&&<CommandSyncAction state={state} onReview={model.reviewLatest}/>}
-            <Button variant="outline" onClick={dismiss}>
-              {action.cancelLabel || "取消"}
-            </Button>
-            <Button
-              type="submit"
-              form={formId}
-              disabled={
-                state.busy ||
-                !!state.pending ||
-                state.readbackPending ||
-                state.needsRebase ||
-                state.finished ||
-                action.disabled ||
-                (action.canSubmit && !action.canSubmit(state.draft))
-              }
-            >
-              {state.busy ? "正在处理…" : action.submitLabel || "确认提交"}
-            </Button>
-          </>
+          <div className="replica-command-footer">
+            {(visibleError || recoveryMessage) && (
+              <InlineFeedback kind={state.readbackPending||state.pending&&!state.pending.rejection?'action-required':state.needsRebase||state.pending?.rejection?'warning':'error'}>
+                {visibleError || recoveryMessage}
+              </InlineFeedback>
+            )}
+            <div className="replica-command-footer-actions">
+              {state.pending && !state.pending.rejection && (
+                <Button
+                  variant="outline"
+                  disabled={state.busy || action.disabled}
+                  onClick={() => void submitCommand(true)}
+                >
+                  核对或重试原提交
+                </Button>
+              )}
+              {syncAvailable&&<CommandSyncAction state={state} onReview={model.reviewLatest} placement={state.needsRebase||state.pending?.rejection?'recovery':'footer'}/>}
+              {state.readbackPending && (
+                <Button
+                  variant="outline"
+                  disabled={state.busy}
+                  onClick={() => void model.finishReadback()}
+                >
+                  只读恢复页面结果
+                </Button>
+              )}
+              <Button variant="outline" onClick={dismiss}>
+                {action.cancelLabel || "取消"}
+              </Button>
+              <Button
+                type="submit"
+                form={formId}
+                disabled={
+                  state.busy ||
+                  !!state.pending ||
+                  state.readbackPending ||
+                  state.needsRebase ||
+                  state.finished ||
+                  action.disabled ||
+                  (action.canSubmit && !action.canSubmit(state.draft))
+                }
+              >
+                {state.busy ? "正在处理…" : action.submitLabel || "确认提交"}
+              </Button>
+            </div>
+          </div>
         }
       >
         <div className="lp-stack">
-          {state.error && (
-            <InlineFeedback kind={state.readbackPending||state.pending&&!state.pending.rejection?'action-required':state.needsRebase||state.pending?.rejection?'warning':'error'}>{state.error}</InlineFeedback>
-          )}
-          {state.notice && !state.error && (
+          {state.notice && !visibleError && (
             <InlineFeedback kind="information">
               {state.notice}
             </InlineFeedback>
@@ -161,33 +204,12 @@ export default function WorkspaceCommandDialog({
               className="lp-form"
               onSubmit={(event) => {
                 event.preventDefault();
-                void model.submit();
+                void submitCommand();
               }}
             >
-              {action.fields(state.draft, model.edit)}
+              {action.fields(state.draft, editDraft)}
             </form>
           )}
-          <div className="lp-action-row">
-            {state.pending && !state.pending.rejection && (
-              <Button
-                variant="outline"
-                disabled={state.busy || action.disabled}
-                onClick={() => void model.submit(true)}
-              >
-                核对或重试原提交
-              </Button>
-            )}
-            {syncAvailable&&<CommandSyncAction state={state} onReview={model.reviewLatest} placement="recovery"/>}
-            {state.readbackPending && (
-              <Button
-                variant="outline"
-                disabled={state.busy}
-                onClick={() => void model.finishReadback()}
-              >
-                只读恢复页面结果
-              </Button>
-            )}
-          </div>
           {state.pending && (
             <JsonDetails value={state.pending.value} title="原提交内容" />
           )}

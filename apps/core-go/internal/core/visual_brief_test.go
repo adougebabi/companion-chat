@@ -97,8 +97,7 @@ func TestOwnerVisualManualReviewFencesReplayAndAtomicContinuation(t *testing.T) 
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='awaiting_review' WHERE id=$1`, f.sessionID); err != nil {
 		t.Fatal(err)
 	}
-	body := visualIdentityAcceptedReview()
-	body["expected_attempt"], body["expected_visual_revision"], body["reason"], body["idempotency_key"] = 1, 0, "Owner已查看实际测试候选", "manual-review-api"
+	body := map[string]any{"decision": "accepted", "expected_attempt": 1, "expected_visual_revision": 0, "idempotency_key": "manual-review-api"}
 	path := "/internal/fluctlights/" + f.fluctlightID + "/visual-sessions/" + f.sessionID + "/review"
 	reviewed, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, body)
 	if err != nil || mapValue(reviewed["result"])["canonical_asset_id"] != asset {
@@ -113,7 +112,7 @@ func TestOwnerVisualManualReviewFencesReplayAndAtomicContinuation(t *testing.T) 
 		t.Fatal(err)
 	}
 	review := mapValue(mapValue(arrayValue(mapValue(management["session"])["attempts"])[0])["review"])
-	if review["source"] != "manual" || review["reason"] != "Owner已查看实际测试候选" || len(arrayValue(review["observations"])) == 0 {
+	if review["source"] != "manual" || review["identity_match"] != nil || review["confidence"] != nil || review["observations"] != nil || stringValue(review["reason"]) != "" {
 		t.Fatal("manual review not readable", review)
 	}
 	var resumes int
@@ -127,5 +126,33 @@ func TestOwnerVisualManualReviewFencesReplayAndAtomicContinuation(t *testing.T) 
 	body["idempotency_key"], body["expected_attempt"] = "different-command", 2
 	if _, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, body); err == nil {
 		t.Fatal("wrong candidate attempt accepted")
+	}
+}
+
+func TestOwnerVisualManualRejectionCarriesFeedbackToNextAttempt(t *testing.T) {
+	f := newVisualIdentityToolFixture(t)
+	candidate := f.generateCandidate(t, "manual-reject-candidate")
+	media := stringValue(mapValue(candidate.Result.Output)["media_intent_id"])
+	f.makeCurrentCandidateReady(t, media)
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_visual_identity_sessions SET status='awaiting_review' WHERE id=$1`, f.sessionID); err != nil {
+		t.Fatal(err)
+	}
+	body := map[string]any{"decision": "regenerate", "feedback": "侧面视图缺失，请补齐", "expected_attempt": 1, "expected_visual_revision": 0, "idempotency_key": "manual-reject"}
+	path := "/internal/fluctlights/" + f.fluctlightID + "/visual-sessions/" + f.sessionID + "/review"
+	result, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, body)
+	if err != nil || intValue(mapValue(result["result"])["next_attempt"]) != 2 {
+		t.Fatalf("manual rejection %#v %v", result, err)
+	}
+	var snapshotRaw []byte
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT input_snapshot FROM public.fluctlight_visual_identity_attempts WHERE session_id=$1 AND attempt_number=2`, f.sessionID).Scan(&snapshotRaw); err != nil {
+		t.Fatal(err)
+	}
+	prompt := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": decodeObject(snapshotRaw)}})
+	if !strings.Contains(prompt, "侧面视图缺失，请补齐") {
+		t.Fatalf("next generation lost manual feedback: %s", prompt)
+	}
+	var timelineSummary string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT summary FROM public.fluctlight_visual_identity_timeline WHERE session_id=$1 AND stage='regenerate' ORDER BY occurred_at DESC LIMIT 1`, f.sessionID).Scan(&timelineSummary); err != nil || !strings.Contains(timelineSummary, "侧面视图缺失") {
+		t.Fatalf("manual feedback missing from timeline: %q, %v", timelineSummary, err)
 	}
 }

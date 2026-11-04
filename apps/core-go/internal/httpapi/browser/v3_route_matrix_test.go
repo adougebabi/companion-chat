@@ -26,7 +26,7 @@ func browserV3RouteCases() []browserRouteCase {
 		{name: "capabilityRequest", method: "GET", path: "/api/fluctlights/fl-1/capability-requests/request-1"},
 		{name: "capabilityReviewHistory", method: "GET", path: "/api/fluctlights/fl-1/capability-requests/request-1/history"},
 		{name: "reviewScopedCapabilityRequest", method: "POST", path: "/api/fluctlights/fl-1/capability-requests/request-1/review", body: `{"expectedRevision":1,"idempotencyKey":"fixture-command","status":"accepted","note":"Owner reviewed actual request"}`},
-		{name: "reviewVisualIdentity", method: "POST", path: "/api/fluctlights/fl-1/visual-sessions/session-1/review", body: `{"expectedAttempt":1,"expectedVisualRevision":0,"decision":"accepted","identityMatch":0.95,"confidence":0.95,"observations":["Identity matches the current description"],"missingSections":[],"summary":"Owner reviewed candidate","feedback":"","reason":"Owner accepted candidate","idempotencyKey":"visual-review"}`},
+		{name: "reviewVisualIdentity", method: "POST", path: "/api/fluctlights/fl-1/visual-sessions/session-1/review", body: `{"expectedAttempt":1,"expectedVisualRevision":0,"decision":"accepted","idempotencyKey":"visual-review"}`},
 		{name: "visualBrief", method: "GET", path: "/api/fluctlights/fl-1/visual-brief"},
 		{name: "saveVisualBrief", method: "PUT", path: "/api/fluctlights/fl-1/visual-brief", body: `{"expectedRevision":1,"reason":"Owner contract regression","idempotencyKey":"fixture-command","appearance":"Short dark hair","clothing":"Sage coat","constraints":"Follow the current identity","references":""}`},
 		{name: "visualBriefHistory", method: "GET", path: "/api/fluctlights/fl-1/visual-brief/history"},

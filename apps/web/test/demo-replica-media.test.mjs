@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
+import { toast } from "sonner";
 import { act, installDOM, mountReact } from "./helpers/react-dom.mjs";
 import { mediaFixture } from "./fixtures/media-fixture.mjs";
 const env = installDOM(),
@@ -309,77 +310,78 @@ test("visual generation can be accepted into pending queue without claiming the 
     await f.dispose();
   }
 });
-test("accepted candidate review uses real 0–1 scores and keeps character sheet preparation separate", async () => {
-  const f = await fixture({ tab: "identity" });
+test("manual pass needs only an explicit radio choice when vision is disabled", async () => {
+  const api = mediaFixture();
+  api.state().visual.session.last_error = "vision_disabled";
+  const f = await fixture({ api, tab: "identity" });
   try {
     await f.v.click(button(f.v.host, "查看候选并评审"));
-    await score(f, "身份符合程度");
-    await score(f, "评审置信程度");
-    await f.v.input(
-      dialog().querySelector('[aria-label="实际观察（一行一项）"]'),
-      "五官与已保存定义一致",
-    );
-    await f.v.input(
-      dialog().querySelector('[aria-label="评审摘要"]'),
-      "核对并接受这个候选",
-    );
-    await f.v.input(
-      dialog().querySelector('[aria-label="操作理由"]'),
-      "人工查看实际图片后确认",
-    );
-    await f.v.click(button(dialog(), "提交人工评审"));
-    const write = f.writes()[0];
-    assert.equal(write.body.expectedAttempt, 2);
-    assert.equal(write.body.expectedVisualRevision, 1);
-    assert.equal(write.body.identityMatch, 1);
-    assert.equal(write.body.confidence, 1);
-    assert.deepEqual(write.body.observations, ["五官与已保存定义一致"]);
-    assert.equal(
-      f.api.state().visual.canonical_asset_id,
-      "A-replica-candidate",
-    );
+    assert.ok(dialog().querySelector('[role="radiogroup"][aria-label="评审结果"]'));
+    const pass = dialog().querySelector('[role="radio"][aria-label="通过"]');
+    const fail = dialog().querySelector('[role="radio"][aria-label="不通过"]');
+    assert.ok(pass && fail);
+    assert.equal(dialog().querySelector('[aria-label="不通过的原因"]'), null);
+    const submit = button(dialog(), "提交人工评审");
+    await f.v.click(submit);
+    assert.match(submit.closest('[data-slot="dialog-footer"]').textContent, /请选择通过或不通过/);
+    await f.v.click(pass);
+    assert.equal(submit.closest('[data-slot="dialog-footer"]').querySelector('[role="alert"]'), null);
+    assert.equal(dialog().querySelector('[aria-label="不通过的原因"]'), null);
+    await f.v.click(submit);
+    const body = f.writes()[0].body;
+    assert.deepEqual(Object.keys(body).sort(), ["decision", "expectedAttempt", "expectedVisualRevision", "idempotencyKey"].sort());
+    assert.equal(body.decision, "accepted");
+    assert.equal(body.expectedAttempt, 2);
+    assert.equal(body.expectedVisualRevision, 1);
+    assert.equal(api.state().visual.canonical_asset_id, "A-replica-candidate");
     assert.match(f.v.host.textContent, /设定图仍在准备/);
-    assert.equal(f.api.state().visual.character_sheet_asset_id, null);
-    await f.v.click(button(f.v.host, "重新读取"));
-    await f.v.click(button(f.v.host, "重新读取"));
-    assert.equal(
-      f.api.state().visual.character_sheet_asset_id,
-      "A-replica-sheet",
-    );
   } finally {
     await f.dispose();
   }
 });
-test("missing review sections prevent acceptance and regeneration does not replace canonical identity", async () => {
+
+test("manual rejection asks for actionable evidence and repeats visible error notifications", async () => {
   const f = await fixture({ tab: "identity" });
   try {
     const canonical = f.api.state().visual.canonical_asset_id;
     await f.v.click(button(f.v.host, "查看候选并评审"));
-    await score(f, "身份符合程度");
-    await score(f, "评审置信程度");
-    await f.v.input(
-      dialog().querySelector('[aria-label="实际观察（一行一项）"]'),
-      "需要补齐侧面",
-    );
-    await f.v.input(
-      dialog().querySelector('[aria-label="缺失分区（一行一项）"]'),
-      "侧面",
-    );
-    await f.v.input(
-      dialog().querySelector('[aria-label="评审摘要"]'),
-      "补齐后重新核对",
-    );
-    await f.v.input(
-      dialog().querySelector('[aria-label="操作理由"]'),
-      "候选缺失必要分区",
-    );
-    await f.v.click(button(dialog(), "提交人工评审"));
+    await f.v.click(dialog().querySelector('[role="radio"][aria-label="不通过"]'));
+    const submit = button(dialog(), "提交人工评审");
+    const previousToasts = toast.getHistory().length;
+    await f.v.click(submit);
     assert.equal(f.writes().length, 0);
-    assert.match(dialog().textContent, /不能接受候选/);
-    await choose(f, "评审决定", "需要重新生成");
-    await f.v.click(button(dialog(), "提交人工评审"));
+    assert.match(submit.closest('[data-slot="dialog-footer"]').textContent, /请说明图片哪里不符合/);
+    assert.match(toast.getHistory().slice(previousToasts).at(-1)?.title || "", /请说明图片哪里不符合/);
+    await f.v.click(submit);
+    assert.equal(toast.getHistory().slice(previousToasts).filter((item) => item.type === "error").length, 2);
+    await f.v.input(dialog().querySelector('[aria-label="不通过的原因"]'), "侧面视图缺失，服装颜色不一致");
+    await f.v.click(button(dialog(), "补充评审细节（选填）"));
+    await f.v.click(dialog().querySelector('[aria-label="将身份符合程度设为0%"]'));
+    await f.v.input(dialog().querySelector('[aria-label="实际观察（一行一项）"]'), "侧面没有出现");
+    await f.v.click(submit);
+    assert.equal(f.writes()[0].body.decision, "regenerate");
+    assert.equal(f.writes()[0].body.feedback, "侧面视图缺失，服装颜色不一致");
+    assert.equal(f.writes()[0].body.identityMatch, 0);
+    assert.deepEqual(f.writes()[0].body.observations, ["侧面没有出现"]);
     assert.equal(f.api.state().visual.canonical_asset_id, canonical);
     assert.equal(f.api.state().visual.session.current_attempt, 3);
+    assert.match(f.v.host.textContent, /侧面视图缺失，服装颜色不一致/);
+  } finally {
+    await f.dispose();
+  }
+});
+
+test("rejection details are optional and switching to pass hides them without sending them", async () => {
+  const f = await fixture({ tab: "identity" });
+  try {
+    await f.v.click(button(f.v.host, "查看候选并评审"));
+    await f.v.click(dialog().querySelector('[role="radio"][aria-label="不通过"]'));
+    await f.v.input(dialog().querySelector('[aria-label="不通过的原因"]'), "侧面不一致");
+    await f.v.click(dialog().querySelector('[role="radio"][aria-label="通过"]'));
+    assert.equal(dialog().querySelector('[aria-label="不通过的原因"]'), null);
+    await f.v.click(button(dialog(), "提交人工评审"));
+    assert.equal(f.writes()[0].body.decision, "accepted");
+    assert.equal("feedback" in f.writes()[0].body, false);
   } finally {
     await f.dispose();
   }
@@ -627,21 +629,9 @@ test("empty media, visual, avatar and image history are honest without fake seed
 
 async function fillReview(f, decision = "accepted") {
   await f.v.click(button(f.v.host, "查看候选并评审"));
-  await score(f, "身份符合程度");
-  await score(f, "评审置信程度");
-  await f.v.input(
-    dialog().querySelector('[aria-label="实际观察（一行一项）"]'),
-    "实际查看五官和比例",
-  );
-  await f.v.input(
-    dialog().querySelector('[aria-label="评审摘要"]'),
-    "核对当前候选",
-  );
-  await f.v.input(
-    dialog().querySelector('[aria-label="操作理由"]'),
-    "保存人工观察与决定",
-  );
-  if (decision !== "accepted") await choose(f, "评审决定", "需要重新生成");
+  await f.v.click(dialog().querySelector(`[role="radio"][aria-label="${decision === "accepted" ? "通过" : "不通过"}"]`));
+  if (decision === "regenerate")
+    await f.v.input(dialog().querySelector('[aria-label="不通过的原因"]'), "侧面视图缺失");
 }
 for (const decision of ["accepted", "regenerate"])
   test(
@@ -661,7 +651,11 @@ for (const decision of ["accepted", "regenerate"])
         const restore = button(f.v.host, "继续核对第2次人工评审");
         assert.ok(restore);
         await f.v.click(restore);
-        await f.v.click(button(dialog(), "核对或重试原提交"));
+        const retry = button(dialog(), "核对或重试原提交");
+        const footer = retry.closest('[data-slot="dialog-footer"]');
+        assert.ok(footer, "the original review recovery is visible beside submit");
+        assert.match(footer.textContent, /上一次提交的结果尚未确认/);
+        await f.v.click(retry);
         assert.deepEqual(f.writes()[1], original);
         assert.equal(f.writes()[1].body.expectedAttempt, 2);
         assert.equal(

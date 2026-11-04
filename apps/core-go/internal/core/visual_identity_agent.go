@@ -213,6 +213,9 @@ func visualIdentityStageDefinitions(definitions []CapabilityDefinition, action s
 	stageDefinitions := make([]CapabilityDefinition, 0, 1)
 	for _, definition := range definitions {
 		if definition.Name == action {
+			if definition.Name == visualIdentityCommitReviewCapabilityName {
+				definition.InputSchema = visualIdentityModelCommitReviewCapabilityDefinition().InputSchema
+			}
 			stageDefinitions = append(stageDefinitions, definition)
 		}
 	}
@@ -297,18 +300,15 @@ func visualIdentityPreviousReviewForModel(snapshot map[string]any) map[string]an
 	if len(previous) == 0 {
 		return nil
 	}
-	review := compactStateMap(previous, []string{"decision", "missing_sections"})
+	review := compactStateMap(previous, []string{"decision", "identity_match", "confidence", "missing_sections"})
 	for _, key := range []string{"summary", "feedback"} {
-		if text := visualIdentityBoundedText(stringValue(previous[key]), 2000); text != "" {
+		if text := stringValue(previous[key]); strings.TrimSpace(text) != "" {
 			review[key] = text
 		}
 	}
 	observations := make([]any, 0)
 	for _, item := range arrayValue(previous["observations"]) {
-		if len(observations) >= 8 {
-			break
-		}
-		if text := visualIdentityBoundedText(stringValue(item), 200); text != "" {
+		if text := stringValue(item); strings.TrimSpace(text) != "" {
 			observations = append(observations, text)
 		}
 	}

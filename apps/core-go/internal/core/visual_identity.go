@@ -612,22 +612,36 @@ func visualIdentityReviewGuidance(snapshot map[string]any) string {
 	if len(review) == 0 {
 		return ""
 	}
-	parts := make([]string, 0, 3)
+	parts := make([]string, 0, 6)
 	for _, key := range []string{"summary", "feedback"} {
-		if text := strings.TrimSpace(stringValue(review[key])); text != "" {
+		if text := stringValue(review[key]); strings.TrimSpace(text) != "" {
 			parts = append(parts, text)
 		}
 	}
+	observations := make([]string, 0)
+	for _, raw := range arrayValue(review["observations"]) {
+		if text := stringValue(raw); strings.TrimSpace(text) != "" {
+			observations = append(observations, text)
+		}
+	}
+	if len(observations) > 0 {
+		parts = append(parts, "实际观察："+strings.Join(observations, "；"))
+	}
 	missing := make([]string, 0)
 	for _, raw := range arrayValue(review["missing_sections"]) {
-		if text := strings.TrimSpace(stringValue(raw)); text != "" {
+		if text := stringValue(raw); strings.TrimSpace(text) != "" {
 			missing = append(missing, text)
 		}
 	}
 	if len(missing) > 0 {
 		parts = append(parts, "补齐缺失分区："+strings.Join(missing, "、"))
 	}
-	return visualIdentityBoundedText(strings.Join(parts, "；"), 2400)
+	for _, score := range []struct{ key, label string }{{"identity_match", "身份符合程度"}, {"confidence", "评审置信程度"}} {
+		if value, present := review[score.key]; present && value != nil {
+			parts = append(parts, score.label+"："+fmt.Sprint(value))
+		}
+	}
+	return strings.Join(parts, "；")
 }
 
 func visualIdentityPromptFromSnapshot(snapshot VisualIdentitySnapshot) string {

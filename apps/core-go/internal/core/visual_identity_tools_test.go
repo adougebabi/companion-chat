@@ -34,6 +34,19 @@ type visualIdentityRequestPolicyInvoker struct {
 	progressed bool
 }
 
+type visualIdentityReviewWireInvoker struct{ progressed bool }
+
+func (i *visualIdentityReviewWireInvoker) Execute(ctx context.Context, name, args string) (string, error) {
+	return i.ExecuteWithID(ctx, "", name, args)
+}
+func (i *visualIdentityReviewWireInvoker) ExecuteWithID(_ context.Context, id, name, _ string) (string, error) {
+	if id == "" || name != visualIdentityCommitReviewCapabilityName {
+		return "", errors.New("unexpected Visual Identity review call")
+	}
+	i.progressed = true
+	return jsonString(map[string]any{"status": "accepted", "output": map[string]any{"status": "character_sheet_pending"}}), nil
+}
+
 func (i *visualIdentityRequestPolicyInvoker) Execute(ctx context.Context, name, args string) (string, error) {
 	return i.ExecuteWithID(ctx, "", name, args)
 }
@@ -580,6 +593,66 @@ func TestVisualIdentityPhysicalRequestStagesGenerateAndStream(t *testing.T) {
 	}
 }
 
+func TestVisualIdentityReviewPhysicalRequestRetainsImageAndModelEvidenceSchema(t *testing.T) {
+	invoker := &visualIdentityReviewWireInvoker{}
+	ctx := WithADKCapabilityInvoker(context.Background(), invoker, &ADKCapabilityTrace{})
+	ctx = context.WithValue(ctx, visionSettingsReaderKey{}, func(context.Context) (VisionUnderstandingSettings, error) {
+		return VisionUnderstandingSettings{Enabled: true, ModelRef: visionUnderstandingModelRole}, nil
+	})
+	ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+		if !invoker.progressed {
+			return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+		}
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+	}))
+	var requests []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		var payload map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Error(err)
+			return
+		}
+		requests = append(requests, payload)
+		message := map[string]any{"role": "assistant", "content": jsonString(map[string]any{"status": "waiting", "stage": "character_sheet_pending", "summary": "reviewed"})}
+		finish := "stop"
+		if !invoker.progressed {
+			message = map[string]any{"role": "assistant", "content": "", "tool_calls": fakeProviderNativeToolCalls([]map[string]any{{"call_id": "review-wire-call", "capability_name": visualIdentityCommitReviewCapabilityName, "arguments": visualIdentityAcceptedReview()}})}
+			finish = "tool_calls"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": message, "finish_reason": finish}}})
+	}))
+	defer server.Close()
+	full := capabilityCatalog(mustCapabilityRegistry(builtinCapabilities(&App{})...), CapabilitySurfaceVisualIdentity)
+	definitions := visualIdentityStageDefinitions(full, visualIdentityCommitReviewCapabilityName)
+	image := map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:image/png;base64,aGVsbG8="}}
+	messages := visualIdentityAgentMessages(visualIdentityAgentState{SessionStatus: "running", Attempt: 1, MaxAttempts: 3, ActionRequired: visualIdentityCommitReviewCapabilityName}, image)
+	definition, _ := FormalAgentDefinitionByID(FormalAgentVisualIdentity)
+	_, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{
+		Assignment: providerAssignment{Role: visionUnderstandingModelRole, BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 4096},
+		Role:       "visual_identity", Scenario: "visual_identity", Messages: formalPromptMessages(FormalAgentVisualIdentity, messages), Definitions: definitions,
+		JSONMode: true, SchemaName: "visual_identity_agent_response", ResponseSchema: visualIdentityAgentResponseSchema(),
+		ProviderRequestID: "visual-review-wire", CorrelationID: "visual-review-wire", Agent: definition,
+	})
+	if err != nil || len(requests) != 2 {
+		t.Fatalf("review wire request: requests=%d err=%v", len(requests), err)
+	}
+	first := requests[0]
+	if !strings.Contains(jsonString(first["messages"]), "data:image/png;base64,aGVsbG8=") {
+		t.Fatal("physical model request lost the actual image content")
+	}
+	tools := arrayValue(first["tools"])
+	if len(tools) != 1 {
+		t.Fatalf("review tool catalog=%#v", tools)
+	}
+	parameters := mapValue(mapValue(mapValue(tools[0])["function"])["parameters"])
+	for _, field := range []string{"decision", "identity_match", "confidence", "observations", "missing_sections", "summary", "feedback"} {
+		if !containsSchemaRequired(parameters, field) {
+			t.Fatalf("physical model request did not require %q: %#v", field, parameters)
+		}
+	}
+}
+
 func TestVisualIdentityNoopAggregateRepairsDoNotAdvanceFacts(t *testing.T) {
 	fixture := newVisualIdentityToolFixture(t)
 	persona := map[string]any{
@@ -878,6 +951,45 @@ func TestVisualIdentityRegenerationKeepsReviewMeaningWithoutIDs(t *testing.T) {
 		if strings.Contains(textPart, forbidden) || strings.Contains(seedPrompt, forbidden) {
 			t.Fatalf("regeneration exposed %q: model=%s seed=%s", forbidden, textPart, seedPrompt)
 		}
+	}
+}
+
+func TestVisualIdentityRegenerationKeepsAllActualReviewEvidence(t *testing.T) {
+	observations := make([]any, 0, 10)
+	for i := 1; i <= 10; i++ {
+		observations = append(observations, fmt.Sprintf("观察%d：侧面细节", i))
+	}
+	snapshot := map[string]any{"previous_review": map[string]any{
+		"decision": "regenerate", "identity_match": float64(0), "confidence": 0.8,
+		"observations": observations, "feedback": "补齐侧面", "missing_sections": []any{"侧面视图"},
+	}}
+	messages := visualIdentityAgentMessages(visualIdentityAgentState{SessionStatus: "running", Attempt: 2, MaxAttempts: 3, ActionRequired: visualIdentityGenerateCandidateCapabilityName, InputSnapshot: snapshot}, nil)
+	textPart := stringValue(mapValue(arrayValue(messages[1]["content"])[0])["text"])
+	seedPrompt := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": snapshot}})
+	for _, value := range []string{"观察1：侧面细节", "观察10：侧面细节", "补齐侧面", "侧面视图"} {
+		if !strings.Contains(textPart, value) || !strings.Contains(seedPrompt, value) {
+			t.Fatalf("regeneration lost %q: model=%s seed=%s", value, textPart, seedPrompt)
+		}
+	}
+	if !strings.Contains(textPart, `"identity_match":0`) || !strings.Contains(seedPrompt, "身份符合程度：0") {
+		t.Fatalf("zero identity score lost: model=%s seed=%s", textPart, seedPrompt)
+	}
+}
+
+func TestVisualIdentityManualAndModelReviewSchemasRemainDistinct(t *testing.T) {
+	manual := map[string]any{"decision": "accepted", "review_source": "manual"}
+	if err := capabilitycontract.ValidateCapabilitySchemaValue(manual, visualIdentityCommitReviewCapabilityDefinition().InputSchema); err != nil {
+		t.Fatalf("manual acceptance rejected without fabricated evidence: %v", err)
+	}
+	if err := capabilitycontract.ValidateCapabilitySchemaValue(map[string]any{"decision": "accepted"}, visualIdentityCommitReviewCapabilityDefinition().InputSchema); err == nil {
+		t.Fatal("unattributed incomplete review accepted by shared schema")
+	}
+	native := (visualIdentityReviewCapability{}).NativeDefinition()
+	if err := validateNativeArguments(jsonBytes(manual), native); err == nil {
+		t.Fatal("model review accepted without actual inspection fields")
+	}
+	if err := validateNativeArguments(jsonBytes(visualIdentityAcceptedReview()), native); err != nil {
+		t.Fatalf("complete model review rejected: %v", err)
 	}
 }
 
