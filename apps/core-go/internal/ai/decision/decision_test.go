@@ -41,7 +41,7 @@ func (transport *defaultDeadlineTransport) RoundTrip(request *http.Request) (*ht
 	return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"answers":{"q_0001":{"type":"choice","choice":"yes","confidence":0.8,"probabilities":{"yes":0.8,"no":0.1,"unclear":0.1}}}}`)), Request: request}, nil
 }
 
-func TestKevDefaultRequestReceivesTenSecondDeadline(t *testing.T) {
+func TestKevDefaultRequestReceivesOneMinuteDeadline(t *testing.T) {
 	config := DefaultConfig()
 	config.Enabled = true
 	if err := config.Validate(); err != nil {
@@ -53,7 +53,7 @@ func TestKevDefaultRequestReceivesTenSecondDeadline(t *testing.T) {
 	if err != nil || len(results) != 1 || results[0].Record.CallStatus != "ok" {
 		t.Fatal(results, err)
 	}
-	if transport.remaining < 9*time.Second || transport.remaining > 10*time.Second {
+	if transport.remaining < 59*time.Second || transport.remaining > 60*time.Second {
 		t.Fatal("request still uses the old short deadline", transport.remaining)
 	}
 }
@@ -61,6 +61,22 @@ func TestKevDefaultRequestReceivesTenSecondDeadline(t *testing.T) {
 type cancellingSettings struct {
 	cancel context.CancelFunc
 	config Config
+}
+
+type unavailableSettings struct{}
+
+func (unavailableSettings) Read(context.Context) (Config, int64, string, error) {
+	return Config{}, 0, "", errors.New("settings unavailable")
+}
+
+func TestKevEnabledWithErrorDistinguishesUnavailableAndManualOverride(t *testing.T) {
+	service := &Service{Settings: unavailableSettings{}}
+	if enabled, err := service.EnabledWithError(context.Background(), "runtime.wakeup"); enabled || err == nil {
+		t.Fatalf("unreadable settings looked disabled: enabled=%v err=%v", enabled, err)
+	}
+	if enabled, err := service.EnabledWithError(WithOriginal(context.Background()), "runtime.wakeup"); enabled || err != nil {
+		t.Fatalf("manual override should not require settings: enabled=%v err=%v", enabled, err)
+	}
 }
 
 func (s cancellingSettings) Read(context.Context) (Config, int64, string, error) {

@@ -197,7 +197,11 @@ export default function ChatPage({
     diagnosticHref = turn
       ? "#/diag/turns?correlationId=" + encodeURIComponent("turn:" + turn)
       : "#/diag";
-  const openDiagnostic=(event:any)=>{event.preventDefault();setDiagnosticRoute(approvedRoute(diagnosticHref+(diagnosticHref.includes('?')?'&':'?')+'returnTo='+encodeURIComponent(location.hash)));};
+  const openTurnDiagnostic=(turnId:string|null)=>{
+    const href=turnId?'#/diag/turns?correlationId='+encodeURIComponent('turn:'+turnId):'#/diag';
+    setDiagnosticRoute(approvedRoute(href+(href.includes('?')?'&':'?')+'returnTo='+encodeURIComponent(location.hash)));
+  };
+  const openDiagnostic=(event:any)=>{event.preventDefault();openTurnDiagnostic(turn);};
   const pending = messages.findLast(
     (message) =>
       message.kind === "user" &&
@@ -220,6 +224,9 @@ export default function ChatPage({
           ),
         )
       : readFailure;
+  const latestUserMessage=messages.findLast(message=>message.kind==='user');
+  const messageOwnsError=!!latestUserMessage&&['failed','cancelled'].includes(latestUserMessage.turnStatus||'')&&
+    /^(?:回复未完成[:：]|本次生成已执行部分操作|回复已取消|正在结束本次生成)/.test(snapshot.error||'');
   async function reread(){
     setReadLoading(true);setReadFailure('');
     const live=()=>pageActive.current&&workspace.currentScope()===scope;
@@ -309,13 +316,14 @@ export default function ChatPage({
                       message={message}
                       messages={messages}
                       store={store}
+                      onOpenDiagnostic={openTurnDiagnostic}
                     />
                   )}
                 </MessageContent>
               </Message></MessageScrollerItem>
             );
           })}
-          {busy && (
+          {(snapshot.sending || store.hasPendingTurn) && (
             <MessageScrollerItem messageId="waiting"><Message><MessageContent role="status" className="companion-typing"><div className="replica-typing-dots" aria-hidden="true"><i/><i/><i/></div><div>
               {waiting.label}</div>
               {waiting.detail && <small>{waiting.detail}</small>}
@@ -331,7 +339,7 @@ export default function ChatPage({
               )}
             </MessageContent></Message></MessageScrollerItem>
           )}
-          {error && (busy || !messages.some(message=>message.kind==='user'&&['failed','cancelled'].includes(message.turnStatus||''))) && (
+          {error && !messageOwnsError && (
             <MessageScrollerItem messageId="error"><InlineFeedback role="alert">
               {error}<Button variant="outline" disabled={snapshot.loading||readLoading} onClick={()=>void reread()}>重新读取对话</Button>
               <Button variant="link" asChild>
@@ -377,7 +385,7 @@ export default function ChatPage({
               disabled={!draft.trim() || busy || readLoading || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
               onClick={() => void send()}
             >
-              {busy ? "回应中" : "发送"}
+              {snapshot.sending || store.hasPendingTurn ? "回应中" : store.hasSettlingTurn ? "等待结束" : "发送"}
               <SendIcon size={14} />
             </Button>
           </div>

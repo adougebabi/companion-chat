@@ -33,6 +33,46 @@ var replyWorkRequest = regexp.MustCompile(`(?i)(写|讲|编|创作|朗读|念).{
 var replyWorkNegation = regexp.MustCompile(`(不要|别|不许|不需要).{0,12}(写|讲|小说|故事|旁白)`)
 var replyNarrationFrame = regexp.MustCompile(`(她|他).{0,20}(说|问|答|笑|抬起|歪|转向|走近|摩挲|听到|目光|手指|脖颈)`)
 var replySpeechFrame = regexp.MustCompile(`(她|他).{0,24}(说|问|答|笑).{0,12}[：:“「]|[”」].{0,12}(她|他).{0,12}(说|问|答|笑)`)
+var replyPrivateAppendix = regexp.MustCompile(`(?m)^\s*(?:#{1,6}\s*)?(?:附录|内部状态|角色状态)(?:\s*[:：].*|\s*)$`)
+var replyPrivateField = regexp.MustCompile(`(?m)^\s*[-*]?\s*(?:当前时间|时间|位置|地点|状态|关系|情绪)\s*[:：]`)
+var replyAIDisclosure = regexp.MustCompile(`(?im)(?:^|[。！？!?\n])\s*(?:(?:早上好|你好|嗨)[，,\s]+)?(?:作为(?:一(?:个|名))?|我是(?:一(?:个|名))?|我只是一(?:个|名))\s*(?:AI\s*(?:语言模型|助手|模型)?|人工智能(?:助手|模型)?|语言模型)(?:[，。！？、：；,.!?;:\s]|$)`)
+
+// This view is only for a conservative diagnosis; the original candidate is
+// never edited. Quoted speech cannot establish the character's own identity.
+func replyOutsideQuotes(text string) string {
+	var result strings.Builder
+	var closing []rune
+	for _, ch := range text {
+		if len(closing) > 0 {
+			if ch == closing[len(closing)-1] {
+				closing = closing[:len(closing)-1]
+			}
+			if ch == '\n' {
+				result.WriteRune(ch)
+			} else {
+				result.WriteRune(' ')
+			}
+			continue
+		}
+		switch ch {
+		case '“':
+			closing = append(closing, '”')
+		case '‘':
+			closing = append(closing, '’')
+		case '「':
+			closing = append(closing, '」')
+		case '『':
+			closing = append(closing, '』')
+		case '"':
+			closing = append(closing, '"')
+		default:
+			result.WriteRune(ch)
+			continue
+		}
+		result.WriteRune(' ')
+	}
+	return result.String()
+}
 
 func replyExplicitWork(input ReplyContextInput) bool {
 	text := input.CurrentInput
@@ -65,6 +105,17 @@ func diagnoseReplyStyle(text string, input ReplyContextInput) ReplyStyleDiagnosi
 		diagnosis.Status = "requested_work"
 		return diagnosis
 	}
+	if input.Proactive {
+		unquoted := replyOutsideQuotes(text)
+		switch {
+		case replyPrivateAppendix.MatchString(text) && len(replyPrivateField.FindAllString(text, -1)) >= 2:
+			diagnosis.Status, diagnosis.Reasons = "high_confidence_narration", []string{"private_state_appendix"}
+			return diagnosis
+		case replyAIDisclosure.MatchString(unquoted):
+			diagnosis.Status, diagnosis.Reasons = "high_confidence_narration", []string{"identity_disclosure"}
+			return diagnosis
+		}
+	}
 	// Compiled portraits can contain prose instead of structured identity.
 	// Prefer the canonical identity, then the structured shared/legacy carriers;
 	// never infer a name by parsing generated portrait text.
@@ -73,6 +124,11 @@ func diagnoseReplyStyle(text string, input ReplyContextInput) ReplyStyleDiagnosi
 			firstString(mapValue(input.WorkingPersona[workingPersonaBodyKey])["name"],
 				firstString(mapValue(input.WorkingPersona["identity"])["name"], stringValue(input.Projection.SelfActor["display_name"])))))
 	if name == "" {
+		return diagnosis
+	}
+	selfNarration := regexp.MustCompile(`(?m)^[\t ]*` + regexp.QuoteMeta(name) + `正在[^\n]{0,100}[她他]`)
+	if input.Proactive && selfNarration.MatchString(replyOutsideQuotes(text)) {
+		diagnosis.Status, diagnosis.Reasons = "high_confidence_narration", []string{"proactive_self_narration"}
 		return diagnosis
 	}
 	diagnosis.ThirdPersonCount = strings.Count(text, "她") + strings.Count(text, "他") + strings.Count(text, name)
@@ -95,6 +151,7 @@ const replyStyleRepairInstruction = `[发送前一次文体修复]
 下面 private_candidate_text 是本轮尚未提交的候选消息，不是已经发生的对话或事实。当前任务需要人物通过聊天软件发送正文，不需要第三人称小说旁白。
 只修正表达媒介：保留原本要表达的意图、态度、主动程度、邀约或拒绝，以及有依据的信息；不要新增事实、承诺或改变目标策略。
 叙述中无依据的现场动作不能转写成第一人称真实行动。以本轮权威状态和真实工具结果为准。
+候选若包含时间、位置、状态或关系的内部附录，不要把它们作为报告或附录发给对方；如有自称人工智能或助手，改为当前人物本人的自然表达，未知经历仍保持未知。
 不执行工具、不新增或重发媒体；已有媒体结果保持不变。只输出修复后的待发送正文。`
 
 func (a *App) validateAndRepairReplyStyle(ctx context.Context, input ConversationReplyTaskInput, draft ReplyDraft, raw string) (result ReplyDraft, resultErr error) {

@@ -529,15 +529,17 @@ export const conversationDefinition = defineDomain({
           (message.turnStatus === "pending" ||
             message.turnStatus === "running"),
       ),
-    hasSettlingTurn: (state) =>
-      state.messages.some(
-        (message) =>
-          message.kind === "user" &&
-          (message.turnStatus === "failed" ||
-            message.turnStatus === "cancelled") &&
-          message.turnRetryable === false &&
-          message.turnErrorCode !== "agent_partial_committed",
-      ),
+    hasSettlingTurn: (state) => {
+      const latest = state.messages.findLast(
+        (message) => message.kind === "user" && !isTransientMessage(message),
+      );
+      return Boolean(
+        latest &&
+          (latest.turnStatus === "failed" || latest.turnStatus === "cancelled") &&
+          latest.turnRetryable === false &&
+          latest.turnErrorCode !== "agent_partial_committed",
+      );
+    },
     canCancel(): boolean {
       return this.hasPendingTurn;
     },

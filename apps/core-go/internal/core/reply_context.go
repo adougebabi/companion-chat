@@ -60,6 +60,7 @@ type ReplyContextInput struct {
 	ViewVersion        string
 	HistoryViewVersion string
 	StyleRepair        bool
+	Proactive          bool
 	PersonaSource      map[string]any
 	Scene              string
 	Projection         ContextProjection

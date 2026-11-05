@@ -502,7 +502,7 @@ func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation C
 	if err != nil {
 		return ConversationReplyTaskInput{}, err
 	}
-	input := ConversationReplyTaskInput{Context: ReplyContextInput{Scene: scene, ExpressionVersion: firstString(run.Expression.Version, run.Settings.ExpressionVersion), Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts, Summaries: summaries,
+	input := ConversationReplyTaskInput{Context: ReplyContextInput{Scene: scene, Proactive: run.Scope.Surface == CapabilitySurfaceWakeUp, ExpressionVersion: firstString(run.Expression.Version, run.Settings.ExpressionVersion), Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts, Summaries: summaries,
 		PersonaSource:   map[string]any{"source_kind": "stored_compiled_working_persona", "profile_id": compiled.ProfileID, "source_revision": compiled.SourceRevision, "source_hash": compiled.SourceHash, "canonical_persona_hash": stableDigest(jsonString(projection.CorePersona)), "overlay_revision": compiled.OverlayRevision, "compiler_version": compiled.RulesVersion},
 		CapabilityFacts: map[string]any{"image_generation_registered": imageRegistered, "persona_detail_registered": scene != replySceneMoment, "media_requires_real_tool_result": true, "sticker_attachments": false, "vision_understanding": visionState}},
 		DraftRef: ref, Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency}

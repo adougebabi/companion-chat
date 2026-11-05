@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -11,10 +12,90 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
+
+func TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest(t *testing.T) {
+	profile := avatarCharacterProfile(map[string]any{
+		"identity":           map[string]any{"name": "晓秋", "background": "喜欢旧书店", "database_id": "do-not-send"},
+		"personality":        map[string]any{"description": "喜欢暖色和自然的瞬间", "openness": 0},
+		"life_profile":       map[string]any{"preferences": map[string]any{"style": "胶片摄影"}},
+		"personality_system": map[string]any{"active_profile_id": "chosen", "profiles": []any{map[string]any{"id": "chosen", "personality": map[string]any{"expression": "活泼"}}}},
+	}, "chosen")
+	concept := map[string]any{
+		"purpose": "visual_identity", "stage": "avatar", "canonical_asset_id": "private-asset-id",
+		"avatar_character": profile,
+		"visual_identity":  map[string]any{"identity_snapshot": map[string]any{"identity": map[string]any{"appearance": map[string]any{"description": "黑发，琥珀色眼睛"}}}},
+	}
+	var captured map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		captured = cloneMap(payload)
+		return fakeProviderResult{Text: "A candid portrait in a warm bookshop, looking towards the window."}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	ctx := withFrozenProviderAssignment(context.Background(), "media_prompt", providerAssignment{Role: "media_prompt", BaseURL: "http://controlled.invalid", ModelID: "avatar-designer", Timeout: time.Second})
+	result, err := app.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: mediaIntent{Kind: "image", Prompt: jsonString(concept)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire := jsonString(captured["messages"])
+	for _, required := range []string{"喜欢旧书店", "喜欢暖色和自然的瞬间", "胶片摄影", "活泼", "黑发", "自己选择", "证件照"} {
+		if !strings.Contains(wire, required) {
+			t.Errorf("physical avatar design request missing %q: %s", required, wire)
+		}
+	}
+	for _, forbidden := range []string{"private-asset-id", "do-not-send", "front/side/back model views", "头部和肩部"} {
+		if strings.Contains(wire, forbidden) {
+			t.Errorf("avatar design request contained %q: %s", forbidden, wire)
+		}
+	}
+	if captured["max_tokens"] != nil || captured["max_completion_tokens"] != nil || router.totalRequests() != 1 {
+		t.Fatalf("invalid physical avatar request: %#v", captured)
+	}
+	if !strings.Contains(result.Prompt, "warm bookshop") || !strings.Contains(result.Prompt, "角色头像") || !strings.Contains(result.Prompt, "禁止文字") {
+		t.Fatalf("render prompt did not preserve model design and identity safeguards: %s", result.Prompt)
+	}
+}
+
+func TestAvatarCharacterProfileUsesCurrentPersonalityWithoutLeakingSelector(t *testing.T) {
+	persona := map[string]any{"personality_system": map[string]any{"active_profile_id": "warm-id", "profiles": []any{
+		map[string]any{"id": "warm-id", "personality": map[string]any{"description": "热情"}},
+		map[string]any{"id": "cool-id", "personality": map[string]any{"description": "沉静"}},
+	}}}
+	before := jsonString(persona)
+	current := avatarCharacterProfile(persona, "cool-id")
+	if !strings.Contains(jsonString(current), "沉静") || strings.Contains(jsonString(current), "热情") || strings.Contains(jsonString(current), "cool-id") {
+		t.Fatalf("avatar did not use the current profile: %s", jsonString(current))
+	}
+	if fallback := avatarCharacterProfile(persona, ""); !strings.Contains(jsonString(fallback), "热情") {
+		t.Fatalf("missing runtime did not use the declared profile: %s", jsonString(fallback))
+	}
+	if jsonString(persona) != before {
+		t.Fatal("avatar profile projection changed the source persona")
+	}
+}
+
+func TestAvatarSnapshotUpgradePreservesFrozenAndSubmittedWork(t *testing.T) {
+	legacy := map[string]any{"purpose": "visual_identity", "stage": "avatar"}
+	if !avatarNeedsCharacterSnapshot(mediaIntent{}, legacy) {
+		t.Fatal("legacy pending avatar needs a character snapshot before design")
+	}
+	if !avatarNeedsCharacterSnapshot(mediaIntent{ProviderPrompt: "old prompt", QualityVerdict: mediaQualityVerdictRetry}, legacy) {
+		t.Fatal("a newly requested quality retry needs a character snapshot")
+	}
+	for _, intent := range []mediaIntent{{ProviderPrompt: "frozen old prompt"}, {ProviderJobID: "submitted-job"}} {
+		if avatarNeedsCharacterSnapshot(intent, legacy) {
+			t.Fatalf("existing prompt or submitted job must not be rewritten: %+v", intent)
+		}
+	}
+	withSnapshot := map[string]any{"purpose": "visual_identity", "stage": "avatar", "avatar_character": map[string]any{}}
+	if avatarNeedsCharacterSnapshot(mediaIntent{}, withSnapshot) {
+		t.Fatal("an intentionally empty frozen character snapshot must not be reread")
+	}
+}
 
 func enableVisualFixtureMediaOwner(t *testing.T, f visualIdentityToolFixture) {
 	t.Helper()
@@ -285,6 +366,16 @@ func TestDerivedVisualCandidatesAndAcceptedAvatarBlockDeletion(t *testing.T) {
 
 func TestGeneratedAvatarRealMediaHTTPWaitsForManualReview(t *testing.T) {
 	f, reference, avatarIntent, _ := acceptedVisualReferenceWithDerivedIntents(t)
+	legacyPersona := map[string]any{"identity": map[string]any{"name": "澄光"}, "personality_system": map[string]any{"active_profile_id": "warm", "profiles": []any{map[string]any{"id": "warm", "personality": map[string]any{"description": "热情"}}, map[string]any{"id": "cool", "personality": map[string]any{"description": "沉静喜欢老唱片"}}}}}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlights SET core_persona=$2 WHERE id=$1`, f.fluctlightID, jsonBytes(legacyPersona)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_personality_runtime(fluctlight_id,active_profile_id) VALUES($1,'cool') ON CONFLICT(fluctlight_id) DO UPDATE SET active_profile_id='cool'`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.media_intents SET prompt=(prompt::jsonb-'avatar_character')::text WHERE id=$1`, avatarIntent); err != nil {
+		t.Fatal(err)
+	}
 	png := ownerMediaPNG(t)
 	s3 := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("ETag", `"controlled-etag"`)
@@ -306,10 +397,16 @@ func TestGeneratedAvatarRealMediaHTTPWaitsForManualReview(t *testing.T) {
 	}
 	f.app.Storage, f.app.S3Bucket = storage, "visual-test-bucket"
 	var submitted map[string]any
+	var designRequest map[string]any
 	uploaded := false
 	comfy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
+		case strings.HasSuffix(r.URL.Path, "/chat/completions"):
+			if err := json.NewDecoder(r.Body).Decode(&designRequest); err != nil {
+				t.Error(err)
+			}
+			_, _ = io.WriteString(w, `{"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"A relaxed portrait in a sunlit reading room."}}]}`)
 		case r.URL.Path == "/upload/image":
 			file, _, err := r.FormFile("image")
 			if err != nil {
@@ -345,12 +442,20 @@ func TestGeneratedAvatarRealMediaHTTPWaitsForManualReview(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, jsonBytes(config)); err != nil {
 		t.Fatal(err)
 	}
-	result, err := f.app.ProcessMediaIntent(f.ctx, avatarIntent)
+	ctx := withFrozenProviderAssignment(f.ctx, "media_prompt", providerAssignment{Role: "media_prompt", BaseURL: comfy.URL, ModelID: "avatar-designer", Timeout: time.Second})
+	result, err := f.app.ProcessMediaIntent(ctx, avatarIntent)
 	if err != nil || result["status"] != "completed" || !uploaded {
 		t.Fatalf("avatar media execution: %#v uploaded=%v err=%v", result, uploaded, err)
 	}
+	if wire := jsonString(designRequest["messages"]); !strings.Contains(wire, "沉静喜欢老唱片") || strings.Contains(wire, "热情") {
+		t.Fatalf("legacy pending avatar did not freeze its current personality: %s", wire)
+	}
+	var frozenPrompt string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT prompt FROM public.media_intents WHERE id=$1`, avatarIntent).Scan(&frozenPrompt); err != nil || !strings.Contains(frozenPrompt, "沉静喜欢老唱片") {
+		t.Fatalf("legacy avatar character profile was not frozen: %s %v", frozenPrompt, err)
+	}
 	wire := jsonString(submitted)
-	if !strings.Contains(wire, "角色头像") || !strings.Contains(wire, "confirmed-reference.png") || strings.Contains(wire, "正面/侧面/背面三视图") {
+	if !strings.Contains(wire, "角色头像") || !strings.Contains(wire, "sunlit reading room") || !strings.Contains(wire, "confirmed-reference.png") || strings.Contains(wire, "正面/侧面/背面三视图") {
 		t.Fatalf("wrong ComfyUI request: %s", wire)
 	}
 	reviews, err := readCurrentVisualAssetReviewsWith(f.ctx, f.repository.Pool(), f.fluctlightID, 1)
@@ -471,11 +576,19 @@ func testGeneratedAvatarRealMediaHTTPModelReview(t *testing.T, verdict string) {
 	}))
 	defer comfy.Close()
 	var modelPayload map[string]any
+	designCalls := 0
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := json.NewDecoder(r.Body).Decode(&modelPayload); err != nil {
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Error(err)
 		}
 		w.Header().Set("Content-Type", "application/json")
+		if strings.Contains(jsonString(request["messages"]), "为自己选择一张正式的聊天头像") {
+			designCalls++
+			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": "A relaxed portrait with dark short hair."}}}})
+			return
+		}
+		modelPayload = request
 		violations, guidance := []any{}, ""
 		if verdict == "reject" {
 			violations = []any{map[string]any{"code": "appearance_mismatch", "severity": "hard", "detail": "发型与参考不一致"}}
@@ -496,15 +609,19 @@ func testGeneratedAvatarRealMediaHTTPModelReview(t *testing.T, verdict string) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, jsonBytes(config)); err != nil {
 		t.Fatal(err)
 	}
-	result, err := f.app.ProcessMediaIntent(f.ctx, avatarIntent)
+	ctx := withFrozenProviderAssignment(f.ctx, "media_prompt", providerAssignment{Role: "media_prompt", BaseURL: provider.URL, ModelID: "avatar-designer", Timeout: time.Second})
+	result, err := f.app.ProcessMediaIntent(ctx, avatarIntent)
 	if verdict == "reject" {
 		if err != nil || result["status"] != "quality_retry" {
 			t.Fatalf("first rejection should request another candidate: %#v %v", result, err)
 		}
-		result, err = f.app.ProcessMediaIntent(f.ctx, avatarIntent)
+		result, err = f.app.ProcessMediaIntent(ctx, avatarIntent)
 	}
 	if err != nil || result["status"] != "completed" {
 		t.Fatalf("avatar execution failed: %#v %v", result, err)
+	}
+	if designCalls != len(submissions) {
+		t.Fatalf("avatar design must precede each generated candidate: designs=%d submissions=%d", designCalls, len(submissions))
 	}
 	wire := jsonString(modelPayload["messages"])
 	if !strings.Contains(wire, base64.StdEncoding.EncodeToString(reference)) || !strings.Contains(wire, base64.StdEncoding.EncodeToString(candidate)) || !strings.Contains(wire, "角色头像") {

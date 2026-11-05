@@ -45,7 +45,7 @@ func DefaultConfig() Config {
 	for _, point := range Points {
 		points[point] = true
 	}
-	return Config{MediaEnabled: false, Points: points, Endpoint: "http://127.0.0.1:8010/v1/systemone", TimeoutMS: 10000, BudgetMS: 10000, Concurrency: 1, BatchSize: 8, ResponseBytes: 1048576, RequestBytes: 262144, Strategy: "choice_guarded", MinProbability: 0.65, MinMargin: 0.15, MaxDeferrals: 3, DeferralSeconds: 60, RetentionDays: 7, Model: "Jakevin/kev-4b-ternary-mlx", ModelRevision: "unknown"}
+	return Config{MediaEnabled: false, Points: points, Endpoint: "http://127.0.0.1:8010/v1/systemone", TimeoutMS: 60000, BudgetMS: 60000, Concurrency: 1, BatchSize: 8, ResponseBytes: 1048576, RequestBytes: 262144, Strategy: "choice_guarded", MinProbability: 0.65, MinMargin: 0.15, MaxDeferrals: 3, DeferralSeconds: 60, RetentionDays: 7, Model: "Jakevin/kev-4b-ternary-mlx", ModelRevision: "unknown"}
 }
 
 func (c Config) Allows(point string) bool {
@@ -261,17 +261,27 @@ func ParseChoiceAnswer(raw json.RawMessage, config Config, criteria map[string]s
 // Decide performs no candidate construction when disabled. Callers should
 // likewise use Enabled before performing optional recall/semantic projection.
 func (s *Service) Enabled(ctx context.Context, point string) bool {
+	enabled, _ := s.EnabledWithError(ctx, point)
+	return enabled
+}
+
+// EnabledWithError distinguishes an explicitly disabled point from an unreadable
+// setting for callers that must wait for a decision before doing work.
+func (s *Service) EnabledWithError(ctx context.Context, point string) (bool, error) {
 	if original, _ := ctx.Value(originalRouteKey{}).(bool); original {
-		return false
+		return false, nil
 	}
 	if s == nil || s.Settings == nil {
-		return false
+		return false, nil
 	}
 	c, _, _, e := s.Settings.Read(ctx)
 	if e != nil && ctx.Err() == nil {
 		s.reportUnavailable(point, "settings_unavailable")
 	}
-	return e == nil && c.Allows(point)
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+	return e == nil && c.Allows(point), e
 }
 
 func (s *Service) reportUnavailable(point, reason string) {

@@ -170,6 +170,54 @@ func TestPrivateChatStyleDiagnosisConservative(t *testing.T) {
 	}
 }
 
+func TestProactiveReplyDetectsInternalAppendixAndIdentityBreak(t *testing.T) {
+	input := ReplyContextInput{Proactive: true, CurrentInput: "主动私聊", Projection: ContextProjection{CorePersona: map[string]any{"identity": map[string]any{"name": "苏洛呈"}}}}
+	for _, text := range []string{
+		"早上好～\n\n苏洛呈正在浴室洗漱，她整理着头发。\n\n早餐吃什么？\n\n附录\n- 当前时间：09:13\n- 位置：浴室\n- 状态：洗漱中\n- 关系：恋人",
+		"早上好。我是一个人工智能，不能真正成为你的恋人。",
+		"早上好，作为 AI 语言模型，我没有真实经历。",
+		"早上好～\n\n苏洛呈正在浴室洗漱，她整理着头发。\n\n早餐吃什么？",
+	} {
+		if got := diagnoseReplyStyle(text, input); got.Status != "high_confidence_narration" {
+			t.Fatalf("proactive reply leak was not detected: %q: %+v", text, got)
+		}
+	}
+	for _, text := range []string{"早上好，我刚洗漱完。早餐想吃什么？", "她说自己正在学摄影，我也想试试。", "我是AI绘画爱好者，最近在画画。", "昨天看到有人说：\u201c我是一个人工智能，不能真正成为你的恋人。\u201d你怎么看？", "朋友发来一句\u201c苏洛呈正在想你\u201d，她又拿我开玩笑了。", "朋友说我是一个人工智能，真是离谱。"} {
+		if got := diagnoseReplyStyle(text, input); got.Status != "normal" {
+			t.Fatalf("ordinary message incorrectly rejected: %q: %+v", text, got)
+		}
+	}
+}
+
+func TestProactiveReplyRepairsPrivateAppendixOnPhysicalWriterRequest(t *testing.T) {
+	input := privateChatExpressionFixture(t, false)
+	input.Proactive = true
+	input.CurrentInput = "这是一次已获准的主动私聊，请以角色本人的聊天口吻独立表达。"
+	input.Projection.CorePersona = map[string]any{"identity": map[string]any{"name": "苏洛呈"}}
+	input.Projection.RecentMessages = nil
+	calls, claims := 0, 0
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		calls++
+		if payload["max_tokens"] != nil || payload["max_completion_tokens"] != nil {
+			t.Error("writer request set an output token limit")
+		}
+		if calls == 1 {
+			return fakeProviderResult{Text: "早上好～\n\n苏洛呈正在浴室洗漱，她整理着头发。\n\n早餐吃什么？\n\n附录\n- 当前时间：09:13\n- 位置：浴室\n- 状态：洗漱中\n- 关系：恋人"}
+		}
+		wire := jsonString(payload["messages"])
+		if !strings.Contains(wire, "内部附录") || !strings.Contains(wire, "当前人物本人的自然表达") || len(arrayValue(payload["tools"])) != 0 {
+			t.Errorf("repair request lost its boundary: %s", wire)
+		}
+		return fakeProviderResult{Text: "早上好～早餐想吃什么？"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	task := ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "controlled-writer", Timeout: time.Second}, Concurrency: 1, DraftRef: "proactive-draft", ClaimStyleRepair: func(context.Context, ReplyStyleTrace) error { claims++; return nil }}
+	draft, err := app.RunConversationReplyTask(context.Background(), task)
+	if err != nil || calls != 2 || claims != 1 || draft.Text != "早上好～早餐想吃什么？" {
+		t.Fatalf("proactive repair: draft=%+v calls=%d claims=%d err=%v", draft, calls, claims, err)
+	}
+}
+
 func TestPrivateChatStyleDiagnosisUsesAuthoritativeIdentityWithCompiledPortrait(t *testing.T) {
 	dirty := "暮光抬起头，看向窗外。\n\n她轻声说：“周六见你。”\n\n她笑着问：“一起聊新书？”\n\n她转向柜台，说：“我想见你。”\n\n她低声答：“我愿意。”"
 	for _, carrier := range []string{"canonical", "shared"} {

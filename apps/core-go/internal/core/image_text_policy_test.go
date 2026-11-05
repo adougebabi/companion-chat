@@ -38,7 +38,7 @@ func TestAvatarPromptAndReferenceReachComfyHTTP(t *testing.T) {
 		}
 		actual := mapValue(payload["prompt"])
 		text := stringValue(mapValue(mapValue(actual["positive"])["inputs"])["text"])
-		if !strings.Contains(text, "角色头像") || !strings.Contains(text, "头部和肩部") || strings.Contains(text, "正面/侧面/背面三视图") {
+		if !strings.Contains(text, "角色头像") || !strings.Contains(text, "适合圆形或方形头像裁切") || strings.Contains(text, "头部和肩部") || strings.Contains(text, "正面/侧面/背面三视图") {
 			t.Errorf("wrong avatar prompt on physical request: %s", text)
 		}
 		if image := stringValue(mapValue(mapValue(actual["reference"])["inputs"])["image"]); image != "uploaded-reference.png" {

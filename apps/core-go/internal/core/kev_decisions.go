@@ -19,6 +19,7 @@ import (
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type kevSettingsReader struct{ app *App }
@@ -258,11 +259,35 @@ func (a *App) decideKev(ctx context.Context, point string, scope decision.Scope,
 	return r, out, err
 }
 
+func wakeUpKevEnabled(ctx context.Context, service *decision.Service, manual bool) (bool, error) {
+	if manual {
+		return false, ctx.Err()
+	}
+	return service.EnabledWithError(ctx, "runtime.wakeup")
+}
+
 // kevAutomaticGate retains the original execution budget and source identity.
 // Its independent counter cannot mark an event as processed or a task complete.
 func (a *App) kevAutomaticGate(ctx context.Context, point, owner, candidate string, state any) (bool, time.Time, error) {
+	var store kevDeferralStore
+	if a != nil && a.DB != nil && a.DB.Pool() != nil {
+		store = a.DB.Pool()
+	}
+	return a.kevAutomaticGateWithStore(ctx, point, owner, candidate, state, store)
+}
+
+type kevDeferralStore interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+}
+
+func (a *App) kevAutomaticGateWithStore(ctx context.Context, point, owner, candidate string, state any, store kevDeferralStore) (bool, time.Time, error) {
 	service := a.kevService()
-	if !service.Enabled(ctx, point) {
+	enabled, enabledErr := service.EnabledWithError(ctx, point)
+	if enabledErr != nil && point == "runtime.wakeup" {
+		return false, time.Time{}, enabledErr
+	}
+	if !enabled {
 		return true, time.Time{}, ctx.Err()
 	}
 	c, _, _, err := service.Settings.Read(ctx)
@@ -271,33 +296,59 @@ func (a *App) kevAutomaticGate(ctx context.Context, point, owner, candidate stri
 			return false, time.Time{}, parentErr
 		}
 		slog.Warn("kev_settings_unavailable", "decision_point", point)
+		if point == "runtime.wakeup" {
+			return false, time.Time{}, err
+		}
+		return true, time.Time{}, nil
+	}
+	if store == nil {
+		if point == "runtime.wakeup" {
+			return false, time.Time{}, errors.New("kev_deferral_store_unavailable")
+		}
 		return true, time.Time{}, nil
 	}
 	var count int
 	var until time.Time
-	err = a.DB.Pool().QueryRow(ctx, `SELECT deferral_count,deferred_until FROM public.kev_deferrals WHERE decision_point=$1 AND actor_self=$2 AND candidate_id=$3`, point, owner, candidate).Scan(&count, &until)
+	err = store.QueryRow(ctx, `SELECT deferral_count,deferred_until FROM public.kev_deferrals WHERE decision_point=$1 AND actor_self=$2 AND candidate_id=$3`, point, owner, candidate).Scan(&count, &until)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		if parentErr := ctx.Err(); parentErr != nil {
 			return false, time.Time{}, parentErr
 		}
 		slog.Warn("kev_deferral_read_failed", "decision_point", point)
+		if point == "runtime.wakeup" {
+			return false, time.Time{}, err
+		}
 		return true, time.Time{}, nil
 	}
-	if count >= c.MaxDeferrals {
+	if count >= c.MaxDeferrals && point != "runtime.wakeup" {
 		if err := service.RecordOriginal(ctx, point, decision.Scope{ActorSelf: owner, Agent: point, RunID: candidate}, candidate, "max_deferral_original"); err != nil {
 			slog.Warn("kev_application_record_failed")
 		}
-		_, err = a.DB.Pool().Exec(ctx, `DELETE FROM public.kev_deferrals WHERE decision_point=$1 AND actor_self=$2 AND candidate_id=$3`, point, owner, candidate)
+		_, err = store.Exec(ctx, `DELETE FROM public.kev_deferrals WHERE decision_point=$1 AND actor_self=$2 AND candidate_id=$3`, point, owner, candidate)
 		return true, time.Time{}, err
 	}
 	if count > 0 && a.now().Before(until) {
 		return false, until, nil
 	}
-	r, out, err := a.decideKev(ctx, point, decision.Scope{ActorSelf: owner, Agent: point, RunID: candidate, CorrelationID: providerCorrelation(ctx)}, state, candidate, "Should this eligible automatic process run now? Answer no only when it can safely be deferred; unclear means use its original process.")
+	instructions := "Should this eligible automatic process run now? Answer no only when it can safely be deferred; unclear means use its original process."
+	if point == "runtime.wakeup" {
+		instructions = "Should this automatic wake-up run now? Answer yes to wake, no to defer; unclear means wait and ask again later."
+	}
+	r, out, err := a.decideKev(ctx, point, decision.Scope{ActorSelf: owner, Agent: point, RunID: candidate, CorrelationID: providerCorrelation(ctx)}, state, candidate, instructions)
 	if err != nil {
 		return false, time.Time{}, err
 	}
-	if out != decision.No {
+	waitForDecision := false
+	if out == decision.Original && point == "runtime.wakeup" {
+		current, _, _, readErr := service.Settings.Read(ctx)
+		if readErr != nil {
+			return false, time.Time{}, readErr
+		}
+		// Disabling the point while a request is in flight restores the normal
+		// ungated path. An enabled point waits for a usable decision instead.
+		waitForDecision = current.Allows(point)
+	}
+	if out != decision.No && !waitForDecision {
 		status := "applied"
 		if out == decision.Original {
 			status = "original_used"
@@ -308,18 +359,29 @@ func (a *App) kevAutomaticGate(ctx context.Context, point, owner, candidate stri
 		return true, time.Time{}, nil
 	}
 	until = a.now().UTC().Add(time.Duration(c.DeferralSeconds) * time.Second)
-	_, err = a.DB.Pool().Exec(ctx, `INSERT INTO public.kev_deferrals(decision_point,actor_self,candidate_id,deferral_count,deferred_until) VALUES($1,$2,$3,1,$4) ON CONFLICT(decision_point,actor_self,candidate_id) DO UPDATE SET deferral_count=kev_deferrals.deferral_count+1,deferred_until=excluded.deferred_until`, point, owner, candidate, until)
+	_, err = store.Exec(ctx, `INSERT INTO public.kev_deferrals(decision_point,actor_self,candidate_id,deferral_count,deferred_until) VALUES($1,$2,$3,1,$4) ON CONFLICT(decision_point,actor_self,candidate_id) DO UPDATE SET deferral_count=LEAST(kev_deferrals.deferral_count::bigint+1,$5)::integer,deferred_until=excluded.deferred_until`, point, owner, candidate, until, c.MaxDeferrals)
 	if err != nil {
-		if finishErr := r.Finish(ctx, "original_used", "deferral_persistence_failed", candidate); finishErr != nil {
+		status := "original_used"
+		if point == "runtime.wakeup" {
+			status = "not_applied"
+		}
+		if finishErr := r.Finish(ctx, status, "deferral_persistence_failed", candidate); finishErr != nil {
 			slog.Warn("kev_application_record_failed", "decision_id", r.Record.ID)
 		}
 		if parentErr := ctx.Err(); parentErr != nil {
 			return false, time.Time{}, parentErr
 		}
 		slog.Warn("kev_deferral_persistence_failed", "decision_point", point)
+		if point == "runtime.wakeup" {
+			return false, time.Time{}, err
+		}
 		return true, time.Time{}, nil
 	}
-	_ = r.Finish(ctx, "applied", "deferred", candidate)
+	if waitForDecision {
+		_ = r.Finish(ctx, "not_applied", "wakeup_waiting_for_decision", candidate)
+	} else {
+		_ = r.Finish(ctx, "applied", "deferred", candidate)
+	}
 	return false, until, nil
 }
 

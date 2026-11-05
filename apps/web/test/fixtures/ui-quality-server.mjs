@@ -67,6 +67,7 @@ if(nasAdditions){messages.at(-1).turnErrorCode=pendingChat?undefined:'prompt_too
 if(chatScenario==='empty')messages=[];
 if(chatScenario==='normal')messages.at(-1).turnStatus='completed';
 if(chatScenario==='pending'){messages.at(-1).turnStatus='running';messages.at(-1).turnRetryable=false;}
+if(chatScenario==='failed-settling'){messages.at(-1).turnStatus='failed';messages.at(-1).turnRetryable=false;}
 if(diaryReplay)messages.push({id:'shared-fixture-message',conversationId,sequence:3,authorActorId:owner,kind:'user',text:'一起分享一段正在读的故事',attachmentRefs:[],createdAt:'2026-10-26T12:00:00Z'});
 let moments=[{id:'moment-fixture',owner_fluctlight_id:instance,author_actor_id:instance,text:'今天试着画了一盏路灯。这里的内容仅用于界面与交互验收。',created_at:date,media_asset_ids:[],media:[],status:'visible',comments:[{id:'comment-fixture',author_actor_id:owner,text:'期待你的新作品。',created_at:date}],reaction_count:1,viewer_reaction:null,unread_count:0}];
 const modelRun={id:'model-fixture',role:'generic_llm',bindingRole:'generic_llm',scenario:'wake_up',modelId:'fixture-model',status:'failed',errorCode:'provider_request_failed',correlationId:'correlation-fixture',logicalRunId:'logical-fixture',sequence:1,roundCount:1,stage:'failed',prompt:[{role:'user',content:'这是样本 Prompt。'}],response:null,tools:[{type:'function',function:{name:'example.tool',parameters:{type:'object'}}}],createdAt:date,queuedAt:date,startedAt:date,completedAt:date};

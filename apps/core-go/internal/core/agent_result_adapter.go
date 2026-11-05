@@ -834,15 +834,15 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	ctx = context.WithValue(ctx, goalExecutionObligationsKey{}, obligations)
-	manualKevCycle := false
-	if a.kevService().Enabled(ctx, "runtime.wakeup") {
-		var manualCycle *int
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT (payload->>'kev_manual_cycle')::integer FROM public.platform_workflow_intents WHERE intent_id=$1`, "wake_up_intent:"+fluctlightID).Scan(&manualCycle); err != nil {
-			return nil, err
-		}
-		manualKevCycle = manualCycle != nil && *manualCycle == cycle
+	var manualCycle *int
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT (payload->>'kev_manual_cycle')::integer FROM public.platform_workflow_intents WHERE intent_id=$1`, "wake_up_intent:"+fluctlightID).Scan(&manualCycle); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
 	}
-	if a.kevService().Enabled(ctx, "runtime.wakeup") && !manualKevCycle {
+	kevEnabled, err := wakeUpKevEnabled(ctx, a.kevService(), manualCycle != nil && *manualCycle == cycle)
+	if err != nil {
+		return nil, err
+	}
+	if kevEnabled {
 		_, life, err := a.readLifeContextSnapshotAt(ctx, fluctlightID, a.now().UTC())
 		if err != nil {
 			return nil, err
@@ -903,7 +903,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	_ = policy // Effect authorization is rechecked atomically by each Tool; internal cognition can continue.
 	ctx, err = a.withPrivateReplyRun(ctx, ToolExecutionRequest{AuthorizationPolicy: "autonomy", AuthorizationActorID: ownerID,
 		FluctlightID: fluctlightID, ConversationID: conversationID, EvidenceID: wakeID, OperationID: "wake:" + wakeID, Surface: CapabilitySurfaceWakeUp},
-		"这是一次已获准的主动私聊，不是历史用户消息的重新触发。依据当前有效人格、目标和实际历史独立表达。")
+		"这是一次已获准的主动私聊，不是历史用户消息的重新触发。依据当前有效人格、目标和实际历史，以角色本人的聊天口吻独立表达。时间、位置、状态和关系只是帮助理解情境的内部资料，不要写成附录或状态报告；不要代替角色写第三人称旁白，也不要自称人工智能或助手。")
 	if err != nil {
 		return nil, err
 	}

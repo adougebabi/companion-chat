@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -14,10 +15,15 @@ func (a *App) enqueueGeneratedAvatarTx(ctx context.Context, tx pgx.Tx, fluctligh
 	intentID := "media_intent_" + stableDigest(sourceKey+":avatar")
 	workflowID := "media_workflow_" + stableDigest(intentID)
 	requestID := "media_request_" + stableDigest(intentID)
+	character, err := readAvatarCharacterProfile(ctx, tx, fluctlightID)
+	if err != nil {
+		return "", err
+	}
 	concept := map[string]any{
 		"purpose": "visual_identity", "stage": "avatar", "render_intent": "display_avatar", "subject_count": 1,
 		"canonical_asset_id": canonicalAssetID, "visual_identity_reference_asset_id": canonicalAssetID,
 		"visual_identity": map[string]any{"identity_snapshot": snapshot}, "renderer_constraints": constraints,
+		"avatar_character": character,
 	}
 	if feedback != "" {
 		concept["derived_review_feedback"] = feedback
@@ -39,6 +45,60 @@ func (a *App) enqueueGeneratedAvatarTx(ctx context.Context, tx pgx.Tx, fluctligh
 		return "", errors.New("generated_avatar_reference_changed")
 	}
 	return intentID, nil
+}
+
+// Freeze the character's own relevant setting when the image intent is queued.
+// Values inside the selected business fields remain intact; identifiers and
+// unrelated runtime or scheduling records are not part of this task.
+type avatarCharacterReader interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
+func avatarNeedsCharacterSnapshot(intent mediaIntent, concept map[string]any) bool {
+	if stringValue(concept["purpose"]) != "visual_identity" || stringValue(concept["stage"]) != "avatar" || intent.ProviderJobID != "" {
+		return false
+	}
+	if strings.TrimSpace(intent.ProviderPrompt) != "" && intent.QualityVerdict != mediaQualityVerdictRetry {
+		return false
+	}
+	character, exists := concept["avatar_character"]
+	return !exists || character == nil
+}
+
+func readAvatarCharacterProfile(ctx context.Context, reader avatarCharacterReader, fluctlightID string) (map[string]any, error) {
+	var raw []byte
+	var active string
+	if err := reader.QueryRow(ctx, `SELECT f.core_persona,COALESCE(r.active_profile_id,'') FROM public.fluctlights f LEFT JOIN public.fluctlight_personality_runtime r ON r.fluctlight_id=f.id WHERE f.id=$1`, fluctlightID).Scan(&raw, &active); err != nil {
+		return nil, err
+	}
+	return avatarCharacterProfile(decodeObject(raw), active), nil
+}
+
+func avatarCharacterProfile(persona map[string]any, activeProfileID string) map[string]any {
+	profile := map[string]any{}
+	if identity := compactStateMap(persona["identity"], []string{"name", "gender", "occupation", "background", "background_story", "biography", "core_values", "worldview", "notes"}); len(identity) > 0 {
+		profile["identity"] = identity
+	}
+	for _, key := range []string{"personality", "behavioral_policy"} {
+		if value, ok := persona[key]; ok && value != nil {
+			profile[key] = copyPromptData(value)
+		}
+	}
+	if life := compactStateMap(persona["life_profile"], []string{"preferences", "life_habits", "character_constraints", "media_preferences"}); len(life) > 0 {
+		profile["life_profile"] = life
+	}
+	system := mapValue(persona["personality_system"])
+	active := firstString(activeProfileID, stringValue(system["active_profile_id"]))
+	for _, item := range arrayValue(system["profiles"]) {
+		candidate := mapValue(item)
+		if active != "" && stringValue(candidate["id"]) == active {
+			if selected := compactStateMap(candidate, []string{"name", "personality", "behavioral_policy", "description"}); len(selected) > 0 {
+				profile["active_profile"] = selected
+			}
+			break
+		}
+	}
+	return profile
 }
 
 func createVisualAssetReviewTx(ctx context.Context, tx pgx.Tx, fluctlightID, profileID, canonicalAssetID, sessionID, kind, intentID string, revision int) error {

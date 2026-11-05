@@ -44,7 +44,7 @@ export function chatWaitText(state, startedAt, now=Date.now()) {
 }
 
 export function chatWaitingPresentation(state, startedAt, now=Date.now(), name='对方') {
- const busy=state.sending||state.hasPendingTurn||state.hasSettlingTurn;
+ const busy=state.sending||state.hasPendingTurn;
  const seconds=Math.max(0,Math.floor((now-(Number.isFinite(startedAt)?startedAt:now))/1000));
  return {seconds,label:busy?`${name} 正在输入`:'',detail:busy&&seconds>=30?`${name}还在想…`:'',showDiagnostics:busy&&seconds>=30,showStop:busy&&seconds>=90};
 }

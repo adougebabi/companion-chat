@@ -124,14 +124,30 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 			return nil, err
 		}
 	}
+	if avatarNeedsCharacterSnapshot(intent, concept) {
+		profile, err := readAvatarCharacterProfile(ctx, a.DB.Pool(), intent.Owner)
+		if err != nil {
+			return nil, err
+		}
+		updated := cloneMap(concept)
+		updated["avatar_character"] = profile
+		updatedPrompt := jsonString(updated)
+		command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET prompt=$2,revision=revision+1 WHERE id=$1 AND prompt=$3 AND COALESCE(provider_prompt,'')=$4 AND status IN ('pending','running') AND provider_job_id IS NULL`, intent.ID, updatedPrompt, intent.Prompt, intent.ProviderPrompt)
+		if err != nil {
+			return nil, err
+		}
+		if command.RowsAffected() != 1 {
+			return nil, ErrConflict
+		}
+		concept, intent.Prompt = updated, updatedPrompt
+	}
 	workflow = selectComfyWorkflow(config, intent.Prompt, workflow)
 	providerJobID := intent.ProviderJobID
 	if providerJobID == "" {
 		prompt := strings.TrimSpace(intent.ProviderPrompt)
-		if stringValue(concept["purpose"]) == "visual_identity" {
-			// Visual Identity is an exact owner template, not a request for the
-			// generic media prompt model to rewrite. Persist the filled template
-			// so retries and diagnostics use the same text.
+		if stringValue(concept["purpose"]) == "visual_identity" && stringValue(concept["stage"]) != "avatar" {
+			// Reference and character-sheet stages retain their card template.
+			// The separate avatar stage uses the character's model-designed prompt.
 			prompt = visualIdentityPromptFromConcept(concept)
 			if intent.QualityRetryCount > 0 && (stringValue(concept["stage"]) == "avatar" || stringValue(concept["stage"]) == "character_sheet") && len(intent.QualityRetryFeedback) > 0 {
 				prompt += "\n\n上一张图片的视觉检查反馈：" + jsonString(intent.QualityRetryFeedback)

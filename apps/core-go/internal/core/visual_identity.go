@@ -125,9 +125,9 @@ const visualIdentityPromptTemplate = `角色设定卡
 
 const visualIdentityAvatarPromptTemplate = `角色头像
 %s
-生成一张正方形（1:1）的单人写实头像，用于角色库和聊天。以已确认的角色形象为准，保持同一人的脸型、五官、肤色和发型等可识别特征。
-头部和肩部近景，人物居中，面部清晰完整，适合圆形或方形头像裁切；自然表情、柔和光线、简洁背景，保留真实皮肤和发丝质感。
-画面只包含一个人，不使用角色档案卡排版、表情分区、服装拆解或色卡。禁止文字、字母、数字、标签、签名、徽标和水印；非动漫、非Q版。`
+生成一张正方形（1:1）的单人头像，用于角色库和聊天。以已确认的角色形象为准，保持同一人的脸型、五官、肤色和发型等可识别特征。
+人物的可识别面部适合圆形或方形头像裁切；构图、表情、画风、氛围与背景由角色自己选择。
+画面只包含一个人，不使用角色档案卡排版、表情分区、服装拆解或色卡。禁止文字、字母、数字、标签、签名、徽标和水印。`
 
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
 // the current visual identity aggregate. Large model responses and provider
@@ -590,9 +590,8 @@ func visualIdentityBoundedText(value string, limit int) string {
 	return value
 }
 
-// visualIdentityPromptFromConcept renders the shared character-card template
-// or the separate avatar portrait template. Ordinary media prompt generation
-// must not rewrite either Visual Identity composition.
+// visualIdentityPromptFromConcept renders the fixed character-card template or
+// the identity and output constraints appended to a model-designed avatar.
 func visualIdentityPromptFromConcept(concept map[string]any) string {
 	target := mapValue(concept["visual_identity"])
 	if len(target) == 0 {

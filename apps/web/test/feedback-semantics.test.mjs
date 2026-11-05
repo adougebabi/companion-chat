@@ -58,7 +58,15 @@ test('r18 checking a retained reply exposes a visible result and targets the ori
  const {default:TurnFeedback}=await vite.ssrLoadModule('/src/react-app/components/ChatTurnFeedback.tsx'),calls=[];
  const message={id:'original-message',turnId:'original-turn',turnStatus:'failed',turnRetryable:false,turnErrorCode:'agent_run_failed'},before=JSON.stringify(message),store={sending:false,retrying:false,error:'',refreshActiveTurn:async(explicit,turnId)=>{calls.push([explicit,turnId]);return 'failed';},retryMessage:()=>{throw Error('status inspection must not replay');}};
  const view=await mountReact(vite,TurnFeedback,{props:{message,messages:[{kind:'user',turnId:'original-turn'}],store}});
- try{await view.click([...view.host.querySelectorAll('button')].find(b=>b.textContent.trim()==='查看状态'));assert.deepEqual(calls,[[true,'original-turn']]);assert.match(view.host.textContent,/已核对：执行失败/);assert.equal(JSON.stringify(message),before);}finally{await view.dispose();}
+ try{
+  const actions=view.host.querySelector('.replica-feedback-actions');
+  assert.ok(actions,'status and details use the dedicated action row');
+  assert.deepEqual([...actions.querySelectorAll('button')].map(b=>b.textContent.trim()),['查看状态','查看技术详情']);
+  await view.click([...actions.querySelectorAll('button')].find(b=>b.textContent.trim()==='查看状态'));
+  assert.deepEqual(calls,[[true,'original-turn']]);assert.match(view.host.textContent,/已核对：执行失败/);
+  assert.doesNotMatch(view.host.textContent,/结束状态仍在核对/);
+  assert.equal(JSON.stringify(message),before);
+ }finally{await view.dispose();}
 });
 test('r18 a task notification opens its record in place and keeps read status separate from the task',async()=>{
  const {default:Inbox}=await vite.ssrLoadModule('/src/react-app/pages/InboxPage.jsx'),moves=[];let reads=0,tasks=0;
@@ -71,4 +79,16 @@ test('r18 a historical reply without a turn identity cannot trigger the general 
  const {default:TurnFeedback}=await vite.ssrLoadModule('/src/react-app/components/ChatTurnFeedback.tsx');let reads=0;
  const view=await mountReact(vite,TurnFeedback,{props:{message:{id:'legacy-message',turnStatus:'failed',turnRetryable:false,turnErrorCode:'agent_run_failed'},messages:[],store:{sending:false,retrying:false,error:'',refreshActiveTurn:async()=>{reads++;},retryMessage(){throw Error('must not replay');}}}});
  try{assert.ok(![...view.host.querySelectorAll('button')].some(b=>b.textContent.trim()==='查看状态'));assert.match(view.host.textContent,/暂时无法单独核对状态/);assert.equal(reads,0);}finally{await view.dispose();}
+});
+test('the message diagnostic action keeps its own turn when a newer turn exists',async()=>{
+ const {default:TurnFeedback}=await vite.ssrLoadModule('/src/react-app/components/ChatTurnFeedback.tsx'),opened=[];
+ const message={id:'old-message',turnId:'old-turn',turnStatus:'failed',turnRetryable:false,turnErrorCode:'agent_run_failed'};
+ const store={sending:false,retrying:false,error:'',refreshActiveTurn:async()=>{},retryMessage(){throw Error('must not replay');}};
+ const view=await mountReact(vite,TurnFeedback,{props:{message,messages:[{kind:'user',turnId:'old-turn'},{kind:'user',turnId:'new-turn'}],store,onOpenDiagnostic:id=>opened.push(id)}});
+ try{
+  await view.click([...view.host.querySelectorAll('button')].find(b=>b.textContent.trim()==='查看技术详情'));
+  const link=[...document.querySelectorAll('[role=dialog] a')].find(a=>a.textContent.trim()==='查看关联运行记录');
+  assert.ok(link);assert.match(link.getAttribute('href'),/turn%3Aold-turn/);
+  await view.click(link);assert.deepEqual(opened,['old-turn']);
+ }finally{await view.dispose();}
 });

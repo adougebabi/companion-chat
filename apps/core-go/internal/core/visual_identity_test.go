@@ -285,12 +285,12 @@ func TestVisualIdentityAvatarUsesDedicatedPortraitPrompt(t *testing.T) {
 	}
 	concept["stage"] = "avatar"
 	avatar := visualIdentityPromptFromConcept(concept)
-	for _, required := range []string{"角色头像", "正方形", "头部和肩部", "深棕色短发", "琥珀色眼睛", "柔和自然光"} {
+	for _, required := range []string{"角色头像", "正方形", "深棕色短发", "琥珀色眼睛", "柔和自然光"} {
 		if !strings.Contains(avatar, required) {
 			t.Fatalf("avatar prompt missing %q: %s", required, avatar)
 		}
 	}
-	for _, forbidden := range []string{"测试姓名", "29", "正面/侧面/背面三视图", "补齐三视图", "固定三栏构图"} {
+	for _, forbidden := range []string{"测试姓名", "29", "头部和肩部", "人物居中", "正面/侧面/背面三视图", "补齐三视图", "固定三栏构图"} {
 		if strings.Contains(avatar, forbidden) {
 			t.Fatalf("avatar prompt included unrelated card requirement %q: %s", forbidden, avatar)
 		}

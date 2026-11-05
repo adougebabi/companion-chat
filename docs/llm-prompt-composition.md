@@ -49,11 +49,11 @@
 | wardrobe_preparation | 分阶段准备/选衣规则 + 穿搭所需身份/性格/偏好 + 本地时间/当前情境/实际身体与穿戴引用 + 唯一衣物目录/方案成员引用 | 0 | wardrobe_preparation.go；wardrobe_preparation_prompt.go |
 | initialization | 初始化解析协议（显式完整姓名包含前缀/连字符，不拆为昵称） + Owner 描述一次 + 预览字段、类型和输出结构提示；自然语言分析规范化后、持久化前校正明确姓名，保留 JSON 导入字段 | 0 | app.go；model_tasks.go；initialization_name.go |
 | persona_compilation | 人格编译协议 + 选定 profile 和共享身份；必要时校验反馈 | 0 | persona_compilation.go |
-| media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；media_capture_plan.go；media_prompt_branches.go |
+| media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实；头像子任务使用冻结角色设定、已确认外貌和视觉偏好，由角色选择头像构图与画风；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；generated_avatar.go；media_capture_plan.go；media_prompt_branches.go |
 | media_quality | 质量检查协议 + 冻结媒体概念/实际 renderer prompt/重试情况 + 图片；角色设定图和头像的检查同时携带已确认参考图与待审候选图，只有真实通过才自动接受 | 0 | media_quality.go；model_tasks.go |
 | visual_identity_vision | 视觉检查协议 + identity snapshot/视图要求/renderer 约束 + 图片 | 0 | model_tasks.go |
 | visual_identity_patch | 修正决策协议 + candidate/snapshot/constraints/vision findings | 0 | model_tasks.go |
-| visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查的真实观察、评分与修正建议 + 必要图片；参考图与设定图共用角色卡模板，头像使用单人肖像模板，重新生成携带对应评审反馈。阶段落库后撤下已执行工具并按真实状态收尾 | 0；尝试历史是任务历史 | visual_identity_agent.go；visual_identity.go |
+| visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查的真实观察、评分与修正建议 + 必要图片；参考图与设定图共用角色卡模板，头像由独立 media_prompt 子任务构思并保留单人、已确认形象和无文字约束。阶段落库后撤下已执行工具并按真实状态收尾 | 0；尝试历史是任务历史 | visual_identity_agent.go；visual_identity.go；generated_avatar.go |
 | conversation_summary | 累计：旧摘要+Actor 更正+源消息；片段：真实参与者/说话人别名与名称+时间范围+源消息，显式 JSON 合同；daily：日期/时区+segments | 指定源范围，非通用 H | conversation_summary.go；model_tasks.go |
 | schedule_generation | 排程规则 + 含已声明住所的 identity/life/goals/intentions/outcomes/承诺 + 共享世界规则/时区/真实地点候选 | 0 | model_tasks.go；schedule_places.go |
 | native_cognition | 认知协议 + Working Persona + D/M + 本次事件/事实 | 0，无 S | model_tasks.go |
@@ -119,6 +119,17 @@ v4/v5 的原协议、hash 和冻结草稿恢复保持原样；v5/v6 继续使用
 核对空白/已定义人格的 system 约束、实际 Provider HTTP 请求、无输出 token
 上限及旧协议 hash。受控 Provider 验证传输和解码，不代表真实模型行为验收。
 
+主动私聊的当前任务明确使用角色本人的聊天口吻，并将时间、位置、状态和关系
+视为内部背景。高置信度的状态附录、自称 AI 或角色自身第三人称场景使用既有
+同模型、无工具、最多一次的未提交正文修复；普通第三人称、AI 话题和明确要求的
+创作仍保留。旧版 Writer 协议及持久草稿 hash 不改写。头像的 `media_prompt`
+子任务只接收冻结的角色设定、当前活动人格、已确认外貌、视觉参考和实际重试反馈，
+由角色选择头像内容与画风；旧队列在首次构思前补冻角色资料，已缓存的生图提示词
+沿用，模型失败不伪造固定模板结果。
+`TestProactiveReplyRepairsPrivateAppendixOnPhysicalWriterRequest` 与
+`TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest` 核对实际
+受控请求；它们不能证明真实模型输出或图像质量。
+
 动态发布在 `publishInvocationMomentTx` 复用同一正文解析器，识别“发布动态”
 协议标题并保留普通正文回退；没有实际附件时删除 `[自拍照：…]` 占位文本，
 清理后没有正文则拒绝发布。用户建议携带的素材仍须通过原有权限和可读取校验，
@@ -154,9 +165,9 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | media_prompt 的主体解析/分支规范化/最终 prompt | 本阶段冻结意图、拍摄关系、可见主体及必要视觉字段；校验失败反馈 | 不加载无关 persona/history；真实图像继续用 image content part |
 | conversation_summary 的累计/片段/每日模式 | 旧摘要与未覆盖消息 / 精确片段源 / 本地日与 segments | 不将通用聊天窗口额外叠加到待总结来源 |
 | npc_response 的相遇/动态模式 | NPC 定义、世界规则、真实历史相遇、公开来意或动态正文 | 原始 target/CAS 在 Core，不冒充 Human 或 Fluctlight |
-| Kev context.select/tools.select | 当前任务输入与本批可选上下文/工具候选 | 保留 `{state,questions}` 外部协议；state 为 JSON；context.select 异步执行，整阶段最多等待 250ms，超时保留原上下文 |
+| Kev context.select/tools.select | 当前任务输入与本批可选上下文/工具候选 | 保留 `{state,questions}` 外部协议；state 为 JSON；context.select 异步执行，整阶段最多等待 60 秒，较早的请求或父级截止时间仍有效；超时保留原上下文 |
 | Kev persona.switch | profile/rule 条件、提议、实际 Tool arguments、当前输入与语义状态 | event identity 在 Core；实际授权切换仍走工具 |
-| Kev 自动流程/媒体 gate | 当前候选流程/意图/约束/拍摄方案 | 不增加无关私聊；不改远端 API 或回退语义 |
+| Kev 自动流程/媒体 gate | 当前候选流程/意图/约束/拍摄方案 | 不增加无关私聊；不改远端 API。启用的自动 WakeUp 须经 Kev 允许，拒绝、未明或服务不可用会延期并在到期后再判断；手动触发及其他 gate 保留原有语义 |
 | native_cognition 的 NPC 相遇机会判断 | Working Persona + native 生活事实/记忆 + 公开角色/已认识状态/地点/真实机会与有效时间 | `world_opportunity_cognition.go`；仅安装 world.npc.encounter，保留 exact opportunity id/revision，其余来源身份由 Core 绑定 |
 | Owner life request | 本次请求所需字段、原始意图、冻结目标与真实状态 | `_request_id`/CAS 留服务端；必要 item/intention/asset target 保留 |
 | ADK/Writer/persona/media correction | 原任务上下文、必要真实结果和校验/质量反馈 | 保留工具隔离、原生 transcript、旧草稿 contract；不重做已提交效果 |

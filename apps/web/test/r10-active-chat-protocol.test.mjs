@@ -24,6 +24,33 @@ test('React failed-message retry and status reading preserve the original record
   await f.update(()=>{f.store.messages=[{...message,turnRetryable:false}];});await f.view.click(f.button('查看状态'));assert.deepEqual(f.calls.at(-1),['status',true]);
  }finally{await f.dispose();}
 });
+test('a failed turn waiting for safe retry has one feedback and never appears to be typing',async()=>{
+ const f=await fixture();try{
+  await f.update(()=>{
+   f.store.attemptStartedAt=Date.now()-31000;
+   f.store.messages=[{id:'failed-user',kind:'user',text:'原消息',turnId:'failed-turn',idempotencyKey:'failed-key',turnStatus:'failed',turnRetryable:false,turnErrorCode:'agent_run_failed',createdAt:new Date().toISOString(),attachmentRefs:[]}];
+   f.store.syncServerTurnState();
+  });
+  assert.equal(f.store.hasSettlingTurn,true);
+  assert.doesNotMatch(f.view.host.textContent,/正在输入|还在想/);
+  assert.equal(f.button('回应中'),undefined);
+  assert.ok(f.button('等待结束'));
+  assert.equal(f.view.host.querySelectorAll('[data-feedback-kind]').length,1);
+  assert.ok(f.button('查看状态'));
+  assert.equal(f.button('重试原回应'),undefined);
+  assert.equal(f.view.host.querySelector('button[aria-label="停止本次生成"]'),null);
+ }finally{await f.dispose();}
+});
+test('a historical non-retryable failure does not make a later completed turn busy',async()=>{
+ const f=await fixture();try{
+  await f.update(()=>{f.store.messages=[
+   {id:'old',kind:'user',text:'旧消息',turnId:'old-turn',turnStatus:'failed',turnRetryable:false,turnErrorCode:'agent_run_failed',createdAt:new Date().toISOString()},
+   {id:'new',kind:'user',text:'新消息',turnId:'new-turn',turnStatus:'completed',createdAt:new Date().toISOString()},
+  ];});
+  assert.equal(f.store.hasSettlingTurn,false);
+  assert.doesNotMatch(f.view.host.textContent,/正在输入|还在想/);
+ }finally{await f.dispose();}
+});
 test('an unconfirmed cancellation stays visible while the original turn is still running',async()=>{
  const f=await fixture();try{
   Object.defineProperty(f.store,'canCancel',{configurable:true,get:()=>true});

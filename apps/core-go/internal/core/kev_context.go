@@ -7,10 +7,9 @@ import (
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 )
 
-// Optional selection must finish well before the observed 30s KEV gateway
-// timeout, even when saved request/stage settings allow 60s or more. This is a
-// wall-clock bound for the whole selection, including settings, queue and audit.
-const kevContextSelectionWait = 250 * time.Millisecond
+// Context selection includes settings, queue and audit in the same one-minute
+// wall-clock boundary. Earlier parent or configured request deadlines still win.
+const kevContextSelectionWait = 60 * time.Second
 
 type kevContextSelectionResult struct {
 	input WorkingMemoryInput
@@ -27,7 +26,11 @@ type kevContextSelection struct {
 }
 
 func (a *App) startKevContextSelection(ctx context.Context, projection ContextProjection, surface ProviderContextSurface, currentInput string, input WorkingMemoryInput) *kevContextSelection {
-	child, cancel := context.WithTimeout(ctx, kevContextSelectionWait)
+	return a.startKevContextSelectionWithWait(ctx, projection, surface, currentInput, input, kevContextSelectionWait)
+}
+
+func (a *App) startKevContextSelectionWithWait(ctx context.Context, projection ContextProjection, surface ProviderContextSurface, currentInput string, input WorkingMemoryInput, wait time.Duration) *kevContextSelection {
+	child, cancel := context.WithTimeout(ctx, wait)
 	selection := &kevContextSelection{
 		ctx: child, cancel: cancel, original: input,
 		ready: make(chan kevContextSelectionResult), adopted: make(chan bool, 1), finished: make(chan struct{}),
@@ -50,7 +53,7 @@ func (a *App) startKevContextSelection(ctx context.Context, projection ContextPr
 	go func() {
 		defer close(selection.finished)
 		defer cancel()
-		selected, pending, err := a.filterKevContext(decision.WithStageBudget(child, kevContextSelectionWait), scope, currentInput, snapshot)
+		selected, pending, err := a.filterKevContext(decision.WithStageBudget(child, wait), scope, currentInput, snapshot)
 		accepted := false
 		select {
 		case selection.ready <- kevContextSelectionResult{selected, err}:

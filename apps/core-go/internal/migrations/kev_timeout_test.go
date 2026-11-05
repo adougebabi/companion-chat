@@ -15,12 +15,13 @@ func TestKevTimeoutUpgradePreservesOptionsAndLaterOwnerEdits(t *testing.T) {
 		t.Fatal("fresh migration created a Kev setting", count, err)
 	}
 	for _, item := range []struct {
-		name                        string
-		timeout, budget, wantBudget int
+		name, previousHead                        string
+		timeout, budget, wantBudget, wantRevision int
 	}{
-		{"old defaults", 1500, 3000, 10000},
-		{"longer stage", 6000, 25000, 25000},
-		{"already configured", 10000, 20000, 20000},
+		{"old defaults", KevOneMinutePreviousHead, 1500, 3000, 60000, 8},
+		{"longer stage", KevOneMinutePreviousHead, 10000, 90000, 90000, 8},
+		{"already configured", KevOneMinutePreviousHead, 60000, 70000, 70000, 7},
+		{"upgrade through old timeout", KevTimeoutPreviousHead, 1500, 3000, 60000, 9},
 	} {
 		t.Run(item.name, func(t *testing.T) {
 			before := map[string]any{"enabled": false, "media_enabled": true, "endpoint": "http://kev.example/v1/systemone", "timeout_ms": item.timeout, "budget_ms": item.budget, "strategy": "choice_guarded", "points": map[string]bool{"tools.select": false}, "model": "preserve-model"}
@@ -28,7 +29,7 @@ func TestKevTimeoutUpgradePreservesOptionsAndLaterOwnerEdits(t *testing.T) {
 			if _, err := pool.Exec(ctx, `INSERT INTO public.runtime_settings(key,value_json,revision) VALUES('kev',$1,7) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=7`, string(raw)); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := pool.Exec(ctx, `UPDATE public.alembic_version SET version_num='0099_durable_turn_diagnostics'`); err != nil {
+			if _, err := pool.Exec(ctx, `UPDATE public.alembic_version SET version_num=$1`, item.previousHead); err != nil {
 				t.Fatal(err)
 			}
 			if err := New(pool).Apply(ctx); err != nil {
@@ -43,18 +44,14 @@ func TestKevTimeoutUpgradePreservesOptionsAndLaterOwnerEdits(t *testing.T) {
 			if err := json.Unmarshal([]byte(saved), &got); err != nil {
 				t.Fatal(err)
 			}
-			before["timeout_ms"], before["budget_ms"] = 10000, item.wantBudget
+			before["timeout_ms"], before["budget_ms"] = 60000, item.wantBudget
 			want, _ := json.Marshal(before)
 			actual, _ := json.Marshal(got)
 			if string(want) != string(actual) {
 				t.Fatalf("other Kev options changed: got=%s want=%s", actual, want)
 			}
-			wantRevision := 8
-			if item.timeout == 10000 && item.budget >= 10000 {
-				wantRevision = 7
-			}
-			if revision != wantRevision {
-				t.Fatal("configuration revision not fenced", revision, wantRevision)
+			if revision != item.wantRevision {
+				t.Fatal("configuration revision not fenced", revision, item.wantRevision)
 			}
 			if _, err := pool.Exec(ctx, `UPDATE public.runtime_settings SET value_json=jsonb_set(value_json::jsonb,'{timeout_ms}','5000'::jsonb)::text,revision=revision+1 WHERE key='kev'`); err != nil {
 				t.Fatal(err)

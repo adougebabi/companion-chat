@@ -3,7 +3,7 @@
 ---
 # 迁移审阅说明
 
-Vue editor 是旧宿主称谓，当前编辑器按 React 契约。10000ms 超时和选择阶段 wall-clock 预算不是 token 上限；本合同文首 r22 的 media_enabled=false 默认值优先于后面历史章节 media_enabled=true，已保存 Owner 配置不因此覆盖。2026-11-03 optional-context 250ms 规则按其明确范围执行。
+Vue editor 是旧宿主称谓，当前编辑器按 React 契约。请求超时和选择阶段 wall-clock 预算不是 token 上限；本合同文首 r22 的 media_enabled=false 默认值优先于后面历史章节 media_enabled=true，已保存 Owner 配置不因此覆盖。2026-11-05 用户要求将 Kev 等待设为一分钟，覆盖下文历史的 10000ms 默认与 optional-context 250ms 规则；保留这些历史章节作为来源记录。
 
 依据：.trellis/spec/frontend/react-shadcn-contract.md#sha256=77662cf4db25cc6778e20da2caf45d4dbacb476506361fcb5db51518dde13eea; .trellis/spec/backend/prompt-composition-contract.md#sha256=7d74449576eecc2f6cf6c6fceffb4acef7fddff7d6798a0c11328925daca474c
 
@@ -50,7 +50,7 @@ Kev migration is `0056_kev_decisions`, additive from `0055_goal_planner_cadence`
 
 ## 3. Contracts
 
-Disabled points do not build optional candidates or call Kev. Except for public Tool disclosure (three-tool baseline), fallback remains
+Disabled points do not build optional candidates or call Kev. Except for public Tool disclosure (three-tool baseline) and the Owner's 2026-11-05 automatic WakeUp rule below, fallback remains
 a lazy original branch, never a false/no action. Parent cancellation ends the
 business request; only child timeout/invalid response/budget failures fall back.
 Check parent cancellation after settings I/O and recheck config version before
@@ -61,7 +61,7 @@ Defaults (r22 Owner request, 2026-10-30): choice_guarded with min_probability=0.
 min_margin=0.15 and media_enabled=false. KEV remains globally disabled by default.
 These defaults apply only when settings are absent; existing saved zero thresholds,
 strategy and media choices are not migrated or overwritten. TestR22KevDefaultsUseConfidenceGateAndDisableMedia
-verifies the defaults and media opt-in. Other defaults: 10000ms request, 10000ms shared selection stage, 1 concurrent
+verifies the defaults and media opt-in. Other defaults: 60000ms request, 60000ms shared selection stage, 1 concurrent
 request per service instance, 8 questions/batch, zero retries, 3 deferrals, 60s
 backoff and 7-day retention. Missing installed settings leave the original path;
 the explicit local/operator configuration command configures ten points (seven original plus three media).
@@ -79,7 +79,8 @@ replays business effects. Retention deletes only bounded diagnostic batches.
 Automatic no preserves original cycle/evidence watermarks and execution attempts.
 WakeUp/Reflection defer via native durable workflow timers; Goal flows retain
 retry/available_at and deferred subsets. Maximum deferral re-enters original after
-hard eligibility. Manual WakeUp overrides a matching cycle and signals
+hard eligibility except for automatic WakeUp, which keeps consulting an enabled Kev.
+Manual WakeUp overrides a matching cycle and signals
 kev.force_original to interrupt its timer. Old workflow histories lacking the
 new deferred branch re-run the unexecuted candidate through original, rather than
 terminally losing it.
@@ -419,6 +420,9 @@ output cap or permission rule; follow the Prompt Composition contract.
 
 ## Scenario: Optional context selection cannot stall chat (2026-11-03)
 
+Historical: the 250ms limit below was superseded by the Owner's 2026-11-05
+one-minute request; its snapshot, cancellation and fallback safeguards remain.
+
 `assembleProjectionPromptForSurface` starts `startKevContextSelection` before
 loading the compiled persona. The whole optional context operation has a 250ms
 wall-clock deadline, including settings reads, concurrency wait, all sections,
@@ -440,4 +444,27 @@ and finalized as original_used; slow final audit writes never extend reply wait.
 deadlines with 60s saved settings, all-or-original fallback, cancellation, audit
 latency and immutable batch-local wire data. Existing optional/required/history
 and batch projection assertions remain unchanged.
+
+## Scenario: Owner-requested one-minute Kev timeout (2026-11-05)
+
+Default request and shared decision budgets are 60000ms. Forward migration
+`0104_kev_one_minute` updates an existing Kev request timeout once, raises a
+shorter stage budget to 60000ms, keeps a longer stage budget and every other
+setting, and does not create or enable a missing configuration. Reapplying the
+current head preserves subsequent Owner edits. Optional `context.select` has
+the same 60-second whole-stage wall-clock boundary, while an earlier configured
+request timeout or parent cancellation remains authoritative. A timeout still
+preserves the original complete context; all existing audit and cancellation
+semantics remain. A slow Kev or upstream gateway can therefore delay chat or
+still fail sooner at the gateway; neither is a model-token restriction.
+
+An enabled `runtime.wakeup` must obtain an admissible Kev yes before an
+automatic wake runs. No, unclear and unavailable results defer the same cycle
+using the existing durable timer, including after the previous deferral-count
+threshold; the count is bounded and later due attempts ask Kev again. Failure
+to read or persist the wake decision/deferral fails the activity instead of
+silently waking. If the point is disabled, the original path remains; an
+explicit manual WakeUp keeps its existing override. Other Kev gates retain
+their existing fallback and maximum-deferral policies. On config revocation
+after a request, recheck the current setting before choosing the path.
 

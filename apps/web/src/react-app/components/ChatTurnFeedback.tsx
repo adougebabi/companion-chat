@@ -15,12 +15,14 @@ export default function ChatTurnFeedback({
   message,
   messages,
   store,
+  onOpenDiagnostic,
 }: {
   message: Readonly<
     Pick<BrowserMessage, "id" | "turnErrorCode" | "turnId" | "turnRetryable" | "turnStatus">
   >;
   messages: readonly Readonly<Pick<BrowserMessage, "kind" | "turnId">>[];
   store: ConversationController;
+  onOpenDiagnostic?: (turnId:string)=>void;
 }) {
   const [checking,setChecking]=useState(false),[checkNote,setCheckNote]=useState<{text:string;version:number}|null>(null),[checkError,setCheckError]=useState(''),[checkFailure,setCheckFailure]=useState<any>(null),readBusy=useRef(false),readEpoch=useRef(0);
   const [detailsOpen,setDetailsOpen]=useState(false);
@@ -28,7 +30,9 @@ export default function ChatTurnFeedback({
   useEffect(()=>{if(!checkNote)return;const timer=setTimeout(()=>setCheckNote(current=>current===checkNote?null:current),6000);return()=>clearTimeout(timer);},[checkNote]);
   async function readStatus(){if(readBusy.current||!message.turnId)return;readBusy.current=true;const token=++readEpoch.current;setChecking(true);setCheckNote(null);setCheckError('');setCheckFailure(null);try{const status=await store.refreshActiveTurn(true,message.turnId);if(token===readEpoch.current)setCheckNote({text:status?'已核对：'+stateLabel(status)+'，原消息已保留。':'暂未读到本条回应的新状态，原消息会保留。',version:token});}catch(cause){if(token===readEpoch.current){setCheckError(errorMessage(cause));setCheckFailure(feedbackDiagnostic(cause));}}finally{if(token===readEpoch.current){readBusy.current=false;setChecking(false);}}}
   const settling=message.turnRetryable===false&&message.turnErrorCode!=='agent_partial_committed';
-  const reason = settling?'这次回应的结束状态仍在核对，原消息会保留。':
+  const reason = settling?message.turnStatus==='cancelled'
+    ?'这次回应已停止，原消息已保留，暂时不能重试。'
+    :'这次回应未完成，原消息已保留，暂时不能重试。':
     message.turnErrorCode === "agent_partial_committed"
       ? "部分操作已执行，不能直接重试。请先查看实际结果。"
       : chatFailureText(
@@ -38,13 +42,10 @@ export default function ChatTurnFeedback({
           ),
         );
   return (
-    <><Feedback kind={checking?'progress':checkError?'warning':settling?'progress':message.turnErrorCode==='agent_partial_committed'?'warning':message.turnStatus==='cancelled'?'information':'error'} className="mt-2">
-      {reason}
-      {checking&&<p role="status">正在核对这次回应的实际状态…</p>}{checkNote&&<p role="status">{checkNote.text}</p>}{checkError&&<p>{checkError}</p>}
-      {store.retrying && <p className="m-0 text-sm" role="status">正在提交重试请求并等待回复</p>}
+    <><Feedback kind={checking?'progress':checkError?'warning':settling?'warning':message.turnErrorCode==='agent_partial_committed'?'warning':message.turnStatus==='cancelled'?'information':'error'} className="mt-2" actions={<div className="ml-auto flex flex-nowrap items-center justify-end gap-3 whitespace-nowrap">
       {(message.turnRetryable||message.turnId)?<Button
         variant="outline"
-        className="ml-2 w-fit"
+        className="w-fit max-[700px]:min-h-[44px]"
         disabled={store.sending || store.retrying||checking}
         onClick={() =>
           message.turnRetryable
@@ -58,8 +59,13 @@ export default function ChatTurnFeedback({
           : message.turnRetryable
             ? "重试原回应"
             : "查看状态"}
-      </Button>:<p>这条历史回应暂时无法单独核对状态，原消息仍保留。</p>}
-      {(message.turnErrorCode||checkFailure)&&<Button type="button" variant="ghost" size="sm" onClick={()=>setDetailsOpen(true)}>查看技术详情</Button>}
+      </Button>:null}
+      {(message.turnErrorCode||checkFailure)&&<Button type="button" variant="ghost" size="sm" className="max-[700px]:min-h-[44px]" onClick={()=>setDetailsOpen(true)}>查看技术详情</Button>}
+      </div>}>
+      {reason}
+      {!message.turnRetryable&&!message.turnId&&<p>这条历史回应暂时无法单独核对状态，原消息仍保留。</p>}
+      {checking&&<p role="status">正在核对这次回应的实际状态…</p>}{checkNote&&<p role="status">{checkNote.text}</p>}{checkError&&<p>{checkError}</p>}
+      {store.retrying && <p className="m-0 text-sm" role="status">正在提交重试请求并等待回复</p>}
     </Feedback>
     {detailsOpen&&<DetailDrawer title="回应检查结果" testId="chat-turn-details" onClose={()=>setDetailsOpen(false)}>
       <div className="grid min-w-0 gap-5">
@@ -72,7 +78,7 @@ export default function ChatTurnFeedback({
             {checkError&&<div><dt className="text-muted-foreground">最近状态读取</dt><dd>{checkError}</dd></div>}
           </dl>
         </CardContent></Card>
-        {message.turnId&&<Button variant="outline" asChild><a href={'#/diag/turns?correlationId='+encodeURIComponent('turn:'+message.turnId)}>查看关联运行记录</a></Button>}
+        {message.turnId&&<Button variant="outline" asChild><a href={'#/diag/turns?correlationId='+encodeURIComponent('turn:'+message.turnId)} onClick={event=>{if(onOpenDiagnostic&&message.turnId){event.preventDefault();setDetailsOpen(false);onOpenDiagnostic(message.turnId);}}}>查看关联运行记录</a></Button>}
         <Disclosure title="原始 JSON"><pre className="approved-json whitespace-pre-wrap break-all">{JSON.stringify({code:message.turnErrorCode,turnId:message.turnId,readFailure:checkFailure},null,2)}</pre></Disclosure>
       </div>
     </DetailDrawer>}</>

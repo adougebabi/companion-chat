@@ -53,7 +53,26 @@ func kevContextTestInput() WorkingMemoryInput {
 		RecentMessages:    []PromptFragment{{Kind: PromptFragmentRecentMessage, Content: "complete native history"}},
 	}
 }
-func TestKevContextBudgetPreemptsThirtySecondGatewayAndRestoresWholeInput(t *testing.T) {
+func TestKevContextSelectionGivesRequestOneMinute(t *testing.T) {
+	var remaining time.Duration
+	transport := kevContextTestTransport(func(r *http.Request) (*http.Response, error) {
+		deadline, _ := r.Context().Deadline()
+		remaining = time.Until(deadline)
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"answers":{"q_0001":{"type":"choice","choice":"yes","confidence":0.8,"probabilities":{"yes":0.8,"no":0.1,"unclear":0.1}}}}`))}, nil
+	})
+	app := kevContextTestApp(transport, &kevContextTestStore{})
+	input := WorkingMemoryInput{ActiveCandidates: []PromptFragment{{Kind: PromptFragmentActiveMemory, Content: "memory"}}}
+	selection := app.startKevContextSelection(context.Background(), ContextProjection{}, ProviderContextSurfaceConversationMain, "input", input)
+	defer selection.cancel()
+	if _, err := selection.wait(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if remaining < 59*time.Second || remaining > 60*time.Second {
+		t.Fatalf("context selection cut the Kev request short: %s", remaining)
+	}
+}
+func TestKevContextBudgetExpiryRestoresWholeInput(t *testing.T) {
+	const testWait = 50 * time.Millisecond
 	var calls atomic.Int32
 	var deadline time.Duration
 	transport := kevContextTestTransport(func(r *http.Request) (*http.Response, error) {
@@ -72,7 +91,7 @@ func TestKevContextBudgetPreemptsThirtySecondGatewayAndRestoresWholeInput(t *tes
 	app := kevContextTestApp(transport, store)
 	input := kevContextTestInput()
 	started := time.Now()
-	selection := app.startKevContextSelection(context.Background(), ContextProjection{}, ProviderContextSurfaceConversationMain, "current input", input)
+	selection := app.startKevContextSelectionWithWait(context.Background(), ContextProjection{}, ProviderContextSurfaceConversationMain, "current input", input, testWait)
 	defer selection.cancel()
 	selected, err := selection.wait(context.Background())
 	if err != nil || !reflect.DeepEqual(selected, input) {
@@ -86,8 +105,8 @@ func TestKevContextBudgetPreemptsThirtySecondGatewayAndRestoresWholeInput(t *tes
 	case <-time.After(time.Second):
 		t.Fatal("cancelled selection worker did not exit")
 	}
-	if deadline <= 0 || deadline > kevContextSelectionWait || deadline >= 30*time.Second {
-		t.Fatalf("60s saved budget reached gateway: %s", deadline)
+	if deadline <= 0 || deadline > testWait {
+		t.Fatalf("selection did not use the stage deadline: %s", deadline)
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("selection continued later sections after expiry: %d", calls.Load())
@@ -110,7 +129,9 @@ func TestKevContextSlowAuditCannotBlockReply(t *testing.T) {
 	app := kevContextTestApp(transport, &kevContextTestStore{delay: true})
 	input := kevContextTestInput()
 	started := time.Now()
-	selected, err := app.selectKevContext(context.Background(), ContextProjection{}, ProviderContextSurfaceConversationMain, "input", input)
+	selection := app.startKevContextSelectionWithWait(context.Background(), ContextProjection{}, ProviderContextSurfaceConversationMain, "input", input, 50*time.Millisecond)
+	defer selection.cancel()
+	selected, err := selection.wait(context.Background())
 	if err != nil || !reflect.DeepEqual(selected, input) {
 		t.Fatalf("slow audit changed context: %v", err)
 	}
@@ -137,7 +158,7 @@ func TestKevContextPartialSelectionIsDiscardedAndParentCancellationPropagates(t 
 			store := &kevContextTestStore{}
 			app := kevContextTestApp(transport, store)
 			input := kevContextTestInput()
-			selection := app.startKevContextSelection(ctx, ContextProjection{}, ProviderContextSurfaceConversationMain, "input", input)
+			selection := app.startKevContextSelectionWithWait(ctx, ContextProjection{}, ProviderContextSurfaceConversationMain, "input", input, 50*time.Millisecond)
 			defer selection.cancel()
 			selected, err := selection.wait(ctx)
 			if cancelParent && !errors.Is(err, context.Canceled) {
