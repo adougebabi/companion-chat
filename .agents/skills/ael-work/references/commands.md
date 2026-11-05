@@ -11,4 +11,5 @@
 - 模型/场景/人工审查：`./ael assess --file /tmp/assessment.json`。必须提供 task/check/candidate/method(model|scenario|human)/executor/result(pass|fail|blocked)/reason/inputs(受检文件)/artifacts(实际报告或trace)/return_to。模型审查明确标记模型判断；UI 必须真实截图，场景必须真实步骤与结果。无能力提交 blocked，不能改成人工 pass。候选和配置必须匹配。
 - 循环：读每次返回的 next_action；continue/repair 继续当前已授权任务，verify 检查失败回 execute；需求/方案问题用 return_to=define|analysis；wait_environment 保存具体原因、恢复条件和恢复节点。交接后当前角色可以结束，下游 task list 可领取；没有运行器时只能称待接手。
 - 恢复：`./ael next --task ID`；旧 writer 核实停止后 `./ael resume --task ID --ack-stopped`，正常失败修复无需 ack。候选变动需 `--return-to execute` 后重新提交与验证。不可对存活旧 writer 强行复活。
+- 并发：不同任务可以在同一工作区领取和执行；同任务重复领取仍受租约约束。共享文件或外部资源由执行者协调；整个工作区指纹变化可能使验证结果失效。需要文件隔离时绑定独立 worktree。
 - 交付：analysis/report/verified 无发布。merged/released 只在原任务有目标及授权时交付，准确候选审批与真实回执缺一不可。`./ael task create` 的 feedback_of 关联新反馈；先去重，不篡改旧结果。
