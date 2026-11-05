@@ -118,16 +118,10 @@ const visualIdentityTextFreeReviewInstruction = "Reject any visible text, pseudo
 
 const visualIdentityPromptTemplate = `角色设定卡
 %s
-制作完整角色档案卡，白色极简背景，高级时尚杂志排版，3:4 竖图。
+制作完整角色档案卡，白色极简背景，高级时尚杂志排版，%s 竖图。
 画面必须包含以下视觉分区：正面/侧面/背面三视图、六种不同表情、服装拆解视觉区、与角色实际穿着一致的配饰展示、眼睛/嘴唇/发型细节特写、角色专属色卡。
 所有分区只用版式、人物小图、示意图、色块和留白表达，禁止生成任何文字、字母、数字、标题、标签、签名或伪文字；不要添加资料栏、人物简介、性格关键词或签名区。
 整体视觉：真实真人、高级商业摄影、柔和棚拍光、高清皮肤纹理、服装材质真实、人物五官统一、三视图保持同一张脸、非动漫、非Q版。`
-
-const visualIdentityAvatarPromptTemplate = `角色头像
-%s
-生成一张正方形（1:1）的单人头像，用于角色库和聊天。以已确认的角色形象为准，保持同一人的脸型、五官、肤色和发型等可识别特征。
-人物的可识别面部适合圆形或方形头像裁切；构图、表情、画风、氛围与背景由角色自己选择。
-画面只包含一个人，不使用角色档案卡排版、表情分区、服装拆解或色卡。禁止文字、字母、数字、标签、签名、徽标和水印。`
 
 // VisualIdentitySnapshot is the browser-safe, cognition-safe representation of
 // the current visual identity aggregate. Large model responses and provider
@@ -590,9 +584,11 @@ func visualIdentityBoundedText(value string, limit int) string {
 	return value
 }
 
-// visualIdentityPromptFromConcept renders the fixed character-card template or
-// the identity and output constraints appended to a model-designed avatar.
+// visualIdentityPromptFromConcept renders the fixed character-card template.
 func visualIdentityPromptFromConcept(concept map[string]any) string {
+	if stringValue(concept["stage"]) == "avatar" {
+		return "" // Avatar designs are owned by the dedicated media_prompt task.
+	}
 	target := mapValue(concept["visual_identity"])
 	if len(target) == 0 {
 		target = mapValue(mapValue(concept["context_binding"])["visual_identity"])
@@ -608,14 +604,11 @@ func visualIdentityPromptFromConcept(concept map[string]any) string {
 	if description == "" {
 		description = "保持同一张脸的角色"
 	}
-	if stringValue(concept["stage"]) == "avatar" {
-		prompt := fmt.Sprintf(visualIdentityAvatarPromptTemplate, description) + visualAvatarBriefPrompt(snapshot)
-		if feedback := stringValue(concept["derived_review_feedback"]); strings.TrimSpace(feedback) != "" {
-			prompt += "\n\n上一张头像的修改要求：" + feedback
-		}
-		return prompt
+	ratio := "3:4" // Preserve the historical template for old frozen concepts.
+	if selected := stringValue(mapValue(concept["image_dimensions"])["aspect_ratio"]); selected == "2:3" {
+		ratio = selected
 	}
-	prompt := fmt.Sprintf(visualIdentityPromptTemplate, description)
+	prompt := fmt.Sprintf(visualIdentityPromptTemplate, description, ratio)
 	prompt += visualBriefPrompt(snapshot)
 	if guidance := visualIdentityReviewGuidance(snapshot); guidance != "" {
 		prompt += "\n\n上一轮评审修正要求：" + guidance
@@ -980,7 +973,7 @@ func enforceVisualIdentityTurnaroundPrompt(prompt, stage string) string {
 	if value == "" {
 		return value
 	}
-	return fmt.Sprintf(visualIdentityPromptTemplate, value)
+	return fmt.Sprintf(visualIdentityPromptTemplate, value, "3:4")
 }
 
 // EnsureVisualIdentityInitialization creates or reuses the initialization
@@ -1387,7 +1380,8 @@ func (a *App) promoteVisualIdentityCanonicalTx(ctx context.Context, tx pgx.Tx, s
 	characterIntentID := "media_intent_" + stableDigest(attemptID+":character-sheet")
 	characterWorkflowID := "media_workflow_" + stableDigest(characterIntentID)
 	characterRequestID := "media_request_" + stableDigest(characterIntentID)
-	characterConcept := map[string]any{"purpose": "visual_identity", "stage": "character_sheet", "canonical_asset_id": assetID, "visual_identity_reference_asset_id": assetID, "visual_identity": identitySnapshot, "renderer_constraints": constraints}
+	dimensions, _ := imageDimensions("2:3")
+	characterConcept := map[string]any{"purpose": "visual_identity", "stage": "character_sheet", "canonical_asset_id": assetID, "visual_identity_reference_asset_id": assetID, "visual_identity": identitySnapshot, "renderer_constraints": constraints, "image_dimensions": dimensions}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,status,revision) VALUES($1,$2,'image','image/png',$3,$4,$5,'pending',0)`, characterIntentID, fluctlightID, jsonString(characterConcept), characterRequestID, characterWorkflowID); err != nil {
 		return "", err
 	}

@@ -517,6 +517,9 @@ func validateBranchedMediaConcept(concept map[string]any) error {
 	if !isBranchedMedia(concept) {
 		return errors.New("media_plan_version_invalid")
 	}
+	if _, err := mediaImageDimensions(concept); err != nil {
+		return err
+	}
 	if concept["source"] == "studio_definition" {
 		if err := validateStudioMediaConcept(concept); err != nil {
 			return err

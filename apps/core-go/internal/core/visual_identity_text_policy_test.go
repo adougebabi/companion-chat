@@ -67,12 +67,12 @@ func TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels(t *testing.T) 
 		t.Run(stage, func(t *testing.T) {
 			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 				wire := jsonString(payload["messages"])
-				for _, required := range []string{"Do not add information panels, character introductions, personality keywords or signature areas", "front/side/back model views", "six expressions", "accessories matching actual wear", "Do not render any text"} {
+				for _, required := range []string{"Do not add information panels, character introductions, personality keywords or signature areas", "front/side/back model views", "six expressions", "accessories matching actual wear", "Do not render any text", "vertical composition in the supplied aspect ratio", "2:3"} {
 					if !strings.Contains(wire, required) {
 						t.Errorf("physical %s prompt lost %q", stage, required)
 					}
 				}
-				for _, forbidden := range []string{"visual sections for basic information", "and a signature area", "blank fields instead"} {
+				for _, forbidden := range []string{"visual sections for basic information", "and a signature area", "blank fields instead", "3:4 vertical composition"} {
 					if strings.Contains(wire, forbidden) {
 						t.Errorf("physical %s prompt retains %q", stage, forbidden)
 					}
@@ -81,7 +81,7 @@ func TestVisualIdentityMediaPhysicalRequestsOmitInformationPanels(t *testing.T) 
 			})
 			messages := formatProviderMessagesForRole(addVisualIdentityMediaPromptInstruction("media_prompt", []map[string]any{
 				{"role": "system", "content": mediaPromptSystemInstruction(mediaIntent{})},
-				{"role": "user", "content": jsonString(map[string]any{"purpose": "visual_identity", "stage": stage})},
+				{"role": "user", "content": jsonString(map[string]any{"purpose": "visual_identity", "stage": stage, "image_dimensions": map[string]any{"aspect_ratio": "2:3", "resolution": "768"}})},
 			}), "media_prompt")
 			_, err := (&ProviderClient{HTTP: &http.Client{Transport: router}}).generateWithEino(context.Background(), EinoModelCall{
 				Assignment: providerAssignment{Role: "generic_llm", BaseURL: "http://controlled.invalid", ModelID: "controlled-text", Timeout: time.Second},

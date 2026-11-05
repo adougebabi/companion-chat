@@ -140,6 +140,11 @@ func mediaQualityMessages(intent mediaIntent, contentType string, content []byte
 	if !ok {
 		return nil, errors.New("media quality frozen concept invalid")
 	}
+	if isAvatarVisualIdentityMedia(intent) {
+		// Older avatar concepts counted a person before the model chose a subject.
+		// This field is not evidence that the avatar actually depicts one.
+		delete(concept, "subject_count")
+	}
 	textPayload := map[string]any{
 		"media_kind":           intent.Kind,
 		"frozen_media_concept": concept,
@@ -158,6 +163,9 @@ func mediaQualityMessages(intent mediaIntent, contentType string, content []byte
 	if isDerivedVisualIdentityMedia(intent) {
 		instruction = strings.Replace(instruction, "The application retries any first non-pass once with this feedback and delivers the second candidate even when its verdict is retry or reject.", "The application may retry a non-pass with this feedback. Only a genuine pass accepts this image; otherwise the candidate can await explicit human review.", 1)
 	}
+	if isAvatarVisualIdentityMedia(intent) {
+		instruction += "\n\nFor an avatar, the provider prompt determines the chosen subject, which may be a person, animal, object, landscape, or something else. Do not require a person or face. Compare the confirmed reference only if the chosen design depicts the character; then preserve the character's recognizable facial features, skin tone and hair. If the character is not depicted, appearance_matches concerns the chosen subject's applicable appearance; do not mark it false merely because there is no face. Check the square composition, circular crop, and text-free requirements."
+	}
 	return []map[string]any{
 		{"role": "system", "content": instruction},
 		{"role": "user", "content": contentParts},
@@ -168,6 +176,25 @@ func isDerivedVisualIdentityMedia(intent mediaIntent) bool {
 	concept := decodeObject([]byte(intent.Prompt))
 	stage := stringValue(concept["stage"])
 	return stringValue(concept["purpose"]) == "visual_identity" && (stage == "character_sheet" || stage == "avatar")
+}
+
+func isAvatarVisualIdentityMedia(intent mediaIntent) bool {
+	concept := decodeObject([]byte(intent.Prompt))
+	return stringValue(concept["purpose"]) == "visual_identity" && stringValue(concept["stage"]) == "avatar"
+}
+
+func addDerivedVisualReviewReference(messages []map[string]any, intent mediaIntent, referenceURL string) {
+	description := "第一张图片是已确认的形象参考，第二张是待审核候选；检查候选是否保持同一人的可识别特征，并符合本次图片用途。"
+	if isAvatarVisualIdentityMedia(intent) {
+		description = "第一张图片是已确认的角色形象参考，第二张是待审核头像。以生图提示词选择的主体为准；仅当头像包含角色本人时比较本人可识别的外貌。非人物头像不要求出现本人或人脸。"
+	}
+	parts := arrayValue(messages[1]["content"])
+	messages[1]["content"] = []any{
+		parts[0],
+		map[string]any{"type": "text", "text": description},
+		map[string]any{"type": "image_url", "image_url": map[string]any{"url": referenceURL}},
+		parts[1],
+	}
 }
 
 func mediaQualityAcceptanceSystemInstruction() string {

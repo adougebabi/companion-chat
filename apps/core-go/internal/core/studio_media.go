@@ -48,6 +48,7 @@ func (a *App) queueStudioMedia(ctx context.Context, owner, id, aid string, job m
 				return nil, err
 			}
 			concept = map[string]any{"intent": stringValue(snapshot["instruction"]), "media_plan_version": mediaPlanVersion, "media_capture_plan": plan, "explicit_constraints": map[string]any{"self_in_frame": "no"}, "field_sources": sources, "context_binding": map[string]any{}, "referent_bindings": bindings, "source": "studio_definition", "studio_owner_actor_id": owner, "studio_source": map[string]any{"resource_id": snapshot["resource_id"], "resource_revision": snapshot["resource_revision"], "source_digest": job["source_digest"], "resource_kind": snapshot["resource_kind"], "name": snapshot["name"], "body": snapshot["body"]}}
+			concept["image_dimensions"], _ = imageDimensions("9:16")
 			if snapshot["resource_kind"] == "outfit" {
 				mapValue(concept["studio_source"])["verified_members"] = snapshot["allowed_references"]
 			}

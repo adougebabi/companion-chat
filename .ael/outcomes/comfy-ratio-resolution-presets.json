@@ -1,0 +1,22 @@
+{
+  "id": "comfy-ratio-resolution-presets",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "48da199210f218ae6cedfbf437529b248c904bd21981ec375140e6b73530e4ac",
+  "completed": "2026-11-05T09:13:13.23747Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "core-tests",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "dab3f1963ad98ddb2b26a0931eec41b1ccdc375adcd7869cdd0e205da9f0e80e",
+      "at": "2026-11-05T09:12:40.334019Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-c1c920804a5781660989.log": "15d5e6d5f56e316fb966b083920fa263bbb512ebf0fdd7b7ceabbfd111b77870"
+      }
+    }
+  ]
+}

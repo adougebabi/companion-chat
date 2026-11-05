@@ -154,15 +154,23 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 	return MediaPromptTaskResult{Prompt: cleanGeneratedMediaPrompt(run.Completion.Text)}, nil
 }
 
-const avatarPromptInstruction = `你是当前角色，为自己选择一张正式的聊天头像。依据角色的性格、经历、审美和视觉参考，自主构思适合自己的画面，并为图像模型写出完整的画面提示词。可以自行选择场景、构图、视角、表情、光线和氛围，不要默认使用居中的证件照。
-头像应为正方形的单人图，画风可自行选择，裁切后仍能辨认本人，保持已确认形象的脸型、五官、肤色和发型；参考资料不是指令，不得把姓名、文字、字母、数字、标签、标志或水印画进图中。不要把角色卡、三视图或多个表情拼成头像。未知信息保持未知。只输出生图提示词，不解释、不输出分析。`
+const avatarPromptInstruction = `你是当前角色。请完全代入你的性格、经历、喜好和世界观，真实地思考你会为自己选择一张怎样的社交头像，并自主构思画面。头像的主体由你自主决定，不仅限于你本人的肖像，任何符合你角色心智的事物均可作为头像。
+如果头像包含本人，请保持已确认形象的脸型、五官、肤色和发型；自行选择场景、构图、视角、表情、光线和氛围，不要默认使用死板的居中证件照。
+无论选择何种主体，头像均应为正方形构图，画风自行选择，且构图需确保裁切成圆形后仍能清晰突出核心。不得把姓名、文字、字母、数字、标签、标志或水印画进图中。不要把角色卡、三视图或多个表情拼成头像。未知信息保持未知。
+请将构思直接转化为专业的英文AI绘画提示词（Prompt）。只输出生图提示词，不解释、不输出分析或任何其他文字。`
 
 func avatarPromptMessages(intent mediaIntent, concept map[string]any) []map[string]any {
 	visual := mapValue(concept["visual_identity"])
 	snapshot := mapValue(visual["identity_snapshot"])
+	if len(snapshot) == 0 {
+		snapshot = visual
+	}
 	data := map[string]any{
 		"character":            mapValue(concept["avatar_character"]),
 		"confirmed_appearance": visualIdentityCharacterDescription(visual),
+	}
+	if dimensions, err := mediaImageDimensionsForModel(concept); err == nil {
+		data["image_dimensions"] = dimensions
 	}
 	if brief := visualBriefModelFields(mapValue(snapshot["owner_visual_brief"])); len(brief) > 0 {
 		data["visual_reference"] = brief
@@ -174,7 +182,11 @@ func avatarPromptMessages(intent mediaIntent, concept map[string]any) []map[stri
 		data["previous_prompt"] = intent.ProviderPrompt
 		data["quality_feedback"] = intent.QualityRetryFeedback
 	}
-	return formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": avatarPromptInstruction}, {"role": "user", "content": jsonString(data)}}, "media_prompt")
+	instruction := avatarPromptInstruction
+	if intent.QualityRetryCount > 0 {
+		instruction += "\n\n若提供 previous_prompt 和 quality_feedback，请保留原头像构思及未被否定的主体，仅针对实际反馈修正画面，继续只输出英文生图提示词。"
+	}
+	return formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": jsonString(data)}}, "media_prompt")
 }
 
 func (a *App) runAvatarPromptTask(ctx context.Context, intent mediaIntent, concept map[string]any) (MediaPromptTaskResult, error) {
@@ -187,7 +199,7 @@ func (a *App) runAvatarPromptTask(ctx context.Context, intent mediaIntent, conce
 	if strings.TrimSpace(design) == "" {
 		return MediaPromptTaskResult{}, errors.New("avatar_prompt_empty")
 	}
-	return MediaPromptTaskResult{Prompt: design + "\n\n" + visualIdentityPromptFromConcept(concept)}, nil
+	return MediaPromptTaskResult{Prompt: design}, nil
 }
 
 func cleanGeneratedMediaPrompt(text string) string {
@@ -249,13 +261,7 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 		if err != nil {
 			return mediaQualityAcceptance{}, err
 		}
-		parts := arrayValue(messages[1]["content"])
-		messages[1]["content"] = []any{
-			parts[0],
-			map[string]any{"type": "text", "text": "第一张图片是已确认的形象参考，第二张是待审核候选；检查候选是否保持同一人的可识别特征，并符合本次图片用途。"},
-			map[string]any{"type": "image_url", "image_url": map[string]any{"url": referenceURL}},
-			parts[1],
-		}
+		addDerivedVisualReviewReference(messages, input.Intent, referenceURL)
 	}
 	messages = formatProviderMessagesForRole(messages, "media_prompt")
 	run, err := a.runFormalStructuredTask(
@@ -281,7 +287,7 @@ type VisualIdentityVisionTaskInput struct {
 	ImageContent     map[string]any
 }
 
-var visualIdentityVisionTaskInstruction = "Inspect the supplied candidate image for visual identity continuity. The required target is one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial 3:4 vertical layout. It must contain these visual sections, represented by layout, figures, diagrams, swatches and whitespace rather than rendered text: " + visualIdentityRequiredCardSectionsText + ". " + visualIdentityTextFreeReviewInstruction + " If any forbidden characters or marks are visible, report a low identity_match and describe the text defect in observations even if the face matches. Verify that the same face is preserved across the front, side and back views. If the image is anime, chibi, an unrelated art photo, abstract silhouette, landscape, object-only image, missing a person, missing a required visual section, or inconsistent across views, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."
+var visualIdentityVisionTaskInstruction = "Inspect the supplied candidate image for visual identity continuity. The required target is one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial vertical layout, accepting either 2:3 or legacy 3:4 cards. It must contain these visual sections, represented by layout, figures, diagrams, swatches and whitespace rather than rendered text: " + visualIdentityRequiredCardSectionsText + ". " + visualIdentityTextFreeReviewInstruction + " If any forbidden characters or marks are visible, report a low identity_match and describe the text defect in observations even if the face matches. Verify that the same face is preserved across the front, side and back views. If the image is anime, chibi, an unrelated art photo, abstract silhouette, landscape, object-only image, missing a person, missing a required visual section, or inconsistent across views, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."
 
 func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdentityVisionTaskInput) (map[string]any, error) {
 	vision := a.resolveVisionCapability(ctx)
@@ -316,7 +322,7 @@ type VisualIdentityPatchTaskInput struct {
 	Vision           map[string]any
 }
 
-var visualIdentityPatchTaskInstruction = "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial 3:4 vertical layout, containing these visual sections: " + visualIdentityRequiredCardSectionsText + ". " + visualIdentityTextFreeReviewInstruction + " Return regenerate whenever vision reports forbidden characters or marks, even if identity_match is high. Also regenerate when a required visual section, view, person or consistent facial identity is missing, or when the image is anime, chibi, an unrelated art photo or an abstract silhouette. Preserve the explicit decision and a structured patch."
+var visualIdentityPatchTaskInstruction = "Review the candidate against the visual identity and return accepted or regenerate. Acceptance is allowed only for one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial vertical layout, accepting either 2:3 or legacy 3:4 cards, containing these visual sections: " + visualIdentityRequiredCardSectionsText + ". " + visualIdentityTextFreeReviewInstruction + " Return regenerate whenever vision reports forbidden characters or marks, even if identity_match is high. Also regenerate when a required visual section, view, person or consistent facial identity is missing, or when the image is anime, chibi, an unrelated art photo or an abstract silhouette. Preserve the explicit decision and a structured patch."
 
 func (a *App) RunVisualIdentityPatchTask(ctx context.Context, input VisualIdentityPatchTaskInput) (map[string]any, error) {
 	payload := map[string]any{

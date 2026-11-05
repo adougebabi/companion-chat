@@ -1,0 +1,22 @@
+{
+  "id": "avatar-creative-prompt-image-dimensions",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+  "completed": "2026-11-05T08:51:51.096182Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "core-tests",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "b67efb5eeb8b4e499e93290bf83e7e409873d4fa7f9d999d522c75c838b8408a",
+      "at": "2026-11-05T08:51:33.85709Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-54e8f63d6c3e3b8e4d13.log": "e3b9cc177722a263d8b1cf72547765a9846e884eeb2877f1901c4e69f38af064"
+      }
+    }
+  ]
+}

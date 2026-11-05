@@ -12,19 +12,38 @@ import (
 )
 
 func TestAvatarPromptAndReferenceReachComfyHTTP(t *testing.T) {
+	dimensions, err := imageDimensions("1:1")
+	if err != nil {
+		t.Fatal(err)
+	}
 	concept := map[string]any{
 		"purpose": "visual_identity", "stage": "avatar",
+		"image_dimensions":                   dimensions,
 		"visual_identity_reference_asset_id": "accepted-reference",
 		"visual_identity":                    map[string]any{"identity_snapshot": map[string]any{"identity": map[string]any{"appearance": "深棕色短发"}}},
 	}
 	avatarGraph := map[string]any{
 		"positive":  map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}},
 		"reference": map[string]any{"class_type": "LoadImage", "inputs": map[string]any{"image": "{{visual_identity_reference_image}}"}},
+		"latent":    map[string]any{"class_type": "EmptyLatentImage", "inputs": map[string]any{"width": "{{width}}", "height": "{{height}}"}},
 	}
 	config := map[string]any{"visual_identity_workflows": map[string]any{"avatar": avatarGraph}}
 	selected := selectComfyWorkflow(config, jsonString(concept), map[string]any{"fallback": map[string]any{}})
-	prompt := visualIdentityPromptFromConcept(concept)
-	workflow, err := replaceMediaPlaceholdersWithReference(selected, prompt, nil, "uploaded-reference.png")
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		return fakeProviderResult{Text: "A square avatar of a vintage radio, composed for a circular crop."}
+	})
+	designer := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	ctx := withFrozenProviderAssignment(context.Background(), "media_prompt", providerAssignment{Role: "media_prompt", BaseURL: "http://controlled.invalid", ModelID: "avatar-designer", Timeout: time.Second})
+	design, err := designer.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: mediaIntent{Kind: "image", Prompt: jsonString(concept)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	prompt := design.Prompt
+	dimensions, err = mediaImageDimensions(concept)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workflow, err := replaceMediaPlaceholdersWithReference(selected, prompt, map[string]any{"image_dimensions": dimensions}, "uploaded-reference.png")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,11 +57,15 @@ func TestAvatarPromptAndReferenceReachComfyHTTP(t *testing.T) {
 		}
 		actual := mapValue(payload["prompt"])
 		text := stringValue(mapValue(mapValue(actual["positive"])["inputs"])["text"])
-		if !strings.Contains(text, "角色头像") || !strings.Contains(text, "适合圆形或方形头像裁切") || strings.Contains(text, "头部和肩部") || strings.Contains(text, "正面/侧面/背面三视图") {
+		if !strings.Contains(text, "vintage radio") || !strings.Contains(text, "circular crop") || strings.Contains(text, "画面只包含一个人") || strings.Contains(text, "正面/侧面/背面三视图") {
 			t.Errorf("wrong avatar prompt on physical request: %s", text)
 		}
 		if image := stringValue(mapValue(mapValue(actual["reference"])["inputs"])["image"]); image != "uploaded-reference.png" {
 			t.Errorf("reference image was not wired: %q", image)
+		}
+		latent := mapValue(mapValue(actual["latent"])["inputs"])
+		if latent["width"] != float64(768) || latent["height"] != float64(768) {
+			t.Errorf("avatar dimensions did not reach the physical request: %#v", latent)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"prompt_id":"avatar-test"}`)

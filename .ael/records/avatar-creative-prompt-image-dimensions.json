@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "id": "avatar-creative-prompt-image-dimensions",
+  "definition_hash": "37819d4f88a60811003062eb07b3657e8281bf5781e979a6143de63e706e805a",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-05T08:33:51.03705Z",
+  "updated": "2026-11-05T08:59:44.4658Z",
+  "completed": "2026-11-05T08:51:51.096182Z",
+  "feedback": [
+    "comfy-ratio-resolution-presets"
+  ],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-c60079276f97779e6804",
+        "unit": "define",
+        "executor": "codex-avatar-dimensions",
+        "input_version": "46dd00306e33849715d9c01cc61a7ed66a4dd69ce97bab2dc0c2d0e542216e12",
+        "candidate_version": "46dd00306e33849715d9c01cc61a7ed66a4dd69ce97bab2dc0c2d0e542216e12",
+        "started": "2026-11-05T08:34:11.743858Z",
+        "ended": "2026-11-05T08:34:46.743666Z",
+        "status": "pass",
+        "reason": "用户授权调整头像运行协议及动态尺寸；作为已完成头像任务的后续工作，保留在途任务、现有固定工作流与图片审核边界。明确由真实模型 HTTP、ComfyUI 工作流请求和 Go 回归验证。"
+      },
+      {
+        "id": "AT-7bc98519c5942e6d83e0",
+        "unit": "analysis",
+        "executor": "codex-avatar-dimensions",
+        "input_version": "46dd00306e33849715d9c01cc61a7ed66a4dd69ce97bab2dc0c2d0e542216e12",
+        "candidate_version": "46dd00306e33849715d9c01cc61a7ed66a4dd69ce97bab2dc0c2d0e542216e12",
+        "started": "2026-11-05T08:35:21.703038Z",
+        "ended": "2026-11-05T08:38:06.095227Z",
+        "status": "pass",
+        "reason": "头像旧模板和审核强制人物，与用户新指令冲突；将以用户新要求更新现行视觉契约，保留已冻结提示词及外部任务。尺寸按任务类型和显式 aspect_ratio 冻结，向 opt-in ComfyUI 占位符提供原生数值，固定旧图不改；通过真实受控模型与 Comfy HTTP、质量审核和 Go 回归验证。"
+      },
+      {
+        "id": "AT-81506ab3129dda998fde",
+        "unit": "execute",
+        "executor": "codex-avatar-dimensions",
+        "input_version": "46dd00306e33849715d9c01cc61a7ed66a4dd69ce97bab2dc0c2d0e542216e12",
+        "candidate_version": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+        "started": "2026-11-05T08:38:39.409031Z",
+        "ended": "2026-11-05T08:51:07.178925Z",
+        "status": "pass",
+        "reason": "已实现用户提供的头像运行协议与英文输出，移除强制单人人像模板；头像质量审核依据实际主体决定是否比较本人外貌，并保留参考图与既有版本栅栏。新任务冻结尺寸，头像 1:1、角色卡 3:4、普通图按可选比例默认 9:16；通过显式工作流占位符注入数值宽高和字符串比例/分辨率，旧固定图与已提交任务保持。已同步并重索引视觉、媒体合同和模型清单。受控模型/审核/尺寸回归及头像至本地 Comfy HTTP 联通测试通过；进入完整 Go 回归。"
+      },
+      {
+        "id": "AT-54e8f63d6c3e3b8e4d13",
+        "unit": "check:core-tests",
+        "executor": "attached",
+        "input_version": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+        "candidate_version": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+        "started": "2026-11-05T08:51:33.763905Z",
+        "ended": "2026-11-05T08:51:46.764458Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      }
+    ],
+    "checks": [
+      {
+        "id": "core-tests",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "b67efb5eeb8b4e499e93290bf83e7e409873d4fa7f9d999d522c75c838b8408a",
+        "at": "2026-11-05T08:51:33.85709Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-54e8f63d6c3e3b8e4d13.log": "e3b9cc177722a263d8b1cf72547765a9846e884eeb2877f1901c4e69f38af064"
+        }
+      }
+    ]
+  }
+}

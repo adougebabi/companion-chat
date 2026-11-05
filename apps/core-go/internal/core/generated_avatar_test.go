@@ -25,15 +25,20 @@ func TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest(t *testing.T) 
 		"life_profile":       map[string]any{"preferences": map[string]any{"style": "胶片摄影"}},
 		"personality_system": map[string]any{"active_profile_id": "chosen", "profiles": []any{map[string]any{"id": "chosen", "personality": map[string]any{"expression": "活泼"}}}},
 	}, "chosen")
+	dimensions, err := imageDimensions("1:1")
+	if err != nil {
+		t.Fatal(err)
+	}
 	concept := map[string]any{
 		"purpose": "visual_identity", "stage": "avatar", "canonical_asset_id": "private-asset-id",
+		"image_dimensions": dimensions,
 		"avatar_character": profile,
 		"visual_identity":  map[string]any{"identity_snapshot": map[string]any{"identity": map[string]any{"appearance": map[string]any{"description": "黑发，琥珀色眼睛"}}}},
 	}
 	var captured map[string]any
 	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 		captured = cloneMap(payload)
-		return fakeProviderResult{Text: "A candid portrait in a warm bookshop, looking towards the window."}
+		return fakeProviderResult{Text: "A vintage radio in a warm bookshop, softly lit by a window."}
 	})
 	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
 	ctx := withFrozenProviderAssignment(context.Background(), "media_prompt", providerAssignment{Role: "media_prompt", BaseURL: "http://controlled.invalid", ModelID: "avatar-designer", Timeout: time.Second})
@@ -42,7 +47,7 @@ func TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest(t *testing.T) 
 		t.Fatal(err)
 	}
 	wire := jsonString(captured["messages"])
-	for _, required := range []string{"喜欢旧书店", "喜欢暖色和自然的瞬间", "胶片摄影", "活泼", "黑发", "自己选择", "证件照"} {
+	for _, required := range []string{"喜欢旧书店", "喜欢暖色和自然的瞬间", "胶片摄影", "活泼", "黑发", "主体由你自主决定", "证件照", "英文AI绘画提示词", "768"} {
 		if !strings.Contains(wire, required) {
 			t.Errorf("physical avatar design request missing %q: %s", required, wire)
 		}
@@ -55,8 +60,8 @@ func TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest(t *testing.T) 
 	if captured["max_tokens"] != nil || captured["max_completion_tokens"] != nil || router.totalRequests() != 1 {
 		t.Fatalf("invalid physical avatar request: %#v", captured)
 	}
-	if !strings.Contains(result.Prompt, "warm bookshop") || !strings.Contains(result.Prompt, "角色头像") || !strings.Contains(result.Prompt, "禁止文字") {
-		t.Fatalf("render prompt did not preserve model design and identity safeguards: %s", result.Prompt)
+	if result.Prompt != "A vintage radio in a warm bookshop, softly lit by a window." {
+		t.Fatalf("render prompt did not preserve the chosen non-human design: %s", result.Prompt)
 	}
 }
 
@@ -455,7 +460,7 @@ func TestGeneratedAvatarRealMediaHTTPWaitsForManualReview(t *testing.T) {
 		t.Fatalf("legacy avatar character profile was not frozen: %s %v", frozenPrompt, err)
 	}
 	wire := jsonString(submitted)
-	if !strings.Contains(wire, "角色头像") || !strings.Contains(wire, "sunlit reading room") || !strings.Contains(wire, "confirmed-reference.png") || strings.Contains(wire, "正面/侧面/背面三视图") {
+	if !strings.Contains(wire, "sunlit reading room") || !strings.Contains(wire, "confirmed-reference.png") || strings.Contains(wire, "正面/侧面/背面三视图") {
 		t.Fatalf("wrong ComfyUI request: %s", wire)
 	}
 	reviews, err := readCurrentVisualAssetReviewsWith(f.ctx, f.repository.Pool(), f.fluctlightID, 1)
@@ -504,13 +509,13 @@ func TestDerivedVisualModelReviewReceivesReferenceAndCandidate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	intent.ProviderPrompt = visualIdentityPromptFromConcept(decodeObject([]byte(intent.Prompt)))
+	intent.ProviderPrompt = "A vintage radio, arranged for a square social avatar."
 	result, err := f.app.RunMediaQualityTask(f.ctx, MediaQualityTaskInput{Intent: intent, ContentType: "image/png", Content: candidate})
 	if err != nil || result.Verdict != "pass" || result.VisionConfigVersion != 1 {
 		t.Fatalf("model review failed: %#v %v", result, err)
 	}
 	wire := jsonString(payload["messages"])
-	for _, required := range []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(reference), "data:image/png;base64," + base64.StdEncoding.EncodeToString(candidate), "第一张图片是已确认的形象参考", "Only a genuine pass"} {
+	for _, required := range []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(reference), "data:image/png;base64," + base64.StdEncoding.EncodeToString(candidate), "第一张图片是已确认的角色形象参考", "Do not require a person or face", "Only a genuine pass"} {
 		if !strings.Contains(wire, required) {
 			t.Fatalf("model review request missing %q: %s", required, wire)
 		}
@@ -577,14 +582,16 @@ func testGeneratedAvatarRealMediaHTTPModelReview(t *testing.T, verdict string) {
 	defer comfy.Close()
 	var modelPayload map[string]any
 	designCalls := 0
+	var designRequests []string
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var request map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Error(err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if strings.Contains(jsonString(request["messages"]), "为自己选择一张正式的聊天头像") {
+		if strings.Contains(jsonString(request["messages"]), "真实地思考你会为自己选择一张怎样的社交头像") {
 			designCalls++
+			designRequests = append(designRequests, jsonString(request["messages"]))
 			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": "A relaxed portrait with dark short hair."}}}})
 			return
 		}
@@ -624,13 +631,13 @@ func testGeneratedAvatarRealMediaHTTPModelReview(t *testing.T, verdict string) {
 		t.Fatalf("avatar design must precede each generated candidate: designs=%d submissions=%d", designCalls, len(submissions))
 	}
 	wire := jsonString(modelPayload["messages"])
-	if !strings.Contains(wire, base64.StdEncoding.EncodeToString(reference)) || !strings.Contains(wire, base64.StdEncoding.EncodeToString(candidate)) || !strings.Contains(wire, "角色头像") {
+	if !strings.Contains(wire, base64.StdEncoding.EncodeToString(reference)) || !strings.Contains(wire, base64.StdEncoding.EncodeToString(candidate)) || !strings.Contains(wire, "Do not require a person or face") {
 		t.Fatal("physical model request lost reference, candidate, or avatar prompt")
 	}
 	reviews, err := readCurrentVisualAssetReviewsWith(f.ctx, f.repository.Pool(), f.fluctlightID, 1)
 	row := mapValue(reviews["avatar"])
 	if verdict == "reject" {
-		if len(submissions) != 2 || !strings.Contains(jsonString(submissions[1]), "保留参考图的深色短发") {
+		if len(submissions) != 2 || len(designRequests) != 2 || !strings.Contains(designRequests[1], "保留参考图的深色短发") || !strings.Contains(jsonString(submissions[1]), "dark short hair") {
 			t.Fatalf("model feedback was not passed to the second generation: %#v", submissions)
 		}
 		if err != nil || row["status"] != "awaiting_review" || row["candidate_asset_id"] != "asset_"+avatarIntent || mapValue(row["review_data"])["verdict"] != "reject" {

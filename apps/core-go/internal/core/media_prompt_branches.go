@@ -27,6 +27,13 @@ func mediaNormalizationInput(concept map[string]any) (map[string]any, error) {
 		return nil, err
 	}
 	result := map[string]any{"intent": concept["intent"], "media_capture_plan": cloneMap(mapValue(concept["media_capture_plan"])), "explicit_constraints": cloneMap(mapValue(concept["explicit_constraints"]))}
+	if _, exists := concept["image_dimensions"]; exists {
+		dimensions, err := mediaImageDimensionsForModel(concept)
+		if err != nil {
+			return nil, err
+		}
+		result["image_dimensions"] = dimensions
+	}
 	if source := mapValue(concept["owner_media_request"]); len(source) > 0 {
 		result["owner_image_request_source"] = cloneMap(source)
 	}

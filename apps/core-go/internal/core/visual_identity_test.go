@@ -269,7 +269,7 @@ func TestEnforceVisualIdentityPromptRequiresThreePanelLayout(t *testing.T) {
 	}
 }
 
-func TestVisualIdentityAvatarUsesDedicatedPortraitPrompt(t *testing.T) {
+func TestVisualIdentityAvatarUsesDedicatedCreativePrompt(t *testing.T) {
 	snapshot := map[string]any{
 		"identity":           map[string]any{"name": "测试姓名", "age": 29, "appearance": map[string]any{"description": "深棕色短发，琥珀色眼睛"}},
 		"owner_visual_brief": map[string]any{"appearance": "柔和自然光"},
@@ -284,15 +284,46 @@ func TestVisualIdentityAvatarUsesDedicatedPortraitPrompt(t *testing.T) {
 		t.Fatalf("reference and sheet must retain the shared card prompt: seed=%q sheet=%q", seed, sheet)
 	}
 	concept["stage"] = "avatar"
-	avatar := visualIdentityPromptFromConcept(concept)
-	for _, required := range []string{"角色头像", "正方形", "深棕色短发", "琥珀色眼睛", "柔和自然光"} {
+	if avatar := visualIdentityPromptFromConcept(concept); avatar != "" {
+		t.Fatalf("card template must not be applied to an avatar: %s", avatar)
+	}
+	avatar := jsonString(avatarPromptMessages(mediaIntent{}, concept))
+	for _, required := range []string{"主体由你自主决定", "如果头像包含本人", "正方形", "深棕色短发", "琥珀色眼睛", "柔和自然光", "英文AI绘画提示词"} {
 		if !strings.Contains(avatar, required) {
-			t.Fatalf("avatar prompt missing %q: %s", required, avatar)
+			t.Fatalf("avatar design request missing %q: %s", required, avatar)
 		}
 	}
-	for _, forbidden := range []string{"测试姓名", "29", "头部和肩部", "人物居中", "正面/侧面/背面三视图", "补齐三视图", "固定三栏构图"} {
-		if strings.Contains(avatar, forbidden) {
-			t.Fatalf("avatar prompt included unrelated card requirement %q: %s", forbidden, avatar)
+}
+
+func TestVisualIdentityCardPromptUsesFrozenNewOrLegacyAspectRatio(t *testing.T) {
+	newDimensions, err := imageDimensions("2:3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name       string
+		dimensions map[string]any
+		want       string
+	}{
+		{"new", newDimensions, "2:3"},
+		{"legacy frozen", legacyImageDimensions("3:4"), "3:4"},
+		{"legacy without dimensions", nil, "3:4"},
+	} {
+		for _, stage := range []string{"seed", "character_sheet"} {
+			t.Run(test.name+"/"+stage, func(t *testing.T) {
+				concept := map[string]any{"stage": stage, "visual_identity": map[string]any{"identity_snapshot": map[string]any{"identity": map[string]any{"appearance": "黑色短发"}}}}
+				if test.dimensions != nil {
+					concept["image_dimensions"] = test.dimensions
+				}
+				if prompt := visualIdentityPromptFromConcept(concept); !strings.Contains(prompt, test.want+" 竖图") {
+					t.Fatalf("card prompt did not use its frozen ratio: %s", prompt)
+				}
+			})
+		}
+	}
+	for _, instruction := range []string{visualIdentityAgentInstruction, visualIdentityVisionTaskInstruction, visualIdentityPatchTaskInstruction} {
+		if !strings.Contains(instruction, "2:3") || !strings.Contains(instruction, "3:4") {
+			t.Fatalf("visual review does not allow both new and legacy card ratios: %s", instruction)
 		}
 	}
 }

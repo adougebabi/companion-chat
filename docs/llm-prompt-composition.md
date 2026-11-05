@@ -49,11 +49,11 @@
 | wardrobe_preparation | 分阶段准备/选衣规则 + 穿搭所需身份/性格/偏好 + 本地时间/当前情境/实际身体与穿戴引用 + 唯一衣物目录/方案成员引用 | 0 | wardrobe_preparation.go；wardrobe_preparation_prompt.go |
 | initialization | 初始化解析协议（显式完整姓名包含前缀/连字符，不拆为昵称） + Owner 描述一次 + 预览字段、类型、输出结构和按 schema 生成的数组路径/元素说明；自然语言分析先恢复格式错误的数组并保留原值，再校正明确姓名，JSON 导入继续使用原校验 | 0 | app.go；model_tasks.go；initialization_name.go；initialization_array_recovery.go |
 | persona_compilation | 人格编译协议 + 选定 profile 和共享身份；必要时校验反馈 | 0 | persona_compilation.go |
-| media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实；头像子任务使用冻结角色设定、已确认外貌和视觉偏好，由角色选择头像构图与画风；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；generated_avatar.go；media_capture_plan.go；media_prompt_branches.go |
-| media_quality | 质量检查协议 + 冻结媒体概念/实际 renderer prompt/重试情况 + 图片；角色设定图和头像的检查同时携带已确认参考图与待审候选图，只有真实通过才自动接受 | 0 | media_quality.go；model_tasks.go |
+| media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实和目标尺寸；头像子任务使用冻结角色设定、已确认外貌和视觉偏好，由角色自主选择包括非人物在内的主体与构图，输出英文生图提示词；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；generated_avatar.go；media_capture_plan.go；media_prompt_branches.go |
+| media_quality | 质量检查协议 + 冻结媒体概念/实际 renderer prompt/重试情况 + 图片；角色设定图和头像的检查同时携带已确认参考图与待审候选图，头像仅在选择本人出镜时比较本人外貌，只有真实通过才自动接受 | 0 | media_quality.go；model_tasks.go |
 | visual_identity_vision | 视觉检查协议 + identity snapshot/视图要求/renderer 约束 + 图片 | 0 | model_tasks.go |
 | visual_identity_patch | 修正决策协议 + candidate/snapshot/constraints/vision findings | 0 | model_tasks.go |
-| visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查的真实观察、评分与修正建议 + 必要图片；参考图与设定图共用角色卡模板，头像由独立 media_prompt 子任务构思并保留单人、已确认形象和无文字约束。阶段落库后撤下已执行工具并按真实状态收尾 | 0；尝试历史是任务历史 | visual_identity_agent.go；visual_identity.go；generated_avatar.go |
+| visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查的真实观察、评分与修正建议 + 必要图片；参考图与设定图共用角色卡模板，头像由独立 media_prompt 子任务自主选择主体，本人出镜时保留已确认外貌，始终要求适合圆裁及无文字。阶段落库后撤下已执行工具并按真实状态收尾 | 0；尝试历史是任务历史 | visual_identity_agent.go；visual_identity.go；generated_avatar.go |
 | conversation_summary | 累计：旧摘要+Actor 更正+源消息；片段：真实参与者/说话人别名与名称+时间范围+源消息，显式 JSON 合同；daily：日期/时区+segments | 指定源范围，非通用 H | conversation_summary.go；model_tasks.go |
 | schedule_generation | 排程规则 + 含已声明住所的 identity/life/goals/intentions/outcomes/承诺 + 共享世界规则/时区/真实地点候选 | 0 | model_tasks.go；schedule_places.go |
 | native_cognition | 认知协议 + Working Persona + D/M + 本次事件/事实 | 0，无 S | model_tasks.go |
@@ -244,6 +244,27 @@ ComfyUI `negative`/`negative_prompt` 声明边找到负向文本编码输入，�
 原图结构，通过正向协议禁字；不创建虚构的负向节点。该固定输出政策不推断
 主体、场景、构图，不改写用户输入、冻结意图、原生图片或数字渲染参数。
 最终物理请求完整记录在原诊断 `request_payload`，缓存的模型 prompt 保持原样。
+
+头像设计请求使用角色本人性格、经历、偏好和确认形象；允许选择动物、物件、
+风景或人物等主体。若是本人肖像，维持已确认的脸型、五官、肤色和发型；头像
+应为正方形，圆形裁切后核心清晰。文本模型只输出英文生图提示词，Core 不再
+追加强制单人人像模板。视觉审核保留参考图与候选图，并依据实际选定主体判断
+是否需要比较本人外貌。旧任务已冻结的 prompt 和已提交的 Provider job 不改写。
+
+图片参数由任务冻结：头像比例为 1:1，新角色参考图与设定图为 2:3，普通图片
+默认 9:16。普通图片可选择 1:1、3:2、2:3、16:9、9:16；分辨率可选 `512`、
+`768`、`1024`、`1280`、`1536`、`2048`，默认 `768`。接收独立比例和分辨率
+的 ComfyUI 节点可使用 `"ratio": "{{ratio}}"`、`"resolution": "{{resolution}}"`；
+实际发送的分辨率是字符串（例如 `"768"`），不是拼接的宽高。`{{aspect_ratio}}`
+与 `{{ratio}}` 等价。支持数字宽高的工作流也可使用 `"{{width}}"`、`"{{height}}"`，
+它们根据所选比例和分辨率近似长边、按 8 像素对齐后作为 JSON 数字发送；独立
+resolution 节点的实际输出尺寸由该节点决定，模型输入只包含所选比例和分辨率，
+不把回退宽高当成节点实际像素。占位符必须放在真正控制尺寸的节点；
+固定宽高或由参考图决定尺寸的工作流不会自动改变。
+
+旧任务保留已冻结的 3:4 或 `宽x高` 分辨率值，以及已提交的 Provider job。若旧
+任务尚未提交，但现在使用的节点不接受旧值，应新建生成任务；不要静默改变旧任务。
+新旧角色卡审核分别兼容 2:3 和 3:4 竖版。
 
 `vision.understanding` 继续默认关闭并独立绑定视觉模型。关闭时不发送图片
 理解请求，候选图片保留为尚未检验、等待显式人工评审。返回摘要和时间线投影

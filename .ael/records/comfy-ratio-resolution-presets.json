@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "id": "comfy-ratio-resolution-presets",
+  "definition_hash": "f4f54c8993d3ad9a9e0cde46154d907c1fd50960aaf3d975492becf263bea141",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "48da199210f218ae6cedfbf437529b248c904bd21981ec375140e6b73530e4ac",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-05T08:59:44.465491Z",
+  "updated": "2026-11-05T09:13:13.237598Z",
+  "completed": "2026-11-05T09:13:13.23747Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-89a34ccf886ab219b145",
+        "unit": "define",
+        "executor": "codex-comfy-presets",
+        "input_version": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+        "candidate_version": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+        "started": "2026-11-05T09:00:05.026455Z",
+        "ended": "2026-11-05T09:00:49.607019Z",
+        "status": "pass",
+        "reason": "用户确认 resolution 是字符串数字，默认 768；ratio 支持五个指定选项。新角色参考/设定图由原 3:4 改为最接近的 2:3，旧冻结工作保留。验收覆盖实际提交 JSON、旧格式兼容及 Go Core。"
+      },
+      {
+        "id": "AT-d23c1df92e4f64d5662b",
+        "unit": "execute",
+        "executor": "codex-comfy-presets",
+        "input_version": "444e674053934fb44d3ffa796591fedd408df09960c2804d3ffa5c5a9b37a610",
+        "candidate_version": "48da199210f218ae6cedfbf437529b248c904bd21981ec375140e6b73530e4ac",
+        "started": "2026-11-05T09:01:21.077386Z",
+        "ended": "2026-11-05T09:12:03.631062Z",
+        "status": "pass",
+        "reason": "图片任务按节点五种 ratio 和六种字符串 resolution 冻结参数，默认 768；头像 1:1，新角色卡 2:3，普通图片默认 9:16。修正模型视图只传真实选定比例和分辨率，宽高占位符另按比例近似推导。旧 3:4 和宽x高快照保持原值、卡片审核兼容新旧；固定工作流及已提交任务保护不变。已同步并重索引合同；真实受控 HTTP 和针对性 Go 回归通过，进入全量验证。"
+      },
+      {
+        "id": "AT-c1c920804a5781660989",
+        "unit": "check:core-tests",
+        "executor": "attached",
+        "input_version": "48da199210f218ae6cedfbf437529b248c904bd21981ec375140e6b73530e4ac",
+        "candidate_version": "48da199210f218ae6cedfbf437529b248c904bd21981ec375140e6b73530e4ac",
+        "started": "2026-11-05T09:12:40.158181Z",
+        "ended": "2026-11-05T09:13:02.113777Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      }
+    ],
+    "checks": [
+      {
+        "id": "core-tests",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "dab3f1963ad98ddb2b26a0931eec41b1ccdc375adcd7869cdd0e205da9f0e80e",
+        "at": "2026-11-05T09:12:40.334019Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-c1c920804a5781660989.log": "15d5e6d5f56e316fb966b083920fa263bbb512ebf0fdd7b7ceabbfd111b77870"
+        }
+      }
+    ]
+  }
+}

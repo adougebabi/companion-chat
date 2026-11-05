@@ -226,6 +226,11 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 		if json.Unmarshal([]byte(intent.Prompt), &concept) == nil {
 			constraints = mediaRendererConstraints(concept)
 		}
+		dimensions, err := mediaImageDimensions(concept)
+		if err != nil {
+			return nil, err
+		}
+		constraints["image_dimensions"] = dimensions
 		referenceImageFilename := ""
 		if isBranchedMedia(concept) && len(mapValue(concept["reference_asset"])) > 0 {
 			referenceAssetID := stringValue(mapValue(concept["reference_asset"])["asset_id"])
@@ -764,6 +769,15 @@ func replaceMediaPlaceholderValueWithSeed(value any, prompt string, constraints 
 	case string:
 		if typed == "{{prompt}}" {
 			return prompt, nil
+		}
+		if replaced, matched, err := replaceMediaDimensionPlaceholders(typed, mapValue(constraints["image_dimensions"])); err != nil {
+			return nil, err
+		} else if matched {
+			if text, ok := replaced.(string); ok {
+				typed = text
+			} else {
+				return replaced, nil
+			}
 		}
 		if strings.Contains(typed, "{{negative_prompt}}") {
 			typed = strings.ReplaceAll(typed, "{{negative_prompt}}", imageNoTextNegativePrompt)

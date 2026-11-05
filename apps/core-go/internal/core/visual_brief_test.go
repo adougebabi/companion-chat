@@ -182,7 +182,7 @@ func TestAcceptedReferenceQueuesIndependentAvatarAndCharacterSheet(t *testing.T)
 		t.Fatal(err)
 	}
 	concept := decodeObject([]byte(raw))
-	if stringValue(concept["stage"]) != "avatar" || visualIdentityReferenceAssetID(concept) != canonical || !strings.Contains(visualIdentityPromptFromConcept(concept), "角色头像") {
+	if stringValue(concept["stage"]) != "avatar" || visualIdentityReferenceAssetID(concept) != canonical || !strings.Contains(jsonString(avatarPromptMessages(mediaIntent{}, concept)), "头像的主体由你自主决定") {
 		t.Fatalf("avatar intent lost its dedicated prompt or accepted reference: %#v", concept)
 	}
 	if _, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, body); err != nil {

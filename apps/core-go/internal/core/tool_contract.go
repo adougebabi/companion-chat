@@ -275,6 +275,8 @@ func imageCapabilityInputSchema() map[string]any {
 		"type": "object", "additionalProperties": false, "required": []any{"intent"},
 		"properties": map[string]any{
 			"intent":            map[string]any{"type": "string", "minLength": 1, "maxLength": 4000},
+			"aspect_ratio":      map[string]any{"type": "string", "enum": []any{"1:1", "3:2", "2:3", "16:9", "9:16"}, "description": "Choose the image aspect ratio to suit the requested composition; preserve an explicitly requested ratio. Omit for the portrait default."},
+			"resolution":        map[string]any{"type": "string", "enum": []any{"512", "768", "1024", "1280", "1536", "2048"}, "description": "Choose a supported resolution only when explicitly requested; otherwise omit to use 768."},
 			"media_plan":        mediaCapturePlanSchema(),
 			"visible_subjects":  mediaVisibleSubjectsSchema(),
 			"referent_bindings": objectSchema(map[string]any{"first_person": enumStringSchema("task_actor", "actor_user", "unknown")}, []string{"first_person"}, false),

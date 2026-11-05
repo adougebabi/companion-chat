@@ -19,11 +19,15 @@ func (a *App) enqueueGeneratedAvatarTx(ctx context.Context, tx pgx.Tx, fluctligh
 	if err != nil {
 		return "", err
 	}
+	dimensions, err := imageDimensions("1:1")
+	if err != nil {
+		return "", err
+	}
 	concept := map[string]any{
-		"purpose": "visual_identity", "stage": "avatar", "render_intent": "display_avatar", "subject_count": 1,
+		"purpose": "visual_identity", "stage": "avatar", "render_intent": "display_avatar",
 		"canonical_asset_id": canonicalAssetID, "visual_identity_reference_asset_id": canonicalAssetID,
 		"visual_identity": map[string]any{"identity_snapshot": snapshot}, "renderer_constraints": constraints,
-		"avatar_character": character,
+		"avatar_character": character, "image_dimensions": dimensions,
 	}
 	if feedback != "" {
 		concept["derived_review_feedback"] = feedback
@@ -110,7 +114,8 @@ func (a *App) enqueueCharacterSheetRetryTx(ctx context.Context, tx pgx.Tx, fluct
 	intentID := "media_intent_" + stableDigest(sourceKey+":character-sheet")
 	workflowID := "media_workflow_" + stableDigest(intentID)
 	requestID := "media_request_" + stableDigest(intentID)
-	concept := map[string]any{"purpose": "visual_identity", "stage": "character_sheet", "canonical_asset_id": canonicalAssetID, "visual_identity_reference_asset_id": canonicalAssetID, "visual_identity": map[string]any{"identity_snapshot": snapshot}, "renderer_constraints": constraints, "derived_review_feedback": feedback}
+	dimensions, _ := imageDimensions("2:3")
+	concept := map[string]any{"purpose": "visual_identity", "stage": "character_sheet", "canonical_asset_id": canonicalAssetID, "visual_identity_reference_asset_id": canonicalAssetID, "visual_identity": map[string]any{"identity_snapshot": snapshot}, "renderer_constraints": constraints, "derived_review_feedback": feedback, "image_dimensions": dimensions}
 	if _, err := tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,status,revision) VALUES($1,$2,'image','image/png',$3,$4,$5,'pending',0)`, intentID, fluctlightID, jsonString(concept), requestID, workflowID); err != nil {
 		return "", err
 	}

@@ -4,9 +4,63 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestDerivedVisualQualityPhysicalRequestUsesChosenAvatarSubject(t *testing.T) {
+	for _, test := range []struct {
+		stage, design, required string
+	}{
+		{"avatar", "A fox curled up beneath a moon.", "Do not require a person or face"},
+		{"avatar", "A portrait of the character with black hair.", "Compare the confirmed reference only if the chosen design depicts the character"},
+		{"character_sheet", "The character in three views.", "检查候选是否保持同一人的可识别特征"},
+	} {
+		t.Run(test.stage+"/"+test.design, func(t *testing.T) {
+			intent := mediaIntent{Kind: "image", ProviderPrompt: test.design, Prompt: jsonString(map[string]any{"purpose": "visual_identity", "stage": test.stage, "subject_count": 1})}
+			messages, err := mediaQualityMessages(intent, "image/png", []byte("candidate"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			referenceURL, err := mediaQualityImageDataURL("image/png", []byte("reference"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			addDerivedVisualReviewReference(messages, intent, referenceURL)
+			var captured map[string]any
+			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+				captured = cloneMap(payload)
+				return fakeProviderResult{Structured: map[string]any{"schema_version": 1, "verdict": "pass", "violations": []any{}, "retry_guidance": "", "observed_facts": map[string]any{"subject_matches": true, "appearance_matches": true, "scene_matches": true, "capture_matches": true, "framing_matches": true}}}
+			})
+			provider := &ProviderClient{HTTP: &http.Client{Transport: router}}
+			ctx := context.WithValue(context.Background(), visionSettingsReaderKey{}, func(context.Context) (VisionUnderstandingSettings, error) {
+				return VisionUnderstandingSettings{Enabled: true, ModelRef: visionUnderstandingModelRole}, nil
+			})
+			_, err = provider.generateWithEino(ctx, EinoModelCall{
+				Assignment: providerAssignment{Role: visionUnderstandingModelRole, BaseURL: "http://controlled.invalid", ModelID: "reviewer", Timeout: time.Second},
+				Role:       visionUnderstandingModelRole, Messages: formalPromptMessages(FormalAgentMediaQuality, formatProviderMessagesForRole(messages, "media_prompt")),
+				SchemaName: "media_quality_acceptance_response", ResponseSchema: mediaQualityAcceptanceResponseSchema(),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			wire := jsonString(captured["messages"])
+			for _, required := range []string{test.design, test.required, base64.StdEncoding.EncodeToString([]byte("reference")), base64.StdEncoding.EncodeToString([]byte("candidate"))} {
+				if !strings.Contains(wire, required) {
+					t.Fatalf("quality request missing %q: %s", required, wire)
+				}
+			}
+			if test.stage == "avatar" && (strings.Contains(wire, "检查候选是否保持同一人的可识别特征") || strings.Contains(wire, `subject_count`)) {
+				t.Fatalf("avatar review retained a forced-person assumption: %s", wire)
+			}
+			if router.totalRequests() != 1 || captured["max_tokens"] != nil || captured["max_completion_tokens"] != nil {
+				t.Fatal("invalid physical review request")
+			}
+		})
+	}
+}
 
 func TestMediaQualityAcceptanceSchemaHasStrictDecisionShape(t *testing.T) {
 	schema := mediaQualityAcceptanceResponseSchema()

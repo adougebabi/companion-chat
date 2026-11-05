@@ -332,6 +332,10 @@ func (c imageGenerateCapability) Prepare(ctx context.Context, invocation Capabil
 	if strings.TrimSpace(intent) == "" {
 		return invocation, errors.New("media intent is required")
 	}
+	dimensions, err := requestedImageDimensions(args)
+	if err != nil {
+		return invocation, err
+	}
 	if raw, found, err := capabilityPreparedData(invocation, "media_concept"); err != nil {
 		return invocation, err
 	} else if found {
@@ -409,6 +413,7 @@ func (c imageGenerateCapability) Prepare(ctx context.Context, invocation Capabil
 		}
 	}
 	concept := map[string]any{"intent": intent, "media_plan_version": mediaPlanVersion, "media_capture_plan": plan, "explicit_constraints": explicit, "field_sources": sources, "referent_bindings": bindings, "task_actor_id": invocation.Metadata.FluctlightID, "source_surface": string(invocation.Metadata.Surface), "input_digest": stableDigest(jsonString(args)), "source": invocation.Metadata.Source, "context_binding": mediaContextForPlan(plan, resolved)}
+	concept["image_dimensions"] = dimensions
 	if count, known := args["human_count"]; known {
 		concept["human_count"] = count
 	}

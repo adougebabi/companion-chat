@@ -330,7 +330,8 @@ func (a *App) executeVisualIdentityGenerateCandidateTx(ctx context.Context, tx p
 	if err := tx.QueryRow(ctx, `SELECT core_persona FROM public.fluctlights WHERE id=$1`, session.FluctlightID).Scan(&corePersonaRaw); err == nil && len(corePersonaRaw) > 0 {
 		enrichIdentitySnapshotWithPersona(identitySnapshot, decodeObject(corePersonaRaw))
 	}
-	seedPrompt := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": identitySnapshot}})
+	dimensions, _ := imageDimensions("2:3")
+	seedPrompt := visualIdentityPromptFromConcept(map[string]any{"visual_identity": map[string]any{"identity_snapshot": identitySnapshot}, "image_dimensions": dimensions})
 	if strings.TrimSpace(seedPrompt) == "" {
 		return visualIdentityBusinessRejection(invocation, "seed_prompt_empty", sessionID, session.Attempt, "awaiting_review"), nil
 	}
@@ -341,7 +342,7 @@ func (a *App) executeVisualIdentityGenerateCandidateTx(ctx context.Context, tx p
 		"purpose": "visual_identity", "stage": "seed", "render_intent": "character_design_sheet",
 		"subject_count": 1, "views": visualIdentityExpectedViews(), "prompt": seedPrompt,
 		"visual_identity":      map[string]any{"identity_snapshot": identitySnapshot},
-		"renderer_constraints": cloneMap(session.RendererConstraints),
+		"renderer_constraints": cloneMap(session.RendererConstraints), "image_dimensions": dimensions,
 	}
 	if err := appendVisualIdentityTimelineTx(ctx, tx, sessionID, session.AttemptID, session.FluctlightID, visualIdentityStageSeedRequested, "running", "Visual Identity Agent 请求候选角色设计图", nil, nil, "visual_identity:"+sessionID); err != nil {
 		return failedCapabilityResultDetail(invocation, "visual_identity_timeline_failed", true, err.Error()), err
