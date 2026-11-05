@@ -1,0 +1,305 @@
+{
+  "schema": 1,
+  "id": "now-schedule-world-management-fixes",
+  "definition_hash": "4c66d9a3f4a98e386ba7022aa46856b16f07ac15ccda9b51aeac87cab2be22c9",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "small explicit change",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-05T03:23:11.591345Z",
+  "updated": "2026-11-05T04:04:58.020935Z",
+  "completed": "2026-11-05T04:04:58.020751Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-0871aa519a327d39e94f",
+        "unit": "define",
+        "executor": "codex-now-world-layout",
+        "input_version": "f950863960c4ae34c660d4697a42d717acbd6d748e04d09954e8b2c9cb766c1d",
+        "candidate_version": "f950863960c4ae34c660d4697a42d717acbd6d748e04d09954e8b2c9cb766c1d",
+        "started": "2026-11-05T03:23:41.81456Z",
+        "ended": "2026-11-05T03:26:46.07339Z",
+        "status": "pass",
+        "reason": "已核对角色时区与日程数据链：此刻固定取当天最后四条导致晚间偏差；日程计划时段与实际执行状态须分别表示。世界快照已有稳定位置和 NPC 在场/预测但地点卡片未消费；事件操作是真实命令，需调整层级与详情。管理页需固定标题与导航并保持内容滚动。验收采用对应前端回归、类型检查、生产构建和隔离 fixture 页面场景；不编造执行或位置事实。"
+      },
+      {
+        "id": "AT-d6e52f0323e0dd4a2111",
+        "unit": "execute",
+        "executor": "codex-now-world-layout",
+        "input_version": "f950863960c4ae34c660d4697a42d717acbd6d748e04d09954e8b2c9cb766c1d",
+        "candidate_version": "859cf5e69e50a76744486bc03a307d67b71e48b7d863556fe279191792648bc0",
+        "started": "2026-11-05T03:27:20.262694Z",
+        "ended": "2026-11-05T03:49:52.434541Z",
+        "status": "pass",
+        "reason": "已完成此刻的当前附近时间轴和时间窗口呈现，移除生活时间线；地点卡片展示来自同世界明确身份的角色与 NPC 位置并标注预测；事件模板和字段式详情保留原执行/恢复链；管理、数据管理独立滚动，其他共享标题可吸顶缩放。已按反馈更新现行页面规范；进入最终候选回归和浏览器核验。"
+      },
+      {
+        "id": "AT-c97f88b08332bf61395f",
+        "unit": "check:web-typecheck",
+        "executor": "codex-now-world-layout",
+        "input_version": "859cf5e69e50a76744486bc03a307d67b71e48b7d863556fe279191792648bc0",
+        "candidate_version": "859cf5e69e50a76744486bc03a307d67b71e48b7d863556fe279191792648bc0",
+        "started": "2026-11-05T03:50:40.664701Z",
+        "ended": "2026-11-05T03:50:59.478493Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-5fdd8ce770f0a9b70d68",
+        "unit": "check:web-tests",
+        "executor": "codex-now-world-layout",
+        "input_version": "859cf5e69e50a76744486bc03a307d67b71e48b7d863556fe279191792648bc0",
+        "candidate_version": "859cf5e69e50a76744486bc03a307d67b71e48b7d863556fe279191792648bc0",
+        "started": "2026-11-05T03:51:29.914026Z",
+        "ended": "2026-11-05T03:52:34.4631Z",
+        "status": "fail",
+        "reason": "exit status 1"
+      },
+      {
+        "id": "AT-a5568618e72dc566a1b0",
+        "unit": "execute",
+        "executor": "codex-now-world-layout",
+        "input_version": "859cf5e69e50a76744486bc03a307d67b71e48b7d863556fe279191792648bc0",
+        "candidate_version": "9a248ad17f91ab99f090338848e76e9a9e016086206e7f1f9a02ca4ca5e03e19",
+        "started": "2026-11-05T03:53:15.96752Z",
+        "ended": "2026-11-05T03:54:15.882734Z",
+        "status": "pass",
+        "reason": "完整回归中的 4 项失败均来自自动事件改为默认折叠后，既有测试未先展开记录；已更新 D12、D7、R34C 的真实展开步骤，并复测 14 项通过。保留原世界/Owner 隔离、错误重试、任务标签与无写入断言。"
+      },
+      {
+        "id": "AT-2201fec09f448812702f",
+        "unit": "check:web-tests",
+        "executor": "codex-now-world-layout",
+        "input_version": "9a248ad17f91ab99f090338848e76e9a9e016086206e7f1f9a02ca4ca5e03e19",
+        "candidate_version": "9a248ad17f91ab99f090338848e76e9a9e016086206e7f1f9a02ca4ca5e03e19",
+        "started": "2026-11-05T03:54:53.209228Z",
+        "ended": "2026-11-05T03:55:40.406866Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-b6f006895327b5f0d6e5",
+        "unit": "execute",
+        "executor": "codex-now-world-layout",
+        "input_version": "9a248ad17f91ab99f090338848e76e9a9e016086206e7f1f9a02ca4ca5e03e19",
+        "candidate_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "started": "2026-11-05T03:56:28.358875Z",
+        "ended": "2026-11-05T03:58:07.872405Z",
+        "status": "pass",
+        "reason": "对当前世界中仅有文字位置、没有稳定地点关联的生活记录显示原始位置及未关联说明；日程来源提供查看日程入口，不按同名地点虚构身份。世界模块 37 项定向回归通过，现行规范已同步索引。"
+      },
+      {
+        "id": "AT-6ed5b6f413b9cf105835",
+        "unit": "check:web-tests",
+        "executor": "codex-now-world-layout",
+        "input_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "candidate_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "started": "2026-11-05T03:58:42.980516Z",
+        "ended": "2026-11-05T03:59:18.940105Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-7e1eddaee938cea46c6b",
+        "unit": "check:web-typecheck",
+        "executor": "codex-now-world-layout",
+        "input_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "candidate_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "started": "2026-11-05T04:00:01.016767Z",
+        "ended": "2026-11-05T04:00:12.413008Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-7bf8b93b484d56d5f203",
+        "unit": "check:web-build",
+        "executor": "codex-now-world-layout",
+        "input_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "candidate_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "started": "2026-11-05T04:00:39.608227Z",
+        "ended": "2026-11-05T04:00:49.832198Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-b6c36fe9343886b60b3b",
+        "unit": "check:ui-scenarios",
+        "executor": "codex-now-world-layout",
+        "input_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "candidate_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "started": "2026-11-05T04:03:57.030055Z",
+        "ended": "2026-11-05T04:03:57.15852Z",
+        "status": "pass",
+        "reason": "隔离生产构建页面已核验当前时段、日程真实状态、事件详情及桌面和窄屏滚动；地点关联与执行恢复由真实组件及隔离 API 自动回归覆盖。步骤、限制和屏幕几何见报告。"
+      },
+      {
+        "id": "AT-369b5ea190256634268a",
+        "unit": "check:ui",
+        "executor": "codex-now-world-layout",
+        "input_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "candidate_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "started": "2026-11-05T04:04:28.655896Z",
+        "ended": "2026-11-05T04:04:28.725789Z",
+        "status": "pass",
+        "reason": "实际生产构建在 1440×900 与 390×844 的隔离页面核对事件弹窗、标题缩放、侧栏和独立滚动；截图和几何数据见报告。"
+      },
+      {
+        "id": "AT-15c78e017f1a249d4030",
+        "unit": "check:ux",
+        "executor": "codex-now-world-layout",
+        "input_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "candidate_version": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+        "started": "2026-11-05T04:04:52.215006Z",
+        "ended": "2026-11-05T04:04:52.284576Z",
+        "status": "pass",
+        "reason": "实际页面核验时段与执行分离、位置无关联时不伪造、事件来源可展开及弹窗关闭后焦点返回；原执行和失败恢复由世界页面回归确认。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "5cb379f7564d3d79c2e7c799fe15f66ee357db6d4af7d52865dfb5ad86aea8d0",
+        "at": "2026-11-05T03:50:40.830362Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-c97f88b08332bf61395f.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-tests",
+        "result": "fail",
+        "source": "command",
+        "config_hash": "52f92529e101fdc95553bc8589ad5c4a2012eb989a36d552f4f9664b002f76b3",
+        "at": "2026-11-05T03:51:30.033294Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-5fdd8ce770f0a9b70d68.log": "9ccc06e223abbf0248432df156bdc7f16671270bfad0fa3d0592faa19fd7c144"
+        }
+      },
+      {
+        "id": "web-tests",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "52f92529e101fdc95553bc8589ad5c4a2012eb989a36d552f4f9664b002f76b3",
+        "at": "2026-11-05T03:54:53.406589Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-2201fec09f448812702f.log": "85e8387fc2ffa7f6703a6167ca2c3f0991551a272e61d30ee840167854f6a018"
+        }
+      },
+      {
+        "id": "web-tests",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "52f92529e101fdc95553bc8589ad5c4a2012eb989a36d552f4f9664b002f76b3",
+        "at": "2026-11-05T03:58:43.145753Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-6ed5b6f413b9cf105835.log": "fbdb86f7c36b7beeb82a173d9d34056733cb6a07f8f44ada98b69fc3180128ef"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "5cb379f7564d3d79c2e7c799fe15f66ee357db6d4af7d52865dfb5ad86aea8d0",
+        "at": "2026-11-05T04:00:01.130015Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-7e1eddaee938cea46c6b.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "1ae64901d3fce03efa97644d1a7bc487086aa8ef05d91f74826cf54421958ce4",
+        "at": "2026-11-05T04:00:39.719225Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-7bf8b93b484d56d5f203.log": "93a8439e48f1c0ca391e9842bb37555f779e2edf6b498b4d138e815395ff9368"
+        }
+      },
+      {
+        "id": "ui-scenarios",
+        "result": "pass",
+        "source": "scenario:codex-now-world-layout",
+        "config_hash": "77ff67777e23aad5c1fc5501aa382142c420c13e3f2000d61f36abe9121b0497",
+        "at": "2026-11-05T04:03:57.157945Z",
+        "artifact_hashes": {
+          ".v3-regression/now-world-layout/data-final-desktop.png": "2e874b5a24eb195dc5c31d9745fe57f1c5b640dfcaea6f310c36d2d6027f3269",
+          ".v3-regression/now-world-layout/event-final-desktop.png": "3871f5b7e5de857ed0327f796e55cf9354e349243d660235b1a28aaf823b348e",
+          ".v3-regression/now-world-layout/event-final-mobile.png": "a65a245dd323c34eb1453dc2be25ef10d585be48b588312ed4a18e2126b39135",
+          ".v3-regression/now-world-layout/management-final-desktop.png": "72030be7dcfde172844686337509943590766df145db08478b3cd08420ac3f13",
+          ".v3-regression/now-world-layout/management-final-mobile.png": "a5cd87271ec19348e3e29eea4e85cb38f259e8b4bfba9cba1e314c6eede29831",
+          ".v3-regression/now-world-layout/now-final-mobile.png": "d9de933091b7d05315a86beed96a8476c25233a5585ff31895041177653faeb7",
+          ".v3-regression/now-world-layout/verification.md": "277535dbf0b737a5454f901129dded1896cb37711b5a76bdeb299b176c89561a",
+          "apps/web/src/react-app/App.tsx": "79adc2362fb0bc2e519a92c24cb2ea9c35695a45c4ba2635620aa43eb0d7cfe5",
+          "apps/web/src/react-app/shared/ScheduleTimeline.tsx": "8e079c9fa8a9b5975200b014edaff86b26f13d630fd9501f93085e95b0e05ce2",
+          "apps/web/src/react-app/shared/WorldRuntimePanels.jsx": "b26e4406e251db9fe49f148f33a441778e7e0c1714fa1c56f84fe66f907f4bf2",
+          "apps/web/src/react-app/views/NowPage.jsx": "6284231808a6d70846457c063d521401cd056761a51065d2b5d97b859f880b9c",
+          "apps/web/src/react-app/views/WorldPage.jsx": "ab6fccd922b8f6adccbf648d39895778f0bf85a13008ed5279a0068538ece38f",
+          "apps/web/src/styles/workspace-replica.css": "ec384e9ff3db4d2b24d73861c52a8f68efe3f2e4e7047b4966a7274d4262e782",
+          "apps/web/test/demo-replica-world.test.mjs": "050e1cfbb7c733e550519ce3cacedd84aa6a1a062901edcff155ca95c3bf3996"
+        }
+      },
+      {
+        "id": "ui",
+        "result": "pass",
+        "source": "scenario:codex-now-world-layout",
+        "config_hash": "3f7c1d7e69cfbea345f8499d4b274fdfdb3293fae4d077a7b3c935c7642b4658",
+        "at": "2026-11-05T04:04:28.725222Z",
+        "artifact_hashes": {
+          ".v3-regression/now-world-layout/data-final-desktop.png": "2e874b5a24eb195dc5c31d9745fe57f1c5b640dfcaea6f310c36d2d6027f3269",
+          ".v3-regression/now-world-layout/event-final-desktop.png": "3871f5b7e5de857ed0327f796e55cf9354e349243d660235b1a28aaf823b348e",
+          ".v3-regression/now-world-layout/event-final-mobile.png": "a65a245dd323c34eb1453dc2be25ef10d585be48b588312ed4a18e2126b39135",
+          ".v3-regression/now-world-layout/management-final-desktop.png": "72030be7dcfde172844686337509943590766df145db08478b3cd08420ac3f13",
+          ".v3-regression/now-world-layout/management-final-mobile.png": "a5cd87271ec19348e3e29eea4e85cb38f259e8b4bfba9cba1e314c6eede29831",
+          ".v3-regression/now-world-layout/now-final-mobile.png": "d9de933091b7d05315a86beed96a8476c25233a5585ff31895041177653faeb7",
+          ".v3-regression/now-world-layout/verification.md": "277535dbf0b737a5454f901129dded1896cb37711b5a76bdeb299b176c89561a",
+          "apps/web/src/react-app/App.tsx": "79adc2362fb0bc2e519a92c24cb2ea9c35695a45c4ba2635620aa43eb0d7cfe5",
+          "apps/web/src/react-app/shared/ScheduleTimeline.tsx": "8e079c9fa8a9b5975200b014edaff86b26f13d630fd9501f93085e95b0e05ce2",
+          "apps/web/src/react-app/shared/WorldRuntimePanels.jsx": "b26e4406e251db9fe49f148f33a441778e7e0c1714fa1c56f84fe66f907f4bf2",
+          "apps/web/src/react-app/views/NowPage.jsx": "6284231808a6d70846457c063d521401cd056761a51065d2b5d97b859f880b9c",
+          "apps/web/src/react-app/views/WorldPage.jsx": "ab6fccd922b8f6adccbf648d39895778f0bf85a13008ed5279a0068538ece38f",
+          "apps/web/src/styles/workspace-replica.css": "ec384e9ff3db4d2b24d73861c52a8f68efe3f2e4e7047b4966a7274d4262e782",
+          "apps/web/test/demo-replica-world.test.mjs": "050e1cfbb7c733e550519ce3cacedd84aa6a1a062901edcff155ca95c3bf3996"
+        }
+      },
+      {
+        "id": "ux",
+        "result": "pass",
+        "source": "scenario:codex-now-world-layout",
+        "config_hash": "2fad8efe7b0adc9110afdb854a7c3063d6a36c0d3106cb8ad60096ab58eb79c5",
+        "at": "2026-11-05T04:04:52.283974Z",
+        "artifact_hashes": {
+          ".v3-regression/now-world-layout/data-final-desktop.png": "2e874b5a24eb195dc5c31d9745fe57f1c5b640dfcaea6f310c36d2d6027f3269",
+          ".v3-regression/now-world-layout/event-final-desktop.png": "3871f5b7e5de857ed0327f796e55cf9354e349243d660235b1a28aaf823b348e",
+          ".v3-regression/now-world-layout/event-final-mobile.png": "a65a245dd323c34eb1453dc2be25ef10d585be48b588312ed4a18e2126b39135",
+          ".v3-regression/now-world-layout/management-final-desktop.png": "72030be7dcfde172844686337509943590766df145db08478b3cd08420ac3f13",
+          ".v3-regression/now-world-layout/management-final-mobile.png": "a5cd87271ec19348e3e29eea4e85cb38f259e8b4bfba9cba1e314c6eede29831",
+          ".v3-regression/now-world-layout/now-final-mobile.png": "d9de933091b7d05315a86beed96a8476c25233a5585ff31895041177653faeb7",
+          ".v3-regression/now-world-layout/verification.md": "277535dbf0b737a5454f901129dded1896cb37711b5a76bdeb299b176c89561a",
+          "apps/web/src/react-app/App.tsx": "79adc2362fb0bc2e519a92c24cb2ea9c35695a45c4ba2635620aa43eb0d7cfe5",
+          "apps/web/src/react-app/shared/ScheduleTimeline.tsx": "8e079c9fa8a9b5975200b014edaff86b26f13d630fd9501f93085e95b0e05ce2",
+          "apps/web/src/react-app/shared/WorldRuntimePanels.jsx": "b26e4406e251db9fe49f148f33a441778e7e0c1714fa1c56f84fe66f907f4bf2",
+          "apps/web/src/react-app/views/NowPage.jsx": "6284231808a6d70846457c063d521401cd056761a51065d2b5d97b859f880b9c",
+          "apps/web/src/react-app/views/WorldPage.jsx": "ab6fccd922b8f6adccbf648d39895778f0bf85a13008ed5279a0068538ece38f",
+          "apps/web/src/styles/workspace-replica.css": "ec384e9ff3db4d2b24d73861c52a8f68efe3f2e4e7047b4966a7274d4262e782",
+          "apps/web/test/demo-replica-world.test.mjs": "050e1cfbb7c733e550519ce3cacedd84aa6a1a062901edcff155ca95c3bf3996"
+        }
+      }
+    ]
+  }
+}

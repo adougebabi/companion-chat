@@ -327,6 +327,9 @@
 .replica-life .lp-memory-card .lp-row>svg:last-child{margin-left:auto}
 .replica-life .lp-timeline-card{height:auto;white-space:normal;border-radius:11px;display:block;padding:15px 17px;background:white}
 .replica-life .lp-timeline-card.current{background:#f1f5e9}
+.replica-life .lp-timeline-card.plan-current{border-color:#b9cba9;background:#f6f8f1}
+.replica-life .lp-timeline-card.current.plan-current{background:#f1f5e9}
+.replica-life .lp-timeline-card .lp-timeline-window{color:#718264;font-size:12px}
 .replica-life .lp-timeline-card p{margin-top:6px}
 .replica-life .replica-timeline-link{height:auto;padding:0;font-size:11px;color:#6a845b;gap:4px;text-decoration:none}
 @media(min-width:1600px){.replica-life .lp-grid{grid-template-columns:minmax(0,1fr) 320px}}

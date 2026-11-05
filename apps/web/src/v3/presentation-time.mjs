@@ -14,3 +14,6 @@ export function planWindow(start,end,now=Date.now()){
  if(!Number.isFinite(from)||!Number.isFinite(to)||!Number.isFinite(now)||to<=from)return 'unknown';
  return now<from?'future':now<to?'current':'past';
 }
+export function planWindowLabel(window){
+ return ({current:'当前计划时段',past:'历史计划时段',future:'尚未到时段',unknown:'时间待核对'})[window] || '时间待核对';
+}

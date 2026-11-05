@@ -29,7 +29,6 @@ add('/c/:charId/life/schedule/planning', '日程', '安排与调整日程', () =
 add('/c/:charId/life/wardrobe/item/:itemId', '衣柜', '衣物与物品记录', () => import('../v3-domain/life-wardrobe.js').then(module => module.renderRealInventoryItem), 'renderRealInventoryItem');
 add('/c/:charId/life/diary/:entryId', '日记', '日记详情', () => import('../v3-domain/diary.js').then(module => module.renderRealDiaryEntry), 'renderRealDiaryEntry');
 add('/c/:charId/life/shared', '日记', '共同经历', () => import('../v3-domain/diary.js').then(module => module.renderRealShared), 'renderRealShared');
-add('/c/:charId/life/timeline', '此刻', '生活时间线', () => import('../v3-domain/life-timeline.js').then(module => module.renderLifeTimeline), 'renderLifeTimeline');
 add('/c/:charId/chat/history', '聊天', '会话历史', () => import('../react-app/pages/ChatPage.tsx').then(module => module.default), 'ChatPage', {native:'chat-history'});
 add('/feed/:postId', '动态', '动态详情', () => import('../react-app/pages/FeedPage.jsx').then(module => module.default), 'FeedPage', {native:'feed'});
 add('/c/:charId/worlds/:worldId/place/:placeId/history', '世界', '地点修订历史', () => import('../v3/proto/components/place-defaults.js').then(module => module.renderPlaceHistory), 'renderPlaceHistory');

@@ -45,6 +45,19 @@ const templateCheck = (row, m, id) => {
     throw Error("事件模板不属于当前世界。");
   return row;
 };
+function eventSchedule(definition = {}) {
+  const trigger = definition.trigger || {}, condition = definition.condition || {};
+  if (typeof trigger.schedule === 'string' && trigger.schedule.trim()) return trigger.schedule;
+  const days = {daily: '每天', weekday: '工作日', weekend: '周末'};
+  const day = Object.hasOwn(days, condition.day) ? days[condition.day] : '';
+  const time = condition.start && condition.end ? (condition.start === condition.end ? '全天' : condition.start + '—' + condition.end) : '';
+  const mode = trigger.mode === 'manual' ? '手动触发' : trigger.mode === 'automatic' && Number.isFinite(trigger.interval_minutes) ? `每 ${trigger.interval_minutes} 分钟检查` : '';
+  return [day && (day + (time ? ' ' + time : '')), mode].filter(Boolean).join(' · ') || '尚未记录';
+}
+function eventPlaces(definition = {}, places = []) {
+  const ids = [...new Set([...(Array.isArray(definition.condition?.place_ids) ? definition.condition.place_ids : []), ...(Array.isArray(definition.effects) ? definition.effects.map(effect => effect?.place_id).filter(Boolean) : [])])];
+  return ids.length ? ids.map(id => places.find(place => place.id === id)?.alias || places.find(place => place.id === id)?.name || '地点未读取').join('、') : '未指定地点';
+}
 function actionBase(m, identity) {
   return {
     identity,
@@ -729,11 +742,10 @@ export function WorldEventsPanel({ model: m }) {
         )}
       </Surface>
       <WorkspaceDialog
-        className="replica-world"
-        wide
+        className="replica-world r-world-event-dialog"
         open={!!selected && !action}
         title={current?.name || "世界事件"}
-        description="查看事件定义、来源和实际执行记录。"
+        description="查看事件安排与触发记录。"
         returnFocus={() => trigger.current}
         onOpenChange={(v) => {
           if (!v) setSelected(null);
@@ -753,26 +765,17 @@ export function WorldEventsPanel({ model: m }) {
           <WorldReader source={detail} label="事件详情" />
           {current && (
             <>
-              <p className="r-muted">
-                {current.enabled ? "已启用" : "已暂停"} · 模板 v
-                {current.revision}
-              </p>
-              <SemanticTree value={current.definition} />
-              <p>
-                来自{" "}
-                <a
-                  href={
-                    "#/studio/edit/" +
-                    encodeURIComponent(current.source_resource_id)
-                  }
-                >
-                  事件底稿
-                </a>{" "}
-                · {current.source_version}
-              </p>
-              <JsonDetails value={current} title="完整模板与运行状态" />
+              <dl className="r-event-facts">
+                <div><dt>安排</dt><dd>{eventSchedule(current.definition)}</dd></div>
+                <div><dt>地点</dt><dd>{eventPlaces(current.definition, m.snapshot?.places)}</dd></div>
+                <div><dt>说明</dt><dd>{typeof current.definition?.description === "string" && current.definition.description.trim() ? current.definition.description : "尚未记录"}</dd></div>
+                <div><dt>运行次数</dt><dd>{runs.error ? "读取未完成" : runs.ready ? `已读取 ${runs.items.length} 次${runs.cursor ? '，可继续加载' : ''}` : "正在读取"}</dd></div>
+                <div><dt>状态</dt><dd><Badge variant="outline" className="r-event-state">{current.enabled ? "已启用" : "已暂停"}</Badge></dd></div>
+              </dl>
             </>
           )}
+          <Disclosure title="执行记录与来源" open={hasQueued || runs.items.some(row => row.status === "failed") ? true : undefined}>
+          {current && <><p>模板 v{current.revision}{current.source_resource_id && <> · <a href={"#/studio/edit/" + encodeURIComponent(current.source_resource_id)}>事件底稿</a> · {current.source_version}</>}</p><JsonDetails value={current} title="完整模板与运行状态" /></>}
           <div className="r-inline-actions">
             <h3>实际执行记录</h3>
             <Button
@@ -835,6 +838,7 @@ export function WorldEventsPanel({ model: m }) {
               加载更多执行记录
             </Button>
           )}
+          </Disclosure>
         </div>
       </WorkspaceDialog>
       <WorkspaceDialog

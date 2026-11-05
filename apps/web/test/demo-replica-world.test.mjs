@@ -47,6 +47,7 @@ test('D12 world events show automatic world-only generation and task records wit
     assert.match(f.v.host.textContent, /这个世界还没有事件模板/);
     assert.match(f.v.host.textContent, /尚未读到实际生活事件/);
     const auto = f.v.host.querySelector('[aria-label="自动世界事件"]');
+    await f.v.click(button(auto, '自动事件与运行记录'));
     assert.match(auto.textContent, /世界事件时钟/); assert.match(auto.textContent, /晚间市集/);
     assert.match(auto.textContent, /已通过审核/); assert.match(auto.textContent, /执行结果：已应用/);
     assert.ok(auto.querySelector('[data-slot=badge]'));
@@ -66,6 +67,7 @@ test('D12 browsing another world reads that world automatic events without bindi
   const f=await fixture({api});
   try{
     await enter(f,'远山森林');await tab(f.v,'世界事件');
+    await f.v.click(button(f.v.host.querySelector('[aria-label="自动世界事件"]'), '自动事件与运行记录'));
     assert.match(f.v.host.textContent,/森林降雨/);assert.match(f.v.host.textContent,/事件列表随当前运行世界读取/);
     assert.ok(reads.length>=2);assert.ok(reads.every(r=>r.worldId==='A-world-one-other'));
     assert.equal(f.s.binding.world_id,'A-world-one');assert.equal(f.writes().length,0);
@@ -150,6 +152,36 @@ async function openPlace(f) {
   await enter(f);
   await f.v.click(button(f.v.host, "查看与编辑"));
 }
+test('place cards show only scoped current or clearly labelled planned positions', async () => {
+  const api = worldFixture({ owner: 'world-owner', projectionReads: true }), s = api.state('A');
+  s.context = {world_id:'A-world-one',place_id:'A-room',source:'schedule',authority_status:'accepted',expires_at:'2999-01-01T00:00:00Z'};
+  s.npcs = [
+    {id:'actual',world_id:'A-world-one',name:'书店店主',status:'active',enabled:true,current_presence:{place_id:'A-shop',status:'active',start_at:'2020-01-01T00:00:00Z',end_at:'2999-01-01T00:00:00Z'},planned_position:{place_id:'A-room',window_end:'2999-01-01T00:00:00Z'}},
+    {id:'planned',world_id:'A-world-one',name:'访客',status:'active',enabled:true,planned_position:{place_id:'A-room',window_end:'2999-01-01T00:00:00Z'}},
+    {id:'disabled',world_id:'A-world-one',name:'停用人物',status:'active',enabled:false,planned_position:{place_id:'A-room',window_end:'2999-01-01T00:00:00Z'}}
+  ];
+  const f = await fixture({api});
+  try {
+    await enter(f);
+    const cards=[...f.v.host.querySelectorAll('.r-place-card')], room=cards.find(card=>card.textContent.includes('她的房间')), shop=cards.find(card=>card.textContent.includes('迟山书店'));
+    assert.match(room.textContent,/按日程/);assert.match(room.textContent,/访客.*预计位置/);assert.doesNotMatch(room.textContent,/书店店主|停用人物/);
+    assert.match(shop.textContent,/书店店主.*当前记录/);assert.equal(f.writes().length,0);
+    await f.v.click(button(f.v.host,'全部世界'));await enter(f,'远山森林');
+    assert.doesNotMatch(f.v.host.textContent,/访客|书店店主|按日程/);
+  } finally { await f.dispose(); }
+});
+test('a location description without a stable place explains the missing association', async () => {
+  const api=worldFixture({owner:'world-owner',projectionReads:true});
+  api.state('A').context={world_id:'A-world-one',source:'schedule',authority_status:'accepted',location:'迟山书店'};
+  const f=await fixture({api});
+  try {
+    await enter(f);
+    assert.match(f.v.host.textContent,/写着“迟山书店”，但尚未关联到世界中的具体地点/);
+    assert.ok(button(f.v.host,'查看日程'));
+    assert.ok([...f.v.host.querySelectorAll('.r-place-residents')].every(row=>!row.textContent.includes('按日程')));
+    assert.equal(f.writes().length,0);
+  } finally { await f.dispose(); }
+});
 test('same-name worlds have stable distinct entity covers, including their detail cover', async () => {
   const api = worldFixture({ owner: 'world-owner', projectionReads: true });
   const s = api.state('A');
@@ -493,6 +525,9 @@ test("world events distinguish admitted queued execution from applied results; f
     await enter(f);
     await tab(f.v, "世界事件");
     await f.v.click(button(f.v.host, "详情"));
+    assert.match(dialog().textContent,/安排.*每周五19:30/);
+    assert.match(dialog().textContent,/地点.*未指定地点/);
+    assert.match(dialog().textContent,/运行次数.*已读取 0 次/);
     await f.v.click(button(dialog(), "请求触发一次"));
     await f.v.input(
       dialog().querySelector('[aria-label="世界事件操作说明"]'),

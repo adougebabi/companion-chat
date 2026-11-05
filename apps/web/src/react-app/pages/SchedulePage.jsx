@@ -29,9 +29,9 @@ import { useWorkspace } from "../page";
 import { day } from "@/state/workspace.mjs";
 import { scheduleProjection } from "@/approved-ui/presentation.mjs";
 import { zonedInput, zonedInputInstant } from "@/v3/zoned-input.mjs";
-import { errorMessage } from "@/v3/domain-presentation.mjs";
+import { errorMessage, stateLabel } from "@/v3/domain-presentation.mjs";
 import { requestDecisionText } from "@/v3/proto/components/request-failure.js";
-import { userInstant } from "@/v3/presentation-time.mjs";
+import { planWindow, planWindowLabel, userInstant } from "@/v3/presentation-time.mjs";
 const tabs = ["timeline", "suggestions", "habits"];
 const shiftDate = (date, step) => {
   const value = new Date(date + "T12:00:00Z");
@@ -1142,11 +1142,6 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                 查看约定与意向
               </a>
             </Button>
-            <Button variant="link" asChild>
-              <a href={"#/c/" + encodeURIComponent(fid) + "/life/timeline"}>
-                生活时间线
-              </a>
-            </Button>
           </div>
         </section>
       </Tabs>
@@ -1313,14 +1308,10 @@ export default function SchedulePage({ route, onRecoverInitial = null }) {
                 <dd>{selected.item._source.location || "尚未记录"}</dd>
                 <dt>类型</dt>
                 <dd>{selected.item._source.scene || "尚未记录"}</dd>
-                <dt>状态</dt>
-                <dd>
-                  {selected.item._source.action_status === "in_progress"
-                    ? "正在执行"
-                    : selected.item._source.action_status === "completed"
-                      ? "已完成执行"
-                      : "计划安排，实际执行另行确认"}
-                </dd>
+                <dt>计划时段</dt>
+                <dd>{planWindowLabel(planWindow(selected.item._source.start_at, selected.item._source.end_at))}</dd>
+                <dt>执行状态</dt>
+                <dd>{selected.item._source.action_status ? stateLabel(selected.item._source.action_status) : "执行尚未确认"}</dd>
               </dl>
               {selected.date !== today && (
                 <p className="lp-muted">

@@ -141,6 +141,7 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
     if (!state.ready || !state.session || route.removed || route.notFound || !routeCharacterExists)
       return;
     let active = true;
+    let restoreObserver: MutationObserver | undefined;
     setMobileOpen(false);
     Object.assign(workspace.state,{route});
     if(page==="登录"){navigate("角色库");return;}
@@ -170,10 +171,22 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         ? Promise.resolve()
         : workspace.load(page)
     ).then(() => {
-      if (active) main.current?.scrollTo({ top: scrollPositions.current.get(workspaceReadingKey(state.session?.actorId,route)) || 0 });
+      const restore = () => {
+        const root = main.current;
+        const managed = page === '管理中心' && (!route.feature || route.path === '/data');
+        const target = managed ? root?.querySelector<HTMLElement>('.replica-management-main, .replica-data-main') : root;
+        if (!active || !target) return false;
+        target.scrollTo({ top: scrollPositions.current.get(workspaceReadingKey(state.session?.actorId,route)) || 0 });
+        return true;
+      };
+      if (active && !restore() && main.current) {
+        restoreObserver = new MutationObserver(() => { if (restore()) restoreObserver?.disconnect(); });
+        restoreObserver.observe(main.current, {childList:true, subtree:true});
+      }
     });
     return () => {
       active = false;
+      restoreObserver?.disconnect();
     };
   }, [route, state.ready, state.session?.actorId, workspace, navigate, page, routeCharacterExists]);
   useEffect(()=>{if(!state.toast)return;const item=state.toast;toast(item.text,{action:item.link?{label:'去方案库',onClick:()=>{workspace.state.outfitTab='方案库';navigate('衣柜');}}:undefined});},[state.toast,navigate,workspace]);
@@ -257,8 +270,8 @@ function WorkspaceShell({ workspace }: { workspace: Workspace }) {
         <div
           ref={main}
           tabIndex={-1}
-          onScroll={event=>scrollPositions.current.set(workspaceReadingKey(state.session?.actorId,route),event.currentTarget.scrollTop)}
-          className={"workspace-page replica-page" + (page === "聊天" ? " replica-chat-main" : "")}
+          onScrollCapture={event=>{const target=event.target as HTMLElement;if(target!==main.current&&!target.matches('.replica-management-main, .replica-data-main'))return;scrollPositions.current.set(workspaceReadingKey(state.session?.actorId,route),target.scrollTop);const heading=main.current?.querySelector('.replica-page-heading');if(target.scrollTop>32)heading?.classList.add('is-scrolled');else if(target.scrollTop<8)heading?.classList.remove('is-scrolled');}}
+          className={"workspace-page replica-page" + (page === "聊天" ? " replica-chat-main" : "") + (page === '管理中心' && (!route.feature || route.path === '/data') ? ' replica-page--managed' : '')}
         >
           {!(page==='世界'&&!route.feature)&&!(page==='人物关系'&&(!route.feature||route.feature.native==='people'))&&!(page==="管理中心"&&(!route.feature||route.feature.native==="task"||route.path==="/data"))&&!(page==="通知与待处理"&&!route.feature)&&!["角色库","聊天","此刻","日程","目标","衣柜","日记","记忆","角色详情","动态","媒体","创作中心","初始化角色"].includes(page)&&<div className="page-heading">
             <div>

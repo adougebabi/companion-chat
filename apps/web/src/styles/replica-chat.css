@@ -646,6 +646,13 @@
 .replica-eyebrow{font-size:9px;letter-spacing:1.8px;color:#869077;font-weight:600}
 .react-workspace .replica-page-heading h1{font-size:27px;line-height:1.45;font-weight:600;letter-spacing:.3px;margin:9px 0 0;outline:none}
 .replica-page-heading p{font-size:12px;color:#778170;line-height:1.85;margin:8px 0 0}
+.replica-page:not(.replica-page--managed) .page-content>div:not([hidden])>*>.replica-page-heading{position:sticky;top:calc(-1 * var(--replica-page-top,32px));z-index:20;background:#f7f8f4;margin-inline:calc(-1 * var(--replica-page-inline,34px));padding-inline:var(--replica-page-inline,34px)}
+.replica-page:not(.replica-page--managed) .replica-page-heading.is-scrolled{padding-block:8px}
+.replica-page-heading h1{transform-origin:left center;transition:transform .2s ease}
+.replica-page-heading.is-scrolled{margin-bottom:15px}
+.replica-page-heading.is-scrolled h1{transform:scale(.82);margin-top:0}
+.replica-page-heading.is-scrolled .replica-eyebrow,.replica-page-heading.is-scrolled p{display:none}
+@media(prefers-reduced-motion:reduce){.replica-page-heading h1{transition:none}}
 .replica-page-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
 .replica-page-actions [data-slot="button"]:not([data-size="icon"]){height:36px;font-size:12px;padding-inline:13px;gap:7px;border-radius:7px}
 .replica-page-actions [data-slot="button"] svg{width:15px;height:15px}

@@ -10,14 +10,18 @@ import {EmptyState,InlineFeedback,ReaderFeedback} from '../shared/Presentation';
 import useWorkspaceRead from '../shared/useWorkspaceRead';
 import {useWorkspace} from '../page';
 import {day} from '@/state/workspace.mjs';
-import {nextScheduleItem} from '@/approved-ui/presentation.mjs';
+import {nearbyScheduleItems,nextScheduleItem} from '@/approved-ui/presentation.mjs';
+import useMinuteClock from '../shared/useMinuteClock';
+import {useEffect,useRef} from 'react';
 export default function NowPage({view}){
- const w=useWorkspace(),c=view.character.value,now=Date.now(),today=day(new Date(now),c.timezone||'Asia/Shanghai');
+ const w=useWorkspace(),c=view.character.value,now=useMinuteClock(),zone=view.schedule.value.find(item=>item._schedule?.timezone)?._schedule.timezone||c.timezone||'Asia/Shanghai',today=day(new Date(now),zone);
+ const previousDay=useRef(today);
+ useEffect(()=>{if(previousDay.current!==today){previousDay.current=today;void w.loadLife({currentOnly:true}).catch(()=>{});}},[today,w]);
  const worldRead=useWorkspaceRead({identity:['now-world',c.id],enabled:!!c.id&&typeof w.client?.world==='function',read:async()=>{const result=await w.client.world(c.id);return {items:[],next_cursor:'',world:result.world||null};}});
  const worldName=worldRead.extra.world?.name||c.world||(worldRead.ready&&!worldRead.error?'尚未绑定世界':'所在世界待读取');
- const todayItems=view.schedule.value.filter(item=>item._schedule?.local_date===today||(Number.isFinite(Date.parse(item._source?.start_at))&&day(item._source.start_at,c.timezone||'Asia/Shanghai')===today));
+ const todayItems=view.schedule.value.filter(item=>item._schedule?.local_date===today||(Number.isFinite(Date.parse(item._source?.start_at))&&day(item._source.start_at,zone)===today));
  const next=nextScheduleItem(view.schedule.value,now),readingSchedule=!!(w.state.loading.life||w.state.loading.schedule);
- const dateParts=Object.fromEntries(new Intl.DateTimeFormat('zh-CN',{timeZone:c.timezone||'Asia/Shanghai',month:'numeric',day:'numeric',weekday:'long'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
+ const dateParts=Object.fromEntries(new Intl.DateTimeFormat('zh-CN',{timeZone:zone,month:'numeric',day:'numeric',weekday:'long'}).formatToParts(new Date(now)).map(part=>[part.type,part.value]));
  const date=`${dateParts.month} 月 ${dateParts.day} 日　${dateParts.weekday}`;
  const go=page=>view.emit('go',page);
  return <div className="replica-life replica-now"><WorkspacePageHeader eyebrow="LIFE / RIGHT NOW" title={c.name+'的此刻'} description="生活正在发生。这里收着今天的状态和接下来的小事。" actions={<Button variant="outline" onClick={()=>go('聊天')}><MessageSquareIcon size={15}/>和{c.name}聊聊</Button>}/>
@@ -25,8 +29,7 @@ export default function NowPage({view}){
    <section className="lp-hero"><div><div className="lp-row lp-day-stamp"><span>{date}</span></div>{w.state.loading.detail&&!c.activity?<LoadingState label="正在读取此刻状态…"/>:<h2>{c.activity||'此刻状态尚未更新'}</h2>}<div className="lp-row"><span className="lp-chip"><MapPinIcon size={12}/>{c.location||'位置尚未记录'}</span><span className="lp-chip"><LeafIcon size={12}/>{c.mood||'心情尚未记录'}</span></div></div><div className="lp-hero-art" aria-hidden="true"><BookOpenIcon/></div></section>
    <Surface className="lp-pad"><div className="replica-section-heading"><div><h2>今天，慢慢走</h2><p>已确认的安排与即将到来的片刻</p></div><Button variant="link" onClick={()=>go('日程')}>完整日程<ArrowUpRightIcon size={12}/></Button></div>
     {readingSchedule&&<LoadingState label="正在读取日程…"/>}{view.readError('schedule')&&<InlineFeedback role="alert">日程读取未完成，保留已确认的安排。{view.readError('schedule')}<Button variant="outline" onClick={()=>void w.loadLife({currentOnly:true}).catch(()=>{})}>重新读取日程</Button></InlineFeedback>}
-    {todayItems.length?<ScheduleTimeline items={todayItems.slice(-4)} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState className="replica-now-empty"><EmptyMedia><LeafIcon size={25} aria-hidden="true"/></EmptyMedia><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
-    <Button variant="link" className="replica-timeline-link" onClick={()=>view.openTimeline()}>生活时间线<ArrowUpRightIcon size={12}/></Button>
+    {todayItems.length?<ScheduleTimeline items={nearbyScheduleItems(todayItems,now)} compact onSelect={()=>go('日程')}/>:!readingSchedule&&!view.readError('schedule')&&<EmptyState className="replica-now-empty"><EmptyMedia><LeafIcon size={25} aria-hidden="true"/></EmptyMedia><h3>今天的生活，正在慢慢展开</h3><p>还没有确认的日程，可以先聊聊接下来的安排。</p><Button variant="outline" onClick={()=>go('日程')}>打开日程</Button></EmptyState>}
    </Surface>
   </div><div className="lp-stack"><Surface className="lp-pad"><div className="replica-section-heading"><h2>生活切片</h2></div>
    <div className="lp-runtime-item"><span className="lp-icon-box"><MapPinIcon size={17}/></span><div><span className="lp-muted">所在世界</span><strong className="lp-title">{worldName}</strong><ReaderFeedback source={worldRead} label="所属世界"/><Button variant="link" onClick={()=>go('世界')}>看看这个世界<ArrowUpRightIcon size={12}/></Button></div></div>

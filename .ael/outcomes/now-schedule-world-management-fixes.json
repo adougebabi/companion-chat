@@ -1,0 +1,141 @@
+{
+  "id": "now-schedule-world-management-fixes",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "9480ce77a4984ed3e54c3d9bb1318be91e5032f31951abda39026162b86f360d",
+  "completed": "2026-11-05T04:04:58.020751Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "5cb379f7564d3d79c2e7c799fe15f66ee357db6d4af7d52865dfb5ad86aea8d0",
+      "at": "2026-11-05T03:50:40.830362Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-c97f88b08332bf61395f.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-tests",
+      "result": "fail",
+      "source": "command",
+      "config_hash": "52f92529e101fdc95553bc8589ad5c4a2012eb989a36d552f4f9664b002f76b3",
+      "at": "2026-11-05T03:51:30.033294Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-5fdd8ce770f0a9b70d68.log": "9ccc06e223abbf0248432df156bdc7f16671270bfad0fa3d0592faa19fd7c144"
+      }
+    },
+    {
+      "id": "web-tests",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "52f92529e101fdc95553bc8589ad5c4a2012eb989a36d552f4f9664b002f76b3",
+      "at": "2026-11-05T03:54:53.406589Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-2201fec09f448812702f.log": "85e8387fc2ffa7f6703a6167ca2c3f0991551a272e61d30ee840167854f6a018"
+      }
+    },
+    {
+      "id": "web-tests",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "52f92529e101fdc95553bc8589ad5c4a2012eb989a36d552f4f9664b002f76b3",
+      "at": "2026-11-05T03:58:43.145753Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-6ed5b6f413b9cf105835.log": "fbdb86f7c36b7beeb82a173d9d34056733cb6a07f8f44ada98b69fc3180128ef"
+      }
+    },
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "5cb379f7564d3d79c2e7c799fe15f66ee357db6d4af7d52865dfb5ad86aea8d0",
+      "at": "2026-11-05T04:00:01.130015Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-7e1eddaee938cea46c6b.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "1ae64901d3fce03efa97644d1a7bc487086aa8ef05d91f74826cf54421958ce4",
+      "at": "2026-11-05T04:00:39.719225Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-7bf8b93b484d56d5f203.log": "93a8439e48f1c0ca391e9842bb37555f779e2edf6b498b4d138e815395ff9368"
+      }
+    },
+    {
+      "id": "ui-scenarios",
+      "result": "pass",
+      "source": "scenario:codex-now-world-layout",
+      "config_hash": "77ff67777e23aad5c1fc5501aa382142c420c13e3f2000d61f36abe9121b0497",
+      "at": "2026-11-05T04:03:57.157945Z",
+      "artifact_hashes": {
+        ".v3-regression/now-world-layout/data-final-desktop.png": "2e874b5a24eb195dc5c31d9745fe57f1c5b640dfcaea6f310c36d2d6027f3269",
+        ".v3-regression/now-world-layout/event-final-desktop.png": "3871f5b7e5de857ed0327f796e55cf9354e349243d660235b1a28aaf823b348e",
+        ".v3-regression/now-world-layout/event-final-mobile.png": "a65a245dd323c34eb1453dc2be25ef10d585be48b588312ed4a18e2126b39135",
+        ".v3-regression/now-world-layout/management-final-desktop.png": "72030be7dcfde172844686337509943590766df145db08478b3cd08420ac3f13",
+        ".v3-regression/now-world-layout/management-final-mobile.png": "a5cd87271ec19348e3e29eea4e85cb38f259e8b4bfba9cba1e314c6eede29831",
+        ".v3-regression/now-world-layout/now-final-mobile.png": "d9de933091b7d05315a86beed96a8476c25233a5585ff31895041177653faeb7",
+        ".v3-regression/now-world-layout/verification.md": "277535dbf0b737a5454f901129dded1896cb37711b5a76bdeb299b176c89561a",
+        "apps/web/src/react-app/App.tsx": "79adc2362fb0bc2e519a92c24cb2ea9c35695a45c4ba2635620aa43eb0d7cfe5",
+        "apps/web/src/react-app/shared/ScheduleTimeline.tsx": "8e079c9fa8a9b5975200b014edaff86b26f13d630fd9501f93085e95b0e05ce2",
+        "apps/web/src/react-app/shared/WorldRuntimePanels.jsx": "b26e4406e251db9fe49f148f33a441778e7e0c1714fa1c56f84fe66f907f4bf2",
+        "apps/web/src/react-app/views/NowPage.jsx": "6284231808a6d70846457c063d521401cd056761a51065d2b5d97b859f880b9c",
+        "apps/web/src/react-app/views/WorldPage.jsx": "ab6fccd922b8f6adccbf648d39895778f0bf85a13008ed5279a0068538ece38f",
+        "apps/web/src/styles/workspace-replica.css": "ec384e9ff3db4d2b24d73861c52a8f68efe3f2e4e7047b4966a7274d4262e782",
+        "apps/web/test/demo-replica-world.test.mjs": "050e1cfbb7c733e550519ce3cacedd84aa6a1a062901edcff155ca95c3bf3996"
+      }
+    },
+    {
+      "id": "ui",
+      "result": "pass",
+      "source": "scenario:codex-now-world-layout",
+      "config_hash": "3f7c1d7e69cfbea345f8499d4b274fdfdb3293fae4d077a7b3c935c7642b4658",
+      "at": "2026-11-05T04:04:28.725222Z",
+      "artifact_hashes": {
+        ".v3-regression/now-world-layout/data-final-desktop.png": "2e874b5a24eb195dc5c31d9745fe57f1c5b640dfcaea6f310c36d2d6027f3269",
+        ".v3-regression/now-world-layout/event-final-desktop.png": "3871f5b7e5de857ed0327f796e55cf9354e349243d660235b1a28aaf823b348e",
+        ".v3-regression/now-world-layout/event-final-mobile.png": "a65a245dd323c34eb1453dc2be25ef10d585be48b588312ed4a18e2126b39135",
+        ".v3-regression/now-world-layout/management-final-desktop.png": "72030be7dcfde172844686337509943590766df145db08478b3cd08420ac3f13",
+        ".v3-regression/now-world-layout/management-final-mobile.png": "a5cd87271ec19348e3e29eea4e85cb38f259e8b4bfba9cba1e314c6eede29831",
+        ".v3-regression/now-world-layout/now-final-mobile.png": "d9de933091b7d05315a86beed96a8476c25233a5585ff31895041177653faeb7",
+        ".v3-regression/now-world-layout/verification.md": "277535dbf0b737a5454f901129dded1896cb37711b5a76bdeb299b176c89561a",
+        "apps/web/src/react-app/App.tsx": "79adc2362fb0bc2e519a92c24cb2ea9c35695a45c4ba2635620aa43eb0d7cfe5",
+        "apps/web/src/react-app/shared/ScheduleTimeline.tsx": "8e079c9fa8a9b5975200b014edaff86b26f13d630fd9501f93085e95b0e05ce2",
+        "apps/web/src/react-app/shared/WorldRuntimePanels.jsx": "b26e4406e251db9fe49f148f33a441778e7e0c1714fa1c56f84fe66f907f4bf2",
+        "apps/web/src/react-app/views/NowPage.jsx": "6284231808a6d70846457c063d521401cd056761a51065d2b5d97b859f880b9c",
+        "apps/web/src/react-app/views/WorldPage.jsx": "ab6fccd922b8f6adccbf648d39895778f0bf85a13008ed5279a0068538ece38f",
+        "apps/web/src/styles/workspace-replica.css": "ec384e9ff3db4d2b24d73861c52a8f68efe3f2e4e7047b4966a7274d4262e782",
+        "apps/web/test/demo-replica-world.test.mjs": "050e1cfbb7c733e550519ce3cacedd84aa6a1a062901edcff155ca95c3bf3996"
+      }
+    },
+    {
+      "id": "ux",
+      "result": "pass",
+      "source": "scenario:codex-now-world-layout",
+      "config_hash": "2fad8efe7b0adc9110afdb854a7c3063d6a36c0d3106cb8ad60096ab58eb79c5",
+      "at": "2026-11-05T04:04:52.283974Z",
+      "artifact_hashes": {
+        ".v3-regression/now-world-layout/data-final-desktop.png": "2e874b5a24eb195dc5c31d9745fe57f1c5b640dfcaea6f310c36d2d6027f3269",
+        ".v3-regression/now-world-layout/event-final-desktop.png": "3871f5b7e5de857ed0327f796e55cf9354e349243d660235b1a28aaf823b348e",
+        ".v3-regression/now-world-layout/event-final-mobile.png": "a65a245dd323c34eb1453dc2be25ef10d585be48b588312ed4a18e2126b39135",
+        ".v3-regression/now-world-layout/management-final-desktop.png": "72030be7dcfde172844686337509943590766df145db08478b3cd08420ac3f13",
+        ".v3-regression/now-world-layout/management-final-mobile.png": "a5cd87271ec19348e3e29eea4e85cb38f259e8b4bfba9cba1e314c6eede29831",
+        ".v3-regression/now-world-layout/now-final-mobile.png": "d9de933091b7d05315a86beed96a8476c25233a5585ff31895041177653faeb7",
+        ".v3-regression/now-world-layout/verification.md": "277535dbf0b737a5454f901129dded1896cb37711b5a76bdeb299b176c89561a",
+        "apps/web/src/react-app/App.tsx": "79adc2362fb0bc2e519a92c24cb2ea9c35695a45c4ba2635620aa43eb0d7cfe5",
+        "apps/web/src/react-app/shared/ScheduleTimeline.tsx": "8e079c9fa8a9b5975200b014edaff86b26f13d630fd9501f93085e95b0e05ce2",
+        "apps/web/src/react-app/shared/WorldRuntimePanels.jsx": "b26e4406e251db9fe49f148f33a441778e7e0c1714fa1c56f84fe66f907f4bf2",
+        "apps/web/src/react-app/views/NowPage.jsx": "6284231808a6d70846457c063d521401cd056761a51065d2b5d97b859f880b9c",
+        "apps/web/src/react-app/views/WorldPage.jsx": "ab6fccd922b8f6adccbf648d39895778f0bf85a13008ed5279a0068538ece38f",
+        "apps/web/src/styles/workspace-replica.css": "ec384e9ff3db4d2b24d73861c52a8f68efe3f2e4e7047b4966a7274d4262e782",
+        "apps/web/test/demo-replica-world.test.mjs": "050e1cfbb7c733e550519ce3cacedd84aa6a1a062901edcff155ca95c3bf3996"
+      }
+    }
+  ]
+}

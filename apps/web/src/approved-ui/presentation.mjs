@@ -72,6 +72,19 @@ export function nextScheduleItem(items, now = Date.now()) {
       !['cancelled','rejected'].includes(source.status);
   }).sort((a,b)=>Date.parse(a._source.start_at)-Date.parse(b._source.start_at))[0];
 }
+// Keep the current period in view, with one preceding arrangement for context.
+export function nearbyScheduleItems(items, now = Date.now(), limit = 4) {
+  const ordered = [...items].sort((a, b) => {
+    const left = Date.parse(a._source?.start_at), right = Date.parse(b._source?.start_at);
+    return (Number.isFinite(left) ? left : Infinity) - (Number.isFinite(right) ? right : Infinity);
+  });
+  const next = ordered.findIndex(item => {
+    const start = Date.parse(item._source?.start_at), end = Date.parse(item._source?.end_at);
+    return Number.isFinite(end) ? end > now : Number.isFinite(start) && start >= now;
+  });
+  const start = next < 0 ? Math.max(0, ordered.length - limit) : Math.max(0, next - 1);
+  return ordered.slice(start, start + limit);
+}
 export function relativeTime(value, zone = 'Asia/Shanghai', now = Date.now()) {
   const at=typeof value==='string'?Date.parse(value):NaN;
   if(!Number.isFinite(at))return '';

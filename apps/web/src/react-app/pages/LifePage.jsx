@@ -349,7 +349,6 @@ function createLifePageController(props, { emit }, lifecycle) {
     forget,
     character,
     readError:key=>currentReadError(w.state,key,w.currentScope()),
-    openTimeline:()=>w.navigatePath("/c/"+encodeURIComponent(character.value.id)+"/life/timeline"),
     CurrentOutfit,
     FilterChips,
     DetailDrawer,

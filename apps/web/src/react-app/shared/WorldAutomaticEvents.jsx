@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Badge, Surface } from '../controls';
+import { Badge, Disclosure, Surface } from '../controls';
 import { EmptyState } from './Presentation';
 import { WorldReader } from './WorldFields';
 import useWorkspaceRead from './useWorkspaceRead';
@@ -21,6 +21,7 @@ export default function WorldAutomaticEvents({ model: m }) {
   const clocks = useWorkspaceRead({ identity: ['world-event-clocks', worldId], keyOf: row => row.ref, read: cursor => read('workflow-intents', cursor) });
   const generations = useWorkspaceRead({ identity: ['world-event-generations', worldId], keyOf: row => row.ref, read: cursor => read('world-event-generations', cursor) });
   return <Surface className="r-padded r-form-stack" aria-label="自动世界事件">
+    <Disclosure title="自动事件与运行记录">
     <div className="section-heading"><div><h2>自动世界事件</h2><p>每小时根据世界现状生成候选事件，经审核后执行；本小时也可能没有事件。</p></div>
       <Button variant="outline" disabled={clocks.busy || generations.busy} onClick={() => Promise.all([clocks.load(), generations.load()])}>刷新自动事件</Button>
     </div>
@@ -42,5 +43,6 @@ export default function WorldAutomaticEvents({ model: m }) {
     </div>)}
     {generations.ready && !generations.items.length && !generations.error && <EmptyState><h3>尚无自动事件记录</h3><p>后台按小时运行后会显示生成、审核和执行结果，无需先创建事件模板。</p></EmptyState>}
     {generations.cursor && <Button variant="outline" disabled={generations.busy} onClick={generations.more}>加载更多自动事件</Button>}
+    </Disclosure>
   </Surface>;
 }

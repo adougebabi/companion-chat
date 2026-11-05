@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sidebarSectionPath,exchangeNavigation,globalNavigation} from '../src/v3/workspace-navigation.mjs';
 import {pendingSummary} from '../src/v3/pending-presentation.mjs';
-import {lifeTimelineRows} from '../src/v3/life-timeline.mjs';
 import {readFileSync} from 'node:fs';
 import {chatContextText} from '../src/v3/chat-feedback.mjs';
 
@@ -23,10 +22,6 @@ test('17 service failures and one running request are not two actual human decis
  assert.deepEqual(pendingSummary(groups),{attention:2,attentionKnown:true,progress:1,progressKnown:true,service:17,serviceKnown:true});
  assert.equal(pendingSummary(groups.map(g=>g.kind==='capability'?{...g,status:'failed'}:g)).attentionKnown,false);
 });
-test('life timeline mixes authoritative reading sources without empty diaries or fabricated executions',()=>{
- const rows=lifeTimelineRows('role',{schedule:[{local_date:'2026-10-23',schedule:{items:[{id:'plan',start_at:'2026-10-23T13:00:00+08:00',activity:'去书店',status:'planned'}]}}],diary:[{id:'empty',date:'2026-10-22',body:''},{id:'diary',date:'2026-10-21',body:'一段日记'}],moments:[{id:'mine',author_type:'user',text:'不混入她的生活'},{id:'hers',author_type:'fluctlight',text:'她的分享',created_at:'2026-10-22T12:00:00Z'}],media:[{id:'pic',readable:true,kind:'image',created_at:'2026-10-20T12:00:00Z'}],goals:[{id:'goal',desired_outcome:'开一家书店'}]});
- assert.equal(rows.length,5);assert.ok(!rows.some(r=>r.id==='diary:empty'||r.id==='moments:mine'));assert.equal(rows.find(r=>r.id==='schedule:plan').label,'日程安排');assert.ok(rows.every(r=>r.href.startsWith('#/')));
-});
 function node(){const children=new Map();return {innerHTML:'',textContent:'',isConnected:true,querySelector(s){if(!children.has(s))children.set(s,node());return children.get(s);},querySelectorAll(){return [];}};}
 test('default list shows sparse older records and excludes empty diary days without losing their cursor',async()=>{
  const source=readFileSync(new URL('../src/v3/proto/components/calendar-reading.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export function ','function ');
@@ -34,15 +29,6 @@ test('default list shows sparse older records and excludes empty diary days with
  const el=node();let view;
  const dispose=mountCalendarReading(el,{scope:['role','diary'],initialMode:'list',read:async()=>({items:[{id:'old',date:'2025-01-01',body:'她的旧日记'},{id:'empty',date:'2026-10-23',body:''}],next_cursor:'older'}),dateOf:r=>r.date,visible:r=>!!r.body,render:r=>r.body,onView:v=>view=v});
  await new Promise(resolve=>setImmediate(resolve));assert.match(el.querySelector('[data-papers]').innerHTML,/她的旧日记/);assert.doesNotMatch(el.querySelector('[data-papers]').innerHTML,/empty/);assert.equal(view.month,'');assert.equal(el.querySelector('[data-reading-more]').hidden,false);dispose();
-});
-
-test('life refresh removes hidden records and reopens a newly grown cursor',async()=>{
- const source=readFileSync(new URL('../src/v3-domain/life-timeline.js',import.meta.url),'utf8').replace(/^import .*;\s*$/gm,'').replaceAll('export ','');
- let changed=false;const el=node();const document={hidden:false,addEventListener(){},removeEventListener(){}};
- const render=Function('get','subscribe','lifeClient','diaryClient','momentsClient','mediaClient','lifeTimelineRows','esc','instant','document','setTimeout','clearTimeout',source+';return renderLifeTimeline')(
- ()=>({actorId:'owner'}),()=>{}, {schedules:async()=>({days:[]}),goals:async()=>({items:[]})}, {list:async()=>({items:[],next_cursor:changed?'new-older-cursor':''})}, {list:async()=>({items:changed?[]:[{id:'post',author_type:'fluctlight',text:'now-hidden-post'}]})}, {list:async()=>({items:changed?[]:[{id:'photo',kind:'image',readable:true,title:'now-hidden-photo'}]}),url:id=>'/api/media/'+id},lifeTimelineRows,String,String,document,()=>1,()=>{});
- const stop=render(el,{charId:'role'});await new Promise(resolve=>setImmediate(resolve));assert.match(el.querySelector('[data-life-items]').innerHTML,/now-hidden-post|now-hidden-photo/);assert.equal(el.querySelector('[data-life-more]').hidden,true);
- changed=true;el.querySelector('[data-life-refresh]').onclick();await new Promise(resolve=>setImmediate(resolve));assert.doesNotMatch(el.querySelector('[data-life-items]').innerHTML,/now-hidden-post|now-hidden-photo/);assert.equal(el.querySelector('[data-life-more]').hidden,false);stop();
 });
 
 test('all-memory reading retains explicit false through persisted view URLs',()=>{

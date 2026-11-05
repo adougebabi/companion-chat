@@ -62,5 +62,5 @@ test('D7 world event page and management rows render the same generation and wai
  try{assert.deepEqual([...v.host.querySelectorAll('.replica-task-row .replica-diagnostic-status')].map(node=>node.textContent),['生成中','等待下一小时']);}finally{await v.dispose();}
  const {default:Panel}=await vite.ssrLoadModule('/src/react-app/shared/WorldAutomaticEvents.jsx');
  v=await mountReact(vite,Panel,{workspace:w,props:{model:{w,fid:'A',world:{id:'world-A'}}}});
- try{assert.deepEqual([...v.host.querySelectorAll('[data-slot=badge]')].map(node=>node.textContent),['生成中','等待下一小时']);}finally{await v.dispose();}
+ try{await v.click([...v.host.querySelectorAll('button')].find(node=>node.textContent.trim()==='自动事件与运行记录'));assert.deepEqual([...v.host.querySelectorAll('[data-slot=badge]')].map(node=>node.textContent),['生成中','等待下一小时']);}finally{await v.dispose();}
 });

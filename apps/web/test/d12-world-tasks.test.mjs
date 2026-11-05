@@ -43,6 +43,7 @@ test('D12 world and Owner changes discard pending automatic-event reads',async()
  w.client.ownerDiagnosticRecords=async(kind,options)=>options.worldId==='world-A'?oldPage:{items:[{ref:'fresh-'+kind,data:kind==='workflow-intents'?{...clock.data,payload:{world_id:'world-B'}}:{world_id:'world-B',title:'新世界的事件',status:'rejected',slot_at:'2026-11-02T08:00:00Z'}}],next_cursor:''};
  const v=await mountReact(vite,Panel,{workspace:w,props:{model:{w,fid:'A',world:{id:'world-A'}}}});
  try{
+  await v.click(button(v.host,'自动事件与运行记录'));
   await v.update({model:{w,fid:'A',world:{id:'world-B'}}});assert.match(v.host.textContent,/新世界的事件/);
   await act(async()=>resolve({items:[{ref:'obsolete',data:{world_id:'world-A',title:'过期世界记录'}}],next_cursor:''}));await v.flush();
   assert.doesNotMatch(v.host.textContent,/过期世界记录/);assert.match(v.host.textContent,/新世界的事件/);
@@ -72,6 +73,7 @@ test('D12 automatic event panel preserves scope, shows valid empty states and re
  w.client.ownerDiagnosticRecords=async(kind,options)=>{reads.push({kind,...options});return {items:kind==='workflow-intents'?[clock]:wrong?[{ref:'wrong',data:{world_id:'another-world',title:'禁止显示的其他世界'}}]:[],next_cursor:''};};
  const v=await mountReact(vite,Panel,{workspace:w,props:{model:{w,fid:'A',world:{id:'world-A'}}}});
  try{
+  await v.click(button(v.host,'自动事件与运行记录'));
   assert.match(v.host.textContent,/自动世界事件记录范围不匹配/);assert.doesNotMatch(v.host.textContent,/禁止显示的其他世界|尚无自动事件记录/);
   wrong=false;await v.click(button(v.host,'重新读取自动事件记录'));
   assert.ok(v.host.querySelector('[data-slot=empty]'));assert.match(v.host.textContent,/无需先创建事件模板/);

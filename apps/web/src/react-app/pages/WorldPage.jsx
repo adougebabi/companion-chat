@@ -107,6 +107,13 @@ export default function WorldPage({ initialWorldId = "" } = {}) {
     snapshot = catalog.extra.snapshots?.[selected],
     binding = catalog.extra.active_binding,
     activeWorld = catalog.items.find((row) => row.id === binding?.world_id);
+  useEffect(() => {
+    if (!selected || tab !== "places" || action || history) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden && live() && !catalogRef.current?.busy) void catalogRef.current?.load();
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [selected, tab, action, history, owner, fid]);
   const busy = w.state.operations.some(
     (row) =>
       row.fid === fid && row.label === "世界" && row.status === "pending",

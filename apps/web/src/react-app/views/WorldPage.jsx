@@ -36,6 +36,8 @@ import {
   WorldEventsPanel,
 } from "../shared/WorldRuntimePanels";
 import WorldField from "../shared/WorldFields";
+import {residentsByPlace} from "@/approved-ui/world-presence.mjs";
+import useMinuteClock from "../shared/useMinuteClock";
 const Search = ({ value, onChange, label }) => (
   <div className="r-search">
     <SearchIcon size={15} aria-hidden="true"/>
@@ -50,6 +52,7 @@ const Search = ({ value, onChange, label }) => (
 );
 const Tiny = ({ children }) => <span className="r-tiny-label">{children}</span>;
 export function WorldPageView({ view: m }) {
+  const now = useMinuteClock();
   const [archived, setArchived] = useState(false);
   useEffect(() => setArchived(false), [m.selected]);
   const viewOf = (id) => m.catalog.extra.snapshots?.[id],
@@ -94,6 +97,9 @@ export function WorldPageView({ view: m }) {
         )
         .map((p) => ({ p, group: g })),
     );
+  const placeResidents = residentsByPlace(m.snapshot, m.binding, m.c, now);
+  const currentContext = m.snapshot?.current_context;
+  const unlinkedLocation = !!m.world && m.world.id === m.binding?.world_id && currentContext?.world_id === m.world.id && !currentContext.place_id;
   const studio = (kind) => "/studio?kind=" + kind;
   const go = (path) => m.w.navigatePath(path);
   return (
@@ -412,6 +418,12 @@ export function WorldPageView({ view: m }) {
                       显示已归档地点
                     </label>
                   </div>
+                  {unlinkedLocation && (
+                    <WorkspaceInfo>
+                      {m.c.name}的当前生活记录{typeof currentContext.location === "string" && currentContext.location.trim() ? <>写着“{currentContext.location}”，但</> : "中"}尚未关联到世界中的具体地点。
+                      {currentContext.source === "schedule" && <Button variant="link" onClick={() => go("/c/" + encodeURIComponent(m.fid) + "/life/schedule")}>查看日程</Button>}
+                    </WorkspaceInfo>
+                  )}
                   <div className="r-place-grid">
                     {filtered.map(({ p, group }) => (
                       <Surface className="r-place-card" key={p.id}>
@@ -442,6 +454,13 @@ export function WorldPageView({ view: m }) {
                                 : p.furniture
                             }
                           />
+                        </div>
+                        <div className="r-place-residents" aria-label={(p.alias || p.name) + "的位置记录"}>
+                          {placeResidents.get(p.id)?.length ? placeResidents.get(p.id).map(person => (
+                            <span className="r-place-resident" key={(person.fluctlight ? 'character:' : 'npc:') + person.id}>
+                              <UserRoundIcon size={13} aria-hidden="true" />{person.name}<small>{person.label}</small>
+                            </span>
+                          )) : <span className="r-place-empty">暂无位置记录</span>}
                         </div>
                         <div className="r-card-footer">
                           <Button
@@ -621,7 +640,6 @@ export function WorldPageView({ view: m }) {
               )}
             </TabsContent>
             <TabsContent value="events">
-              <WorldAutomaticEvents key={'automatic:' + m.world.id} model={m} />
               {m.world.id === m.binding?.world_id ? (
                 <WorldEventsPanel key={m.world.id} model={m} />
               ) : (
@@ -641,6 +659,7 @@ export function WorldPageView({ view: m }) {
                   </WorkspaceInfo>
                 </Surface>
               )}
+              <WorldAutomaticEvents key={'automatic:' + m.world.id} model={m} />
             </TabsContent>
           </Tabs>
         </>

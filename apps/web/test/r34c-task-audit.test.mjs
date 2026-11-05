@@ -57,7 +57,7 @@ test('R34C diagnostics attention matches notification source across pages, remov
  const {default:Panel}=await vite.ssrLoadModule('/src/react-app/shared/WorldAutomaticEvents.jsx');
  w.state.selectedId='role';w.current={value:{id:'role'}};w.isCurrent=()=>true;w.client={ownerDiagnosticRecords:async kind=>({items:kind==='workflow-intents'?[{ref:'clock',data:{...recent[2].data,payload:{world_id:'A'}}}]:[{ref:'generation',data:{world_id:'A',status:'no_event',slot_at:'2026-11-02T12:00:00Z',created_at:'2026-11-02T12:39:00Z'}}],next_cursor:''})};
  const panel=await mountReact(vite,Panel,{workspace:w,props:{model:{w,world:{id:'A'}}}});
- try{assert.equal((panel.host.textContent.match(/20:00 整点（20:39 开始）/g)||[]).length,2);}finally{await panel.dispose();}
+ try{await panel.click([...panel.host.querySelectorAll('button')].find(node=>node.textContent.trim()==='自动事件与运行记录'));assert.equal((panel.host.textContent.match(/20:00 整点（20:39 开始）/g)||[]).length,2);}finally{await panel.dispose();}
 });
 test('R34C late pending-source results cannot leak across Owner changes',async()=>{
  localStorage.clear();sessionStorage.clear();location.hash='#/diag';
