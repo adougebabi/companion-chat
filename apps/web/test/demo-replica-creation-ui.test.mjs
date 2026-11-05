@@ -76,6 +76,39 @@ async function selectTab(f, name) {
   );
   await f.v.flush();
 }
+test("model array recovery is visible and preserved original values can be reviewed", async () => {
+  const f = await preview();
+  try {
+    const definition = f.c.previewDefinition();
+    definition.extensions = {
+      initialization_warnings: [
+        {path:"core_persona.life_profile.relationship_seeds[0]", message:"模型返回的列表项格式不正确，原值已保留。"},
+        {path:"core_persona.life_profile.life_habits", message:"原值已保留。"},
+        {path:"initial_goals", message:"原值已保留。"},
+        {path:"initial_intentions", message:"原值已保留。"},
+        {path:"core_persona.identity.core_values", message:"原值已保留。"},
+      ],
+      recovered_fields: {"core_persona.life_profile.relationship_seeds[0]":"独居 <script>不执行</script>",
+        "core_persona.life_profile.life_habits":"long", "initial_goals":[], "initial_intentions":{}, "core_persona.identity.core_values":false},
+    };
+    f.c.updatePreviewDefinition(definition);
+    f.m.previewFields = f.c.previewFields.value;
+    await f.v.update({model:f.m});
+    const notice = f.v.host.querySelector('[data-feedback-kind="warning"]');
+    assert.ok(notice);
+    assert.match(notice.textContent, /部分资料的格式需要核对/);
+    await f.v.click(button(notice, "查看需要核对的内容（5）"));
+    assert.match(notice.textContent, /初始关系线索 · 第 1 项/);
+    assert.match(notice.textContent, /独居 <script>不执行<\/script>/);
+    assert.match(notice.textContent, /文字：long/);
+    assert.doesNotMatch(notice.textContent, /长发/);
+    assert.match(notice.textContent, /空列表/);
+    assert.match(notice.textContent, /空对象/);
+    assert.match(notice.textContent, /布尔值：false/);
+    assert.equal(notice.querySelector('script'), null);
+    assert.equal(f.c.previewDefinition().extensions.recovered_fields["core_persona.life_profile.relationship_seeds[0]"], "独居 <script>不执行</script>");
+  } finally {await f.v.dispose();f.c.dispose();}
+});
 test("policy fields follow their actual types without rewriting legacy analysis", () => {
   const core = {identity:{}, behavioral_policy:{punctuation_style:2, humor_style:3, response_delay:"随当前活动自然回复", emoji_frequency:0.35}, life_profile:{}};
   const fields = profileFields(core), find = key => fields.find(field => field.path.at(-1) === key);

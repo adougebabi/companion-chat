@@ -13,7 +13,7 @@ var initializationNameDeclaration = regexp.MustCompile(`(?i)(?:^|[\r\n，,。；
 var initializationBareName = regexp.MustCompile(`^[\p{L}\p{N}\p{M}\p{Pd}_·・'’]+$`)
 
 func prepareAnalyzedInitializationResponse(description string, value map[string]any) (map[string]any, error) {
-	result, err := prepareInitializationResponse(value)
+	result, err := prepareInitializationResponse(recoverAnalyzedInitializationArrays(value))
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "id": "initialization-malformed-relationship-arrays",
+  "definition_hash": "8343c050e82922ec530ad403874f7a66313b984ffa1fb150b9d5dd546b725d3d",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 2,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-05T05:42:50.675918Z",
+  "updated": "2026-11-05T06:32:59.840229Z",
+  "completed": "2026-11-05T06:32:59.840069Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-e386bb3149e87ef3b2fd",
+        "unit": "define",
+        "executor": "codex-array-recovery",
+        "input_version": "bb873589634384db1cbf1a75db6a6e94ba9eb6f74057b9fa3d2ef32d757a06b5",
+        "candidate_version": "bb873589634384db1cbf1a75db6a6e94ba9eb6f74057b9fa3d2ef32d757a06b5",
+        "started": "2026-11-05T05:43:07.897481Z",
+        "ended": "2026-11-05T05:49:16.407598Z",
+        "status": "pass",
+        "reason": "已确认 physical Provider 初始化使用 json_object，提示只给 relationship_seeds 空数组，实际校验要求每项是用户关系对象；同时 schema 涉及 41 条固定数组路径及四类对象/数组联合。对用户追加强调的其他数组，将按初始化 schema 的明确字段和元素类型开展自然语言模型输出专用恢复，记录原值和警告，保留合法项；特别保护目标索引、衣物索引、人格与接管引用，直接 JSON/激活校验保持原有边界。先以真实 Provider HTTP 回归复现，再修复和验证。"
+      },
+      {
+        "id": "AT-75efdfe8f41da770a750",
+        "unit": "execute",
+        "executor": "codex-array-recovery",
+        "input_version": "bb873589634384db1cbf1a75db6a6e94ba9eb6f74057b9fa3d2ef32d757a06b5",
+        "candidate_version": "",
+        "started": "2026-11-05T05:49:36.369071Z",
+        "ended": "2026-11-05T06:07:23.542605Z",
+        "status": "abandoned",
+        "reason": "definition changed; resume requires stopped-process acknowledgement"
+      },
+      {
+        "id": "AT-9ae39828b6788567590d",
+        "unit": "define",
+        "executor": "codex-array-recovery",
+        "input_version": "8aac57320306e93f9fbf850af15e5db6d191872b49c4af41a5c58d64143ecd1a",
+        "candidate_version": "8aac57320306e93f9fbf850af15e5db6d191872b49c4af41a5c58d64143ecd1a",
+        "started": "2026-11-05T06:07:44.087879Z",
+        "ended": "2026-11-05T06:08:35.729025Z",
+        "status": "pass",
+        "reason": "修订仅将原验收中的警告和原值可审阅落实为现行 React 预览提示，并增加前端和 UI/UX 检查。按项目 React/Radix 合同复用既有信息提示和结构化只读展示；保留原始字段和完整 JSON，不扩大外部权限。"
+      },
+      {
+        "id": "AT-0dd572b38ea9d1bd3d9f",
+        "unit": "execute",
+        "executor": "codex-array-recovery",
+        "input_version": "8aac57320306e93f9fbf850af15e5db6d191872b49c4af41a5c58d64143ecd1a",
+        "candidate_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "started": "2026-11-05T06:08:53.978226Z",
+        "ended": "2026-11-05T06:30:17.317329Z",
+        "status": "pass",
+        "reason": "已补充 schema 派生的初始化数组路径/元素合同和模型专用恢复，保留异常原值及预览警告；保护目标索引、模糊目标/人格引用、衣物索引、已知别名及原始输入，直接 JSON/激活继续严格校验。复现用例从原错误变为通过，45 条固定数组/联合路径矩阵、Go Core 全包、HTTP 边界、1028 项 web 测试、类型及生产构建通过；已核验桌面/390px 的原值审阅。可选 PostgreSQL 与真实模型未启用。"
+      },
+      {
+        "id": "AT-7732468e1f99729a1078",
+        "unit": "check:core-initialization",
+        "executor": "codex-array-recovery",
+        "input_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "candidate_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "started": "2026-11-05T06:30:48.955893Z",
+        "ended": "2026-11-05T06:30:56.176518Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-4a6207226e08c673a5d6",
+        "unit": "check:http-initialization",
+        "executor": "codex-array-recovery",
+        "input_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "candidate_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "started": "2026-11-05T06:31:16.808138Z",
+        "ended": "2026-11-05T06:31:25.671604Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-3299281a3570188f3b04",
+        "unit": "check:web-array-warning",
+        "executor": "codex-array-recovery",
+        "input_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "candidate_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "started": "2026-11-05T06:31:51.048027Z",
+        "ended": "2026-11-05T06:32:01.735457Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-90b825d1d074ca5532e9",
+        "unit": "check:ui",
+        "executor": "codex-array-recovery",
+        "input_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "candidate_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "started": "2026-11-05T06:32:34.151892Z",
+        "ended": "2026-11-05T06:32:34.207502Z",
+        "status": "pass",
+        "reason": "生产构建在隔离 fixture 上验证桌面和 390px 预览提示、展开内容及无横向溢出；实际截图见本地证据。"
+      },
+      {
+        "id": "AT-010f7dd545052e4f4c2a",
+        "unit": "check:ux",
+        "executor": "codex-array-recovery",
+        "input_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "candidate_version": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+        "started": "2026-11-05T06:32:55.419911Z",
+        "ended": "2026-11-05T06:32:55.473098Z",
+        "status": "pass",
+        "reason": "实际页面展示需要核对的数组字段和保留原值；自动化覆盖字符串不翻译、空集合和布尔类型以及文本安全显示。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "core-initialization",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "0c2eee899b263dc78d5bf28b50431b95a68801152faf2f9ed1034ac7b7bc8367",
+        "at": "2026-11-05T06:30:49.058198Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-7732468e1f99729a1078.log": "76457bdfc1da1180501f9c3c425ad54147c9a66bf80eea6e1a870d16062cc119"
+        }
+      },
+      {
+        "id": "http-initialization",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "ae39a859bb82bdccde67054829b165655606a2e61e23491993048c13dc75d07a",
+        "at": "2026-11-05T06:31:16.901148Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-4a6207226e08c673a5d6.log": "e77ae9582ea9fb1d9182b790f72be3c6687b527117314444b564629815232b68"
+        }
+      },
+      {
+        "id": "web-array-warning",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "8d136ee90bc3bf5a076f69011dcd185a0bf03bf166c8d4c2974c8ca68fe8599f",
+        "at": "2026-11-05T06:31:51.149603Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-3299281a3570188f3b04.log": "b145181ecb530d6a2996055d74358204e58c0613381eb20a14ee3f4ee6286ef0"
+        }
+      },
+      {
+        "id": "ui",
+        "result": "pass",
+        "source": "scenario:codex-array-recovery",
+        "config_hash": "4f4ee40bb48c88523999ae610fc78835fb10a60f4a98be64d731716975d51c34",
+        "at": "2026-11-05T06:32:34.207144Z",
+        "artifact_hashes": {
+          ".v3-regression/initialization-arrays/desktop.jpg": "1f6f458d4d2439874e814e2b017bfbba7579156ff6cb5662323c1662289bb16e",
+          ".v3-regression/initialization-arrays/mobile.jpg": "adef32993a40e36fd04ae243e9473d34abe1a96567f5728ea07d4240f474798a",
+          ".v3-regression/initialization-arrays/verification.md": "dd12a0cff8df618ce6d9cf2f2bea9baaf7eaf7e642ed554429b70bf9b5001ddc",
+          "apps/core-go/internal/core/app.go": "0e3fdac99802ca960c7b24b9b40e03ce2361eac1eedf6d82f3f3c419791b5c69",
+          "apps/core-go/internal/core/initialization_array_recovery.go": "345281550537f91a49905845e5967ae91a1d52c0e04d55e4ea7de0d349c1d24e",
+          "apps/core-go/internal/core/initialization_array_recovery_test.go": "8289e3b3a0b602ae346d07a9ffc43984c8a5c9e22546124705bc1d3dc35bba65",
+          "apps/web/src/react-app/shared/InitializationRecoveryNotice.jsx": "3eaf94ddc9e7a85ff6b0baa53dc430a12bd14b5ebb5f9e4f3e03cc0171aedbf8",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "bcb4b5d6ff914856ec163cd819c88babf322a190a393089f4be16f145e3d5030",
+          "apps/web/test/demo-replica-creation-ui.test.mjs": "e62a4845707c9fba33c56d84ced348e503e00bb731ccb8ea459ce6e53d161fd6"
+        }
+      },
+      {
+        "id": "ux",
+        "result": "pass",
+        "source": "scenario:codex-array-recovery",
+        "config_hash": "fb6be8123c4029174f1872b04d8eeb614a0e0124e35dce4649e69e90a999738f",
+        "at": "2026-11-05T06:32:55.472716Z",
+        "artifact_hashes": {
+          ".v3-regression/initialization-arrays/desktop.jpg": "1f6f458d4d2439874e814e2b017bfbba7579156ff6cb5662323c1662289bb16e",
+          ".v3-regression/initialization-arrays/mobile.jpg": "adef32993a40e36fd04ae243e9473d34abe1a96567f5728ea07d4240f474798a",
+          ".v3-regression/initialization-arrays/verification.md": "dd12a0cff8df618ce6d9cf2f2bea9baaf7eaf7e642ed554429b70bf9b5001ddc",
+          "apps/core-go/internal/core/app.go": "0e3fdac99802ca960c7b24b9b40e03ce2361eac1eedf6d82f3f3c419791b5c69",
+          "apps/core-go/internal/core/initialization_array_recovery.go": "345281550537f91a49905845e5967ae91a1d52c0e04d55e4ea7de0d349c1d24e",
+          "apps/core-go/internal/core/initialization_array_recovery_test.go": "8289e3b3a0b602ae346d07a9ffc43984c8a5c9e22546124705bc1d3dc35bba65",
+          "apps/web/src/react-app/shared/InitializationRecoveryNotice.jsx": "3eaf94ddc9e7a85ff6b0baa53dc430a12bd14b5ebb5f9e4f3e03cc0171aedbf8",
+          "apps/web/src/react-app/views/CharacterWizard.jsx": "bcb4b5d6ff914856ec163cd819c88babf322a190a393089f4be16f145e3d5030",
+          "apps/web/test/demo-replica-creation-ui.test.mjs": "e62a4845707c9fba33c56d84ced348e503e00bb731ccb8ea459ce6e53d161fd6"
+        }
+      }
+    ]
+  }
+}

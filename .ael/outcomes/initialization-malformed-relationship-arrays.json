@@ -1,0 +1,78 @@
+{
+  "id": "initialization-malformed-relationship-arrays",
+  "definition_revision": 2,
+  "plan_revision": 2,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "bd37365e5e09af8cec0b66e06f6916238824000b5edcf949133e40dfcb741075",
+  "completed": "2026-11-05T06:32:59.840069Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "core-initialization",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "0c2eee899b263dc78d5bf28b50431b95a68801152faf2f9ed1034ac7b7bc8367",
+      "at": "2026-11-05T06:30:49.058198Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-7732468e1f99729a1078.log": "76457bdfc1da1180501f9c3c425ad54147c9a66bf80eea6e1a870d16062cc119"
+      }
+    },
+    {
+      "id": "http-initialization",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "ae39a859bb82bdccde67054829b165655606a2e61e23491993048c13dc75d07a",
+      "at": "2026-11-05T06:31:16.901148Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-4a6207226e08c673a5d6.log": "e77ae9582ea9fb1d9182b790f72be3c6687b527117314444b564629815232b68"
+      }
+    },
+    {
+      "id": "web-array-warning",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "8d136ee90bc3bf5a076f69011dcd185a0bf03bf166c8d4c2974c8ca68fe8599f",
+      "at": "2026-11-05T06:31:51.149603Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-3299281a3570188f3b04.log": "b145181ecb530d6a2996055d74358204e58c0613381eb20a14ee3f4ee6286ef0"
+      }
+    },
+    {
+      "id": "ui",
+      "result": "pass",
+      "source": "scenario:codex-array-recovery",
+      "config_hash": "4f4ee40bb48c88523999ae610fc78835fb10a60f4a98be64d731716975d51c34",
+      "at": "2026-11-05T06:32:34.207144Z",
+      "artifact_hashes": {
+        ".v3-regression/initialization-arrays/desktop.jpg": "1f6f458d4d2439874e814e2b017bfbba7579156ff6cb5662323c1662289bb16e",
+        ".v3-regression/initialization-arrays/mobile.jpg": "adef32993a40e36fd04ae243e9473d34abe1a96567f5728ea07d4240f474798a",
+        ".v3-regression/initialization-arrays/verification.md": "dd12a0cff8df618ce6d9cf2f2bea9baaf7eaf7e642ed554429b70bf9b5001ddc",
+        "apps/core-go/internal/core/app.go": "0e3fdac99802ca960c7b24b9b40e03ce2361eac1eedf6d82f3f3c419791b5c69",
+        "apps/core-go/internal/core/initialization_array_recovery.go": "345281550537f91a49905845e5967ae91a1d52c0e04d55e4ea7de0d349c1d24e",
+        "apps/core-go/internal/core/initialization_array_recovery_test.go": "8289e3b3a0b602ae346d07a9ffc43984c8a5c9e22546124705bc1d3dc35bba65",
+        "apps/web/src/react-app/shared/InitializationRecoveryNotice.jsx": "3eaf94ddc9e7a85ff6b0baa53dc430a12bd14b5ebb5f9e4f3e03cc0171aedbf8",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "bcb4b5d6ff914856ec163cd819c88babf322a190a393089f4be16f145e3d5030",
+        "apps/web/test/demo-replica-creation-ui.test.mjs": "e62a4845707c9fba33c56d84ced348e503e00bb731ccb8ea459ce6e53d161fd6"
+      }
+    },
+    {
+      "id": "ux",
+      "result": "pass",
+      "source": "scenario:codex-array-recovery",
+      "config_hash": "fb6be8123c4029174f1872b04d8eeb614a0e0124e35dce4649e69e90a999738f",
+      "at": "2026-11-05T06:32:55.472716Z",
+      "artifact_hashes": {
+        ".v3-regression/initialization-arrays/desktop.jpg": "1f6f458d4d2439874e814e2b017bfbba7579156ff6cb5662323c1662289bb16e",
+        ".v3-regression/initialization-arrays/mobile.jpg": "adef32993a40e36fd04ae243e9473d34abe1a96567f5728ea07d4240f474798a",
+        ".v3-regression/initialization-arrays/verification.md": "dd12a0cff8df618ce6d9cf2f2bea9baaf7eaf7e642ed554429b70bf9b5001ddc",
+        "apps/core-go/internal/core/app.go": "0e3fdac99802ca960c7b24b9b40e03ce2361eac1eedf6d82f3f3c419791b5c69",
+        "apps/core-go/internal/core/initialization_array_recovery.go": "345281550537f91a49905845e5967ae91a1d52c0e04d55e4ea7de0d349c1d24e",
+        "apps/core-go/internal/core/initialization_array_recovery_test.go": "8289e3b3a0b602ae346d07a9ffc43984c8a5c9e22546124705bc1d3dc35bba65",
+        "apps/web/src/react-app/shared/InitializationRecoveryNotice.jsx": "3eaf94ddc9e7a85ff6b0baa53dc430a12bd14b5ebb5f9e4f3e03cc0171aedbf8",
+        "apps/web/src/react-app/views/CharacterWizard.jsx": "bcb4b5d6ff914856ec163cd819c88babf322a190a393089f4be16f145e3d5030",
+        "apps/web/test/demo-replica-creation-ui.test.mjs": "e62a4845707c9fba33c56d84ced348e503e00bb731ccb8ea459ce6e53d161fd6"
+      }
+    }
+  ]
+}

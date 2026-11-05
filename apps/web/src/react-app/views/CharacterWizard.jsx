@@ -53,6 +53,7 @@ import JsonDetails from "../shared/JsonDetails";
 import CreationPreviewValue, {creationPreviewLabel, hasCreationPreviewValue} from "../shared/CreationPreviewValue";
 import CreationStructureEditor from "../shared/CreationStructureEditor";
 import CreationScaleHint, { CreationScaleEnds } from "../shared/CreationScaleHint";
+import InitializationRecoveryNotice from "../shared/InitializationRecoveryNotice";
 import Combobox from "../shared/Combobox";
 import { WorldArt } from "../shared/WorkspaceArtwork";
 import WorkspaceCharacterSketch from "../shared/WorkspaceCharacterSketch";
@@ -1089,6 +1090,7 @@ export default function CharacterWizardView({ model: m }) {
                     {definitionError}
                   </InlineFeedback>
                 )}
+                <InitializationRecoveryNotice extensions={definition?.extensions ?? d.analysis?.extensions}/>
                 {reviewTab === "identity" && (
                   <>
                     <div className="creation-section-intro">

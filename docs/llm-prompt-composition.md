@@ -47,7 +47,7 @@
 | takeover_judge | Judge 协议 + 本轮 user/candidate/接管规则/控制与关系事实 + 可选 recent references | 无全量 H/M | turn_takeover.go；conversation_runtime.go |
 | takeover_reply | 接管任务规则 + caller 提供的选定人格、上下文及 messages + 授权 Tools | 取决于 caller | conversation_runtime.go |
 | wardrobe_preparation | 分阶段准备/选衣规则 + 穿搭所需身份/性格/偏好 + 本地时间/当前情境/实际身体与穿戴引用 + 唯一衣物目录/方案成员引用 | 0 | wardrobe_preparation.go；wardrobe_preparation_prompt.go |
-| initialization | 初始化解析协议（显式完整姓名包含前缀/连字符，不拆为昵称） + Owner 描述一次 + 预览字段、类型和输出结构提示；自然语言分析规范化后、持久化前校正明确姓名，保留 JSON 导入字段 | 0 | app.go；model_tasks.go；initialization_name.go |
+| initialization | 初始化解析协议（显式完整姓名包含前缀/连字符，不拆为昵称） + Owner 描述一次 + 预览字段、类型、输出结构和按 schema 生成的数组路径/元素说明；自然语言分析先恢复格式错误的数组并保留原值，再校正明确姓名，JSON 导入继续使用原校验 | 0 | app.go；model_tasks.go；initialization_name.go；initialization_array_recovery.go |
 | persona_compilation | 人格编译协议 + 选定 profile 和共享身份；必要时校验反馈 | 0 | persona_compilation.go |
 | media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实；头像子任务使用冻结角色设定、已确认外貌和视觉偏好，由角色选择头像构图与画风；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；generated_avatar.go；media_capture_plan.go；media_prompt_branches.go |
 | media_quality | 质量检查协议 + 冻结媒体概念/实际 renderer prompt/重试情况 + 图片；角色设定图和头像的检查同时携带已确认参考图与待审候选图，只有真实通过才自动接受 | 0 | media_quality.go；model_tasks.go |
@@ -78,7 +78,12 @@ Core Persona 不改写。`r4_remaining_regression_test.go` 覆盖该去重边界
 初始化协议中的规范 JSON 形状显式列出第三步的身份、共同性格、表达和生活资料
 字段。外貌说明保留描述原文；共同性格与 0–1 表达参数使用数字，回应延迟为
 秒，文本表达使用字符串。描述未支持的字段可省略或为 null，不能为了填满预览
-编造事实。模型漏掉字段时，
+编造事实。物理请求还根据初始化 schema 列出固定数组路径、元素类型、对象必需
+字段及允许对象或数组的联合类型；关系种子与初始关系都要求明确指向用户，不把
+普通生活事实转换成关系。模型仍返回不匹配的数组时，仅在自然语言模型分析路径
+按声明的字段恢复：保留合法内容，将无法安全采用的原值和提示放入可审阅扩展；
+目标位置、衣物编号和人格引用不能因过滤错误项而静默指向其他内容。用户直接
+导入 JSON 和激活时继续执行既有校验。模型漏掉字段时，
 Core 延续空值和空容器兜底，让用户在预览中补充。初始衣物的规范位置是
 `core_persona.life_profile.appearance.wardrobe_items`；预览编辑此来源并保留
 已有草稿的原始结构。模型将衣物数组放在 `life_profile.wardrobe_items` 时，
