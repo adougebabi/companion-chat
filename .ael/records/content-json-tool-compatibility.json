@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "id": "content-json-tool-compatibility",
+  "definition_hash": "328501123cfa51066d3dec55618344c8087daf219f36335bb8d8ce2d0813fd14",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-05T09:27:11.60891Z",
+  "updated": "2026-11-05T10:04:05.507031Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-3e9c9dbefa06b620d64d",
+        "unit": "define",
+        "executor": "codex-json-compat",
+        "input_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "candidate_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "started": "2026-11-05T09:27:42.768834Z",
+        "ended": "2026-11-05T09:29:40.722264Z",
+        "status": "pass",
+        "reason": "已明确先运行真实模型无原生工具协议试验，再逐层实现按模型用途显式启用的 JSON 兼容；调用须进入现有 Agent 执行与真实回执，默认原生模式和已冻结协议不变。现行原生唯一权威合同由用户本次明确授权新增独立兼容协议，兼容身份不得伪称 Provider 原生。"
+      },
+      {
+        "id": "AT-e6a9c82f4db510eb2bfc",
+        "unit": "analysis",
+        "executor": "codex-json-compat",
+        "input_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "candidate_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "started": "2026-11-05T09:30:16.858788Z",
+        "ended": "2026-11-05T09:42:30.878801Z",
+        "status": "pass",
+        "reason": "真实 Cydonia 先行试验：无原生 tools 时，单靠文字协议在完整聊天历史下未按协议返回；加入 JSON 对象输出和显式 kind 信封后，完整上下文三次均返回图片工具意图并在测试替身回执后继续，普通文本及主动唤醒可返回 final。方案仅在显式绑定上采用文本 JSON 传输，转换发生在 ADK 运行前并沿用当前工具执行、权限及真实回执；保留原生默认及旧冻结配置。"
+      },
+      {
+        "id": "AT-15da867c5c4280386b3e",
+        "unit": "execute",
+        "executor": "codex-json-compat",
+        "input_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "candidate_version": "",
+        "started": "2026-11-05T09:43:49.964802Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}
