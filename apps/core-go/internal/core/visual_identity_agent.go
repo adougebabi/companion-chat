@@ -84,10 +84,22 @@ func (p visualIdentityPhysicalRequestPolicy) DecidePhysicalModelRequest(ctx cont
 	if err != nil {
 		return physicalModelRequestDecision{}, err
 	}
-	if state.Attempt == p.attempt && state.ActionRequired == p.expectedAction {
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+	return visualIdentityCheckpointRequestDecision(state, p.attempt, p.expectedAction), nil
+}
+
+func visualIdentityCheckpointRequestDecision(state visualIdentityAgentState, attempt int, expectedAction string) physicalModelRequestDecision {
+	if state.Attempt == attempt && state.ActionRequired == expectedAction {
+		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}
 	}
-	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+	// The durable checkpoint has already advanced. Keep its actual state as an
+	// operational fallback if a provider emits another ToolCall despite being
+	// sent an empty catalog; never dispatch the already fulfilled stage again.
+	result := visualIdentityAgentOutputFromState(state, "已记录当前阶段结果，按实际状态继续。")
+	return physicalModelRequestDecision{
+		ToolChoice:       schema.ToolChoiceForbidden,
+		AllowedToolNames: []string{},
+		ToolCallFallback: schema.AssistantMessage(jsonString(map[string]any{"status": result.Status, "stage": result.Stage, "summary": result.Summary}), nil),
+	}
 }
 
 const visualIdentityAgentInstruction = `You own one complete durable Visual Identity task. Use only the supplied session state and the dedicated tools.

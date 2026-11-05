@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "id": "visual-identity-repeat-tool",
+  "definition_hash": "6b80da4498bf1d72d325f9d6d76904e70b43b5ecf62da15776cce6b6b65e27da",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "5fecfec41c5e41e2a872362a5f13c649223627825465576f35954a28c6feb180",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-05T01:40:11.360433Z",
+  "updated": "2026-11-05T02:00:49.448477Z",
+  "completed": "2026-11-05T02:00:49.448331Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-605205f609808df35f77",
+        "unit": "define",
+        "executor": "codex-visual-loop",
+        "input_version": "a51d9d46ab03ee632ee5a675a26c342792aab791fb7a378cc81c680789c5b73a",
+        "candidate_version": "a51d9d46ab03ee632ee5a675a26c342792aab791fb7a378cc81c680789c5b73a",
+        "started": "2026-11-05T01:40:45.837977Z",
+        "ended": "2026-11-05T01:41:40.229681Z",
+        "status": "pass",
+        "reason": "用户提供的两次模型响应均请求相同的 initial 视觉候选工具，当前已停止；没有工具回执，不能断言现场执行结果。受控 HTTP overlay 在首个工具已受理后复现连续五次同工具调用；仅修复已确认的 checkpoint 完成后重复请求路径，不触碰业务数据或引入 token 限额。"
+      },
+      {
+        "id": "AT-f30f1c6a536766a8c3a3",
+        "unit": "analysis",
+        "executor": "codex-visual-loop",
+        "input_version": "a51d9d46ab03ee632ee5a675a26c342792aab791fb7a378cc81c680789c5b73a",
+        "candidate_version": "a51d9d46ab03ee632ee5a675a26c342792aab791fb7a378cc81c680789c5b73a",
+        "started": "2026-11-05T01:42:58.813229Z",
+        "ended": "2026-11-05T01:43:38.610369Z",
+        "status": "pass",
+        "reason": "逐次物理请求均记录成功，不能证明业务成功；截图中的两次 response 确为相同 initial 工具调用。旧策略在持久状态推进后仍发送 auto 和原工具，受控 HTTP 模拟允许连续五次同调用。修复拟仅在权威 checkpoint 已推进后撤下该阶段全部工具并请求最终结果；若 Provider 无视空工具列表，使用实际状态的运行结果阻止调用，不伪造图片/审核通过。未推进时仍强制允许合法纠错，不加 token 上限或全局轮次限制；现场缺工具回执，不能断言具体现场错误或任务最终结果。"
+      },
+      {
+        "id": "AT-90323b96001c60ac70ea",
+        "unit": "execute",
+        "executor": "codex-visual-loop",
+        "input_version": "a51d9d46ab03ee632ee5a675a26c342792aab791fb7a378cc81c680789c5b73a",
+        "candidate_version": "5fecfec41c5e41e2a872362a5f13c649223627825465576f35954a28c6feb180",
+        "started": "2026-11-05T01:44:11.583981Z",
+        "ended": "2026-11-05T01:58:42.223366Z",
+        "status": "pass",
+        "reason": "已受理 checkpoint 之后的模型请求不再携带该阶段工具；若 Provider 无视空工具列表重复请求，保留实际 response 并按数据库里的真实阶段收尾。未推进时继续允许工具参数纠错，失败和无效最终输出不会冒充成功。流式/非流式本地 HTTP、隔离 PostgreSQL 单一 intent 与恢复、MinIO 实际图片和参数纠错及相关视觉/工作流回归已执行。用户现场没有工具回执，实际为何停止不能断言。"
+      },
+      {
+        "id": "AT-6654d4a3e87134e8cf05",
+        "unit": "check:loop-physical",
+        "executor": "codex-visual-loop",
+        "input_version": "5fecfec41c5e41e2a872362a5f13c649223627825465576f35954a28c6feb180",
+        "candidate_version": "5fecfec41c5e41e2a872362a5f13c649223627825465576f35954a28c6feb180",
+        "started": "2026-11-05T01:59:25.063731Z",
+        "ended": "2026-11-05T01:59:45.104819Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-d0c0950f804325374be5",
+        "unit": "check:loop-scenario",
+        "executor": "codex-visual-loop",
+        "input_version": "5fecfec41c5e41e2a872362a5f13c649223627825465576f35954a28c6feb180",
+        "candidate_version": "5fecfec41c5e41e2a872362a5f13c649223627825465576f35954a28c6feb180",
+        "started": "2026-11-05T02:00:43.88962Z",
+        "ended": "2026-11-05T02:00:44.010315Z",
+        "status": "pass",
+        "reason": "用户两次相同 initial 工具响应已核对；修复前受控 HTTP 复现已受理后重复请求，修复后在一次性 PostgreSQL 验证一条意图、一次工具执行、原始模型结果及 pending 恢复；一次性 MinIO 验证真实图片与参数纠错，流式及非流式物理请求测试通过。现场缺工具回执，未声称真实停止原因。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "loop-physical",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "e1d1a1c5004d86a6cfc3f086a355b91465b54ac8393d10dad1364e2d1823feb7",
+        "at": "2026-11-05T01:59:25.228893Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-6654d4a3e87134e8cf05.log": "b628cea0fa0a95b2ebd8b0d5ab07fe3bc88fea5ae11092028ec6fb9084fd1a79"
+        }
+      },
+      {
+        "id": "loop-scenario",
+        "result": "pass",
+        "source": "scenario:codex-visual-loop",
+        "config_hash": "c3e50d0fcef3f4b462453357771a6a1c16f6bb40884b657fb958660bd6dcc85c",
+        "at": "2026-11-05T02:00:44.009912Z",
+        "artifact_hashes": {
+          ".v3-regression/visual-identity-repeat-tool/verification.md": "81a2ecc0baaa27e45e201b21ef7ccf71122da68a4741e98d5c977256c77044f7",
+          "apps/core-go/internal/core/eino_model_request_policy.go": "e9669bb9cfca71efc17de1e1fc4f8ab6da0390a1c7d445ef6485979bb260b579",
+          "apps/core-go/internal/core/visual_identity_agent.go": "f53f0bb4ae3e3a42c8b2599e7e6a92d40b39c6459dafb6759cc84fbf6ec6fc1e",
+          "apps/core-go/internal/core/visual_identity_tools.go": "9ca6d66fd1c14a6ee6971844f4d21e2bf0afe4adb87d217ca0033de05da85f20",
+          "apps/core-go/internal/core/visual_identity_tools_test.go": "b0e57a31ccb98741c1ebb213d0ef9a9954aa09f985192474130c719ccbf21974"
+        }
+      }
+    ]
+  }
+}

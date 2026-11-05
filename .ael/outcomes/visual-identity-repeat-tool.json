@@ -1,0 +1,36 @@
+{
+  "id": "visual-identity-repeat-tool",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "5fecfec41c5e41e2a872362a5f13c649223627825465576f35954a28c6feb180",
+  "completed": "2026-11-05T02:00:49.448331Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "loop-physical",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "e1d1a1c5004d86a6cfc3f086a355b91465b54ac8393d10dad1364e2d1823feb7",
+      "at": "2026-11-05T01:59:25.228893Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-6654d4a3e87134e8cf05.log": "b628cea0fa0a95b2ebd8b0d5ab07fe3bc88fea5ae11092028ec6fb9084fd1a79"
+      }
+    },
+    {
+      "id": "loop-scenario",
+      "result": "pass",
+      "source": "scenario:codex-visual-loop",
+      "config_hash": "c3e50d0fcef3f4b462453357771a6a1c16f6bb40884b657fb958660bd6dcc85c",
+      "at": "2026-11-05T02:00:44.009912Z",
+      "artifact_hashes": {
+        ".v3-regression/visual-identity-repeat-tool/verification.md": "81a2ecc0baaa27e45e201b21ef7ccf71122da68a4741e98d5c977256c77044f7",
+        "apps/core-go/internal/core/eino_model_request_policy.go": "e9669bb9cfca71efc17de1e1fc4f8ab6da0390a1c7d445ef6485979bb260b579",
+        "apps/core-go/internal/core/visual_identity_agent.go": "f53f0bb4ae3e3a42c8b2599e7e6a92d40b39c6459dafb6759cc84fbf6ec6fc1e",
+        "apps/core-go/internal/core/visual_identity_tools.go": "9ca6d66fd1c14a6ee6971844f4d21e2bf0afe4adb87d217ca0033de05da85f20",
+        "apps/core-go/internal/core/visual_identity_tools_test.go": "b0e57a31ccb98741c1ebb213d0ef9a9954aa09f985192474130c719ccbf21974"
+      }
+    }
+  ]
+}

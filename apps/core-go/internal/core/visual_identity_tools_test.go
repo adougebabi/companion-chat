@@ -30,8 +30,9 @@ type visualIdentityToolFixture struct {
 }
 
 type visualIdentityRequestPolicyInvoker struct {
-	mu         sync.Mutex
-	progressed bool
+	mu          sync.Mutex
+	progressed  bool
+	invocations int
 }
 
 type visualIdentityReviewWireInvoker struct{ progressed bool }
@@ -68,6 +69,7 @@ func (i *visualIdentityRequestPolicyInvoker) ExecuteWithID(_ context.Context, id
 		return "", errors.New("unexpected Visual Identity native call")
 	}
 	i.progressed = true
+	i.invocations++
 	return jsonString(map[string]any{"status": "accepted", "output": map[string]any{"status": "pending"}}), nil
 }
 
@@ -75,6 +77,12 @@ func (i *visualIdentityRequestPolicyInvoker) durableProgress() bool {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	return i.progressed
+}
+
+func (i *visualIdentityRequestPolicyInvoker) invocationCount() int {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	return i.invocations
 }
 
 func visualIdentityRequestForcesTool(payload map[string]any, name string) bool {
@@ -537,13 +545,60 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 	if !visualIdentityRequestForcesTool(first, visualIdentityGenerateCandidateCapabilityName) || first["response_format"] != nil || len(firstTools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(firstTools[0])["function"])["name"]), visualIdentityGenerateCandidateCapabilityName) {
 		t.Fatalf("first request did not enforce the stage Tool without final grammar: %#v", first)
 	}
-	secondTools := arrayValue(second["tools"])
-	if second["tool_choice"] != "auto" || second["response_format"] != nil || len(secondTools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(secondTools[0])["function"])["name"]), visualIdentityGenerateCandidateCapabilityName) {
-		t.Fatalf("optional request lost auto/bounded stage catalog or retained final grammar: %#v", second)
+	if len(arrayValue(second["tools"])) != 0 || second["tool_choice"] != nil || second["response_format"] == nil {
+		t.Fatalf("final request still offered the committed stage Tool: %#v", second)
 	}
 	receipt, found := formalAdapterResultFromPayload(second, "visual-generate-call")
 	if !found || stringValue(mapValue(receipt["output"])["status"]) != "pending" {
 		t.Fatalf("second request lost model-facing pending receipt: %#v", receipt)
+	}
+}
+
+func TestVisualIdentityAgentDoesNotReplayCommittedCandidateWhenModelRepeats(t *testing.T) {
+	fixture := newVisualIdentityToolFixture(t)
+	var requests []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		var payload map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Error(err)
+			return
+		}
+		requests = append(requests, payload)
+		if len(requests) > 2 {
+			t.Error("model was called again after the candidate was committed")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{
+			"finish_reason": "tool_calls", "message": map[string]any{"role": "assistant", "content": "", "tool_calls": fakeProviderNativeToolCalls([]map[string]any{{
+				"call_id": fmt.Sprintf("candidate-repeat-%d", len(requests)), "capability_name": visualIdentityGenerateCandidateCapabilityName, "arguments": map[string]any{"reason": "initial"},
+			}})},
+		}}})
+	}))
+	defer server.Close()
+	endpointID := "visual-repeat-endpoint-" + stableDigest(fixture.sessionID)[:20]
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES($1,'openai_compatible',$2,'visual-repeat-secret','ready',now())`, endpointID, server.URL); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('generic_llm',$1,'visual-repeat-model','structured_output,tool_calling',4096,30,'{}')`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	fixture.app.Provider.HTTP = server.Client()
+	result, err := fixture.app.RunVisualIdentityAgent(fixture.ctx, VisualIdentityAgentInput{SessionID: fixture.sessionID})
+	if err != nil || result.Status != "waiting" || result.Stage != "image_pending" || result.MediaIntentID == "" {
+		t.Fatalf("actual pending candidate not preserved: %#v %v", result, err)
+	}
+	if len(requests) != 2 || len(arrayValue(requests[1]["tools"])) != 0 {
+		t.Fatalf("the second physical request should have no Tools: %#v", requests)
+	}
+	var intents, executions, rawResponses int
+	if err := fixture.repository.Pool().QueryRow(fixture.ctx, `SELECT (SELECT count(*) FROM public.media_intents WHERE owner_fluctlight_id=$1),(SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$1 AND capability_name=$2),(SELECT count(*) FROM public.diagnostic_model_runs WHERE correlation_id=$3 AND jsonb_array_length(response->'tool_calls')=1)`, fixture.fluctlightID, visualIdentityGenerateCandidateCapabilityName, "visual_identity:"+fixture.sessionID).Scan(&intents, &executions, &rawResponses); err != nil || intents != 1 || executions != 1 || rawResponses != 2 {
+		t.Fatalf("candidate intent=%d executions=%d actual model responses=%d err=%v", intents, executions, rawResponses, err)
+	}
+	resumed, err := fixture.app.RunVisualIdentityAgent(fixture.ctx, VisualIdentityAgentInput{SessionID: fixture.sessionID})
+	if err != nil || resumed.MediaIntentID != result.MediaIntentID || resumed.Status != "waiting" || len(requests) != 2 {
+		t.Fatalf("pending resume repeated or lost the accepted candidate: %#v %v requests=%d", resumed, err, len(requests))
 	}
 }
 
@@ -556,10 +611,11 @@ func TestVisualIdentityPhysicalRequestStagesGenerateAndStream(t *testing.T) {
 			trace := &ADKCapabilityTrace{}
 			ctx := WithADKCapabilityInvoker(context.Background(), invoker, trace)
 			ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+				state := visualIdentityAgentState{Attempt: 1, SessionStatus: "running", WaitingStage: "image_pending"}
 				if !invoker.durableProgress() {
-					return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+					state.ActionRequired = visualIdentityGenerateCandidateCapabilityName
 				}
-				return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+				return visualIdentityCheckpointRequestDecision(state, 1, visualIdentityGenerateCandidateCapabilityName), nil
 			}))
 			requests := make([]map[string]any, 0, 2)
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
@@ -573,8 +629,11 @@ func TestVisualIdentityPhysicalRequestStagesGenerateAndStream(t *testing.T) {
 					t.Errorf("stream wire=%#v want=%t", payload["stream"], streaming)
 				}
 				tools := arrayValue(payload["tools"])
-				if len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), visualIdentityGenerateCandidateCapabilityName) {
+				if !invoker.durableProgress() && (len(tools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(tools[0])["function"])["name"]), visualIdentityGenerateCandidateCapabilityName)) {
 					t.Errorf("stage catalog=%#v", tools)
+				}
+				if invoker.durableProgress() && (len(tools) != 0 || payload["tool_choice"] != nil) {
+					t.Errorf("completed stage Tool remained in final request: %#v", payload)
 				}
 				message := map[string]any{"role": "assistant", "content": jsonString(map[string]any{"status": "waiting", "stage": "image_pending", "summary": "accepted"})}
 				finish := "stop"
@@ -612,8 +671,108 @@ func TestVisualIdentityPhysicalRequestStagesGenerateAndStream(t *testing.T) {
 			if !visualIdentityRequestForcesTool(requests[0], visualIdentityGenerateCandidateCapabilityName) || requests[0]["response_format"] != nil {
 				t.Fatalf("execution request=%#v", requests[0])
 			}
-			if requests[1]["tool_choice"] != "auto" || requests[1]["response_format"] != nil {
+			if len(arrayValue(requests[1]["tools"])) != 0 || requests[1]["tool_choice"] != nil || requests[1]["response_format"] == nil {
 				t.Fatalf("final request=%#v", requests[1])
+			}
+		})
+	}
+}
+
+func TestVisualIdentityCompletedCheckpointStopsRepeatedTool(t *testing.T) {
+	t.Run("state stays authoritative", func(t *testing.T) {
+		pending := visualIdentityAgentState{Attempt: 1, SessionStatus: "running", ActionRequired: visualIdentityGenerateCandidateCapabilityName}
+		decision := visualIdentityCheckpointRequestDecision(pending, 1, visualIdentityGenerateCandidateCapabilityName)
+		if decision.ToolChoice != schema.ToolChoiceForced || decision.AllowedToolNames != nil || decision.ToolCallFallback != nil {
+			t.Fatalf("uncommitted checkpoint cannot correct a ToolCall: %#v", decision)
+		}
+		for _, sample := range []struct {
+			state  visualIdentityAgentState
+			status string
+			stage  string
+		}{
+			{visualIdentityAgentState{Attempt: 1, SessionStatus: "running", WaitingStage: "image_pending"}, "waiting", "image_pending"},
+			{visualIdentityAgentState{Attempt: 1, SessionStatus: "awaiting_review"}, "awaiting_review", "awaiting_review"},
+			{visualIdentityAgentState{Attempt: 1, SessionStatus: "completed"}, "completed", "completed"},
+			{visualIdentityAgentState{Attempt: 1, SessionStatus: "failed"}, "failed", "failed"},
+		} {
+			decision := visualIdentityCheckpointRequestDecision(sample.state, 1, visualIdentityGenerateCandidateCapabilityName)
+			if decision.ToolChoice != schema.ToolChoiceForbidden || decision.AllowedToolNames == nil || len(decision.AllowedToolNames) != 0 || decision.ToolCallFallback == nil {
+				t.Fatalf("advanced checkpoint still permits a ToolCall: %#v", decision)
+			}
+			var final map[string]any
+			if err := json.Unmarshal([]byte(decision.ToolCallFallback.Content), &final); err != nil || final["status"] != sample.status || final["stage"] != sample.stage {
+				t.Fatalf("fallback changed actual state: %#v %v", final, err)
+			}
+		}
+	})
+	for _, streaming := range []bool{false, true} {
+		t.Run(fmt.Sprintf("stream=%t", streaming), func(t *testing.T) {
+			invoker := &visualIdentityRequestPolicyInvoker{}
+			definitions := visualIdentityStageDefinitions(capabilityCatalog(mustCapabilityRegistry(builtinCapabilities(&App{})...), CapabilitySurfaceVisualIdentity), visualIdentityGenerateCandidateCapabilityName)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			ctx = WithADKCapabilityInvoker(ctx, invoker, &ADKCapabilityTrace{})
+			ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+				state := visualIdentityAgentState{Attempt: 1, SessionStatus: "running", WaitingStage: "image_pending"}
+				if !invoker.durableProgress() {
+					state.ActionRequired = visualIdentityGenerateCandidateCapabilityName
+				}
+				return visualIdentityCheckpointRequestDecision(state, 1, visualIdentityGenerateCandidateCapabilityName), nil
+			}))
+			var requests []map[string]any
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+				var payload map[string]any
+				if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+					t.Error(err)
+					return
+				}
+				requests = append(requests, payload)
+				if len(requests) > 2 {
+					t.Error("provider was called again after the checkpoint advanced")
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				// Deliberately repeat the user's initial ToolCall even when the
+				// second request explicitly contains no Tool catalog.
+				message := map[string]any{"role": "assistant", "content": "", "tool_calls": fakeProviderNativeToolCalls([]map[string]any{{"call_id": fmt.Sprintf("repeat-%d", len(requests)), "capability_name": visualIdentityGenerateCandidateCapabilityName, "arguments": map[string]any{"reason": "initial"}}})}
+				if streaming {
+					w.Header().Set("Content-Type", "text/event-stream")
+					delta := cloneMap(message)
+					delete(delta, "role")
+					for index, call := range arrayValue(delta["tool_calls"]) {
+						mapValue(call)["index"] = index
+					}
+					_, _ = fmt.Fprintf(w, "data: %s\n\ndata: [DONE]\n\n", jsonString(map[string]any{"id": "visual-repeat", "model": "fake", "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": "tool_calls"}}}))
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": message, "finish_reason": "tool_calls"}}})
+			}))
+			defer server.Close()
+			definition, _ := FormalAgentDefinitionByID(FormalAgentVisualIdentity)
+			response, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{
+				Assignment: providerAssignment{Role: "generic_llm", BaseURL: server.URL, ModelID: "fake", Timeout: 10 * time.Second},
+				Role:       "generic_llm", Scenario: "visual_identity", Messages: []map[string]any{{"role": "user", "content": "generate"}}, Definitions: definitions,
+				JSONMode: true, SchemaName: "visual_identity_agent_response", ResponseSchema: visualIdentityAgentResponseSchema(),
+				ProviderRequestID: "visual-repeat", CorrelationID: "visual-repeat", Agent: definition, EnableStreaming: streaming,
+			})
+			if err != nil || response.Message == nil {
+				t.Fatalf("repeat handling failed: %#v %v", response, err)
+			}
+			if len(requests) != 2 || invoker.invocationCount() != 1 {
+				t.Fatalf("requests=%d tool executions=%d", len(requests), invoker.invocationCount())
+			}
+			if len(arrayValue(requests[1]["tools"])) != 0 || requests[1]["tool_choice"] != nil {
+				t.Fatalf("second request still exposes the stage Tool: %#v", requests[1])
+			}
+			for _, request := range requests {
+				if request["max_tokens"] != nil || request["max_completion_tokens"] != nil {
+					t.Fatal("visual checkpoint requests must not impose an output token cap")
+				}
+			}
+			var final map[string]any
+			if err := json.Unmarshal([]byte(response.Message.Content), &final); err != nil || final["status"] != "waiting" || final["stage"] != "image_pending" {
+				t.Fatalf("fallback did not preserve the actual pending state: %#v %v", final, err)
 			}
 		})
 	}
@@ -626,10 +785,11 @@ func TestVisualIdentityReviewPhysicalRequestRetainsImageAndModelEvidenceSchema(t
 		return VisionUnderstandingSettings{Enabled: true, ModelRef: visionUnderstandingModelRole}, nil
 	})
 	ctx = withPhysicalModelRequestPolicy(ctx, physicalModelRequestPolicyFunc(func(context.Context) (physicalModelRequestDecision, error) {
+		state := visualIdentityAgentState{Attempt: 1, SessionStatus: "character_sheet_pending", WaitingStage: "character_sheet_pending"}
 		if !invoker.progressed {
-			return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true}, nil
+			state.ActionRequired = visualIdentityCommitReviewCapabilityName
 		}
-		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
+		return visualIdentityCheckpointRequestDecision(state, 1, visualIdentityCommitReviewCapabilityName), nil
 	}))
 	var requests []map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {

@@ -53,7 +53,7 @@
 | media_quality | 质量检查协议 + 冻结媒体概念/实际 renderer prompt/重试情况 + 图片；角色设定图和头像的检查同时携带已确认参考图与待审候选图，只有真实通过才自动接受 | 0 | media_quality.go；model_tasks.go |
 | visual_identity_vision | 视觉检查协议 + identity snapshot/视图要求/renderer 约束 + 图片 | 0 | model_tasks.go |
 | visual_identity_patch | 修正决策协议 + candidate/snapshot/constraints/vision findings | 0 | model_tasks.go |
-| visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查的真实观察、评分与修正建议 + 必要图片；参考图与设定图共用角色卡模板，头像使用单人肖像模板，重新生成携带对应评审反馈 | 0；尝试历史是任务历史 | visual_identity_agent.go；visual_identity.go |
+| visual_identity | 视觉身份流程规则 + 身份快照/任务状态/尝试历史/前次审查的真实观察、评分与修正建议 + 必要图片；参考图与设定图共用角色卡模板，头像使用单人肖像模板，重新生成携带对应评审反馈。阶段落库后撤下已执行工具并按真实状态收尾 | 0；尝试历史是任务历史 | visual_identity_agent.go；visual_identity.go |
 | conversation_summary | 累计：旧摘要+Actor 更正+源消息；片段：真实参与者/说话人别名与名称+时间范围+源消息，显式 JSON 合同；daily：日期/时区+segments | 指定源范围，非通用 H | conversation_summary.go；model_tasks.go |
 | schedule_generation | 排程规则 + 含已声明住所的 identity/life/goals/intentions/outcomes/承诺 + 共享世界规则/时区/真实地点候选 | 0 | model_tasks.go；schedule_places.go |
 | native_cognition | 认知协议 + Working Persona + D/M + 本次事件/事实 | 0，无 S | model_tasks.go |
