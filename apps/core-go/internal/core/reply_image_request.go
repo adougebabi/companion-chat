@@ -20,7 +20,7 @@ func replyWriterDefinitions(input ReplyContextInput) []CapabilityDefinition {
 	}
 	definitions := []CapabilityDefinition{}
 	if input.CapabilityFacts["image_generation_registered"] == true {
-		definitions = append(definitions, (&replyImageRequestTool{}).Definition())
+		definitions = append(definitions, (&replyImageRequestTool{expressionVersion: input.ExpressionVersion}).Definition())
 	}
 	if input.CapabilityFacts["persona_detail_registered"] == true && replyUsesTextChatProtocol(input.ExpressionVersion) {
 		definitions = append(definitions, personaDetailCapabilityDefinition())
@@ -32,14 +32,19 @@ func replyWriterDefinitions(input ReplyContextInput) []CapabilityDefinition {
 // or a publication. The existing reply-owned media pipeline executes that
 // handoff under the original source/permission/Kev fences after preparation.
 type replyImageRequestTool struct {
-	mu       sync.Mutex
-	requests []ReplyMediaRequest
-	byCall   map[string]string
+	mu                sync.Mutex
+	requests          []ReplyMediaRequest
+	byCall            map[string]string
+	expressionVersion string
 }
 
-func (*replyImageRequestTool) Definition() CapabilityDefinition {
+func (t *replyImageRequestTool) Definition() CapabilityDefinition {
+	description := "Request a real image/selfie for this chat reply draft. Describe the desired scene in intent; the server hands it to the image generator. Call this tool ONLY when the user explicitly asks for a photo/selfie/picture, or when agreeing to send one. Never call during ordinary text chat. Do not print SVG/path data or claim sending in text; finish with ordinary persona text. At most two requests."
+	if firstString(t.expressionVersion, factOnlyReplyPromptVersion) == factOnlyReplyV7PromptVersion {
+		description = "当用户要求看图、生成图片或发送照片时，必须且只能调用此工具。绝对不要在 content 中用文字描述图片的样子，直接调用！当你决定主动分享图片或自拍时，也必须调用此工具。在 intent 中描述画面；每次回复最多请求两张。工具仅登记请求，不代表图片已生成或发送；按真实结果继续回复。"
+	}
 	return CapabilityDefinition{Name: replyImageRequestName, Version: "v1", Type: CapabilityTypeQuery,
-		Description:  "Request a real image/selfie for this chat reply draft. Describe the desired scene in intent; the server hands it to the image generator. Call this tool ONLY when the user explicitly asks for a photo/selfie/picture, or when agreeing to send one. Never call during ordinary text chat. Do not print SVG/path data or claim sending in text; finish with ordinary persona text. At most two requests.",
+		Description:  description,
 		InputSchema:  objectSchema(map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 2048}}, []string{"intent"}, false),
 		OutputSchema: openObjectSchema(), Surfaces: []CapabilitySurface{CapabilitySurfaceConversation}, SupportsCancel: true,
 		SideEffectClass: "read_only", ConcurrencyClass: "parallel", FailurePolicy: FailurePolicyOptionalInternal, SuccessBoundary: "draft_request_recorded"}

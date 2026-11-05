@@ -68,10 +68,12 @@ func TestReplyIdentityAndMarkdownPolicyReachWriterTransport(t *testing.T) {
 	}
 }
 
-func TestReplyExpressionHistoricalProtocolsRemainFrozen(t *testing.T) {
+func TestReplyExpressionProtocolsRemainFrozen(t *testing.T) {
 	for _, sample := range []struct{ version, hash string }{
 		{factOnlyReplyLegacyPromptVersion, "a8df314d706cb6b1786e677181bb4665"},
 		{factOnlyReplyV5PromptVersion, "87fe7f55fcaa4684ca9356a2493a4442"},
+		{"fact-only-reply.v6", "3bfa91b565ec90cdd8450bd305a21cde"},
+		{factOnlyReplyV7PromptVersion, "7708ed509ac8db36dda9fa8147abf094"},
 	} {
 		t.Run(sample.version, func(t *testing.T) {
 			stored := map[string]any{"reply_contract": map[string]any{"version": sample.version, "protocol_hash": sample.hash, "view_version": replyViewVersion, "medium_version": replyMediumVersion}}
@@ -81,14 +83,14 @@ func TestReplyExpressionHistoricalProtocolsRemainFrozen(t *testing.T) {
 			}
 			contract, err := storedReplyExpressionContract(stored)
 			if err != nil || contract.Version != sample.version {
-				t.Fatalf("historical contract changed: %#v, %v", contract, err)
+				t.Fatalf("frozen contract changed: %#v, %v", contract, err)
 			}
 			if _, err := decodeConversationReplySettings(jsonBytes(map[string]any{"expression_version": sample.version})); err != nil {
 				t.Fatal(err)
 			}
 		})
 	}
-	if defaultConversationReplySettings().ExpressionVersion != "fact-only-reply.v6" {
+	if defaultConversationReplySettings().ExpressionVersion != "fact-only-reply.v7" {
 		t.Fatal("new replies do not default to identity-constrained protocol")
 	}
 }

@@ -178,6 +178,105 @@ func TestReplyWriterNativeImageRequestOwnsPrivateHandoff(t *testing.T) {
 	}
 }
 
+// Exercise the actual serialized Writer requests and native Tool continuation.
+// The model replies are controlled; this does not measure model compliance.
+func TestReplyWriterImageProtocolVersionedWire(t *testing.T) {
+	const oldDescription = "Request a real image/selfie for this chat reply draft. Describe the desired scene in intent; the server hands it to the image generator. Call this tool ONLY when the user explicitly asks for a photo/selfie/picture, or when agreeing to send one. Never call during ordinary text chat. Do not print SVG/path data or claim sending in text; finish with ordinary persona text. At most two requests."
+	const directCall = "当用户要求看图、生成图片或发送照片时，必须且只能调用此工具。绝对不要在 content 中用文字描述图片的样子，直接调用！"
+	var originalSchema string
+	for _, sample := range []struct {
+		name, version string
+		proactive     bool
+	}{
+		{"v4", "fact-only-reply.v4", false},
+		{"v5", "fact-only-reply.v5", false},
+		{"v6", "fact-only-reply.v6", false},
+		{"v7-requested", "fact-only-reply.v7", false},
+		{"v7-proactive", "fact-only-reply.v7", true},
+	} {
+		t.Run(sample.name, func(t *testing.T) {
+			input := replyContextFixture()
+			input.ExpressionVersion = sample.version
+			input.Proactive = sample.proactive
+			input.CurrentInput = "请发一张自拍。"
+			if sample.proactive {
+				input.CurrentInput = "现在可以主动给对方发一条消息。"
+			}
+			calls := 0
+			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+				calls++
+				if payload["max_tokens"] != nil || payload["max_completion_tokens"] != nil {
+					t.Error("Writer sent an output token cap")
+				}
+				tools := arrayValue(payload["tools"])
+				if len(tools) != 1 {
+					t.Fatalf("unexpected tool definitions: %#v", tools)
+				}
+				function := mapValue(mapValue(tools[0])["function"])
+				if !capabilitycontract.CapabilityNamesMatch(stringValue(function["name"]), replyImageRequestName) {
+					t.Fatalf("native image tool missing: %#v", function)
+				}
+				description := stringValue(function["description"])
+				if sample.version == "fact-only-reply.v7" {
+					if !strings.Contains(description, directCall) || !strings.Contains(description, "主动") {
+						t.Errorf("v7 image tool description missing direct/proactive instruction: %s", description)
+					}
+				} else if description != oldDescription {
+					t.Errorf("historical tool definition changed: %s", description)
+				}
+				parameters := mapValue(function["parameters"])
+				if stringValue(mapValue(mapValue(parameters["properties"])["intent"])["type"]) != "string" || !strings.Contains(jsonString(parameters["required"]), `"intent"`) {
+					t.Errorf("native image intent schema missing: %#v", parameters)
+				}
+				schema := jsonString(function["parameters"])
+				if originalSchema == "" {
+					originalSchema = schema
+				} else if schema != originalSchema {
+					t.Errorf("native image schema changed: %s", schema)
+				}
+				messages := arrayValue(payload["messages"])
+				system := stringValue(mapValue(messages[0])["content"])
+				if sample.version == "fact-only-reply.v7" {
+					for _, required := range []string{"主动分享图片", "原生图片请求工具", "intent", "请求受理不等于生成或发送", "未真正理解图片不能声称看图"} {
+						if !strings.Contains(system, required) {
+							t.Errorf("v7 system rule missing %q", required)
+						}
+					}
+				}
+				wire := jsonString(messages)
+				if !strings.Contains(wire, "这个设备型号是 e6。") || !strings.Contains(wire, "我记得你说过它。") || strings.Count(wire, input.CurrentInput) != 1 {
+					t.Error("Writer changed the conversation history or current input")
+				}
+				if calls == 1 {
+					return fakeProviderResult{ToolCalls: []map[string]any{{"id": "image-call", "type": "function", "function": map[string]any{"name": replyImageRequestName, "arguments": `{"intent":"在书桌前的自拍"}`}}}}
+				}
+				if !strings.Contains(wire, "requested_not_generated") || !strings.Contains(wire, `\"generated\":false`) || !strings.Contains(wire, `\"sent\":false`) {
+					t.Error("native tool continuation lacks the real receipt")
+				}
+				foundNativeCall, foundToolReceipt := false, false
+				for _, item := range messages {
+					message := mapValue(item)
+					if message["role"] == "assistant" && len(arrayValue(message["tool_calls"])) > 0 {
+						foundNativeCall = true
+					}
+					if message["role"] == "tool" && message["tool_call_id"] == "image-call" && strings.Contains(stringValue(message["content"]), "requested_not_generated") {
+						foundToolReceipt = true
+					}
+				}
+				if !foundNativeCall || !foundToolReceipt {
+					t.Error("native tool call and matching tool result did not survive transport")
+				}
+				return fakeProviderResult{Text: "等实际结果回来。"}
+			})
+			app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+			draft, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "controlled-writer", Timeout: time.Second}, Concurrency: 1})
+			if err != nil || calls != 2 || len(draft.MediaRequests) != 1 || draft.MediaRequests[0].Intent != "在书桌前的自拍" {
+				t.Fatalf("native request/continuation failed: calls=%d draft=%+v err=%v", calls, draft, err)
+			}
+		})
+	}
+}
+
 type nestedReplyTransportInvoker struct {
 	app        *App
 	assignment providerAssignment

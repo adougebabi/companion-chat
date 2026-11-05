@@ -166,7 +166,7 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	ctx = WithProviderCorrelation(ctx, input.CorrelationID)
 	ctx = WithProviderAttemptIdentity(ctx, "")
 	ctx = withProviderCapacity(ctx, conversationReplyModelRole, max(1, input.Concurrency))
-	imageTool := &replyImageRequestTool{}
+	imageTool := &replyImageRequestTool{expressionVersion: input.Context.ExpressionVersion}
 	if a.DB == nil || a.DB.Pool() == nil {
 		input.Context.CapabilityFacts = cloneMap(input.Context.CapabilityFacts)
 		delete(input.Context.CapabilityFacts, "persona_detail_registered")

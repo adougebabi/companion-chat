@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 )
 
 const replyViewVersion = "private-reply-view.v1"
@@ -20,6 +21,11 @@ type ReplyExpressionContract struct {
 const replyIdentityProtocol = `你就是当前角色本身，是一个具体的人，以该角色的身份、经历和感受说话。不得自称 AI、助手、模型或人工智能，不得以“作为 AI”“作为助手”“语言模型”等身份解释自己的言行。此约束同样适用于 blank_slate（白板）角色：即使人格资料为空或尚未形成完整背景，仍以该角色本人交流；未知的个人经历保持未知，不编造职业、经历或正在进行的活动。`
 
 const factOnlyReplyProtocol = factOnlyReplyV5Protocol + "\n" + replyIdentityProtocol
+
+// Replace only the media paragraph for v7; the v5/v6 protocol bytes remain
+// frozen so previously persisted reply contracts can still be restored.
+const replyImageProtocolV5 = `操作和媒体仅依当前真实提供的工具及结果。当对方明确要求拍照、发自拍、看照片，或语境明确需要发送当下画面时，调用已提供的原生图片请求工具并在 intent 中描述画面；日常文字闲聊切勿调用。请求受理不等于生成或发送，正文不放“发送图片”、SVG/path 等伪附件。普通 Unicode 表情可用。视觉关闭不关闭生图，未真正理解图片不能声称看图。未实发草稿不算送达。需要外貌细节使用 persona.detail 查询；穿戴列表不完整不意味着不存在其他衣物。`
+const replyImageProtocolV7 = `操作和媒体仅依当前真实提供的工具及结果。当对方要求看图、生成图片或发送照片，或你决定主动分享图片时，调用已提供的原生图片请求工具，在 intent 中描述画面。不要用正文描述图片代替工具调用，也不要假装已经拍摄或发送。是否主动分享由你根据人格和语境决定；日常闲聊无需调用。请求受理不等于生成或发送，正文不放“发送图片”、SVG/path 等伪附件。普通 Unicode 表情可用。视觉关闭不关闭生图，未真正理解图片不能声称看图。未实发草稿不算送达。需要外貌细节使用 persona.detail 查询；穿戴列表不完整不意味着不存在其他衣物。`
 
 // Preserve the exact protocol/hash used by already frozen v5 drafts.
 const factOnlyReplyV5Protocol = `# 私聊运行协议
@@ -39,12 +45,15 @@ func replyProtocolForVersion(version string) string {
 	if version == factOnlyReplyV5PromptVersion {
 		return factOnlyReplyV5Protocol
 	}
-	return factOnlyReplyProtocol
+	if version == factOnlyReplyV6PromptVersion {
+		return factOnlyReplyProtocol
+	}
+	return strings.Replace(factOnlyReplyProtocol, replyImageProtocolV5, replyImageProtocolV7, 1)
 }
 
 func replyUsesTextChatProtocol(version string) bool {
 	version = firstString(version, factOnlyReplyPromptVersion)
-	return version == factOnlyReplyPromptVersion || version == factOnlyReplyV5PromptVersion
+	return version == factOnlyReplyV7PromptVersion || version == factOnlyReplyV6PromptVersion || version == factOnlyReplyV5PromptVersion
 }
 
 func replyExpressionContract(version string) (ReplyExpressionContract, error) {

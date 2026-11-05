@@ -64,7 +64,7 @@ func runExpressionReplay(t *testing.T, app *App, input ReplyContextInput, assign
 	if err != nil {
 		return ReplyDraft{}, prompt, err
 	}
-	image := &replyImageRequestTool{}
+	image := &replyImageRequestTool{expressionVersion: input.ExpressionVersion}
 	registry, err := NewCapabilityRegistry(image, personaDetailCapability{service: newPersonaDetailService(app)})
 	if err != nil {
 		return ReplyDraft{}, prompt, err

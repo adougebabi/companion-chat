@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "id": "native-reply-image-prompt",
+  "definition_hash": "f14c1d2af3f4f75eaa8b5b14814498b334f7dcafcaa3ce273a4d4b6b3298f8c3",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-05T11:23:21.905761Z",
+  "updated": "2026-11-05T11:49:36.497594Z",
+  "completed": "2026-11-05T11:49:36.497411Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-952f00e1ecdd5c0ab540",
+        "unit": "define",
+        "executor": "codex-native-image",
+        "input_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "candidate_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "started": "2026-11-05T11:23:46.63607Z",
+        "ended": "2026-11-05T11:28:24.637926Z",
+        "status": "pass",
+        "reason": "已明确仅强化聊天回复的原生图片工具描述与媒体提示词，覆盖用户索图及角色自主分享，同时保持真实回执、旧版冻结合同和无 token 上限；不实施暂缓的正文 JSON 兼容模式。"
+      },
+      {
+        "id": "AT-583fd385ea4204ed333a",
+        "unit": "analysis",
+        "executor": "codex-native-image",
+        "input_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "candidate_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "started": "2026-11-05T11:28:43.091514Z",
+        "ended": "2026-11-05T11:29:40.516284Z",
+        "status": "pass",
+        "reason": "图片定义与本轮执行器注册表都须按冻结表达版本选择；新增 v7 继承现有身份约束并简化媒体规则，v4/v5/v6 保留原协议和英文工具描述。测试覆盖原生工具真实序列化、回执续轮、设置选项及历史合同。此前 Cydonia v4.3 短请求实测可调用，长历史结果不稳定，不把小样本成功视为保证。"
+      },
+      {
+        "id": "AT-3e4caeb8bbb3eefc4428",
+        "unit": "execute",
+        "executor": "codex-native-image",
+        "input_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
+        "candidate_version": "8357da089d1ea49310bd6218d43a6da1172e4a0a05a9994f27bdec1eaed133ad",
+        "started": "2026-11-05T11:29:56.054325Z",
+        "ended": "2026-11-05T11:36:46.908188Z",
+        "status": "pass",
+        "reason": "已新增 v7 私聊媒体规则和按冻结表达版本选取的原生图片工具描述；保留旧合同与真实回执，更新设置选项、请求级回归和知识清单。本机 Cydonia v4.3 使用实际 Runner、用户请求上下文及 v7 连续两次调用图片工具，均将 requested_not_generated 回执送到续轮；未生成、发送或写数据库。"
+      },
+      {
+        "id": "AT-628a34f50a2afeb63bc8",
+        "unit": "check:web-build",
+        "executor": "attached",
+        "input_version": "8357da089d1ea49310bd6218d43a6da1172e4a0a05a9994f27bdec1eaed133ad",
+        "candidate_version": "8357da089d1ea49310bd6218d43a6da1172e4a0a05a9994f27bdec1eaed133ad",
+        "started": "2026-11-05T11:37:27.064562Z",
+        "ended": "2026-11-05T11:37:41.881249Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-8e19454c3979803f99b4",
+        "unit": "check:reply-go",
+        "executor": "attached",
+        "input_version": "8357da089d1ea49310bd6218d43a6da1172e4a0a05a9994f27bdec1eaed133ad",
+        "candidate_version": "8357da089d1ea49310bd6218d43a6da1172e4a0a05a9994f27bdec1eaed133ad",
+        "started": "2026-11-05T11:38:12.700125Z",
+        "ended": "2026-11-05T11:38:21.049962Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-73fab6dc73e3870bbf2e",
+        "unit": "execute",
+        "executor": "codex-native-image",
+        "input_version": "8357da089d1ea49310bd6218d43a6da1172e4a0a05a9994f27bdec1eaed133ad",
+        "candidate_version": "5fb4c811edd2e7db07cdbb81ad715811b96ed1aea58cee14d8cfe32c9d833989",
+        "started": "2026-11-05T11:40:13.964899Z",
+        "ended": "2026-11-05T11:40:49.641762Z",
+        "status": "pass",
+        "reason": "真实设置页检查发现“当前协议”未显示版本号，已将 v7 明确写入选项标签并同步测试；继续对最终候选重新构建与验证。"
+      },
+      {
+        "id": "AT-91ab6f244ec04a79128c",
+        "unit": "check:web-build",
+        "executor": "attached",
+        "input_version": "5fb4c811edd2e7db07cdbb81ad715811b96ed1aea58cee14d8cfe32c9d833989",
+        "candidate_version": "5fb4c811edd2e7db07cdbb81ad715811b96ed1aea58cee14d8cfe32c9d833989",
+        "started": "2026-11-05T11:41:11.517396Z",
+        "ended": "2026-11-05T11:41:19.759232Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-d34aae8ba1171e119436",
+        "unit": "execute",
+        "executor": "codex-native-image",
+        "input_version": "5fb4c811edd2e7db07cdbb81ad715811b96ed1aea58cee14d8cfe32c9d833989",
+        "candidate_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "started": "2026-11-05T11:41:59.869156Z",
+        "ended": "2026-11-05T11:42:49.954921Z",
+        "status": "pass",
+        "reason": "将 v7 工具描述绑定到明确的 v7 版本常量，并冻结 v7 协议 hash，避免后续默认版本变更使 v7 草稿回退旧描述。"
+      },
+      {
+        "id": "AT-9f04ee8b0a2c24a34b4a",
+        "unit": "check:reply-go",
+        "executor": "attached",
+        "input_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "candidate_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "started": "2026-11-05T11:43:09.234181Z",
+        "ended": "2026-11-05T11:43:22.801548Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-67db54469a47fbc8174c",
+        "unit": "check:reply-web",
+        "executor": "attached",
+        "input_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "candidate_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "started": "2026-11-05T11:43:39.838791Z",
+        "ended": "2026-11-05T11:43:44.567397Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-ab43ed9d63077df5ee88",
+        "unit": "check:web-build",
+        "executor": "attached",
+        "input_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "candidate_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "started": "2026-11-05T11:44:01.010343Z",
+        "ended": "2026-11-05T11:44:09.134063Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-5065d049487a3a89c898",
+        "unit": "check:settings-ui",
+        "executor": "codex-native-image",
+        "input_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "candidate_version": "dfea006211709c542760f11b7b9d0a8007e33f7c0d3c3491a72444ad72395292",
+        "started": "2026-11-05T11:49:31.883185Z",
+        "ended": "2026-11-05T11:49:31.940115Z",
+        "status": "pass",
+        "reason": "实际生产构建与隔离本机样本中，表达版本下拉框显示 v7/v6/v5/v4；选择 v7 后保存并刷新仍保留，截图与步骤记录在 Git 忽略目录。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "c57bd68d15a4ad8407a02f47715d939bb055f70e6ce7563d0df966a9cb0fa603",
+        "at": "2026-11-05T11:37:27.205663Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-628a34f50a2afeb63bc8.log": "4bf5d21f8540c04c82610a0874e969ea2f78b1a2379e570bf86a53b07b7aa855"
+        }
+      },
+      {
+        "id": "reply-go",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "c1a97eb44e983b720e1835cb664b9b3d0eb4b2efa888fdea5387f746fc857d31",
+        "at": "2026-11-05T11:38:12.814607Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-8e19454c3979803f99b4.log": "2fcc59be743e2a971e61b26d4e213e539e06c2209ed657fad720c88b13ad00ba"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "c57bd68d15a4ad8407a02f47715d939bb055f70e6ce7563d0df966a9cb0fa603",
+        "at": "2026-11-05T11:41:11.621386Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-91ab6f244ec04a79128c.log": "aa4556afddc7aa07e0a5996f88539b22d2426dfcf58490c5e40870d6255d01e0"
+        }
+      },
+      {
+        "id": "reply-go",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "c1a97eb44e983b720e1835cb664b9b3d0eb4b2efa888fdea5387f746fc857d31",
+        "at": "2026-11-05T11:43:09.333941Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-9f04ee8b0a2c24a34b4a.log": "e263987413d68bf1c2e6ac843f07cbb48cb611106036ae125ec10f867bb6a607"
+        }
+      },
+      {
+        "id": "reply-web",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "42230dacbb7556fee32a961ff20f941dce4c769edea1c0401af5e6090b4a9d5b",
+        "at": "2026-11-05T11:43:39.942558Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-67db54469a47fbc8174c.log": "b81e6798be8055064b8473305efcc15e9da2c36d8cdc875b03e75a3405bef511"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "c57bd68d15a4ad8407a02f47715d939bb055f70e6ce7563d0df966a9cb0fa603",
+        "at": "2026-11-05T11:44:01.116148Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-ab43ed9d63077df5ee88.log": "54fec1ca252c0fdbb6d038a902e1ab5f897beced20baff0781077ef8ade1a3e3"
+        }
+      },
+      {
+        "id": "settings-ui",
+        "result": "pass",
+        "source": "scenario:codex-native-image",
+        "config_hash": "8fde6a9e9be7f3be481e490af2fb6f7359f9c5d576931f5d5c3e819123b88a15",
+        "at": "2026-11-05T11:49:31.939587Z",
+        "artifact_hashes": {
+          ".v3-regression/native-reply-image-prompt/settings-v7.png": "78ace48a227b275f9ae6c9392e31b96d8e7a76122953546d1b85998f224cc773",
+          ".v3-regression/native-reply-image-prompt/verification.md": "c13a883d1872f37cef53a8753f4e81288920a8f11c7e157f46e132bc711521fb",
+          "apps/web/src/v3/proto/components/configuration-fields.js": "1b886f9f2e0a3212be69d2d6ff0fc4b3ca10d92359d41247e61596de53b58226",
+          "apps/web/test/reply-expression-version.test.mjs": "fe8b78fc33d6bedf2b89e974f70c325c3445595110b7a66119c1c2f0f7b7649d"
+        }
+      }
+    ]
+  }
+}

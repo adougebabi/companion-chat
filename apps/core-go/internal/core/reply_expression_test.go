@@ -11,7 +11,7 @@ import (
 )
 
 func TestPrivateChatExpressionSettingsAndFrozenContract(t *testing.T) {
-	for _, version := range []string{factOnlyReplyLegacyPromptVersion, factOnlyReplyPromptVersion} {
+	for _, version := range []string{factOnlyReplyLegacyPromptVersion, factOnlyReplyV5PromptVersion, "fact-only-reply.v6", factOnlyReplyPromptVersion} {
 		settings, err := decodeConversationReplySettings(jsonBytes(map[string]any{"mode": "fact_only", "expression_version": version}))
 		if err != nil || settings.ExpressionVersion != version {
 			t.Fatal(settings, err)
@@ -366,7 +366,7 @@ func TestPrivateChatExpressionProtocolOnlyWireComparison(t *testing.T) {
 	})
 	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
 	temperature, topP := 0.8, 0.9
-	for _, version := range []string{factOnlyReplyLegacyPromptVersion, factOnlyReplyPromptVersion} {
+	for _, version := range []string{factOnlyReplyLegacyPromptVersion, "fact-only-reply.v6"} {
 		input.ExpressionVersion = version
 		_, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "controlled-cydonia", Timeout: time.Second, TokenBudget: 1024, MaxInputTokens: 8192, ContextWindowTokens: 16384, PromptBudgetPolicyVersion: promptBudgetPolicyVersionV1, Temperature: &temperature, TopP: &topP}, Concurrency: 1})
 		if err != nil {
