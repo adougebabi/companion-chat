@@ -7,7 +7,7 @@ export function conversationReplyDisplayValue(value){
 }
 export const configurationFields={
  'conversation.reply':[
-  f('mode','回复模式','select',{options:[{value:'legacy',label:'兼容模式'},{value:'fact_only',label:'独立回复模型'}]}),f('expression_version','表达版本','select',{options:[{value:'fact-only-reply.v7',label:'自然交流 · v7 当前协议'},{value:'fact-only-reply.v6',label:'自然交流 · v6 兼容协议'},{value:'fact-only-reply.v5',label:'自然交流 · v5 兼容协议'},{value:'fact-only-reply.v4',label:'自然交流 · v4 兼容协议'}]}),f('model_ref','模型绑定角色','select',{options:[{value:'conversation_reply',label:'交流表达'}]}),
+  f('mode','回复模式','select',{options:[{value:'legacy',label:'兼容模式'},{value:'fact_only',label:'独立回复模型'}]}),f('expression_version','表达版本','select',{options:[{value:'fact-only-reply.v8',label:'自然交流 · v8 当前协议'},{value:'fact-only-reply.v7',label:'自然交流 · v7 兼容协议'},{value:'fact-only-reply.v6',label:'自然交流 · v6 兼容协议'},{value:'fact-only-reply.v5',label:'自然交流 · v5 兼容协议'},{value:'fact-only-reply.v4',label:'自然交流 · v4 兼容协议'}]}),f('model_ref','模型绑定角色','select',{options:[{value:'conversation_reply',label:'交流表达'}]}),
   f('temperature','表达温度','number',{min:0,max:2,step:'any'}),f('top_p','Top P','number',{min:0.01,max:1,step:'any'}),f('timeout_seconds','总超时（秒，含排队）','number',{min:1,max:3600}),f('concurrency','同时回复数量','number',{min:1,max:8}),f('retry_limit','可恢复错误重试次数','number',{min:0,max:2}),f('max_action_handoffs','媒体动作回交上限','number',{min:1,max:2}),f('failure_policy','回复失败策略','select',{options:[{value:'error',label:'明确返回失败'},{value:'legacy_fallback',label:'显式由认知模型独立表达'}]}),
  ],
  'vision.understanding':[f('enabled','启用视觉理解','boolean'),f('model_ref','独立视觉模型绑定','select',{options:[{value:'vision_understanding',label:'独立视觉理解'}]})],

@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "id": "reply-initial-greeting-avatar-kev",
-  "definition_hash": "2b48e8c8ef32b18fc99cae041597991e9e757d5357b55410b6d3f70c22e183f1",
+  "definition_hash": "33a87fb17cf796d501aba51806782e7213febc835d5a1c6f8743675663a3ecb3",
   "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
-  "definition_revision": 2,
+  "definition_revision": 4,
   "plan": {
-    "revision": 2,
+    "revision": 4,
     "preset": "standard",
     "steps": [
       "define",
@@ -17,13 +17,13 @@
     "approved": false
   },
   "current_step": "verify",
-  "status": "open",
-  "candidate": "7ec2eb48597d3251c3bcb8defb076f5d9a8398ca0f33ad64d65ce3ad552ff96d",
-  "failure": "受控 Provider 物理请求、WakeUp gate 的 HTTP/持久化边界替身、前端全量 1026 测试及相关 Go 包回归已通过；但 GO_CORE_TEST_DATABASE_URL 未设置、本机未发现 PostgreSQL 且 OrbStack 未运行，因此 0103→0104 迁移、首次 WakeUp 的实际数据库与头像生成/审核集成测试被跳过；真实模型、Kev 和 ComfyUI 效果亦未运行。需提供任务专用的隔离 PostgreSQL 测试环境并重跑列明测试后恢复验证。",
-  "result": "",
+  "status": "completed",
+  "candidate": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+  "failure": "",
+  "result": "verified",
   "created": "2026-11-05T02:20:57.694154Z",
-  "updated": "2026-11-05T03:15:35.382808Z",
-  "completed": null,
+  "updated": "2026-11-06T09:13:23.236817Z",
+  "completed": "2026-11-06T09:13:23.236597Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -125,6 +125,248 @@
         "ended": "2026-11-05T03:15:24.014117Z",
         "status": "blocked",
         "reason": "受控 Provider 物理请求、WakeUp gate 的 HTTP/持久化边界替身、前端全量 1026 测试及相关 Go 包回归已通过；但 GO_CORE_TEST_DATABASE_URL 未设置、本机未发现 PostgreSQL 且 OrbStack 未运行，因此 0103→0104 迁移、首次 WakeUp 的实际数据库与头像生成/审核集成测试被跳过；真实模型、Kev 和 ComfyUI 效果亦未运行。需提供任务专用的隔离 PostgreSQL 测试环境并重跑列明测试后恢复验证。"
+      },
+      {
+        "id": "AT-9d8103fcf0baaa4b8703",
+        "unit": "execute",
+        "executor": "dashboard-user",
+        "input_version": "355d96bb278c801b5045d041b05c21b425878375870ddd68b4384a6e3d318708",
+        "candidate_version": "",
+        "started": "2026-11-06T02:10:30.952989Z",
+        "ended": "2026-11-06T03:09:37.879419Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-71b0903b7bbe597229db",
+        "unit": "execute",
+        "executor": "dashboard-user",
+        "input_version": "9d80bb405f65ce1f6add22940e1801bc33261da98149150f8276b074cfc44f19",
+        "candidate_version": "",
+        "started": "2026-11-06T05:32:48.225091Z",
+        "ended": "2026-11-06T06:56:26.242938Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-91d09a29cf881afd9def",
+        "unit": "execute",
+        "executor": "codex-task-status",
+        "input_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "candidate_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "started": "2026-11-06T08:09:47.9376Z",
+        "ended": "2026-11-06T08:10:29.320927Z",
+        "status": "pass",
+        "reason": "恢复已交付任务：用户于 2026-11-06 明确确认回复、头像、Kev 超时和主动唤醒的自行测试全部通过；保留原先检查及数据库自动集成测试未执行的历史。当前步骤未修改业务代码；进入最终验收以登记用户反馈和当前候选的必要检查。"
+      },
+      {
+        "id": "AT-da7e40e871d9b29aacb2",
+        "unit": "check:kev-unit",
+        "executor": "codex-task-status",
+        "input_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "candidate_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "started": "2026-11-06T08:12:38.580667Z",
+        "ended": "2026-11-06T08:12:49.829097Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-0c02126b7f9c12413516",
+        "unit": "check:regression-scenarios",
+        "executor": "user",
+        "input_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "candidate_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "started": "2026-11-06T08:14:47.749211Z",
+        "ended": "2026-11-06T08:14:47.852865Z",
+        "status": "pass",
+        "reason": "用户于 2026-11-06 明确表示已自行测试，并确认回复、头像、Kev 超时和主动唤醒全部通过。用户未提供测试的部署版本、环境、具体步骤或自动化日志；本记录仅表示用户反馈，不声称助理运行过隔离数据库或真实模型集成测试。"
+      },
+      {
+        "id": "AT-f87404e6d9b9c0219802",
+        "unit": "check:web-typecheck",
+        "executor": "codex-task-status",
+        "input_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "candidate_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "started": "2026-11-06T08:15:32.250071Z",
+        "ended": "2026-11-06T08:15:45.844875Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-9e4517fdad0d574cc130",
+        "unit": "define",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "candidate_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "started": "2026-11-06T08:17:02.454476Z",
+        "ended": "2026-11-06T08:18:09.241295Z",
+        "status": "pass",
+        "reason": "已按用户授权把工作项范围收窄为聊天回复 Agent 固定运行协议。确认当前正式入口为 fact_only_reply，v4–v7 协议按版本/hash 冻结，默认 v7；新版必须新增版本承载用户文本，并同步实际请求回归、版本选择器和提示词组成清单。头像、Kev 和回复反馈 UI 的剩余事项退出本轮验收。"
+      },
+      {
+        "id": "AT-aefc561b4447fc70ce90",
+        "unit": "analysis",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "candidate_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "started": "2026-11-06T08:18:53.161808Z",
+        "ended": "2026-11-06T08:21:16.045365Z",
+        "status": "pass",
+        "reason": "已完整核对目标代码和绑定提示词合同。reply_context.go 统一生成 system 运行协议；provider_prompt_composer.go 已提供 # 运行协议标题，因此新版协议正文保留用户段落并避免重复标题。方案是在 reply_expression.go/context.go 新增 v8 常量及协议分支，保留 v4–v7 字节与 hash；v8 成为默认并同步原生图片工具说明、设置版本选择器及 docs 清单。历史身份断言固定在 v7 测试；新增默认 v8 的真实 RunConversationReplyTask/Provider HTTP 请求断言，并验证 v4–v7 恢复与新 hash。只执行回复 Go 包和前端对应版本测试/typecheck，不涉及剩余头像、Kev、反馈 UI 目标。"
+      },
+      {
+        "id": "AT-b11630e79c20028712e2",
+        "unit": "execute",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "c563badf4bcbda5a7499e47ba7d5d0963fdb834f8a8297a81c5e7e4b02a0f920",
+        "candidate_version": "4861ed96c9dc0146112ae2959336e030ae65d04dcb2b83c79a27de680b520b46",
+        "started": "2026-11-06T08:21:56.177243Z",
+        "ended": "2026-11-06T08:32:04.030046Z",
+        "status": "pass",
+        "reason": "已新增 fact-only-reply.v8 并设为默认，v4–v7 协议文本/hash保持不变；v8 按用户原文段落组成 system 协议正文，沿用 renderer 的唯一标题。v8 原生图片工具说明已与新触发条件对齐，前端版本选择器与 Agent 提示词清单已更新。保留显式 v7 的旧身份/媒体回归，新增 v8 真实 RunConversationReplyTask Provider HTTP 请求断言，覆盖用户段落、输入一次、图片工具和 persona.detail 原生 schema、无输出 token 限制；旧版 hash 与 v8 hash 已固定。"
+      },
+      {
+        "id": "AT-60f11380f7b5e7a5d57f",
+        "unit": "check:reply-prompt-regression",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "4861ed96c9dc0146112ae2959336e030ae65d04dcb2b83c79a27de680b520b46",
+        "candidate_version": "4861ed96c9dc0146112ae2959336e030ae65d04dcb2b83c79a27de680b520b46",
+        "started": "2026-11-06T08:33:01.838821Z",
+        "ended": "2026-11-06T08:33:33.026181Z",
+        "status": "fail",
+        "reason": "exit status 1"
+      },
+      {
+        "id": "AT-734257b650109ae1b77a",
+        "unit": "execute",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "4861ed96c9dc0146112ae2959336e030ae65d04dcb2b83c79a27de680b520b46",
+        "candidate_version": "f0499289cde364ffd854f1ab25f332962926acba26d2dbedeb8bde479fb13187",
+        "started": "2026-11-06T08:35:54.124817Z",
+        "ended": "2026-11-06T08:36:47.725984Z",
+        "status": "pass",
+        "reason": "已修正 v8 实际请求回归中的原生工具断言：按 Provider tools 数组解析 function.name，直接验证 reply.image.request 与 persona.detail，而非将 schema 转成文本搜索。其余 v8 协议、版本、兼容、文档改动未变。"
+      },
+      {
+        "id": "AT-cb68c5b18db371904410",
+        "unit": "check:reply-prompt-regression",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "f0499289cde364ffd854f1ab25f332962926acba26d2dbedeb8bde479fb13187",
+        "candidate_version": "f0499289cde364ffd854f1ab25f332962926acba26d2dbedeb8bde479fb13187",
+        "started": "2026-11-06T08:37:32.278354Z",
+        "ended": "2026-11-06T08:37:58.687742Z",
+        "status": "fail",
+        "reason": "exit status 1"
+      },
+      {
+        "id": "AT-b26420602c3e1ea29428",
+        "unit": "execute",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "candidate_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "started": "2026-11-06T08:41:23.891892Z",
+        "ended": "2026-11-06T08:42:13.983116Z",
+        "status": "pass",
+        "reason": "修正 Provider 请求断言以使用 capability contract 的规范名称匹配；图片工具通过实际 HTTP tools 数组核验。persona.detail 在无数据库单测中会被 RunConversationReplyTask 有意撤下，因此另对 v8 已注册时的原生定义做结构化检查，同时实际 HTTP system 正文仍包含 persona.detail 查询指引。"
+      },
+      {
+        "id": "AT-8bed5e0949031cb479cf",
+        "unit": "check:reply-prompt-regression",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "candidate_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "started": "2026-11-06T08:42:57.434Z",
+        "ended": "2026-11-06T08:43:40.30861Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-1350a4dff93f1d275523",
+        "unit": "check:reply-prompt-ui",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "candidate_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "started": "2026-11-06T08:44:45.92264Z",
+        "ended": "2026-11-06T08:45:33.719062Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-12d6ae3c3b2e34257ade",
+        "unit": "check:web-typecheck",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "candidate_version": "f89b4668db7199d85187aa26ef9a4bb882c6f82b023d9451473e709ddbe1f9de",
+        "started": "2026-11-06T08:46:11.637505Z",
+        "ended": "2026-11-06T08:46:28.707761Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-7e67a82aa6db45dc1797",
+        "unit": "analysis",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "candidate_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "started": "2026-11-06T09:05:54.66462Z",
+        "ended": "2026-11-06T09:06:45.32702Z",
+        "status": "pass",
+        "reason": "修订4只补齐验收与检查的映射，没有改变范围、验收目标或代码。实施仍为 fact-only-reply.v8 默认协议；Go HTTP 请求回归、版本选择器测试和类型检查已在相同代码上通过，现按修订4重新执行并增加对 Agent 清单同步的语义审阅。"
+      },
+      {
+        "id": "AT-5d36b4ccbb4adfc9a7f4",
+        "unit": "execute",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "candidate_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "started": "2026-11-06T09:07:33.694812Z",
+        "ended": "2026-11-06T09:08:25.087169Z",
+        "status": "pass",
+        "reason": "修订4未改变实现候选。v8 提示词、v4–v7 冻结协议、原生图片工具说明、Web 版本入口、HTTP 回归和清单同步均沿用已完成实现。当前仅重新绑定修订4下的验收覆盖，以重新记录所有检查和文档审阅证据。"
+      },
+      {
+        "id": "AT-defd7a3e99175c00d485",
+        "unit": "check:reply-prompt-regression",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "candidate_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "started": "2026-11-06T09:09:17.896682Z",
+        "ended": "2026-11-06T09:09:40.332054Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-71f173bbde43ee5b6498",
+        "unit": "check:reply-prompt-ui",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "candidate_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "started": "2026-11-06T09:10:17.02043Z",
+        "ended": "2026-11-06T09:11:05.07668Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-3711ae91f8ccf62b4bad",
+        "unit": "check:web-typecheck",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "candidate_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "started": "2026-11-06T09:11:40.605143Z",
+        "ended": "2026-11-06T09:11:58.085666Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-bcb3fb76b89137d11436",
+        "unit": "check:prompt-inventory-review",
+        "executor": "codex-chat-reply-protocol",
+        "input_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "candidate_version": "af067a677b1c8d04417c954b251e637fd87b18e337b731b1898dc3db5762f3ef",
+        "started": "2026-11-06T09:13:11.935518Z",
+        "ended": "2026-11-06T09:13:12.060939Z",
+        "status": "pass",
+        "reason": "已对照 Agent 清单与实现检查 v8 默认版本、用户协议内容摘要、v4–v7 冻结兼容、原生工具提示及 HTTP 回归说明；文字一致，旧内容没有误标为当前。"
       }
     ],
     "checks": [
@@ -194,7 +436,161 @@
           "apps/core-go/internal/migrations/kev_one_minute.go": "6ea4d297753f0a6629545f81759981dc20615404856a503c2790b937b19a5c20",
           "apps/core-go/internal/migrations/kev_timeout_test.go": "a002caef0198e9d7635a1e189ace08274ca2b10054d62914ea08f9e2de7a5da3"
         }
+      },
+      {
+        "id": "kev-unit",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "ba26f3f590de16b4bab7971bb7ffc445af76c64d3c8994287c2579cfcacca05a",
+        "at": "2026-11-06T08:12:38.690334Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-da7e40e871d9b29aacb2.log": "97ee27e8054a30df789fc31227e58d0c7d561e290c7fe32c1aa0d769a77a720a"
+        }
+      },
+      {
+        "id": "regression-scenarios",
+        "result": "pass",
+        "source": "human:user",
+        "config_hash": "6a09bbd633a1092a507c8efac6ef0e360a52e03960222545d1df52981444a37d",
+        "at": "2026-11-06T08:14:47.852227Z",
+        "artifact_hashes": {
+          ".v3-regression/lac-reply-kev-avatar/user-review-20261106.md": "dc22a86eca63f137edf919cd1741dbabb1d4b823234f4162b132eef6ac681e91",
+          ".v3-regression/lac-reply-kev-avatar/verification.md": "65c3a5f99a93a93fbcb1b8b548e0040aa2d68b7a0230ae16a3bb3dc427f8b9dc",
+          "apps/core-go/internal/core/agent_result_adapter.go": "1cc5e1d4d2ebb23d13c8b26462efbabc909b2acb19f827fda9ca847c675b32d5",
+          "apps/core-go/internal/core/generated_avatar.go": "b0cec92ba028699fd669c914ff6887f2f167f25cf8393141fb55045ea1e16582",
+          "apps/core-go/internal/core/kev_decisions.go": "d0509d2624c8308a4d804b4b4800eb9e9cf73bc944ff6d38e742ab705a759bc2",
+          "apps/core-go/internal/core/model_tasks.go": "894419fb76d9d8860cae96eba4eef03318710c44ed8674c4924f1b165592734b",
+          "apps/web/src/react-app/pages/ChatPage.tsx": "1f22d1c4559dcd52fa9873985b31b9d36eac9cabf2f3a4cd2aa4551ee0044082"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "8312fca3ab16f35d3090df4f2395f71e925e986ae8dde5d03defb73ab48c6c1e",
+        "at": "2026-11-06T08:15:32.364484Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-f87404e6d9b9c0219802.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "reply-prompt-regression",
+        "result": "fail",
+        "source": "command",
+        "config_hash": "59d372dc5dfaa22f679188b41bc64fd958ded74d79d1914ade82590f48998475",
+        "at": "2026-11-06T08:33:01.99098Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-60f11380f7b5e7a5d57f.log": "20cd2398e7d3e8070174089d70af5b57478bb3289a765abe84743a8b78da8b1a"
+        }
+      },
+      {
+        "id": "reply-prompt-regression",
+        "result": "fail",
+        "source": "command",
+        "config_hash": "59d372dc5dfaa22f679188b41bc64fd958ded74d79d1914ade82590f48998475",
+        "at": "2026-11-06T08:37:32.40144Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-cb68c5b18db371904410.log": "3ca570d7b1d805938b1c068facc36b971fec5e0566f1522f19301e5c43843fbc"
+        }
+      },
+      {
+        "id": "reply-prompt-regression",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "59d372dc5dfaa22f679188b41bc64fd958ded74d79d1914ade82590f48998475",
+        "at": "2026-11-06T08:42:57.611765Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-8bed5e0949031cb479cf.log": "6a108b16940950a14845545405f90681869bb6cba0402ef0992ff4c6524088b8"
+        }
+      },
+      {
+        "id": "reply-prompt-ui",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "39b4c42918645910637394168c755531a8d498497a1f1e675e80db22ba38dc73",
+        "at": "2026-11-06T08:44:46.061408Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-1350a4dff93f1d275523.log": "58358732113ba1d981bfd5264c8cc7124a24af7212c88ea98416d1ed7e8a93a7"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "e65969ef21687316b3c3ba4cb2542e89c148852e2b68f74ec1687028930de1c1",
+        "at": "2026-11-06T08:46:11.778074Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-12d6ae3c3b2e34257ade.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "reply-prompt-regression",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "8444df5e742761819c846e7db2c8ec4e874a1c0f4c00be15a2d90d77f7269d99",
+        "at": "2026-11-06T09:09:18.07209Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-defd7a3e99175c00d485.log": "554d0636746b54b032704c9330dddeb97e74cd727f45280d823a68fa1c07b05f"
+        }
+      },
+      {
+        "id": "reply-prompt-ui",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "39b4c42918645910637394168c755531a8d498497a1f1e675e80db22ba38dc73",
+        "at": "2026-11-06T09:10:17.24384Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-71f173bbde43ee5b6498.log": "9660edae89a178766b2d38e40638878695b5cdee86cf6e7532b68607feae47b3"
+        }
+      },
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "e65969ef21687316b3c3ba4cb2542e89c148852e2b68f74ec1687028930de1c1",
+        "at": "2026-11-06T09:11:40.743852Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-3711ae91f8ccf62b4bad.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "prompt-inventory-review",
+        "result": "pass",
+        "source": "model:codex-chat-reply-protocol",
+        "config_hash": "28e7a590c8c7b8d4fd9cf41a6f549200f98e4bda1b870012b100f63d231d368e",
+        "at": "2026-11-06T09:13:12.059889Z",
+        "artifact_hashes": {
+          ".v3-regression/reply-prompt-v8/inventory-review.md": "d09b3a8aeddb798fbdc39fc5f1053eaf43977997e16146936d7414635badd352",
+          "apps/core-go/internal/core/reply_context.go": "d987ff08ab99f234dd02d78f9c9dee62fdf6018608def1309f3ba11d59ae523f",
+          "apps/core-go/internal/core/reply_expression.go": "ab08761484d03d3c9d5ea2492c78d59cf97f1dbdc40055c278b26b2d1757addd",
+          "apps/core-go/internal/core/reply_identity_test.go": "4d1093928de558fe9a96bd851a40cc04271abd1058912dca08a1f19dd130ab29",
+          "apps/core-go/internal/core/reply_image_request.go": "837bfa7e92d7c7ec1857de49388d3850329d0af405742f9431e48c2648fcdd78",
+          "apps/core-go/internal/core/reply_provider_test.go": "eba712d4e0cd3a47b214e14312b698ba5c22d51134c50bae39c869b34d89e42b",
+          "docs/llm-prompt-composition.md": "597edd663976bf260585eb8fabb8b70c26cfe8b4a5dca8a6f05cbd20430e181a"
+        }
       }
     ]
-  }
+  },
+  "human_review_notes": [
+    {
+      "id": "HR-4b0e4cdb81081de3c9f7",
+      "actor": "dashboard-user",
+      "result": "pass",
+      "reason": "验证通过",
+      "definition_revision": 2,
+      "plan_revision": 2,
+      "status": "pending",
+      "recorded_at": "2026-11-06T07:11:40.463561Z"
+    },
+    {
+      "id": "HR-3733c33f979b8a4f6754",
+      "actor": "dashboard-user",
+      "result": "pass",
+      "reason": "通过",
+      "definition_revision": 2,
+      "plan_revision": 2,
+      "status": "pending",
+      "recorded_at": "2026-11-06T07:11:55.974843Z"
+    }
+  ]
 }

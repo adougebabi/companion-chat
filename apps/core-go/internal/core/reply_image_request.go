@@ -42,6 +42,8 @@ func (t *replyImageRequestTool) Definition() CapabilityDefinition {
 	description := "Request a real image/selfie for this chat reply draft. Describe the desired scene in intent; the server hands it to the image generator. Call this tool ONLY when the user explicitly asks for a photo/selfie/picture, or when agreeing to send one. Never call during ordinary text chat. Do not print SVG/path data or claim sending in text; finish with ordinary persona text. At most two requests."
 	if firstString(t.expressionVersion, factOnlyReplyPromptVersion) == factOnlyReplyV7PromptVersion {
 		description = "当用户要求看图、生成图片或发送照片时，必须且只能调用此工具。绝对不要在 content 中用文字描述图片的样子，直接调用！当你决定主动分享图片或自拍时，也必须调用此工具。在 intent 中描述画面；每次回复最多请求两张。工具仅登记请求，不代表图片已生成或发送；按真实结果继续回复。"
+	} else if firstString(t.expressionVersion, factOnlyReplyPromptVersion) == factOnlyReplyV8PromptVersion {
+		description = "需要拍照、自拍或发送当下画面时，调用此工具并在 intent 中描述画面；普通文字闲聊不调用。此工具只登记请求，不代表图片已生成或发送；不要在正文伪造附件。每次回复最多请求两张。"
 	}
 	return CapabilityDefinition{Name: replyImageRequestName, Version: "v1", Type: CapabilityTypeQuery,
 		Description:  description,

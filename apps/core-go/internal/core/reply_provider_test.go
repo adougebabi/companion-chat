@@ -183,6 +183,7 @@ func TestReplyWriterNativeImageRequestOwnsPrivateHandoff(t *testing.T) {
 func TestReplyWriterImageProtocolVersionedWire(t *testing.T) {
 	const oldDescription = "Request a real image/selfie for this chat reply draft. Describe the desired scene in intent; the server hands it to the image generator. Call this tool ONLY when the user explicitly asks for a photo/selfie/picture, or when agreeing to send one. Never call during ordinary text chat. Do not print SVG/path data or claim sending in text; finish with ordinary persona text. At most two requests."
 	const directCall = "当用户要求看图、生成图片或发送照片时，必须且只能调用此工具。绝对不要在 content 中用文字描述图片的样子，直接调用！"
+	const v8Description = "需要拍照、自拍或发送当下画面时，调用此工具并在 intent 中描述画面；普通文字闲聊不调用。此工具只登记请求，不代表图片已生成或发送；不要在正文伪造附件。每次回复最多请求两张。"
 	var originalSchema string
 	for _, sample := range []struct {
 		name, version string
@@ -193,6 +194,7 @@ func TestReplyWriterImageProtocolVersionedWire(t *testing.T) {
 		{"v6", "fact-only-reply.v6", false},
 		{"v7-requested", "fact-only-reply.v7", false},
 		{"v7-proactive", "fact-only-reply.v7", true},
+		{"v8-requested", factOnlyReplyV8PromptVersion, false},
 	} {
 		t.Run(sample.name, func(t *testing.T) {
 			input := replyContextFixture()
@@ -221,6 +223,10 @@ func TestReplyWriterImageProtocolVersionedWire(t *testing.T) {
 					if !strings.Contains(description, directCall) || !strings.Contains(description, "主动") {
 						t.Errorf("v7 image tool description missing direct/proactive instruction: %s", description)
 					}
+				} else if sample.version == factOnlyReplyV8PromptVersion {
+					if description != v8Description {
+						t.Errorf("v8 image tool description changed: %s", description)
+					}
 				} else if description != oldDescription {
 					t.Errorf("historical tool definition changed: %s", description)
 				}
@@ -240,6 +246,12 @@ func TestReplyWriterImageProtocolVersionedWire(t *testing.T) {
 					for _, required := range []string{"主动分享图片", "原生图片请求工具", "intent", "请求受理不等于生成或发送", "未真正理解图片不能声称看图"} {
 						if !strings.Contains(system, required) {
 							t.Errorf("v7 system rule missing %q", required)
+						}
+					}
+				} else if sample.version == factOnlyReplyV8PromptVersion {
+					for _, required := range []string{"需要拍照、自拍、发送当下画面时", "原生图片请求工具", "intent 中描述画面", "普通文字闲聊不调用", "工具请求不等于执行成功", "未实际理解图片不能声称看过", "外貌细节使用 persona.detail 查询"} {
+						if !strings.Contains(system, required) {
+							t.Errorf("v8 system rule missing %q", required)
 						}
 					}
 				}

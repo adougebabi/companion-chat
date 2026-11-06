@@ -41,7 +41,7 @@
 | --- | --- | --- | --- |
 | world_event_generation | 世界规则/时区/真实地点与 NPC/实际在场角色/近期已发生事件；只提议或 no_event，独立 Kev 审批后才可入可执行库 | 0 | world_event_generation.go |
 | conversation_cognition | 私聊认知协议 + Working Persona + 私聊 D/M/S + H + 当前输入；legacy 与 fact-only 投影不同 | H | cognition_agent.go；conversation_runtime.go |
-| conversation_reply | 私聊表达协议 + Working Persona + 独立事实视图/能力边界/实际 Tool facts + M/S + H + 当前输入 | H | reply_context.go；reply_provider.go |
+| conversation_reply | 用户提供的 v8 私聊运行协议 + Working Persona + 独立事实视图/能力边界/实际 Tool facts + M/S + H + 当前输入 | H | reply_context.go；reply_provider.go |
 | reply_action_check | 换装未生效时核验未发送正文；实际动作回执 + 当前状态 + 候选正文，无人格扮演，无工具 | 0 | reply_action_consistency.go |
 | wake_up | 专属完整唤醒协议 + Working Persona + D/M/S + 历史资料 H + 本次唤醒事件 | H，作为历史数据 | agent_result_adapter.go；capability_prompt_policy.go |
 | takeover_judge | Judge 协议 + 本轮 user/candidate/接管规则/控制与关系事实 + 可选 recent references | 无全量 H/M | turn_takeover.go；conversation_runtime.go |
@@ -110,14 +110,14 @@ H 现在明确放在历史数据块。Moment 不是私聊续写，不能复制�
 既有私有诊断路径。该防线不改变人格、输入协议或 token 设置，
 `reply_body_integration_test.go` 覆盖真实 Provider HTTP 传输与 PostgreSQL 发布。
 
-私聊表达默认协议为 `fact-only-reply.v7`：角色是具体的人及该角色本人，不得
-自称 AI、助手、模型或人工智能；此身份约束明确覆盖 `blank_slate`（白板）
-及人格资料为空的情况，未知经历仍保持未知。人格原文及当前输入不改写。
-v7 简化媒体规则：对方索图或角色决定主动分享图片时调用原生图片请求工具，
-由 `intent` 描述画面，不能用正文代替调用或假装已发送；角色是否主动分享由
-人格和语境决定。模型可见工具描述也明确上述触发条件，工具受理回执仍不代表
-图片已生成或发送。v4/v5/v6 的原协议、hash、模型可见工具描述和冻结草稿恢复
-保持原样；设置页保留旧版本选项。已经显式保存旧表达版本的设置不会自动升级。
+私聊表达默认协议为 `fact-only-reply.v8`：运行协议采用用户提供的聊天规则，
+强调以当前人格本人自然交流、区分聊天与现实同处、尊重真实状态与明确拒绝、
+自主推进而不虚构结果、按需调用图片工具，以及只输出实际聊天正文、括号动作
+或必要工具调用。提示词正文由 `reply_expression.go` 按段落保存；system renderer
+提供唯一的“运行协议”标题。普通文字闲聊不调用图片工具，工具受理不代表图片
+已生成或发送；未理解图片时不声称看过，外貌细节经 `persona.detail` 查询。
+v4/v5/v6/v7 的原协议、hash、模型可见工具描述和冻结草稿恢复保持原样；设置页
+保留旧版本选项。已经显式保存旧表达版本的设置不会自动升级。
 聊天正文解析后的统一输出清洗 `stripReplyMarkdownHeadings` 去掉行首 1–6 个
 `#` 加空白（或空标题）的 ATX 标记与合法尾标记，保留标题文字。普通正文、
 话题标签、行内代码、缩进代码及反引号/波浪线围栏内的内容保持原样；围栏
@@ -125,7 +125,8 @@ v7 简化媒体规则：对方索图或角色决定主动分享图片时调用�
 沿用其原有标题规则；聊天 Writer、原生 Tool、准备草稿及重复回复投影均清洗。
 `reply_markdown_test.go` 覆盖清洗与共享解析路径；`reply_identity_test.go`
 核对空白/已定义人格的 system 约束、实际 Provider HTTP 请求、无输出 token
-上限及旧协议 hash。受控 Provider 验证传输和解码，不代表真实模型行为验收。
+上限及 v4–v7 旧协议 hash，并验证 v8 用户协议到真实 Provider HTTP 请求的传递。
+受控 Provider 验证传输和解码，不代表真实模型行为验收。
 
 WakeUp 主动私聊没有新的用户消息：Writer 在任务规则中明确这是主动发言，
 当前输入为标明 `has_new_user_message: false` 的结构化任务事件，不再将内部

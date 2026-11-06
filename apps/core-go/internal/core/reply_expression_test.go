@@ -11,7 +11,7 @@ import (
 )
 
 func TestPrivateChatExpressionSettingsAndFrozenContract(t *testing.T) {
-	for _, version := range []string{factOnlyReplyLegacyPromptVersion, factOnlyReplyV5PromptVersion, "fact-only-reply.v6", factOnlyReplyPromptVersion} {
+	for _, version := range []string{factOnlyReplyLegacyPromptVersion, factOnlyReplyV5PromptVersion, factOnlyReplyV6PromptVersion, factOnlyReplyV7PromptVersion, factOnlyReplyV8PromptVersion} {
 		settings, err := decodeConversationReplySettings(jsonBytes(map[string]any{"mode": "fact_only", "expression_version": version}))
 		if err != nil || settings.ExpressionVersion != version {
 			t.Fatal(settings, err)
