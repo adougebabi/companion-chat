@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "id": "proactive-reply-protocol-leak",
+  "definition_hash": "1acaa35e4a492b1be9b28866c318569184900608d782db49e8589333e6377712",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "b3a980517837fb3ba540aa4d2f23493d945fdfc2818bfcd7dcbf899501cd7e96",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-06T00:56:22.934504Z",
+  "updated": "2026-11-06T01:13:01.055673Z",
+  "completed": "2026-11-06T01:13:01.055561Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-54e7bb0c5fada2f912c2",
+        "unit": "define",
+        "executor": "codex-proactive-reply",
+        "input_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "candidate_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "started": "2026-11-06T00:56:38.385356Z",
+        "ended": "2026-11-06T00:57:45.573518Z",
+        "status": "pass",
+        "reason": "已定位周期 WakeUp 将内部指令作为私聊 Writer 当前 user 输入，且独立 reasoning_content 不与正文合并；模型服务可能自身输出正文或历史模仿，尚缺真实响应。依据现行 prompt composition、fact-only reply、memory 和 actor 契约，保留真实历史与旧协议，通过类型化任务上下文、主动回复规则及高置信受限修复建立实际 HTTP 请求回归；真实模型未配置，语义效果不冒称实测。"
+      },
+      {
+        "id": "AT-b412cf7c624e67989747",
+        "unit": "execute",
+        "executor": "codex-proactive-reply",
+        "input_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "candidate_version": "d0a3a9027a50a6d12fe9f9329c09414c4ef295a8c20a5258b916364353f6d9e6",
+        "started": "2026-11-06T00:58:04.583304Z",
+        "ended": "2026-11-06T01:09:54.533736Z",
+        "status": "pass",
+        "reason": "主动 WakeUp 不再向 Writer 注入伪用户指令；私聊 Writer 以任务专属规则及无新用户消息的 JSON 事件构造请求，保留历史角色/内容及与事件相同的历史文本。普通当前输入、旧协议字节/hash 和原生媒体工具保持。高置信内部规则自述触发既有同模型无工具单次修复，复述仍在则报错；新增真实 HTTP 请求路径的受控回归和引用、普通对话、重复修复反例。实现前回归曾按原症状失败；最终 go test ./internal/core -count=1 通过，独立 ai/agent 与 ai/prompt 包通过。未配置真实模型和隔离 PostgreSQL，不能宣称真实模型效果或数据库集成已实测。"
+      },
+      {
+        "id": "AT-bf70aef31b8666e4d1de",
+        "unit": "execute",
+        "executor": "codex-proactive-reply",
+        "input_version": "b119f63698a6e7df1e653cf3c394b6b0a4dfef8e60459741362e5205c11d86c2",
+        "candidate_version": "b3a980517837fb3ba540aa4d2f23493d945fdfc2818bfcd7dcbf899501cd7e96",
+        "started": "2026-11-06T01:11:31.314746Z",
+        "ended": "2026-11-06T01:12:04.108551Z",
+        "status": "pass",
+        "reason": "主动 WakeUp 不再向 Writer 注入伪用户指令；私聊 Writer 以任务专属规则及无新用户消息的 JSON 事件构造请求，保留历史角色/内容及与事件相同的历史文本。普通当前输入、旧协议字节/hash 和原生媒体工具保持。高置信内部规则自述触发既有同模型无工具单次修复，复述仍在则报错；新增真实 HTTP 请求路径的受控回归和引用、普通对话、重复修复反例。实现前回归曾按原症状失败；最终 go test ./internal/core -count=1 通过，独立 ai/agent 与 ai/prompt 包通过。未配置真实模型和隔离 PostgreSQL，不能宣称真实模型效果或数据库集成已实测。 并行媒体任务变更了工作区整体指纹，本次重新绑定候选并准备复验。"
+      },
+      {
+        "id": "AT-faef44b5bcd2ba244766",
+        "unit": "check:proactive-regression",
+        "executor": "codex-proactive-reply",
+        "input_version": "b3a980517837fb3ba540aa4d2f23493d945fdfc2818bfcd7dcbf899501cd7e96",
+        "candidate_version": "b3a980517837fb3ba540aa4d2f23493d945fdfc2818bfcd7dcbf899501cd7e96",
+        "started": "2026-11-06T01:12:35.371798Z",
+        "ended": "2026-11-06T01:12:50.202822Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      }
+    ],
+    "checks": [
+      {
+        "id": "proactive-regression",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "e0d7935725ec40b52f0a4ffc5c8396400ba89e80918b8e8e6c947181cf679e9f",
+        "at": "2026-11-06T01:12:35.505369Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-faef44b5bcd2ba244766.log": "71aacd130a100d374e9b5fd72252e9d4d0a7db2cd6b64e20614ad9db84f1aa2e"
+        }
+      }
+    ]
+  }
+}

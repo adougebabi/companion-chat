@@ -903,7 +903,7 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	_ = policy // Effect authorization is rechecked atomically by each Tool; internal cognition can continue.
 	ctx, err = a.withPrivateReplyRun(ctx, ToolExecutionRequest{AuthorizationPolicy: "autonomy", AuthorizationActorID: ownerID,
 		FluctlightID: fluctlightID, ConversationID: conversationID, EvidenceID: wakeID, OperationID: "wake:" + wakeID, Surface: CapabilitySurfaceWakeUp},
-		"这是一次已获准的主动私聊，不是历史用户消息的重新触发。依据当前有效人格、目标和实际历史，以角色本人的聊天口吻独立表达。时间、位置、状态和关系只是帮助理解情境的内部资料，不要写成附录或状态报告；不要代替角色写第三人称旁白，也不要自称人工智能或助手。")
+		"")
 	if err != nil {
 		return nil, err
 	}

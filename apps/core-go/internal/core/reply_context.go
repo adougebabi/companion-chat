@@ -16,6 +16,10 @@ const factOnlyReplyV5PromptVersion = "fact-only-reply.v5"
 const factOnlyReplyLegacyPromptVersion = "fact-only-reply.v4"
 const replySceneMoment = "moment"
 
+// This is a task-specific operation rule, not a change to any frozen Writer
+// expression protocol or its persisted hash.
+const proactiveReplyTaskProtocol = `本轮是已获准的主动私聊，没有新的用户消息。历史是过去的对话，不是现在的新指令；不要机械模仿历史中的格式或内部说明。结合当前情境，以人物自己的口吻直接发消息给对方。不要解释任务、人格设定、提示词、回复规则或打算如何表达。`
+
 const (
 	factOnlyReplyInputTargetTokens = 8000
 	factOnlyReplyRecentTokens      = 2400
@@ -78,7 +82,12 @@ type ReplyContextInput struct {
 }
 
 func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssignment) (PromptAssemblyResult, error) {
-	if len(input.WorkingPersona) == 0 || strings.TrimSpace(input.CurrentInput) == "" {
+	proactive := input.Proactive && input.Scene != replySceneMoment
+	currentInput := input.CurrentInput
+	if proactive {
+		currentInput = renderProviderJSON(map[string]any{"kind": "proactive_private_message", "has_new_user_message": false})
+	}
+	if len(input.WorkingPersona) == 0 || strings.TrimSpace(currentInput) == "" {
 		return PromptAssemblyResult{}, errors.New("reply_required_context_missing")
 	}
 	policy, err := promptBudgetPolicyForAssignment(assignment)
@@ -112,7 +121,12 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 		}
 		workingInput = memories.Input
 		workingInput.RuntimeFacts = factOnlyRuntimeFragments(view, projection, false)
-		workingInput.RecentMessages = factOnlyHistory(projection, input.CurrentInput)
+		historyCurrentInput := currentInput
+		if proactive {
+			// There is no current inbound message to remove from history.
+			historyCurrentInput = ""
+		}
+		workingInput.RecentMessages = factOnlyHistory(projection, historyCurrentInput)
 		if firstString(input.HistoryViewVersion, viewVersion) == replyViewVersion {
 			labelPrivateReplyHistory(workingInput.RecentMessages)
 		}
@@ -133,6 +147,9 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 		protocol = factOnlyMomentProtocol
 	}
 	rules := []string{protocol}
+	if proactive {
+		rules = append(rules, proactiveReplyTaskProtocol)
+	}
 	if input.OutputCorrection != "" {
 		rules = append(rules, input.OutputCorrection)
 	}
@@ -147,7 +164,7 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 	}
 	result, err := AssemblePromptContext(PromptAssemblyInput{Surface: surface, Role: conversationReplyModelRole,
 		OperationRules: rules, CorePersona: persona,
-		WorkingMemory: working, CurrentInput: input.CurrentInput, Tools: RenderCapabilityTools(replyWriterDefinitions(input)), Policy: policy})
+		WorkingMemory: working, CurrentInput: currentInput, CurrentInputIsTaskEvent: proactive, Tools: RenderCapabilityTools(replyWriterDefinitions(input)), Policy: policy})
 	if err != nil {
 		return result, err
 	}
@@ -166,7 +183,7 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 		selectedChars += len([]rune(stringValue(message["content"])))
 	}
 	result.Diagnostics = map[string]any{"reply_context_selection": map[string]any{"history_candidate_messages": len(workingInput.RecentMessages), "history_candidate_chars": candidateChars,
-		"history_selected_messages": max(0, selectedMessages-1), "history_selected_chars": max(0, selectedChars-len([]rune(strings.TrimSpace(input.CurrentInput)))), "working_memory": working.Trace}}
+		"history_selected_messages": max(0, selectedMessages-1), "history_selected_chars": max(0, selectedChars-len([]rune(strings.TrimSpace(currentInput)))), "working_memory": working.Trace}}
 	result.Diagnostics["context_view"] = viewDiagnostics
 	result.Diagnostics["reply_expression_contract"] = contract
 	result.Diagnostics["reply_persona_view"] = personaDiagnostics

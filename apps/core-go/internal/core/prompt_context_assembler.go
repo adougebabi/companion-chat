@@ -203,9 +203,12 @@ type PromptAssemblyInput struct {
 	StableTaskContext map[string]any
 	WorkingMemory     WorkingMemory
 	CurrentInput      string
-	Tools             []map[string]any
-	ResponseFormat    map[string]any
-	Policy            PromptBudgetPolicy
+	// Task events are not user chat messages, even if an older message happens
+	// to contain identical JSON. Do not deduplicate them against chat history.
+	CurrentInputIsTaskEvent bool
+	Tools                   []map[string]any
+	ResponseFormat          map[string]any
+	Policy                  PromptBudgetPolicy
 }
 
 type PromptAssemblyDecision struct {
@@ -272,7 +275,11 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	system := map[string]any{"role": "system", "content": renderProviderSystemForSurface(surface, input.OperationRules, filterCorePersona(input.CorePersona), nil, input.Role)}
 	stable := stableTaskContextMessage(input.StableTaskContext)
 	current := map[string]any{"role": "user", "content": input.CurrentInput}
-	candidates, err := promptOptionalCandidates(input.WorkingMemory, input.CurrentInput)
+	dedupInput := input.CurrentInput
+	if input.CurrentInputIsTaskEvent {
+		dedupInput = ""
+	}
+	candidates, err := promptOptionalCandidates(input.WorkingMemory, dedupInput)
 	if err != nil {
 		return PromptAssemblyResult{}, err
 	}

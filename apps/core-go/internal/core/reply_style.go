@@ -36,6 +36,10 @@ var replySpeechFrame = regexp.MustCompile(`(她|他).{0,24}(说|问|答|笑).{0,
 var replyPrivateAppendix = regexp.MustCompile(`(?m)^\s*(?:#{1,6}\s*)?(?:附录|内部状态|角色状态)(?:\s*[:：].*|\s*)$`)
 var replyPrivateField = regexp.MustCompile(`(?m)^\s*[-*]?\s*(?:当前时间|时间|位置|地点|状态|关系|情绪)\s*[:：]`)
 var replyAIDisclosure = regexp.MustCompile(`(?im)(?:^|[。！？!?\n])\s*(?:(?:早上好|你好|嗨)[，,\s]+)?(?:作为(?:一(?:个|名))?|我是(?:一(?:个|名))?|我只是一(?:个|名))\s*(?:AI\s*(?:语言模型|助手|模型)?|人工智能(?:助手|模型)?|语言模型)(?:[，。！？、：；,.!?;:\s]|$)`)
+var replyInternalProtocolReference = regexp.MustCompile(`(?i)(?:当前(?:有效|生效)人格|(?:系统|内部|运行|模型|生成|回复|输出)(?:的)?(?:提示词|指令|协议|规则|约束)|角色设定)`)
+var replyInternalProtocolPlan = regexp.MustCompile(`(?:让我|我(?:会|将|要|需要|必须|应该)|接下来(?:我)?(?:会|将|要)|按照|遵循|遵照|不写|不会写|不输出|只输出)`)
+var replyInternalProtocolCompliance = regexp.MustCompile(`(?:按照|遵循|遵照|依据|根据|基于|遵守|服从|执行|以(?:系统|内部|运行|模型|生成|回复|输出)(?:的)?(?:提示词|指令|协议|规则|约束)|以角色设定)`)
+var replyInternalProtocolExpression = regexp.MustCompile(`(?:回复|回应|表达|输出|说话|发言|聊天)`)
 
 // This view is only for a conservative diagnosis; the original candidate is
 // never edited. Quoted speech cannot establish the character's own identity.
@@ -72,6 +76,22 @@ func replyOutsideQuotes(text string) string {
 		result.WriteRune(' ')
 	}
 	return result.String()
+}
+
+func replyHasInternalProtocolSelfReference(text string) bool {
+	// Require related signals in the same sentence. Merely discussing a story,
+	// character design or system prompts alongside an unrelated plan is normal.
+	for _, sentence := range strings.FieldsFunc(text, func(r rune) bool {
+		return strings.ContainsRune("。！？!?\n", r)
+	}) {
+		if !replyInternalProtocolPlan.MatchString(sentence) {
+			continue
+		}
+		if replyInternalProtocolReference.MatchString(sentence) && replyInternalProtocolCompliance.MatchString(sentence) && replyInternalProtocolExpression.MatchString(sentence) {
+			return true
+		}
+	}
+	return false
 }
 
 func replyExplicitWork(input ReplyContextInput) bool {
@@ -114,6 +134,9 @@ func diagnoseReplyStyle(text string, input ReplyContextInput) ReplyStyleDiagnosi
 		case replyAIDisclosure.MatchString(unquoted):
 			diagnosis.Status, diagnosis.Reasons = "high_confidence_narration", []string{"identity_disclosure"}
 			return diagnosis
+		case replyHasInternalProtocolSelfReference(unquoted):
+			diagnosis.Status, diagnosis.Reasons = "high_confidence_narration", []string{"internal_protocol_self_reference"}
+			return diagnosis
 		}
 	}
 	// Compiled portraits can contain prose instead of structured identity.
@@ -152,6 +175,7 @@ const replyStyleRepairInstruction = `[发送前一次文体修复]
 只修正表达媒介：保留原本要表达的意图、态度、主动程度、邀约或拒绝，以及有依据的信息；不要新增事实、承诺或改变目标策略。
 叙述中无依据的现场动作不能转写成第一人称真实行动。以本轮权威状态和真实工具结果为准。
 候选若包含时间、位置、状态或关系的内部附录，不要把它们作为报告或附录发给对方；如有自称人工智能或助手，改为当前人物本人的自然表达，未知经历仍保持未知。
+候选若复述内部协议、人格设定或宣布打算如何回复，去掉这些说明；保留有依据的对话意图，不为补足正文编造事实。
 不执行工具、不新增或重发媒体；已有媒体结果保持不变。只输出修复后的待发送正文。`
 
 func (a *App) validateAndRepairReplyStyle(ctx context.Context, input ConversationReplyTaskInput, draft ReplyDraft, raw string) (result ReplyDraft, resultErr error) {

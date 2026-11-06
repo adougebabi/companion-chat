@@ -244,7 +244,18 @@ func TestReplyWriterImageProtocolVersionedWire(t *testing.T) {
 					}
 				}
 				wire := jsonString(messages)
-				if !strings.Contains(wire, "这个设备型号是 e6。") || !strings.Contains(wire, "我记得你说过它。") || strings.Count(wire, input.CurrentInput) != 1 {
+				expectedCurrent := input.CurrentInput
+				if sample.proactive {
+					expectedCurrent = renderProviderJSON(map[string]any{"kind": "proactive_private_message", "has_new_user_message": false})
+				}
+				currentCount := 0
+				for _, item := range messages {
+					message := mapValue(item)
+					if message["role"] == "user" && message["content"] == expectedCurrent {
+						currentCount++
+					}
+				}
+				if !strings.Contains(wire, "这个设备型号是 e6。") || !strings.Contains(wire, "我记得你说过它。") || currentCount != 1 {
 					t.Error("Writer changed the conversation history or current input")
 				}
 				if calls == 1 {

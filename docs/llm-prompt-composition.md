@@ -127,13 +127,20 @@ v7 简化媒体规则：对方索图或角色决定主动分享图片时调用�
 核对空白/已定义人格的 system 约束、实际 Provider HTTP 请求、无输出 token
 上限及旧协议 hash。受控 Provider 验证传输和解码，不代表真实模型行为验收。
 
-主动私聊的当前任务明确使用角色本人的聊天口吻，并将时间、位置、状态和关系
-视为内部背景。高置信度的状态附录、自称 AI 或角色自身第三人称场景使用既有
-同模型、无工具、最多一次的未提交正文修复；普通第三人称、AI 话题和明确要求的
-创作仍保留。旧版 Writer 协议及持久草稿 hash 不改写。头像的 `media_prompt`
+WakeUp 主动私聊没有新的用户消息：Writer 在任务规则中明确这是主动发言，
+当前输入为标明 `has_new_user_message: false` 的结构化任务事件，不再将内部
+指令或历史消息当作用户的新话。对话历史仍按原角色和正文保留，即使旧消息内容
+恰好与任务事件相同也不能被当成当前输入去重；普通私聊的用户输入保持原文一次。
+主动私聊把时间、位置、状态和关系视为内部背景。高置信度的状态附录、自称 AI、
+角色自身第三人称场景或复述内部回复规则，使用既有同模型、无工具、最多一次的
+未提交正文修复；普通第三人称、引用、规则话题和明确要求的创作仍保留。
+任务规则不改写旧版 Writer 协议及持久草稿 hash。头像的 `media_prompt`
 子任务只接收冻结的角色设定、当前活动人格、已确认外貌、视觉参考和实际重试反馈，
 由角色选择头像内容与画风；旧队列在首次构思前补冻角色资料，已缓存的生图提示词
 沿用，模型失败不伪造固定模板结果。
+`TestProactiveReplySeparatesTaskEventOnPhysicalWriterRequest` 和
+`TestProactiveReplyRepairsProtocolSelfReferenceOnPhysicalWriterRequest` 验证实际
+受控请求中的任务事件、历史保留以及未提交正文修复；它们不证明真实模型的输出质量。
 `TestProactiveReplyRepairsPrivateAppendixOnPhysicalWriterRequest` 与
 `TestGeneratedAvatarUsesCharacterOwnedPromptOnPhysicalRequest` 核对实际
 受控请求；它们不能证明真实模型输出或图像质量。

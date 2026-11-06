@@ -1,0 +1,22 @@
+{
+  "id": "proactive-reply-protocol-leak",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "b3a980517837fb3ba540aa4d2f23493d945fdfc2818bfcd7dcbf899501cd7e96",
+  "completed": "2026-11-06T01:13:01.055561Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "proactive-regression",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "e0d7935725ec40b52f0a4ffc5c8396400ba89e80918b8e8e6c947181cf679e9f",
+      "at": "2026-11-06T01:12:35.505369Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-faef44b5bcd2ba244766.log": "71aacd130a100d374e9b5fd72252e9d4d0a7db2cd6b64e20614ad9db84f1aa2e"
+      }
+    }
+  ]
+}

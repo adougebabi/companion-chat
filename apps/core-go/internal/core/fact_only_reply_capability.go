@@ -477,7 +477,11 @@ func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation C
 		projection = privateTextChatProjection(projection)
 	}
 	current := firstString(run.CurrentInput, projection.CurrentUserText)
-	if current == "" {
+	if run.Scope.Surface == CapabilitySurfaceWakeUp && scene != replySceneMoment {
+		// WakeUp has no current user message; the Writer assembles its own typed
+		// task event without forwarding an old message or an internal instruction.
+		current = ""
+	} else if current == "" {
 		current = "这是一次已授权的主动私聊，请依据当前人格、目标和真实历史自主决定表达。"
 	}
 	if scene == replySceneMoment {
