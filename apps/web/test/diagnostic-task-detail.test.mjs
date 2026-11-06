@@ -69,3 +69,80 @@ test('queued unattempted task uses a preparation link while retaining the backen
  const v=await mountReact(vite,Record,{workspace:w,props:{taskId:'queued-original',onClose(){}}});
  try{const outer=document.querySelector('[role=dialog]');assert.match(outer.textContent,/已尝试 0 次/);assert.equal(button(outer,'恢复初始衣柜准备'),undefined);await v.click(button(outer,'查看初始衣柜准备'));assert.equal(destination,'/c/A/life/wardrobe');}finally{await v.dispose();}
 });
+
+test('failed media task recovers the original attempt and follows the accepted new task',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace(),writes=[],reads=[];
+ const media={id:'media-original',owner_fluctlight_id:'A',workflow_id:'media-workflow',status:'failed',revision:8,prompt:'{"purpose":"chat"}',provider_prompt:'saved prompt',provider_job_id:'provider-job',execution:{status:'failed'}};
+ w.services.operationsClient={task:async id=>({task_id:id,kind:'media.generation',fluctlight_id:'A',workflow_id:id==='new-media-task'?'new-media-workflow':'media-workflow',status:id==='new-media-task'?'pending':'failed',runs:1,steps:[]})};
+ w.services.diagnosticsClient={workflow:async id=>({intent:{intent_type:'media.generation',revision:4,status:id==='media-workflow'?'failed':'pending',payload:{intent_id:'media-original',fluctlight_id:'A'}},runtime_state:'available',runtime:{run_id:'run-'+id,status:id==='media-workflow'?'failed':'running'},allowed_actions:[],commands:[],recovery:{mode:'domain_recovery',href:'/diag/media-prompts?q=media-original',label:'查看媒体原任务和恢复'}}),page:async(kind,options)=>{reads.push({kind,options});return {items:kind==='media-prompts'?[{id:media.id,ref:'media-ref',data:{...media}}]:[],next_cursor:''};},mediaRetry:async(id,body)=>{writes.push({id,body:structuredClone(body)});if(writes.length===1)throw Error('fetch failed');media.status='pending';media.workflow_id='new-media-workflow';media.revision++;return {media_intent_id:id,intent_id:'new-media-task',workflow_id:'new-media-workflow',status:'retry_queued',mode:body.mode};}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'original-media-task',onClose(){}}});
+ try{
+  const outer=document.querySelector('[role=dialog]'),footer=outer.querySelector('[data-slot=sheet-footer]');assert.ok(reads.some(r=>r.kind==='media-prompts'&&r.options.correlationId==='media:media-original'));
+  assert.ok(button(footer,'从失败处重试'));assert.ok(button(footer,'重新生成'));assert.match(outer.textContent,/保存生成提示词/);assert.match(outer.textContent,/提交生成请求/);
+  await view.click(button(footer,'从失败处重试'));let dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(dialog.querySelector('textarea'),'恢复原来的生成任务');await view.click(button(dialog,'确认从失败处重试'));assert.equal(writes.length,1);assert.equal(writes[0].id,'media-original');assert.equal(writes[0].body.expectedRevision,8);assert.equal(writes[0].body.mode,'resume');assert.ok(writes[0].body.idempotencyKey);
+  await view.click(dialog.querySelector('[data-slot=dialog-close]'));await view.click(button(footer,'核对或重试原提交'));assert.equal(writes.length,2);assert.deepEqual(writes[1],writes[0]);await view.flush();assert.match(outer.textContent,/等待开始|排队中/);assert.equal(button(footer,'从失败处重试'),undefined);
+ }finally{await view.dispose();}
+});
+
+test('media retry uses explicit regenerate mode and keeps its original revision',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace(),writes=[];
+ const media={id:'media-regenerate',owner_fluctlight_id:'A',workflow_id:'wf-regenerate',status:'failed',revision:12,prompt:'{"purpose":"chat"}',provider_prompt:'saved'};
+ w.services.operationsClient={task:async id=>({task_id:id,kind:'media.generation',fluctlight_id:'A',workflow_id:id==='next-regenerate'?'wf-next':'wf-regenerate',status:id==='next-regenerate'?'pending':'failed',steps:[]})};
+ w.services.diagnosticsClient={workflow:async id=>({intent:{intent_type:'media.generation',status:id==='wf-next'?'pending':'failed',payload:{intent_id:media.id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async(kind)=>({items:kind==='media-prompts'?[{id:media.id,ref:'ref',data:media}]:[],next_cursor:''}),mediaRetry:async(id,body)=>{writes.push({id,body});media.status='pending';media.workflow_id='wf-next';return {media_intent_id:id,intent_id:'next-regenerate',workflow_id:'wf-next',status:'retry_queued',mode:body.mode};}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-regenerate',onClose(){}}});
+ try{const footer=document.querySelector('[data-slot=sheet-footer]');await view.click(button(footer,'重新生成'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);assert.match(dialog.textContent,/已就绪的资产不会被覆盖/);await view.input(dialog.querySelector('textarea'),'明确重新生成');await view.click(button(dialog,'确认重新生成'));assert.equal(writes.length,1);assert.deepEqual([writes[0].id,writes[0].body.mode,writes[0].body.expectedRevision],['media-regenerate','regenerate',12]);assert.ok(writes[0].body.idempotencyKey);}finally{await view.dispose();}
+});
+
+for(const kind of ['visual','studio','superseded','active'])test(`media recovery respects ${kind} domain and attempt boundaries`,async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace();let writes=0,destination='';w.navigatePath=path=>destination=path;
+ const id='media-'+kind,media={id,owner_fluctlight_id:'A',workflow_id:kind==='superseded'?'wf-new':'wf-'+kind,status:kind==='active'?'running':'failed',revision:3,prompt:kind==='visual'?'{"purpose":"visual_identity"}':'{"purpose":"chat"}',studio_job_id:kind==='studio'?'studio-job':null,execution:{intent_id:'new-attempt'}};
+ w.services.operationsClient={task:async task=>({task_id:task,kind:'media.generation',fluctlight_id:'A',workflow_id:'wf-'+kind,status:'failed',steps:[]})};
+ w.services.studioClient={job:async()=>({resource_id:'studio-resource'})};
+ w.services.diagnosticsClient={workflow:async()=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id,ref:'ref-'+id,data:media}],next_cursor:''}),mediaRetry:async()=>{writes++;return {};}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-'+kind,onClose(){}}});
+ try{const outer=document.querySelector('[role=dialog]'),footer=outer.querySelector('[data-slot=sheet-footer]');assert.equal(button(footer,'从失败处重试'),undefined);assert.equal(button(footer,'重新生成'),undefined);if(kind==='visual'){await view.click(button(footer,'查看视觉身份会话'));assert.equal(destination,'/c/A/media/identity/edit');}if(kind==='studio'){await view.click(button(footer,'查看创作任务'));assert.equal(destination,'/studio/preview?res=studio-resource&job=studio-job');}if(kind==='superseded')assert.ok(button(footer,'查看当前执行任务'));if(kind==='active')assert.match(footer.textContent,/媒体任务正在执行或等待/);assert.equal(writes,0);}finally{await view.dispose();}
+});
+
+test('media stage display uses only persisted checkpoints and never turns provider admission into a finished image',async()=>{
+ const {mediaTaskStageRecords}=await vite.ssrLoadModule('/src/approved-ui/task-presentation.mjs');
+ const task={kind:'media.generation',workflow_id:'original'},base={id:'media',workflow_id:'original',status:'failed'};
+ assert.deepEqual(mediaTaskStageRecords(task,base).map(x=>[x.name,x.status]),[['媒体任务结果','failed']]);
+ const stages=mediaTaskStageRecords(task,{...base,provider_prompt:'saved',provider_job_id:'job',quality_checked_at:'2026-11-06T00:00:00Z',quality_verdict:'skip'});
+ assert.deepEqual(stages.map(x=>x.name),['保存生成提示词','提交生成请求','记录质量检查结果','媒体任务结果']);assert.match(stages[1].detail,/结果仍需核对/);assert.match(stages[2].detail,/未执行或不可用/);assert.equal(mediaTaskStageRecords(task,{...base,workflow_id:'new'}).length,0);
+});
+
+test('media recovery survives remount after an unknown transport result without changing the submission',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace(),writes=[];
+ const media={id:'media-remount',owner_fluctlight_id:'A',workflow_id:'wf-remount',status:'failed',revision:7,prompt:'{}'};
+ w.services.operationsClient={task:async id=>({task_id:id,kind:'media.generation',fluctlight_id:'A',workflow_id:id==='next-remount'?'wf-next-remount':'wf-remount',status:'failed',steps:[]})};
+ w.services.diagnosticsClient={workflow:async id=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:media.id}},runtime_state:'available',runtime:{run_id:id,status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id:media.id,ref:'ref-remount',data:media}],next_cursor:''}),mediaRetry:async(id,body)=>{writes.push({id,body:structuredClone(body)});if(writes.length===1)throw Error('fetch failed');return {media_intent_id:id,intent_id:'next-remount',workflow_id:'wf-next-remount',status:'retry_queued',mode:body.mode};}};
+ let view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-remount',onClose(){}}});
+ try{let footer=document.querySelector('[data-slot=sheet-footer]');await view.click(button(footer,'从失败处重试'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(dialog.querySelector('textarea'),'保留原始提交');await view.click(button(dialog,'确认从失败处重试'));assert.equal(writes.length,1);await view.dispose();view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-remount',onClose(){}}});footer=document.querySelector('[data-slot=sheet-footer]');assert.equal(button(footer,'从失败处重试'),undefined);assert.ok(button(footer,'核对或重试原提交'));await view.click(button(footer,'核对或重试原提交'));assert.equal(writes.length,2);assert.deepEqual(writes[1],writes[0]);}finally{await view.dispose();}
+});
+
+test('media revision conflict requires a fresh read and explicit release before a new submission',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace(),writes=[];let revision=4,mediaStatus='failed';
+ const id='media-conflict';
+ w.services.operationsClient={task:async task=>({task_id:task,kind:'media.generation',fluctlight_id:'A',workflow_id:'wf-conflict',status:'failed',steps:[]})};
+ w.services.diagnosticsClient={workflow:async()=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id,ref:'ref-conflict',data:{id,owner_fluctlight_id:'A',workflow_id:'wf-conflict',status:mediaStatus,revision,prompt:'{}'}}],next_cursor:''}),mediaRetry:async(mediaId,body)=>{writes.push({id:mediaId,body:structuredClone(body)});if(writes.length===1){revision=5;throw Object.assign(Error('媒体版本已变化'),{status:409,code:'revision_conflict'});}mediaStatus='pending';return {media_intent_id:mediaId,intent_id:'next-conflict',workflow_id:'wf-next-conflict',status:'retry_queued',mode:body.mode};}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-conflict',onClose(){}}});
+ try{const footer=document.querySelector('[data-slot=sheet-footer]');await view.click(button(footer,'从失败处重试'));let dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(dialog.querySelector('textarea'),'第一次恢复');await view.click(button(dialog,'确认从失败处重试'));assert.equal(writes.length,1);await view.click(dialog.querySelector('[data-slot=dialog-close]'));assert.equal(button(footer,'从失败处重试'),undefined);await view.click(button(footer,'核对新状态并审阅原提交'));dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.click(button(dialog,'已核对，解除被拒绝的原提交'));await view.click(button(footer,'从失败处重试'));dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(dialog.querySelector('textarea'),'核对后恢复');await view.click(button(dialog,'确认从失败处重试'));assert.equal(writes.length,2);assert.deepEqual(writes.map(x=>x.body.expectedRevision),[4,5]);assert.notEqual(writes[0].body.idempotencyKey,writes[1].body.idempotencyKey);}finally{await view.dispose();}
+});
+
+test('incomplete media recovery receipt retains the original command for safe replay',async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace(),writes=[];
+ const id='media-incomplete',media={id,owner_fluctlight_id:'A',workflow_id:'wf-incomplete',status:'failed',revision:2,prompt:'{}'};
+ w.services.operationsClient={task:async task=>({task_id:task,kind:'media.generation',fluctlight_id:'A',workflow_id:'wf-incomplete',status:'failed',steps:[]})};
+ w.services.diagnosticsClient={workflow:async()=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id,ref:'ref-incomplete',data:media}],next_cursor:''}),mediaRetry:async(mediaId,body)=>{writes.push({id:mediaId,body:structuredClone(body)});if(writes.length===1)return {status:'retry_queued'};return {media_intent_id:id,intent_id:'next-incomplete',workflow_id:'wf-next-incomplete',mode:body.mode,status:'retry_queued'};}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-incomplete',onClose(){}}});
+ try{const footer=document.querySelector('[data-slot=sheet-footer]');await view.click(button(footer,'从失败处重试'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);await view.input(dialog.querySelector('textarea'),'核对恢复');await view.click(button(dialog,'确认从失败处重试'));assert.match(dialog.textContent,/回执尚未完整读到/);await view.click(dialog.querySelector('[data-slot=dialog-close]'));await view.click(button(footer,'核对或重试原提交'));assert.equal(writes.length,2);assert.deepEqual(writes[1],writes[0]);}finally{await view.dispose();}
+});
+
+for(const hasJob of [false,true])test(`media recovery warns about an unknown provider submission only when job id is ${hasJob?'saved':'missing'}`,async()=>{
+ const {default:Record}=await vite.ssrLoadModule('/src/react-app/shared/TaskRecordDialog.tsx'),w=workspace();const id='media-ambiguity-'+hasJob;
+ const media={id,owner_fluctlight_id:'A',workflow_id:'wf-ambiguity-'+hasJob,status:'failed',revision:2,prompt:'{}',provider_job_id:hasJob?'provider-job':''};
+ w.services.operationsClient={task:async task=>({task_id:task,kind:'media.generation',fluctlight_id:'A',workflow_id:media.workflow_id,status:'failed',steps:[]})};
+ w.services.diagnosticsClient={workflow:async()=>({intent:{intent_type:'media.generation',status:'failed',payload:{intent_id:id}},runtime_state:'available',runtime:{run_id:'run',status:'failed'},allowed_actions:[],commands:[]}),page:async()=>({items:[{id,ref:'ref-'+id,data:media}],next_cursor:''}),mediaRetry:async()=>{throw Error('unexpected write');}};
+ const view=await mountReact(vite,Record,{workspace:w,props:{taskId:'task-ambiguity-'+hasJob,onClose(){}}});
+ try{const footer=document.querySelector('[data-slot=sheet-footer]');await view.click(button(footer,'从失败处重试'));const dialog=[...document.querySelectorAll('[role=dialog]')].at(-1);if(hasJob)assert.doesNotMatch(dialog.textContent,/可能产生重复生成/);else assert.match(dialog.textContent,/可能产生重复生成/);await view.click(button(dialog,'取消'));}finally{await view.dispose();}
+});

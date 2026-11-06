@@ -119,6 +119,17 @@ export function taskStageRecords(task,preparation){
  const source={task_id:preparation.task_id,fluctlight_id:preparation.fluctlight_id,status:preparation.status,result:preparation.result};
  return [{id:'inventory',name:'整理衣物与穿搭方案',status:committed?'completed':cancelled?'cancelled':failed?'failed':['generating','running'].includes(preparation.status)?'running':'pending',source},{id:'wear',name:'确认初始穿着',status:preparation.status==='completed'&&committed?'completed':failed&&committed?'failed':cancelled&&committed?'cancelled':failed||cancelled?'blocked':preparation.status==='awaiting_wear'&&committed?'running':'pending',source}];
 }
+// Media has no durable per-step state machine. Show only checkpoints that the
+// media record actually proves, plus its current business result.
+export function mediaTaskStageRecords(task,media){
+ if((task?.kind||task?.type)!=='media.generation'||!media?.id||String(media.workflow_id||'').replace(/^go:/,'')!==String(task.workflow_id||'').replace(/^go:/,''))return [];
+ const result=[];
+ if(typeof media.provider_prompt==='string'&&media.provider_prompt.trim())result.push({id:'media-prompt',name:'保存生成提示词',status:'completed'});
+ if(typeof media.provider_job_id==='string'&&media.provider_job_id)result.push({id:'media-submission',name:'提交生成请求',status:'completed',detail:'生成服务已返回任务编号，生成结果仍需核对。'});
+ if(media.quality_checked_at&&media.quality_verdict)result.push({id:'media-quality',name:'记录质量检查结果',status:'completed',detail:media.quality_verdict==='pass'?'检查通过':media.quality_verdict==='skip'?'本次质量检查未执行或不可用':media.quality_verdict==='retry_accepted'?'已保留再次生成后的结果':'已记录质量检查结论'});
+ result.push({id:'media-result',name:'媒体任务结果',status:media.status||'unknown'});
+ return result;
+}
 export function taskNeedsModelConfiguration(task,preparation){
  const code=preparation?.error_code||task?.error_code;
  if(['wardrobe_preparation_context_failed','wardrobe_provider_assignment_unavailable'].includes(code))return false;
@@ -154,6 +165,7 @@ export function taskEventReason(entry){
  const message=errorMessage({message:reason,code},fallback);return typeof message==='string'?message:fallback;
 }
 export function taskRecoveryStrategy(snapshot,recovery){
+ if(snapshot?.intent?.intent_type==='media.generation')return '按媒体任务的实际状态选择可用操作；恢复会保留已保存结果，受理后仍需核对执行结果。';
  if(recovery?.mode==='domain_recovery')return '通过原业务入口核对准备进度并处理可恢复的环节，保留已确认结果。';
  const labels={pause:'暂停',resume:'继续执行',cancel:'请求取消',restart:'重试原任务',reset:'从已完成检查点重新执行'};
  const actions=(snapshot?.allowed_actions||[]).filter(action=>Object.hasOwn(labels,action)).map(action=>labels[action]);

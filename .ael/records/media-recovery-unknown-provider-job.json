@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "id": "media-recovery-unknown-provider-job",
+  "definition_hash": "68e8178c28f956b928abf2f99e7b5c4ccd44c10bb02921a232d1b1209710ad35",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "217df190dbb4e6f52789cd1fe717968a66c05f3be42203915262efea2bc50f12",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-06T01:31:38.277311Z",
+  "updated": "2026-11-06T01:37:47.342327Z",
+  "completed": "2026-11-06T01:37:47.341895Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-8e37c254ba73fc21e65c",
+        "unit": "define",
+        "executor": "codex-media-recovery",
+        "input_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "candidate_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "started": "2026-11-06T01:31:59.676259Z",
+        "ended": "2026-11-06T01:32:51.114002Z",
+        "status": "pass",
+        "reason": "复核 media.go 的外部提交与 provider_job_id 落库顺序：没有已保存的服务任务编号时 resume 可能重新提交，先前服务已受理但回执丢失时可能产生重复生成。补充条件式确认提示，不改变后台行为。"
+      },
+      {
+        "id": "AT-693dd0e977bf7350402b",
+        "unit": "execute",
+        "executor": "codex-media-recovery",
+        "input_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "candidate_version": "217df190dbb4e6f52789cd1fe717968a66c05f3be42203915262efea2bc50f12",
+        "started": "2026-11-06T01:33:23.976031Z",
+        "ended": "2026-11-06T01:36:04.701693Z",
+        "status": "pass",
+        "reason": "恢复确认按媒体记录中的 provider_job_id 条件展示：没有已保存编号时说明可能重新提交，且先前请求已被接收时可能重复生成；有编号时不展示。保留原提交与取消行为。回归先失败后通过，任务详情 19 项、类型检查、构建和隔离生产浏览器检查通过。"
+      },
+      {
+        "id": "AT-d5b764b99a70e1c2f796",
+        "unit": "check:ambiguity-regression",
+        "executor": "codex-media-recovery",
+        "input_version": "217df190dbb4e6f52789cd1fe717968a66c05f3be42203915262efea2bc50f12",
+        "candidate_version": "217df190dbb4e6f52789cd1fe717968a66c05f3be42203915262efea2bc50f12",
+        "started": "2026-11-06T01:36:40.166726Z",
+        "ended": "2026-11-06T01:36:54.184864Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-b594b6272fbfcdb3ec89",
+        "unit": "check:ambiguity-ui",
+        "executor": "codex-media-recovery",
+        "input_version": "217df190dbb4e6f52789cd1fe717968a66c05f3be42203915262efea2bc50f12",
+        "candidate_version": "217df190dbb4e6f52789cd1fe717968a66c05f3be42203915262efea2bc50f12",
+        "started": "2026-11-06T01:37:35.98519Z",
+        "ended": "2026-11-06T01:37:36.06384Z",
+        "status": "pass",
+        "reason": "最终生产 dist 在独占本机内存样本中打开没有 provider_job_id 的失败媒体任务，点击从失败处重试后真实确认弹窗显示可能重新提交和重复生成，取消后焦点回到原按钮；截图位于 Git 忽略目录。已有编号不显示提示由实际组件回归覆盖。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "ambiguity-regression",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "c2aee08710d1c57d49d5b161b85639144e457d290e2f1f2e263d58391b9d32b0",
+        "at": "2026-11-06T01:36:40.31042Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-d5b764b99a70e1c2f796.log": "a42dab80759a9f03a23ab50ca014eca470dc124c42ecd3f774f4f34f209f76f2"
+        }
+      },
+      {
+        "id": "ambiguity-ui",
+        "result": "pass",
+        "source": "scenario:codex-media-recovery",
+        "config_hash": "85ac7ce350592c0939007965b74c03e363572524114c88a5fdfe542a22de80b7",
+        "at": "2026-11-06T01:37:36.063135Z",
+        "artifact_hashes": {
+          ".v3-regression/media-task-recovery/ambiguity-verification.md": "9e5c1db8f9dc3bd39b3540f8f1d6123ccd1008b7706e5fe7f1576e88b7b49cbb",
+          ".v3-regression/media-task-recovery/ambiguity.jpg": "d56126fd5e2061123ba2e567504b946b9229322a29c82d764dc5859e1e1ec9d1",
+          "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "28a65d6e0b5d8ea8579991b9fb2ccc2d8d2aa643b98e36470511773251ea282f",
+          "apps/web/test/diagnostic-task-detail.test.mjs": "a5dc3a44b7f5156d9539406003c29a6d4335bf1422ab016c4ef198a793765d10"
+        }
+      }
+    ]
+  }
+}

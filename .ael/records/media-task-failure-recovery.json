@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "id": "media-task-failure-recovery",
+  "definition_hash": "a60e00f5a27b11a282d4e241daa2c9f1bd787138967afd32ddf9c19a288fd549",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-06T00:51:46.642074Z",
+  "updated": "2026-11-06T01:31:38.277643Z",
+  "completed": "2026-11-06T01:29:52.486433Z",
+  "feedback": [
+    "media-recovery-unknown-provider-job"
+  ],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-c590205ada782a49a1c2",
+        "unit": "define",
+        "executor": "codex-media-recovery",
+        "input_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "candidate_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "started": "2026-11-06T00:52:11.283758Z",
+        "ended": "2026-11-06T00:54:50.713855Z",
+        "status": "pass",
+        "reason": "已核对请求、工作区和已有任务。目标是在真实媒体任务详情中接通受版本与并发保护的领域恢复，按实际数据呈现状态和记录；不伪造检查点、不提交图片。相关实现与回归继续分析。"
+      },
+      {
+        "id": "AT-28512b6a5fd08f04f38c",
+        "unit": "analysis",
+        "executor": "codex-media-recovery",
+        "input_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "candidate_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "started": "2026-11-06T00:55:06.99364Z",
+        "ended": "2026-11-06T00:59:04.242624Z",
+        "status": "pass",
+        "reason": "复现：/tmp/media-task-recovery-repro.sh 连续两次在真实 React 任务详情中失败，只有媒体来源跳转、没有重试按钮。排查发现普通媒体已有保留结果、CAS/幂等与并发围栏的 resume/regenerate 服务；创作与视觉身份媒体必须走各自领域，不能使用通用工作流 reset。将先接通真实可用能力，按持久化证据呈现阶段与记录，并为旧结果和不安全状态保留限制。"
+      },
+      {
+        "id": "AT-7bc049db704a51e7cfd9",
+        "unit": "execute",
+        "executor": "codex-media-recovery",
+        "input_version": "4145ccfa5600be0f9f6433a3d0810ab865cfe213511cf17f3d8133b5fb6311fb",
+        "candidate_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "started": "2026-11-06T00:59:37.922526Z",
+        "ended": "2026-11-06T01:24:08.008007Z",
+        "status": "pass",
+        "reason": "聊天/普通图片失败媒体任务详情已接入原媒体领域 resume/regenerate，执行前读取原记录版本，结果未知时保留原幂等提交，受理后切到实际新任务。按真实持久化信息显示媒体检查点及时间线；保留创作/视觉领域隔离、旧执行和在途保护。最终候选的全量 Web 1038 测试、类型检查、构建和隔离生产页面交互通过；未触碰用户业务数据。"
+      },
+      {
+        "id": "AT-b384ce792371885adb32",
+        "unit": "check:web-typecheck",
+        "executor": "codex-media-recovery",
+        "input_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "candidate_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "started": "2026-11-06T01:24:50.955495Z",
+        "ended": "2026-11-06T01:25:07.44085Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-edab131b84ebf410fdf9",
+        "unit": "check:web-build",
+        "executor": "codex-media-recovery",
+        "input_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "candidate_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "started": "2026-11-06T01:25:46.452644Z",
+        "ended": "2026-11-06T01:26:01.879647Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-ef34ae51e696fb3db6d6",
+        "unit": "check:recovery-tests",
+        "executor": "codex-media-recovery",
+        "input_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "candidate_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "started": "2026-11-06T01:26:45.889081Z",
+        "ended": "2026-11-06T01:26:45.981091Z",
+        "status": "pass",
+        "reason": "最终候选全量 Web 1038 项通过，原始复现变绿；真实组件回归覆盖 resume、regenerate、媒体版本与幂等键、未知回执跨重开、版本冲突、旧执行、在途与领域隔离。隔离浏览器实际请求携带原版本和恢复模式；现有领域服务与实际外部媒体系统未在本场景中改动或连接。"
+      },
+      {
+        "id": "AT-b52ae1a9cc78399f9f74",
+        "unit": "check:recovery-ui",
+        "executor": "codex-media-recovery",
+        "input_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "candidate_version": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+        "started": "2026-11-06T01:29:41.541934Z",
+        "ended": "2026-11-06T01:29:41.627666Z",
+        "status": "pass",
+        "reason": "在生产 dist 与独占 loopback 内存样本上真实检查三个选项卡、失败信息、已记录检查点、恢复确认、取消和受理后新任务；桌面及 390×844 均实看并保存截图，窄屏无水平溢出、两个操作高度 44px。隔离服务确认收到带媒体版本与幂等键的 resume 请求；未连接真实媒体服务。截图位于 Git 忽略目录。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "9764adadb7b96deba3e4aa96b2b9308d1140659370873b3bc9ae636385eee656",
+        "at": "2026-11-06T01:24:51.092487Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-b384ce792371885adb32.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "849f017866dba69743527c0749cb894c19bfe1dc71bc195449b6c593c3d4f567",
+        "at": "2026-11-06T01:25:46.588733Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-edab131b84ebf410fdf9.log": "22ba4d6c0b410e205e496fdf3c00d94d4a64dc7d676d61db0763436feacc9fc6"
+        }
+      },
+      {
+        "id": "recovery-tests",
+        "result": "pass",
+        "source": "scenario:codex-media-recovery",
+        "config_hash": "a9443c1f0bfb059ce67646b0a635e837d2b90d079fe0891ee27c25d77e6bba8a",
+        "at": "2026-11-06T01:26:45.980267Z",
+        "artifact_hashes": {
+          ".v3-regression/media-task-recovery/verification.md": "b37aefd6232fd9bc2893bb3b7a38fd200e595c22428e38e44d919438d1fb8b9e",
+          "apps/core-go/internal/core/diagnostic_media_recovery.go": "850b11d422732701fb49ca5f54b5f608d4b5a20975b73cb01b805843c82d941c",
+          "apps/web/src/approved-ui/task-presentation.mjs": "0b6a6fada89b47b8eb9c84b76864826b56686963b643b10f92b3cba404612314",
+          "apps/web/src/react-app/pages/TaskDetailPage.tsx": "138144ad227aa34e31079bd25b9181da669b8184d78cc281e7969a03e9f01188",
+          "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "5b29fb51b9cbb25fa7182aa2c7524cad09f783253f15f9415be3969473999a66",
+          "apps/web/test/diagnostic-task-detail.test.mjs": "d0a570e1e3dc90c1f00e229d6b3b06b3ce86762897b26dced8aba948bb896901"
+        }
+      },
+      {
+        "id": "recovery-ui",
+        "result": "pass",
+        "source": "scenario:codex-media-recovery",
+        "config_hash": "8476ca2897c781c4e07e5c46e0336d6572387a937f54d8d17554186b020b276b",
+        "at": "2026-11-06T01:29:41.626927Z",
+        "artifact_hashes": {
+          ".v3-regression/media-task-recovery/desktop.jpg": "701df27669b500ffb805ed2ce54033f5a6476efbebbd1bd38ea8c969cea6a082",
+          ".v3-regression/media-task-recovery/mobile.jpg": "aecc08590f4dccf044f2903ffc80a226ff9f569f51590dfa6bf1453ffeec4d76",
+          ".v3-regression/media-task-recovery/verification.md": "2c1dc8cb4577f79db2886388cf52cd5ba9afc511c000300472c482c3ac943d5f",
+          "apps/web/src/approved-ui/task-presentation.mjs": "0b6a6fada89b47b8eb9c84b76864826b56686963b643b10f92b3cba404612314",
+          "apps/web/src/react-app/pages/TaskDetailPage.tsx": "138144ad227aa34e31079bd25b9181da669b8184d78cc281e7969a03e9f01188",
+          "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "5b29fb51b9cbb25fa7182aa2c7524cad09f783253f15f9415be3969473999a66",
+          "apps/web/src/react-app/shared/TaskExecutionResults.tsx": "2cde4d7037cd50eb3b3cbd56bc745c668f1fc010c63045542f6f0b585cb79b26",
+          "apps/web/src/react-app/shared/TaskRecordDialog.tsx": "6e51ca2d633855b54e18bc7339f70b8e8ab4e8cf90a249d02fdf3d03e2e8468b"
+        }
+      }
+    ]
+  }
+}

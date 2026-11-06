@@ -9,8 +9,10 @@ import JsonDetails from './JsonDetails';
 import {diagnosticInstant,taskEventText,taskEventReason,taskRoundRecords} from '@/approved-ui/task-presentation.mjs';
 import {callDurationLabel} from '@/approved-ui/task-model-call-presentation.mjs';
 
-export default function TaskExecutionResults({task,steps,calls,available}:{task:any;steps:any[];calls:any;available:boolean}){
+export default function TaskExecutionResults({task,steps,calls,available,media}:{task:any;steps:any[];calls:any;available:boolean;media?:any}){
  const rounds=taskRoundRecords(calls.items),success=rounds.filter((row:any)=>row.status==='success').length,failure=rounds.filter((row:any)=>row.status==='failure').length;
+ const mediaEvents=media?[[media.created_at,'媒体任务已创建'],[media.provider_job_id&&media.submission?.submitted_at,'生成请求已提交'],[media.quality_checked_at,'质量检查结果已记录']].filter(([at])=>typeof at==='string'&&Number.isFinite(Date.parse(at))).sort(([first],[second])=>Date.parse(first)-Date.parse(second)):[];
+ const lifecycle=<ol className="replica-task-history">{steps.map((entry:any,index:number)=><li key={entry.id??index}><h3>{taskEventText(entry)}</h3>{entry.at&&<time dateTime={entry.at}>{diagnosticInstant(entry.at)}</time>}{taskEventReason(entry)&&<p>{taskEventReason(entry)}</p>}</li>)}</ol>;
  return <div className="replica-task-results">
   <dl className="replica-task-result-summary" aria-label="执行结果汇总">
    {[['轮次',rounds.length],['成功',success],['失败',failure]].map(([label,value])=><div key={label}><dt>{calls.cursor?'已读取':''}{label}</dt><dd>{calls.ready?value:'—'}</dd></div>)}
@@ -32,6 +34,7 @@ export default function TaskExecutionResults({task,steps,calls,available}:{task:
    </Collapsible>
   </li>)}</ol></>}
   {calls.cursor&&<Button variant="outline" disabled={calls.busy} onClick={calls.more}>读取更多执行轮次</Button>}
-  {steps.length>0&&<Disclosure title={`生命周期记录 · ${task.has_more_steps?'已读取 ':''}${steps.length} 条`}><ol className="replica-task-history">{steps.map((entry:any,index:number)=><li key={entry.id??index}><h3>{taskEventText(entry)}</h3>{entry.at&&<time dateTime={entry.at}>{diagnosticInstant(entry.at)}</time>}{taskEventReason(entry)&&<p>{taskEventReason(entry)}</p>}</li>)}</ol><JsonDetails value={steps} title="生命周期原始记录"/></Disclosure>}
+  {mediaEvents.length>0&&<section><h3>媒体执行记录</h3><ol className="replica-task-history">{mediaEvents.map(([at,label])=><li key={label}><h3>{label}</h3><time dateTime={at}>{diagnosticInstant(at)}</time></li>)}</ol></section>}
+  {steps.length>0&&(media?<section><h3>生命周期记录 · {task.has_more_steps?'已读取 ':''}{steps.length} 条</h3>{lifecycle}<JsonDetails value={steps} title="生命周期原始记录"/></section>:<Disclosure title={`生命周期记录 · ${task.has_more_steps?'已读取 ':''}${steps.length} 条`}>{lifecycle}<JsonDetails value={steps} title="生命周期原始记录"/></Disclosure>)}
  </div>;
 }

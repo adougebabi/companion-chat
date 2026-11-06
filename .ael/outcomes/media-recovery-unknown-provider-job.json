@@ -1,0 +1,35 @@
+{
+  "id": "media-recovery-unknown-provider-job",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "217df190dbb4e6f52789cd1fe717968a66c05f3be42203915262efea2bc50f12",
+  "completed": "2026-11-06T01:37:47.341895Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "ambiguity-regression",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "c2aee08710d1c57d49d5b161b85639144e457d290e2f1f2e263d58391b9d32b0",
+      "at": "2026-11-06T01:36:40.31042Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-d5b764b99a70e1c2f796.log": "a42dab80759a9f03a23ab50ca014eca470dc124c42ecd3f774f4f34f209f76f2"
+      }
+    },
+    {
+      "id": "ambiguity-ui",
+      "result": "pass",
+      "source": "scenario:codex-media-recovery",
+      "config_hash": "85ac7ce350592c0939007965b74c03e363572524114c88a5fdfe542a22de80b7",
+      "at": "2026-11-06T01:37:36.063135Z",
+      "artifact_hashes": {
+        ".v3-regression/media-task-recovery/ambiguity-verification.md": "9e5c1db8f9dc3bd39b3540f8f1d6123ccd1008b7706e5fe7f1576e88b7b49cbb",
+        ".v3-regression/media-task-recovery/ambiguity.jpg": "d56126fd5e2061123ba2e567504b946b9229322a29c82d764dc5859e1e1ec9d1",
+        "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "28a65d6e0b5d8ea8579991b9fb2ccc2d8d2aa643b98e36470511773251ea282f",
+        "apps/web/test/diagnostic-task-detail.test.mjs": "a5dc3a44b7f5156d9539406003c29a6d4335bf1422ab016c4ef198a793765d10"
+      }
+    }
+  ]
+}

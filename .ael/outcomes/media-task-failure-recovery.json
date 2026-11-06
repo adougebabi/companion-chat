@@ -1,0 +1,64 @@
+{
+  "id": "media-task-failure-recovery",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "6496bce6a2388147ebeea9b558da1133c47e86f563411109104718b917501854",
+  "completed": "2026-11-06T01:29:52.486433Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "web-typecheck",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "9764adadb7b96deba3e4aa96b2b9308d1140659370873b3bc9ae636385eee656",
+      "at": "2026-11-06T01:24:51.092487Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-b384ce792371885adb32.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+      }
+    },
+    {
+      "id": "web-build",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "849f017866dba69743527c0749cb894c19bfe1dc71bc195449b6c593c3d4f567",
+      "at": "2026-11-06T01:25:46.588733Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-edab131b84ebf410fdf9.log": "22ba4d6c0b410e205e496fdf3c00d94d4a64dc7d676d61db0763436feacc9fc6"
+      }
+    },
+    {
+      "id": "recovery-tests",
+      "result": "pass",
+      "source": "scenario:codex-media-recovery",
+      "config_hash": "a9443c1f0bfb059ce67646b0a635e837d2b90d079fe0891ee27c25d77e6bba8a",
+      "at": "2026-11-06T01:26:45.980267Z",
+      "artifact_hashes": {
+        ".v3-regression/media-task-recovery/verification.md": "b37aefd6232fd9bc2893bb3b7a38fd200e595c22428e38e44d919438d1fb8b9e",
+        "apps/core-go/internal/core/diagnostic_media_recovery.go": "850b11d422732701fb49ca5f54b5f608d4b5a20975b73cb01b805843c82d941c",
+        "apps/web/src/approved-ui/task-presentation.mjs": "0b6a6fada89b47b8eb9c84b76864826b56686963b643b10f92b3cba404612314",
+        "apps/web/src/react-app/pages/TaskDetailPage.tsx": "138144ad227aa34e31079bd25b9181da669b8184d78cc281e7969a03e9f01188",
+        "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "5b29fb51b9cbb25fa7182aa2c7524cad09f783253f15f9415be3969473999a66",
+        "apps/web/test/diagnostic-task-detail.test.mjs": "d0a570e1e3dc90c1f00e229d6b3b06b3ce86762897b26dced8aba948bb896901"
+      }
+    },
+    {
+      "id": "recovery-ui",
+      "result": "pass",
+      "source": "scenario:codex-media-recovery",
+      "config_hash": "8476ca2897c781c4e07e5c46e0336d6572387a937f54d8d17554186b020b276b",
+      "at": "2026-11-06T01:29:41.626927Z",
+      "artifact_hashes": {
+        ".v3-regression/media-task-recovery/desktop.jpg": "701df27669b500ffb805ed2ce54033f5a6476efbebbd1bd38ea8c969cea6a082",
+        ".v3-regression/media-task-recovery/mobile.jpg": "aecc08590f4dccf044f2903ffc80a226ff9f569f51590dfa6bf1453ffeec4d76",
+        ".v3-regression/media-task-recovery/verification.md": "2c1dc8cb4577f79db2886388cf52cd5ba9afc511c000300472c482c3ac943d5f",
+        "apps/web/src/approved-ui/task-presentation.mjs": "0b6a6fada89b47b8eb9c84b76864826b56686963b643b10f92b3cba404612314",
+        "apps/web/src/react-app/pages/TaskDetailPage.tsx": "138144ad227aa34e31079bd25b9181da669b8184d78cc281e7969a03e9f01188",
+        "apps/web/src/react-app/shared/MediaTaskRecovery.tsx": "5b29fb51b9cbb25fa7182aa2c7524cad09f783253f15f9415be3969473999a66",
+        "apps/web/src/react-app/shared/TaskExecutionResults.tsx": "2cde4d7037cd50eb3b3cbd56bc745c668f1fc010c63045542f6f0b585cb79b26",
+        "apps/web/src/react-app/shared/TaskRecordDialog.tsx": "6e51ca2d633855b54e18bc7339f70b8e8ab4e8cf90a249d02fdf3d03e2e8468b"
+      }
+    }
+  ]
+}
