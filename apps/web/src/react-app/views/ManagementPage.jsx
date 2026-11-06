@@ -70,8 +70,10 @@ export function ManagementPageView({ view: view }) {
               onInvalidCapture={event=>{const target=event.target,section=target.closest(".settings-group");if(section?.dataset.section)void view.scrollTo(section.dataset.section,false).then(()=>{target.closest("[data-setting-field]")?.scrollIntoView({block:"center",behavior:"instant"});target.focus({preventScroll:true});});}}
               onSubmit={eventModifiers(view.save, ["prevent"])}
             >
+              <div className="replica-management-section-header">
               <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small className="replica-model-summary">{view.catalogReady.value?view.endpoints.value.length+' 个服务 · '+view.bindings.value.length+' 个用途':'正在读取服务与用途'}</small>}{categories.filter(item=>item.id===category&&category!=='models').map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
               {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>void view.scrollTo(value,false).then(()=>document.querySelector('.replica-management-main')?.scrollTo({top:0,behavior:'instant'}))}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
+              </div>
               {view.catalogLoading.value&&<p role="status" data-feedback-kind="progress">正在读取正式配置…</p>}
               {!view.catalogReady.value&&view.error.value&&<InlineFeedback role="alert">{view.error.value}<ActionButton type="button" variant="outline" onClick={view.retryCatalog}>重新读取配置</ActionButton></InlineFeedback>}
               <Surface
