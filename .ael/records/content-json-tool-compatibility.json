@@ -22,7 +22,7 @@
   "failure": "",
   "result": "",
   "created": "2026-11-05T09:27:11.60891Z",
-  "updated": "2026-11-05T10:04:05.507031Z",
+  "updated": "2026-11-06T03:09:23.717227Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -56,8 +56,19 @@
         "input_version": "1a092017241853f6899e09076a9fae0483e981d01739a919f20b100aa5645f31",
         "candidate_version": "",
         "started": "2026-11-05T09:43:49.964802Z",
-        "ended": null,
-        "status": "running",
+        "ended": "2026-11-06T01:51:31.522082Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-d96b63a52b2a29bf18bb",
+        "unit": "execute",
+        "executor": "dashboard-user",
+        "input_version": "355d96bb278c801b5045d041b05c21b425878375870ddd68b4384a6e3d318708",
+        "candidate_version": "",
+        "started": "2026-11-06T02:11:03.916916Z",
+        "ended": "2026-11-06T03:09:23.717026Z",
+        "status": "abandoned",
         "reason": ""
       }
     ],
