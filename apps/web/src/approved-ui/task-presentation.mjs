@@ -127,7 +127,9 @@ export function mediaTaskStageRecords(task,media){
  if(typeof media.provider_prompt==='string'&&media.provider_prompt.trim())result.push({id:'media-prompt',name:'保存生成提示词',status:'completed'});
  if(typeof media.provider_job_id==='string'&&media.provider_job_id)result.push({id:'media-submission',name:'提交生成请求',status:'completed',detail:'生成服务已返回任务编号，生成结果仍需核对。'});
  if(media.quality_checked_at&&media.quality_verdict)result.push({id:'media-quality',name:'记录质量检查结果',status:'completed',detail:media.quality_verdict==='pass'?'检查通过':media.quality_verdict==='skip'?'本次质量检查未执行或不可用':media.quality_verdict==='retry_accepted'?'已保留再次生成后的结果':'已记录质量检查结论'});
- result.push({id:'media-result',name:'媒体任务结果',status:media.status||'unknown'});
+ const status=media.status||task.status||'unknown';
+ const failure=['failed','dead_letter','error','timeout'].includes(status)?taskFailureReason({...task,status}):'';
+ result.push({id:'media-result',name:'媒体任务结果',status,detail:failure?`失败原因：${failure}`:undefined});
  return result;
 }
 export function taskNeedsModelConfiguration(task,preparation){
@@ -140,9 +142,15 @@ export function taskNeedsModelConfiguration(task,preparation){
 export function taskFailureReason(task,preparation){
  const current=preparation?.task_id===task?.task_id?preparation:null;
  const raw=task?.source?.last_error||task?.last_error;
+ const isMedia=(task?.kind||task?.type)==='media.generation';
  if(['wardrobe_preparation_context_failed','wardrobe_provider_assignment_unavailable','wardrobe_provider_unconfigured'].includes(current?.error_code)&&current?.result?.failure_reason)return current.result.failure_reason;
- if(taskNeedsModelConfiguration(task,current)){const reason=errorMessage({code:current?.error_code,message:raw}).replace('原资料与已完成步骤会保留。','已有角色、世界与准备记录会保留。');return reason.includes('已有角色、世界')?reason:reason+' 已有角色、世界与准备记录会保留。';}
+ if(taskNeedsModelConfiguration(task,current)){const reason=errorMessage({code:current?.error_code,message:raw}).replace('原资料与已完成步骤会保留。','已有角色、世界与准备记录会保留。'),summary=reason.includes('已有角色、世界')?reason:reason+' 已有角色、世界与准备记录会保留。';return isMedia&&raw?`${summary} 详细原因：${raw}`:summary;}
  if(current?.result?.failure_reason)return current.result.failure_reason;
+ const failed=['failed','dead_letter','error','timeout'].includes(task?.status);
+ if(isMedia){
+  if(raw){const message=errorMessage(raw,'');return message&&message!==raw?`${message} 详细原因：${raw}`:message||raw;}
+  return failed?'失败原因尚未记录。':'';
+ }
  const fallback='本次任务未完成，原资料和已确认的结果仍保留。请查看执行记录与业务恢复入口。';
  // A legacy assignment-read wrapper can contain a DB/connection failure. Do not
  // let the general message formatter turn it back into an unassigned-model claim.
@@ -156,13 +164,13 @@ export function taskSourceHref(task){
 }
 
 export function taskTypeLabel(task){const label=domainName(task?.kind||task?.type,'其他后台任务');return typeof label==='string'?label:'其他后台任务';}
-export function taskSubtitle(task){return [taskTypeLabel(task),taskStatusPresentation(task||{}).label,diagnosticDateLabel(task?.created_at)].join(' · ');}
+export function taskSubtitle(task){return [taskTypeLabel(task),diagnosticDateLabel(task?.created_at)].join(' · ');}
 export function taskEventReason(entry){
- const reason=typeof entry.reason==='string'?entry.reason:'';
+ const reason=typeof entry.safe_cause==='string'&&entry.safe_cause?entry.safe_cause:typeof entry.reason==='string'?entry.reason:'';
  const code=typeof entry.reason_code==='string'?entry.reason_code:'';
  if(!reason&&!code)return '';
  const fallback='';
- const message=errorMessage({message:reason,code},fallback);return typeof message==='string'?message:fallback;
+ const message=errorMessage({message:reason,code},fallback);if(entry.safe_cause&&reason&&message&&message!==reason)return `${message} 详细原因：${reason}`;return typeof message==='string'&&message?message:reason||fallback;
 }
 export function taskRecoveryStrategy(snapshot,recovery){
  if(snapshot?.intent?.intent_type==='media.generation')return '按媒体任务的实际状态选择可用操作；恢复会保留已保存结果，受理后仍需核对执行结果。';

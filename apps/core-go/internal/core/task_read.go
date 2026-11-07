@@ -76,28 +76,38 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 		source["diary_id"] = diaryID
 	}
 	steps := []any{}
-	rows, err := a.DB.Pool().Query(ctx, `SELECT id,event_type,COALESCE(payload->>'stage',''),COALESCE(payload->>'status',''),COALESCE(payload->>'reason_code',''),created_at FROM public.diagnostic_events WHERE event_type LIKE 'lifecycle.%' AND payload->>'intent_id'=$1 ORDER BY created_at DESC,id DESC LIMIT 101`, intent)
+	rows, err := a.DB.Pool().Query(ctx, `SELECT id,event_type,COALESCE(payload->>'stage',''),COALESCE(payload->>'status',''),COALESCE(payload->>'reason_code',''),COALESCE(NULLIF(payload->>'latest_safe_cause',''),NULLIF(payload->>'safe_cause',''),NULLIF(payload->>'first_safe_cause',''),''),created_at FROM public.diagnostic_events WHERE event_type LIKE 'lifecycle.%' AND payload->>'intent_id'=$1 ORDER BY created_at DESC,id DESC LIMIT 101`, intent)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	hasMore := false
 	for rows.Next() {
-		var event, eventType, stage, stageStatus, reason string
+		var event, eventType, stage, stageStatus, reason, safeCause string
 		var at time.Time
-		if err := rows.Scan(&event, &eventType, &stage, &stageStatus, &reason, &at); err != nil {
+		if err := rows.Scan(&event, &eventType, &stage, &stageStatus, &reason, &safeCause, &at); err != nil {
 			return nil, err
 		}
 		if len(steps) == 100 {
 			hasMore = true
 			break
 		}
-		steps = append(steps, map[string]any{"id": event, "event_type": eventType, "name": stage, "status": stageStatus, "reason_code": reason, "at": at.Format(time.RFC3339Nano)})
+		step := map[string]any{"id": event, "event_type": eventType, "name": stage, "status": stageStatus, "reason_code": reason, "at": at.Format(time.RFC3339Nano)}
+		if safeCause != "" && kind == "media.generation" {
+			step["safe_cause"] = boundedLifecycleCause(safeCause)
+		}
+		steps = append(steps, step)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return map[string]any{"task_id": intent, "workflow_id": workflow, "fluctlight_id": input["fluctlight_id"], "kind": kind, "type": kind, "title": kind, "state": status, "status": status, "runs": attempts, "steps": steps, "has_more_steps": hasMore, "created_at": created.Format(time.RFC3339Nano), "started_at": started, "completed_at": completed, "next_attempt_at": next, "correlation_id": firstString(input["correlation_id"], intent), "source": source}, nil
+	correlationID := firstString(input["correlation_id"], intent)
+	if kind == "media.generation" {
+		if mediaIntentID := stringValue(input["intent_id"]); mediaIntentID != "" {
+			correlationID = "media:" + mediaIntentID
+		}
+	}
+	return map[string]any{"task_id": intent, "workflow_id": workflow, "fluctlight_id": input["fluctlight_id"], "kind": kind, "type": kind, "title": kind, "state": status, "status": status, "runs": attempts, "steps": steps, "has_more_steps": hasMore, "created_at": created.Format(time.RFC3339Nano), "started_at": started, "completed_at": completed, "next_attempt_at": next, "correlation_id": correlationID, "source": source}, nil
 }
 
 // Resolve pointers from durable intent inputs rather than manufacturing a

@@ -220,10 +220,13 @@
 .replica-task-progress{height:5px;border-radius:5px;background:#edf0e7;overflow:hidden;margin:0}
 .replica-task-progress>i{height:100%;display:block;background:#8da17a;border-radius:5px}
 .replica-task-log-count{font-size:9px;color:#8c967e;background:#edf1e7;padding:1px 5px;border-radius:4px}
-.replica-task-history>li{position:relative;border-left:1px solid #e1e6d8;margin-left:5px;padding:0 0 20px 25px}
+.replica-task-history>li{position:relative;border-left:1px solid #e1e6d8;margin-left:5px;padding:0 0 24px 25px}
 .replica-task-history>li:before{content:"";position:absolute;left:-4px;top:4px;width:7px;height:7px;border-radius:50%;background:#a1b38d}
 .replica-task-history h3{font-size:13px;font-weight:600;color:#55684c;margin:0}
 .replica-task-summary .replica-task-history p{font-size:13px;color:#859078;line-height:1.9;margin-top:6px;white-space:pre-wrap}
+.replica-task-history>li time{display:block;font-size:13px;font-weight:600;color:#55684c;margin:0 0 7px}
+.replica-task-history>li .replica-task-history-text{margin:0;font-size:13px;color:#859078;line-height:1.9}
+.replica-task-history>li .replica-task-history-reason{font-size:12px;color:#9d775f;line-height:1.8}
 .replica-task-times dd{margin:0;overflow-wrap:anywhere;color:#405839}
 .replica-task-footer-target{width:100%;min-width:0}
 .replica-task-recovery-controls{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;min-width:0}

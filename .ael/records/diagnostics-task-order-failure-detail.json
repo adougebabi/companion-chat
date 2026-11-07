@@ -1,0 +1,189 @@
+{
+  "schema": 1,
+  "id": "diagnostics-task-order-failure-detail",
+  "definition_hash": "4d94ddafc0fc58d4843993e8d4af31b83cdf0e6ad9326555bfc6822fd193d888",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "open",
+  "candidate": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+  "failure": "已在生产 dist 的隔离 loopback fixture 查看失败任务行、尝试数、居中弹窗、三个标签、生命周期时间线和任务信息；但 fixture 仅提供 visual_identity.prepare，缺少 media.generation、媒体 correlation_id 和 ModelRuns 数据，无法执行本验收要求的媒体任务“查看关联模型调用”场景。恢复条件：在隔离 fixture 或可用本地环境提供一条媒体失败任务及真实关联调用/明确空记录；恢复节点：verify。",
+  "result": "",
+  "created": "2026-11-06T09:46:07.475026Z",
+  "updated": "2026-11-06T10:44:01.06293Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-9c57bb163e81d038ad12",
+        "unit": "define",
+        "executor": "codex-diagnostics-order",
+        "input_version": "5e8e193726bb1832a748e2d506b3a409a11c0a3670b056eba50c9c6a860bf2cf",
+        "candidate_version": "5e8e193726bb1832a748e2d506b3a409a11c0a3670b056eba50c9c6a860bf2cf",
+        "started": "2026-11-06T09:46:32.360798Z",
+        "ended": "2026-11-06T09:52:22.861811Z",
+        "status": "pass",
+        "reason": "界定本次授权反馈的四个交付点：多来源任务统一时间倒序（世界时钟可固定在头部）；失败列表/详情展示安全记录的原因和尝试数；媒体任务使用实际 media correlation；诊断入口按三张图恢复居中任务详情、阶段、生命周期时间线、信息与现存恢复操作。保留旧 sticky-header 任务的 wait_environment 状态；通过读取流程图和只读代码检索确认现状，未改代码。"
+      },
+      {
+        "id": "AT-e3a13cb9a50981af56bf",
+        "unit": "analysis",
+        "executor": "codex-diagnostics-order",
+        "input_version": "5e8e193726bb1832a748e2d506b3a409a11c0a3670b056eba50c9c6a860bf2cf",
+        "candidate_version": "5e8e193726bb1832a748e2d506b3a409a11c0a3670b056eba50c9c6a860bf2cf",
+        "started": "2026-11-06T09:52:56.955783Z",
+        "ended": "2026-11-06T09:54:17.811988Z",
+        "status": "pass",
+        "reason": "证据与方案已核实。OwnerDiagnosticRecords 单来源按 at DESC；DiagnosticsWorkspace 将 worldTasks/tasks 拼接并把 attentionTasks 移到末尾，Map 后未按时间重排。OwnerTask 为 media.generation 回退 intent ID 作 correlation_id，而 media.go 用 media:\u003cintent ID\u003e；所以执行轮次和关联调用查询为空。last_error 在 OwnerTask.source.last_error 中有 boundedLifecycleCause 脱敏，但列表未渲染，taskFailureReason 对未映射英文返回泛化文案，生命周期 steps 也未投影 safe_cause。TaskRecordDialog 已支持居中 WorkspaceDialog、详情三标签和真实恢复 portal；诊断入口当前未指定 dialog。方案：统一合并后排序（世界时钟保留置顶例外），用现有 safe fields 显示列表/详情具体原因与重试数，修正媒体 correlation 与生命周期 safe_cause 投影，诊断入口启用现有 dialog，时间线先于可折叠模型调用摘要、修正标签数量和时间格式；保留真实证据、权限和恢复语义。相关项目入口、React/Radix 及 Diagnostics/失败反馈合同已读取；不修改模型提示词、不改规范、不提交图片。"
+      },
+      {
+        "id": "AT-1eab9bcb44e7c7d3e5ee",
+        "unit": "execute",
+        "executor": "codex-diagnostics-order",
+        "input_version": "5e8e193726bb1832a748e2d506b3a409a11c0a3670b056eba50c9c6a860bf2cf",
+        "candidate_version": "b5eef7674341eb4ecbb21fca8400ad7d2d12835f4d74250c905b6f231b8e44c1",
+        "started": "2026-11-06T09:54:38.172514Z",
+        "ended": "2026-11-06T10:19:53.453089Z",
+        "status": "pass",
+        "reason": "已完成排序、失败原因与次数、媒体 correlation、安全生命周期原因、诊断任务居中弹窗和时间线布局变更。媒体恢复接口和权限操作保持原样。Web typecheck/build、Go Core build、git diff --check 全部通过。隔离 loopback UI fixture 已显示任务失败行、尝试次数、失败原因、居中详情弹窗、三个标签、生命周期时间线与任务信息；真实媒体记录不在 fixture 内。UI 观察报告已保存在 .v3-regression/diagnostics-task-order-failure/verification.md；CUA 截图未导出为 PNG。"
+      },
+      {
+        "id": "AT-f809692dab66c56ad789",
+        "unit": "execute",
+        "executor": "codex-diagnostics-order",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "started": "2026-11-06T10:26:46.42395Z",
+        "ended": "2026-11-06T10:27:58.088065Z",
+        "status": "pass",
+        "reason": "代码实现已完成，恢复后没有再修改源码；现准备在当前组合候选上按 AEL 门禁重新执行 TypeScript、生产构建和 Go Core 编译。前一候选 b5eef767 上三项均通过，工作区变更由独立 AEL 任务产生。"
+      },
+      {
+        "id": "AT-9fe0e89639b4faac52ae",
+        "unit": "check:web-typecheck",
+        "executor": "codex-diagnostics-order",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "",
+        "started": "2026-11-06T10:28:22.195596Z",
+        "ended": "2026-11-06T10:30:43.652417Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-9a607022f5c2c3f99d27",
+        "unit": "execute",
+        "executor": "codex-diagnostics-order",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "started": "2026-11-06T10:31:13.70924Z",
+        "ended": "2026-11-06T10:33:14.760479Z",
+        "status": "pass",
+        "reason": "已重新进入 execute 并加载当前稳定候选；源码没有变化。下一步由 AEL check attempts 重新运行 typecheck 和 build，并编译 Go Core。此前候选的隔离 UI 观察与编译记录仍在验证报告中。"
+      },
+      {
+        "id": "AT-3d80cfb26c1ac9026a39",
+        "unit": "check:web-typecheck",
+        "executor": "codex-diagnostics-order",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "",
+        "started": "2026-11-06T10:33:51.303503Z",
+        "ended": "2026-11-06T10:35:44.889534Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-120e39c0a351f94b867b",
+        "unit": "execute",
+        "executor": "codex-diagnostics-order",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "started": "2026-11-06T10:36:08.414557Z",
+        "ended": "2026-11-06T10:37:59.348676Z",
+        "status": "pass",
+        "reason": "已重新 claim execute、加载上下文并确认工作区代码没有变化。下一步按 AEL 命令协议使用 verify --executor 记录 typecheck/build 的可信检查日志。"
+      },
+      {
+        "id": "AT-f8423e57657aff152b79",
+        "unit": "check:web-typecheck",
+        "executor": "codex-diagnostics-order",
+        "input_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "candidate_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "started": "2026-11-06T10:38:31.746182Z",
+        "ended": "2026-11-06T10:38:48.881536Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-09a7a436a8aecd751aa3",
+        "unit": "check:web-build",
+        "executor": "codex-diagnostics-order",
+        "input_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "candidate_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "started": "2026-11-06T10:39:35.21987Z",
+        "ended": "2026-11-06T10:39:50.226283Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-0d38f3b73f70edd141d0",
+        "unit": "check:diagnostics-task-detail-ui",
+        "executor": "codex-diagnostics-order",
+        "input_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "candidate_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "started": "2026-11-06T10:43:56.644996Z",
+        "ended": "2026-11-06T10:43:56.699793Z",
+        "status": "blocked",
+        "reason": "已在生产 dist 的隔离 loopback fixture 查看失败任务行、尝试数、居中弹窗、三个标签、生命周期时间线和任务信息；但 fixture 仅提供 visual_identity.prepare，缺少 media.generation、媒体 correlation_id 和 ModelRuns 数据，无法执行本验收要求的媒体任务“查看关联模型调用”场景。恢复条件：在隔离 fixture 或可用本地环境提供一条媒体失败任务及真实关联调用/明确空记录；恢复节点：verify。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "web-typecheck",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "b836d8800c9c1d6e9b6c7346ce00dd53795d4b8dce435d90e275790d18e30bcd",
+        "at": "2026-11-06T10:38:31.891992Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-f8423e57657aff152b79.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+        }
+      },
+      {
+        "id": "web-build",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "6b3b61becb730ecf5052bc1267837e9caa9a6dc10cfcf30fa134e6e131b5e522",
+        "at": "2026-11-06T10:39:35.350029Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-09a7a436a8aecd751aa3.log": "cab39984a0011b5714dfb762f8517b7e9666cf97858fc241e10e42e131385504"
+        }
+      },
+      {
+        "id": "diagnostics-task-detail-ui",
+        "result": "blocked",
+        "source": "scenario:codex-diagnostics-order",
+        "config_hash": "22f95d230ffc47f7235fbaced56844c7304c52f8f1cf999f581138f1c6b7a4d1",
+        "at": "2026-11-06T10:43:56.699171Z",
+        "artifact_hashes": {
+          ".v3-regression/diagnostics-task-order-failure/verification.md": "c4b068fb16ad4805c4de628ec24f4ce5bfaceab435ba99666be8142d07971740",
+          "apps/core-go/internal/core/task_read.go": "23815ab3961df49677727c7a440ded75c2d58e231f177d4bd41abd834d87070b",
+          "apps/web/src/react-app/pages/TaskDetailPage.tsx": "eff5068a48a7e33b8c894d1ea5d96c1b995d1a35e2c0bab7e279700835aaa97e",
+          "apps/web/src/react-app/shared/DiagnosticsWorkspace.jsx": "c88b299ec3d638cdead143f6af5a8bf3aee8b27529c2f6bc3d877e35e4d6c72d",
+          "apps/web/src/react-app/shared/TaskExecutionResults.tsx": "abe0eb3f296d27a88b8be2b888e67854ec4186cf33770aa4b8c2ae019a0506c6"
+        }
+      }
+    ]
+  }
+}

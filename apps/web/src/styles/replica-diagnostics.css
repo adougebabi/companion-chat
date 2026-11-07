@@ -19,6 +19,7 @@
 .replica-diagnostics>[data-slot=tabs] [data-slot=tabs-trigger]:after{display:none}
 .replica-diagnostics .replica-diagnostic-task-surface{display:block;padding:24px;gap:0}
 .replica-task-list{display:grid;gap:0}
+.replica-diagnostics .replica-task-row .replica-task-failure-summary{margin-top:5px;color:#a36d60;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
 .replica-diagnostics .replica-diagnostic-search input{padding-right:43px}
 .replica-diagnostics .replica-diagnostic-search>button{position:absolute;right:2px}
 .replica-diagnostics .replica-diagnostic-filters{display:grid;grid-template-columns:215px;gap:12px;width:auto}
