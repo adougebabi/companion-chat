@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "id": "document-agent-prompt-composition-and-timing",
+  "definition_hash": "6dc1abaec1c238b845c05d65e080e164160ce996d2c33e672046117dfd1adce3",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "d14b6b971920ce4d31b943c7f03d2f43e5da2609fcd9a737a27329e1144f70a3",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-09T01:50:10.369387Z",
+  "updated": "2026-11-09T02:23:20.202111Z",
+  "completed": "2026-11-09T02:20:07.116745Z",
+  "feedback": [
+    "make-agent-prompts-standalone-reviewable"
+  ],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-ceb4353733749ecce4f9",
+        "unit": "define",
+        "executor": "codex-agent-prompts-detail",
+        "input_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "candidate_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "started": "2026-11-09T01:50:34.824209Z",
+        "ended": "2026-11-09T01:51:13.4834Z",
+        "status": "pass",
+        "reason": "按用户澄清将交付范围明确为逐 Agent 的真实提示词构成和调用时机：固定协议、动态数据、历史/人格/工具/schema/图片、typed variants 与调用触发点均需从当前源码追溯。"
+      },
+      {
+        "id": "AT-0df2d88c7f871d276659",
+        "unit": "analysis",
+        "executor": "codex-agent-prompts-detail",
+        "input_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "candidate_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "started": "2026-11-09T01:51:32.717404Z",
+        "ended": "2026-11-09T01:58:23.761596Z",
+        "status": "pass",
+        "reason": "已从30个 FormalAgent 注册项按对话/人格、媒体视觉、规划自治、工作室世界等模块追踪真实生产调用、固定协议组装、动态字段、history/persona/tools/schema/image 及共享任务变体；另识别 Kev 与修复请求的非FormalAgent入口，并区分未确认生产caller/保留路径。文档将采用按Agent的固定部分、动态部分、触发点和输出契约结构。"
+      },
+      {
+        "id": "AT-657b73f6deae8a92b1ce",
+        "unit": "execute",
+        "executor": "codex-agent-prompts-detail",
+        "input_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "candidate_version": "d14b6b971920ce4d31b943c7f03d2f43e5da2609fcd9a737a27329e1144f70a3",
+        "started": "2026-11-09T01:59:06.970057Z",
+        "ended": "2026-11-09T02:17:53.146782Z",
+        "status": "pass",
+        "reason": "将Agent目录改为逐项列出FormalAgent Name与ID、用途、固定system/task组件、动态字段、调用条件、tools/schema/images/history，并拆分共享ID变体；增加projection和typed-task公共消息顺序及Kev/纠错入口。独立审阅提出的NativeCognition规则混淆、WorldEvent名称和DiaryExpression误称Writer协议已修正。30项ID覆盖、链接和格式核对通过；未运行测试。"
+      },
+      {
+        "id": "AT-e54f6d7103fbc594c87b",
+        "unit": "check:review",
+        "executor": "codex-agent-prompt-composition-review",
+        "input_version": "d14b6b971920ce4d31b943c7f03d2f43e5da2609fcd9a737a27329e1144f70a3",
+        "candidate_version": "d14b6b971920ce4d31b943c7f03d2f43e5da2609fcd9a737a27329e1144f70a3",
+        "started": "2026-11-09T02:19:59.198432Z",
+        "ended": "2026-11-09T02:19:59.319032Z",
+        "status": "pass",
+        "reason": "独立模型审阅提出的3处准确性问题已按源码修正：Native Cognition variants的固定rules分离、world_event_generation注册Name、DiaryExpression实际system顺序。30个ID覆盖、链接、调用时机与动态数据通道复核通过。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "review",
+        "result": "pass",
+        "source": "model:codex-agent-prompt-composition-review",
+        "config_hash": "022cf757ce9e7a58c55610a113035acd0c5c8ce47f5c9fd7043c2b3efc6de3ae",
+        "at": "2026-11-09T02:19:59.318276Z",
+        "artifact_hashes": {
+          ".ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md": "dfc48c15af9b992c901b93b5551bc16efd84de7753f2a1f54561f1f205ef7679",
+          ".ael/outcomes/agent-prompt-composition-timing-review.md": "46e60bfe4e8c31df78dccab52bb994cef2e2cdeab7ac9231673df52ee1b342f8",
+          "apps/core-go/internal/core/diary_runtime.go": "ebcfa342699c5ced2b592e397d1f86c9d84e63c1d677942922e3be2ab7f2ef2c",
+          "apps/core-go/internal/core/formal_agents.go": "e1afbf8ac9bb4c6f08ba74d5462688325f817e84832ecff9c27d15b8fd97bbca",
+          "apps/core-go/internal/core/model_tasks.go": "894419fb76d9d8860cae96eba4eef03318710c44ed8674c4924f1b165592734b",
+          "apps/core-go/internal/core/owner_life_requests.go": "5431ef1123e45a64e44edde576ae878aabbf68eae8b48f00309a3ffcd003ba55",
+          "apps/core-go/internal/core/provider_prompt_composer.go": "1ccf6ea7fb59e366ef43c15fca019723aece90def4953261fee79077e7f60d9a",
+          "apps/core-go/internal/core/world_opportunity_cognition.go": "5ce04b26435a0f6a2948e578fcc3ba98d848a32d078ed8de1b20a8a2a38f1682",
+          "docs/llm-agent-prompts.md": "c7b0974ff75eaa68353b568c9ea83a782a1e70d4a9cf37d9a41b75449dc28544",
+          "docs/llm-prompt-composition.md": "7d19d215f3d9008b9b5e196506c0d3812d2115db65d9195e1d51b9b694fa9a44"
+        }
+      }
+    ]
+  }
+}

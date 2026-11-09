@@ -21,9 +21,11 @@
   "failure": "用户将自行部署后进行人工 UI/UX 验证；目前尚未收到人工检查结果，因此不能标记通过。恢复条件：用户完成部署并提供 UI/UX 检查结论；恢复节点：verify。",
   "result": "",
   "created": "2026-11-06T08:00:43.325177Z",
-  "updated": "2026-11-06T09:03:37.465652Z",
+  "updated": "2026-11-06T09:46:07.475529Z",
   "completed": null,
-  "feedback": [],
+  "feedback": [
+    "diagnostics-task-order-failure-detail"
+  ],
   "history": {
     "attempts": [
       {

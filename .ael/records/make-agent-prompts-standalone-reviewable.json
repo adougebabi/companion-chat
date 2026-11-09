@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "id": "make-agent-prompts-standalone-reviewable",
+  "definition_hash": "a356a275e6b6caa67df4219ab5e4cf3592dbd54daf77b66778fd4da9f1746dd3",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "fast",
+    "steps": [
+      "define",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "d3446eaef6a1e24ffcfaf56ce75c1995668073fbd068db403772276405fdaa70",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-09T02:23:20.201895Z",
+  "updated": "2026-11-09T03:25:07.642806Z",
+  "completed": "2026-11-09T03:25:07.642667Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-c9014ffa743d64b39877",
+        "unit": "define",
+        "executor": "codex-agent-prompt-review",
+        "input_version": "d14b6b971920ce4d31b943c7f03d2f43e5da2609fcd9a737a27329e1144f70a3",
+        "candidate_version": "d14b6b971920ce4d31b943c7f03d2f43e5da2609fcd9a737a27329e1144f70a3",
+        "started": "2026-11-09T02:23:49.759496Z",
+        "ended": "2026-11-09T02:24:26.337416Z",
+        "status": "pass",
+        "reason": "用户明确要求文档本身可独立审核：每个Agent显示固定提示词原文、动态输入组成、触发时机和作用，不能只给源码证据或摘要。共享片段需在同一文档提供全文。"
+      },
+      {
+        "id": "AT-a0f06a681447ddd17ee6",
+        "unit": "execute",
+        "executor": "codex-agent-prompt-review",
+        "input_version": "d14b6b971920ce4d31b943c7f03d2f43e5da2609fcd9a737a27329e1144f70a3",
+        "candidate_version": "",
+        "started": "2026-11-09T02:24:54.252354Z",
+        "ended": "2026-11-09T03:23:00.235759Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-9b206b50dffc32ec1c59",
+        "unit": "execute",
+        "executor": "codex-agent-prompt-review",
+        "input_version": "d3446eaef6a1e24ffcfaf56ce75c1995668073fbd068db403772276405fdaa70",
+        "candidate_version": "d3446eaef6a1e24ffcfaf56ce75c1995668073fbd068db403772276405fdaa70",
+        "started": "2026-11-09T03:23:28.472481Z",
+        "ended": "2026-11-09T03:24:24.784252Z",
+        "status": "pass",
+        "reason": "单一Markdown已逐Agent给出名字、作用、调用时机、固定提示词原文与动态请求模板；补入原生工具完整定义、目录用途和输出Schema。两名只读审阅发现的工具说明、Owner媒体来源、Reflection语义和Owner请求字段遗漏均已补齐；源码原文、30个ID、63个工具变体、51条目录用途和33项输出Schema已逐项比对。"
+      },
+      {
+        "id": "AT-22830a1050c1ef48ed33",
+        "unit": "check:review",
+        "executor": "codex-agent-prompt-review",
+        "input_version": "d3446eaef6a1e24ffcfaf56ce75c1995668073fbd068db403772276405fdaa70",
+        "candidate_version": "d3446eaef6a1e24ffcfaf56ce75c1995668073fbd068db403772276405fdaa70",
+        "started": "2026-11-09T03:25:03.253953Z",
+        "ended": "2026-11-09T03:25:03.30862Z",
+        "status": "pass",
+        "reason": "独立审阅发现的工具说明、Owner媒体来源、Reflection条件语义及Owner请求字段遗漏均已补齐；30个Agent原文/动态组成/时机与63个模型侧工具定义、51条目录用途及33项输出格式通过源码和快照核对。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "review",
+        "result": "pass",
+        "source": "model:codex-agent-prompt-review",
+        "config_hash": "a5280da8df248ffd565decc46bf72f62b45abdf63c0af7159d43f020e9d6effa",
+        "at": "2026-11-09T03:25:03.308366Z",
+        "artifact_hashes": {
+          ".ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md": "dfc48c15af9b992c901b93b5551bc16efd84de7753f2a1f54561f1f205ef7679",
+          ".ael/outcomes/standalone-agent-prompts-review.md": "72d1a574267876f396f373967ab13ae3c024fa17a5c688e54d050bfaf23d8f31",
+          "apps/core-go/internal/core/capability_catalog_purposes.go": "04cb57df25d18f12aeba91c765a4b88f6ee3081ea120078aab8a1634c4e7a7ad",
+          "apps/core-go/internal/core/formal_agents.go": "e1afbf8ac9bb4c6f08ba74d5462688325f817e84832ecff9c27d15b8fd97bbca",
+          "apps/core-go/internal/core/media_prompt_branches.go": "6e9c93844754c4ae269db5d31a117b75be0d1bd18f5597855b315cac6aad64d8",
+          "apps/core-go/internal/core/prompt_semantic_views.go": "98a57dbd4198ac3caaf8f835358de7ab81ac2ecb79bae163206896f536e4cef7",
+          "apps/core-go/internal/core/provider_prompt_composer.go": "1ccf6ea7fb59e366ef43c15fca019723aece90def4953261fee79077e7f60d9a",
+          "apps/core-go/internal/core/reflection_runtime_v2.go": "378b9e534548abcd7ccdbb76b1aca57f77670a79a260be36ece6611a49ece5bb",
+          "docs/llm-agent-prompts.md": "dfcaccbe357261b8c9b32ada827568e3d87323cc7cbe4a6d9dd096c785e06fef",
+          "docs/llm-prompt-composition.md": "45d017dfb31a8c48777d8721319b533163b6308b6d6063b29a7dea287871f836"
+        }
+      }
+    ]
+  }
+}

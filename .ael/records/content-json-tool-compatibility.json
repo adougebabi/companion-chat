@@ -17,13 +17,13 @@
     "approved": false
   },
   "current_step": "execute",
-  "status": "open",
+  "status": "cancelled",
   "candidate": "",
   "failure": "",
-  "result": "",
+  "result": "废弃，换方案。已完成部分保留",
   "created": "2026-11-05T09:27:11.60891Z",
-  "updated": "2026-11-06T03:09:23.717227Z",
-  "completed": null,
+  "updated": "2026-11-06T09:26:12.314457Z",
+  "completed": "2026-11-06T09:26:12.313247Z",
   "feedback": [],
   "history": {
     "attempts": [

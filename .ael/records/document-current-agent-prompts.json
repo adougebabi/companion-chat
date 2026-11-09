@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "id": "document-current-agent-prompts",
+  "definition_hash": "5cc1622cbf7dd81d921942178b870bea7c748fd14438baa9794d8c373dd91ea8",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-09T01:14:09.156362Z",
+  "updated": "2026-11-09T01:50:10.369597Z",
+  "completed": "2026-11-09T01:46:01.371296Z",
+  "feedback": [
+    "document-agent-prompt-composition-and-timing"
+  ],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-9b30023ae7ad4bd56c75",
+        "unit": "define",
+        "executor": "codex-agent-prompts",
+        "input_version": "72c00b58ffb1691100251aa2830f9297b294c9452c6f903b7044afb1913090a6",
+        "candidate_version": "72c00b58ffb1691100251aa2830f9297b294c9452c6f903b7044afb1913090a6",
+        "started": "2026-11-09T01:14:32.976322Z",
+        "ended": "2026-11-09T01:19:24.447312Z",
+        "status": "pass",
+        "reason": "已确认交付目标为当前 Agent 提示词目录文档，覆盖 FormalAgent 注册项及共享任务变体，并同步现有清单入口；仅整理说明，不修改提示词运行时。"
+      },
+      {
+        "id": "AT-7070e74cabda6e32a7c1",
+        "unit": "analysis",
+        "executor": "codex-agent-prompts",
+        "input_version": "72c00b58ffb1691100251aa2830f9297b294c9452c6f903b7044afb1913090a6",
+        "candidate_version": "72c00b58ffb1691100251aa2830f9297b294c9452c6f903b7044afb1913090a6",
+        "started": "2026-11-09T01:19:47.646259Z",
+        "ended": "2026-11-09T01:21:31.61973Z",
+        "status": "pass",
+        "reason": "已对照 FormalAgent 注册表及各分域构造器完成只读盘点，确认30个正式 ID；整理方案为按用途分组、每项列出作用/稳定提示词摘要/动态输入/输出/源码锚点，并单独标注共享 typed variants、非必经生产入口、Kev 与修复调用边界。实际请求由公共 Composer 和运行时 JSON/工具/图片组成，目录会明确不是逐字节快照。"
+      },
+      {
+        "id": "AT-d0978efe801596ca6c6f",
+        "unit": "execute",
+        "executor": "codex-agent-prompts",
+        "input_version": "72c00b58ffb1691100251aa2830f9297b294c9452c6f903b7044afb1913090a6",
+        "candidate_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "started": "2026-11-09T01:21:50.721579Z",
+        "ended": "2026-11-09T01:33:50.522244Z",
+        "status": "pass",
+        "reason": "新增30项 FormalAgent 目录及 Kev/Writer/纠正协议说明，同步提示词组成清单入口并更正注册数量。已对照源码修复独立审阅提出的 Writer 文体纠正遗漏。静态覆盖核对与链接目标核对均通过，新增文档无尾随空白，现有改动通过 git diff --check；未运行测试。"
+      },
+      {
+        "id": "AT-922c30f682b7027b5358",
+        "unit": "check:review",
+        "executor": "codex-agent-prompts-review",
+        "input_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "candidate_version": "",
+        "started": "2026-11-09T01:35:02.886454Z",
+        "ended": "2026-11-09T01:42:34.021995Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-c02f8116fe5caa2cd977",
+        "unit": "execute",
+        "executor": "codex-agent-prompts",
+        "input_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "candidate_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "started": "2026-11-09T01:44:33.921892Z",
+        "ended": "2026-11-09T01:45:13.304566Z",
+        "status": "pass",
+        "reason": "恢复AEL的文档候选记录；同一份文档已完成静态覆盖、链接和语义审阅，没有新增内容变更。"
+      },
+      {
+        "id": "AT-ed44c2882f00f272b00b",
+        "unit": "check:review",
+        "executor": "codex-agent-prompts-review",
+        "input_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "candidate_version": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+        "started": "2026-11-09T01:45:53.738085Z",
+        "ended": "2026-11-09T01:45:53.843755Z",
+        "status": "pass",
+        "reason": "独立模型审阅发现的 Writer 文体修复遗漏已按源码补齐；主审复核30个注册 ID、源码链接、修复语义及提示词规范，未发现剩余问题。仅做文档静态核对，未运行测试。"
+      }
+    ],
+    "checks": [
+      {
+        "id": "review",
+        "result": "pass",
+        "source": "model:codex-agent-prompts-review",
+        "config_hash": "7f3d3e0f5cea7b6569e8dcfad65fbf719f713835336b6ddafc94c6bfda4de866",
+        "at": "2026-11-09T01:45:53.843373Z",
+        "artifact_hashes": {
+          ".ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md": "dfc48c15af9b992c901b93b5551bc16efd84de7753f2a1f54561f1f205ef7679",
+          ".ael/outcomes/document-current-agent-prompts-review.md": "a57f9d922353893e9d38c338839e5af5d3707c09850ba93a55b0fa656625c669",
+          "apps/core-go/internal/core/formal_agents.go": "e1afbf8ac9bb4c6f08ba74d5462688325f817e84832ecff9c27d15b8fd97bbca",
+          "apps/core-go/internal/core/reply_provider.go": "405f986d39f217eb65c571eac19b48924f4403d675aa79c83ea6fb002e4d583d",
+          "apps/core-go/internal/core/reply_style.go": "af3dd77c560e1392fcbdb65f195592a29b8384b62811d13b702a5f4ba021c0ad",
+          "docs/llm-agent-prompts.md": "20545769566f421f530d51f835dfcde5cc9164ba839b05406cc2d331f4f2ef01",
+          "docs/llm-prompt-composition.md": "7d19d215f3d9008b9b5e196506c0d3812d2115db65d9195e1d51b9b694fa9a44"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "make-agent-prompts-standalone-reviewable",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "d3446eaef6a1e24ffcfaf56ce75c1995668073fbd068db403772276405fdaa70",
+  "completed": "2026-11-09T03:25:07.642667Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "review",
+      "result": "pass",
+      "source": "model:codex-agent-prompt-review",
+      "config_hash": "a5280da8df248ffd565decc46bf72f62b45abdf63c0af7159d43f020e9d6effa",
+      "at": "2026-11-09T03:25:03.308366Z",
+      "artifact_hashes": {
+        ".ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md": "dfc48c15af9b992c901b93b5551bc16efd84de7753f2a1f54561f1f205ef7679",
+        ".ael/outcomes/standalone-agent-prompts-review.md": "72d1a574267876f396f373967ab13ae3c024fa17a5c688e54d050bfaf23d8f31",
+        "apps/core-go/internal/core/capability_catalog_purposes.go": "04cb57df25d18f12aeba91c765a4b88f6ee3081ea120078aab8a1634c4e7a7ad",
+        "apps/core-go/internal/core/formal_agents.go": "e1afbf8ac9bb4c6f08ba74d5462688325f817e84832ecff9c27d15b8fd97bbca",
+        "apps/core-go/internal/core/media_prompt_branches.go": "6e9c93844754c4ae269db5d31a117b75be0d1bd18f5597855b315cac6aad64d8",
+        "apps/core-go/internal/core/prompt_semantic_views.go": "98a57dbd4198ac3caaf8f835358de7ab81ac2ecb79bae163206896f536e4cef7",
+        "apps/core-go/internal/core/provider_prompt_composer.go": "1ccf6ea7fb59e366ef43c15fca019723aece90def4953261fee79077e7f60d9a",
+        "apps/core-go/internal/core/reflection_runtime_v2.go": "378b9e534548abcd7ccdbb76b1aca57f77670a79a260be36ece6611a49ece5bb",
+        "docs/llm-agent-prompts.md": "dfcaccbe357261b8c9b32ada827568e3d87323cc7cbe4a6d9dd096c785e06fef",
+        "docs/llm-prompt-composition.md": "45d017dfb31a8c48777d8721319b533163b6308b6d6063b29a7dea287871f836"
+      }
+    }
+  ]
+}

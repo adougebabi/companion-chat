@@ -1,0 +1,28 @@
+{
+  "id": "document-current-agent-prompts",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "cbe339b4b255df2c82268794d3a0c52a7c8e545c599654577b9597cea061be77",
+  "completed": "2026-11-09T01:46:01.371296Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "review",
+      "result": "pass",
+      "source": "model:codex-agent-prompts-review",
+      "config_hash": "7f3d3e0f5cea7b6569e8dcfad65fbf719f713835336b6ddafc94c6bfda4de866",
+      "at": "2026-11-09T01:45:53.843373Z",
+      "artifact_hashes": {
+        ".ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md": "dfc48c15af9b992c901b93b5551bc16efd84de7753f2a1f54561f1f205ef7679",
+        ".ael/outcomes/document-current-agent-prompts-review.md": "a57f9d922353893e9d38c338839e5af5d3707c09850ba93a55b0fa656625c669",
+        "apps/core-go/internal/core/formal_agents.go": "e1afbf8ac9bb4c6f08ba74d5462688325f817e84832ecff9c27d15b8fd97bbca",
+        "apps/core-go/internal/core/reply_provider.go": "405f986d39f217eb65c571eac19b48924f4403d675aa79c83ea6fb002e4d583d",
+        "apps/core-go/internal/core/reply_style.go": "af3dd77c560e1392fcbdb65f195592a29b8384b62811d13b702a5f4ba021c0ad",
+        "docs/llm-agent-prompts.md": "20545769566f421f530d51f835dfcde5cc9164ba839b05406cc2d331f4f2ef01",
+        "docs/llm-prompt-composition.md": "7d19d215f3d9008b9b5e196506c0d3812d2115db65d9195e1d51b9b694fa9a44"
+      }
+    }
+  ]
+}
