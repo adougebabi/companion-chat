@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": "AGENTS.md",
-      "hash": "5238c1655c677f6c2e7c28dc838c0ad818d98a2b45b67839ae87dccd32de3dcc",
+      "hash": "47cc5df05c820de43bd2e97f398e770cb0386af958c3c6d92b53f88fb0ea345d",
       "action": "connected",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -17,7 +17,7 @@
         "tasks": null,
         "critical": true,
         "path": "AGENTS.md",
-        "hash": "5238c1655c677f6c2e7c28dc838c0ad818d98a2b45b67839ae87dccd32de3dcc",
+        "hash": "47cc5df05c820de43bd2e97f398e770cb0386af958c3c6d92b53f88fb0ea345d",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
