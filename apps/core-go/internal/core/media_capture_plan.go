@@ -447,8 +447,8 @@ func (a *App) mediaStructuredCall(ctx context.Context, stage, instruction string
 	// This independent, tool-free media task keeps cancellation/correlation but
 	// must not inherit that parent's physical tool-choice or catalog policy.
 	ctx = withoutPhysicalModelRequestPolicy(ctx)
-	prompt := PromptAssemblyResult{ResponseFormat: providerResponseFormatForSchema("media_prompt", stage, schema), Messages: formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": jsonString(packet)}}, "media_prompt")}
-	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: stage})
+	prompt := PromptAssemblyResult{ResponseFormat: schema, Messages: formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": jsonString(packet)}}, "media_prompt")}
+	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: stage, OutputKind: FormalAgentOutputStructured})
 	if err != nil {
 		return nil, err
 	}

@@ -22,9 +22,11 @@
   "failure": "",
   "result": "verified",
   "created": "2026-11-05T11:23:21.905761Z",
-  "updated": "2026-11-05T11:49:36.497594Z",
+  "updated": "2026-11-06T09:58:21.762833Z",
   "completed": "2026-11-05T11:49:36.497411Z",
-  "feedback": [],
+  "feedback": [
+    "media-normalizer-response-schema"
+  ],
   "history": {
     "attempts": [
       {

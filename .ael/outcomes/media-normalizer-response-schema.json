@@ -1,0 +1,32 @@
+{
+  "id": "media-normalizer-response-schema",
+  "definition_revision": 2,
+  "plan_revision": 2,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+  "completed": "2026-11-06T10:43:05.474509Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "media-normalizer-http-regression",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "4d0254ece34367b8c293e3f01ef3d9af6764789f4386f0e241b95eaa4f8871cc",
+      "at": "2026-11-06T10:34:30.699309Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-ee86d3a2b4764c8416bf.log": "045f95116fee77733e24d09494cf6d428cfb024db3bf0627f709acc8cdea9860"
+      }
+    },
+    {
+      "id": "media-normalizer-http-regression",
+      "result": "pass",
+      "source": "command",
+      "config_hash": "da22199b6d96d0a25806894154750bb65e575dd35eb6ccd78211b6ff14377629",
+      "at": "2026-11-06T10:42:43.881962Z",
+      "artifact_hashes": {
+        "runtime:artifacts/AT-d75d5574e02ca7b4f94c.log": "70c9456f3b72e7dbc633e94128f19de0042004f948f98824d7ceb737c1652d15"
+      }
+    }
+  ]
+}

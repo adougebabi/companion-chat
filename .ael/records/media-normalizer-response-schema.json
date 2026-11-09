@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "id": "media-normalizer-response-schema",
+  "definition_hash": "43efc0c8155a48dc42a78a690e9f1c4955fda2915c82f2889315e4f5eaeee069",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 2,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-06T09:58:21.762468Z",
+  "updated": "2026-11-09T09:50:20.344309Z",
+  "completed": "2026-11-06T10:43:05.474509Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-49a51b3baacc65ddd7c0",
+        "unit": "define",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "894e5db36f592a577291fdcf995952049c5efb5841def58ba86283027b6875bc",
+        "candidate_version": "9263c32cf26479c6659b467cf6e19c7e3f48bc0d3cc7e4c9249a252ff3c83410",
+        "started": "2026-11-06T09:58:48.646705Z",
+        "ended": "2026-11-06T09:59:36.529319Z",
+        "status": "pass",
+        "reason": "界定为后端模型调用契约缺陷：mediaStructuredCall 构造 schema，但 FormalAgentMediaPrompt 的文本输出类型可能使 Provider 忽略该格式。范围包含规范化任务实际 HTTP 请求、旧文本媒体任务兼容、清单文档和回归验证；不更改人数来源/语义、不增加 token 限制、不发布。验收覆盖严格 schema 实际上网、必需字段完整、旧纯文本输出兼容。"
+      },
+      {
+        "id": "AT-190c7a3afe18c3aaa993",
+        "unit": "analysis",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "9263c32cf26479c6659b467cf6e19c7e3f48bc0d3cc7e4c9249a252ff3c83410",
+        "candidate_version": "6d5d66540a831c7fca5564a65f70b9bf97bef7fc28d95fe872448e0ece8dd215",
+        "started": "2026-11-06T10:00:20.445809Z",
+        "ended": "2026-11-06T10:03:51.953713Z",
+        "status": "pass",
+        "reason": "已复核调用链：mediaStructuredCall 虽传入 ResponseFormat，但 FormalAgentMediaPrompt 默认 OutputKind=text；RunFormalAgent 把它变为 TextOutput=true，Provider AgentAssembledCompletion 因而以 jsonMode=false 请求，物理 payload 不带 response_format。最小方案是在 FormalAgentRunInput 增加可选 OutputKind 覆盖，保持默认媒体 prompt 文本输出，只让 mediaStructuredCall 显式选择 Structured；用实际 Provider HTTP transport 回归覆盖 strict schema、declared_human_count、成功规范化，并同步 prompt 清单。影响范围与 AEL active diagnostics 任务的 Web 文件不重叠。"
+      },
+      {
+        "id": "AT-4f5e1ff54d7da1b97e04",
+        "unit": "execute",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "6d5d66540a831c7fca5564a65f70b9bf97bef7fc28d95fe872448e0ece8dd215",
+        "candidate_version": "08c0276fe1387b9e6bc926a0dbd979e237a5c1ec57a606332029aabd4998cf36",
+        "started": "2026-11-06T10:05:55.470603Z",
+        "ended": "2026-11-06T10:12:57.346709Z",
+        "status": "pass",
+        "reason": "新增 FormalAgentRunInput.OutputKind 显式变体并校验取值；mediaStructuredCall 选 Structured 且把原始 schema 交给 Provider，由 Provider 生成一次 strict response_format。默认 media_prompt 仍为 text。新增真实 HTTP 请求回归验证 response_format 包含必需 declared_human_count、无输出 token 上限且响应通过 normalizeMediaPrompt 校验；同步 Agent 清单。"
+      },
+      {
+        "id": "AT-e3f411eaf81dedfeaa64",
+        "unit": "execute",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "b5eef7674341eb4ecbb21fca8400ad7d2d12835f4d74250c905b6f231b8e44c1",
+        "candidate_version": "b5eef7674341eb4ecbb21fca8400ad7d2d12835f4d74250c905b6f231b8e44c1",
+        "started": "2026-11-06T10:17:21.065493Z",
+        "ended": "2026-11-06T10:17:53.049704Z",
+        "status": "pass",
+        "reason": "共享候选发生并行工作区变化后已按 AEL 要求返回 execute，重新加载上下文并在当前组合候选上重跑 TestMediaNormalizedPromptUsesProviderSchema，结果通过。媒体修复保持：每次媒体结构化子任务可显式选择 Structured；mediaStructuredCall 传原始 schema；媒体文案默认仍为 Text。"
+      },
+      {
+        "id": "AT-752224e2739761b43995",
+        "unit": "check:media-normalizer-http-regression",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "b5eef7674341eb4ecbb21fca8400ad7d2d12835f4d74250c905b6f231b8e44c1",
+        "candidate_version": "",
+        "started": "2026-11-06T10:19:18.834723Z",
+        "ended": "2026-11-06T10:22:06.035561Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-3373b57b168691ac43c4",
+        "unit": "execute",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "b4d632ccaac0ca20f360614b9f684693cfb1d89baa31679164d29081a705ea07",
+        "candidate_version": "b4d632ccaac0ca20f360614b9f684693cfb1d89baa31679164d29081a705ea07",
+        "started": "2026-11-06T10:22:39.559157Z",
+        "ended": "2026-11-06T10:23:14.426696Z",
+        "status": "pass",
+        "reason": "重新锚定共享候选；媒体源码和文档保持已提交的实现，结构化 Provider HTTP 回归已在前一个当前候选通过。接下来由 AEL verify 在本次候选上重跑必需命令，避免预先领取 check 单元。"
+      },
+      {
+        "id": "AT-c875b882285d3b9f1cdb",
+        "unit": "check:media-normalizer-http-regression",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "b4d632ccaac0ca20f360614b9f684693cfb1d89baa31679164d29081a705ea07",
+        "candidate_version": "",
+        "started": "2026-11-06T10:23:51.919882Z",
+        "ended": "2026-11-06T10:27:52.200796Z",
+        "status": "abandoned",
+        "reason": "checker preparation or result persistence failed; inspect runtime and resume verify"
+      },
+      {
+        "id": "AT-c9a5dee79d4f2c9c3853",
+        "unit": "execute",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "",
+        "started": "2026-11-06T10:30:06.71376Z",
+        "ended": "2026-11-06T10:32:01.569155Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-c184346fe45870fce434",
+        "unit": "execute",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "started": "2026-11-06T10:32:27.18821Z",
+        "ended": "2026-11-06T10:33:56.085875Z",
+        "status": "pass",
+        "reason": "当前代码仍包含结构化输出选择、Provider 原始 JSON Schema 传递及真实 HTTP 回归。上一轮已通过该回归；本次将直接运行 AEL 要求的验证命令确认最新候选。"
+      },
+      {
+        "id": "AT-ee86d3a2b4764c8416bf",
+        "unit": "check:media-normalizer-http-regression",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "started": "2026-11-06T10:34:30.573979Z",
+        "ended": "2026-11-06T10:34:52.047778Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      },
+      {
+        "id": "AT-4285b6b9a3382ebc5747",
+        "unit": "analysis",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "candidate_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "started": "2026-11-06T10:39:59.190244Z",
+        "ended": "2026-11-06T10:40:25.525975Z",
+        "status": "pass",
+        "reason": "仅扩展验证覆盖，不改变实现方案：同一个真实 Provider HTTP regression 现在检查 strict normalized schema + declared_human_count、默认文本媒体任务仍无 response_format 且原样返回文本、以及 prompt composition inventory 记录两个结构化媒体阶段。现行项目规范和非目标保持不变。"
+      },
+      {
+        "id": "AT-5519b1c2978d73f8b9cf",
+        "unit": "execute",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "candidate_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "started": "2026-11-06T10:41:12.941419Z",
+        "ended": "2026-11-06T10:42:08.887396Z",
+        "status": "pass",
+        "reason": "扩展真实 Provider HTTP 回归：第一请求验证媒体规范化 strict JSON Schema、必需 declared_human_count 与后端验证；第二请求通过原 FormalAgentMediaPrompt 默认路径验证纯文本仍原样输出且不带 response_format；同时读取提示词组成清单，校验其中列出 media_subject_parse、media_prompt_normalized 和严格 response_format。定向 Go 回归通过。"
+      },
+      {
+        "id": "AT-d75d5574e02ca7b4f94c",
+        "unit": "check:media-normalizer-http-regression",
+        "executor": "codex-media-prompt-schema",
+        "input_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "candidate_version": "11e95ed7fad15d92ac258df6c9c53c56c2bbcc0d1aa313d63ad318973727d738",
+        "started": "2026-11-06T10:42:43.769377Z",
+        "ended": "2026-11-06T10:42:57.459084Z",
+        "status": "pass",
+        "reason": "command completed and acceptance coverage recorded"
+      }
+    ],
+    "checks": [
+      {
+        "id": "media-normalizer-http-regression",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "4d0254ece34367b8c293e3f01ef3d9af6764789f4386f0e241b95eaa4f8871cc",
+        "at": "2026-11-06T10:34:30.699309Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-ee86d3a2b4764c8416bf.log": "045f95116fee77733e24d09494cf6d428cfb024db3bf0627f709acc8cdea9860"
+        }
+      },
+      {
+        "id": "media-normalizer-http-regression",
+        "result": "pass",
+        "source": "command",
+        "config_hash": "da22199b6d96d0a25806894154750bb65e575dd35eb6ccd78211b6ff14377629",
+        "at": "2026-11-06T10:42:43.881962Z",
+        "artifact_hashes": {
+          "runtime:artifacts/AT-d75d5574e02ca7b4f94c.log": "70c9456f3b72e7dbc633e94128f19de0042004f948f98824d7ceb737c1652d15"
+        }
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # LLM 提示词组成清单
 
-更新：2026-10-30。代码权威是 `apps/core-go/internal/core/formal_agents.go`
+更新：2026-11-09。代码权威是 `apps/core-go/internal/core/formal_agents.go`
 与各 typed task，规范在 [Prompt Composition Contract](../.ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md)。
 
 ## 统一构造
@@ -49,7 +49,7 @@
 | wardrobe_preparation | 分阶段准备/选衣规则 + 穿搭所需身份/性格/偏好 + 本地时间/当前情境/实际身体与穿戴引用 + 唯一衣物目录/方案成员引用 | 0 | wardrobe_preparation.go；wardrobe_preparation_prompt.go |
 | initialization | 初始化解析协议（显式完整姓名包含前缀/连字符，不拆为昵称） + Owner 描述一次 + 预览字段、类型、输出结构和按 schema 生成的数组路径/元素说明；自然语言分析先恢复格式错误的数组并保留原值，再校正明确姓名，JSON 导入继续使用原校验 | 0 | app.go；model_tasks.go；initialization_name.go；initialization_array_recovery.go |
 | persona_compilation | 人格编译协议 + 选定 profile 和共享身份；必要时校验反馈 | 0 | persona_compilation.go |
-| media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实和目标尺寸；头像子任务使用冻结角色设定、已确认外貌和视觉偏好，由角色自主选择包括非人物在内的主体与构图，输出英文生图提示词；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；generated_avatar.go；media_capture_plan.go；media_prompt_branches.go |
+| media_prompt | 媒体任务规则 + 冻结意图/主体/拍摄方案/视觉事实和目标尺寸；`media_subject_parse` 与 `media_prompt_normalized` 使用各自 JSON Schema 作为严格 Provider `response_format` 并返回结构化字段；最终渲染提示词与头像构思仍使用文本输出。头像子任务使用冻结角色设定、已确认外貌和视觉偏好，由角色自主选择包括非人物在内的主体与构图，输出英文生图提示词；重试附此前 prompt 和质量反馈 | 0 | model_tasks.go；generated_avatar.go；media_capture_plan.go；media_prompt_branches.go |
 | media_quality | 质量检查协议 + 冻结媒体概念/实际 renderer prompt/重试情况 + 图片；角色设定图和头像的检查同时携带已确认参考图与待审候选图，头像仅在选择本人出镜时比较本人外貌，只有真实通过才自动接受 | 0 | media_quality.go；model_tasks.go |
 | visual_identity_vision | 视觉检查协议 + identity snapshot/视图要求/renderer 约束 + 图片 | 0 | model_tasks.go |
 | visual_identity_patch | 修正决策协议 + candidate/snapshot/constraints/vision findings | 0 | model_tasks.go |
@@ -178,7 +178,7 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 
 | 入口 | 数据范围 | 不可改变的边界 |
 | --- | --- | --- |
-| media_prompt 的主体解析/分支规范化/最终 prompt | 本阶段冻结意图、拍摄关系、可见主体及必要视觉字段；校验失败反馈 | 不加载无关 persona/history；真实图像继续用 image content part |
+| media_prompt 的主体解析/分支规范化/最终 prompt | 主体解析与分支规范化是同一 Agent ID 下显式选择的结构化输出变体，实际请求携带对应的严格 JSON Schema；最终 renderer prompt 与头像构思继续使用文本输出。本阶段冻结意图、拍摄关系、可见主体及必要视觉字段；校验失败反馈 | 不加载无关 persona/history；真实图像继续用 image content part |
 | conversation_summary 的累计/片段/每日模式 | 旧摘要与未覆盖消息 / 精确片段源 / 本地日与 segments | 不将通用聊天窗口额外叠加到待总结来源 |
 | npc_response 的相遇/动态模式 | NPC 定义、世界规则、真实历史相遇、公开来意或动态正文 | 原始 target/CAS 在 Core，不冒充 Human 或 Fluctlight |
 | Kev context.select/tools.select | 当前任务输入与本批可选上下文/工具候选 | 保留 `{state,questions}` 外部协议；state 为 JSON；context.select 异步执行，整阶段最多等待 60 秒，较早的请求或父级截止时间仍有效；超时保留原上下文 |
@@ -222,7 +222,7 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 
 ## 验证入口
 
-- `prompt_composition_contract_test.go`：29 Agent 协议边界、原文与图片保真、
+- `prompt_composition_contract_test.go`：30 Agent 协议边界、原文与图片保真、
   必要引用、字段白名单、源事件独立、schema/领域数据保护、日程去重。
 - `working_memory_test.go` 与 `prompt_context_assembler_test.go`：同来源不同
   事实、完整对话组、摘要覆盖和大输入保留。
@@ -282,8 +282,10 @@ resolution 节点的实际输出尺寸由该节点决定，模型输入只包含
 说明设置入口及独立模型要求；开启设置不会自动重试此前跳过的审核。机器原因
 `vision_disabled` 和既有权限保持原契约，无迁移或强制启用。
 
-`TestMediaPromptPhysicalRequestsRequireTextFreeImages` 核对实际模型 HTTP JSON
-的普通、重试与规范化协议及无输出 token 上限。
+`TestMediaNormalizedPromptUsesProviderSchema` 通过实际 Provider HTTP JSON 请求核对
+`media_prompt_normalized` 的严格 schema、必需的 `declared_human_count` 和无输出
+token 上限，并让受控响应经过后端校验。`TestMediaPromptPhysicalRequestsRequireTextFreeImages`
+继续核对普通、重试媒体提示词的协议和无输出 token 上限。
 `TestImageSubmissionForbidsTextInPositiveAndNegativeProviderInputs` 通过真实
 ComfyUI 提交函数检查三类入口的物理 HTTP 请求、SDXL 多文本负向编码、组合
 条件、原始排除项、真实参考图片文件名和大整数 seed 保真；不等于已验证实图
@@ -334,7 +336,7 @@ handled 回执，不猜工具、不伪造成功。此处未改人格和 Writer �
 新增 `promise.propose` 能力使用实际当前 Owner 消息原文，父认知只能提交明确
 时间窗口，不能改写提议或声称接受。Writer 事实视图读取真实提议状态；已接受
 约定由原 Goal/Intention/日程流程关联。独立购物由真实到期结果完成入库，只有
-开始时选择的购后穿戴才执行独立 wear。正式 Agent 仍为 29 个。
+开始时选择的购后穿戴才执行独立 wear。正式 Agent 注册表目前共有 30 个。
 
 ## R10 初始化的世界来源
 

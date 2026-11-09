@@ -201,9 +201,12 @@ func formalAgentDefinitionFromContext(ctx context.Context) (FormalAgentDefinitio
 // FormalAgentRunInput is the already-assembled typed task input accepted by
 // the common Runner. Typed Run* methods remain responsible for assembling it.
 type FormalAgentRunInput struct {
-	Prompt          PromptAssemblyResult
-	Definitions     []CapabilityDefinition
-	SchemaName      string
+	Prompt      PromptAssemblyResult
+	Definitions []CapabilityDefinition
+	SchemaName  string
+	// OutputKind selects an explicit typed-task variant when a shared Agent ID
+	// supports both text and structured contracts. Empty keeps the Agent default.
+	OutputKind      FormalAgentOutputKind
 	EnableThinking  bool
 	EnableStreaming bool
 	Capability      *ADKCapabilityRequest
@@ -218,6 +221,12 @@ func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input Formal
 	}
 	if strings.TrimSpace(input.SchemaName) == "" {
 		return ADKStructuredTaskResult{}, errors.New("formal_agent_output_contract_required")
+	}
+	if input.OutputKind != "" {
+		if input.OutputKind != FormalAgentOutputStructured && input.OutputKind != FormalAgentOutputText {
+			return ADKStructuredTaskResult{}, errors.New("formal_agent_output_kind_invalid")
+		}
+		definition.OutputKind = input.OutputKind
 	}
 	// Normalize only trusted system fragments. Already composed history, current
 	// input, images and native transcript content remain byte-for-byte intact.

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/decision"
 )
@@ -754,6 +755,91 @@ func TestMediaBranchBodyWeightsAndNegativeConditionsAreScoped(t *testing.T) {
 	mapValue(mapValue(workflow["3"])["inputs"])["text"] = "low quality, watermark"
 	if err := validateMediaWorkflowPolicy(map[string]any{"quality_negative_prompts": []any{"low quality, watermark"}}, none, workflow); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestMediaNormalizedPromptUsesProviderSchema(t *testing.T) {
+	concept := mediaPreparedConcept(t, "本人在卧室里的自拍", mediaTestPlan("person", "present", "yes", "full"), mediaTestContext("CURRENT"))
+	concept["human_count"] = 1
+	modelOutput := mediaTestOutput(concept)
+	modelOutput["prompt"] = "一名人物在卧室里的自然自拍。"
+
+	var captured []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+		}
+		captured = append(captured, request)
+		content := jsonString(modelOutput)
+		if len(captured) == 2 {
+			content = "A plain renderer prompt."
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{
+			"message": map[string]any{"role": "assistant", "content": content}, "finish_reason": "stop",
+		}}})
+	}))
+	defer server.Close()
+
+	app := &App{Provider: &ProviderClient{HTTP: server.Client()}}
+	ctx := withFrozenProviderAssignment(context.Background(), "media_prompt", providerAssignment{
+		Role: "media_prompt", BaseURL: server.URL, ModelID: "local-fixture", Timeout: time.Second,
+	})
+	normalized, repairs, err := normalizeMediaPrompt(ctx, concept, func(ctx context.Context, packet map[string]any) (map[string]any, error) {
+		return app.mediaStructuredCall(ctx, "media_prompt_normalized", mediaNormalizationInstruction, packet, mediaNormalizationSchema())
+	})
+	if err != nil || repairs != 0 {
+		t.Fatalf("normalization failed: repairs=%d err=%v", repairs, err)
+	}
+	if intValue(normalized["declared_human_count"]) != 1 || stringValue(normalized["prompt"]) != stringValue(modelOutput["prompt"]) {
+		t.Fatalf("normalized output lost its validated count or prompt: %#v", normalized)
+	}
+	if len(captured) != 1 {
+		t.Fatalf("captured %d structured Provider requests, want 1", len(captured))
+	}
+	structuredRequest := captured[0]
+	responseFormat := mapValue(structuredRequest["response_format"])
+	jsonSchema := mapValue(responseFormat["json_schema"])
+	schema := mapValue(jsonSchema["schema"])
+	properties := mapValue(schema["properties"])
+	if responseFormat["type"] != "json_schema" || jsonSchema["strict"] != true || jsonSchema["name"] != "media_prompt_normalized" || properties["declared_human_count"] == nil {
+		t.Fatalf("physical request omitted the normalizer's strict response schema: %#v", responseFormat)
+	}
+	countRequired := false
+	for _, raw := range arrayValue(schema["required"]) {
+		if raw == "declared_human_count" {
+			countRequired = true
+			break
+		}
+	}
+	if !countRequired || structuredRequest["max_tokens"] != nil || structuredRequest["max_completion_tokens"] != nil {
+		t.Fatalf("physical request did not require the count or set an output cap: %#v", structuredRequest)
+	}
+	if definition, ok := FormalAgentDefinitionByID(FormalAgentMediaPrompt); !ok || definition.OutputKind != FormalAgentOutputText {
+		t.Fatalf("legacy media prompt output contract changed: %#v", definition)
+	}
+	textRun, err := app.RunFormalAgent(ctx, FormalAgentMediaPrompt, FormalAgentRunInput{
+		Prompt: PromptAssemblyResult{Messages: formatProviderMessagesForRole([]map[string]any{
+			{"role": "system", "content": "Return only the plain renderer prompt."},
+			{"role": "user", "content": `{"intent":"a quiet room"}`},
+		}, "media_prompt")},
+		SchemaName: "media_prompt_text",
+	})
+	if err != nil || textRun.Completion.Text != "A plain renderer prompt." {
+		t.Fatalf("legacy text task changed output contract: text=%q err=%v", textRun.Completion.Text, err)
+	}
+	if len(captured) != 2 || captured[1]["response_format"] != nil || captured[1]["max_tokens"] != nil || captured[1]["max_completion_tokens"] != nil {
+		t.Fatalf("legacy text task gained a structured format or output cap: %#v", captured)
+	}
+	document, err := os.ReadFile("../../../../docs/llm-prompt-composition.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"media_subject_parse", "media_prompt_normalized", "严格 Provider `response_format`"} {
+		if !strings.Contains(string(document), required) {
+			t.Fatalf("prompt composition inventory is missing %q", required)
+		}
 	}
 }
 
