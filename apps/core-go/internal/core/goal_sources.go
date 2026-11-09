@@ -36,13 +36,22 @@ func queueGoalEvaluationTx(ctx context.Context, tx pgx.Tx, owner, profile, reaso
 	if !eligible {
 		return "", nil
 	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.goal_agent_cadence(fluctlight_id) VALUES($1) ON CONFLICT DO NOTHING`, owner); err != nil {
+		return "", err
+	}
 	requestID := "goal_evaluation_" + stableDigest(owner+"\x1f"+profile+"\x1f"+identity)
 	forcedGoalIDs := []string{}
 	if reason == "owner_reassess" {
 		forcedGoalIDs = append(forcedGoalIDs, goalIDs...)
 	}
+	if reason == "tool_evaluation" {
+		if err := noteGoalEvaluationActivityTx(ctx, tx, owner); err != nil {
+			return "", err
+		}
+	}
+	quietWindow := !goalEvaluationQuietWindowBypassed(reason)
 	var actualID string
-	err := tx.QueryRow(ctx, `INSERT INTO public.goal_evaluation_requests(id,fluctlight_id,profile_id,goal_ids,reason,status,available_at,snapshot) VALUES($1,$2,$3,$4,$5,'pending',GREATEST(now()+interval '2 seconds',COALESCE((SELECT evaluation_next_at FROM public.goal_agent_cadence WHERE fluctlight_id=$2::varchar),now())),jsonb_build_object('forced_goal_ids',$6::jsonb)) ON CONFLICT(fluctlight_id,profile_id) WHERE status='pending' DO UPDATE SET goal_ids=(SELECT COALESCE(jsonb_agg(v ORDER BY v),'[]'::jsonb) FROM (SELECT DISTINCT value v FROM jsonb_array_elements(goal_evaluation_requests.goal_ids || EXCLUDED.goal_ids)) ids),reason=CASE WHEN EXCLUDED.reason='owner_reassess' THEN EXCLUDED.reason ELSE goal_evaluation_requests.reason END,snapshot=jsonb_set(goal_evaluation_requests.snapshot,'{forced_goal_ids}',(SELECT COALESCE(jsonb_agg(v ORDER BY v),'[]'::jsonb) FROM (SELECT DISTINCT value v FROM jsonb_array_elements(COALESCE(goal_evaluation_requests.snapshot->'forced_goal_ids','[]'::jsonb) || (EXCLUDED.snapshot->'forced_goal_ids'))) ids),true),updated_at=now() RETURNING id`, requestID, owner, profile, jsonBytes(goalIDs), reason, jsonBytes(forcedGoalIDs)).Scan(&actualID)
+	err := tx.QueryRow(ctx, `INSERT INTO public.goal_evaluation_requests(id,fluctlight_id,profile_id,goal_ids,reason,status,available_at,snapshot) VALUES($1,$2,$3,$4,$5,'pending',GREATEST(now()+interval '2 seconds',COALESCE((SELECT evaluation_next_at FROM public.goal_agent_cadence WHERE fluctlight_id=$2::varchar),now()),CASE WHEN $7::boolean THEN COALESCE((SELECT last_activity_at+interval '30 minutes' FROM public.goal_agent_cadence WHERE fluctlight_id=$2::varchar),now()) ELSE now() END),jsonb_build_object('forced_goal_ids',$6::jsonb)) ON CONFLICT(fluctlight_id,profile_id) WHERE status='pending' DO UPDATE SET goal_ids=(SELECT COALESCE(jsonb_agg(v ORDER BY v),'[]'::jsonb) FROM (SELECT DISTINCT value v FROM jsonb_array_elements(goal_evaluation_requests.goal_ids || EXCLUDED.goal_ids)) ids),reason=CASE WHEN EXCLUDED.reason='owner_reassess' THEN EXCLUDED.reason ELSE goal_evaluation_requests.reason END,available_at=CASE WHEN EXCLUDED.reason='owner_reassess' THEN EXCLUDED.available_at WHEN goal_evaluation_requests.reason='owner_reassess' THEN goal_evaluation_requests.available_at ELSE GREATEST(goal_evaluation_requests.available_at,EXCLUDED.available_at) END,snapshot=jsonb_set(goal_evaluation_requests.snapshot,'{forced_goal_ids}',(SELECT COALESCE(jsonb_agg(v ORDER BY v),'[]'::jsonb) FROM (SELECT DISTINCT value v FROM jsonb_array_elements(COALESCE(goal_evaluation_requests.snapshot->'forced_goal_ids','[]'::jsonb) || (EXCLUDED.snapshot->'forced_goal_ids'))) ids),true),updated_at=now() RETURNING id`, requestID, owner, profile, jsonBytes(goalIDs), reason, jsonBytes(forcedGoalIDs), quietWindow).Scan(&actualID)
 	if err != nil {
 		return "", err
 	}

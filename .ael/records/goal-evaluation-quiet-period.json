@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "id": "goal-evaluation-quiet-period",
+  "definition_hash": "d96d1e19f9d0653fdc0307aa00b77432a1e242bec0caaffebc9553297989e9b3",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 2,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+  "failure": "",
+  "result": "verified",
+  "created": "2026-11-06T09:47:03.549033Z",
+  "updated": "2026-11-09T09:50:20.214664Z",
+  "completed": "2026-11-06T10:31:25.208602Z",
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-0be9f2ab8ca1f853ddaf",
+        "unit": "define",
+        "executor": "codex-goal-cadence",
+        "input_version": "5e8e193726bb1832a748e2d506b3a409a11c0a3670b056eba50c9c6a860bf2cf",
+        "candidate_version": "",
+        "started": "2026-11-06T09:47:26.511202Z",
+        "ended": "2026-11-06T10:03:42.930973Z",
+        "status": "abandoned",
+        "reason": "definition changed; resume requires stopped-process acknowledgement"
+      },
+      {
+        "id": "AT-a8593f1b33a906baf64b",
+        "unit": "define",
+        "executor": "codex-goal-cadence",
+        "input_version": "6d5d66540a831c7fca5564a65f70b9bf97bef7fc28d95fe872448e0ece8dd215",
+        "candidate_version": "6d5d66540a831c7fca5564a65f70b9bf97bef7fc28d95fe872448e0ece8dd215",
+        "started": "2026-11-06T10:04:20.394213Z",
+        "ended": "2026-11-06T10:05:04.374615Z",
+        "status": "pass",
+        "reason": "用户确认目标行为：聊天等相关活动结束后静默 30 分钟再评估；等待期内的新活动重置计时；每个活动水位只触发一次自动评估；显式 Owner 核对保留原语义。范围限定 Core cadence、activity source 水位、请求恢复。执行限制：不新增或运行自动化测试。"
+      },
+      {
+        "id": "AT-0448653231240a27e39e",
+        "unit": "analysis",
+        "executor": "codex-goal-cadence",
+        "input_version": "6d5d66540a831c7fca5564a65f70b9bf97bef7fc28d95fe872448e0ece8dd215",
+        "candidate_version": "faf02818272c2b1b9c8f352e9f876878b104afa85c5e4893b641e38146e97b96",
+        "started": "2026-11-06T10:05:44.270145Z",
+        "ended": "2026-11-06T10:08:00.83415Z",
+        "status": "pass",
+        "reason": "当前 cadence 在 claim 时设置 next=now+30m，并由每分钟 repair 在到期后无条件制造 periodic_due，因此是评估后周期而非活动静默窗口。方案：在 owner cadence 持久化最近活动时间、活动 revision、已评估 revision；从 goal_source_events 捕获新证据时间并用 Life lock 串行化；repair 仅在未消费的 revision 静默满 30m 时入队；统一 claim gate 再核对静默截止并在新请求准入时消费 revision。保留同请求 retry、内部 remainder 与显式 Owner 核对语义。数据库 trigger 直写的请求也由 claim gate 兜底。"
+      },
+      {
+        "id": "AT-645093e6bc26d855a6ea",
+        "unit": "execute",
+        "executor": "codex-goal-cadence",
+        "input_version": "d2d23fc19bb40b018e28be74efb217e27bbe19f19852f8234241c87caac3c9a0",
+        "candidate_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "started": "2026-11-06T10:09:25.239259Z",
+        "ended": "2026-11-06T10:26:16.234775Z",
+        "status": "pass",
+        "reason": "添加可重启恢复的最近活动时间、activity_revision 与已消费水位；source event 插入时按 Life 锁更新活动，Goal 依赖变化和 Agent 显式评估入口补充活动登记；将 30 分钟静默截止接入队列、repair 与统一 claim 准入。Repair 仅为到期且未消费的水位创建 activity_quiet_due 请求。Owner reassess 仍绕过静默期；同请求重试及内部 remainder 保留。手工代码审查覆盖活动重置、单次入队、待执行旧请求/恢复准入及手动核对。"
+      },
+      {
+        "id": "AT-10c1c88e8349dba71da2",
+        "unit": "check:review",
+        "executor": "codex-goal-cadence",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "",
+        "started": "2026-11-06T10:26:55.678412Z",
+        "ended": "2026-11-06T10:30:56.157542Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-cee4e1a198d2e5ae4663",
+        "unit": "check:review",
+        "executor": "codex-goal-cadence",
+        "input_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "candidate_version": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+        "started": "2026-11-06T10:31:20.363533Z",
+        "ended": "2026-11-06T10:31:20.416406Z",
+        "status": "pass",
+        "reason": "Source-level review confirms the latest-activity quiet deadline, revision-based one-time trigger, claim-time fence for queued/recovered requests, and explicit Owner reassess path. Limits are recorded in the attached report; no automated tests, build, database application or live timing were run."
+      }
+    ],
+    "checks": [
+      {
+        "id": "review",
+        "result": "pass",
+        "source": "model:codex-goal-cadence",
+        "config_hash": "c0d64bcac4cfb3908774bb44fe7d0a146ddbec0f51ed1b77b6be8f90f1c7b77f",
+        "at": "2026-11-06T10:31:20.415752Z",
+        "artifact_hashes": {
+          ".ael/outcomes/goal-evaluation-quiet-period-review.md": "21a0606d3e3c2f82642d1ba9b877fe11848efe46a7ff6960f01d9e62b6c2b4ec",
+          "apps/core-go/internal/core/evolution_persistence.go": "2e33f487bca109f03c55693b48198829fae1942c8fc9c264d21701549a0b382d",
+          "apps/core-go/internal/core/goal_agent_cadence.go": "4e974df6725e77d3c7f64d9d89f9f5a729a9a5930b5f44c4df01f018a1f9fcfe",
+          "apps/core-go/internal/core/goal_evaluation_runtime.go": "a431a3b96c9c0514b468d80334a9411fd0a269b1ab75cec2c3c6e6240e244cb2",
+          "apps/core-go/internal/core/goal_sources.go": "cfd76a925fc617f849d345dc2a4d53e9e956884176f8a5cb945f796019afbde3",
+          "apps/core-go/internal/migrations/goal_evaluation_quiet_period.go": "9b16c05d210c12c45b7845e23d6185b93311d2d0b5c70bdcc43adf20b4bdddd4",
+          "apps/core-go/internal/migrations/runner.go": "4cf4be81c33004ab8e8bc3ff187d81fb422b0122f22e303002b7a6a627b7a6e5"
+        }
+      }
+    ]
+  }
+}

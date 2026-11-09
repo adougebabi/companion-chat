@@ -116,9 +116,16 @@ func (a *App) claimGoalEvaluation(ctx context.Context, id string) (goalEvaluatio
 			return err
 		}
 		if hasTargets {
-			if until, err := admitGoalEvaluationCycleTx(ctx, tx, snapshot.FluctlightID, id, available); err != nil {
+			until, noActivity, err := admitGoalEvaluationCycleTx(ctx, tx, snapshot.FluctlightID, id, available, snapshot.Reason, attempts)
+			if err != nil {
 				return err
-			} else if !until.IsZero() {
+			}
+			if noActivity {
+				prior = map[string]any{"id": id, "fluctlight_id": snapshot.FluctlightID, "status": "skipped", "reason": "awaiting_new_activity", "model_admission": false}
+				_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET status='succeeded',result=$2,claimed_at=NULL,error_code=NULL,updated_at=now() WHERE id=$1`, id, jsonBytes(prior))
+				return err
+			}
+			if !until.IsZero() {
 				prior = map[string]any{"status": "deferred", "reason": "evaluation_cadence", "not_before": until.UTC().Format(time.RFC3339Nano)}
 				return nil
 			}

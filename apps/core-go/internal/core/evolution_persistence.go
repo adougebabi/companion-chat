@@ -104,6 +104,11 @@ func persistGoalAuthorityTx(ctx context.Context, tx pgx.Tx, before *GoalAuthorit
 		if err := rows.Err(); err != nil {
 			return false, err
 		}
+		if len(byProfile) > 0 {
+			if err := noteGoalEvaluationActivityTx(ctx, tx, after.FluctlightID); err != nil {
+				return false, err
+			}
+		}
 		for profile, ids := range byProfile {
 			if _, err := queueGoalEvaluationTx(ctx, tx, after.FluctlightID, profile, "goal_dependency_changed", commandKey+":"+profile, ids); err != nil {
 				return false, err

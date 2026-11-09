@@ -1,0 +1,28 @@
+{
+  "id": "goal-evaluation-quiet-period",
+  "definition_revision": 2,
+  "plan_revision": 2,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "0717ec06bea896939251daa01ece1ae11687417a86c0e244145bc3547bd84b9c",
+  "completed": "2026-11-06T10:31:25.208602Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "review",
+      "result": "pass",
+      "source": "model:codex-goal-cadence",
+      "config_hash": "c0d64bcac4cfb3908774bb44fe7d0a146ddbec0f51ed1b77b6be8f90f1c7b77f",
+      "at": "2026-11-06T10:31:20.415752Z",
+      "artifact_hashes": {
+        ".ael/outcomes/goal-evaluation-quiet-period-review.md": "21a0606d3e3c2f82642d1ba9b877fe11848efe46a7ff6960f01d9e62b6c2b4ec",
+        "apps/core-go/internal/core/evolution_persistence.go": "2e33f487bca109f03c55693b48198829fae1942c8fc9c264d21701549a0b382d",
+        "apps/core-go/internal/core/goal_agent_cadence.go": "4e974df6725e77d3c7f64d9d89f9f5a729a9a5930b5f44c4df01f018a1f9fcfe",
+        "apps/core-go/internal/core/goal_evaluation_runtime.go": "a431a3b96c9c0514b468d80334a9411fd0a269b1ab75cec2c3c6e6240e244cb2",
+        "apps/core-go/internal/core/goal_sources.go": "cfd76a925fc617f849d345dc2a4d53e9e956884176f8a5cb945f796019afbde3",
+        "apps/core-go/internal/migrations/goal_evaluation_quiet_period.go": "9b16c05d210c12c45b7845e23d6185b93311d2d0b5c70bdcc43adf20b4bdddd4",
+        "apps/core-go/internal/migrations/runner.go": "4cf4be81c33004ab8e8bc3ff187d81fb422b0122f22e303002b7a6a627b7a6e5"
+      }
+    }
+  ]
+}

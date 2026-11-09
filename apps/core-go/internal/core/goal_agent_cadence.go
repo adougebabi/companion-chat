@@ -12,22 +12,58 @@ import (
 
 const goalEvaluationInterval = 30 * time.Minute
 
+func goalEvaluationQuietWindowBypassed(reason string) bool {
+	return reason == "owner_reassess"
+}
+
+func goalEvaluationAllowsNoNewActivity(reason string) bool {
+	if goalEvaluationQuietWindowBypassed(reason) {
+		return true
+	}
+	return reason == "tool_evaluation" || strings.HasPrefix(reason, "goal_review:") || reason == "assessment_batch_remainder" || reason == "assessment_source_remainder"
+}
+
+// Goal lifecycle changes that do not create a goal_source_event still count as
+// activity when they queue an evaluation (for example, a completed prerequisite).
+func noteGoalEvaluationActivityTx(ctx context.Context, tx pgx.Tx, owner string) error {
+	if err := lockLifeContextTx(ctx, tx, owner); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `INSERT INTO public.goal_agent_cadence(fluctlight_id,last_activity_at,activity_revision) VALUES($1,now(),1) ON CONFLICT(fluctlight_id) DO UPDATE SET last_activity_at=GREATEST(COALESCE(goal_agent_cadence.last_activity_at,'-infinity'::timestamptz),now()),activity_revision=goal_agent_cadence.activity_revision+1,updated_at=now()`, owner)
+	return err
+}
+
 // Called under lifecycle/Life and the request row lock, before either a fresh
 // snapshot or frozen retry can become processing. Database time owns the fence.
-func admitGoalEvaluationCycleTx(ctx context.Context, tx pgx.Tx, owner, request string, available time.Time) (time.Time, error) {
+func admitGoalEvaluationCycleTx(ctx context.Context, tx pgx.Tx, owner, request string, available time.Time, reason string, attempts int) (time.Time, bool, error) {
 	if _, err := tx.Exec(ctx, `INSERT INTO public.goal_agent_cadence(fluctlight_id) VALUES($1) ON CONFLICT DO NOTHING`, owner); err != nil {
-		return time.Time{}, err
+		return time.Time{}, false, err
 	}
 	var now, next time.Time
-	if err := tx.QueryRow(ctx, `SELECT now(),GREATEST(evaluation_next_at,$2::timestamptz) FROM public.goal_agent_cadence WHERE fluctlight_id=$1 FOR UPDATE`, owner, available).Scan(&now, &next); err != nil {
-		return time.Time{}, err
+	var lastActivity *time.Time
+	var activityRevision, evaluatedRevision int64
+	var lastRequest string
+	if err := tx.QueryRow(ctx, `SELECT now(),GREATEST(evaluation_next_at,$2::timestamptz),last_activity_at,activity_revision,evaluation_activity_revision,COALESCE(evaluation_request_id,'') FROM public.goal_agent_cadence WHERE fluctlight_id=$1 FOR UPDATE`, owner, available).Scan(&now, &next, &lastActivity, &activityRevision, &evaluatedRevision, &lastRequest); err != nil {
+		return time.Time{}, false, err
+	}
+	newActivity := activityRevision > evaluatedRevision
+	sameCycleRetry := attempts > 0 && lastRequest == request
+	if !newActivity && !sameCycleRetry && !goalEvaluationAllowsNoNewActivity(reason) {
+		return time.Time{}, true, nil
+	}
+	if !goalEvaluationQuietWindowBypassed(reason) && lastActivity != nil {
+		quietUntil := lastActivity.Add(goalEvaluationInterval)
+		if quietUntil.After(next) {
+			next = quietUntil
+		}
 	}
 	if now.Before(next) {
-		_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET available_at=$2,updated_at=now() WHERE id=$1`, request, next)
-		return next, err
+		_, err := tx.Exec(ctx, `UPDATE public.goal_evaluation_requests SET available_at=GREATEST(available_at,$2),updated_at=now() WHERE id=$1`, request, next)
+		return next, false, err
 	}
-	_, err := tx.Exec(ctx, `UPDATE public.goal_agent_cadence SET evaluation_next_at=now()+interval '30 minutes',evaluation_request_id=$2,updated_at=now() WHERE fluctlight_id=$1`, owner, request)
-	return time.Time{}, err
+	consumeActivity := newActivity && !sameCycleRetry
+	_, err := tx.Exec(ctx, `UPDATE public.goal_agent_cadence SET evaluation_next_at=now()+interval '30 minutes',evaluation_request_id=$2,evaluation_activity_revision=CASE WHEN $3 THEN GREATEST(evaluation_activity_revision,activity_revision) ELSE evaluation_activity_revision END,updated_at=now() WHERE fluctlight_id=$1`, owner, request, consumeActivity)
+	return time.Time{}, false, err
 }
 
 func goalPlannerNoModel(status, reason string) map[string]any {
@@ -90,7 +126,7 @@ func (a *App) RepairGoalEvaluationCadence(ctx context.Context, limit int) (int, 
 	}
 	repaired := 0
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		rows, err := tx.Query(ctx, `SELECT f.id FROM public.fluctlights f LEFT JOIN public.goal_agent_cadence c ON c.fluctlight_id=f.id WHERE f.status='active' AND COALESCE(c.evaluation_next_at,'-infinity'::timestamptz)<=now() AND EXISTS(SELECT 1 FROM public.fluctlight_goals g WHERE g.fluctlight_id=f.id AND g.status IN ('active','paused') AND (g.profile_id IS NULL OR g.profile_id=COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=f.id),'default'))) AND NOT EXISTS(SELECT 1 FROM public.goal_evaluation_requests r WHERE r.fluctlight_id=f.id AND r.status IN ('pending','processing','retry')) ORDER BY f.id LIMIT $1`, limit)
+		rows, err := tx.Query(ctx, `SELECT f.id FROM public.fluctlights f JOIN public.goal_agent_cadence c ON c.fluctlight_id=f.id WHERE f.status='active' AND c.last_activity_at+interval '30 minutes'<=now() AND c.evaluation_next_at<=now() AND c.activity_revision>c.evaluation_activity_revision AND EXISTS(SELECT 1 FROM public.fluctlight_goals g WHERE g.fluctlight_id=f.id AND g.status IN ('active','paused') AND (g.profile_id IS NULL OR g.profile_id=COALESCE((SELECT active_profile_id FROM public.fluctlight_personality_runtime WHERE fluctlight_id=f.id),'default'))) AND NOT EXISTS(SELECT 1 FROM public.goal_evaluation_requests r WHERE r.fluctlight_id=f.id AND r.status IN ('pending','processing','retry')) ORDER BY f.id LIMIT $1`, limit)
 		if err != nil {
 			return err
 		}
@@ -117,13 +153,13 @@ func (a *App) RepairGoalEvaluationCadence(ctx context.Context, limit int) (int, 
 			}
 			var due bool
 			var identity string
-			if err := tx.QueryRow(ctx, `SELECT COALESCE(c.evaluation_next_at,'-infinity'::timestamptz)<=now() AND NOT EXISTS(SELECT 1 FROM public.goal_evaluation_requests r WHERE r.fluctlight_id=f.id AND r.status IN ('pending','processing','retry')),COALESCE(c.evaluation_next_at::text,'initial') FROM public.fluctlights f LEFT JOIN public.goal_agent_cadence c ON c.fluctlight_id=f.id WHERE f.id=$1`, owner).Scan(&due, &identity); err != nil {
+			if err := tx.QueryRow(ctx, `SELECT c.last_activity_at+interval '30 minutes'<=now() AND c.evaluation_next_at<=now() AND c.activity_revision>c.evaluation_activity_revision AND NOT EXISTS(SELECT 1 FROM public.goal_evaluation_requests r WHERE r.fluctlight_id=f.id AND r.status IN ('pending','processing','retry')),c.activity_revision::text FROM public.fluctlights f JOIN public.goal_agent_cadence c ON c.fluctlight_id=f.id WHERE f.id=$1`, owner).Scan(&due, &identity); err != nil {
 				return err
 			}
 			if !due {
 				continue
 			}
-			id, err := queueGoalEvaluationTx(ctx, tx, owner, profile, "periodic_due", "cadence:"+identity, nil)
+			id, err := queueGoalEvaluationTx(ctx, tx, owner, profile, "activity_quiet_due", "activity:"+identity, nil)
 			if err != nil {
 				return err
 			}
