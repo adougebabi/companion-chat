@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-t10-domain-regression",
+  "definition_hash": "5e0a55f09d5f6dc006b79b0ead246f55a19965dffd0b5484e9e406cb1795ed1c",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-10T08:34:31.183643Z",
+  "updated": "2026-11-10T08:34:31.183658Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

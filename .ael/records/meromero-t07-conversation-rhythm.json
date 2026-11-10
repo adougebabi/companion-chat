@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-t07-conversation-rhythm",
+  "definition_hash": "8b8d5bf119d93035a490792dcb40691075174a8b87db2067e48063c9d98b0ce8",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-10T08:34:30.930175Z",
+  "updated": "2026-11-10T08:34:30.930196Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

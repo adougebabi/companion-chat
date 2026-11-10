@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-t02-task-model-routing",
+  "definition_hash": "1b63dd91a46ce7bec633787390acf2c1d123f3d129506b5a230e52098655f80e",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-10T08:34:30.498512Z",
+  "updated": "2026-11-10T08:34:30.498532Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

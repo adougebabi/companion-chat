@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-t09-memory-correction",
+  "definition_hash": "eb4cc3dca11d7afd1af923b08381d714fb76053383e584b3b819bb30ca922e82",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-10T08:34:31.100173Z",
+  "updated": "2026-11-10T08:34:31.100185Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

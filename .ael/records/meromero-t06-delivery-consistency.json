@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-t06-delivery-consistency",
+  "definition_hash": "4298538b19d8d2236ab55653da202916de90867a30289803a90bbb732e0d8df2",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-10T08:34:30.844802Z",
+  "updated": "2026-11-10T08:34:30.844815Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

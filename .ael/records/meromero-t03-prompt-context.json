@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-t03-prompt-context",
+  "definition_hash": "86a932310eb95b13a1e12df1f5d1545b85c7f280d542325118d76289b14680df",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-10T08:34:30.58656Z",
+  "updated": "2026-11-10T08:34:30.586602Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

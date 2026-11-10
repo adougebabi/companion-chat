@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "meromero-t12-final-acceptance",
+  "definition_hash": "fb60b486a89e52148bdf0b325d8c13bbb108c71d4ab1c95c651e01f44849761c",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-10T08:34:31.35389Z",
+  "updated": "2026-11-10T08:34:31.353904Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}
