@@ -109,6 +109,22 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		projection = privateTextChatProjection(projection)
 	} else if replyRun != nil && replyRun.Settings.Mode == "direct" {
 		operationRules = []string{providerContextAuthorityRule, directMainConversationProtocol, factOnlyExecutionBoundary}
+		suggestions, suggestionErr := a.freezeDirectExpressionSuggestions(ctx, replyRun)
+		if suggestionErr != nil {
+			return ConversationCognitionAgentResult{}, suggestionErr
+		}
+		if len(suggestions) > 0 {
+			stable := providerStableTaskContext(ctx)
+			if stable == nil {
+				stable = map[string]any{}
+			}
+			if _, exists := stable["expression_suggestions"]; exists {
+				return ConversationCognitionAgentResult{}, errors.New("direct_expression_context_conflict")
+			}
+			stable["expression_suggestions"] = expressionSuggestionPromptData(suggestions)
+			ctx = withProviderStableTaskContext(ctx, stable)
+			operationRules = append(operationRules, expressionSuggestionContextRule)
+		}
 		projection = privateTextChatProjection(projection)
 	}
 	assembly, projection, err := a.assembleProjectionPromptForSurface(

@@ -32,6 +32,16 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" {
+		_, results := adkContext.Trace.Snapshot()
+		for _, result := range results {
+			if result.CapabilityName == conversationReplyCapabilityName && result.Status == "handled" && stringValue(mapValue(result.Output)["warning_code"]) == "reply_expression_suggestion_stale" {
+				// The model saw a frozen suggestion that is no longer valid.
+				// Repeating this run cannot make its old context publishable.
+				return physicalModelRequestDecision{}, newCapabilityError("reply_expression_suggestion_stale", false, ErrConflict)
+			}
+		}
+	}
 	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMainInvalidReplyAttempts(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_reply_arguments_unresolved", false, errors.New("direct_reply_arguments_unresolved"))
 	}

@@ -96,6 +96,17 @@ func (c directMainReplyCapability) Prepare(ctx context.Context, invocation Capab
 	if projection.FluctlightID != invocation.Metadata.FluctlightID || projection.ConversationID != invocation.Metadata.ConversationID || projection.OwnerActorID != invocation.Metadata.AuthorizationActorID || projection.SourceFactID != invocation.SourceFactID {
 		return invocation, newCapabilityError("direct_reply_scope_invalid", false, ErrUnauthorized)
 	}
+	run := replyRunFromContext(ctx)
+	if run == nil || run.Settings.Mode != "direct" || run.Scope.FluctlightID != invocation.Metadata.FluctlightID || run.Scope.ConversationID != invocation.Metadata.ConversationID || run.Scope.AuthorizationActorID != invocation.Metadata.AuthorizationActorID || run.Scope.EvidenceID != invocation.SourceFactID || firstString(run.Scope.SubjectActorID, run.Scope.AuthorizationActorID) != firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID) {
+		return invocation, newCapabilityError("direct_reply_scope_invalid", false, ErrUnauthorized)
+	}
+	run.mu.Lock()
+	suggestionsFrozen := run.ExpressionSuggestionsFrozen
+	suggestions := append([]expressionSuggestionBinding(nil), run.ExpressionSuggestions...)
+	run.mu.Unlock()
+	if !suggestionsFrozen {
+		return invocation, newCapabilityError("direct_expression_context_missing", false, ErrConflict)
+	}
 	args := decodeObject(invocation.Arguments)
 	decision := cloneMap(mapValue(args["decision"]))
 	if len(decision) == 0 {
@@ -117,10 +128,24 @@ func (c directMainReplyCapability) Prepare(ctx context.Context, invocation Capab
 	if err != nil {
 		return invocation, newCapabilityError("direct_reply_decision_invalid", false, err)
 	}
-	return withCapabilityPreparedData(invocation, "direct_main_settlement", map[string]any{"projection": projection, "decision": decision, "response_plan": plan})
+	return withCapabilityPreparedData(invocation, "direct_main_settlement", map[string]any{"projection": projection, "decision": decision, "response_plan": plan, "expression_suggestions": suggestions})
 }
 
 func (c directMainReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, invocation CapabilityInvocation, resolved CapabilityContext, target DirectToolTarget) (CapabilityResult, error) {
+	data, found, err := capabilityPreparedData(invocation, "direct_main_settlement")
+	if err != nil || !found {
+		return CapabilityResult{}, errors.New("direct_reply_settlement_missing")
+	}
+	var suggestions []expressionSuggestionBinding
+	if raw, present := mapValue(data)["expression_suggestions"]; present {
+		if err := json.Unmarshal(jsonBytes(raw), &suggestions); err != nil {
+			return CapabilityResult{}, errors.New("direct_expression_context_invalid")
+		}
+	}
+	if err := validateExpressionSuggestionsTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID,
+		firstString(invocation.Metadata.SubjectActorID, target.AuthorizationActorID), target.ConversationID, suggestions); err != nil {
+		return CapabilityResult{}, err
+	}
 	return (conversationReplyCapability{publication: c.publication}).ExecuteDirectTx(ctx, tx, invocation, resolved, target)
 }
 
