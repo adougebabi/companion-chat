@@ -14670,8 +14670,15 @@
             "maxLength": 256
           },
           "triggerText": {
-            "type": "string",
-            "maxLength": 256
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -68462,7 +68469,7 @@
         "operationId": "expressionLearning",
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -68763,7 +68770,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -69023,7 +69030,7 @@
         "operationId": "expressionLearningSource",
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -69315,7 +69322,7 @@
         },
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -69597,7 +69604,7 @@
         },
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -69891,7 +69898,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -70161,7 +70168,7 @@
         },
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -70453,7 +70460,7 @@
         },
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {
@@ -70745,7 +70752,7 @@
         },
         "responses": {
           "200": {
-            "description": "Actual scoped claim or governance history",
+            "description": "Scoped expression learning result",
             "content": {
               "application/json": {
                 "schema": {

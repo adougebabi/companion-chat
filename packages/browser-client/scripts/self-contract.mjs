@@ -4,7 +4,8 @@ const version={type:'integer',minimum:1,maximum:2147483647};
 const commandFields={expectedRevision:version,reason:{type:'string',minLength:1,maxLength:1024},idempotencyKey:{type:'string',minLength:1,maxLength:256}};
 const array=items=>({type:'array',items}),ref=name=>({$ref:'#/components/schemas/'+name}),nullable=value=>({anyOf:[value,{type:'null'}]});
 const object=(properties,required=Object.keys(properties))=>({type:'object',properties,required,additionalProperties:false});
-const reply=name=>({responses:{200:{description:'Actual scoped claim or governance history',content:{'application/json':{schema:ref(name)}}}}});
+const reply=(name,description='Actual scoped claim or governance history')=>({responses:{200:{description,content:{'application/json':{schema:ref(name)}}}}});
+const expressionReply=name=>reply(name,'Scoped expression learning result');
 const pagination=[{name:'cursor',in:'query',schema:{type:'string',maxLength:2048}},{name:'limit',in:'query',schema:{type:'integer',minimum:1,maximum:100}}];
 export const selfSchemas={
  BrowserSelfReview:object({id:text,fluctlight_id:text,claim_id:text,claim_revision:integer,owner_actor_id:text,reason:text,disposition:{type:'string',enum:['acknowledged']},created_at:text}),
@@ -24,7 +25,7 @@ export const selfSchemas={
  BrowserExpressionExtractionBody:object({sourceMessageId:{type:'string',minLength:1,maxLength:128},idempotencyKey:commandFields.idempotencyKey}),
  BrowserExpressionExtractionResult:object({status:{type:'string',enum:['completed']},candidate_ids:array(text),_replay:{type:'boolean'}},['status','candidate_ids']),
  BrowserExpressionExtractionStatus:object({status:{type:'string',enum:['not_found','running','completed','failed']},no_effect:{type:'boolean'},result:data},['status','no_effect']),
- BrowserExpressionReviewBody:object({...commandFields,triggerText:{type:'string',maxLength:256}},['expectedRevision','reason','idempotencyKey']),
+ BrowserExpressionReviewBody:object({...commandFields,triggerText:nullable({type:'string',maxLength:256})},['expectedRevision','reason','idempotencyKey']),
  BrowserExpressionEnableBody:object({...commandFields,triggerText:{type:'string',minLength:1,maxLength:256}}),
  BrowserExpressionReviewResult:object({id:text,status:{type:'string',enum:['enabled','disabled','revoked']},revision:version,action:{type:'string',enum:['enable','disable','revoke']},_replay:{type:'boolean'}},['id','status','revision','action']),
 };
@@ -35,11 +36,11 @@ export const selfPaths=ownerPathContracts({
  ...Object.fromEntries(['review','forget','restore'].map(command=>[`/api/fluctlights/{fluctlightId}/self-claims/{claimId}/${command}`,{post:{operationId:'selfClaim'+command,requestBody:{required:true,content:{'application/json':{schema:ref(command==='restore'?'BrowserSelfRestoreBody':'BrowserSelfCommandBody')}}},...reply('BrowserSelfCommandResult')}}])),
 });
 export const expressionPaths=ownerPathContracts({
- '/api/fluctlights/{fluctlightId}/expression-learning':{get:{operationId:'expressionLearning',...reply('BrowserExpressionLearning')}},
- '/api/fluctlights/{fluctlightId}/expression-learning/sources':{get:{operationId:'expressionLearningSources',parameters:pagination,...reply('BrowserExpressionSourcePage')}},
- '/api/fluctlights/{fluctlightId}/expression-learning/sources/{messageId}':{get:{operationId:'expressionLearningSource',...reply('BrowserExpressionSource')}},
- '/api/fluctlights/{fluctlightId}/expression-learning/settings':{put:{operationId:'updateExpressionLearning',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserExpressionSettingsBody')}}},...reply('BrowserExpressionSettings')}},
- '/api/fluctlights/{fluctlightId}/expression-learning/extractions':{post:{operationId:'extractExpressionLearning',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserExpressionExtractionBody')}}},...reply('BrowserExpressionExtractionResult')}},
- '/api/fluctlights/{fluctlightId}/expression-learning/extractions/by-key':{get:{operationId:'expressionExtractionStatus',parameters:[{name:'key',in:'query',required:true,schema:{type:'string',minLength:1,maxLength:256}}],...reply('BrowserExpressionExtractionStatus')}},
- ...Object.fromEntries(['enable','disable','revoke'].map(action=>[`/api/fluctlights/{fluctlightId}/expression-learning/candidates/{candidateId}/${action}`,{post:{operationId:'expressionLearning'+action,requestBody:{required:true,content:{'application/json':{schema:ref(action==='enable'?'BrowserExpressionEnableBody':'BrowserExpressionReviewBody')}}},...reply('BrowserExpressionReviewResult')}}])),
+ '/api/fluctlights/{fluctlightId}/expression-learning':{get:{operationId:'expressionLearning',...expressionReply('BrowserExpressionLearning')}},
+ '/api/fluctlights/{fluctlightId}/expression-learning/sources':{get:{operationId:'expressionLearningSources',parameters:pagination,...expressionReply('BrowserExpressionSourcePage')}},
+ '/api/fluctlights/{fluctlightId}/expression-learning/sources/{messageId}':{get:{operationId:'expressionLearningSource',...expressionReply('BrowserExpressionSource')}},
+ '/api/fluctlights/{fluctlightId}/expression-learning/settings':{put:{operationId:'updateExpressionLearning',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserExpressionSettingsBody')}}},...expressionReply('BrowserExpressionSettings')}},
+ '/api/fluctlights/{fluctlightId}/expression-learning/extractions':{post:{operationId:'extractExpressionLearning',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserExpressionExtractionBody')}}},...expressionReply('BrowserExpressionExtractionResult')}},
+ '/api/fluctlights/{fluctlightId}/expression-learning/extractions/by-key':{get:{operationId:'expressionExtractionStatus',parameters:[{name:'key',in:'query',required:true,schema:{type:'string',minLength:1,maxLength:256}}],...expressionReply('BrowserExpressionExtractionStatus')}},
+ ...Object.fromEntries(['enable','disable','revoke'].map(action=>[`/api/fluctlights/{fluctlightId}/expression-learning/candidates/{candidateId}/${action}`,{post:{operationId:'expressionLearning'+action,requestBody:{required:true,content:{'application/json':{schema:ref(action==='enable'?'BrowserExpressionEnableBody':'BrowserExpressionReviewBody')}}},...expressionReply('BrowserExpressionReviewResult')}}])),
 });

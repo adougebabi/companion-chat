@@ -50,6 +50,8 @@ test('expression routes and client survive regeneration from their source contra
  assert.equal(api.paths[base+'/settings'].put.requestBody.content['application/json'].schema.$ref,'#/components/schemas/BrowserExpressionSettingsBody');
  assert.equal(api.paths[base+'/candidates/{candidateId}/enable'].post.requestBody.content['application/json'].schema.$ref,'#/components/schemas/BrowserExpressionEnableBody');
  assert.ok(api.components.schemas.BrowserExpressionEnableBody.required.includes('triggerText'));
+ assert.ok(api.components.schemas.BrowserExpressionReviewBody.properties.triggerText.anyOf.some((item:{type:string})=>item.type==='null'));
+ assert.equal(api.paths[base].get.responses[200].description,'Scoped expression learning result');
  assert.equal(api.paths[base+'/extractions/by-key'].get.parameters.find((item:{name:string})=>item.name==='key').required,true);
  const temporary=await mkdtemp(join(tmpdir(),'fluctlight-client-generation-'));
  try{
