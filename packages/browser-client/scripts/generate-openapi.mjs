@@ -20,7 +20,7 @@ import {visualBriefSchemas,visualBriefPaths} from "./visual-brief-contract.mjs";
 import {inventorySchemas,inventoryPaths} from "./inventory-contract.mjs";
 import {npcRuntimeSchemas,npcRuntimePaths} from "./npc-runtime-contract.mjs";
 import {promiseSchemas,promisePaths} from "./promise-contract.mjs";
-import { selfSchemas, selfPaths } from "./self-contract.mjs";
+import { selfSchemas, selfPaths, expressionPaths } from "./self-contract.mjs";
 
 const requestBody = (schema) => ({
   requestBody: { required: true, content: { "application/json": { schema: { $ref: `#/components/schemas/${schema}` } } } },
@@ -531,6 +531,7 @@ for(const [path,methods]of Object.entries(studioCatalogPaths))schema.paths[path]
 Object.assign(schema.components.schemas,dataToolsSchemas);for(const [path,methods]of Object.entries(dataToolsPaths))schema.paths[path]={...schema.paths[path],...methods};
 Object.assign(schema.components.schemas,placeDefaultSchemas);for(const [path,methods]of Object.entries(placeDefaultPaths))schema.paths[path]={...schema.paths[path],...methods};
 Object.assign(schema.components.schemas,scheduleOwnerSchemas);for(const [path,methods]of Object.entries(scheduleOwnerPaths))schema.paths[path]={...schema.paths[path],...methods};
+Object.assign(schema.paths,expressionPaths);
 await writeFile(
   new URL("../openapi.json", import.meta.url),
   `${JSON.stringify(schema, null, 2)}\n`,

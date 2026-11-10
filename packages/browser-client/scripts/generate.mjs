@@ -20,6 +20,7 @@ const requestTypeNames = [
  ...Object.keys(schema.components.schemas).filter(name=>name.startsWith("BrowserVisualBrief")||name.startsWith("BrowserVisualGenerate")||name.startsWith("BrowserVisualReview")||["BrowserVisualManagement","BrowserVisualRecordPage","BrowserVisualAttempt","BrowserVisualSession"].includes(name)),
  ...Object.keys(schema.components.schemas).filter(name=>name.startsWith("BrowserFoundation")||name.startsWith("BrowserCapability")||name==="BrowserGovernanceHistory"),
  ...Object.keys(schema.components.schemas).filter(name=>name.startsWith('BrowserSelf')),
+ ...Object.keys(schema.components.schemas).filter(name=>name.startsWith('BrowserExpression')),
  ...Object.keys(schema.components.schemas).filter(name=>name.startsWith('BrowserDiary')||['BrowserOwnerRequest','BrowserSharedExperiencePage','BrowserStoryOverview'].includes(name)),
  ...Object.keys(schema.components.schemas).filter(name=>name.startsWith('BrowserNotification')||name.startsWith('BrowserPending')||name.startsWith('BrowserAutonomyPolicy')||['BrowserRequestTask','BrowserTask'].includes(name)),
  ...Object.keys(schema.components.schemas).filter(name => name.startsWith("BrowserWorld") || ["BrowserRuntimeWorld", "BrowserRuntimePlace", "BrowserRuntimeNPC", "BrowserNPCRoutineSlot", "BrowserPlaceWriteBody", "BrowserNPCWriteBody", "BrowserNearbyActors"].includes(name)),
@@ -139,6 +140,13 @@ export class BrowserClient {
   async setup(setupToken: string, password: string): Promise<BrowserSession> { return this.json("/auth/setup", { method: "POST", body: { setupToken, password } }) as Promise<BrowserSession>; }
   async setupStatus(): Promise<BrowserSetupStatus> { return this.json("/auth/setup-status") as Promise<BrowserSetupStatus>; }
   async logout(): Promise<void> { await this.json("/auth/logout", { method: "POST" }); }
+  async expressionLearning(fid:string):Promise<BrowserExpressionLearning>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/expression-learning\`) as Promise<BrowserExpressionLearning>;}
+  async expressionLearningSources(fid:string,cursor=''):Promise<BrowserExpressionSourcePage>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/expression-learning/sources?\${new URLSearchParams({cursor,limit:'20'})}\`) as Promise<BrowserExpressionSourcePage>;}
+  async expressionLearningSource(fid:string,id:string):Promise<BrowserExpressionSource>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/expression-learning/sources/\${encodeURIComponent(id)}\`) as Promise<BrowserExpressionSource>;}
+  async updateExpressionLearning(fid:string,body:BrowserExpressionSettingsBody):Promise<BrowserExpressionSettings>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/expression-learning/settings\`,{method:'PUT',body}) as Promise<BrowserExpressionSettings>;}
+  async extractExpressionLearning(fid:string,body:BrowserExpressionExtractionBody):Promise<BrowserExpressionExtractionResult>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/expression-learning/extractions\`,{method:'POST',body}) as Promise<BrowserExpressionExtractionResult>;}
+  async expressionExtractionStatus(fid:string,key:string):Promise<BrowserExpressionExtractionStatus>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/expression-learning/extractions/by-key?\${new URLSearchParams({key})}\`) as Promise<BrowserExpressionExtractionStatus>;}
+  async reviewExpressionLearning(fid:string,id:string,action:'enable'|'disable'|'revoke',body:BrowserExpressionReviewBody):Promise<BrowserExpressionReviewResult>{return this.json(\`/api/fluctlights/\${encodeURIComponent(fid)}/expression-learning/candidates/\${encodeURIComponent(id)}/\${action}\`,{method:'POST',body}) as Promise<BrowserExpressionReviewResult>;}
   async changePassword(password: string): Promise<void> { await this.json("/auth/password", { method: "POST", body: { password } }); }
   async recoverConfigurationCommand(key:string):Promise<Record<string,unknown>>{return this.json('/api/configuration-commands/recover',{method:'POST',body:{key}}) as Promise<Record<string,unknown>>;}
   async cancelUnacceptedConfigurationCommand(key:string):Promise<Record<string,unknown>>{return this.json('/api/configuration-commands/cancel-unaccepted',{method:'POST',body:{key}}) as Promise<Record<string,unknown>>;}
