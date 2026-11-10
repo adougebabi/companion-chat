@@ -1123,23 +1123,27 @@ func sameEvidence(left, right []any) bool {
 }
 
 func persistClaimsTx(ctx context.Context, tx pgx.Tx, fluctlightID, sourceFactID string, plan map[string]any, businessAt time.Time) error {
-	for _, raw := range append(arrayValue(plan["approved_claims"]), append(arrayValue(plan["uncertain_claims"]), arrayValue(plan["omitted_claims"])...)...) {
-		claim := mapValue(raw)
-		kind := firstString(claim["kind"], "")
-		status := "active"
-		if kind == ClaimUnsupportedSelf || stringValue(claim["reason_code"]) != "" {
-			status = "rejected"
-		} else if kind == ClaimUncertainHypothesis {
-			status = "uncertain"
-		}
-		id := "claim_" + stableDigest(fluctlightID+":"+firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))))
-		var expires any
-		if status == "uncertain" || kind == ClaimSupportedHypothesis {
-			expires = businessAt.UTC().Add(7 * 24 * time.Hour)
-		}
-		_, err := tx.Exec(ctx, `INSERT INTO public.cognition_claims(id,fluctlight_id,source_fact_id,claim_type,content,evidence_refs,confidence,repetition_key,status,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(fluctlight_id,repetition_key) DO NOTHING`, id, fluctlightID, sourceFactID, kind, stringValue(claim["content"]), jsonBytes(arrayValue(claim["evidence_refs"])), boundedNumber(claim["confidence"], 0), firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))), status, expires)
-		if err != nil {
-			return err
+	for _, group := range []struct{ key, status string }{
+		{"approved_claims", "active"}, {"uncertain_claims", "uncertain"}, {"omitted_claims", "rejected"},
+	} {
+		for _, raw := range arrayValue(plan[group.key]) {
+			claim := mapValue(raw)
+			kind := firstString(claim["kind"], "")
+			status := group.status
+			if kind == ClaimUnsupportedSelf || stringValue(claim["reason_code"]) != "" {
+				status = "rejected"
+			} else if status != "rejected" && kind == ClaimUncertainHypothesis {
+				status = "uncertain"
+			}
+			id := "claim_" + stableDigest(fluctlightID+":"+firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))))
+			var expires any
+			if status == "uncertain" || kind == ClaimSupportedHypothesis {
+				expires = businessAt.UTC().Add(7 * 24 * time.Hour)
+			}
+			_, err := tx.Exec(ctx, `INSERT INTO public.cognition_claims(id,fluctlight_id,source_fact_id,claim_type,content,evidence_refs,confidence,repetition_key,status,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(fluctlight_id,repetition_key) DO NOTHING`, id, fluctlightID, sourceFactID, kind, stringValue(claim["content"]), jsonBytes(arrayValue(claim["evidence_refs"])), boundedNumber(claim["confidence"], 0), firstString(claim["repetition_key"], repetitionKeyFor(stringValue(claim["content"]))), status, expires)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
