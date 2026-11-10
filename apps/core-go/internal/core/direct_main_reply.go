@@ -26,11 +26,50 @@ func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	d.Description = "Send your own final private message and the associated turn decision. Use real Tool results for actions; a planned or accepted action is not a completed effect. The decision contains only the current turn's valid context references. A committed reply ends this turn."
 	d.Surfaces = []CapabilitySurface{CapabilitySurfaceConversation}
 	properties := map[string]any{
-		"text":     map[string]any{"type": "string", "minLength": 1, "maxLength": 32000},
-		"decision": cognitiveTurnResponseSchema(),
+		"text":     map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "Your final private message to the other person."},
+		"decision": directMainDecisionSchema(),
 	}
 	d.InputSchema = objectSchema(properties, []string{"text", "decision"}, false)
 	return d
+}
+
+// The same cognition contract also serves internal tasks. Describe the fields
+// only for this direct-reply Tool without changing their validation or effects.
+func directMainDecisionSchema() map[string]any {
+	schema := cognitiveTurnResponseSchema()
+	schema["description"] = "Cognitive data for this turn. Use the declared type for each field; use null for inapplicable optional data."
+	descriptions := map[string]string{
+		"action_type":                "For a private reply, this must be the string reply.",
+		"response_intent":            "A short string describing your intention in this reply.",
+		"influences":                 "An array of valid current context references influencing this decision. Each item has ref, role, confidence and note. Use an empty array when none apply.",
+		"evidence_refs":              "An array of valid current reference strings supporting this decision. Use null when none are needed; do not put objects in this array.",
+		"internal_intent":            "A short string for any relevant inner intention, or null if not needed.",
+		"claims":                     "Claims or hypotheses relevant to this turn, including uncertain or unsupported self-claims when actually expressed. Each item uses kind, content, confidence and evidence_refs. Use null when there is no claim.",
+		"goal_event_candidates":      "Current goal references supported by the turn for later evaluation. Each item uses goal_ref and reason. Use null when none apply; a candidate does not complete a goal.",
+		"appraisal":                  "A structured appraisal using its own numeric appraisal fields and evidence_refs. Use null when no appraisal is proposed.",
+		"attention":                  "A string describing relevant attention, or null when not proposed.",
+		"thought":                    "A string describing a relevant thought, or null when not proposed.",
+		"desire":                     "A string describing a relevant desire, or null when not proposed.",
+		"agency":                     "A string describing relevant agency, or null when not proposed.",
+		"response_plan":              "A response plan object using its own schema, or null when not needed. The actual private message belongs in text.",
+		"personality_decision":       "A supported persistent personality decision proposal using its own schema, or null when no decision is proposed. A proposal is not an applied switch.",
+		"output_preference_decision": "A supported output preference decision object using its own schema, or null when not applicable. This is not a media execution or delivery receipt.",
+		"core_alignment":             "An object with aligned and note, or null when not proposed.",
+		"state_expression":           "An object with body and mood, or null when not proposed.",
+		"self_evaluation":            "An object using mode, reason_codes, confidence and note, or null when not proposed.",
+	}
+	for name, description := range descriptions {
+		field := mapValue(mapValue(schema["properties"])[name])
+		field["description"] = description
+		// The wire converter narrows string-or-open-object cognition stages to
+		// their string branch. Keep the annotation on that branch as well.
+		for _, raw := range arrayValue(field["anyOf"]) {
+			if branch := mapValue(raw); branch["type"] == "string" {
+				branch["description"] = description
+			}
+		}
+	}
+	return schema
 }
 
 func (c directMainReplyCapability) RequiredContext() []ContextSlot {

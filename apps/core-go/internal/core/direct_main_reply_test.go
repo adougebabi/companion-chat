@@ -7,6 +7,69 @@ import (
 	"testing"
 )
 
+func assertDirectReplyWireDescriptions(t *testing.T, payload map[string]any) {
+	t.Helper()
+	if _, found := payload["response_format"]; found {
+		t.Fatal("native tool request unexpectedly included final response_format")
+	}
+	for _, key := range []string{"max_tokens", "max_completion_tokens"} {
+		if _, found := payload[key]; found {
+			t.Fatalf("native tool request unexpectedly included %s", key)
+		}
+	}
+	var function map[string]any
+	for _, raw := range arrayValue(payload["tools"]) {
+		candidate := mapValue(mapValue(raw)["function"])
+		if strings.ReplaceAll(stringValue(candidate["name"]), ".", "_") == "conversation_reply" {
+			function = candidate
+			break
+		}
+	}
+	parameters := mapValue(function["parameters"])
+	decision := mapValue(mapValue(parameters["properties"])["decision"])
+	properties := mapValue(decision["properties"])
+	if stringValue(mapValue(mapValue(parameters["properties"])["text"])["description"]) == "" || stringValue(decision["description"]) == "" {
+		t.Fatal("direct reply text or decision description was not sent")
+	}
+	if len(properties) != 18 || len(arrayValue(decision["required"])) != 18 {
+		t.Fatalf("unexpected direct decision wire contract: %#v", decision)
+	}
+	for _, name := range []string{"action_type", "response_intent", "influences", "evidence_refs", "internal_intent", "claims", "goal_event_candidates", "appraisal", "attention", "thought", "desire", "agency", "response_plan", "personality_decision", "output_preference_decision", "core_alignment", "state_expression", "self_evaluation"} {
+		field := mapValue(properties[name])
+		description := strings.TrimSpace(stringValue(field["description"]))
+		if description == "" {
+			for _, raw := range arrayValue(field["anyOf"]) {
+				if description = strings.TrimSpace(stringValue(mapValue(raw)["description"])); description != "" {
+					break
+				}
+			}
+		}
+		if description == "" {
+			t.Errorf("direct decision field %s lost its description on the physical request", name)
+		}
+	}
+}
+
+func TestDirectMainDecisionDescriptionsPreserveCognitionValidation(t *testing.T) {
+	described := directMainDecisionSchema()
+	original := cognitiveTurnResponseSchema()
+	if stringValue(mapValue(mapValue(original["properties"])["internal_intent"])["description"]) != "" {
+		t.Fatal("direct descriptions changed the shared cognition schema")
+	}
+	for _, decision := range []map[string]any{
+		{"action_type": "reply", "response_intent": "回应", "influences": []any{}},
+		{"action_type": "reply", "response_intent": "回应", "influences": []any{}, "claims": []any{map[string]any{"kind": "uncertain_hypothesis", "content": "可能有空", "confidence": 0.3, "evidence_refs": []any{}}}},
+		{"action_type": "reply", "response_intent": "回应", "influences": []any{}, "internal_intent": map[string]any{"note": "类型不符"}},
+		{"action_type": "reply", "response_intent": "回应", "influences": []any{}, "evidence_refs": []any{map[string]any{"ref": "不应是对象"}}},
+	} {
+		before := validateCapabilitySchemaValue(decision, original)
+		after := validateCapabilitySchemaValue(decision, described)
+		if (before == nil) != (after == nil) {
+			t.Fatalf("descriptions changed decision validity: before=%v after=%v decision=%#v", before, after, decision)
+		}
+	}
+}
+
 // This uses a real isolated database and a controlled native ToolCall. It
 // verifies both the visible effect and the old cognition settlement contract.
 func TestDirectMainReplyPublishesAndSettlesAtomically(t *testing.T) {
@@ -19,6 +82,7 @@ func TestDirectMainReplyPublishesAndSettlesAtomically(t *testing.T) {
 			calls := 0
 			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 				calls++
+				assertDirectReplyWireDescriptions(t, payload)
 				decision := map[string]any{"action_type": "reply", "response_intent": "回应当前对话", "influences": []any{}, "claims": []any{map[string]any{"kind": "uncertain_hypothesis", "content": "对方可能想休息", "confidence": 0.3, "evidence_refs": []any{}}}}
 				args := map[string]any{"text": "今天还不错，你呢？", "decision": decision}
 				return fakeProviderResult{ToolCalls: []map[string]any{{"id": "direct-main-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(args)}}}}
