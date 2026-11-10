@@ -338,8 +338,8 @@ func TestMediaQualityKeepsVisionModelAcrossIntentReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(models) != 2 || models[0] != "first-vision" || models[1] != "first-vision" || second.VisionConfigVersion != first.VisionConfigVersion {
-		t.Fatalf("quality stage changed its model or provenance: models=%v versions=%d,%d", models, first.VisionConfigVersion, second.VisionConfigVersion)
+	if len(models) != 2 || models[0] != "first-vision" || models[1] != "first-vision" || second.VisionConfigVersion <= first.VisionConfigVersion {
+		t.Fatalf("quality stage lost its frozen model or current admission version: models=%v versions=%d,%d", models, first.VisionConfigVersion, second.VisionConfigVersion)
 	}
 	insert("media-quality-new")
 	newIntent, err := restarted.readMediaIntent(ctx, "media-quality-new")

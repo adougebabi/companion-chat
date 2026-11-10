@@ -288,7 +288,7 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 		}
 		addDerivedVisualReviewReference(messages, input.Intent, referenceURL)
 	}
-	assignment, selectedVersion, err := a.mediaStageAssignmentVersion(ctx, input.Intent, FormalAgentMediaQuality, "media_quality_acceptance_response", visionUnderstandingModelRole, configVersion)
+	assignment, _, err := a.mediaStageAssignmentVersion(ctx, input.Intent, FormalAgentMediaQuality, "media_quality_acceptance_response", visionUnderstandingModelRole, configVersion)
 	if err != nil {
 		if errors.Is(err, errMediaModelSnapshotFailure) {
 			return mediaQualityAcceptance{}, err
@@ -312,7 +312,9 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
-	result.VisionConfigVersion = selectedVersion
+	// The model remains frozen, but admission is fenced by the setting version
+	// observed for this particular inspection, not the version at first use.
+	result.VisionConfigVersion = configVersion
 	result.VisionModelID = assignment.ModelID
 	return result, nil
 }
