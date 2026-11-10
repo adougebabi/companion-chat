@@ -205,6 +205,9 @@ func mediaQualityAcceptanceSystemInstruction() string {
 }
 
 func (a *App) evaluateMediaQuality(ctx context.Context, intent mediaIntent, contentType string, content []byte) (mediaQualityAcceptance, error) {
+	if _, _, err := readMediaStageSnapshot(intent, FormalAgentMediaQuality, "media_quality_acceptance_response", visionUnderstandingModelRole); err != nil {
+		return mediaQualityAcceptance{}, err
+	}
 	if a == nil || a.Provider == nil {
 		return mediaQualityAcceptance{}, errors.New("media quality provider unavailable")
 	}

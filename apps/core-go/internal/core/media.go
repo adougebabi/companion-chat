@@ -425,6 +425,9 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 			if errors.Is(err, context.Canceled) && ctx.Err() != nil {
 				return nil, err
 			}
+			if errors.Is(err, errMediaModelSnapshotFailure) {
+				return nil, err
+			}
 			quality = mediaQualityAcceptance{SchemaVersion: mediaQualitySchemaVersion, Verdict: mediaQualityVerdictSkip}
 			qualityCheckVerdict = quality.Verdict
 			qualityReason = mediaQualityInfrastructureReason(err)
@@ -693,7 +696,9 @@ func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent
 	}
 	if err == nil {
 		if decodeErr := json.Unmarshal(modelProvenance, &i.modelProvenance); decodeErr != nil || i.modelProvenance == nil {
-			return i, errMediaModelSnapshotInvalid
+			// Completed or already-ready media can be replayed without a model.
+			// Any later model stage still rejects this invalid contract marker.
+			i.modelProvenance = map[string]any{mediaModelSnapshotContractKey: "invalid"}
 		}
 	}
 	return i, err

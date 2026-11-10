@@ -252,11 +252,21 @@ type MediaQualityTaskInput struct {
 
 func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInput) (mediaQualityAcceptance, error) {
 	ctx = withAgentModelRoute(ctx, FormalAgentMediaQuality, "media_quality_acceptance_response")
-	vision := a.resolveVisionCapability(ctx)
-	if err := vision.err(); err != nil {
+	// A corrupt saved stage must not be converted to a skippable vision error,
+	// even if the current vision setting has since been disabled or damaged.
+	if _, _, err := readMediaStageSnapshot(input.Intent, FormalAgentMediaQuality, "media_quality_acceptance_response", visionUnderstandingModelRole); err != nil {
 		return mediaQualityAcceptance{}, err
 	}
-	ctx = withFrozenProviderAssignment(ctx, visionUnderstandingModelRole, vision.Assignment)
+	settings, configVersion, err := a.visionUnderstandingSettings(ctx)
+	if err != nil {
+		return mediaQualityAcceptance{}, errors.New("vision_unavailable")
+	}
+	if !settings.Enabled {
+		return mediaQualityAcceptance{}, errors.New("vision_disabled")
+	}
+	if settings.ModelRef == "" || a.Provider == nil {
+		return mediaQualityAcceptance{}, errors.New("vision_unconfigured")
+	}
 
 	messages, err := mediaQualityMessages(input.Intent, input.ContentType, input.Content)
 	if err != nil {
@@ -278,6 +288,18 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 		}
 		addDerivedVisualReviewReference(messages, input.Intent, referenceURL)
 	}
+	assignment, selectedVersion, err := a.mediaStageAssignmentVersion(ctx, input.Intent, FormalAgentMediaQuality, "media_quality_acceptance_response", visionUnderstandingModelRole, configVersion)
+	if err != nil {
+		if errors.Is(err, errMediaModelSnapshotFailure) {
+			return mediaQualityAcceptance{}, err
+		}
+		var unassigned *providerRoleUnassignedError
+		if errors.As(err, &unassigned) {
+			return mediaQualityAcceptance{}, errors.New("vision_unconfigured")
+		}
+		return mediaQualityAcceptance{}, errors.New("vision_unavailable")
+	}
+	ctx = withFrozenProviderAssignment(ctx, visionUnderstandingModelRole, assignment)
 	messages = formatProviderMessagesForRole(messages, "media_prompt")
 	run, err := a.runFormalStructuredTask(
 		WithProviderScenario(ctx, "media_quality_acceptance"),
@@ -290,8 +312,8 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
-	result.VisionConfigVersion = vision.Version
-	result.VisionModelID = vision.Assignment.ModelID
+	result.VisionConfigVersion = selectedVersion
+	result.VisionModelID = assignment.ModelID
 	return result, nil
 }
 
