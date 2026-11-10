@@ -1,6 +1,6 @@
 # MeroMero-first 改造复核报告
 
-状态：**实施中，尚未达到替换旧主链的条件**。本报告记录已经发生的工作与未完成项；`IMPLEMENTED` 不等于真实环境验收。详细工作台账见 [实施台账](docs/verification/meromero-first-ledger-20261109.md)，起始 30 个正式 Agent 及新增内部任务见 [Agent 盘点](docs/verification/meromero-agent-inventory-20261109.md)。
+状态：**实施中，尚未达到替换旧主链的条件**。本报告记录已经发生的工作与未完成项；`IMPLEMENTED` 不等于真实环境验收。详细工作台账见 [实施台账](docs/verification/meromero-first-ledger-20261109.md)，当前 31 个正式 Agent 及其他模型入口见 [Agent 盘点](docs/verification/meromero-agent-inventory-20261109.md)。
 
 ## A. 当前结论
 
@@ -68,7 +68,7 @@
 
 ## E. 模型与任务清单
 
-[Agent 盘点](docs/verification/meromero-agent-inventory-20261109.md)列出起始 30 个注册 ID、已确认生产上游、variant、起始绑定类别、工具和输出边界；新增表达候选提取已接 Owner 显式选源入口。当前主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，其他尚未验证的旧内部文本任务保留原默认；显式 Agent/variant 覆盖优先，视觉理解与 embedding 保留独立绑定。它未覆盖全部 Prompt hash、配置快照和非注册旁路的真实请求；MeroMero 对所有任务的适用性未验证。
+[Agent 盘点](docs/verification/meromero-agent-inventory-20261109.md)按当前源码列出 31 个注册 ID、已声明的任务 variant、生产上游状态、绑定来源、Prompt/输入、工具、输出及发布边界，并补列非注册 Provider、embedding、Kev、独立 Tool 和后台入口。Writer 的实际基础 variant 是 `private_reply`、`proactive` 和 `moment`，另有修复后缀；`conversation_reply_text` 是输出 schema。Prompt 内容并非均有独立版本/hash，不能用通用诊断标签冒充；各模型的实际运行配置、后台快照和真实能力仍需后续任务验证。
 
 ## F. 插件边界
 
@@ -215,7 +215,7 @@ go -C apps/core-go test -v ./internal/core -run 'TestStudioPostgresAutomaticRetr
 | --- | --- |
 | 1. 只更换模型？ | 否；已修改质量、恢复、来源失效和工具目录，但整轮仍未完成。 |
 | 2. 仍固定依赖 Qwen？ | 主认知默认已改为继承 `conversation_reply`，显式覆盖仍可选择其他模型；但固定认知/Writer 链尚未移除，真实无 Qwen 聊天未验证。 |
-| 3. 合并成万能 Agent？ | 未实施此类合并；30 个现有 Agent 清单见盘点。 |
+| 3. 合并成万能 Agent？ | 未实施此类合并；31 个现有 Agent 清单见盘点。 |
 | 4. 仅插件空壳？ | 已通过插件声明注册现有实际 Tool 并接入领域门禁；完整数据库及在途生命周期尚未验证。 |
 | 5. 用 HTTP/JSON 代替模型能力？ | 否；受控请求单独标注，真实模型和视觉均未通过验收。 |
 | 6. 丢掉认知结算、Goal 或人格切换？ | 尚不能确认整体无回退；旧代码仍在，但发布终态可能遗漏认知字段，Owner 人格切换有现存生产路径。 |

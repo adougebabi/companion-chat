@@ -21,7 +21,7 @@
 | 包 | 需求 | 状态 | 当前证据或下一步 |
 | --- | --- | --- | --- |
 | T00 | 范围、基线、台账 | VERIFIED | 本文件记录起始 commit、分支、用户文件、环境、失败基线、工作包、依赖及验收状态；后续继续追加事实。 |
-| T01 | 完整运行入口盘点 | IN_PROGRESS | [逐 Agent 底稿](meromero-agent-inventory-20261109.md)列出起始 30 个注册项及新增表达提取任务、已确认上游、模型绑定、工具和发布职责；Prompt hash、所有旁路及逐变体验收仍待补齐。 |
+| T01 | 完整运行入口盘点 | VERIFIED | [当前入口清单](meromero-agent-inventory-20261109.md)按源码核对 31 个正式 Agent、36 个显式声明的可配置 variant及额外表达变体、实际 Writer 修复 variant、非正式 Provider/embedding/Kev、独立 Tool 与后台调度；记录版本/hash 的实际口径和未确认生产上游。逐项覆盖和源码位置检查及独立静态审查已完成；真实模型能力和后台快照分属后续任务。 |
 | T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。隔离 PostgreSQL 迁移、配置写读和 Diary/Studio 部分阶段恢复通过；真实 Provider 及其他后台持久快照仍未验证。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | 已修复低置信度 claim 状态；新增显式实验性 `direct` 模式，使主 Agent 同一原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交，受控 PostgreSQL 验证提交、重放及回滚。默认生产链仍是 fact-only 加独立 Writer，旧草稿兼容、真实模型和默认切换尚未完成。 |
@@ -75,6 +75,8 @@
 ## 验收及变更记录
 
 - E01–E18 以用户原始任务的场景为准，分别记录单元、契约、工具、原生循环、隔离集成、真实模型、真实媒体及 UI 证据；当前均未标为通过。
+
+- 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
 - 2026-11-10：修复实际聊天中的连续消息恢复：已确认消息仍在后台处理时，刷新或重新进入后可直接追加，不再由前端先取消旧轮；本机旧请求未确认时保留新草稿。新增消息的受理结果未知时，旧轮结束或另一端新消息不会清除其原始 turn/idempotency 身份；只有最新确认消息为原前驱或该请求自身时才允许原身份重试。本机草稿清理失败不再中断响应流或悄悄清空草稿。代码及测试提交 `7b6ad337`。React 页面→真实 controller→受控 HTTP、身份恢复、取消竞态及跨客户端回归 84 项通过，类型检查通过：`/private/tmp/fluctlight-chat-resume-verified.log`、`/private/tmp/fluctlight-chat-resume-verified-typecheck.log`。本地浏览器另用内存夹具实际从 pending 会话追加一条消息，显示两条用户消息且新消息已送达，未保存图片；该夹具不连接数据库或真实模型。真实 PostgreSQL 多轮并发和模型综合回应尚未完成验收。
 - 2026-11-10：依用户要求停止扩展字段细节，回到主聊天实际能力接入。实验 `direct` 私聊现在在首次模型请求前冻结经 Owner 审核的表达参考，只向模型提供原文摘录和适用情境；正文发布事务重验开关、候选与来源版本。失效时保留真实 handled 回执并停止当前轮，不反复请求模型；代码与测试已提交 `a0cbb7ef`。隔离 PostgreSQL + 受控 Provider 覆盖正常使用、停用、撤销、候选与开关 ABA、来源 ABA、无触发、先工具后回复、工具已完成后参考失效、取消及发布后停用再重放；此前独立工具效果与用户消息保留：`/private/tmp/fluctlight-direct-expression-verified.log`（先工具后失效的补充日志 `/private/tmp/fluctlight-direct-expression-partial.log`）。旧 direct 原子结算及旧草稿选择复测通过：`/private/tmp/fluctlight-direct-expression-original-tests.log`。Go 全量 18 个有测试包通过，测试事件 3059 通过、987 跳过：`/private/tmp/fluctlight-direct-expression-go-all.jsonl`；以上使用受控 Provider，不代表真实 MeroMero 已完成私聊或真实表达使用。
 - 2026-11-10：应用户要求，将 direct 回复工具中业务可选的 15 个 `decision` 字段恢复为模型侧可省略；`action_type`、`response_intent`、`influences` 仍必需。其余字段继续允许 `null`，后端视作缺省；实际提供的数据仍按原业务 schema、引用及事务规则验证，不将错误类型静默改成 `null`。该例外仅由 direct 工具定义显式启用，其他 Tool 和最终 response schema 保留原有转换；实现及测试提交 `33a10b1d`。隔离 PostgreSQL 的 direct 事务、原生物理请求、缺省/null/有值及非法数组、旧草稿和 prior action 测试通过：`/private/tmp/fluctlight-direct-optional-pg-reviewed.log`；Go 全量 18 个有测试包通过，测试事件 3058 通过、977 跳过：`/private/tmp/fluctlight-direct-optional-go-all.jsonl`。同一合成请求的本机模型单次对照：原 18 字段必填版本参数无效，可省略版本通过后端参数 schema 校验：`/private/tmp/fluctlight-direct-optional-ab.json`；样本不足且未执行真实工具副作用。正式 direct 私聊首次物理请求没有可用回复工具调用、返回 `adk_final_message_empty`，未发布：`/private/tmp/fluctlight-direct-optional-live.log`；后续原始响应抓取尝试因 GPU 可用内存不足返回 400，无法判断该空结果来自模型还是适配层：`/private/tmp/fluctlight-direct-optional-proxy-live.log`。尚未达到真实私聊验收或默认切换条件。

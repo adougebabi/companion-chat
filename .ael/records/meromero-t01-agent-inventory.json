@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
   "failure": "",
   "result": "",
   "created": "2026-11-10T08:34:30.409438Z",
-  "updated": "2026-11-10T08:34:30.409458Z",
+  "updated": "2026-11-10T08:50:04.650694Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-0085779a63e12ce18888",
+        "unit": "define",
+        "executor": "codex-t01-inventory",
+        "input_version": "9985f6955369ab55021c513c9a5e5525f7354c9f1ed3f83784477f4f93a62df2",
+        "candidate_version": "9985f6955369ab55021c513c9a5e5525f7354c9f1ed3f83784477f4f93a62df2",
+        "started": "2026-11-10T08:35:43.089625Z",
+        "ended": "2026-11-10T08:36:13.981134Z",
+        "status": "pass",
+        "reason": "继承原任务 T01 全部盘点要求；以当前源码为准，补全正式 Agent、任务变体、模型旁路及调用上下游清单；不修改模型行为、不恢复已删除文档。"
+      },
+      {
+        "id": "AT-57ccc499f935fa73518d",
+        "unit": "analysis",
+        "executor": "codex-t01-inventory",
+        "input_version": "9985f6955369ab55021c513c9a5e5525f7354c9f1ed3f83784477f4f93a62df2",
+        "candidate_version": "9985f6955369ab55021c513c9a5e5525f7354c9f1ed3f83784477f4f93a62df2",
+        "started": "2026-11-10T08:36:45.561401Z",
+        "ended": "2026-11-10T08:40:41.690791Z",
+        "status": "pass",
+        "reason": "核对现有清单与当前注册、路由、Provider、Kev、独立工具及后台调度：31 个正式 ID 已列出，但 Writer 实际 variant、非正式模型入口、重试和版本溯源存在遗漏；按正式 Agent/variant、旁路、工具及调度分组补充，以静态可达和真实运行区分状态。"
+      },
+      {
+        "id": "AT-3e94a7689a9190833e9a",
+        "unit": "execute",
+        "executor": "codex-t01-inventory",
+        "input_version": "9985f6955369ab55021c513c9a5e5525f7354c9f1ed3f83784477f4f93a62df2",
+        "candidate_version": "",
+        "started": "2026-11-10T08:40:56.976924Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
     "checks": null
   }
 }
