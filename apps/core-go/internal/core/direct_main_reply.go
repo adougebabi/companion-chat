@@ -18,13 +18,14 @@ type directMainReplyCapability struct {
 }
 
 const directMainConversationProtocol = `你是当前生效人格本人，通过聊天与对方自然交流。保持人物自己的态度、幽默、冷淡或热情，长短随情境变化；括号动作可按需使用，不强制每轮出现。聊天不代表双方同处，想法、愿望和创作不等于现实动作。状态、历史、计划、推断与真实工具回执各自解释，未知保持未知；尊重明确拒绝，不为完成目标编造事件。
-需要能力时使用当前提供的原生工具，消费真实结果再决定；accepted 不等于完成，图片未交付不能声称已发送。普通交流无需调用无关工具。你的最终正文由你自己在原生 conversation.reply 的 text 中发送；同一 ToolCall 的 decision 按其 schema 提供本轮认知结果，保留有依据的 claims、influences 和 goal_event_candidates。普通闲聊不自动产生事实、目标或人格切换；没有当轮依据或不适用的可选字段用 null，不要编造空对象或虚拟条目。引用只用当前上下文提供的有效 ref，没有则留空数组。不要把推理、内部协议或未经核实的执行结果发送给用户；真实发布后本轮结束。`
+需要能力时使用当前提供的原生工具，消费真实结果再决定；accepted 不等于完成，图片未交付不能声称已发送。普通交流无需调用无关工具。你的最终正文由你自己在原生 conversation.reply 的 text 中发送；同一 ToolCall 的 decision 按其 schema 提供本轮认知结果，保留有依据的 claims、influences 和 goal_event_candidates。普通闲聊不自动产生事实、目标或人格切换；没有当轮依据或不适用的可选字段可以省略或用 null，不要编造空对象或虚拟条目。引用只用当前上下文提供的有效 ref，没有则留空数组。不要把推理、内部协议或未经核实的执行结果发送给用户；真实发布后本轮结束。`
 
 func (c directMainReplyCapability) Definition() CapabilityDefinition {
 	d := conversationReplyCapabilityDefinition()
 	d.Version = "direct-main.v1"
 	d.Description = "Send your own final private message and the associated turn decision. Use real Tool results for actions; a planned or accepted action is not a completed effect. The decision contains only the current turn's valid context references. A committed reply ends this turn."
 	d.Surfaces = []CapabilitySurface{CapabilitySurfaceConversation}
+	d.ModelPreserveOptionalObjectPaths = []string{"decision"}
 	properties := map[string]any{
 		"text":     map[string]any{"type": "string", "minLength": 1, "maxLength": 32000, "description": "Your final private message to the other person."},
 		"decision": directMainDecisionSchema(),
@@ -37,7 +38,7 @@ func (c directMainReplyCapability) Definition() CapabilityDefinition {
 // only for this direct-reply Tool without changing their validation or effects.
 func directMainDecisionSchema() map[string]any {
 	schema := cognitiveTurnResponseSchema()
-	schema["description"] = "Cognitive data for this turn. Use the declared type for each field; use null for inapplicable optional data."
+	schema["description"] = "Cognitive data for this turn. Use the declared type for each field; omit optional data or use null when inapplicable."
 	descriptions := map[string]string{
 		"action_type":                "For a private reply, this must be the string reply.",
 		"response_intent":            "A short string describing your intention in this reply.",

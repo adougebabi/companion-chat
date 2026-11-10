@@ -137,16 +137,12 @@ func RenderCapabilityTools(definitions []CapabilityDefinition) []map[string]any 
 		if strings.TrimSpace(definition.Name) == "" {
 			continue
 		}
-		parameters := definition.InputSchema
-		if parameters == nil {
-			parameters = map[string]any{"type": "object", "additionalProperties": false}
-		}
 		result = append(result, map[string]any{
 			"type": "function",
 			"function": map[string]any{
 				"name":        CapabilityWireName(definition.Name),
 				"description": definition.Description,
-				"parameters":  StrictModelSchema(parameters),
+				"parameters":  ModelToolSchema(definition),
 			},
 		})
 	}

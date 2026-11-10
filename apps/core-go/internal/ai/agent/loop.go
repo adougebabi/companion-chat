@@ -257,7 +257,7 @@ func CapabilityToolInfos(definitions []capability.CapabilityDefinition) ([]*sche
 		}
 		var params *schema.ParamsOneOf
 		if len(definition.InputSchema) > 0 {
-			encoded, err := json.Marshal(capability.StrictModelSchema(definition.InputSchema))
+			encoded, err := json.Marshal(capability.ModelToolSchema(definition))
 			if err != nil {
 				return nil, fmt.Errorf("eino_tool_schema_encode: %w", err)
 			}

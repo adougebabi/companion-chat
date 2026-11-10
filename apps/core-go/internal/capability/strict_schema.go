@@ -85,6 +85,53 @@ func StrictModelSchema(schema map[string]any) map[string]any {
 	return strictifySchema(cloneSchema(schema))
 }
 
+// ModelToolSchema keeps the existing strict conversion by default. A Tool may
+// explicitly retain the business-required keys of selected required objects;
+// the objects' properties, nullable types and server validation are unchanged.
+func ModelToolSchema(definition CapabilityDefinition) map[string]any {
+	wire := StrictModelSchema(definition.InputSchema)
+	for _, path := range definition.ModelPreserveOptionalObjectPaths {
+		source, sourceOK := modelRequiredObjectAtPath(definition.InputSchema, path)
+		target, targetOK := modelRequiredObjectAtPath(wire, path)
+		if sourceOK && targetOK {
+			target["required"] = append([]any{}, arrayValue(source["required"])...)
+		}
+	}
+	return wire
+}
+
+func modelRequiredObjectPathDeclared(schema map[string]any, path string) bool {
+	_, ok := modelRequiredObjectAtPath(schema, path)
+	return ok
+}
+
+// Requiring every path segment in its parent avoids navigating nullable
+// anyOf wrappers or accepting ambiguous model-schema override locations.
+func modelRequiredObjectAtPath(schema map[string]any, path string) (map[string]any, bool) {
+	if strings.TrimSpace(path) == "" {
+		return nil, false
+	}
+	current := schema
+	for _, segment := range strings.Split(path, ".") {
+		if segment == "" || segment != strings.TrimSpace(segment) || stringValue(current["type"]) != "object" {
+			return nil, false
+		}
+		required := false
+		for _, item := range arrayValue(current["required"]) {
+			if stringValue(item) == segment {
+				required = true
+				break
+			}
+		}
+		child := mapValue(mapValue(current["properties"])[segment])
+		if !required || stringValue(child["type"]) != "object" {
+			return nil, false
+		}
+		current = child
+	}
+	return current, true
+}
+
 func strictifySchema(schema map[string]any) map[string]any {
 	if len(schema) == 0 {
 		return schema

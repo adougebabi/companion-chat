@@ -2,9 +2,14 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
+
+	aiagent "github.com/fluctlight/local-ai-companion/apps/core-go/internal/ai/agent"
+	capabilitycontract "github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
 
 func assertDirectReplyWireDescriptions(t *testing.T, payload map[string]any) {
@@ -31,7 +36,12 @@ func assertDirectReplyWireDescriptions(t *testing.T, payload map[string]any) {
 	if stringValue(mapValue(mapValue(parameters["properties"])["text"])["description"]) == "" || stringValue(decision["description"]) == "" {
 		t.Fatal("direct reply text or decision description was not sent")
 	}
-	if len(properties) != 18 || len(arrayValue(decision["required"])) != 18 {
+	required := []string{}
+	for _, raw := range arrayValue(decision["required"]) {
+		required = append(required, stringValue(raw))
+	}
+	sort.Strings(required)
+	if len(properties) != 18 || strings.Join(required, ",") != "action_type,influences,response_intent" {
 		t.Fatalf("unexpected direct decision wire contract: %#v", decision)
 	}
 	for _, name := range []string{"action_type", "response_intent", "influences", "evidence_refs", "internal_intent", "claims", "goal_event_candidates", "appraisal", "attention", "thought", "desire", "agency", "response_plan", "personality_decision", "output_preference_decision", "core_alignment", "state_expression", "self_evaluation"} {
@@ -47,6 +57,117 @@ func assertDirectReplyWireDescriptions(t *testing.T, payload map[string]any) {
 		if description == "" {
 			t.Errorf("direct decision field %s lost its description on the physical request", name)
 		}
+	}
+}
+
+func TestDirectMainOptionalToolSchemaConsistentAcrossRenderers(t *testing.T) {
+	definition := (directMainReplyCapability{}).Definition()
+	definitions := []CapabilityDefinition{definition}
+	rendered := capabilitycontract.RenderCapabilityTools(definitions)
+	adk, err := aiagent.CapabilityToolInfos(definitions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy, err := capabilityToolInfos(definitions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rendered) != 1 || len(adk) != 1 || len(legacy) != 1 {
+		t.Fatal("direct reply tool was not rendered")
+	}
+	toMap := func(info any) map[string]any {
+		encoded, marshalErr := json.Marshal(info)
+		if marshalErr != nil {
+			t.Fatal(marshalErr)
+		}
+		return decodeObject(encoded)
+	}
+	adkSchema, err := adk[0].ParamsOneOf.ToJSONSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacySchema, err := legacy[0].ParamsOneOf.ToJSONSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, schema := range map[string]map[string]any{
+		"map":    mapValue(mapValue(rendered[0]["function"])["parameters"]),
+		"adk":    toMap(adkSchema),
+		"legacy": toMap(legacySchema),
+	} {
+		decision := mapValue(mapValue(schema["properties"])["decision"])
+		required := []string{}
+		for _, raw := range arrayValue(decision["required"]) {
+			required = append(required, stringValue(raw))
+		}
+		sort.Strings(required)
+		if len(mapValue(decision["properties"])) != 18 || strings.Join(required, ",") != "action_type,influences,response_intent" {
+			t.Fatalf("%s renderer lost optional decision fields: %#v", name, decision)
+		}
+		properties := mapValue(decision["properties"])
+		for _, field := range []string{"agency", "appraisal", "attention", "claims", "core_alignment", "desire", "evidence_refs", "goal_event_candidates", "internal_intent", "output_preference_decision", "personality_decision", "response_plan", "self_evaluation", "state_expression", "thought"} {
+			fieldSchema := mapValue(properties[field])
+			if len(fieldSchema) == 0 {
+				t.Fatalf("%s renderer lost optional field %s", name, field)
+			}
+			if err := capabilitycontract.ValidateCapabilitySchemaValue(nil, fieldSchema); err != nil {
+				t.Fatalf("%s renderer no longer permits null for %s: %v", name, field, err)
+			}
+		}
+		for _, field := range []string{"action_type", "response_intent", "influences"} {
+			if err := capabilitycontract.ValidateCapabilitySchemaValue(nil, mapValue(properties[field])); err == nil {
+				t.Fatalf("%s renderer unexpectedly permits null for required %s", name, field)
+			}
+		}
+	}
+	ordinary := conversationReplyCapabilityDefinition()
+	ordinaryRendered := capabilitycontract.RenderCapabilityTools([]CapabilityDefinition{ordinary})
+	if got, want := jsonString(mapValue(mapValue(ordinaryRendered[0]["function"])["parameters"])), jsonString(capabilitycontract.StrictModelSchema(ordinary.InputSchema)); got != want {
+		t.Fatal("unconfigured conversation tool changed its strict schema")
+	}
+}
+
+func TestDirectMainOptionalFieldsNormalizeWithoutDiscardingValues(t *testing.T) {
+	schema := (directMainReplyCapability{}).Definition().InputSchema
+	base := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}
+	allNull := cloneMap(base)
+	for _, name := range []string{"agency", "appraisal", "attention", "claims", "core_alignment", "desire", "evidence_refs", "goal_event_candidates", "internal_intent", "output_preference_decision", "personality_decision", "response_plan", "self_evaluation", "state_expression", "thought"} {
+		allNull[name] = nil
+	}
+	normalizedNull, err := capabilitycontract.NormalizeModelArguments(jsonBytes(map[string]any{"text": "你好", "decision": allNull}), schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision := mapValue(decodeObject(normalizedNull)["decision"]); len(decision) != len(base) {
+		t.Fatalf("optional nulls were not treated as absent: %#v", decision)
+	}
+	for _, explicitNull := range []bool{false, true} {
+		decision := cloneMap(base)
+		if explicitNull {
+			decision["state_expression"] = nil
+		}
+		decision["claims"] = []any{map[string]any{"kind": "uncertain_hypothesis", "content": "可能有空", "confidence": 0.3, "evidence_refs": []any{}}}
+		decision["core_alignment"] = map[string]any{"aligned": false, "note": ""}
+		decision["self_evaluation"] = map[string]any{"mode": "uncertain", "reason_codes": []any{}, "confidence": 0, "note": ""}
+		decision["internal_intent"] = "保持原样"
+		raw, err := capabilitycontract.NormalizeModelArguments(jsonBytes(map[string]any{"text": "你好", "decision": decision}), schema)
+		if err != nil {
+			t.Fatal(err)
+		}
+		normalized := mapValue(decodeObject(raw)["decision"])
+		if _, found := normalized["state_expression"]; found {
+			t.Fatalf("optional null or supplied claim changed: %#v", normalized)
+		}
+		for _, name := range []string{"claims", "core_alignment", "self_evaluation", "internal_intent"} {
+			if jsonString(normalized[name]) != jsonString(decision[name]) {
+				t.Fatalf("supplied %s changed: before=%#v after=%#v", name, decision[name], normalized[name])
+			}
+		}
+	}
+	invalid := cloneMap(base)
+	invalid["state_expression"] = []any{}
+	if _, err := capabilitycontract.NormalizeModelArguments(jsonBytes(map[string]any{"text": "你好", "decision": invalid}), schema); err == nil {
+		t.Fatal("an invalid array was silently accepted as an optional object")
 	}
 }
 
@@ -123,6 +244,12 @@ func TestDirectMainReplyPublishesAndSettlesAtomically(t *testing.T) {
 			replayed, err := app.HandleTurn(ctx, owner, conversation, payload)
 			if err != nil || stringValue(replayed.Assistant["text"]) != "今天还不错，你呢？" || calls != 1 {
 				t.Fatalf("direct replay result=%#v err=%v calls=%d", replayed, err, calls)
+			}
+			if queryErr := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'),
+				(SELECT count(*) FROM public.cognition_assessments WHERE fluctlight_id=$2),
+				(SELECT count(*) FROM public.cognition_claims WHERE fluctlight_id=$2 AND content='对方可能想休息' AND status='uncertain'),
+				(SELECT count(*) FROM public.tool_executions WHERE fluctlight_id=$2 AND capability_name='conversation.reply')`, conversation, fid).Scan(&messages, &assessments, &claims, &receipts); queryErr != nil || messages != 1 || assessments != 1 || claims != 1 || receipts != 1 {
+				t.Fatalf("replay duplicated a committed effect: messages=%d assessments=%d claims=%d receipts=%d err=%v", messages, assessments, claims, receipts, queryErr)
 			}
 			if strings.TrimSpace(stringValue(replayed.Assistant["id"])) == "" {
 				t.Fatal("replay lost the committed message")

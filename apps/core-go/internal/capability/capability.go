@@ -565,29 +565,32 @@ func contextMapValue(value any) (map[string]any, error) {
 }
 
 type CapabilityDefinition struct {
-	Name                   string
-	Version                string
-	Type                   CapabilityType
-	InternalOnly           bool
-	Description            string
-	InputSchema            map[string]any
-	OutputSchema           map[string]any
-	Surfaces               []CapabilitySurface
-	TargetKinds            []string
-	OutputRole             string
-	SideEffectClass        string
-	SuccessBoundary        string
-	CompletionBoundary     string
-	OutcomeReferenceField  string
-	ConcurrencyClass       string
-	SupportsCancel         bool
-	SupportsRetry          bool
-	RequiresPreflight      bool
-	FailurePolicy          CapabilityFailurePolicy
-	RequiredContext        []ContextSlot
-	ModelResultOmitFields  []string `json:"-"`
-	ProvenanceFields       []string `json:"-"`
-	NestedProvenanceObject string   `json:"-"`
+	Name                  string
+	Version               string
+	Type                  CapabilityType
+	InternalOnly          bool
+	Description           string
+	InputSchema           map[string]any
+	OutputSchema          map[string]any
+	Surfaces              []CapabilitySurface
+	TargetKinds           []string
+	OutputRole            string
+	SideEffectClass       string
+	SuccessBoundary       string
+	CompletionBoundary    string
+	OutcomeReferenceField string
+	ConcurrencyClass      string
+	SupportsCancel        bool
+	SupportsRetry         bool
+	RequiresPreflight     bool
+	FailurePolicy         CapabilityFailurePolicy
+	RequiredContext       []ContextSlot
+	// Selected required object paths may retain their business-required fields
+	// on the model Tool schema; all other objects keep the strict default.
+	ModelPreserveOptionalObjectPaths []string `json:"-"`
+	ModelResultOmitFields            []string `json:"-"`
+	ProvenanceFields                 []string `json:"-"`
+	NestedProvenanceObject           string   `json:"-"`
 }
 
 type CapabilityPreparedPayload struct {
@@ -788,6 +791,18 @@ func (definition CapabilityDefinition) Validate() error {
 	}
 	if err := ValidateCapabilitySchemaDefinition(definition.OutputSchema, nil); err != nil {
 		return fmt.Errorf("capability_definition_output_schema_invalid: %w", err)
+	}
+	if len(definition.ModelPreserveOptionalObjectPaths) > 0 {
+		seen := map[string]struct{}{}
+		for _, path := range definition.ModelPreserveOptionalObjectPaths {
+			if !modelRequiredObjectPathDeclared(definition.InputSchema, path) {
+				return fmt.Errorf("capability_definition_model_optional_object_undeclared: %s", path)
+			}
+			if _, duplicate := seen[path]; duplicate {
+				return fmt.Errorf("capability_definition_model_optional_object_duplicate: %s", path)
+			}
+			seen[path] = struct{}{}
+		}
 	}
 	if len(definition.ModelResultOmitFields) > 0 {
 		seen := map[string]struct{}{}

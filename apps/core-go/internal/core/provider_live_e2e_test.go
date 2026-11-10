@@ -295,6 +295,19 @@ func liveDirectConversationWithoutWriter(t *testing.T, explicitDirect bool) {
 	if writerRuns != 0 {
 		t.Fatalf("ordinary direct conversation used %d independent Writer runs across %d physical requests; tools=%#v", writerRuns, capture.count(), responseCapture.snapshot())
 	}
+	if explicitDirect {
+		var status, contract string
+		var assessments int
+		if err := repository.Pool().QueryRow(turnCtx, `SELECT status,COALESCE(payload->'agent_result'->>'settlement_contract',''),
+			(SELECT count(*) FROM public.cognition_assessments WHERE fluctlight_id=$1)
+			FROM public.cognition_inbox WHERE fluctlight_id=$1 AND payload->>'turn_id'=$2`, fluctlightID, "live-direct-1").Scan(&status, &contract, &assessments); err != nil {
+			t.Fatal(err)
+		}
+		if status != "processed" || contract != "direct-main.v1" || assessments != 1 {
+			t.Fatalf("direct cognition was not settled once: status=%s contract=%s assessments=%d", status, contract, assessments)
+		}
+		t.Logf("direct cognition settlement: status=%s contract=%s assessments=%d", status, contract, assessments)
+	}
 	t.Logf("ordinary direct conversation: physical requests=%d, independent Writer runs=%d", capture.count(), writerRuns)
 }
 
