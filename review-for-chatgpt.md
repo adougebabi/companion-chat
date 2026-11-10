@@ -17,6 +17,8 @@
 
 对主链格式问题的进一步核对：模型实际处理的是原生工具参数 schema，而非同轮最终 `response_format`；此前 18 个 `decision` 字段没有语义描述，15 个原可选字段在工具传输时变为必填但可为 null。已在 direct 工具补字段说明并验证物理传输，代码及测试提交 `d32155b0`。合成单次对照中，补说明的模型输出通过参数校验，但样本不足；正式私聊首次仍有字段类型错误，第二次受 GPU 内存不足阻断，尚未验证成功，也未将实验链设为默认。详见 [实施台账](docs/verification/meromero-first-ledger-20261109.md)。
 
+用户要求后的最新一次真实重试没有遇到显存不足；主 Agent 连续三次调用回复工具后仍因认知字段类型错误终止，未获得成功发布回执。前两次可见错误为 `self_evaluation` 和 `state_expression` 应为对象，模型却填写了数组；第三次具体字段未被证据捕获。日志 `/private/tmp/fluctlight-direct-user-retry.log`。
+
 ## B. 代码基线
 
 - 开始 commit：`ffa808bc81cc4d800376432216f3ea679da8de30`；当前分支：`codex/fluctlight-meromero-plugin-humanization`；结束 commit 尚未确定。
