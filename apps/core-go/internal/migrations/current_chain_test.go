@@ -10,7 +10,12 @@ func assertCurrentAdditiveChain(t *testing.T) {
 	got = append(got[:1], append([]string{SharedWorldsPreviousHead}, got[1:]...)...)
 	got = append(got[:1], append([]string{WorldEventStartersPreviousHead}, got[1:]...)...)
 	got = append(got[:1], append([]string{KevOneMinutePreviousHead}, got[1:]...)...)
-	want = append([]string{"0104_kev_one_minute", "0103_world_event_starters", "0102_shared_worlds"}, want...)
+	got = append(got[:1], append([]string{AgentModelSamplingPreviousHead}, got[1:]...)...)
+	want = append([]string{"0105_agent_model_sampling", "0104_kev_one_minute", "0103_world_event_starters", "0102_shared_worlds"}, want...)
+	got = append(got[:1], append([]string{SummaryCorrectionPreviousHead}, got[1:]...)...)
+	want = append([]string{"0106_summary_correction_guard"}, want...)
+	got = append(got[:1], append([]string{ExpressionLearningPreviousHead}, got[1:]...)...)
+	want = append([]string{"0107_expression_learning"}, want...)
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("additive chain[%d]=%q, want %q", i, got[i], want[i])

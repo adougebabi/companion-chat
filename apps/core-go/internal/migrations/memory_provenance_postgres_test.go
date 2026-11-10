@@ -65,6 +65,10 @@ func seedMemoryProvenancePreviousHead(t *testing.T, ctx context.Context, pool *p
 		`INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,personality_perspectives,status,actor_id,evidence_refs,idempotency_key) VALUES('memory-known-revision','memory-known',0,0,'已确认','[]','active','provenance-fluctlight','["sequence:1"]','memory-known-revision')`,
 		`INSERT INTO public.memories(id,owner_fluctlight_id,type,content,actor_refs,event_refs,evidence_refs,personality_perspectives,confidence,importance,emotional_significance,visibility,status,revision,canonical_key,request_digest) VALUES('memory-unknown','provenance-fluctlight','semantic','来源不明','[]','[]','["unknown-old-ref"]','[]',0.8,0.8,0,'private','active',0,'cccccccccccccccccccccccccccccccc','dddddddddddddddddddddddddddddddd')`,
 		`INSERT INTO public.memory_revisions(id,memory_id,revision,base_revision,content,personality_perspectives,status,actor_id,evidence_refs,idempotency_key) VALUES('memory-unknown-revision','memory-unknown',0,0,'来源不明','[]','active','provenance-fluctlight','["unknown-old-ref"]','memory-unknown-revision')`,
+		// This fixture starts at the current head, then reconstructs 0036. The
+		// newer helper and guarded refresh did not exist at 0036.
+		residentMemorySchemaSQL,
+		`DROP FUNCTION IF EXISTS public.memory_retained_typed_sources(text,integer)`,
 		`DROP TABLE public.memory_source_links`,
 		`ALTER TABLE public.memories DROP COLUMN provenance_status`,
 		`UPDATE public.alembic_version SET version_num='0036_effective_life'`,
