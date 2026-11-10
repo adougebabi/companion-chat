@@ -50,7 +50,7 @@ func (a *App) RecoverInitialWardrobe(ctx context.Context, owner, fid string, bod
 		if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='pending',attempt_count=0,next_attempt_at=now(),started_at=NULL,completed_at=NULL,last_error=NULL WHERE intent_id=$1`, id); err != nil {
 			return nil, err
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations SET status=CASE WHEN result->'inventory_committed'='true'::jsonb THEN 'awaiting_wear' ELSE 'queued' END,result=result-'failure_reason',error_code=NULL,updated_at=now() WHERE id=$1`, preparation); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations SET status=CASE WHEN result->'inventory_committed'='true'::jsonb THEN 'awaiting_wear' ELSE 'queued' END,result=result-'failure_reason',error_code=NULL,model_provenance=CASE WHEN model_provenance='{}'::jsonb THEN jsonb_build_object($2::text,$3::text) ELSE model_provenance END,updated_at=now() WHERE id=$1`, preparation, wardrobeModelSnapshotContractKey, workflowModelSnapshotVersion); err != nil {
 			return nil, err
 		}
 		result["status"], result["restarted"] = "pending", true

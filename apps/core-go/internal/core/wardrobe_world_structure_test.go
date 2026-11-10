@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -174,6 +175,19 @@ func TestWardrobePreparationCommitAndExplicitRecoveryKeepOriginalFailure(t *test
 func TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "wardrobe-preparation-controlled")
+	settingsKey := []byte("0123456789abcdef0123456789abcdef")
+	f.app.Provider.SettingsKey = settingsKey
+	encrypted, err := encryptSecret(settingsKey, "turn-secret", "test-wardrobe-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.setting_secrets(purpose,ciphertext,nonce) VALUES('turn-secret',$1,$2)`, encrypted.ciphertext, encrypted.nonce); err != nil {
+		t.Fatal(err)
+	}
+	role := agentModelBindingKey(FormalAgentWardrobePreparation, "wardrobe_preparation_v1")
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,'wardrobe-preparation-controlled','first-model',30)`, role); err != nil {
+		t.Fatal(err)
+	}
 	var preparation string
 	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
 		var err error
@@ -183,8 +197,10 @@ func TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays(t 
 		t.Fatal(err)
 	}
 	calls := 0
+	var models []string
 	router := newFakeProviderRouter().on("wardrobe_preparation_v1", func(payload map[string]any) fakeProviderResult {
 		calls++
+		models = append(models, stringValue(payload["model"]))
 		messages := arrayValue(payload["messages"])
 		if len(messages) != 2 {
 			t.Fatal("unexpected preparation messages", len(messages))
@@ -233,12 +249,28 @@ func TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays(t 
 	if first["reason_code"] != "wardrobe_inventory_prepared" || first["reason"] != "根据实际人格准备虚构初始衣物，尚未穿着" {
 		t.Fatal("model prose lost or used as the diagnostic machine reason", first)
 	}
+	var provenance []byte
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT model_provenance FROM public.fluctlight_wardrobe_preparations WHERE id=$1`, preparation).Scan(&provenance); err != nil || strings.Contains(string(provenance), "test-wardrobe-secret") {
+		t.Fatalf("snapshot exposed a credential or could not be read: %v", err)
+	}
+	public, err := f.app.OwnerWardrobePreparation(f.ctx, f.ownerID, f.fluctlightID)
+	if err != nil || public["model_provenance"] != nil || strings.Contains(jsonString(public), "turn-secret") {
+		t.Fatalf("private model provenance reached the Owner response: %v", err)
+	}
 	if err := (LifecycleDiagnostic{Surface: "wardrobe", Transition: LifecycleTransitionCompletedNoop, CorrelationID: "wardrobe-preparation:" + preparation, Status: stringValue(first["status"]), ReasonCode: stringValue(first["reason_code"])}).Validate(); err != nil {
 		t.Fatal("generated inventory result produced an invalid lifecycle reason", err)
 	}
-	second, err := f.app.ProcessWardrobePreparation(f.ctx, preparation)
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.model_roles SET model_id='next-model' WHERE role=$1`, role); err != nil {
+		t.Fatal(err)
+	}
+	restarted := newTestApp(t, f.repository, router)
+	restarted.Provider.SettingsKey = settingsKey
+	second, err := restarted.ProcessWardrobePreparation(f.ctx, preparation)
 	if err != nil || second["status"] != "completed" || calls != 2 {
 		t.Fatal(second, calls, err)
+	}
+	if len(models) != 2 || models[0] != "first-model" || models[1] != "first-model" {
+		t.Fatalf("wardrobe stages did not retain their model binding after restart: %v", models)
 	}
 	worn, err := readCurrentWornItems(f.ctx, f.repository.Pool(), f.fluctlightID)
 	if err != nil || len(worn) != 4 {
@@ -250,6 +282,122 @@ func TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays(t 
 	}
 	if _, err = (&App{DB: f.repository}).ProcessWardrobePreparation(f.ctx, preparation); err != nil || calls != 2 {
 		t.Fatal("completed preparation was regenerated", calls, err)
+	}
+}
+
+func TestLegacyWardrobePreparationRequiresExplicitModelRecovery(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "wardrobe-legacy-controlled")
+	var preparation string
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		var err error
+		preparation, err = ensureWardrobePreparationTx(f.ctx, tx, f.fluctlightID, "legacy-test")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var revision int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&revision); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := f.app.DB.GetFluctlight(f.ctx, f.fluctlightID, f.ownerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal := map[string]any{"items": []any{map[string]any{"key": "top", "clothing_type": "upper_body", "description": "旧任务已登记的上衣", "seasons": []any{"summer"}}, map[string]any{"key": "bottom", "clothing_type": "lower_body", "description": "旧任务已登记的长裤", "seasons": []any{"summer"}}}, "plans": []any{map[string]any{"name": "已准备方案", "tags": []any{"在家"}, "item_refs": []any{"top", "bottom"}}}, "reason": "旧任务已提交库存"}
+	if _, err := f.app.commitPreparedWardrobe(f.ctx, preparation, f.fluctlightID, f.ownerID, "default", revision, resource.CurrentRevision, proposal); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_wardrobe_preparations SET model_provenance='{}' WHERE id=$1`, preparation); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	router := newFakeProviderRouter().on("wardrobe_preparation_v1", func(_ map[string]any) fakeProviderResult {
+		calls++
+		rows, err := f.repository.Pool().Query(f.ctx, `SELECT id FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND source_ref=$2 ORDER BY id`, f.fluctlightID, "wardrobe-preparation:"+preparation)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rows.Close()
+		ids := []any{}
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				t.Fatal(err)
+			}
+			ids = append(ids, id)
+		}
+		if err := rows.Err(); err != nil {
+			t.Fatal(err)
+		}
+		return fakeProviderResult{Structured: map[string]any{"items": []any{}, "plans": []any{}, "wear_item_refs": ids, "reason": "选择已准备衣物"}}
+	})
+	f.app.Provider.HTTP = &http.Client{Transport: router}
+	if _, err := f.app.ProcessWardrobePreparation(f.ctx, preparation); !errors.Is(err, errWardrobeModelSnapshotMissing) || calls != 0 {
+		t.Fatalf("legacy preparation silently selected a model: calls=%d err=%v", calls, err)
+	}
+	var status, code string
+	var committed bool
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT status,error_code,(result->>'inventory_committed')::boolean FROM public.fluctlight_wardrobe_preparations WHERE id=$1`, preparation).Scan(&status, &code, &committed); err != nil || status != "failed" || code != "wardrobe_model_snapshot_missing" || !committed {
+		t.Fatalf("legacy failure did not preserve the completed inventory: status=%s code=%s committed=%t err=%v", status, code, committed, err)
+	}
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT revision FROM public.fluctlight_wardrobe_states WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&revision); err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := f.app.DispatchOwnerSurface(f.ctx, "POST", "/internal/fluctlights/"+f.fluctlightID+"/inventory/preparation", nil, f.ownerID, map[string]any{"expected_revision": revision, "reason": "明确恢复旧任务", "idempotency_key": "legacy-model-recovery"})
+	if err != nil || recovered["model_provenance"] != nil {
+		t.Fatalf("explicit recovery failed or exposed private provenance: %v", err)
+	}
+	result, err := f.app.ProcessWardrobePreparation(f.ctx, preparation)
+	if err != nil || result["status"] != "completed" || calls != 1 {
+		t.Fatalf("explicit recovery did not complete the remaining stage: status=%v calls=%d err=%v", result["status"], calls, err)
+	}
+	var count int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.fluctlight_wardrobe_items WHERE fluctlight_id=$1 AND source_ref=$2`, f.fluctlightID, "wardrobe-preparation:"+preparation).Scan(&count); err != nil || count != 2 {
+		t.Fatalf("explicit recovery repeated inventory effects: count=%d err=%v", count, err)
+	}
+}
+
+func TestWardrobeModelSnapshotSurvivesFailedAttemptAndOwnerRecovery(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "wardrobe-failed-model-endpoint")
+	role := agentModelBindingKey(FormalAgentWardrobePreparation, wardrobeModelVariant)
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,'wardrobe-failed-model-endpoint','first-model',30)`, role); err != nil {
+		t.Fatal(err)
+	}
+	var preparation string
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		var err error
+		preparation, err = ensureWardrobePreparationTx(f.ctx, tx, f.fluctlightID, "retry-test")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var models []string
+	router := newFakeProviderRouter().on("wardrobe_preparation_v1", func(payload map[string]any) fakeProviderResult {
+		models = append(models, stringValue(payload["model"]))
+		if len(models) == 1 {
+			return fakeProviderResult{Structured: map[string]any{"items": []any{}, "plans": []any{}, "wear_item_refs": []any{}, "reason": "无可执行方案"}}
+		}
+		return fakeProviderResult{Structured: map[string]any{"items": []any{map[string]any{"key": "top", "clothing_type": "upper_body", "description": "宽松上衣", "seasons": []any{"summer"}}, map[string]any{"key": "bottom", "clothing_type": "lower_body", "description": "舒适长裤", "seasons": []any{"summer"}}}, "plans": []any{map[string]any{"name": "日常方案", "tags": []any{"在家"}, "item_refs": []any{"top", "bottom"}}}, "wear_item_refs": []any{}, "reason": "按现有人格准备"}}
+	})
+	f.app.Provider.HTTP = &http.Client{Transport: router}
+	if _, err := f.app.ProcessWardrobePreparation(f.ctx, preparation); err == nil || len(models) != 1 || models[0] != "first-model" {
+		t.Fatalf("expected first proposal to fail after a model call: models=%v err=%v", models, err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.model_roles SET model_id='next-model' WHERE role=$1`, role); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.platform_workflow_intents SET status='failed' WHERE intent_id=$1`, "wardrobe_initialize:"+f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := f.app.DispatchOwnerSurface(f.ctx, "POST", "/internal/fluctlights/"+f.fluctlightID+"/wardrobe/recover", nil, f.ownerID, map[string]any{"reason": "恢复已失败的衣柜任务", "idempotency_key": "wardrobe-model-retry"})
+	if err != nil || recovered["restarted"] != true {
+		t.Fatalf("owner recovery failed: result=%v err=%v", recovered, err)
+	}
+	result, err := f.app.ProcessWardrobePreparation(f.ctx, preparation)
+	if err != nil || result["status"] != "awaiting_wear" || len(models) != 2 || models[1] != "first-model" {
+		t.Fatalf("recovery changed model or failed to retain progress: models=%v status=%v err=%v", models, result["status"], err)
 	}
 }
 

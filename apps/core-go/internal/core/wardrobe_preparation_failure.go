@@ -54,6 +54,10 @@ func wardrobePreparationFailure(err error) (string, string) {
 	switch {
 	case errors.Is(err, context.Canceled):
 		return "wardrobe_preparation_cancelled", "本次初始衣柜准备已中断，原资料和已完成步骤仍保留。"
+	case errors.Is(err, errWardrobeModelSnapshotMissing):
+		return "wardrobe_model_snapshot_missing", "旧衣柜准备任务没有可核实的模型配置，已保留完成的步骤。请在检查后恢复此环节，以当前配置继续未完成的工作。"
+	case errors.Is(err, errWardrobeModelSnapshotInvalid):
+		return "wardrobe_model_snapshot_invalid", "衣柜准备任务的模型配置快照无效，原资料和已完成步骤仍保留。请查看任务诊断后处理。"
 	case errors.As(err, &contextRead):
 		return "wardrobe_preparation_context_failed", "初始衣柜准备在调用模型前读取" + wardrobeContextReadStep(contextRead.stage) + "失败，原资料和已完成步骤仍保留。请查看原任务中的诊断记录，确认资料或状态可读取后恢复。"
 	case errors.As(err, &unassigned):

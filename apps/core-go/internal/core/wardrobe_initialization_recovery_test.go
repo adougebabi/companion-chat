@@ -58,6 +58,15 @@ func TestWardrobeInitializationRecoveryKeepsDomainGuardsAndStableCheckpoint(t *t
 			t.Fatal("invalid recovery accepted", body)
 		}
 	}
+	exec(`UPDATE public.fluctlight_wardrobe_preparations SET status='failed',model_provenance='{}' WHERE id=$1`, preparation)
+	restarted, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, command())
+	if err != nil || restarted["restarted"] != true {
+		t.Fatal("explicit legacy recovery did not restart", restarted, err)
+	}
+	var snapshotContract string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT model_provenance->>$2 FROM public.fluctlight_wardrobe_preparations WHERE id=$1`, preparation, wardrobeModelSnapshotContractKey).Scan(&snapshotContract); err != nil || snapshotContract != workflowModelSnapshotVersion {
+		t.Fatalf("legacy recovery did not allow a new model snapshot: contract=%q err=%v", snapshotContract, err)
+	}
 	exec(`UPDATE public.fluctlight_wardrobe_preparations SET status='completed' WHERE id=$1`, preparation)
 	out, err := f.app.DispatchOwnerSurface(f.ctx, "POST", path, nil, f.ownerID, command())
 	if err != nil || out["restarted"] != false {

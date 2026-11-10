@@ -20,8 +20,8 @@ func wardrobePreparationSchema() map[string]any {
 
 func ensureWardrobePreparationTx(ctx context.Context, tx pgx.Tx, fid, source string) (string, error) {
 	id := "wardrobe_preparation_" + stableDigest(fid)
-	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_preparations(id,fluctlight_id,owner_actor_id,profile_id,expected_revision,source_ref,intent_id)
- SELECT $2,f.id,f.created_by_actor_id,r.active_profile_id,w.revision,$3,$4 FROM public.fluctlights f JOIN public.fluctlight_personality_runtime r ON r.fluctlight_id=f.id JOIN public.fluctlight_wardrobe_states w ON w.fluctlight_id=f.id WHERE f.id=$1 ON CONFLICT(fluctlight_id) DO NOTHING`, fid, id, source, "wardrobe_initialize:"+fid)
+	_, err := tx.Exec(ctx, `INSERT INTO public.fluctlight_wardrobe_preparations(id,fluctlight_id,owner_actor_id,profile_id,expected_revision,source_ref,intent_id,model_provenance)
+ SELECT $2,f.id,f.created_by_actor_id,r.active_profile_id,w.revision,$3,$4,jsonb_build_object($5::text,$6::text) FROM public.fluctlights f JOIN public.fluctlight_personality_runtime r ON r.fluctlight_id=f.id JOIN public.fluctlight_wardrobe_states w ON w.fluctlight_id=f.id WHERE f.id=$1 ON CONFLICT(fluctlight_id) DO NOTHING`, fid, id, source, "wardrobe_initialize:"+fid, wardrobeModelSnapshotContractKey, workflowModelSnapshotVersion)
 	if err != nil {
 		return "", err
 	}
@@ -39,7 +39,7 @@ func (a *App) OwnerWardrobePreparation(ctx context.Context, owner, fid string) (
 		return nil, err
 	}
 	var raw []byte
-	err := a.DB.Pool().QueryRow(ctx, `SELECT (to_jsonb(p)-'proposal')||jsonb_build_object('can_recover',p.status<>'completed' AND (p.status='failed' OR COALESCE(w.status,'') IN ('failed','cancelled','dead_letter'))) FROM public.fluctlight_wardrobe_preparations p LEFT JOIN public.platform_workflow_intents w ON w.intent_id=p.intent_id WHERE p.fluctlight_id=$1`, fid).Scan(&raw)
+	err := a.DB.Pool().QueryRow(ctx, `SELECT (to_jsonb(p)-'proposal'-'model_provenance')||jsonb_build_object('can_recover',p.status<>'completed' AND (p.status='failed' OR COALESCE(w.status,'') IN ('failed','cancelled','dead_letter'))) FROM public.fluctlight_wardrobe_preparations p LEFT JOIN public.platform_workflow_intents w ON w.intent_id=p.intent_id WHERE p.fluctlight_id=$1`, fid).Scan(&raw)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return map[string]any{"status": "not_started", "fluctlight_id": fid}, nil
 	}
@@ -103,7 +103,7 @@ func (a *App) RequestOwnerWardrobePreparation(ctx context.Context, owner, fid st
 	}
 
 	var raw []byte
-	if err = tx.QueryRow(ctx, `SELECT to_jsonb(p)-'proposal' FROM public.fluctlight_wardrobe_preparations p WHERE id=$1`, id).Scan(&raw); err != nil {
+	if err = tx.QueryRow(ctx, `SELECT to_jsonb(p)-'proposal'-'model_provenance' FROM public.fluctlight_wardrobe_preparations p WHERE id=$1`, id).Scan(&raw); err != nil {
 		return nil, err
 	}
 	out := decodeObject(raw)
@@ -122,7 +122,7 @@ func (a *App) RequestOwnerWardrobePreparation(ctx context.Context, owner, fid st
 // Legacy repair is bounded, delayed and never reverses cancellation. Once a
 // Workflow has dispatched, its ledger owns automatic retries and exhaustion.
 func resumeWardrobePreparationTx(ctx context.Context, tx pgx.Tx, id string, explicit bool) (bool, error) {
-	tag, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations p SET status=CASE WHEN result->'inventory_committed'='true'::jsonb THEN 'awaiting_wear' ELSE 'queued' END,result=result-'failure_reason',error_code=NULL,attempt=attempt+1,intent_id='wardrobe_initialize:'||fluctlight_id||':attempt:'||(attempt+1)::text,updated_at=now() WHERE id=$1 AND status<>'completed' AND (status='failed' OR EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('failed','cancelled','dead_letter'))) AND ($2 OR (attempt<3 AND updated_at<now()-GREATEST(attempt,1)*interval '1 minute' AND NOT EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND (w.status IN ('cancelled','cancel_requested') OR w.attempt_count>0))))`, id, explicit)
+	tag, err := tx.Exec(ctx, `UPDATE public.fluctlight_wardrobe_preparations p SET status=CASE WHEN result->'inventory_committed'='true'::jsonb THEN 'awaiting_wear' ELSE 'queued' END,result=result-'failure_reason',error_code=NULL,attempt=attempt+1,intent_id='wardrobe_initialize:'||fluctlight_id||':attempt:'||(attempt+1)::text,model_provenance=CASE WHEN $2 AND model_provenance='{}'::jsonb THEN jsonb_build_object($3::text,$4::text) ELSE model_provenance END,updated_at=now() WHERE id=$1 AND status<>'completed' AND (status='failed' OR EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND w.status IN ('failed','cancelled','dead_letter'))) AND ($2 OR (attempt<3 AND updated_at<now()-GREATEST(attempt,1)*interval '1 minute' AND NOT EXISTS(SELECT 1 FROM public.platform_workflow_intents w WHERE w.intent_id=p.intent_id AND (w.status IN ('cancelled','cancel_requested') OR w.attempt_count>0))))`, id, explicit, wardrobeModelSnapshotContractKey, workflowModelSnapshotVersion)
 	return err == nil && tag.RowsAffected() == 1, err
 }
 func (a *App) RepairWardrobePreparations(ctx context.Context, limit int) (int, error) {
@@ -312,7 +312,13 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 		return nil, err
 	}
 	messages := wardrobePreparationMessages(resource.CorePersona, sections, life, items, plans, selectOnly)
-	run, err := a.runFormalStructuredTask(ctx, FormalAgentWardrobePreparation, messages, nil, "wardrobe_preparation_v1", wardrobePreparationSchema(), false, nil)
+	modelCtx := withAgentModelRoute(ctx, FormalAgentWardrobePreparation, wardrobeModelVariant)
+	assignment, err := a.wardrobePreparationAssignment(modelCtx, id, mapValue(state["model_provenance"]), messages)
+	if err != nil {
+		return nil, err
+	}
+	modelCtx = withFrozenProviderAssignment(modelCtx, wardrobeModelRole, assignment)
+	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentWardrobePreparation, messages, nil, wardrobeModelVariant, wardrobePreparationSchema(), false, nil)
 	if err != nil {
 		return nil, err
 	}
