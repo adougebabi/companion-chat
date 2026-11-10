@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -63,6 +64,7 @@ type visualIdentityAgentState struct {
 	History                []map[string]any
 	ActionRequired         string
 	WaitingStage           string
+	modelProvenance        map[string]any
 }
 
 // visualIdentityPhysicalRequestPolicy keeps the final JSON grammar out of the
@@ -140,13 +142,44 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	if state.ActionRequired == "" {
 		return visualIdentityAgentOutputFromState(state, ""), nil
 	}
+	runCtx := WithProviderCorrelation(ctx, "visual_identity:"+state.SessionID)
+	runCtx, err = a.withDomainPluginScope(runCtx)
+	if err != nil {
+		return VisualIdentityAgentOutput{}, err
+	}
+	if state.ActionRequired == visualIdentityGenerateCandidateCapabilityName && state.MediaIntentID != "" {
+		// A previously accepted media intent may be inspected/replayed even
+		// after Image is disabled; the effect boundary still rejects new work.
+		runCtx = context.WithValue(runCtx, domainPluginVisualReplayKey{}, true)
+	}
+	if !domainCapabilityEnabled(runCtx, state.ActionRequired) {
+		return VisualIdentityAgentOutput{}, domainPluginDisabledError()
+	}
+	runCtx = withAgentModelRoute(runCtx, FormalAgentVisualIdentity, visualModelVariant)
 
 	var imageContent map[string]any
 	var vision visionCapability
 	if state.ActionRequired == visualIdentityCommitReviewCapabilityName {
-		vision = a.resolveVisionCapability(ctx)
-		if vision.State != "ready" {
-			return a.pauseVisualIdentityReview(ctx, state, vision.Reason)
+		settings, version, settingErr := a.visionUnderstandingSettings(ctx)
+		if settingErr != nil {
+			return a.pauseVisualIdentityReview(ctx, state, "vision_config_invalid")
+		}
+		if !settings.Enabled {
+			return a.pauseVisualIdentityReview(ctx, state, "vision_disabled")
+		}
+		if settings.ModelRef == "" || a.Provider == nil {
+			return a.pauseVisualIdentityReview(ctx, state, "vision_model_unconfigured")
+		}
+		vision.Version = version
+		vision.Assignment, _, err = a.visualIdentityStageAssignment(runCtx, state, visualVisionModelStage, visionUnderstandingModelRole, vision.Version)
+		if err != nil {
+			if errors.Is(err, errVisualModelSnapshotInvalid) || strings.Contains(err.Error(), "visual_identity_model_snapshot") {
+				return VisualIdentityAgentOutput{}, err
+			}
+			if errors.Is(err, pgx.ErrNoRows) {
+				return a.pauseVisualIdentityReview(ctx, state, "vision_model_unconfigured")
+			}
+			return a.pauseVisualIdentityReview(ctx, state, "vision_binding_unavailable")
 		}
 		imageContent, err = a.visualIdentityImageContent(ctx, state.CandidateAssetID)
 		if err != nil {
@@ -175,23 +208,20 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 		actionID = state.SessionID + ":finalize"
 	}
 	operationID := visualIdentityAgentCheckpointOperationID(state)
-	runCtx := WithProviderCorrelation(ctx, "visual_identity:"+state.SessionID)
-	runCtx, err = a.withDomainPluginScope(runCtx)
-	if err != nil {
-		return VisualIdentityAgentOutput{}, err
-	}
-	if state.ActionRequired == visualIdentityGenerateCandidateCapabilityName && state.MediaIntentID != "" {
-		// A previously accepted media intent may be inspected/replayed even
-		// after Image is disabled; the effect boundary still rejects new work.
-		runCtx = context.WithValue(runCtx, domainPluginVisualReplayKey{}, true)
-	}
-	if !domainCapabilityEnabled(runCtx, state.ActionRequired) {
-		return VisualIdentityAgentOutput{}, domainPluginDisabledError()
-	}
 	if state.ActionRequired == visualIdentityCommitReviewCapabilityName {
-		runCtx = withAgentModelRoute(runCtx, FormalAgentVisualIdentity, "visual_identity_agent_response")
 		runCtx = withFrozenProviderAssignment(runCtx, "cognitive_assessment", vision.Assignment)
 		runCtx = context.WithValue(runCtx, visualInspectionAuthorityKey{}, visualInspectionAuthority{SessionID: state.SessionID, AssetID: state.CandidateAssetID, ModelID: vision.Assignment.ModelID, ConfigVersion: vision.Version})
+	} else {
+		assignment, _, assignmentErr := a.visualIdentityStageAssignment(runCtx, state, visualTextModelStage, "cognitive_assessment", 0)
+		if assignmentErr != nil {
+			if provider, providerErr := a.modelTaskProvider(); providerErr == nil {
+				diagnosticCtx := ensureProviderAttemptIdentity(WithProviderScenario(runCtx, "visual_identity_agent"))
+				diagnosticMessages := formalPromptMessages(FormalAgentVisualIdentity, formatProviderMessagesForRole(prompt.Messages, "cognitive_assessment"))
+				provider.recordProviderPreflightFailure(diagnosticCtx, providerAssignment{}, "cognitive_assessment", "visual_identity:"+state.SessionID, "assignment", diagnosticMessages, assignmentErr)
+			}
+			return VisualIdentityAgentOutput{}, assignmentErr
+		}
+		runCtx = withFrozenProviderAssignment(runCtx, "cognitive_assessment", assignment)
 	}
 
 	runCtx = withPhysicalModelRequestPolicy(runCtx, visualIdentityPhysicalRequestPolicy{
@@ -397,14 +427,18 @@ func validateVisualIdentityAgentToolProgress(expected string, trace *ADKCapabili
 
 func (a *App) loadVisualIdentityAgentState(ctx context.Context, sessionID string) (visualIdentityAgentState, error) {
 	var state visualIdentityAgentState
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT s.id,s.fluctlight_id,f.created_by_actor_id,s.visual_identity_id,s.status,s.current_attempt,s.max_attempts,COALESCE(s.character_sheet_media_intent_id,''),COALESCE(v.canonical_asset_id,''),COALESCE(v.character_sheet_asset_id,'') FROM public.fluctlight_visual_identity_sessions AS s JOIN public.fluctlights AS f ON f.id=s.fluctlight_id JOIN public.fluctlight_visual_identities AS v ON v.id=s.visual_identity_id WHERE s.id=$1`, sessionID).Scan(
+	var modelProvenance []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT s.id,s.fluctlight_id,f.created_by_actor_id,s.visual_identity_id,s.status,s.current_attempt,s.max_attempts,COALESCE(s.character_sheet_media_intent_id,''),COALESCE(v.canonical_asset_id,''),COALESCE(v.character_sheet_asset_id,''),s.model_provenance FROM public.fluctlight_visual_identity_sessions AS s JOIN public.fluctlights AS f ON f.id=s.fluctlight_id JOIN public.fluctlight_visual_identities AS v ON v.id=s.visual_identity_id WHERE s.id=$1`, sessionID).Scan(
 		&state.SessionID, &state.FluctlightID, &state.OwnerActorID, &state.ProfileID, &state.SessionStatus, &state.Attempt, &state.MaxAttempts,
-		&state.CharacterMediaIntentID, &state.CanonicalAssetID, &state.CharacterSheetAssetID,
+		&state.CharacterMediaIntentID, &state.CanonicalAssetID, &state.CharacterSheetAssetID, &modelProvenance,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return state, ErrNotFound
 		}
 		return state, err
+	}
+	if err := json.Unmarshal(modelProvenance, &state.modelProvenance); err != nil || state.modelProvenance == nil {
+		state.modelProvenance = map[string]any{visualModelSnapshotContractKey: "invalid"}
 	}
 	if state.MaxAttempts < 1 {
 		state.MaxAttempts = visualIdentityMaxAttempts

@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "23d404fd67282ebb03513f520d134676fcb7b39dab960ca4195195779b978109",
+      "hash": "d6bf34b6fffc83f8a7eff9f28ef494200ad6542ac191d079ebeb5f0cd016b365",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -102,7 +102,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "23d404fd67282ebb03513f520d134676fcb7b39dab960ca4195195779b978109",
+        "hash": "d6bf34b6fffc83f8a7eff9f28ef494200ad6542ac191d079ebeb5f0cd016b365",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -172,7 +172,7 @@
     },
     {
       "path": "docs/verification/meromero-first-ledger-20261109.md",
-      "hash": "be1d2de09f4a068ea68cf20d6683477cbb08cf5b2c6e9449fdfb9b050a2419a4",
+      "hash": "faa059fbbd62af0de7d8b1d7806374c8846d3bf18950f8d0d9a4ff6872ad2487",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -186,7 +186,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-first-ledger-20261109.md",
-        "hash": "be1d2de09f4a068ea68cf20d6683477cbb08cf5b2c6e9449fdfb9b050a2419a4",
+        "hash": "faa059fbbd62af0de7d8b1d7806374c8846d3bf18950f8d0d9a4ff6872ad2487",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

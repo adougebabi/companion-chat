@@ -12,7 +12,8 @@ import (
 // Head identifies the Go-owned schema bundle. Released identifiers are never
 // rewritten; explicit forward data/configuration upgrades preserve unrelated
 // settings, domain records and audit history.
-const Head = "0109_media_model_snapshot"
+const Head = "0110_visual_model_snapshot"
+const VisualModelSnapshotPreviousHead = "0109_media_model_snapshot"
 const MediaModelSnapshotPreviousHead = "0108_wardrobe_model_snapshot"
 const WardrobeModelSnapshotPreviousHead = "0107_expression_learning"
 const ExpressionLearningPreviousHead = "0106_summary_correction_guard"
@@ -151,7 +152,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	applyEvolutionAuthority := applyLifeContextRevision || current == LifeContextRevisionHead
 	applyPromptContextMemory := applyEvolutionAuthority || current == EvolutionAuthorityHead
 	applyInitializationSource := applyPromptContextMemory || current == PromptContextMemoryHead
-	if len(revisions) == 1 && current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead {
+	if len(revisions) == 1 && current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead {
 		if current != KevTimeoutPreviousHead && current != DurableTurnDiagnosticsPreviousHead && current != GenericModelBudgetPreviousHead && current != OwnerSchedulesPreviousHead && current != WardrobeWorldStructurePreviousHead && current != PlaceDefaultsPreviousHead && current != BusinessBackupsPreviousHead && current != WorkflowControlsPreviousHead && current != DiagnosticOperationsPreviousHead && current != ConfigurationCommandsPreviousHead && current != MomentNPCInteractionsPreviousHead && current != MomentFeedPreviousHead && current != MediaLifecyclePreviousHead && current != RoleMediaReferencesPreviousHead && current != OwnerMediaRequestsPreviousHead && current != MediaReferenceGrantsPreviousHead && current != OwnerMediaPreviousHead && current != StudioOutfitsPreviousHead && current != WorldItemsPreviousHead && current != StudioFoundationPreviousHead && current != StudioVisualStylePreviousHead && current != StudioMediaPreviousHead && current != StudioJobsPreviousHead && current != WorldEventsPreviousHead && current != WorldEncounterRuntimePreviousHead && current != PromiseLifecyclePreviousHead && current != OutfitHistoryPreviousHead && current != InventoryManagementPreviousHead && current != VisualBriefPreviousHead && current != PersonaGovernancePreviousHead && current != SelfGovernancePreviousHead && current != DiaryPreviousHead && current != RoleAutonomyPreviousHead && current != NotificationCenterPreviousHead && current != LifePlacePreviousHead && current != WorldCatalogPreviousHead && current != WorldRuntimePreviousHead && current != GoalAgentCadencePreviousHead && current != ReplyMediaPreviousHead && current != FactOnlyReplyPreviousHead && current != MediaKevPreviousHead && current != FactGenerationProvenancePreviousHead && current != SemanticFactGenerationPreviousHead && current != LogicalAgentLeasesPreviousHead && current != KevDecisionsPreviousHead && current != ReleasedHead && current != CapabilityRuntimePreviousHead && current != CapabilityRuntimeHead && current != ProjectHealthHead && current != AffectCanonicalHead && current != MemoryLifecycleHead && current != LifeContextRevisionHead && current != EvolutionAuthorityHead && current != PromptContextMemoryHead && current != InitializationSourceHead && current != ToolExecutionSourceHead && current != WorkingPersonaHead && current != EffectiveLifeHead && current != MemoryProvenanceHead && current != MessageTimePreviousHead && current != ActivityAuthorityPreviousHead && current != AgentRunDiagnosticsPreviousHead && current != ConversationDailyMemoryPreviousHead && current != ActorFactsPreviousHead && current != InventoryUsagePreviousHead && current != RuntimeSummaryPreviousHead && current != DiagnosticPaginationPreviousHead && current != HistoryRepairPreviousHead && current != ProactiveTopicsPreviousHead && current != ActorUserBackgroundPreviousHead && current != GoalExecutionPreviousHead && current != GoalClosurePreviousHead && current != GoalGovernancePreviousHead && current != GoalReconciliationPreviousHead && current != GoalPlannerPreviousHead && current != GoalPlannerCadencePreviousHead {
 			return fmt.Errorf("unsupported migration head %q; expected a released migration through %s", revisions[0], Head)
 		}
@@ -195,7 +196,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 		if _, err := tx.Exec(ctx, initializationSourceSchemaSQL); err != nil {
 			return fmt.Errorf("apply initialization source migration: %w", err)
 		}
-	} else if current == Head || current == MediaModelSnapshotPreviousHead || current == WardrobeModelSnapshotPreviousHead || current == ExpressionLearningPreviousHead || current == SummaryCorrectionPreviousHead || current == AgentModelSamplingPreviousHead || current == KevOneMinutePreviousHead || current == WorldEventStartersPreviousHead {
+	} else if current == Head || current == VisualModelSnapshotPreviousHead || current == MediaModelSnapshotPreviousHead || current == WardrobeModelSnapshotPreviousHead || current == ExpressionLearningPreviousHead || current == SummaryCorrectionPreviousHead || current == AgentModelSamplingPreviousHead || current == KevOneMinutePreviousHead || current == WorldEventStartersPreviousHead {
 		// The current head stays self-repairing for additive schema drift without
 		// replaying historical migrations or rewriting facts.
 		if _, err := tx.Exec(ctx, promptContextMemorySchemaSQL+initializationSourceSchemaSQL); err != nil {
@@ -405,7 +406,7 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, placeDefaultsSchemaSQL); err != nil {
 		return fmt.Errorf("apply provenance-backed place defaults: %w", err)
 	}
-	if current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead && current != KevTimeoutPreviousHead {
+	if current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead && current != KevTimeoutPreviousHead {
 		if _, err := tx.Exec(ctx, inventoryManagementDataRepairSQL); err != nil {
 			return fmt.Errorf("repair legacy inventory eligibility: %w", err)
 		}
@@ -419,22 +420,22 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, ownerSchedulesSQL); err != nil {
 		return fmt.Errorf("apply Owner schedule requests: %w", err)
 	}
-	if current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead && current != KevTimeoutPreviousHead {
+	if current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead && current != KevTimeoutPreviousHead {
 		if _, err := tx.Exec(ctx, genericModelBudgetRepairSQL); err != nil {
 			return fmt.Errorf("restore consolidated model budget: %w", err)
 		}
 	}
-	if current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead && current != KevTimeoutPreviousHead {
+	if current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead && current != KevTimeoutPreviousHead {
 		if _, err := tx.Exec(ctx, durableTurnDiagnosticsSQL); err != nil {
 			return fmt.Errorf("backfill durable turn diagnostics: %w", err)
 		}
 	}
-	if current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead {
+	if current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead && current != SerialLLMQueuePreviousHead {
 		if _, err := tx.Exec(ctx, kevTimeoutSQL); err != nil {
 			return fmt.Errorf("apply requested Kev timeout: %w", err)
 		}
 	}
-	if current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead {
+	if current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead && current != WorldEventStartersPreviousHead && current != SharedWorldsPreviousHead {
 		if _, err := tx.Exec(ctx, serialLLMQueueSQL); err != nil {
 			return fmt.Errorf("apply requested LLM concurrency: %w", err)
 		}
@@ -446,12 +447,12 @@ func (r *Runner) Apply(ctx context.Context) error {
 	if _, err := tx.Exec(ctx, worldEventStartersSQL); err != nil {
 		return fmt.Errorf("install world event starters: %w", err)
 	}
-	if current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead {
+	if current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead && current != KevOneMinutePreviousHead {
 		if _, err := tx.Exec(ctx, `SELECT public.seed_world_event_starters(id) FROM public.life_worlds`); err != nil {
 			return fmt.Errorf("seed existing world event templates: %w", err)
 		}
 	}
-	if current != Head && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead {
+	if current != Head && current != VisualModelSnapshotPreviousHead && current != MediaModelSnapshotPreviousHead && current != WardrobeModelSnapshotPreviousHead && current != ExpressionLearningPreviousHead && current != SummaryCorrectionPreviousHead && current != AgentModelSamplingPreviousHead {
 		if _, err := tx.Exec(ctx, kevOneMinuteSQL); err != nil {
 			return fmt.Errorf("apply one-minute Kev timeout: %w", err)
 		}
@@ -474,6 +475,9 @@ func (r *Runner) Apply(ctx context.Context) error {
 	}
 	if _, err := tx.Exec(ctx, mediaModelSnapshotSQL); err != nil {
 		return fmt.Errorf("apply media model snapshot storage: %w", err)
+	}
+	if _, err := tx.Exec(ctx, visualIdentityModelSnapshotSQL); err != nil {
+		return fmt.Errorf("apply visual identity model snapshot storage: %w", err)
 	}
 	if len(revisions) == 1 && strings.TrimSpace(revisions[0]) != Head {
 		if _, err := tx.Exec(ctx, `DELETE FROM public.alembic_version`); err != nil {

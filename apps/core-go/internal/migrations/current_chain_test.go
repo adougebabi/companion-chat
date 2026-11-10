@@ -20,6 +20,8 @@ func assertCurrentAdditiveChain(t *testing.T) {
 	want = append([]string{"0108_wardrobe_model_snapshot"}, want...)
 	got = append(got[:1], append([]string{MediaModelSnapshotPreviousHead}, got[1:]...)...)
 	want = append([]string{"0109_media_model_snapshot"}, want...)
+	got = append(got[:1], append([]string{VisualModelSnapshotPreviousHead}, got[1:]...)...)
+	want = append([]string{"0110_visual_model_snapshot"}, want...)
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("additive chain[%d]=%q, want %q", i, got[i], want[i])
