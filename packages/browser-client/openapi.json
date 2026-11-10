@@ -11076,65 +11076,123 @@
         "additionalProperties": false
       },
       "BrowserConfigurationRoleBody": {
-        "type": "object",
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": [
-              "generic_llm",
-              "embedding",
-              "conversation_reply",
-              "vision_understanding"
-            ]
-          },
-          "endpointId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
-          },
-          "modelId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256
-          },
-          "tokenBudget": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "timeoutSeconds": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "contextWindowTokens": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "maxInputTokens": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "expectedVersions": {
+        "anyOf": [
+          {
             "type": "object",
-            "additionalProperties": {
-              "type": "integer",
-              "minimum": 0
-            }
+            "properties": {
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "endpointId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "modelId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "tokenBudget": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "contextWindowTokens": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "maxInputTokens": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "temperature": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 2
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "topP": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expectedVersions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "idempotencyKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "role",
+              "endpointId",
+              "modelId",
+              "timeoutSeconds",
+              "expectedVersions",
+              "idempotencyKey"
+            ],
+            "additionalProperties": false
           },
-          "idempotencyKey": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256
+          {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^agent:[a-z0-9_]+(?::[a-z0-9_]+)?$"
+              },
+              "clearOverride": {
+                "type": "boolean",
+                "const": true
+              },
+              "expectedVersions": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "idempotencyKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "role",
+              "clearOverride",
+              "expectedVersions",
+              "idempotencyKey"
+            ],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "role",
-          "endpointId",
-          "modelId",
-          "timeoutSeconds",
-          "expectedVersions",
-          "idempotencyKey"
-        ],
-        "additionalProperties": false
+        ]
       },
       "BrowserConfigurationCatalog": {
         "type": "object",
@@ -11147,6 +11205,20 @@
             }
           },
           "bindings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "agent_model_routes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "domain_plugins": {
             "type": "array",
             "items": {
               "type": "object",
@@ -11206,6 +11278,8 @@
         "required": [
           "endpoints",
           "bindings",
+          "agent_model_routes",
+          "domain_plugins",
           "provider_budget_defaults",
           "values",
           "effective_values",
