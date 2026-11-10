@@ -464,6 +464,29 @@ test("React composer retains draft and selection during updates and never sends 
   }
 });
 
+test("React chat can add a message after reopening a pending conversation", async () => {
+  const { default: Chat } = await load("react-app/pages/ChatPage.tsx"),
+    { createConversationController } = await load("state/conversation.ts");
+  const store = createConversationController();
+  store.fluctlightId = "A";
+  store.conversation = { id: "C" };
+  store.messages = [{id:"accepted-user",conversationId:"C",sequence:1,authorActorId:"chat-owner",kind:"user",text:"之前的话",attachmentRefs:[],createdAt:"2026-10-26T00:00:00Z",turnId:"turn-old",idempotencyKey:"key-old",turnStatus:"running"}];
+  let submitted = "";
+  Object.defineProperty(store, "send", {configurable:true,value:async (text,_retry,_queue,onAccepted)=>{submitted=text;onAccepted?.();return true;}});
+  const state=proxy({session:{actorId:"chat-owner"},selectedId:"A",characters:[{id:"A",name:"测试角色",initial:"角",color:"#eee",schedule:[],wearing:{},garments:[],_directory:{}}],errors:{},loading:{}});
+  const w={...storeFacade(state),current:{get value(){return state.characters[0];}},currentScope:()=>JSON.stringify(["chat-owner",state.selectedId]),conversation:()=>store,openConversation:async()=>{},clock:()=>"",detail:async()=>{},loadWardrobe:async()=>{},services:{mediaClient:{url:id=>id}}};
+  const view=await mountReact(vite,Chat,{workspace:w,props:{preview:false,onGo(){}}});
+  try {
+    const field=view.host.querySelector("textarea");
+    await view.input(field,"刚想起来还有一句");
+    const followUp=button("追加消息",view.host);
+    assert.ok(followUp,"a restored pending turn should expose the follow-up action");
+    assert.equal(followUp.disabled,false);
+    await view.click(followUp);
+    assert.equal(submitted,"刚想起来还有一句");
+  } finally { await view.dispose(); }
+});
+
 test("React setup confirms the exact password and focuses the mismatch without authenticating", async () => {
   const { default: Auth } = await load("react-app/pages/AuthPage.tsx"),
     real = await load("v3/providers/real.ts");

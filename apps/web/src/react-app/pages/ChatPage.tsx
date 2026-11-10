@@ -116,7 +116,7 @@ export default function ChatPage({
   }
   const busy =
     snapshot.sending || store.hasPendingTurn || store.hasSettlingTurn;
-  const canQueueFollowUp = snapshot.sending && !store.queuedMessageId && !store.hasSettlingTurn;
+  const canQueueFollowUp = (snapshot.sending || store.hasPendingTurn) && !store.queuedMessageId && !store.hasSettlingTurn;
   const sendBusy = busy && !canQueueFollowUp;
   const sameDraftPending = submittedDraftRevision.current === draftRevision.current;
   const preparationBlocked=!!character.detail?.persona_preparation&&character.detail.persona_preparation.status!=='ready';
@@ -194,8 +194,12 @@ export default function ChatPage({
         pageActive.current && workspace.currentScope() === scope &&
         draftRevision.current === revision && latestDraft.current === submitted
       ) {
-        editDraft("");
-        sessionStorage.removeItem(storageKey);
+        try {
+          sessionStorage.removeItem(storageKey);
+          editDraft("");
+        } catch {
+          setReadFailure("本机草稿暂未清除，请确认消息状态后再处理草稿。");
+        }
       }
     }); } finally { if(submittedDraftRevision.current===revision)submittedDraftRevision.current=null; }
   }

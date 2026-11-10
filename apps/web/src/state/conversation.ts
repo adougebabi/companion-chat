@@ -241,6 +241,10 @@ function turnAdmissionIdentity(request: RetryTurn): TurnAdmissionIdentity {
   const {conversationId, fluctlightId, text, idempotencyKey, turnId, attachmentRefs, senderActorId} = request;
   return {conversationId, fluctlightId, text, idempotencyKey, turnId, attachmentRefs: [...attachmentRefs], senderActorId};
 }
+function messageAdmissionIdentity(message: BrowserMessage | undefined, fluctlightId: string): TurnAdmissionIdentity | null {
+  if (!message || isTransientMessage(message) || !message.conversationId || !message.turnId || !message.idempotencyKey || !Array.isArray(message.attachmentRefs)) return null;
+  return {conversationId:message.conversationId,fluctlightId,text:message.text,idempotencyKey:message.idempotencyKey,turnId:message.turnId,attachmentRefs:[...message.attachmentRefs],senderActorId:message.authorActorId || undefined};
+}
 function recoveryRecords(
   archiveKey: string,
   legacyKey: string,
@@ -508,23 +512,21 @@ export const conversationDefinition = defineDomain({
         ? name
         : (this.selectedFluctlight?.id ?? null);
     },
-    canRetry: (state) =>
-      Boolean(state.retryTurn) &&
-      state.retryTurn?.conversationId === state.conversation?.id &&
-      state.retryTurn?.fluctlightId === state.fluctlightId &&
-      !state.sending &&
-      !state.retrying &&
-      !state.messages.some(
-        (message) =>
-          message.kind === "user" &&
-          ["pending", "running"].includes(message.turnStatus ?? ""),
-      ) &&
-      !state.messages.some(
-        (message) =>
-          message.kind === "user" &&
-          message.id === state.retryTurn?.messageId &&
-          message.turnRetryable === false,
-      ),
+    canRetry: (state) => {
+      const retry = state.retryTurn;
+      if (!retry || retry.conversationId !== state.conversation?.id || retry.fluctlightId !== state.fluctlightId || state.sending || state.retrying) return false;
+      const confirmed = state.messages.filter((message) => message.kind === "user" && !isTransientMessage(message));
+      const own = confirmed.find((message) => isAcceptedTurnMessage(message, retry));
+      if (own && (["pending", "running"].includes(own.turnStatus ?? "") || own.turnRetryable === false)) return false;
+      if (retry.priorAdmission) {
+        const latest = confirmed.at(-1);
+        if (!latest || (!isAcceptedTurnMessage(latest, retry.priorAdmission) && !isAcceptedTurnMessage(latest, retry))) return false;
+        if (latest !== own && ["failed", "cancelled"].includes(latest.turnStatus ?? "") && latest.turnRetryable === false && latest.turnErrorCode !== "agent_partial_committed") return false;
+        return true;
+      }
+      return !state.messages.some((message) => message.kind === "user" && ["pending", "running"].includes(message.turnStatus ?? "")) &&
+        !state.messages.some((message) => message.kind === "user" && message.id === retry.messageId && message.turnRetryable === false);
+    },
     retryIsModelFailure: (state) =>
       Boolean(
         state.retryTurn &&
@@ -789,6 +791,15 @@ export const conversationDefinition = defineDomain({
           (message) => message.kind === "user" && !isTransientMessage(message),
         );
       if (!latest?.turnStatus) return;
+      const currentRetry = this.retryTurn?.conversationId === conversationId && this.retryTurn?.fluctlightId === fluctlightId
+        ? this.retryTurn
+        : null;
+      if (currentRetry && !this.messages.some((message) => isAcceptedTurnMessage(message, currentRetry))) {
+        // An unrelated server turn cannot confirm or replace a newer local
+        // submission whose admission is still unknown.
+        if (!this.sending) this.error ||= "发送状态未确认；重新发送会沿用同一消息身份。";
+        return;
+      }
       if (
         (latest.turnStatus === "failed" || latest.turnStatus === "cancelled") &&
         latest.turnId &&
@@ -978,15 +989,6 @@ export const conversationDefinition = defineDomain({
         this.promoteQueuedAfterAdmission();
         return true;
       }
-      if (!retry && !queuedRequest && this.hasPendingTurn) {
-        if (!this.sending) {
-          await this.cancel();
-        }
-        if (this.hasPendingTurn) {
-          this.error = "上一条消息仍在后台处理；可点击取消后再发送。";
-          return false;
-        }
-      }
       if (
         this.retryTurn &&
         (this.retryTurn.conversationId !== this.conversation?.id ||
@@ -1021,11 +1023,11 @@ export const conversationDefinition = defineDomain({
         !this.messages.some(
           (message) =>
             message.kind === "user" &&
-            (message.turnId === pendingRetry.turnId ||
+            (((message.turnId === pendingRetry.turnId ||
               message.id === pendingRetry.messageId) &&
-            ["failed", "cancelled", "completed"].includes(
-              message.turnStatus ?? "",
-            ),
+              ["failed", "cancelled", "completed"].includes(message.turnStatus ?? "")) ||
+              (["pending", "running"].includes(message.turnStatus ?? "") &&
+                isAcceptedTurnMessage(message, pendingRetry))),
         )
       ) {
         this.error =
@@ -1052,6 +1054,11 @@ export const conversationDefinition = defineDomain({
                 senderActorId: this.senderActorId ?? undefined,
                 ...captureSenderTime(),
               };
+      if (!retry && !queuedRequest && this.hasPendingTurn) {
+        const previous = this.messages.findLast((message) => message.kind === "user" && !isTransientMessage(message));
+        const admission = messageAdmissionIdentity(previous, fluctlightId);
+        if (admission && admission.conversationId === conversationId) request.priorAdmission = admission;
+      }
       if (queuedRequest && pendingRetry) {
         // The two localStorage updates below cannot be atomic. Preserve the
         // confirmed predecessor in B if transferring the queued identity

@@ -535,7 +535,7 @@ test("transport loss after server acceptance keeps background cognition pending"
 	}
 });
 
-test("sending a new message when previous turn is stuck pending auto-cancels and sends", async () => {
+test("sending a new message after restoring a pending turn does not explicitly cancel it", async () => {
 	const originalWindow = globalThis.window;
 	const originalFetch = globalThis.fetch;
 	const originalLocalStorage = globalThis.localStorage;
@@ -585,7 +585,7 @@ test("sending a new message when previous turn is stuck pending auto-cancels and
 		];
 		assert.equal(store.hasPendingTurn, true);
 		await store.send("新发送的消息");
-		assert.equal(cancelled, true);
+		assert.equal(cancelled, false);
 		assert.equal(newSent, true);
 	} finally {
 		await server.close();
@@ -635,6 +635,89 @@ async function withRetryFixture(clock, run) {
 		Object.assign(globalThis, originals);
 	}
 }
+
+test('a restored, confirmed pending message accepts a new follow-up without cancelling',async()=>{
+ await withRetryFixture({},async({store,user,requests,setCancelResponse,setTurnResponse})=>{
+  let cancellations=0;
+  setCancelResponse(async()=>{cancellations++;return Response.json({status:'cancelled'});});
+  user.turnStatus='running';store.messages=[{...user}];
+  setTurnResponse(async()=>{
+   const request=requests.at(-1);
+   Object.assign(user,{id:'accepted-follow-up',text:request.text,turnId:request.turnId,idempotencyKey:request.idempotencyKey,attachmentRefs:request.attachmentRefs,authorActorId:request.senderActorId||'owner',turnStatus:'completed'});
+   return new Response(JSON.stringify({type:'completed',turnId:request.turnId,sequence:0,payload:{}})+'\n',{headers:{'content-type':'application/x-ndjson'}});
+  });
+  assert.equal(store.sending,false);assert.equal(store.hasPendingTurn,true);
+  await store.send('恢复后补充一句');
+  assert.equal(cancellations,0);assert.equal(requests.length,1);assert.equal(requests[0].text,'恢复后补充一句');
+ });
+});
+
+test('a restored pending message with a mismatched prior identity cannot be bypassed',async()=>{
+ await withRetryFixture({},async({store,user,requests,setCancelResponse})=>{
+  let cancellations=0;
+  setCancelResponse(async()=>{cancellations++;return Response.json({status:'cancelled'});});
+  const original=store.retryTurn.idempotencyKey;
+  user.turnStatus='running';user.text='服务器上不同的正文';store.messages=[{...user}];
+  await store.send('当前输入必须保留');
+  assert.equal(cancellations,0);assert.equal(requests.length,0);assert.equal(store.retryTurn.idempotencyKey,original);
+  assert.match(store.error,/尚未确认/);
+ });
+});
+
+for(const status of ['completed','failed','cancelled']) test(`an uncertain follow-up keeps its identity when the prior turn becomes ${status}`,async()=>{
+ await withRetryFixture({},async({store,user,requests,values,setTurnResponse})=>{
+  user.turnStatus='running';store.messages=[{...user}];
+  setTurnResponse(async()=>{throw Error('connection lost');});
+  await store.send('尚未确认的补充');
+  assert.equal(requests.length,1);
+  const original=JSON.parse(JSON.stringify(store.retryTurn));
+  assert.equal(original.text,'尚未确认的补充');
+  assert.equal(original.priorAdmission?.turnId,user.turnId);
+  user.turnStatus=status;
+  await store.refreshActiveTurn(true);
+  assert.equal(store.retryTurn?.idempotencyKey,original.idempotencyKey);
+  assert.equal(store.retryTurn?.turnId,original.turnId);
+  assert.equal(JSON.parse(values.get('fluctlight.retry-turn.v2')).idempotencyKey,original.idempotencyKey);
+ });
+});
+
+for(const status of ['pending','running','completed','failed','cancelled']) test(`a newer ${status} message from another client cannot erase an uncertain follow-up`,async()=>{
+ await withRetryFixture({},async({store,user,page,requests,values,setTurnResponse})=>{
+  user.turnStatus='running';store.messages=[{...user}];
+  setTurnResponse(async()=>{throw Error('connection lost');});
+  await store.send('尚未确认的补充');
+  const original=JSON.parse(JSON.stringify(store.retryTurn));
+  user.turnStatus='completed';
+  page.messages.push({...user,id:'another-client',sequence:2,turnId:'another-turn',idempotencyKey:'another-key',text:'另一端的新消息',turnStatus:status});
+  await store.refreshActiveTurn(true);
+  assert.equal(requests.length,1);
+  assert.equal(store.retryTurn?.idempotencyKey,original.idempotencyKey);
+  assert.equal(JSON.parse(values.get('fluctlight.retry-turn.v2')).idempotencyKey,original.idempotencyKey);
+  assert.equal(store.canRetry,false,'an older uncertain follow-up must not overtake a newer turn');
+ });
+});
+
+test('an uncertain follow-up can safely retry with its original identity while its confirmed predecessor runs',async()=>{
+ await withRetryFixture({},async({store,user,page,requests,setTurnResponse})=>{
+  user.turnStatus='running';store.messages=[{...user}];
+  let attempts=0;
+  setTurnResponse(async()=>{
+   attempts++;
+   if(attempts===1)throw Error('connection lost');
+   const request=requests.at(-1),follow={id:'accepted-follow-up',conversationId:user.conversationId,sequence:2,authorActorId:request.senderActorId||'owner',kind:'user',text:request.text,attachmentRefs:request.attachmentRefs,createdAt:'2026-09-11T00:00:02Z',turnId:request.turnId,idempotencyKey:request.idempotencyKey,turnStatus:'completed'};
+   page.messages=[{...user,turnStatus:'failed',turnErrorCode:'superseded_by_newer_turn'},follow];
+   return new Response([JSON.stringify({type:'message',turnId:request.turnId,sequence:0,payload:{message:follow}}),JSON.stringify({type:'completed',turnId:request.turnId,sequence:1,payload:{}}),''].join('\n'),{headers:{'content-type':'application/x-ndjson'}});
+  });
+  await store.send('可能已提交的补充');
+  const original=JSON.parse(JSON.stringify(store.retryTurn));
+  assert.equal(store.canRetry,true);
+  await store.retry();
+  assert.equal(requests.length,2);
+  assert.equal(requests[1].idempotencyKey,original.idempotencyKey);
+  assert.equal(requests[1].turnId,original.turnId);
+  assert.equal(store.messages.filter(message=>message.kind==='user'&&message.turnId===original.turnId).length,1);
+ });
+});
 
 test('an unconfirmed cancel never invents a cancelled server turn',async()=>{
  await withRetryFixture({},async({store,user,setCancelResponse})=>{
@@ -809,7 +892,7 @@ test('explicit refresh confirming completion sends the exact queued follow-up be
   let release,entered;const started=new Promise(resolve=>entered=resolve),blocked=new Promise(resolve=>release=resolve);
   setTurnResponse(async()=>{const request=requests.at(-1);if(requests.length===1){entered();await blocked;}Object.assign(user,{id:'accepted-'+requests.length,turnId:request.turnId,idempotencyKey:request.idempotencyKey,text:request.text,turnStatus:'completed'});return new Response(JSON.stringify({type:'completed',turnId:request.turnId,sequence:0,payload:{}})+'\n',{headers:{'content-type':'application/x-ndjson'}});});
   const original=store.send('等待读回');await started;await store.send('原追发');const key=store.queuedTurn.idempotencyKey;
-  Object.assign(user,{id:'accepted-a',turnId:requests[0].turnId,idempotencyKey:requests[0].idempotencyKey,turnStatus:'completed'});
+  Object.assign(user,{id:'accepted-a',turnId:requests[0].turnId,idempotencyKey:requests[0].idempotencyKey,text:requests[0].text,attachmentRefs:requests[0].attachmentRefs,authorActorId:requests[0].senderActorId||'owner',turnStatus:'completed'});
   await store.refreshActiveTurn(true);assert.equal(requests.length,2);assert.equal(requests[1].text,'原追发');assert.equal(requests[1].idempotencyKey,key);assert.equal(store.queuedTurn,null);
   release();await original;
  });
