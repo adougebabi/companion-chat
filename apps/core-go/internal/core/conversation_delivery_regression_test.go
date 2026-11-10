@@ -34,6 +34,7 @@ func TestDirectConversationMessageIsDurableDuringCognitionAndNoReplyCannotComple
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'delivery-model','structured_output,tool_calling',4096,10,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	seedConversationReplyFromCognitive(t, ctx, repository)
 	providerReceived := make(chan struct{})
 	var providerReceivedOnce sync.Once
 	releaseProvider := make(chan struct{})
@@ -144,6 +145,7 @@ func TestDirectConversationStreamsCommittedUserBeforeProviderAndAssistantAfterCo
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'stream-delivery-model','structured_output,tool_calling',4096,10,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	seedConversationReplyFromCognitive(t, ctx, repository)
 	providerReceived := make(chan struct{})
 	var providerReceivedOnce sync.Once
 	releaseProvider := make(chan struct{})
@@ -288,6 +290,7 @@ func TestDirectConversationReplyToolWithoutAppraisalCommitsBothMessages(t *testi
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'reply-tool-model','structured_output,tool_calling',4096,10,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	seedConversationReplyFromCognitive(t, ctx, repository)
 	app := newTestApp(t, repository, newConversationToolLoopTransport(fakeProviderResult{ToolCalls: []map[string]any{map[string]any{
 		"id": "reply-tool-call", "type": "function",
 		"function": map[string]any{"name": "conversation.reply", "arguments": jsonString(map[string]any{"text": "我收到你的消息了。"})},

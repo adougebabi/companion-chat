@@ -14,6 +14,11 @@ func (s *OwnerSurface) ownerMediaRequest(ctx context.Context, tx surfaceTx, op s
 	if !eventKeys(body, "prompt", "place_id", "expected_place_revision", "item_id", "expected_item_revision", "reference_asset", "reason", "idempotency_key") {
 		return nil, invalid("Unknown image request field")
 	}
+	if dbtx, ok := SurfaceDBTx(ctx); ok {
+		if err := requireDomainPluginEnabledTx(ctx, dbtx, "image"); err != nil {
+			return nil, err
+		}
+	}
 	request := cloneMap(body)
 	kind := "media_generate"
 	if op.name == "photo" {

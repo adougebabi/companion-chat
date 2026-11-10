@@ -60,8 +60,27 @@ func copyDiaryRetryStagesTx(ctx context.Context, tx pgx.Tx, fid, id string, prev
 		return nil
 	}
 	nextID := fmt.Sprintf("%s_attempt_%d", id, next)
-	provenance := decodeObject(models)
+	provenance := diaryRetryModelProvenance(models, plan, body)
 	provenance["reused_from_attempt_id"] = fmt.Sprintf("%s_attempt_%d", id, previous)
 	_, err = tx.Exec(ctx, `INSERT INTO public.fluctlight_diary_attempts(id,diary_id,attempt,status,source_snapshot,source_digest,plan,body,persona_snapshot,model_provenance) VALUES($1,$2,$3,'pending',$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING`, nextID, id, next, snapshot, stableDigest(jsonString(window)), plan, body, persona, jsonBytes(provenance))
 	return err
+}
+
+func diaryRetryModelProvenance(models, plan []byte, body *string) map[string]any {
+	provenance := decodeObject(models)
+	snapshots := mapValue(provenance[diaryModelSnapshotsKey])
+	// An explicit new attempt reuses completed stages, but resolves the current
+	// configuration for any failed/incomplete model stage.
+	if len(decodeObject(plan)) == 0 {
+		delete(snapshots, "material")
+	}
+	if body == nil {
+		delete(snapshots, "expression")
+	}
+	if len(snapshots) == 0 {
+		delete(provenance, diaryModelSnapshotsKey)
+	} else {
+		provenance[diaryModelSnapshotsKey] = snapshots
+	}
+	return provenance
 }

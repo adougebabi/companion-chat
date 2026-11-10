@@ -170,7 +170,9 @@ func kevRejectNativeTool(ctx context.Context, name string, arguments json.RawMes
 	// Kev selects recommendations and prompt disclosure, never resource rights.
 	// The native invoker already resolved the installed, surface-scoped registry;
 	// persona business rules are checked by the persona capability itself.
-	if selection := kevSelection(ctx); selection != nil && !selection.permits(ctx, name) {
+	// Installed disabled capabilities must reach ExecuteTool: it first replays
+	// a durable receipt, then rejects any new work with domain_plugin_disabled.
+	if selection := kevSelection(ctx); selection != nil && !selection.installed(name) {
 		return "capability_not_installed"
 	}
 	return ""

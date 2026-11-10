@@ -1472,6 +1472,11 @@ func (s *OwnerSurface) queueRequest(ctx context.Context, tx surfaceTx, op surfac
 			return nil, invalid("title is required")
 		}
 	case "moment_suggestion":
+		if dbtx, ok := SurfaceDBTx(ctx); ok {
+			if err := requireDomainPluginEnabledTx(ctx, dbtx, "moment"); err != nil {
+				return nil, err
+			}
+		}
 		if momentAuthorForbidden(body) {
 			return nil, &SurfaceError{Status: 422, Code: "moment_author_forbidden", Message: "The owner cannot publish as a character"}
 		}
@@ -1995,6 +2000,20 @@ func matchSurface(method string, parts []string) (surfaceCall, bool) {
 		call.name, call.fid, call.read = "nearby", parts[1], true
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "diary" && method == "GET":
 		call.name, call.fid, call.read = "diary_list", parts[1], true
+	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "expression-learning" && method == "GET":
+		call.name, call.fid, call.read = "expression_learning", parts[1], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "expression-learning" && parts[3] == "sources" && method == "GET":
+		call.name, call.fid, call.read = "expression_sources", parts[1], true
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "expression-learning" && parts[3] == "sources" && method == "GET":
+		call.name, call.fid, call.a, call.read = "expression_source", parts[1], parts[4], true
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "expression-learning" && parts[3] == "settings" && method == "PUT":
+		call.name, call.fid = "expression_settings", parts[1]
+	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "expression-learning" && parts[3] == "extractions" && method == "POST":
+		call.name, call.fid = "expression_extract", parts[1]
+	case len(parts) == 5 && parts[0] == "fluctlights" && parts[2] == "expression-learning" && parts[3] == "extractions" && parts[4] == "by-key" && method == "GET":
+		call.name, call.fid, call.read = "expression_extraction_status", parts[1], true
+	case len(parts) == 6 && parts[0] == "fluctlights" && parts[2] == "expression-learning" && parts[3] == "candidates" && method == "POST" && (parts[5] == "enable" || parts[5] == "disable" || parts[5] == "revoke"):
+		call.name, call.fid, call.a, call.c = "expression_review", parts[1], parts[4], parts[5]
 	case len(parts) == 3 && parts[0] == "fluctlights" && parts[2] == "self-claims" && method == "GET":
 		call.name, call.fid, call.read = "self_claims", parts[1], true
 	case len(parts) == 4 && parts[0] == "fluctlights" && parts[2] == "self-claims" && method == "GET":

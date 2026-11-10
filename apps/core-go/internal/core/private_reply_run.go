@@ -9,6 +9,7 @@ import (
 )
 
 type privateReplyRunKey struct{}
+type directMainConversationKey struct{}
 
 type privateReplyRun struct {
 	Settings        ConversationReplySettings
@@ -20,13 +21,15 @@ type privateReplyRun struct {
 	Expression      ReplyExpressionContract
 	// Only execution progress is mutable. The settings/model contract above
 	// is fixed before the first physical request and never re-read by a Tool.
-	mu                  sync.Mutex
-	DraftRef            string
-	ActionFacts         []replyActionState
-	ActionDraftText     string
-	EffectiveAssignment *providerAssignment
-	EffectiveMode       string
-	GenerationOwner     string
+	mu                          sync.Mutex
+	DraftRef                    string
+	ActionFacts                 []replyActionState
+	ActionDraftText             string
+	ExpressionSuggestions       []expressionSuggestionBinding
+	ExpressionSuggestionsFrozen bool
+	EffectiveAssignment         *providerAssignment
+	EffectiveMode               string
+	GenerationOwner             string
 }
 
 func replyRunFromContext(ctx context.Context) *privateReplyRun {
@@ -69,15 +72,54 @@ func (a *App) withPrivateConversationReplyRun(ctx context.Context, scope ToolExe
 		return ctx, err
 	}
 	ctx = context.WithValue(ctx, privateReplyRunKey{}, run)
+	if config.Mode == "direct" {
+		// Only the durable main turn can use the atomic decision contract.
+		// Independent Tool calls and WakeUp keep their existing Writer route.
+		main, _ := ctx.Value(directMainConversationKey{}).(bool)
+		if main && scope.Surface == CapabilitySurfaceConversation {
+			oldDraft, err := a.hasPriorPrivateReplyDraft(ctx, scope)
+			if err != nil {
+				return ctx, err
+			}
+			if !oldDraft {
+				view, err := capabilityRegistryView(a.capabilityRegistryForContext(ctx), directMainReplyCapability{app: a, publication: NewToolPublicationService(a)})
+				if err != nil {
+					return ctx, err
+				}
+				return withCapabilityRunRegistry(ctx, view), nil
+			}
+		}
+		run.Settings.Mode = "fact_only"
+	}
 	if config.Mode == "legacy" {
 		return ctx, nil
 	}
-	a.freezePersonaWriterAssignment(ctx, run)
+	variant := "private_reply"
+	if scope.Surface == CapabilitySurfaceWakeUp {
+		variant = "proactive"
+	}
+	a.freezePersonaWriterAssignment(ctx, run, FormalAgentConversationReply, variant)
 	view, err := a.privateReplyRegistry(run)
 	if err != nil {
 		return ctx, err
 	}
 	return withCapabilityRunRegistry(ctx, view), nil
+}
+
+// Old durable drafts keep their original Writer contract even when a later
+// configuration requests direct main replies. The Core-derived logical key,
+// not a model-supplied draft hint, identifies the same source and scope.
+func (a *App) hasPriorPrivateReplyDraft(ctx context.Context, scope ToolExecutionRequest) (bool, error) {
+	invocation := CapabilityInvocation{SourceFactID: scope.EvidenceID, Metadata: InvocationMetadata{
+		FluctlightID: scope.FluctlightID, ConversationID: scope.ConversationID, AuthorizationActorID: scope.AuthorizationActorID,
+	}}
+	key := privateReplyLogicalKey(ctx, invocation)
+	var exists bool
+	err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_reply_drafts
+		WHERE logical_key=$1 AND fluctlight_id=$2 AND conversation_id=$3 AND authorization_actor_id=$4
+		AND status IN ('generating','prepared','needs_action','waiting_media','ready','published','failed','cancelled','legacy_fallback_required'))`,
+		key, scope.FluctlightID, scope.ConversationID, scope.AuthorizationActorID).Scan(&exists)
+	return exists, err
 }
 
 func privateReplyLogicalKey(ctx context.Context, inv CapabilityInvocation) string {
@@ -115,21 +157,32 @@ func (a *App) privateReplyRegistry(run *privateReplyRun) (*CapabilityRegistry, e
 	return capabilityRegistryView(a.capabilityRegistry(), replacements...)
 }
 
-func (a *App) freezePersonaWriterAssignment(ctx context.Context, run *privateReplyRun) {
+func (a *App) freezePersonaWriterAssignment(ctx context.Context, run *privateReplyRun, agent FormalAgentID, variant string) {
 	config := run.Settings
 	var err error
 	if config.ModelRef == "" || a.Provider == nil {
 		run.AssignmentError = errors.New("reply_model_unconfigured")
 	} else {
-		run.Assignment, err = a.Provider.assignment(ctx, config.ModelRef)
+		run.Assignment, err = a.Provider.assignment(withAgentModelRoute(ctx, agent, variant), config.ModelRef)
 		if err != nil {
 			run.AssignmentError = errors.New("reply_model_unavailable")
 		}
 	}
 	if run.AssignmentError == nil {
-		run.Assignment.Timeout = time.Duration(config.TimeoutSeconds) * time.Second
+		// An explicit task binding owns its physical request timeout. The
+		// private/WakeUp/Moment reply wrapper still has its own deadline; a
+		// default binding keeps the historical global timeout behavior. Diary
+		// and Studio use their respective workflow deadlines.
+		if !strings.HasPrefix(run.Assignment.SourceBindingRole, "agent:") {
+			run.Assignment.Timeout = time.Duration(config.TimeoutSeconds) * time.Second
+		}
 		temperature, topP := config.Temperature, config.TopP
-		run.Assignment.Temperature, run.Assignment.TopP = &temperature, &topP
+		if run.Assignment.Temperature == nil {
+			run.Assignment.Temperature = &temperature
+		}
+		if run.Assignment.TopP == nil {
+			run.Assignment.TopP = &topP
+		}
 		if _, err := promptBudgetPolicyForAssignment(run.Assignment); err != nil {
 			run.AssignmentError = errors.New("reply_model_budget_invalid")
 		}

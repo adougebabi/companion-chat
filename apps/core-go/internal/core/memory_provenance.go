@@ -25,6 +25,10 @@ func memorySourcesStillValid(ctx context.Context, query currentAuthorityReader, 
 	if provenanceStatus == "pending" || provenanceStatus == "invalid" {
 		return false, nil
 	}
+	var clean bool
+	if err := query.QueryRow(ctx, `SELECT COALESCE((SELECT NOT public.memory_has_corrected_summary_source(owner_fluctlight_id,id,$2) FROM public.memories WHERE id=$1),false)`, memoryID, revision).Scan(&clean); err != nil || !clean {
+		return false, err
+	}
 	if provenanceStatus == "legacy_unknown" {
 		return true, nil
 	}
@@ -188,8 +192,24 @@ func resolveFrozenMemorySourceTx(ctx context.Context, tx pgx.Tx, command Prepare
 	return source, nil
 }
 
-func writeMemorySourceLinksTx(ctx context.Context, tx pgx.Tx, command PreparedMemoryMutation, row memoryAuthorityRow) error {
+func writeMemorySourceLinksTx(ctx context.Context, tx pgx.Tx, command PreparedMemoryMutation, row memoryAuthorityRow, baseRevision int) error {
 	for _, ref := range sortedUniqueStrings(decisionServiceRefValues(row.EvidenceRefs)) {
+		if command.Operation == MemoryConfirm && row.Revision > baseRevision && !slices.Contains(command.EvidenceRefs, ref) {
+			// Confirmation adds evidence without replacing the prior claim. Keep
+			// inherited typed sources bound to their original revisions instead
+			// of reinterpreting opaque refs as unknown or owner confirmations.
+			copied, err := tx.Exec(ctx, `INSERT INTO public.memory_source_links(memory_id,memory_revision,source_ref,source_kind,source_id,source_revision,source_fingerprint,occurred_at,status,superseded_by_ref)
+ SELECT memory_id,$2,source_ref,source_kind,source_id,source_revision,source_fingerprint,occurred_at,
+ CASE WHEN status='valid' AND NOT public.memory_source_is_live(source_kind,source_id,source_revision,source_fingerprint) THEN 'invalid' ELSE status END,
+ superseded_by_ref
+ FROM public.memory_source_links WHERE memory_id=$1 AND memory_revision=$3 AND source_ref=$4 AND status IN ('valid','invalid')`, row.ID, row.Revision, baseRevision, ref)
+			if err != nil {
+				return err
+			}
+			if copied.RowsAffected() == 1 {
+				continue
+			}
+		}
 		var source memorySource
 		var err error
 		if frozen, found := command.FrozenEvidenceSources[ref]; found {
@@ -213,7 +233,7 @@ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, row.ID, row.Revision, ref, kind, nullableSt
 			return err
 		}
 	}
-	var validCount, unknownCount int
+	var validCount, unsupportedCount int
 	hasOutcome := false
 	for _, raw := range row.EvidenceRefs {
 		if strings.HasPrefix(stringValue(raw), "outcome:") {
@@ -221,13 +241,13 @@ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, row.ID, row.Revision, ref, kind, nullableSt
 			break
 		}
 	}
-	if err := tx.QueryRow(ctx, `SELECT count(*) FILTER (WHERE status='valid'),count(*) FILTER (WHERE status='unknown') FROM public.memory_source_links WHERE memory_id=$1 AND memory_revision=$2`, row.ID, row.Revision).Scan(&validCount, &unknownCount); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT count(*) FILTER (WHERE status='valid'),count(*) FILTER (WHERE status<>'valid') FROM public.memory_source_links WHERE memory_id=$1 AND memory_revision=$2`, row.ID, row.Revision).Scan(&validCount, &unsupportedCount); err != nil {
 		return err
 	}
 	provenanceStatus := "pending"
 	if row.Status != "active" {
 		provenanceStatus = "invalid"
-	} else if validCount > 0 && unknownCount == 0 {
+	} else if validCount > 0 && unsupportedCount == 0 {
 		provenanceStatus = "verified"
 	} else if validCount > 0 {
 		provenanceStatus = "partial"

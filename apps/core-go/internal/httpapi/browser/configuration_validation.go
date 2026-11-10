@@ -27,7 +27,7 @@ func (s *Server) configurationError(w http.ResponseWriter, err error) {
 		return
 	}
 	if errors.As(err, &typed) && typed.Status == 422 {
-		writeError(w, 422, typed.Code, "配置未保存，请核对字段与有效范围")
+		writeErrorWithDetails(w, 422, typed.Code, "配置未保存，请核对字段与有效范围", typed.Details)
 		return
 	}
 	s.writeSurfaceError(w, err)

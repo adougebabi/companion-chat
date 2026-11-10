@@ -21,6 +21,7 @@ const (
 	FormalAgentConversationCognition FormalAgentID = "conversation_cognition"
 	FormalAgentConversationReply     FormalAgentID = "conversation_reply"
 	FormalAgentReplyActionCheck      FormalAgentID = "reply_action_check"
+	FormalAgentExpressionLearning    FormalAgentID = "expression_learning"
 	FormalAgentWakeUp                FormalAgentID = "wake_up"
 	FormalAgentTakeoverJudge         FormalAgentID = "takeover_judge"
 	FormalAgentTakeoverReply         FormalAgentID = "takeover_reply"
@@ -85,6 +86,7 @@ var formalAgentRegistry = map[FormalAgentID]FormalAgentDefinition{
 	FormalAgentDiaryExpression:       {ID: FormalAgentDiaryExpression, Name: "fluctlight-diary-expression", Description: "Independently express a subjective diary from actual selected sources and effective persona, without life or publication tools.", Role: conversationReplyModelRole, Scenario: "diary_expression", OutputKind: FormalAgentOutputText, MandatoryTools: []string{}},
 	FormalAgentConversationReply:     {ID: FormalAgentConversationReply, Name: "fluctlight-conversation-reply", Description: "Independently express the persona and request draft-owned images through the private tool, using authoritative facts.", Role: conversationReplyModelRole, Scenario: "fact_only_reply", OutputKind: FormalAgentOutputText, MaxIterations: 3, MandatoryTools: []string{replyImageRequestName, personaDetailCapabilityName}},
 	FormalAgentReplyActionCheck:      {ID: FormalAgentReplyActionCheck, Name: "fluctlight-reply-action-check", Description: "Check an unpublished reply after an unsuccessful wardrobe action against actual receipts, without persona roleplay or tools.", Role: "cognitive_assessment", Scenario: "reply_action_consistency", OutputKind: FormalAgentOutputStructured, MaxIterations: 1, MandatoryTools: []string{}},
+	FormalAgentExpressionLearning:    {ID: FormalAgentExpressionLearning, Name: "fluctlight-expression-learning", Description: "Propose reviewable expression excerpts from explicitly supplied human messages, without life access or tools.", Role: "cognitive_assessment", Scenario: "expression_learning", OutputKind: FormalAgentOutputStructured, MandatoryTools: []string{}},
 	FormalAgentGoalPlanner:           {ID: FormalAgentGoalPlanner, Name: "fluctlight-goal-planner", Description: "Maintain the independent authoritative Goal set through query and atomic commit tools.", Role: "cognitive_assessment", Scenario: "goal_planner", OutputKind: FormalAgentOutputStructured, MaxIterations: 12, DefaultSurface: CapabilitySurfaceGoalPlanner, MandatoryTools: []string{"goal_planner.query", "goal_planner.commit"}},
 	FormalAgentGoalEvaluation:        {ID: FormalAgentGoalEvaluation, Name: "fluctlight-goal-evaluation", Description: "Submit authoritative Goal evidence through private evaluation, object and plan tools.", Role: "cognitive_assessment", Scenario: "goal_evaluation", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceGoalEvaluation, MandatoryTools: []string{goalEvaluationSubmit, goalObjectSubmit, goalPlanSubmit}},
 	FormalAgentConversationCognition: {ID: FormalAgentConversationCognition, Name: "fluctlight-conversation-cognition", Description: "Assess one conversation turn and use authorized capabilities before returning the final turn contract.", Role: "cognitive_assessment", Scenario: "cognitive_assessment", OutputKind: FormalAgentOutputStructured, DefaultSurface: CapabilitySurfaceConversation, MandatoryTools: []string{conversationReplyCapabilityName, capabilityCatalogName, "moment.publish"}},
@@ -140,6 +142,8 @@ func formalAgentForSchema(schemaName string) (FormalAgentID, bool) {
 		return FormalAgentDiaryExpression, true
 	case "conversation_reply_text":
 		return FormalAgentConversationReply, true
+	case expressionLearningSchema:
+		return FormalAgentExpressionLearning, true
 	case "conversation_turn_response":
 		return FormalAgentConversationCognition, true
 	case "wake_up_response":
@@ -204,6 +208,9 @@ type FormalAgentRunInput struct {
 	Prompt      PromptAssemblyResult
 	Definitions []CapabilityDefinition
 	SchemaName  string
+	// Variant distinguishes task-owned usages that share an Agent/schema.
+	// Empty uses SchemaName for the existing typed-task identity.
+	Variant string
 	// OutputKind selects an explicit typed-task variant when a shared Agent ID
 	// supports both text and structured contracts. Empty keeps the Agent default.
 	OutputKind      FormalAgentOutputKind
@@ -215,6 +222,11 @@ type FormalAgentRunInput struct {
 }
 
 func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input FormalAgentRunInput) (ADKStructuredTaskResult, error) {
+	var scopeErr error
+	ctx, scopeErr = a.withDomainPluginScope(ctx)
+	if scopeErr != nil {
+		return ADKStructuredTaskResult{}, scopeErr
+	}
 	definition, ok := FormalAgentDefinitionByID(id)
 	if !ok {
 		return ADKStructuredTaskResult{}, fmt.Errorf("formal_agent_not_registered: %s", id)
@@ -240,9 +252,11 @@ func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input Formal
 			definition.Scenario = "conversation_daily_memory"
 		}
 	}
+	variant := firstString(input.Variant, input.SchemaName)
+	ctx = withAgentModelRoute(ctx, id, variant)
 	return a.RunADKStructuredTask(withFormalAgentDefinition(ctx, definition), ADKStructuredTaskInput{
 		AgentID: id, Role: definition.Role, Scenario: definition.Scenario,
-		Prompt: input.Prompt, Definitions: input.Definitions, SchemaName: input.SchemaName,
+		Prompt: input.Prompt, Definitions: input.Definitions, SchemaName: input.SchemaName, TaskVariant: variant,
 		EnableThinking: input.EnableThinking, EnableStreaming: input.EnableStreaming,
 		TextOutput: definition.OutputKind == FormalAgentOutputText, Capability: input.Capability, Invoker: input.Invoker,
 	})

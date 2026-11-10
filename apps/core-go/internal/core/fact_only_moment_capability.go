@@ -47,7 +47,7 @@ func (a *App) withMomentWriterRun(ctx context.Context, scope ToolExecutionReques
 	}
 	run := &privateReplyRun{Scope: scope}
 	if shared := replyRunFromContext(ctx); shared != nil {
-		run.Settings, run.ConfigVersion, run.Assignment, run.AssignmentError = shared.Settings, shared.ConfigVersion, shared.Assignment, shared.AssignmentError
+		run.Settings, run.ConfigVersion = shared.Settings, shared.ConfigVersion
 		run.CurrentInput = shared.CurrentInput
 	} else {
 		var err error
@@ -55,12 +55,19 @@ func (a *App) withMomentWriterRun(ctx context.Context, scope ToolExecutionReques
 		if err != nil {
 			return ctx, err
 		}
-		if run.Settings.Mode == "fact_only" {
-			a.freezePersonaWriterAssignment(ctx, run)
-		}
+	}
+	if run.Settings.Mode == "direct" {
+		// Direct private chat does not change the independent Moment task.
+		run.Settings.Mode = "fact_only"
 	}
 	if run.Settings.Mode != "fact_only" {
 		return ctx, nil
+	}
+	a.freezePersonaWriterAssignment(ctx, run, FormalAgentConversationReply, "moment")
+	if shared := replyRunFromContext(ctx); shared != nil && shareMomentWriterAssignment(run.Assignment, run.AssignmentError, shared.Assignment, shared.AssignmentError) {
+		// Reuse the frozen value only when both tasks selected the same source.
+		// A private/proactive variant override is not Moment's default.
+		run.Assignment, run.AssignmentError = shared.Assignment, shared.AssignmentError
 	}
 	if scope.TargetKind == "owner_moment_request" {
 		var err error
@@ -75,6 +82,10 @@ func (a *App) withMomentWriterRun(ctx context.Context, scope ToolExecutionReques
 		return ctx, err
 	}
 	return withCapabilityRunRegistry(context.WithValue(ctx, momentWriterRunKey{}, service), view), nil
+}
+
+func shareMomentWriterAssignment(moment providerAssignment, momentErr error, shared providerAssignment, sharedErr error) bool {
+	return momentErr == nil && sharedErr == nil && moment.SourceBindingRole != "" && moment.SourceBindingRole == shared.SourceBindingRole
 }
 
 func (c factOnlyMomentCapability) Definition() CapabilityDefinition {

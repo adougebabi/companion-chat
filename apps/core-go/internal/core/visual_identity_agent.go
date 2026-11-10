@@ -176,7 +176,20 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	}
 	operationID := visualIdentityAgentCheckpointOperationID(state)
 	runCtx := WithProviderCorrelation(ctx, "visual_identity:"+state.SessionID)
+	runCtx, err = a.withDomainPluginScope(runCtx)
+	if err != nil {
+		return VisualIdentityAgentOutput{}, err
+	}
+	if state.ActionRequired == visualIdentityGenerateCandidateCapabilityName && state.MediaIntentID != "" {
+		// A previously accepted media intent may be inspected/replayed even
+		// after Image is disabled; the effect boundary still rejects new work.
+		runCtx = context.WithValue(runCtx, domainPluginVisualReplayKey{}, true)
+	}
+	if !domainCapabilityEnabled(runCtx, state.ActionRequired) {
+		return VisualIdentityAgentOutput{}, domainPluginDisabledError()
+	}
 	if state.ActionRequired == visualIdentityCommitReviewCapabilityName {
+		runCtx = withAgentModelRoute(runCtx, FormalAgentVisualIdentity, "visual_identity_agent_response")
 		runCtx = withFrozenProviderAssignment(runCtx, "cognitive_assessment", vision.Assignment)
 		runCtx = context.WithValue(runCtx, visualInspectionAuthorityKey{}, visualInspectionAuthority{SessionID: state.SessionID, AssetID: state.CandidateAssetID, ModelID: vision.Assignment.ModelID, ConfigVersion: vision.Version})
 	}

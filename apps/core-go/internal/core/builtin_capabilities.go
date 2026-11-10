@@ -99,18 +99,9 @@ func builtinCapabilities(app *App) []Capability {
 			activeMemory = app
 		}
 	}
-	var image imageCapabilityService
-	var visualIdentity visualIdentityCapabilityService
 	var lifeScene sceneCapabilityService
 	var lifePresence presenceCapabilityService
 	if app != nil {
-		if app.Media != nil {
-			image = app.Media
-			visualIdentity = app.Media
-		} else {
-			image = app
-			visualIdentity = app
-		}
 		if app.LifeContext != nil {
 			lifeScene = app.LifeContext
 			lifePresence = app.LifeContext
@@ -146,11 +137,9 @@ func builtinCapabilities(app *App) []Capability {
 			return capabilityCatalog(app.capabilityRegistry(), surface)
 		}},
 		goalCapability{service: newGoalCapabilityService(app), name: "goal.inspect"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.decide"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.evaluate"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.review"},
-		conversationReplyCapability{publication: publication}, momentPublishCapability{publication: publication}, imageGenerateCapability{service: image, publication: publication},
-		visualIdentityInitializeCapability{service: visualIdentity}, sceneEventCapability{service: lifeScene}, schedule,
+		conversationReplyCapability{publication: publication}, sceneEventCapability{service: lifeScene}, schedule,
 		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},
 		memoryRecallCapability{service: newMemoryRecallService(app)},
-		momentInspectCapability{repository: appearanceRepository},
 		chatPromiseCapability{service: newChatPromiseService(app)},
 		actorInspectCapability{service: facts}, actorFactCapability{service: facts},
 		personaDetailCapability{service: newPersonaDetailService(app)},
@@ -168,7 +157,10 @@ func builtinCapabilities(app *App) []Capability {
 	}
 	capabilities = append(capabilities, goalPlannerCapabilities(app)...)
 	capabilities = append(capabilities, goalEvaluationCapabilities(app)...)
-	return append(capabilities, visualIdentityAgentCapabilities(app)...)
+	for _, plugin := range builtInDomainPlugins {
+		capabilities = append(capabilities, plugin.Register(app, publication)...)
+	}
+	return capabilities
 }
 
 var (

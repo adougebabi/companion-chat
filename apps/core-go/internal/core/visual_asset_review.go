@@ -102,6 +102,9 @@ func (a *App) generateOwnerAvatar(ctx context.Context, owner, fid string, body m
 		if err == nil && (status == "awaiting_review" || status == "generating" && mediaStatus != "failed") {
 			return map[string]any{"id": existingID, "review_id": reviewID, "fluctlight_id": fid, "visual_revision": revision, "status": status}, nil
 		}
+		if err := requireDomainPluginEnabledTx(ctx, tx, "image"); err != nil {
+			return nil, err
+		}
 		source := "owner-avatar:" + stableDigest(owner+":"+fid+":"+stringValue(body["idempotency_key"]))
 		intentID, err := a.enqueueGeneratedAvatarTx(ctx, tx, fid, profileID, canonical, sessionID, source, revision, decodeObject(snapshotRaw), decodeObject(constraintsRaw), true, "")
 		if err != nil {
@@ -164,6 +167,9 @@ func (a *App) reviewOwnerVisualAsset(ctx context.Context, owner, fid, reviewID s
 		}
 		newStatus := "accepted"
 		if decision == "regenerate" {
+			if err := requireDomainPluginEnabledTx(ctx, tx, "image"); err != nil {
+				return nil, err
+			}
 			newStatus = "rejected"
 		}
 		if _, err := tx.Exec(ctx, `UPDATE public.fluctlight_visual_asset_reviews SET status=$2,review_source='manual',feedback=$3,revision=revision+1,updated_at=now() WHERE id=$1 AND status='awaiting_review'`, reviewID, newStatus, feedback); err != nil {

@@ -71,7 +71,7 @@ func readToolExecution(ctx context.Context, reader toolExecutionReader, request 
 
 // Business state and the receipt share one commit, so a later model error can
 // neither erase a committed result nor require replaying its side effect.
-func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequest, execute func(pgx.Tx) (CapabilityResult, error)) (CapabilityResult, ToolAuthorityRevisions, bool, error) {
+func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequest, execute func(pgx.Tx) (CapabilityResult, error), after ...func(pgx.Tx, CapabilityResult) error) (CapabilityResult, ToolAuthorityRevisions, bool, error) {
 	var result CapabilityResult
 	var authority ToolAuthorityRevisions
 	var replayed bool
@@ -197,7 +197,13 @@ func (a *App) executeToolMutation(ctx context.Context, request ToolExecutionRequ
 			return err
 		}
 		_, err = tx.Exec(ctx, `INSERT INTO public.tool_executions(fluctlight_id,capability_name,operation_id,authorization_actor_id,request_digest,result,agent_id,run_id,invocation) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, request.FluctlightID, request.CapabilityName, request.OperationID, request.AuthorizationActorID, toolExecutionDigest(request), jsonBytes(result), request.AgentID, request.RunID, jsonBytes(invocationRecord))
-		return err
+		if err != nil {
+			return err
+		}
+		if allowed && result.Status == "completed" && len(after) > 0 && after[0] != nil {
+			return after[0](tx, result)
+		}
+		return nil
 	})
 	return result, authority, replayed, err
 }

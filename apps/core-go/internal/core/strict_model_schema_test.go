@@ -13,6 +13,7 @@ func TestStrictWireSchemasCoverRegisteredModelContracts(t *testing.T) {
 		"schedule_replan_plan":              schedulePlannerOutputSchema(),
 		"conversation_turn_response":        cognitiveTurnResponseSchema(),
 		"daily_review_response":             dailyReviewResponseSchema(),
+		"expression_learning_v1":            expressionLearningProviderSchema(),
 		"wake_up_response":                  wakeUpResponseSchema(),
 		"native_cognition_response":         nativeCognitionResponseSchema(),
 		"persona_compilation_response":      personaCompilationResponseSchema(),

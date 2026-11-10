@@ -109,7 +109,7 @@ func newFormalAgentE2EFixture(t *testing.T) *formalAgentE2EFixture {
 	if _, err := repository.Pool().Exec(seedCtx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES($1,'openai_compatible',$2,$3,'ready',now())`, endpointID, strings.TrimRight(baseURL, "/"), secretPurpose); err != nil {
 		t.Fatal(err)
 	}
-	roles := []string{"initialization", "cognitive_assessment", "media_prompt", "reflection", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole}
+	roles := []string{"initialization", "cognitive_assessment", conversationReplyModelRole, "media_prompt", "reflection", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole}
 	for _, role := range roles {
 		required := "structured_output"
 		tokenBudget := 4096

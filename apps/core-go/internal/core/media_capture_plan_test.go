@@ -187,6 +187,18 @@ func TestMediaBranchM36RepairIsBoundedAndCancelled(t *testing.T) {
 	if !errors.Is(err, context.Canceled) || calls != 0 {
 		t.Fatal("cancel started generation")
 	}
+	ctx, cancel = context.WithCancel(context.Background())
+	calls = 0
+	_, _, err = normalizeMediaPrompt(ctx, concept, func(context.Context, map[string]any) (map[string]any, error) {
+		calls++
+		cancel()
+		invalid := mediaTestOutput(concept)
+		invalid["prompt"] = "A handheld phone self-capture; the phone camera defines the viewpoint."
+		return invalid, nil
+	})
+	if !errors.Is(err, context.Canceled) || calls != 1 {
+		t.Fatalf("cancel between attempts sent another request: calls=%d err=%v", calls, err)
+	}
 }
 
 func TestMediaBranchM37FinalConditionsAndLegitimateStyleReference(t *testing.T) {

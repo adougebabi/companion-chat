@@ -27,8 +27,8 @@ const (
 )
 
 const (
-	mediaQualityActionRetry            = "retry"
-	mediaQualityActionAcceptAfterRetry = "accept_after_retry"
+	mediaQualityActionRetry = "retry"
+	mediaQualityActionStop  = "stop"
 )
 
 type mediaQualityViolation struct {
@@ -160,9 +160,6 @@ func mediaQualityMessages(intent mediaIntent, contentType string, content []byte
 		map[string]any{"type": "image_url", "image_url": map[string]any{"url": dataURL}},
 	}
 	instruction := mediaQualityAcceptanceSystemInstruction()
-	if isDerivedVisualIdentityMedia(intent) {
-		instruction = strings.Replace(instruction, "The application retries any first non-pass once with this feedback and delivers the second candidate even when its verdict is retry or reject.", "The application may retry a non-pass with this feedback. Only a genuine pass accepts this image; otherwise the candidate can await explicit human review.", 1)
-	}
 	if isAvatarVisualIdentityMedia(intent) {
 		instruction += "\n\nFor an avatar, the provider prompt determines the chosen subject, which may be a person, animal, object, landscape, or something else. Do not require a person or face. Compare the confirmed reference only if the chosen design depicts the character; then preserve the character's recognizable facial features, skin tone and hair. If the character is not depicted, appearance_matches concerns the chosen subject's applicable appearance; do not mark it false merely because there is no face. Check the square composition, circular crop, and text-free requirements."
 	}
@@ -204,7 +201,7 @@ func mediaQualityAcceptanceSystemInstruction() string {
 		"Use reject to accurately report an unsafe, unusable, or clearly impossible candidate.",
 		1,
 	)
-	return instruction + "\n\nReport only the candidate's observed quality verdict; never change a failing verdict to pass because of delivery handling. The application retries any first non-pass once with this feedback and delivers the second candidate even when its verdict is retry or reject."
+	return instruction + "\n\nReport only the candidate's observed quality verdict; never change a failing verdict to pass because of delivery handling. The application may retry the first non-pass once. A second non-pass is not automatically delivered; eligible visual-identity candidates may await explicit human review."
 }
 
 func (a *App) evaluateMediaQuality(ctx context.Context, intent mediaIntent, contentType string, content []byte) (mediaQualityAcceptance, error) {
@@ -240,7 +237,7 @@ func mediaQualityDisposition(retryCount int, verdict string) string {
 		return mediaQualityVerdictPass
 	case mediaQualityVerdictRetry, mediaQualityVerdictReject:
 		if retryCount > 0 {
-			return mediaQualityActionAcceptAfterRetry
+			return mediaQualityActionStop
 		}
 		return mediaQualityActionRetry
 	default:
@@ -343,41 +340,45 @@ func (a *App) prepareMediaQualityRetry(ctx context.Context, intentID, providerJo
 	return errors.New("media quality retry cannot be prepared")
 }
 
-func (a *App) acceptMediaQualityAfterRetry(ctx context.Context, intentID, providerJobID, candidateSHA string) error {
-	command, err := a.DB.Pool().Exec(ctx, `UPDATE public.media_intents SET quality_verdict=$2,quality_candidate_sha256=$3,quality_checked_at=now(),revision=revision+1 WHERE id=$1 AND provider_job_id=$4 AND status='running' AND quality_retry_count>=1`, intentID, mediaQualityVerdictRetryAccepted, candidateSHA, providerJobID)
-	if err != nil {
-		return err
+func mediaQualityFailureCode(verdict string) string {
+	switch verdict {
+	case mediaQualityVerdictReject:
+		return "media_quality_rejected"
+	case mediaQualityVerdictRetryAccepted:
+		return "media_quality_legacy_review_required"
 	}
-	if command.RowsAffected() == 1 {
-		return nil
-	}
-	var status, verdict, storedCandidate, currentJob string
-	var retryCount int
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,quality_retry_count,COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),COALESCE(provider_job_id,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&status, &retryCount, &verdict, &storedCandidate, &currentJob); err != nil {
-		return err
-	}
-	if status == "running" && retryCount >= 1 && verdict == mediaQualityVerdictRetryAccepted && storedCandidate == candidateSHA && currentJob == providerJobID {
-		return nil
-	}
-	return errors.New("media quality result cannot be accepted after retry")
+	return "media_quality_retry_exhausted"
 }
 
-func (a *App) rejectMediaQuality(ctx context.Context, intentID, providerJobID, candidateSHA string) error {
+func terminalMediaQualityFailure(intent mediaIntent) bool {
+	if !isDerivedVisualIdentityMedia(intent) && intent.Status != "completed" && intent.QualityVerdict == mediaQualityVerdictRetryAccepted {
+		// Historical retry_accepted meant the second review did not pass. A
+		// partially processed old task cannot silently publish that candidate.
+		return true
+	}
+	return !isDerivedVisualIdentityMedia(intent) && intent.Status == "failed" && intent.ProviderJobID != "" && intent.QualityCandidateSHA != "" && (intent.QualityVerdict == mediaQualityVerdictReject || intent.QualityVerdict == mediaQualityVerdictRetry)
+}
+
+func (a *App) rejectMediaQuality(ctx context.Context, intentID, providerJobID, candidateSHA, verdict string) error {
+	if verdict != mediaQualityVerdictReject && verdict != mediaQualityVerdictRetry {
+		return errors.New("media quality failure verdict invalid")
+	}
+	reason := mediaQualityFailureCode(verdict)
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		command, err := tx.Exec(ctx, `UPDATE public.media_intents SET quality_verdict='reject',quality_candidate_sha256=$2,quality_checked_at=now(),status='failed',revision=revision+1 WHERE id=$1 AND provider_job_id=$3 AND status='running'`, intentID, candidateSHA, providerJobID)
+		command, err := tx.Exec(ctx, `UPDATE public.media_intents SET quality_verdict=$4,quality_candidate_sha256=$2,quality_checked_at=now(),status='failed',revision=revision+1 WHERE id=$1 AND provider_job_id=$3 AND status='running'`, intentID, candidateSHA, providerJobID, verdict)
 		if err != nil {
 			return err
 		}
 		if command.RowsAffected() != 1 {
-			var status, verdict string
-			if err := tx.QueryRow(ctx, `SELECT status,COALESCE(quality_verdict,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&status, &verdict); err != nil {
+			var status, storedVerdict, storedSHA, storedJob string
+			if err := tx.QueryRow(ctx, `SELECT status,COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),COALESCE(provider_job_id,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&status, &storedVerdict, &storedSHA, &storedJob); err != nil {
 				return err
 			}
-			if status != "failed" || verdict != mediaQualityVerdictReject {
+			if status != "failed" || storedVerdict != verdict || storedSHA != candidateSHA || storedJob != providerJobID {
 				return errors.New("media quality reject cannot be persisted")
 			}
 		}
-		_, err = a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeFailed, map[string]any{"media_intent_id": intentID, "status": "failed", "reason_code": "media_quality_rejected"}, "media_quality_rejected")
+		_, err = a.settleActionOutcomeByExternalRefTx(ctx, tx, intentID, ActionOutcomeFailed, map[string]any{"media_intent_id": intentID, "status": "failed", "reason_code": reason}, reason)
 		return err
 	})
 }

@@ -318,6 +318,9 @@ func (a *App) executeVisualIdentityGenerateCandidateTx(ctx context.Context, tx p
 		}
 		return visualIdentityToolResult(invocation, status, map[string]any{"session_id": sessionID, "attempt": session.Attempt, "status": mediaStatus, "media_intent_id": session.MediaIntentID, "task_id": workflowID, "replayed": true}), nil
 	}
+	if err := requireDomainPluginEnabledTx(ctx, tx, "image"); err != nil {
+		return failedCapabilityResult(invocation, "domain_plugin_disabled", false), err
+	}
 	identitySnapshot := cloneMap(session.InputSnapshot)
 	if len(identitySnapshot) == 0 {
 		var raw []byte

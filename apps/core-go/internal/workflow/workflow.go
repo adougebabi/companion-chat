@@ -1479,7 +1479,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		intentID, workflowID, intentType, currentIntentStatus, payload, attemptCount := item.id, item.workflowID, item.kind, item.status, item.payload, item.attempts
 		// Dispatch starts/adopts these stable clocks. The previous terminal Run
 		// must not close a queued recovery or move its backoff deadline forward.
-		if (intentType == "world.events.generate" || intentType == "schedule.current_day" || intentType == "wardrobe.initialize") && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
+		if (intentType == "world.events.generate" || intentType == "schedule.current_day" || intentType == "wardrobe.initialize" || intentType == "conversation.daily_memory") && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
 			continue
 		}
 		var input Input
@@ -1791,7 +1791,8 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents
 				SET status='retry',next_attempt_at=now()+($2 * interval '1 second'),attempt_count=$3,
 				started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($4,''),last_error,'conversation_lifecycle_workflow_terminal')
-				WHERE intent_id=$1 AND status IN ('pending','started','failed')`, intentID, int64(retryDelay/time.Second), nextAttemptCount, terminalFailure)
+				WHERE intent_id=$1 AND status IN ('pending','started','failed')
+				AND (intent_type<>'conversation.daily_memory' OR (status IN ('started','failed') AND attempt_count=$5 AND payload=$6::jsonb))`, intentID, int64(retryDelay/time.Second), nextAttemptCount, terminalFailure, attemptCount, payload)
 			if err != nil {
 				return count, err
 			}
@@ -2061,7 +2062,8 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				}
 			}
 		}
-		command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','started','cancel_requested','retry','failed'))`, intentID, intentStatus, terminalFailure)
+		command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','started','cancel_requested','retry','failed'))
+			AND (intent_type<>'conversation.daily_memory' OR (status IN ('started','cancel_requested','failed') AND attempt_count=$4 AND payload=$5::jsonb))`, intentID, intentStatus, terminalFailure, attemptCount, payload)
 		if err != nil {
 			return count, err
 		}
@@ -2551,7 +2553,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				count++
 				continue
 			}
-			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID, boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()}))
+			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry')) AND (intent_type<>'conversation.daily_memory' OR payload=$3::jsonb)`, intentID, boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()}), payload)
 			if writeErr != nil {
 				return count, fmt.Errorf("settle workflow start failure %s: %w", intentID, writeErr)
 			}
@@ -2560,7 +2562,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				if statusErr != nil {
 					return count, fmt.Errorf("read workflow start failure settlement %s: %w", intentID, statusErr)
 				}
-				if dispatchIntentRaceSettled(currentStatus) {
+				if dispatchIntentRaceSettled(currentStatus) || (intentType == "conversation.daily_memory" && (currentStatus == "pending" || currentStatus == "retry")) {
 					continue
 				}
 				return count, fmt.Errorf("settle workflow start failure %s: workflow_start_retry_not_written", intentID)
@@ -2570,6 +2572,14 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		}
 		alreadyStarted := temporal.IsWorkflowExecutionAlreadyStartedError(err)
 		runID := workflowRunIdentity(execution, err)
+		if alreadyStarted && intentType == "conversation.daily_memory" {
+			// The running execution may belong to a completed older source set.
+			// Do not consume the newly queued generation by adopting that run.
+			if _, retryErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND status IN ('pending','retry') AND payload=$2::jsonb`, intentID, payload); retryErr != nil {
+				return count, retryErr
+			}
+			continue
+		}
 		if alreadyStarted && intentType != "reflection.run" && workflowIntentMaximumAttempts(intentType) > 0 {
 			described, describeErr := d.Client.DescribeWorkflowExecution(ctx, goWorkflowID, runID)
 			running := describeErr == nil && described != nil && described.WorkflowExecutionInfo != nil && described.WorkflowExecutionInfo.GetStatus() == enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING
@@ -2595,7 +2605,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				continue
 			}
 		}
-		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
+		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry')) AND (intent_type<>'conversation.daily_memory' OR payload=$2::jsonb)`, intentID, payload)
 		if statusErr != nil || command.RowsAffected() != 1 {
 			// Temporal already accepted the start. Leave the durable row visible
 			// to the next reconciliation pass rather than hiding a DB failure in
@@ -2613,7 +2623,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			if readErr != nil {
 				return count, fmt.Errorf("read workflow start settlement %s: %w", intentID, readErr)
 			}
-			if dispatchIntentRaceSettled(currentStatus) {
+			if dispatchIntentRaceSettled(currentStatus) || (intentType == "conversation.daily_memory" && (currentStatus == "pending" || currentStatus == "retry")) {
 				if currentStatus == "started" {
 					d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_start_settlement", "started", "workflow_start_race_reconciled", attemptCount+1, nil)
 					d.Started[intentID] = struct{}{}

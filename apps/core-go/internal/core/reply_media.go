@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -248,11 +249,24 @@ func (c replyImageCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, in
 		return CapabilityResult{}, err
 	}
 	var bound string
-	if err := tx.QueryRow(ctx, `SELECT COALESCE(r.media_intent_id,'') FROM public.conversation_reply_actions r JOIN public.conversation_reply_drafts d ON d.id=r.draft_id WHERE r.ref=$1 AND d.id=$2 AND d.authorization_actor_id=$3 AND d.fluctlight_id=$4 AND d.conversation_id=$5 AND d.status IN ('needs_action','waiting_media') AND d.expires_at>now() FOR UPDATE OF r,d`, ref, draft, target.AuthorizationActorID, target.FluctlightID, target.ConversationID).Scan(&bound); err != nil {
+	var draftPayload []byte
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(r.media_intent_id,''),d.payload FROM public.conversation_reply_actions r JOIN public.conversation_reply_drafts d ON d.id=r.draft_id WHERE r.ref=$1 AND d.id=$2 AND d.authorization_actor_id=$3 AND d.fluctlight_id=$4 AND d.conversation_id=$5 AND d.status IN ('needs_action','waiting_media') AND d.expires_at>now() FOR UPDATE OF r,d`, ref, draft, target.AuthorizationActorID, target.FluctlightID, target.ConversationID).Scan(&bound, &draftPayload); err != nil {
 		return CapabilityResult{}, err
 	}
 	if bound != "" {
 		return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "accepted", ProviderRequestID: inv.ProviderRequestID, Output: map[string]any{"media_intent_id": bound, "target_kind": target.Kind, "target_ref": target.Ref, "status": "pending", "replayed": true}}, nil
+	}
+	var saved ReplyDraft
+	if err := json.Unmarshal(draftPayload, &saved); err != nil {
+		return CapabilityResult{}, err
+	}
+	if len(saved.ExpressionSuggestions) > 0 && saved.FactsRevision != "" {
+		if err := c.app.requireCurrentFactsRevisionTx(ctx, tx, target.FluctlightID, saved.FactsRevision); err != nil {
+			return CapabilityResult{}, err
+		}
+	}
+	if err := validateExpressionSuggestionsTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID, firstString(inv.Metadata.SubjectActorID, target.AuthorizationActorID), target.ConversationID, saved.ExpressionSuggestions); err != nil {
+		return CapabilityResult{}, err
 	}
 	result, err := c.imageGenerateCapability.ExecuteDirectTx(ctx, tx, inv, resolved, target)
 	if err != nil {
@@ -276,6 +290,13 @@ func (c replyImageCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx, in
 // Resume only terminal real components. The original generated prose stays
 // private; one result-aware Writer adjustment is cached before publication.
 func (s *factOnlyReplyService) resumeMedia(ctx context.Context, inv CapabilityInvocation, run *privateReplyRun, stored ReplyDraft, ref string, refs []string) (ReplyDraft, error) {
+	if err := s.app.validateExpressionSuggestions(ctx, inv.Metadata.AuthorizationActorID, inv.Metadata.FluctlightID, firstString(inv.Metadata.SubjectActorID, inv.Metadata.AuthorizationActorID), inv.Metadata.ConversationID, stored.ExpressionSuggestions); err != nil {
+		return stored, err
+	}
+	run.mu.Lock()
+	run.ExpressionSuggestions = append([]expressionSuggestionBinding(nil), stored.ExpressionSuggestions...)
+	run.ExpressionSuggestionsFrozen = true
+	run.mu.Unlock()
 	// A named catalog request can truthfully reject the generator before there
 	// is any image Tool receipt. Only that actual decision terminalizes actions;
 	// an unqueried hidden schema is not evidence of unavailability.

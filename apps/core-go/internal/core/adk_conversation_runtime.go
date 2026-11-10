@@ -185,7 +185,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if conversationPublicationPolicyEnabled(ctx) && !conversationLoopNeedsReply(ctx) {
 		if queries := conversationLoadedQueryPhase(ctx); len(queries) > 0 && !containsString(queries, capabilityName) {
 			if previous, found := i.trace.FindResult(callID); found {
-				return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), nil
+				return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
 			}
 			result := handledCapabilityResult(invocation, "turn_action_window_closed", "needs_query", map[string]any{"allowed_query_tools": queries, "recovery": "The read-only schemas are loaded. Call one listed query with your own schema-valid arguments. Repeating discovery does not read the facts; no action executed."})
 			i.trace.Append(invocation, result)
@@ -194,7 +194,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}
 	if conversationPublicationPolicyEnabled(ctx) && capabilityName != conversationReplyCapabilityName && conversationLoopNeedsReply(ctx) {
 		if previous, found := i.trace.FindResult(callID); found {
-			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), nil
+			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
 		}
 		result := handledCapabilityResult(invocation, "turn_action_window_closed", "awaiting_reply", map[string]any{"recovery": "The same query/rejection has repeated without new facts. No further action executed. Call conversation.reply using the existing actual results; do not invent completion or another action."})
 		i.trace.Append(invocation, result)
@@ -202,7 +202,7 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	}
 	if !knownCapability {
 		if previous, found := i.trace.FindResult(callID); found {
-			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), nil
+			return jsonString(map[string]any{"status": previous.Status, "output": previous.Output}), i.trace.ResultFailure(callID)
 		}
 		if !json.Valid(invocation.Arguments) {
 			invocation.Arguments = json.RawMessage(`{}`)
@@ -293,7 +293,11 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 				return "", errors.New("adk_tool_call_id_reused")
 			}
 			if previousResult, resultFound := i.trace.FindResult(callID); resultFound {
-				return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: previousResult}, definition)
+				serialized, err := modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: previousResult}, definition)
+				if err != nil {
+					return "", err
+				}
+				return serialized, i.trace.ResultFailure(callID)
 			}
 			return "", errors.New("adk_tool_result_missing")
 		}
@@ -360,7 +364,11 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 		receipt = ToolExecutionReceipt{OperationID: operationID, NativeToolCallID: callID, ExecutionCallID: callID, Result: result}
 	}
-	i.trace.AppendResult(result)
+	var runFailure error
+	if execErr != nil && result.Retryable {
+		runFailure = &agentRunFailure{stage: "tool", code: result.ErrorCode, cause: fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)}
+	}
+	i.trace.AppendResultWithFailure(result, runFailure)
 	if gate := kevPersona(ctx); gate != nil && capabilityName == personaSwitchCapabilityName {
 		gate.nativeResult(ctx, result)
 	}
@@ -390,11 +398,11 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 	if encodeErr != nil {
 		return "", encodeErr
 	}
-	if execErr != nil && result.Retryable {
+	if runFailure != nil {
 		// Runtime/dependency failures terminate this run while the trace retains
 		// the invocation and receipt. A non-retryable business rejection is a
 		// normal tool result and is returned to the model for another decision.
-		return serialized, &agentRunFailure{stage: "tool", code: result.ErrorCode, cause: fmt.Errorf("tool execution %s: %w", result.ErrorCode, execErr)}
+		return serialized, runFailure
 	}
 	return serialized, nil
 }
@@ -574,6 +582,7 @@ type ADKStructuredTaskInput struct {
 	Prompt          PromptAssemblyResult
 	Definitions     []CapabilityDefinition
 	SchemaName      string
+	TaskVariant     string
 	EnableThinking  bool
 	EnableStreaming bool
 	TextOutput      bool
@@ -612,6 +621,7 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	if input.AgentID != "" && definition.ID != input.AgentID {
 		return ADKStructuredTaskResult{}, errors.New("formal_agent_identity_mismatch")
 	}
+	input.AgentID = definition.ID
 	if strings.TrimSpace(input.Role) == "" {
 		input.Role = definition.Role
 	}
@@ -620,6 +630,19 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	}
 	if input.TextOutput != (definition.OutputKind == FormalAgentOutputText) {
 		return ADKStructuredTaskResult{}, errors.New("formal_agent_output_contract_mismatch")
+	}
+	ctx = withAgentModelRoute(ctx, definition.ID, firstString(input.TaskVariant, input.SchemaName))
+	if binding := input.Prompt.providerBinding; binding != nil {
+		if binding.role != input.Role {
+			return ADKStructuredTaskResult{}, errors.New("formal_agent_prompt_binding_role_mismatch")
+		}
+		if existing, ok := providerAssignmentSnapshot(ctx, input.Role); ok {
+			if !reflect.DeepEqual(existing, binding.assignment) {
+				return ADKStructuredTaskResult{}, errors.New("formal_agent_prompt_binding_conflict")
+			}
+		} else {
+			ctx = withFrozenProviderAssignment(ctx, input.Role, binding.assignment)
+		}
 	}
 	if len(input.Definitions) > 0 && input.Capability == nil && input.Invoker == nil {
 		return ADKStructuredTaskResult{}, errors.New("adk_structured_task_capability_context_required")

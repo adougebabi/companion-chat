@@ -112,6 +112,15 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/diary"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/shared-experiences"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/shared-experiences/overview"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/expression-learning"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/expression-learning/sources"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/expression-learning/sources/:messageId"},
+	{http.MethodPut, "/api/fluctlights/:fluctlightId/expression-learning/settings"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/expression-learning/extractions"},
+	{http.MethodGet, "/api/fluctlights/:fluctlightId/expression-learning/extractions/by-key"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/expression-learning/candidates/:candidateId/enable"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/expression-learning/candidates/:candidateId/disable"},
+	{http.MethodPost, "/api/fluctlights/:fluctlightId/expression-learning/candidates/:candidateId/revoke"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/self-claims"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/self-claims/:claimId"},
 	{http.MethodGet, "/api/fluctlights/:fluctlightId/self-claims/:claimId/revisions"},
@@ -316,6 +325,10 @@ func (s *Server) dispatchSurface(response http.ResponseWriter, request *http.Req
 		}
 		if strings.Contains(request.URL.Path, "/self-claims/") && !validSelfCommandBody(request.URL.Path, parsed) {
 			writeError(response, 400, "invalid_request", "Invalid self governance command")
+			return
+		}
+		if strings.Contains(request.URL.Path, "/expression-learning/") && !validExpressionLearningBody(request.Method, request.URL.Path, parsed) {
+			writeError(response, 400, "invalid_request", "Invalid expression learning command")
 			return
 		}
 		if strings.Contains(request.URL.Path, "/capability-requests/") && !validateCapabilityRequestReview(parsed) {

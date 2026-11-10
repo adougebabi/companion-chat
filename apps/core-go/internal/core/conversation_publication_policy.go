@@ -32,6 +32,9 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if conversationHasAuthoritativeOutput(adkContext.Trace) {
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceAllowed}, nil
 	}
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMainInvalidReplyAttempts(adkContext.Trace) >= 3 {
+		return physicalModelRequestDecision{}, newCapabilityError("direct_reply_arguments_unresolved", false, errors.New("direct_reply_arguments_unresolved"))
+	}
 	if conversationLoopNeedsReply(ctx) {
 		if conversationClosedActionAttempts(adkContext.Trace) >= 2 {
 			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
@@ -64,6 +67,26 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil
 	}
 	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace)}, nil
+}
+
+// Consecutive invalid direct replies did not execute any effect. Bound this
+// no-progress repair without preventing unrelated valid native Tool calls.
+func directMainInvalidReplyAttempts(trace *ADKCapabilityTrace) int {
+	if trace == nil {
+		return 0
+	}
+	_, results := trace.Snapshot()
+	count := 0
+	for index := len(results) - 1; index >= 0; index-- {
+		result := results[index]
+		invalidSchema := result.Status == "handled" && stringValue(mapValue(result.Output)["warning_code"]) == "invalid_arguments"
+		invalidDecision := result.Status == "failed" && (result.ErrorCode == "direct_reply_decision_invalid" || result.ErrorCode == "direct_reply_decision_required")
+		if result.CapabilityName != conversationReplyCapabilityName || (!invalidSchema && !invalidDecision) {
+			break
+		}
+		count++
+	}
+	return count
 }
 
 // Two identical successful named disclosures already supplied the schema.

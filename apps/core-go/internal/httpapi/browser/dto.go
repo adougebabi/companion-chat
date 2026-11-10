@@ -299,5 +299,8 @@ func browserProviderPreflight(value map[string]any) map[string]any {
 	if version, exists := value["capability_version"]; exists {
 		result["capabilityVersion"] = version
 	}
+	if value["cleared"] == true {
+		result["cleared"] = true
+	}
 	return result
 }

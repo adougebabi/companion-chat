@@ -493,6 +493,10 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 		// authority and the durable submission journal. Provider failures stay
 		// failures; this does not retry a failed physical model request.
 		correctionCtx := context.WithValue(ctx, goalEvaluationCoverageCorrectionKey{}, true)
+		if task.providerBinding != nil {
+			correctionCtx = withAgentModelRoute(correctionCtx, FormalAgentGoalEvaluation, "goal_evaluation_v1")
+			correctionCtx = withFrozenProviderAssignment(correctionCtx, task.providerBinding.role, task.providerBinding.assignment)
+		}
 		correction, correctionErr := a.RunGoalEvaluationTask(correctionCtx, snapshot, projection)
 		if recordErr := a.recordGoalEvaluationSubmissionErrors(ctx, snapshot, correction.Trace); recordErr != nil {
 			correctionErr = errors.Join(correctionErr, recordErr)

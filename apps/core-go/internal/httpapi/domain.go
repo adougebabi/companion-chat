@@ -129,6 +129,10 @@ func (s *Server) configureProviderRole(w http.ResponseWriter, r *http.Request) {
 		s.opError(w, err, providerRoleErrorCode(err))
 		return
 	}
+	if body["clear_override"] == true {
+		writeJSON(w, http.StatusOK, map[string]any{"role": body["role"], "available": false, "cleared": true})
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"role": body["role"], "available": true, "capability_version": "models-v1"})
 }
 
@@ -140,6 +144,7 @@ func providerRoleErrorCode(err error) string {
 		"provider_endpoint_not_found",
 		"provider_endpoint_invalid",
 		"provider_role_invalid",
+		"provider_sampling_invalid",
 		"provider_prompt_budget_invalid",
 		"prompt_budget_policy_unknown",
 		"provider_preflight_failed",

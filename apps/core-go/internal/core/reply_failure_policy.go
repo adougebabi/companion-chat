@@ -13,6 +13,10 @@ func replyErrorCode(err error) string {
 	if errors.Is(err, errReplyQualityRepair) {
 		return "reply_quality_repair_failed"
 	}
+	var toolFailure *agentRunFailure
+	if errors.As(err, &toolFailure) && toolFailure.stage == "tool" {
+		return safeAgentFailureCode(toolFailure.code, "tool_execution_failed")
+	}
 	var gateway *providerHTTPResponseError
 	if errors.As(err, &gateway) && (gateway.StatusCode == 524 || gateway.StatusCode == 504) {
 		return "reply_gateway_timeout"
@@ -22,7 +26,7 @@ func replyErrorCode(err error) string {
 	}
 	if err != nil {
 		switch err.Error() {
-		case "reply_generation_incomplete", "reply_secret_leak_rejected", "reply_media_request_invalid", "reply_media_placeholder_invalid", "reply_envelope_invalid", "reply_draft_invalid", "reply_expression_version_invalid", "reply_expression_snapshot_mismatch":
+		case "reply_generation_incomplete", "reply_secret_leak_rejected", "reply_media_request_invalid", "reply_media_placeholder_invalid", "reply_envelope_invalid", "reply_draft_invalid", "reply_expression_version_invalid", "reply_expression_snapshot_mismatch", "reply_snapshot_credential_source_unknown":
 			return err.Error()
 		}
 	}
@@ -88,6 +92,43 @@ func replyNetworkRetryable(err error) bool {
 	return errors.Is(err, io.ErrUnexpectedEOF) || (errors.As(err, &network) && !network.Timeout())
 }
 
+// An explicitly configured legacy fallback may address model availability,
+// but it must never ask another model to reconsider a character's decision or
+// turn a business, authorization, tool, or output-consistency failure into a
+// successful reply. Unknown failures are not evidence of an unavailable model.
+func replyFailureAllowsLegacyFallback(err error) bool {
+	if err == nil || errors.Is(err, errReplyQualityRepair) || errors.Is(err, context.Canceled) || errors.Is(err, ErrUnauthorized) || errors.Is(err, ErrInvalidArguments) || errors.Is(err, ErrConflict) {
+		return false
+	}
+	var toolFailure *agentRunFailure
+	if errors.As(err, &toolFailure) && toolFailure.stage == "tool" {
+		return false
+	}
+	var capabilityFailure *CapabilityError
+	if errors.As(err, &capabilityFailure) {
+		return false
+	}
+	switch err.Error() {
+	case "reply_model_unconfigured", "reply_model_unavailable":
+		return true
+	}
+	var response *providerHTTPResponseError
+	if errors.As(err, &response) {
+		return providerHTTPUpstreamRetryable(response)
+	}
+	// The caller has already checked the overall request context. A timeout of
+	// this model's own physical request may use the explicitly configured
+	// fallback; an expired or cancelled overall reply still stops above it.
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var network net.Error
+	if errors.As(err, &network) && network.Timeout() {
+		return true
+	}
+	return replyNetworkRetryable(err)
+}
+
 // providerHTTPUpstreamRetryable is the shared HTTP classifier for one physical
 // model call. 4xx and quota/OOM bodies are terminal. 500 joins 502/503/504, and
 // a gateway get_channel_failed on any 5xx is retryable.
@@ -118,6 +159,7 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 		defer cancel()
 	}
 	var draft ReplyDraft
+	var outputCorrectionReason error
 	run.mu.Lock()
 	effectiveMode := run.EffectiveMode
 	if run.EffectiveAssignment != nil {
@@ -138,6 +180,7 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 		input.CorrelationID = "reply:" + stableDigest(input.CorrelationID+"attempt:0")
 		draft, err = a.RunConversationReplyTask(ctx, input)
 		if err != nil && (err.Error() == "reply_envelope_invalid" || err.Error() == "reply_draft_invalid" || err.Error() == "reply_media_request_invalid" || err.Error() == "reply_media_placeholder_invalid") {
+			outputCorrectionReason = err
 			input.Context.OutputCorrection = "[回复格式纠错]上一次输出格式无效或用文字冒充图片。需要配图时真实调用已提供的 reply.image.request；没有工具或结果时不声称发送图片，不输出 path/SVG 占位。然后只输出正常段落正文，最多一个段间空行；不要输出无效JSON或推理。"
 			input.CorrelationID = "reply-correction:" + stableDigest(input.CorrelationID)
 			draft, err = a.RunConversationReplyTask(ctx, input)
@@ -155,10 +198,16 @@ func (a *App) runReplyWithFailurePolicy(ctx context.Context, input ConversationR
 	if errors.Is(err, context.Canceled) {
 		return draft, context.Canceled
 	}
+	if outputCorrectionReason != nil {
+		// A network failure while correcting an invalid output does not turn
+		// the original consistency failure into permission to choose a new model.
+		code := replyErrorCode(outputCorrectionReason)
+		return draft, newCapabilityError(code, false, errors.New("reply output correction failed"))
+	}
 	if strings.HasPrefix(replyErrorCode(err), "reply_style_") {
 		return draft, err
 	}
-	if run.Settings.FailurePolicy != "legacy_fallback" || effectiveMode == "legacy_fallback" {
+	if run.Settings.FailurePolicy != "legacy_fallback" || effectiveMode == "legacy_fallback" || !replyFailureAllowsLegacyFallback(err) {
 		return draft, newCapabilityError(replyErrorCode(err), false, errors.New(replyErrorCode(err)))
 	}
 	assignment, assignmentErr := a.Provider.assignment(isolatedReplyModelContext(ctx), "generic_llm")

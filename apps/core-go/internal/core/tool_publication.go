@@ -347,8 +347,13 @@ func (service *ToolPublicationService) PublishMomentTx(ctx context.Context, tx p
 		}
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return publishedResource{}, err
-	} else if _, err := tx.Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,$3,'participants','visible','[]')`, momentID, command.FluctlightID, command.Text); err != nil {
-		return publishedResource{}, err
+	} else {
+		if err := requireDomainPluginEnabledTx(ctx, tx, "moment"); err != nil {
+			return publishedResource{}, err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,$3,'participants','visible','[]')`, momentID, command.FluctlightID, command.Text); err != nil {
+			return publishedResource{}, err
+		}
 	}
 	correlationID := strings.TrimSpace(command.CorrelationID)
 	if correlationID == "" {
@@ -444,6 +449,9 @@ func (service *ToolPublicationService) CreateMediaIntentTx(ctx context.Context, 
 		return true, existingStatus, nil
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
+		return false, "", err
+	}
+	if err := requireDomainPluginEnabledTx(ctx, tx, "image"); err != nil {
 		return false, "", err
 	}
 	if err := requireAwakeLifeTx(ctx, tx, fluctlightID, service.app.now().UTC()); err != nil {

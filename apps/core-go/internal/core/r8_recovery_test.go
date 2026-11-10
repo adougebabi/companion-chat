@@ -212,7 +212,7 @@ func TestR8RepeatedDiscoveryCoolsDownOnlyIdenticalSuccessfulLoads(t *testing.T) 
 func TestR8SegmentParticipantsAndNativeSchema(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "r8-summary")
-	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.model_roles SET role='reflection' WHERE provider_endpoint_id='r8-summary'`); err != nil {
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.model_roles SET role='reflection' WHERE provider_endpoint_id='r8-summary' AND role='cognitive_assessment'`); err != nil {
 		t.Fatal(err)
 	}
 	calls := 0

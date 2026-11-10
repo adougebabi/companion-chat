@@ -287,6 +287,9 @@ func (a *App) publishOwnerFeedMoment(ctx context.Context, owner string, body map
 	command["reason"] = "用户以自己的交流身份发布动态"
 	ctx = context.WithValue(ctx, ownerCommandAuditActionKey{}, "moment_publish")
 	return a.worldCommand(ctx, owner, stringValue(body["world_id"]), "owner-moment-publish", command, func(ctx context.Context, tx pgx.Tx) (map[string]any, error) {
+		if err := requireDomainPluginEnabledTx(ctx, tx, "moment"); err != nil {
+			return nil, err
+		}
 		fid, id := stringValue(body["world_id"]), randomID("moment_")
 		if err := a.linkMomentMediaTx(ctx, tx, owner, fid, id, media); err != nil {
 			return nil, err
@@ -311,6 +314,11 @@ func (a *App) ownerMomentInteraction(ctx context.Context, owner, id, op string, 
 	}
 	ctx = context.WithValue(ctx, ownerCommandAuditActionKey{}, "moment_"+op)
 	return a.worldCommand(ctx, owner, "", "moment:"+id+":"+op, body, func(ctx context.Context, tx pgx.Tx) (map[string]any, error) {
+		if op == "comments" || op == "reaction" {
+			if err := requireDomainPluginEnabledTx(ctx, tx, "moment"); err != nil {
+				return nil, err
+			}
+		}
 		row, err := readMomentWith(ctx, tx, owner, id, true)
 		if err != nil {
 			return nil, err

@@ -107,7 +107,11 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			}
 		}
 	}
-	assignment, err := a.Provider.assignment(ctx, role)
+	assignmentCtx := ctx
+	if agent, ok := agentModelRouteForSchema(schemaName); ok {
+		assignmentCtx = withAgentModelRoute(ctx, agent, schemaName)
+	}
+	assignment, err := a.Provider.assignment(assignmentCtx, role)
 	if err != nil {
 		return PromptAssemblyResult{}, projection, err
 	}
@@ -202,6 +206,7 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 		ResponseFormat: providerResponseFormatForSchema(role, schemaName, schema), Policy: policy,
 	})
 	if err == nil {
+		result.providerBinding = &promptProviderBinding{role: role, assignment: assignment}
 		latestSummarySequence := 0
 		for _, summary := range summaries {
 			latestSummarySequence = max(latestSummarySequence, intValue(summary["to_sequence"]))

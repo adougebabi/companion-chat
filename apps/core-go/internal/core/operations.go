@@ -894,8 +894,34 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		return err
 	}
 	role, endpoint, model := stringValue(payload["role"]), stringValue(payload["endpoint_id"]), stringValue(payload["model_id"])
+	if payload["clear_override"] == true {
+		if !validAgentModelBindingRole(role) {
+			return errors.New("provider_role_invalid")
+		}
+		return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+			receipt, replay, err := beginConfigurationCommandTx(ctx, tx, actorID, "provider_binding_update", payload, []string{"binding:" + role})
+			if err != nil || replay {
+				return err
+			}
+			if _, err := tx.Exec(ctx, `DELETE FROM public.model_roles WHERE role=$1`, role); err != nil {
+				return err
+			}
+			if receipt != nil {
+				return finishConfigurationCommandTx(ctx, tx, actorID, payload, receipt, "provider_binding_update")
+			}
+			return nil
+		})
+	}
 	if !validProviderRole(role) || endpoint == "" || model == "" {
 		return errors.New("provider_role_invalid")
+	}
+	temperature, temperaturePresent, err := optionalModelSampling(payload, "temperature", false, 2)
+	if err != nil {
+		return err
+	}
+	topP, topPPresent, err := optionalModelSampling(payload, "top_p", true, 1)
+	if err != nil {
+		return err
 	}
 	bindingRole := providerBindingRole(role)
 	// Historical positive columns remain for database/client compatibility only.
@@ -936,7 +962,7 @@ func (a *App) ConfigureProviderRole(ctx context.Context, actorID string, payload
 		if err != nil || replay {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy,context_window_tokens,max_input_tokens,prompt_budget_policy_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT(role) DO UPDATE SET provider_endpoint_id=excluded.provider_endpoint_id,model_id=excluded.model_id,token_budget=excluded.token_budget,timeout_seconds=excluded.timeout_seconds,required_capabilities=excluded.required_capabilities,retry_policy=excluded.retry_policy,context_window_tokens=excluded.context_window_tokens,max_input_tokens=excluded.max_input_tokens,prompt_budget_policy_version=excluded.prompt_budget_policy_version`, bindingRole, endpoint, model, budget, timeout, stringValue(payload["required_capabilities"]), jsonString(mapValue(payload["retry_policy"])), contextWindowTokens, maxInputTokens, promptBudgetPolicyVersion); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.model_roles AS existing(role,provider_endpoint_id,model_id,token_budget,timeout_seconds,required_capabilities,retry_policy,context_window_tokens,max_input_tokens,prompt_budget_policy_version,temperature,top_p) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT(role) DO UPDATE SET provider_endpoint_id=excluded.provider_endpoint_id,model_id=excluded.model_id,token_budget=excluded.token_budget,timeout_seconds=excluded.timeout_seconds,required_capabilities=excluded.required_capabilities,retry_policy=excluded.retry_policy,context_window_tokens=excluded.context_window_tokens,max_input_tokens=excluded.max_input_tokens,prompt_budget_policy_version=excluded.prompt_budget_policy_version,temperature=CASE WHEN $13 THEN excluded.temperature ELSE existing.temperature END,top_p=CASE WHEN $14 THEN excluded.top_p ELSE existing.top_p END`, bindingRole, endpoint, model, budget, timeout, stringValue(payload["required_capabilities"]), jsonString(mapValue(payload["retry_policy"])), contextWindowTokens, maxInputTokens, promptBudgetPolicyVersion, temperature, topP, temperaturePresent, topPPresent); err != nil {
 			return err
 		}
 		preflightID := "provider_preflight_" + stableDigest(bindingRole+":"+endpoint+":"+model)
@@ -1588,6 +1614,9 @@ func (a *App) CommentMoment(ctx context.Context, actorID, momentID, text string)
 	}
 	id := randomID("comment_")
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := requireDomainPluginEnabledTx(ctx, tx, "moment"); err != nil {
+			return err
+		}
 		row, err := readMomentWith(ctx, tx, actorID, momentID, true)
 		if err != nil {
 			return err
@@ -1620,6 +1649,9 @@ func (a *App) ReactMoment(ctx context.Context, actorID, momentID, kind string) (
 	}
 	kind = strings.TrimSpace(kind)
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		if err := requireDomainPluginEnabledTx(ctx, tx, "moment"); err != nil {
+			return err
+		}
 		row, err := readMomentWith(ctx, tx, actorID, momentID, true)
 		if err != nil {
 			return err

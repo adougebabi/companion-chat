@@ -389,6 +389,11 @@ func (a *App) enqueueTurnFactTx(ctx context.Context, tx pgx.Tx, actorID, authori
 		if existingStatus == "failed" && (existingError == "agent_partial_committed" || turnHasCommittedEffects(existingData, a.capabilityRegistry())) {
 			return existing, nil, nil
 		}
+		if existingStatus == "failed" && existingError == "superseded_by_newer_turn" {
+			// A repeated request must not revive a candidate already displaced
+			// by a newer message. Committed effects remain in their own ledger.
+			return existing, nil, nil
+		}
 		if claimOwner == "" && existingStatus == "failed" && existingError != "superseded_by_newer_turn" {
 			var assistantExists bool
 			if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.conversation_messages WHERE conversation_id=$1 AND turn_id=$2 AND kind='assistant')`, conversationID, turnID).Scan(&assistantExists); err != nil {

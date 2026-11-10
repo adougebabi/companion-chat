@@ -18,6 +18,7 @@ import (
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/converter"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
@@ -221,7 +222,7 @@ func TestMediaWorkflowContinuesOneQualityRetry(t *testing.T) {
 	}
 }
 
-func TestMediaWorkflowReturnsCompletionAfterSecondQualityFailure(t *testing.T) {
+func TestMediaWorkflowReportsSecondQualityFailureWithoutAnotherAttempt(t *testing.T) {
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestWorkflowEnvironment()
 	attempts := 0
@@ -230,21 +231,14 @@ func TestMediaWorkflowReturnsCompletionAfterSecondQualityFailure(t *testing.T) {
 		if attempts == 1 {
 			return map[string]any{"status": "quality_retry", "quality_verdict": "reject", "quality_retry_count": 1}, nil
 		}
-		return map[string]any{"intent_id": "media-quality-second-accepted", "status": "completed", "quality_verdict": "retry_accepted", "quality_check_verdict": "reject"}, nil
+		return nil, temporal.NewNonRetryableApplicationError("media_quality_rejected", "media_quality_rejected", nil)
 	})
-	env.ExecuteWorkflow(MediaWorkflow, Input{IntentID: "media-quality-second-accepted"})
-	if err := env.GetWorkflowError(); err != nil {
-		t.Fatalf("second quality failure should complete with the second candidate: %v", err)
+	env.ExecuteWorkflow(MediaWorkflow, Input{IntentID: "media-quality-second-rejected"})
+	if err := env.GetWorkflowError(); err == nil || !strings.Contains(err.Error(), "media_quality_rejected") {
+		t.Fatalf("second quality failure should remain a failure: %v", err)
 	}
 	if attempts != 2 {
 		t.Fatalf("activity attempts = %d, want exactly 2", attempts)
-	}
-	var result map[string]any
-	if err := env.GetWorkflowResult(&result); err != nil {
-		t.Fatal(err)
-	}
-	if result["intent_id"] != "media-quality-second-accepted" || result["status"] != "completed" || result["quality_verdict"] != "retry_accepted" || result["quality_check_verdict"] != "reject" {
-		t.Fatalf("workflow result = %#v", result)
 	}
 }
 

@@ -13,23 +13,24 @@ type ReplyMediaRequest struct {
 	Intent string `json:"intent"`
 }
 type ReplyDraft struct {
-	AttachmentRefs    []string                `json:"attachment_refs,omitempty"`
-	Text              string                  `json:"text"`
-	MediaRequests     []ReplyMediaRequest     `json:"media_requests,omitempty"`
-	Mode              string                  `json:"mode"`
-	ModelRef          string                  `json:"model_ref"`
-	ConfigVersion     int64                   `json:"config_version"`
-	LifeRevision      string                  `json:"life_revision,omitempty"`
-	FactsRevision     string                  `json:"facts_revision,omitempty"`
-	ExpressionVersion string                  `json:"expression_version,omitempty"`
-	Expression        ReplyExpressionContract `json:"expression_contract,omitempty"`
-	Style             ReplyStyleTrace         `json:"style,omitempty"`
-	Candidates        []ReplyStyleTrace       `json:"candidates,omitempty"`
-	RawCandidate      string                  `json:"raw_candidate,omitempty"`
-	FinishReason      string                  `json:"finish_reason,omitempty"`
-	ProviderUsage     map[string]any          `json:"provider_usage,omitempty"`
-	CommittedText     string                  `json:"committed_text,omitempty"`
-	CommittedMetadata map[string]any          `json:"committed_metadata,omitempty"`
+	AttachmentRefs        []string                      `json:"attachment_refs,omitempty"`
+	Text                  string                        `json:"text"`
+	MediaRequests         []ReplyMediaRequest           `json:"media_requests,omitempty"`
+	Mode                  string                        `json:"mode"`
+	ModelRef              string                        `json:"model_ref"`
+	ConfigVersion         int64                         `json:"config_version"`
+	LifeRevision          string                        `json:"life_revision,omitempty"`
+	FactsRevision         string                        `json:"facts_revision,omitempty"`
+	ExpressionVersion     string                        `json:"expression_version,omitempty"`
+	Expression            ReplyExpressionContract       `json:"expression_contract,omitempty"`
+	Style                 ReplyStyleTrace               `json:"style,omitempty"`
+	Candidates            []ReplyStyleTrace             `json:"candidates,omitempty"`
+	RawCandidate          string                        `json:"raw_candidate,omitempty"`
+	FinishReason          string                        `json:"finish_reason,omitempty"`
+	ProviderUsage         map[string]any                `json:"provider_usage,omitempty"`
+	CommittedText         string                        `json:"committed_text,omitempty"`
+	CommittedMetadata     map[string]any                `json:"committed_metadata,omitempty"`
+	ExpressionSuggestions []expressionSuggestionBinding `json:"expression_suggestions,omitempty"`
 }
 
 func parseReplyDraft(text string) (ReplyDraft, error) {
@@ -135,22 +136,24 @@ func normalizeReplyText(text string) string {
 }
 
 type ConversationReplyTaskInput struct {
-	Context          ReplyContextInput
-	Assignment       providerAssignment
-	ConfigVersion    int64
-	CorrelationID    string
-	ParentRunID      string
-	DraftRef         string
-	Concurrency      int
-	Mode             string
-	ClaimStyleRepair func(context.Context, ReplyStyleTrace) error
-	RecordStyleTrace func(context.Context, ReplyStyleTrace)
+	Context               ReplyContextInput
+	Assignment            providerAssignment
+	ConfigVersion         int64
+	CorrelationID         string
+	ParentRunID           string
+	DraftRef              string
+	Concurrency           int
+	Mode                  string
+	ExpressionSuggestions []expressionSuggestionBinding
+	ClaimStyleRepair      func(context.Context, ReplyStyleTrace) error
+	RecordStyleTrace      func(context.Context, ReplyStyleTrace)
 }
 
 // Clear parent model/tool policy while retaining authorization, logical lease,
 // cancellation and the source lifecycle guard. No parent transcript is reused.
 func isolatedReplyModelContext(ctx context.Context) context.Context {
 	ctx = withoutPhysicalModelRequestPolicy(ctx)
+	ctx = withoutAgentModelRoute(ctx)
 	ctx = context.WithValue(ctx, kevRunSelectionKey{}, (*kevRunSelection)(nil))
 	ctx = context.WithValue(ctx, kevPersonaKey{}, (*kevPersonaAdmission)(nil))
 	ctx = context.WithValue(ctx, adkConversationContextKey{}, adkConversationContext{})
@@ -160,8 +163,33 @@ func isolatedReplyModelContext(ctx context.Context) context.Context {
 	return WithPromptDiagnostics(ctx, map[string]any{})
 }
 
+func replyTaskVariant(input ReplyContextInput) string {
+	variant := "private_reply"
+	if input.Scene == replySceneMoment {
+		variant = "moment"
+	} else if input.Proactive {
+		variant = "proactive"
+	}
+	if input.StyleRepair {
+		return variant + ".style_repair"
+	}
+	if input.OutputCorrection != "" {
+		return variant + ".correction"
+	}
+	return variant
+}
+
 func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationReplyTaskInput) (ReplyDraft, error) {
 	ctx = isolatedReplyModelContext(ctx)
+	var scopeErr error
+	ctx, scopeErr = a.withDomainPluginScope(ctx)
+	if scopeErr != nil {
+		return ReplyDraft{}, scopeErr
+	}
+	if !domainCapabilityEnabled(ctx, "media.image.generate") {
+		input.Context.CapabilityFacts = cloneMap(input.Context.CapabilityFacts)
+		input.Context.CapabilityFacts["image_generation_registered"] = false
+	}
 	ctx = withFrozenProviderAssignment(ctx, conversationReplyModelRole, input.Assignment)
 	ctx = WithProviderCorrelation(ctx, input.CorrelationID)
 	ctx = WithProviderAttemptIdentity(ctx, "")
@@ -196,7 +224,7 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	}
 	ctx = WithPromptDiagnostics(ctx, diagnostics)
 	invoker := &replyWriterInvoker{image: replyImageRequestInvoker{tool: imageTool}, app: a, input: input}
-	result, err := a.RunFormalAgent(ctx, FormalAgentConversationReply, FormalAgentRunInput{Prompt: prompt, SchemaName: "conversation_reply_text", Definitions: definitions, Invoker: invoker})
+	result, err := a.RunFormalAgent(ctx, FormalAgentConversationReply, FormalAgentRunInput{Prompt: prompt, SchemaName: "conversation_reply_text", Variant: replyTaskVariant(input.Context), Definitions: definitions, Invoker: invoker})
 	if err != nil {
 		return ReplyDraft{}, err
 	}

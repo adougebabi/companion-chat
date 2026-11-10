@@ -503,14 +503,24 @@ func seedTurnConversation(t *testing.T, ctx context.Context, repository *Postgre
 	}
 }
 
-// seedCognitiveProviderRole registers the model binding the Main turn resolves
-// through. The Judge reuses the same binding, so one row is enough.
+// seedCognitiveProviderRole keeps the legacy internal binding and also gives
+// character-facing Agents the configured default text binding.
 func seedCognitiveProviderRole(t *testing.T, ctx context.Context, repository *PostgresRepository, endpointID string) {
 	t.Helper()
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES($1,'openai_compatible','http://turn.invalid','turn-secret','ready',now())`, endpointID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'turn-model','structured_output,tool_calling',4096,10,'{}')`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	seedConversationReplyFromCognitive(t, ctx, repository)
+}
+
+func seedConversationReplyFromCognitive(t *testing.T, ctx context.Context, repository *PostgresRepository) {
+	t.Helper()
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy)
+ SELECT 'conversation_reply',provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy FROM public.model_roles WHERE role='cognitive_assessment'
+ ON CONFLICT(role) DO NOTHING`); err != nil {
 		t.Fatal(err)
 	}
 }

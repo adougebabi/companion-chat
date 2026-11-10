@@ -154,7 +154,7 @@ func TestLiveHandleTurnUsesRealProviderForPostCognitionPersonalityAssessment(t *
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 
@@ -209,7 +209,7 @@ func TestLiveHandleTurnOrdinaryChatHasNoFixedPlanningOrMemoryPass(t *testing.T) 
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 	responseCapture := &liveResponseCapture{inner: http.DefaultTransport}
@@ -240,6 +240,64 @@ func TestLiveHandleTurnOrdinaryChatHasNoFixedPlanningOrMemoryPass(t *testing.T) 
 	}
 }
 
+// Unlike the general conversation fixture above, this registers the actual
+// owner/Fluctlight private conversation and exercises its default reply mode.
+func TestLiveDirectConversationDoesNotRequireASecondWriter(t *testing.T) {
+	liveDirectConversationWithoutWriter(t, false)
+}
+
+func TestLiveExplicitDirectConversationDoesNotRequireASecondWriter(t *testing.T) {
+	liveDirectConversationWithoutWriter(t, true)
+}
+
+func liveDirectConversationWithoutWriter(t *testing.T, explicitDirect bool) {
+	t.Helper()
+	if strings.TrimSpace(os.Getenv("FLUCTLIGHT_LIVE_PROVIDER_TEST")) != "1" || strings.TrimSpace(os.Getenv("GO_CORE_TEST_DATABASE_URL")) == "" {
+		t.Skip("live Provider and disposable PostgreSQL are required")
+	}
+	baseURL, model := liveProviderConfig(t)
+	ctx, repository := isolatedCoreTestRepository(t)
+	ownerID, fluctlightID, conversationID := "live-direct-owner", "live-direct-fluctlight", "live-direct-conversation"
+	takeoverChainSeedWithTakeoverRules(t, ctx, repository, ownerID, fluctlightID, conversationID, nil)
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, ownerID, fluctlightID, conversationID); err != nil {
+		t.Fatal(err)
+	}
+	if explicitDirect {
+		persistConversationReplyMode(t, ctx, repository, "direct")
+	}
+	endpointID := "native-persona-endpoint-" + fluctlightID
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+		t.Fatal(err)
+	}
+	responseCapture := &liveResponseCapture{inner: http.DefaultTransport}
+	capture := captureProviderWirePayload(responseCapture)
+	defer writeLiveHandleTurnEvidence(t, capture, responseCapture)
+	app := newTestApp(t, repository, capture)
+	turnCtx, cancel := context.WithTimeout(context.Background(), liveProviderRequestTimeout()+2*time.Minute)
+	defer cancel()
+	result, err := app.HandleTurn(turnCtx, ownerID, conversationID, takeoverChainTurnPayload(fluctlightID, "你好，今天过得怎么样？", "live-direct-1", "live-direct-1"))
+	if err != nil {
+		t.Fatalf("direct conversation failed: %v; physical requests=%d; tools=%#v", err, capture.count(), responseCapture.snapshot())
+	}
+	if strings.TrimSpace(stringValue(result.Assistant["text"])) == "" {
+		t.Fatalf("direct conversation returned no assistant text: %#v", result.Assistant)
+	}
+	if count := takeoverChainCount(t, turnCtx, repository, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversationID); count != 1 {
+		t.Fatalf("direct conversation persisted %d assistant messages", count)
+	}
+	var writerRuns int
+	if err := repository.Pool().QueryRow(turnCtx, `SELECT count(*) FROM public.diagnostic_model_runs WHERE fluctlight_id=$1 AND role='conversation_reply'`, fluctlightID).Scan(&writerRuns); err != nil {
+		t.Fatal(err)
+	}
+	if writerRuns != 0 {
+		t.Fatalf("ordinary direct conversation used %d independent Writer runs across %d physical requests; tools=%#v", writerRuns, capture.count(), responseCapture.snapshot())
+	}
+	t.Logf("ordinary direct conversation: physical requests=%d, independent Writer runs=%d", capture.count(), writerRuns)
+}
+
 // An existing virtual haircut Tool and the real virtual-activity model settle
 // the mutable fact. A new App then reads it for a later natural-language turn.
 func TestLiveHandleTurnReadsCompletedHaircutAfterReload(t *testing.T) {
@@ -263,7 +321,7 @@ func TestLiveHandleTurnReadsCompletedHaircutAfterReload(t *testing.T) {
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 	responses := &liveResponseCapture{inner: http.DefaultTransport}
@@ -329,7 +387,7 @@ func TestLiveHandleTurnReadsChangedWearingAfterReload(t *testing.T) {
 	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := fixture.repository.Pool().Exec(fixture.ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 	responses := &liveResponseCapture{inner: http.DefaultTransport}
@@ -381,7 +439,7 @@ func TestLiveHandleTurnDoesNotTreatUnexecutedWishAsPurchase(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 	responses := &liveResponseCapture{inner: http.DefaultTransport}
@@ -419,7 +477,7 @@ func TestLiveHandleTurnRetrievesAndCorrectsNonResidentMemory(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 	responses := &liveResponseCapture{inner: http.DefaultTransport}
@@ -510,7 +568,7 @@ func TestLiveHandleTurnRealToolCallsReachDurableMediaAndReply(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('media_prompt',$1,$2,'structured_output',4096,600,'{}')`, endpointID, model); err != nil {
@@ -629,7 +687,7 @@ func TestLiveWakeUpRealToolCallsReachDurableActionAndReflection(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, endpointID, strings.TrimRight(baseURL, "/")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role='cognitive_assessment' AND provider_endpoint_id=$1`, endpointID, model); err != nil {
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id=$2,timeout_seconds=600,token_budget=4096 WHERE role IN ('cognitive_assessment','conversation_reply') AND provider_endpoint_id=$1`, endpointID, model); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('media_prompt',$1,$2,'structured_output',4096,600,'{}')`, endpointID, model); err != nil {

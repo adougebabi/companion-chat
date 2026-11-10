@@ -361,6 +361,7 @@ func TestConversationRejectsStaleToolsAndKeepsLateReplyWithoutSettlingOldAuthori
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'life-turn-model','structured_output',4096,5,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	seedConversationReplyFromCognitive(t, ctx, repository)
 	var providerCalls atomic.Int32
 	app := &App{DB: repository}
 	decisionLifeRevision := stringValue(currentLifeForTest(t, ctx, app, fluctlightID, time.Now().UTC())["context_revision"])

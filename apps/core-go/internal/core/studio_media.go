@@ -14,7 +14,12 @@ var errStudioMediaNotConfigured = errors.New("studio_media_not_configured")
 
 // A Studio producer has no task Actor. In particular first-person wording in a
 // definition cannot borrow the authenticated Human's or a character's body.
-func (a *App) queueStudioMedia(ctx context.Context, owner, id, aid string, job map[string]any) (map[string]any, error) {
+func (a *App) queueStudioMedia(ctx context.Context, owner, id, aid string, job, stageProvenance map[string]any) (map[string]any, error) {
+	var scopeErr error
+	ctx, scopeErr = a.withDomainPluginScope(ctx)
+	if scopeErr != nil {
+		return nil, scopeErr
+	}
 	snapshot := mapValue(job["snapshot"])
 	mediaID := "studio_media_" + stableDigest(id)
 	var exists bool
@@ -23,6 +28,9 @@ func (a *App) queueStudioMedia(ctx context.Context, owner, id, aid string, job m
 	}
 	var concept map[string]any
 	if !exists {
+		if !domainCapabilityEnabled(ctx, "media.image.generate") {
+			return nil, domainPluginDisabledError()
+		}
 		config, err := a.runtimeValue(ctx, "media.comfyui")
 		if err != nil {
 			return nil, imageProviderUnavailable(err)
@@ -43,7 +51,25 @@ func (a *App) queueStudioMedia(ctx context.Context, owner, id, aid string, job m
 				definition["verified_members"] = snapshot["allowed_references"]
 			}
 			text := jsonString(map[string]any{"instruction": snapshot["instruction"], "definition": definition, "scope": "fictional Studio definition, no task actor or current life"})
-			plan, sources, err := ResolveMediaCapturePlan(planCtx, a.kevService(), decision.Scope{Agent: "media_prompt", RunID: mediaID, CorrelationID: "media:" + mediaID}, text, map[string]any{"self_in_frame": "no"}, a.parseMediaPlan)
+			parse := func(parseCtx context.Context, packet map[string]any) (map[string]any, error) {
+				parseCtx = withAgentModelRoute(parseCtx, FormalAgentMediaPrompt, "media_subject_parse")
+				_, assignment, err := a.studioStageModel(parseCtx, aid, "media_subject_parse", stageProvenance, FormalAgentMediaPrompt, "media_subject_parse", "media_prompt", func() (workflowModelSnapshot, providerAssignment, error) {
+					provider, err := a.modelTaskProvider()
+					if err != nil {
+						return workflowModelSnapshot{}, providerAssignment{}, err
+					}
+					assignment, err := provider.assignment(parseCtx, "media_prompt")
+					if err != nil {
+						return workflowModelSnapshot{}, providerAssignment{}, err
+					}
+					return newWorkflowModelSnapshot(FormalAgentMediaPrompt, "media_subject_parse", "media_prompt", assignment, 0, 0), assignment, nil
+				})
+				if err != nil {
+					return nil, err
+				}
+				return a.parseMediaPlan(withFrozenProviderAssignment(parseCtx, "media_prompt", assignment), packet)
+			}
+			plan, sources, err := ResolveMediaCapturePlan(planCtx, a.kevService(), decision.Scope{Agent: "media_prompt", RunID: mediaID, CorrelationID: "media:" + mediaID}, text, map[string]any{"self_in_frame": "no"}, parse)
 			if err != nil {
 				return nil, err
 			}
@@ -92,14 +118,28 @@ func (a *App) queueStudioMedia(ctx context.Context, owner, id, aid string, job m
 		workflowID := fmt.Sprintf("studio-media:%s:%d", id, intValue(job["latest_attempt"]))
 		// One durable image intent per product job. Retry retains prompt, provider
 		// job, quality correction and the original ready asset. Regenerate is a new job.
-		if !exists {
-			_, err = tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,media_scope,studio_owner_actor_id,studio_job_id,kind,mime_type,prompt,provider_request_id,workflow_id,status,revision) VALUES($1,NULL,'studio',$2,$3,'image','image/png',$4,$5,$6,'pending',0) ON CONFLICT(id) DO NOTHING`, mediaID, owner, id, jsonString(concept), "media:"+mediaID, workflowID)
+		var liveExists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_intents WHERE id=$1 AND media_scope='studio' AND studio_job_id=$2 AND studio_owner_actor_id=$3)`, mediaID, id, owner).Scan(&liveExists); err != nil {
+			return err
+		}
+		if !liveExists {
+			if err := requireDomainPluginEnabledTx(ctx, tx, "image"); err != nil {
+				return err
+			}
+			inserted, err := tx.Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,media_scope,studio_owner_actor_id,studio_job_id,kind,mime_type,prompt,provider_request_id,workflow_id,status,revision) VALUES($1,NULL,'studio',$2,$3,'image','image/png',$4,$5,$6,'pending',0) ON CONFLICT(id) DO NOTHING`, mediaID, owner, id, jsonString(concept), "media:"+mediaID, workflowID)
 			if err != nil {
 				return err
 			}
+			if inserted.RowsAffected() != 1 {
+				return errors.New("studio_media_intent_conflict")
+			}
 		}
-		if _, err = tx.Exec(ctx, `UPDATE public.media_intents SET status=CASE WHEN status='failed' THEN 'pending' ELSE status END,workflow_id=$2 WHERE id=$1 AND media_scope='studio' AND studio_job_id=$3 AND studio_owner_actor_id=$4`, mediaID, workflowID, id, owner); err != nil {
+		updated, err := tx.Exec(ctx, `UPDATE public.media_intents SET status=CASE WHEN status='failed' THEN 'pending' ELSE status END,workflow_id=$2 WHERE id=$1 AND media_scope='studio' AND studio_job_id=$3 AND studio_owner_actor_id=$4`, mediaID, workflowID, id, owner)
+		if err != nil {
 			return err
+		}
+		if updated.RowsAffected() != 1 {
+			return errors.New("studio_media_intent_conflict")
 		}
 		wi := "media_workflow_intent:" + aid
 		if _, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'media','media.generation',$3) ON CONFLICT(intent_id) DO NOTHING`, wi, workflowID, jsonBytes(map[string]any{"intent_id": mediaID, "studio_attempt_id": aid, "owner_actor_id": owner})); err != nil {
@@ -188,8 +228,8 @@ func (a *App) settleStudioMedia(ctx context.Context, intent mediaIntent, success
 		if job["status"] != "running" {
 			return nil
 		}
-		var currentWorkflow string
-		if err := tx.QueryRow(ctx, `SELECT workflow_id FROM public.media_intents WHERE id=$1 AND studio_job_id=$2 AND studio_owner_actor_id=$3 FOR UPDATE`, intent.ID, intent.StudioJobID, intent.StudioOwner).Scan(&currentWorkflow); err != nil {
+		var currentWorkflow, qualityVerdict string
+		if err := tx.QueryRow(ctx, `SELECT workflow_id,COALESCE(quality_verdict,'') FROM public.media_intents WHERE id=$1 AND studio_job_id=$2 AND studio_owner_actor_id=$3 FOR UPDATE`, intent.ID, intent.StudioJobID, intent.StudioOwner).Scan(&currentWorkflow, &qualityVerdict); err != nil {
 			return err
 		}
 		if currentWorkflow != intent.WorkflowID {
@@ -209,6 +249,19 @@ func (a *App) settleStudioMedia(ctx context.Context, intent mediaIntent, success
 		var ready bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1 AND status='ready' AND media_scope='studio' AND studio_job_id=$2 AND studio_owner_actor_id=$3)`, "asset_"+intent.ID, intent.StudioJobID, intent.StudioOwner).Scan(&ready); err != nil {
 			return err
+		}
+		if qualityVerdict == mediaQualityVerdictRetryAccepted || qualityVerdict == mediaQualityVerdictRetry || qualityVerdict == mediaQualityVerdictReject {
+			if success {
+				return newCapabilityError(mediaQualityFailureCode(qualityVerdict), false, nil)
+			}
+			// A ready file is not proof of a passed review or Studio delivery.
+			// Preserve the asset for inspection but do not promote the job.
+			ready = false
+			if qualityVerdict == mediaQualityVerdictRetry {
+				failure = "media_quality_review_incomplete"
+			} else {
+				failure = mediaQualityFailureCode(qualityVerdict)
+			}
 		}
 		if success && !ready {
 			return ErrNotFound

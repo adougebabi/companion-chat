@@ -66,6 +66,34 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 	if err := a.studioMediaActive(ctx, intent); err != nil {
 		return nil, err
 	}
+	if !isDerivedVisualIdentityMedia(intent) && intent.Status == "completed" && intent.QualityVerdict == mediaQualityVerdictRetryAccepted {
+		// A completed historical task has already crossed its old publication
+		// boundary. Retrying the activity must not recreate removed references.
+		return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": intent.QualityVerdict}, nil
+	}
+	// A previously recorded terminal quality failure must survive a worker
+	// restart, including a crash after the database commit but before the
+	// activity could return its non-retryable error.
+	if terminalMediaQualityFailure(intent) {
+		if intent.QualityVerdict == mediaQualityVerdictRetryAccepted {
+			delivered, err := mediaLegacyDeliveryCommittedWith(ctx, a.DB.Pool(), intent.ID)
+			if err != nil {
+				return nil, err
+			}
+			if delivered && (intent.Status == "pending" || intent.Status == "running") {
+				// The old publisher already committed this exact target. Complete
+				// its accounting without invoking the publisher a second time.
+				if err := a.markMediaIntentCompleted(ctx, intent.ID, "asset_"+intent.ID); err != nil {
+					return nil, err
+				}
+				return map[string]any{"intent_id": intent.ID, "status": "completed", "quality_verdict": intent.QualityVerdict, "recovered_existing_delivery": true}, nil
+			}
+			if delivered {
+				return nil, newCapabilityError("media_quality_legacy_delivery_needs_resume", false, nil)
+			}
+		}
+		return nil, newCapabilityError(mediaQualityFailureCode(intent.QualityVerdict), false, nil)
+	}
 	assetID := "asset_" + intent.ID
 	var ready bool
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_assets WHERE id=$1 AND status='ready')`, assetID).Scan(&ready); err != nil {
@@ -379,9 +407,16 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 	qualityCheckVerdict := ""
 	qualityReason := ""
 	qualityFresh := false
-	if (intent.QualityVerdict == mediaQualityVerdictPass || intent.QualityVerdict == mediaQualityVerdictSkip) && intent.QualityCandidateSHA == candidateSHA {
+	if intent.QualityCandidateSHA == candidateSHA && (intent.QualityVerdict == mediaQualityVerdictPass || intent.QualityVerdict == mediaQualityVerdictSkip || (isDerivedVisualIdentityMedia(intent) && (intent.QualityVerdict == mediaQualityVerdictRetry || intent.QualityVerdict == mediaQualityVerdictReject))) {
 		quality.Verdict = intent.QualityVerdict
 		qualityCheckVerdict = quality.Verdict
+	} else if intent.QualityCandidateSHA == candidateSHA && !isDerivedVisualIdentityMedia(intent) && intent.QualityRetryCount > 0 && (intent.QualityVerdict == mediaQualityVerdictRetry || intent.QualityVerdict == mediaQualityVerdictReject) {
+		// An explicit resume reuses the same candidate and cannot turn an
+		// already-recorded non-pass into a successful delivery by rechecking it.
+		if err := a.rejectMediaQuality(ctx, intent.ID, providerJobID, candidateSHA, intent.QualityVerdict); err != nil {
+			return nil, err
+		}
+		return nil, newCapabilityError(mediaQualityFailureCode(intent.QualityVerdict), false, nil)
 	} else {
 		qualityFresh = true
 		quality, err = a.evaluateMediaQuality(ctx, intent, contentType, content)
@@ -414,17 +449,23 @@ func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result m
 					return nil, err
 				}
 				return map[string]any{"intent_id": intent.ID, "status": "quality_retry", "quality_retry_count": intent.QualityRetryCount + 1}, nil
-			case mediaQualityActionAcceptAfterRetry:
-				actualVerdict := quality.Verdict
-				if err := a.acceptMediaQualityAfterRetry(ctx, intent.ID, providerJobID, candidateSHA); err != nil {
+			case mediaQualityActionStop:
+				if !isDerivedVisualIdentityMedia(intent) {
+					if err := a.rejectMediaQuality(ctx, intent.ID, providerJobID, candidateSHA, quality.Verdict); err != nil {
+						return nil, err
+					}
+					return nil, newCapabilityError(mediaQualityFailureCode(quality.Verdict), false, nil)
+				}
+				// Visual-identity candidates are private review material. Preserve
+				// the real verdict and observations before the resumable upload;
+				// settlement only accepts a genuine pass automatically.
+				if err := a.recordVisualAssetQuality(ctx, intent.ID, quality, quality.Verdict, "", candidateSHA); err != nil {
 					return nil, err
 				}
-				finalDiagnostic := mediaQualityDiagnostic(quality, "", candidateSHA, intent.QualityRetryCount)
-				finalDiagnostic["actual_verdict"] = actualVerdict
-				finalDiagnostic["delivery_verdict"] = mediaQualityVerdictRetryAccepted
-				a.recordDiagnosticEvent(ctx, "media.quality.accepted_after_retry", "warn", intent.Owner, "media:"+intent.ID, intent.ProviderRequestID, finalDiagnostic)
-				quality.Verdict = mediaQualityVerdictRetryAccepted
-				intent.QualityVerdict = mediaQualityVerdictRetryAccepted
+				if err := a.persistMediaQualityVerdict(ctx, intent.ID, providerJobID, quality.Verdict, candidateSHA); err != nil {
+					return nil, err
+				}
+				intent.QualityVerdict = quality.Verdict
 				intent.QualityCandidateSHA = candidateSHA
 			default:
 				return nil, errors.New("media quality verdict invalid")

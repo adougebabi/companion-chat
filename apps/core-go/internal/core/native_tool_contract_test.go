@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -285,6 +286,51 @@ func TestNativeArgumentRejectionIsTracedAndCannotReuseChangedCall(t *testing.T) 
 		if len(invocations) != 1 || len(results) != 1 {
 			t.Fatal("duplicate rejected trace")
 		}
+	}
+}
+
+func TestNativeRetryableToolFailureRemainsFailureOnTraceReplay(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	trace := &ADKCapabilityTrace{}
+	trace.RecordModelToolCalls("physical-request", 1, []schema.ToolCall{{ID: "retryable-call"}})
+	request := ADKCapabilityRequest{OperationID: "test-run", AuthorizationActorID: "fixture-owner", FluctlightID: "fixture-character", SourceFactID: "fixture-source", Projection: nativeGoalTestProjection()}
+	invoker := newAppADKCapabilityInvoker(app, request, trace).(ADKCapabilityInvokerWithID)
+	first, firstErr := invoker.ExecuteWithID(context.Background(), "retryable-call", "goal.inspect", `{"operation":"list"}`)
+	var firstFailure *agentRunFailure
+	if !errors.As(firstErr, &firstFailure) || firstFailure.stage != "tool" || firstFailure.code != "tool_execution_failed" || !strings.Contains(first, `"retryable":true`) {
+		t.Fatalf("first dependency failure was not recorded: result=%s err=%v", first, firstErr)
+	}
+	replayed, replayErr := invoker.ExecuteWithID(context.Background(), "retryable-call", "goal.inspect", `{"operation":"list"}`)
+	var replayFailure *agentRunFailure
+	if !errors.As(replayErr, &replayFailure) || replayFailure.stage != firstFailure.stage || replayFailure.code != firstFailure.code || replayed != first {
+		t.Fatalf("replay lost the original failure: result=%s err=%v", replayed, replayErr)
+	}
+	invocations, results := trace.Snapshot()
+	if len(invocations) != 1 || len(results) != 1 {
+		t.Fatalf("replay duplicated the tool execution trace: %#v %#v", invocations, results)
+	}
+}
+
+func TestNativeRetryableReceiptWithoutRunFailureStillReplaysAsResult(t *testing.T) {
+	app := &App{}
+	registry, err := NewCapabilityRegistry(builtinCapabilities(app)...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.Capabilities = registry
+	trace := &ADKCapabilityTrace{}
+	trace.RecordModelToolCalls("physical-request", 1, []schema.ToolCall{{ID: "retryable-result"}})
+	trace.Append(CapabilityInvocation{CallID: "retryable-result", CapabilityName: "goal.inspect", Arguments: json.RawMessage(`{"operation":"list"}`)}, CapabilityResult{CallID: "retryable-result", CapabilityName: "goal.inspect", Status: "failed", Retryable: true, ErrorCode: "retryable_result"})
+	request := ADKCapabilityRequest{OperationID: "test-run", AuthorizationActorID: "fixture-owner", FluctlightID: "fixture-character", SourceFactID: "fixture-source", Projection: nativeGoalTestProjection()}
+	invoker := newAppADKCapabilityInvoker(app, request, trace).(ADKCapabilityInvokerWithID)
+	result, err := invoker.ExecuteWithID(context.Background(), "retryable-result", "goal.inspect", `{"operation":"list"}`)
+	if err != nil || !strings.Contains(result, `"retryable":true`) || !strings.Contains(result, `"error_code":"retryable_result"`) {
+		t.Fatalf("receipt without execution error was promoted to a run failure: %s %v", result, err)
 	}
 }
 

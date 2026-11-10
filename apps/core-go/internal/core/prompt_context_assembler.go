@@ -244,6 +244,14 @@ type PromptAssemblyResult struct {
 	ResponseFormat map[string]any      `json:"response_format"`
 	Trace          PromptAssemblyTrace `json:"trace"`
 	Diagnostics    map[string]any      `json:"-"`
+	// The assignment selected while assembling this request is process-local.
+	// It may contain a credential and must never be serialized or diagnosed.
+	providerBinding *promptProviderBinding
+}
+
+type promptProviderBinding struct {
+	role       string
+	assignment providerAssignment
 }
 
 type promptOptionalCandidate struct {

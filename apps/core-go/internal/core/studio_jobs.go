@@ -87,9 +87,10 @@ func enqueueStudioAttemptTx(ctx context.Context, tx pgx.Tx, owner, id string, at
 	return err
 }
 
-// New attempts preserve a validated completed model stage. Failed attempts are
-// immutable; neither automatic nor explicit recovery reopens their execution.
-func retryStudioAttemptTx(ctx context.Context, tx pgx.Tx, owner string, job map[string]any) error {
+// New attempts preserve a validated completed stage. Automatic retry also
+// keeps a frozen unfinished model binding; an explicit Owner retry may select
+// the newly configured model. The failed attempt itself remains immutable.
+func retryStudioAttemptTx(ctx context.Context, tx pgx.Tx, owner string, job map[string]any, automatic bool) error {
 	id, previous := stringValue(job["id"]), intValue(job["latest_attempt"])
 	var raw []byte
 	if err := tx.QueryRow(ctx, `SELECT output FROM public.studio_job_attempts WHERE job_id=$1 AND attempt=$2`, id, previous).Scan(&raw); err != nil {
@@ -104,7 +105,7 @@ func retryStudioAttemptTx(ctx context.Context, tx pgx.Tx, owner string, job map[
 	if err := enqueueStudioAttemptTx(ctx, tx, owner, id, previous+1, output); err != nil {
 		return err
 	}
-	if len(output) > 0 {
+	if len(output) > 0 || automatic {
 		if _, err := tx.Exec(ctx, `UPDATE public.studio_job_attempts n SET provenance=p.provenance||jsonb_build_object('reused_from_attempt_id',p.id) FROM public.studio_job_attempts p WHERE n.job_id=$1 AND n.attempt=$2 AND p.job_id=n.job_id AND p.attempt=$3`, id, previous+1, previous); err != nil {
 			return err
 		}
@@ -168,6 +169,11 @@ func (a *App) DispatchStudioJobSurface(ctx context.Context, method, path string,
 			kind := stringValue(body["kind"])
 			if kind != "assistant" && kind != "text_preview" && kind != "image_preview" {
 				return nil, invalid("kind must be assistant, text_preview or image_preview")
+			}
+			if kind == "image_preview" {
+				if err := requireDomainPluginEnabledTx(ctx, tx, "image"); err != nil {
+					return nil, err
+				}
 			}
 			name := stringValue(body["name"])
 			definition, ok := body["body"].(map[string]any)
@@ -252,8 +258,17 @@ func (a *App) DispatchStudioJobSurface(ctx context.Context, method, path string,
 				if active {
 					return nil, &SurfaceError{Status: 409, Code: "studio_media_execution_active", Message: "The original media workflow is still active or awaiting cancellation; query it before retrying"}
 				}
+				var accepted bool
+				if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.media_intents WHERE media_scope='studio' AND studio_job_id=$1 AND studio_owner_actor_id=$2)`, id, owner).Scan(&accepted); err != nil {
+					return nil, err
+				}
+				if !accepted {
+					if err := requireDomainPluginEnabledTx(ctx, tx, "image"); err != nil {
+						return nil, err
+					}
+				}
 			}
-			if err := retryStudioAttemptTx(ctx, tx, owner, job); err != nil {
+			if err := retryStudioAttemptTx(ctx, tx, owner, job, false); err != nil {
 				return nil, err
 			}
 		case "discard":
@@ -289,7 +304,7 @@ func (a *App) StudioJob(ctx context.Context, owner, id string) (map[string]any, 
 	if err != nil {
 		return nil, err
 	}
-	attempts, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT to_jsonb(a)||jsonb_build_object('intent_id',i.intent_id,'intent_status',i.status,'workflow_id',i.workflow_id,'intent_error',CASE WHEN i.last_error IS NULL THEN NULL WHEN i.last_error='workflow_status_unavailable' THEN 'workflow_status_unavailable' ELSE 'workflow_execution_failed' END) FROM public.studio_job_attempts a LEFT JOIN public.platform_workflow_intents i ON i.intent_id='studio_intent:'||a.id WHERE a.job_id=$1 ORDER BY a.attempt`, id)
+	attempts, err := readWorldObjects(ctx, a.DB.Pool(), `SELECT (to_jsonb(a)-'provenance')||jsonb_build_object('provenance',a.provenance-'_studio_model_snapshots'-'_studio_model_snapshot_contract','intent_id',i.intent_id,'intent_status',i.status,'workflow_id',i.workflow_id,'intent_error',CASE WHEN i.last_error IS NULL THEN NULL WHEN i.last_error='workflow_status_unavailable' THEN 'workflow_status_unavailable' ELSE 'workflow_execution_failed' END) FROM public.studio_job_attempts a LEFT JOIN public.platform_workflow_intents i ON i.intent_id='studio_intent:'||a.id WHERE a.job_id=$1 ORDER BY a.attempt`, id)
 	if err != nil {
 		return nil, err
 	}

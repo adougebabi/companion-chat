@@ -28,7 +28,7 @@ func scanDiaryItem(row pgx.Row, fid string) (map[string]any, error) {
 	if refs == nil {
 		refs = []any{}
 	}
-	return map[string]any{"id": id, "fluctlight_id": fid, "date": date, "timezone": zone, "status": status, "revision": revision, "latest_attempt": attempt, "last_error_code": lastError, "body": body, "source": "agent", "refs": refs, "created_at": created.UTC().Format(time.RFC3339Nano), "updated_at": updated.UTC().Format(time.RFC3339Nano), "active_attempt_id": activeAttempt, "source_snapshot": decodeObject(sources), "persona_provenance": mapValue(decodeObject(persona)["diary_persona_provenance"]), "model_provenance": decodeObject(models), "annotation": map[string]any{"favorite": favorite, "note": note, "revision": annotationRevision}}, nil
+	return map[string]any{"id": id, "fluctlight_id": fid, "date": date, "timezone": zone, "status": status, "revision": revision, "latest_attempt": attempt, "last_error_code": lastError, "body": body, "source": "agent", "refs": refs, "created_at": created.UTC().Format(time.RFC3339Nano), "updated_at": updated.UTC().Format(time.RFC3339Nano), "active_attempt_id": activeAttempt, "source_snapshot": decodeObject(sources), "persona_provenance": mapValue(decodeObject(persona)["diary_persona_provenance"]), "model_provenance": publicDiaryModelProvenance(models), "annotation": map[string]any{"favorite": favorite, "note": note, "revision": annotationRevision}}, nil
 }
 
 func (a *App) OwnerDiaryList(ctx context.Context, owner, fid string, q url.Values) (map[string]any, error) {

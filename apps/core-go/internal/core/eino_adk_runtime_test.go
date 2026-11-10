@@ -1046,6 +1046,7 @@ func TestFormalAgentSchemaMatrixRoutesEveryCompleteTaskToRunner(t *testing.T) {
 		{name: "takeover", schema: takeoverReplySchemaName},
 		{name: "wakeup", schema: "wake_up_response"},
 		{name: "daily_review", schema: "daily_review_response"},
+		{name: "expression_learning", schema: expressionLearningSchema},
 		{name: "native", schema: "native_cognition_response"},
 		{name: "reflection", schema: "reflection_proposal_v2"},
 	} {

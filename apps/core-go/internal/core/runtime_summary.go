@@ -146,7 +146,8 @@ func (a *App) processRuntimeSummary(ctx context.Context, work conversationSummar
 	if err != nil {
 		return nil, err
 	}
-	assignment, err := a.Provider.assignment(ctx, "reflection")
+	routeCtx := withAgentModelRoute(ctx, FormalAgentConversationSummary, "conversation_summary_v1")
+	assignment, err := a.Provider.assignment(routeCtx, "reflection")
 	if err != nil {
 		return nil, err
 	}
@@ -158,11 +159,12 @@ func (a *App) processRuntimeSummary(ctx context.Context, work conversationSummar
 	if err != nil {
 		return nil, err
 	}
-	response, err := a.RunConversationSummaryTask(WithProviderCorrelation(ctx, "conversation-summary:"+work.IntentID), ConversationSummaryTaskInput{Messages: work.Messages, PreviousSummary: state.Summary, ActorFacts: actorFacts, MaxRunes: outputBudget, OwnerActorID: ownerActorID, FluctlightID: work.FluctlightID})
+	modelCtx := withFrozenProviderAssignment(routeCtx, "reflection", assignment)
+	response, err := a.RunConversationSummaryTask(WithProviderCorrelation(modelCtx, "conversation-summary:"+work.IntentID), ConversationSummaryTaskInput{Messages: work.Messages, PreviousSummary: state.Summary, ActorFacts: actorFacts, MaxRunes: outputBudget, OwnerActorID: ownerActorID, FluctlightID: work.FluctlightID})
 	if err != nil {
 		return nil, err
 	}
-	liveAssignment, err := a.Provider.assignment(ctx, "reflection")
+	liveAssignment, err := a.Provider.assignment(routeCtx, "reflection")
 	if err != nil {
 		return nil, err
 	}
@@ -253,6 +255,15 @@ func (a *App) retrieveRuntimeSummary(ctx context.Context, q ConversationSummaryQ
 		return result, err
 	}
 	if state.Status != "active" || state.Covered == 0 || strings.TrimSpace(state.Summary) == "" {
+		return result, nil
+	}
+	blocked, err := summaryContainsCorrectedMemorySource(ctx, a.DB.Pool(), q.FluctlightID, q.ConversationID, 1, state.Covered)
+	if err != nil {
+		return result, err
+	}
+	if blocked {
+		result.Trace.CandidateCount = 1
+		result.Trace.Selections = []ConversationSummarySelectionTrace{{SummaryID: "runtime_summary_" + stableDigest(q.FluctlightID+":"+q.ConversationID), Disposition: "dropped", Reason: "source_memory_corrected", Runes: len([]rune(state.Summary))}}
 		return result, nil
 	}
 	refs := make([]string, 0)

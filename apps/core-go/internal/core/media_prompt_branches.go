@@ -225,7 +225,27 @@ func normalizeMediaPrompt(ctx context.Context, concept map[string]any, call func
 }
 
 func (a *App) runBranchedMediaPrompt(ctx context.Context, input MediaPromptTaskInput, concept map[string]any) (MediaPromptTaskResult, error) {
+	var assignment *providerAssignment
 	output, repairs, err := normalizeMediaPrompt(ctx, concept, func(ctx context.Context, packet map[string]any) (map[string]any, error) {
+		// Resolve only after the packet is validated, as in the original path.
+		// The correction belongs to this task and reuses its first binding.
+		ctx = withAgentModelRoute(ctx, FormalAgentMediaPrompt, "media_prompt_normalized")
+		if assignment == nil {
+			provider, err := a.modelTaskProvider()
+			if err != nil {
+				return nil, err
+			}
+			selected, err := provider.assignment(ctx, "media_prompt")
+			if err != nil {
+				diagnosticCtx := ensureProviderAttemptIdentity(WithProviderScenario(ctx, "media_prompt"))
+				messages := formalPromptMessages(FormalAgentMediaPrompt, formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": mediaNormalizationInstruction}, {"role": "user", "content": jsonString(packet)}}, "media_prompt"))
+				correlation := firstString(providerCorrelation(ctx), diagnosticCorrelation(messages, ""))
+				provider.recordProviderPreflightFailure(diagnosticCtx, providerAssignment{}, "media_prompt", correlation, "assignment", messages, err)
+				return nil, err
+			}
+			assignment = &selected
+		}
+		ctx = withFrozenProviderAssignment(ctx, "media_prompt", *assignment)
 		return a.mediaStructuredCall(ctx, "media_prompt_normalized", mediaNormalizationInstruction, packet, mediaNormalizationSchema())
 	})
 	if a.DB != nil {

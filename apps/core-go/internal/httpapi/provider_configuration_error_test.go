@@ -7,10 +7,13 @@ import (
 )
 
 func TestProviderConfigurationValidationIsNotAnUnknownGatewayFailure(t *testing.T) {
-	for _, code := range []string{"provider_prompt_budget_invalid", "prompt_budget_policy_unknown", "provider_model_not_available"} {
+	for _, code := range []string{"provider_prompt_budget_invalid", "prompt_budget_policy_unknown", "provider_model_not_available", "provider_sampling_invalid"} {
 		var got *browser.CoreError
 		if !errors.As(browserProviderRoleValidationError(errors.New(code)), &got) || got.Status != 422 || got.Code != code || got.Details["configuration_admission"] != "rejected" {
 			t.Fatalf("%s became %#v", code, got)
+		}
+		if gotCode := providerRoleErrorCode(errors.New(code)); gotCode != code {
+			t.Fatalf("internal provider error %q became %q", code, gotCode)
 		}
 	}
 	for _, err := range []error{nil, errors.New("database commit failed"), errors.New("provider_models_unavailable: transient HTTP error"), errors.New("private error containing provider_prompt_budget_invalid text")} {

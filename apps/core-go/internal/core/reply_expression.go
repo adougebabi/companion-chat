@@ -122,17 +122,16 @@ func (a *App) restoreReplyRunBinding(ctx context.Context, run *privateReplyRun, 
 		return err
 	}
 	settings.ExpressionVersion = contract.Version
-	if assignment.EndpointID != "" {
-		var purpose string
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT secret_purpose FROM public.provider_endpoints WHERE id=$1`, assignment.EndpointID).Scan(&purpose); err != nil {
-			return err
-		}
-		assignment.Secret, err = a.Provider.secret(ctx, purpose)
-		if err != nil {
+	if assignment.EndpointID != "" || assignment.SecretPurpose != "" {
+		if err := a.restoreAssignmentCredential(ctx, &assignment); err != nil {
 			return err
 		}
 	} else {
+		if _, err := restoredAssignmentSecretPurpose(assignment, run.Assignment.BaseURL, run.Assignment.SecretPurpose); err != nil {
+			return err
+		}
 		assignment.Secret = run.Assignment.Secret
+		assignment.CredentialRevision = run.Assignment.CredentialRevision
 	}
 	run.mu.Lock()
 	defer run.mu.Unlock()

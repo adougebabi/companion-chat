@@ -2,11 +2,38 @@ package agent
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/fluctlight/local-ai-companion/apps/core-go/internal/capability"
 )
+
+func TestTracePublishesFailureWithItsResultConcurrently(t *testing.T) {
+	const count = 32
+	trace := &ADKCapabilityTrace{}
+	var group sync.WaitGroup
+	for index := 0; index < count; index++ {
+		group.Add(1)
+		go func(index int) {
+			defer group.Done()
+			id := fmt.Sprintf("call-%d", index)
+			failure := fmt.Errorf("failure-%d", index)
+			trace.AppendResultWithFailure(capability.CapabilityResult{CallID: id, Status: "failed", Retryable: true}, failure)
+			result, found := trace.FindResult(id)
+			if !found || result.CallID != id || !errors.Is(trace.ResultFailure(id), failure) {
+				t.Errorf("result or its failure lost for %s", id)
+			}
+		}(index)
+	}
+	group.Wait()
+	_, results := trace.Snapshot()
+	if len(results) != count {
+		t.Fatalf("recorded %d results, want %d", len(results), count)
+	}
+}
 
 type dummyInvoker struct{}
 

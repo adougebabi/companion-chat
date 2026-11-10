@@ -193,6 +193,7 @@ func TestFormalAgentE2EBrokenToolResultFeedbackProbe(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
+	seedConversationReplyFromCognitive(t, ctx, repository)
 
 	result, err := app.RunConversationCognitionAgent(ctx, ConversationCognitionAgentInput{
 		AuthorizationActorID: ownerID, FluctlightID: fluctlightID, ConversationID: conversationID,

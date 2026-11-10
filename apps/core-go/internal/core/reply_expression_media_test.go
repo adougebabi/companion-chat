@@ -2,11 +2,66 @@ package core
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestReplyImageRequestWhitespaceReturnsRecoverableToolResult(t *testing.T) {
+	for _, intent := range []string{"   ", "\t\n　"} {
+		t.Run(jsonString(intent), func(t *testing.T) {
+			tool := &replyImageRequestTool{}
+			invoker := replyImageRequestInvoker{tool: tool}
+			raw, err := invoker.ExecuteWithID(context.Background(), "blank-image", replyImageRequestName, jsonString(map[string]any{"intent": intent}))
+			if err != nil {
+				t.Fatal("whitespace should be reported to the model", err)
+			}
+			result := decodeObject([]byte(raw))
+			output := mapValue(result["output"])
+			if result["status"] != "handled" || output["warning_code"] != "invalid_arguments" || output["disposition"] != "needs_input" || output["effect_applied"] != false || len(tool.requests) != 0 {
+				t.Fatalf("incorrect no-effect receipt: %#v requests=%#v", result, tool.requests)
+			}
+		})
+	}
+}
+
+func TestPrivateReplyRecoversFromWhitespaceImageRequest(t *testing.T) {
+	for _, blankFirst := range []bool{true, false} {
+		name := "valid_first"
+		if blankFirst {
+			name = "blank_first"
+		}
+		t.Run(name, func(t *testing.T) {
+			input := privateChatExpressionFixture(t, true)
+			const intent = "窗边的一束花"
+			calls := 0
+			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+				calls++
+				if calls <= 2 {
+					if calls == 2 && blankFirst && !strings.Contains(jsonString(payload["messages"]), "invalid_arguments") {
+						t.Error("missing recoverable native result")
+					}
+					value := intent
+					if (calls == 1) == blankFirst {
+						value = "　 "
+					}
+					return fakeProviderResult{ToolCalls: []map[string]any{{"id": name + jsonString(calls), "type": "function", "function": map[string]any{"name": replyImageRequestName, "arguments": jsonString(map[string]any{"intent": value})}}}}
+				}
+				if !blankFirst && !strings.Contains(jsonString(payload["messages"]), "invalid_arguments") {
+					t.Error("missing recoverable native result after a valid request")
+				}
+				return fakeProviderResult{Text: "好，等实际结果。"}
+			})
+			app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+			draft, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second * 3}, DraftRef: "whitespace-image-draft", Concurrency: 1})
+			if err != nil || calls != 3 || len(draft.MediaRequests) != 1 || draft.MediaRequests[0].Intent != intent {
+				t.Fatalf("valid request lost after whitespace: draft=%#v calls=%d err=%v", draft, calls, err)
+			}
+		})
+	}
+}
 
 func TestPrivateChatStyleRepairPreservesNativeImageIntent(t *testing.T) {
 	input := privateChatExpressionFixture(t, true)
@@ -57,6 +112,45 @@ func (s *privateReplyQuerySpy) Execute(context.Context, string, string) (string,
 func (s *privateReplyQuerySpy) ExecuteWithID(context.Context, string, string, string) (string, error) {
 	s.calls++
 	return `{}`, nil
+}
+
+type failingReplyDetailInvoker struct{ calls int }
+
+func (s *failingReplyDetailInvoker) Execute(ctx context.Context, name, args string) (string, error) {
+	return s.ExecuteWithID(ctx, "", name, args)
+}
+
+func (s *failingReplyDetailInvoker) ExecuteWithID(context.Context, string, string, string) (string, error) {
+	s.calls++
+	return "", &agentRunFailure{stage: "tool", code: "persona_detail_unavailable", cause: &providerHTTPResponseError{StatusCode: http.StatusServiceUnavailable}}
+}
+
+func TestPrivateReplyToolFailureRetainsClassificationThroughNativeLoop(t *testing.T) {
+	input := privateChatExpressionFixture(t, true)
+	input.CapabilityFacts["persona_detail_registered"] = true
+	assignment := providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "writer", Timeout: time.Second}
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		return fakeProviderResult{ToolCalls: []map[string]any{{"id": "detail-failure", "type": "function", "function": map[string]any{"name": personaDetailCapabilityName, "arguments": `{"operation":"read","section_id":"current_appearance"}`}}}}
+	})
+	app := &App{DB: &PostgresRepository{}, Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	image := &replyImageRequestTool{expressionVersion: input.ExpressionVersion}
+	registry, err := NewCapabilityRegistry(image, personaDetailCapability{service: newPersonaDetailService(app)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	spy := &failingReplyDetailInvoker{}
+	invoker := &replyWriterInvoker{app: app, input: ConversationReplyTaskInput{Context: input}, image: replyImageRequestInvoker{tool: image}, detail: spy}
+	prompt, err := buildFactOnlyReplyContext(input, assignment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := withCapabilityRunRegistry(context.Background(), registry)
+	ctx = withFrozenProviderAssignment(ctx, conversationReplyModelRole, assignment)
+	_, err = app.RunFormalAgent(ctx, FormalAgentConversationReply, FormalAgentRunInput{Prompt: prompt, SchemaName: "conversation_reply_text", Definitions: replyWriterDefinitions(input), Invoker: invoker})
+	var toolFailure *agentRunFailure
+	if !errors.As(err, &toolFailure) || toolFailure.code != "persona_detail_unavailable" || spy.calls != 1 || replyFailureAllowsLegacyFallback(err) || replyErrorCode(err) != "persona_detail_unavailable" {
+		t.Fatalf("native loop lost tool failure: err=%v calls=%d", err, spy.calls)
+	}
 }
 
 // This checks the child catalog/name boundary only. The canonical query's

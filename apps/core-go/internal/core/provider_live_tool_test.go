@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -255,7 +256,7 @@ func TestLiveProviderRecognizesImageGenerationIntent(t *testing.T) {
 	}
 	message := mapValue(mapValue(choices[0])["message"])
 	structured, _ := liveProviderStructuredOrFallback(t, message, "conversation_turn_response", schema)
-	calls := liveProviderInvocations(t, message, structured)
+	calls := liveProviderInvocations(t, message)
 	foundImage := false
 	foundReply := false
 	replyText := ""
@@ -353,7 +354,7 @@ func TestLiveProviderActiveMemory(t *testing.T) {
 	}
 	message := liveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, assembly.Messages, 1800, true, definitions, "cognitive_assessment", "conversation_turn_response", schema, true))
 	decision, _ := liveProviderStructuredOrFallback(t, message, "conversation_turn_response", schema)
-	calls := liveProviderInvocations(t, message, decision)
+	calls := liveProviderInvocations(t, message)
 	var active *CapabilityInvocation
 	for index := range calls {
 		if calls[index].CapabilityName == "active_memory_event" {
@@ -570,19 +571,40 @@ func liveProviderStructuredOrFallback(t *testing.T, message map[string]any, sche
 	return normalized, false
 }
 
-func liveProviderInvocations(t *testing.T, message, structured map[string]any) []CapabilityInvocation {
+func liveProviderInvocations(t *testing.T, message map[string]any) []CapabilityInvocation {
 	t.Helper()
-	calls, err := NormalizeProviderToolCalls(message["tool_calls"], "", "live-provider")
+	calls, err := liveNativeProviderCalls(message)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) == 0 {
-		calls, err = NormalizeProviderToolCalls(structured["tool_calls"], "", "live-provider")
-		if err != nil {
-			t.Fatal(err)
+	return calls
+}
+
+func liveNativeProviderCalls(message map[string]any) ([]CapabilityInvocation, error) {
+	for _, raw := range arrayValue(message["tool_calls"]) {
+		call := mapValue(raw)
+		function := mapValue(call["function"])
+		_, argumentsAreString := function["arguments"].(string)
+		if stringValue(call["id"]) == "" || call["type"] != "function" || stringValue(function["name"]) == "" || !argumentsAreString {
+			return nil, errors.New("live_provider_native_tool_call_invalid")
 		}
 	}
-	return calls
+	return NormalizeProviderToolCalls(message["tool_calls"], "", "live-provider")
+}
+
+func TestLiveProviderEvidenceRequiresNativeToolCalls(t *testing.T) {
+	message := map[string]any{"content": `{"tool_calls":[{"call_id":"fake","capability_name":"conversation.reply","arguments":{"text":"not a real call"}}]}`}
+	if calls := liveProviderInvocations(t, message); len(calls) != 0 {
+		t.Fatalf("ordinary content became live tool evidence: %#v", calls)
+	}
+	message["tool_calls"] = []any{map[string]any{"call_id": "fake", "capability_name": conversationReplyCapabilityName, "arguments": map[string]any{"text": "not native"}}}
+	if _, err := liveNativeProviderCalls(message); err == nil {
+		t.Fatal("canonical sidecar shape counted as a native provider call")
+	}
+	message["tool_calls"] = []any{map[string]any{"id": "native-1", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": `{"text":"real call"}`}}}
+	if calls := liveProviderInvocations(t, message); len(calls) != 1 || calls[0].CallID != "native-1" {
+		t.Fatalf("native tool evidence was lost: %#v", calls)
+	}
 }
 
 func boundedLiveProviderBody(value []byte) string {

@@ -60,8 +60,7 @@ func TestLiveRegressionConversationImageAndReplySameTurn(t *testing.T) {
 		{"role": "user", "content": "请同时完成两件事：调用图片能力生成一张雨后昏暗卧室里 22 岁中国女性的真实照片，并用 conversation.reply 给我一句正常回复。不能只调用图片，也不能只返回文字。"},
 	}
 	message := privateLiveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, messages, 1800, true, definitions, "cognitive_assessment", "conversation_turn_response", schema, true))
-	structured, _ := liveProviderStructuredOrFallback(t, message, "conversation_turn_response", schema)
-	calls := liveProviderInvocations(t, message, structured)
+	calls := liveProviderInvocations(t, message)
 	assertLiveInvocationPair(t, calls, "same-turn image+reply")
 }
 
@@ -75,7 +74,7 @@ func TestLiveRegressionWakeUpProactiveImageAndReplyBundle(t *testing.T) {
 	}
 	message := privateLiveProviderMessage(t, baseURL, providerChatPayloadWithSchema(model, messages, 1800, true, definitions, "cognitive_assessment", "wake_up_response", schema, true))
 	structured, fallback := liveProviderStructuredOrFallback(t, message, "wake_up_response", schema)
-	calls := liveProviderInvocations(t, message, structured)
+	calls := liveProviderInvocations(t, message)
 	if len(calls) == 0 {
 		t.Fatalf("Wake-up Provider returned no capability calls; fallback=%v structured=%s message=%s", fallback, jsonString(structured), boundedLiveProviderValue(message))
 	}

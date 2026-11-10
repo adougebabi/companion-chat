@@ -59,6 +59,11 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	if currentInput == "" {
 		return ConversationCognitionAgentResult{}, errors.New("conversation_cognition_agent_input_required")
 	}
+	var scopeErr error
+	ctx, scopeErr = a.withDomainPluginScope(ctx)
+	if scopeErr != nil {
+		return ConversationCognitionAgentResult{}, scopeErr
+	}
 
 	conversationID := strings.TrimSpace(input.ConversationID)
 	memoryOperation := MemoryForNativeCognition
@@ -102,6 +107,9 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		surface = ProviderContextSurfaceFactOnlyCognition
 		operationRules = []string{factOnlyExecutionBoundary}
 		projection = privateTextChatProjection(projection)
+	} else if replyRun != nil && replyRun.Settings.Mode == "direct" {
+		operationRules = []string{providerContextAuthorityRule, directMainConversationProtocol, factOnlyExecutionBoundary}
+		projection = privateTextChatProjection(projection)
 	}
 	assembly, projection, err := a.assembleProjectionPromptForSurface(
 		ctx,
@@ -124,8 +132,9 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	if conversationID != "" {
 		providerCtx = withPhysicalModelRequestPolicy(providerCtx, conversationPublicationPhysicalRequestPolicy{})
 	}
+	assembly.ResponseFormat = schema
 	runInput := FormalAgentRunInput{
-		Prompt:          PromptAssemblyResult{Messages: assembly.Messages, ResponseFormat: schema},
+		Prompt:          assembly,
 		Definitions:     definitions,
 		SchemaName:      "conversation_turn_response",
 		EnableThinking:  structuredThinkingEnabledForSchema("conversation_turn_response"),

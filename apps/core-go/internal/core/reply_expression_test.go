@@ -51,19 +51,23 @@ func TestPrivateChatRestoredBindingIgnoresHotUpdates(t *testing.T) {
 	settings.ExpressionVersion = factOnlyReplyLegacyPromptVersion
 	settings.Temperature = 0.37
 	temperature := 0.37
-	assignment := providerAssignment{Role: conversationReplyModelRole, ModelID: "original-frozen-model", BaseURL: "http://controlled.invalid", Temperature: &temperature, TokenBudget: 777}
+	assignment := providerAssignment{Role: conversationReplyModelRole, ModelID: "original-frozen-model", BaseURL: "http://controlled.invalid", Temperature: &temperature, TokenBudget: 777, CredentialRevision: 1}
 	contract, _ := replyExpressionContract(settings.ExpressionVersion)
 	binding := decodeObject(jsonBytes(map[string]any{"reply_contract": contract, "assignment": assignment, "style_repair_claimed": true}))
-	run := &privateReplyRun{Settings: defaultConversationReplySettings(), ConfigVersion: 99, Assignment: providerAssignment{ModelID: "new-model"}, Scope: ToolExecutionRequest{FluctlightID: "original-self", AuthorizationActorID: "original-owner"}}
+	run := &privateReplyRun{Settings: defaultConversationReplySettings(), ConfigVersion: 99, Assignment: providerAssignment{ModelID: "new-model", BaseURL: "http://controlled.invalid", Secret: "current-test-secret", CredentialRevision: 9}, Scope: ToolExecutionRequest{FluctlightID: "original-self", AuthorizationActorID: "original-owner"}}
 	if err := (&App{}).restoreReplyRunBinding(context.Background(), run, jsonBytes(settings), 7, binding); err != nil {
 		t.Fatal(err)
 	}
-	if run.Assignment.ModelID != assignment.ModelID || run.ConfigVersion != 7 || run.Settings.Temperature != 0.37 || run.Expression.Version != factOnlyReplyLegacyPromptVersion || run.Scope.AuthorizationActorID != "original-owner" {
+	if run.Assignment.ModelID != assignment.ModelID || run.Assignment.Secret != "current-test-secret" || run.Assignment.CredentialRevision != 9 || run.ConfigVersion != 7 || run.Settings.Temperature != 0.37 || run.Expression.Version != factOnlyReplyLegacyPromptVersion || run.Scope.AuthorizationActorID != "original-owner" {
 		t.Fatal("hot config/model changed durable draft", run)
 	}
 	delete(binding, "reply_contract")
 	if err := (&App{}).restoreReplyRunBinding(context.Background(), run, jsonBytes(settings), 7, binding); err != nil || run.Expression.Version != factOnlyReplyLegacyPromptVersion {
 		t.Fatal("old draft used latest expression", run, err)
+	}
+	foreignRun := &privateReplyRun{Assignment: providerAssignment{BaseURL: "http://other.invalid", Secret: "other-test-secret"}}
+	if err := (&App{}).restoreReplyRunBinding(context.Background(), foreignRun, jsonBytes(settings), 7, binding); err == nil || err.Error() != "reply_snapshot_credential_source_unknown" {
+		t.Fatalf("legacy no-endpoint snapshot borrowed another destination's credential: %v", err)
 	}
 }
 

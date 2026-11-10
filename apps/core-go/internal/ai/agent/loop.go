@@ -25,6 +25,7 @@ type ADKCapabilityTrace struct {
 	Invocations []capability.CapabilityInvocation
 	Results     []capability.CapabilityResult
 	ModelCalls  map[string]ADKToolCallModelIdentity
+	failures    map[string]error
 }
 
 // ADKToolCallModelIdentity binds a native ToolCall to the physical Provider
@@ -109,6 +110,17 @@ func (trace *ADKCapabilityTrace) FindResult(callID string) (capability.Capabilit
 	return capability.CapabilityResult{}, false
 }
 
+// ResultFailure keeps run-terminating execution errors alongside their
+// request-scoped receipt. It is not part of the persisted tool result.
+func (trace *ADKCapabilityTrace) ResultFailure(callID string) error {
+	if trace == nil {
+		return nil
+	}
+	trace.mu.RLock()
+	defer trace.mu.RUnlock()
+	return trace.failures[callID]
+}
+
 func (trace *ADKCapabilityTrace) Append(invocation capability.CapabilityInvocation, result capability.CapabilityResult) {
 	if trace == nil {
 		return
@@ -129,11 +141,21 @@ func (trace *ADKCapabilityTrace) AppendInvocation(invocation capability.Capabili
 }
 
 func (trace *ADKCapabilityTrace) AppendResult(result capability.CapabilityResult) {
+	trace.AppendResultWithFailure(result, nil)
+}
+
+func (trace *ADKCapabilityTrace) AppendResultWithFailure(result capability.CapabilityResult, failure error) {
 	if trace == nil {
 		return
 	}
 	trace.mu.Lock()
 	defer trace.mu.Unlock()
+	if failure != nil {
+		if trace.failures == nil {
+			trace.failures = make(map[string]error)
+		}
+		trace.failures[result.CallID] = failure
+	}
 	trace.Results = append(trace.Results, result)
 }
 

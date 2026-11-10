@@ -67,7 +67,12 @@ func (p *ProviderClient) SetRedisClient(client redis.UniversalClient, processID 
 
 type providerAssignment struct {
 	Role                      string
+	SourceBindingRole         string
+	BindingRevision           int64
+	EndpointRevision          int64
+	CredentialRevision        int64
 	EndpointID                string
+	SecretPurpose             string
 	BaseURL                   string
 	ModelID                   string
 	Secret                    string
@@ -136,40 +141,64 @@ func (p *ProviderClient) assignment(ctx context.Context, role string) (providerA
 	if value, ok := providerAssignmentSnapshot(ctx, role); ok {
 		return value, nil
 	}
-	var endpointID, baseURL, modelID, purpose, capabilityStatus string
+	var endpointID, baseURL, modelID, purpose, capabilityStatus, sourceBindingRole string
+	var bindingRevision, endpointRevision, credentialRevision int64
+	var temperature, topP *float64
+	var ciphertext, nonce []byte
 	var timeoutSeconds, tokenBudget, contextWindowTokens, maxInputTokens int
 	var promptBudgetPolicyVersion string
 	bindingRole := providerBindingRole(role)
+	candidates := agentModelBindingCandidates(ctx, bindingRole)
+	defaultBindingRole := candidates[len(candidates)-1]
 	err := p.DB.Pool().QueryRow(ctx, `
-		SELECT e.id,e.base_url,r.model_id,e.secret_purpose,r.timeout_seconds,r.token_budget,e.capability_status,
-		       r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version
-		FROM public.model_roles r
-		JOIN public.provider_endpoints e ON e.id = r.provider_endpoint_id
-		WHERE r.role = $1 OR ($1 = 'generic_llm' AND r.role IN ('action_realization','cognitive_assessment','interaction','reflection','initialization','media_prompt'))
-		ORDER BY CASE WHEN r.role = $1 THEN 0 WHEN r.role = 'action_realization' THEN 1 WHEN r.role = 'cognitive_assessment' THEN 2 WHEN r.role = 'interaction' THEN 3 WHEN r.role = 'reflection' THEN 4 WHEN r.role = 'initialization' THEN 5 ELSE 6 END
-		LIMIT 1
-	`, bindingRole).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion)
+		WITH selected AS (
+		 SELECT * FROM public.model_roles
+		 WHERE role=ANY($1::text[]) OR ($2='generic_llm' AND role IN ('action_realization','cognitive_assessment','interaction','reflection','initialization','media_prompt'))
+		 ORDER BY COALESCE(array_position($1::text[],role),100+CASE WHEN role='action_realization' THEN 1 WHEN role='cognitive_assessment' THEN 2 WHEN role='interaction' THEN 3 WHEN role='reflection' THEN 4 WHEN role='initialization' THEN 5 ELSE 6 END)
+		 LIMIT 1
+		)
+		SELECT COALESCE(e.id,''),COALESCE(e.base_url,''),r.model_id,COALESCE(e.secret_purpose,''),r.timeout_seconds,r.token_budget,COALESCE(e.capability_status,''),
+		       r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,r.role,
+		       COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='binding:'||r.role),0),
+		       COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='endpoint:'||e.id),0),
+		       COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='secret:'||e.secret_purpose),0),
+		       s.ciphertext,s.nonce,r.temperature,r.top_p
+		FROM selected r
+		LEFT JOIN public.provider_endpoints e ON e.id = r.provider_endpoint_id
+		LEFT JOIN public.setting_secrets s ON s.purpose=e.secret_purpose
+	`, candidates, defaultBindingRole).Scan(&endpointID, &baseURL, &modelID, &purpose, &timeoutSeconds, &tokenBudget, &capabilityStatus, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion, &sourceBindingRole, &bindingRevision, &endpointRevision, &credentialRevision, &ciphertext, &nonce, &temperature, &topP)
 	if err != nil {
-		return providerAssignment{}, providerAssignmentLookupError(bindingRole, err)
+		return providerAssignment{}, providerAssignmentLookupError(defaultBindingRole, err)
+	}
+	if endpointID == "" || modelID == "" {
+		return providerAssignment{}, fmt.Errorf("provider role %s unavailable: configured endpoint or model missing", sourceBindingRole)
 	}
 	if strings.EqualFold(capabilityStatus, "failed") {
-		return providerAssignment{}, fmt.Errorf("provider role %s preflight failed", bindingRole)
+		return providerAssignment{}, fmt.Errorf("provider role %s preflight failed", sourceBindingRole)
 	}
-	secret, err := p.secret(ctx, purpose)
-	if err != nil {
-		return providerAssignment{}, err
+	secret := ""
+	if ciphertext != nil {
+		secret, err = decryptSecret(p.SettingsKey, purpose, nonce, ciphertext)
+		if err != nil {
+			return providerAssignment{}, err
+		}
 	}
 	if timeoutSeconds <= 0 {
 		timeoutSeconds = 120
 	}
 	return providerAssignment{
-		Role: bindingRole, EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID,
+		Role: defaultBindingRole, SourceBindingRole: sourceBindingRole, BindingRevision: bindingRevision, EndpointRevision: endpointRevision, CredentialRevision: credentialRevision,
+		EndpointID: endpointID, SecretPurpose: purpose, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID,
 		Secret: secret, Timeout: time.Duration(timeoutSeconds) * time.Second, TokenBudget: tokenBudget,
 		ContextWindowTokens: contextWindowTokens, MaxInputTokens: maxInputTokens, PromptBudgetPolicyVersion: promptBudgetPolicyVersion,
+		Temperature: temperature, TopP: topP,
 	}, nil
 }
 
 func validProviderRole(role string) bool {
+	if validAgentModelBindingRole(role) {
+		return true
+	}
 	switch role {
 	case "generic_llm", "initialization", "cognitive_assessment", "action_realization", "interaction", "reflection", "embedding", "media_prompt", "visual_identity_vision", "visual_identity_patch", takeoverJudgeRole, conversationReplyModelRole, visionUnderstandingModelRole:
 		return true
@@ -179,16 +208,23 @@ func validProviderRole(role string) bool {
 }
 
 func (p *ProviderClient) secret(ctx context.Context, purpose string) (string, error) {
+	secret, _, err := p.secretWithRevision(ctx, purpose)
+	return secret, err
+}
+
+func (p *ProviderClient) secretWithRevision(ctx context.Context, purpose string) (string, int64, error) {
 	var ciphertext, nonce []byte
-	err := p.DB.Pool().QueryRow(ctx, `SELECT ciphertext, nonce FROM public.setting_secrets WHERE purpose = $1`, purpose).Scan(&ciphertext, &nonce)
+	var revision int64
+	err := p.DB.Pool().QueryRow(ctx, `SELECT s.ciphertext,s.nonce,COALESCE(v.revision,0) FROM (SELECT $1::text AS purpose) p LEFT JOIN public.setting_secrets s ON s.purpose=p.purpose LEFT JOIN public.configuration_revisions v ON v.resource_key='secret:'||p.purpose`, purpose).Scan(&ciphertext, &nonce, &revision)
 	if err != nil {
-		// Providers configured without authentication are explicitly supported.
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", nil
-		}
-		return "", fmt.Errorf("read provider secret: %w", err)
+		return "", 0, fmt.Errorf("read provider secret: %w", err)
 	}
-	return decryptSecret(p.SettingsKey, purpose, nonce, ciphertext)
+	// Providers configured without authentication are explicitly supported.
+	if ciphertext == nil {
+		return "", revision, nil
+	}
+	secret, err := decryptSecret(p.SettingsKey, purpose, nonce, ciphertext)
+	return secret, revision, err
 }
 
 func (p *ProviderClient) complete(ctx context.Context, role string, messages []map[string]any, jsonMode bool) (map[string]any, error) {
@@ -333,6 +369,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 	renderedTools := RenderCapabilityTools(disclosed)
 	wireEstimate := estimatePromptWireInput(messages, renderedTools, responseFormat)
 	diagnostics := providerPromptDiagnostics(ctx)
+	diagnostics["model_configuration"] = providerAssignmentDiagnostics(assignment)
 	if strings.TrimSpace(stringValue(diagnostics["run_id"])) == "" {
 		// The business correlation is the parent run identity. Physical ADK
 		// generations receive separate model_call_id values below.

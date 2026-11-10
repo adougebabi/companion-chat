@@ -58,6 +58,9 @@ func (a *App) ReadSettings(ctx context.Context, actorID string) (map[string]any,
 	if _, exists := values[visionUnderstandingSettingKey]; !exists {
 		values[visionUnderstandingSettingKey] = defaultVisionUnderstandingSettings()
 	}
+	if _, exists := values[domainPluginsSettingKey]; !exists {
+		values[domainPluginsSettingKey] = defaultDomainPluginSettings()
+	}
 	values["ai.capability_status"] = a.replyVisionCapabilityStatus(ctx, values)
 	secretRows, err := reader.Query(ctx, `SELECT purpose FROM public.setting_secrets ORDER BY purpose`)
 	if err != nil {
@@ -118,6 +121,13 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 			return nil, decodeErr
 		}
 		values[visionUnderstandingSettingKey] = config
+	}
+	if raw, exists := values[domainPluginsSettingKey]; exists {
+		config, decodeErr := decodeDomainPluginSettings(jsonBytes(raw))
+		if decodeErr != nil {
+			return nil, &SurfaceError{Status: 422, Code: "domain_plugins_config_invalid", Message: "图片和动态设置必须分别为 true 或 false", Details: map[string]any{"configuration_admission": "rejected"}}
+		}
+		values[domainPluginsSettingKey] = config
 	}
 	if raw, exists := values["kev"]; exists {
 		config, err := decodeKevConfig(jsonBytes(raw))
@@ -217,7 +227,7 @@ func (a *App) UpdateSettings(ctx context.Context, actorID string, payload map[st
 			return err
 		}
 		for key, value := range values {
-			if key != "product.notifications" && key != "kev" && key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" && key != conversationReplySettingKey && key != visionUnderstandingSettingKey {
+			if key != "product.notifications" && key != "kev" && key != "media.comfyui" && key != "product.autonomy" && key != "product.wakeup" && key != "product.goal_retry" && key != "product.summary" && key != "diagnostics.retention" && key != "media.h3" && key != "llm.queue" && key != conversationReplySettingKey && key != visionUnderstandingSettingKey && key != domainPluginsSettingKey {
 				return fmt.Errorf("unknown setting %s", key)
 			}
 			if key == "product.goal_retry" {
@@ -397,7 +407,7 @@ func (a *App) ProviderEndpoints(ctx context.Context, actorID string) ([]map[stri
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.configurationReader(ctx).Query(ctx, `SELECT jsonb_build_object('id',e.id,'kind',e.kind,'base_url',e.base_url,'secret_purpose',e.secret_purpose,'capability_status',e.capability_status,'secret_configured',EXISTS(SELECT 1 FROM public.setting_secrets s WHERE s.purpose=e.secret_purpose),'revision',COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='endpoint:'||e.id),0),'roles',COALESCE((SELECT jsonb_agg(jsonb_build_object('role',r.role,'model_id',r.model_id) ORDER BY r.role) FROM public.model_roles r WHERE r.provider_endpoint_id=e.id AND r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding')),'[]'::jsonb)) FROM public.provider_endpoints e ORDER BY e.id`)
+	rows, err := a.configurationReader(ctx).Query(ctx, `SELECT jsonb_build_object('id',e.id,'kind',e.kind,'base_url',e.base_url,'secret_purpose',e.secret_purpose,'capability_status',e.capability_status,'secret_configured',EXISTS(SELECT 1 FROM public.setting_secrets s WHERE s.purpose=e.secret_purpose),'revision',COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='endpoint:'||e.id),0),'roles',COALESCE((SELECT jsonb_agg(jsonb_build_object('role',r.role,'model_id',r.model_id) ORDER BY r.role) FROM public.model_roles r WHERE r.provider_endpoint_id=e.id AND (r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding') OR r.role LIKE 'agent:%')),'[]'::jsonb)) FROM public.provider_endpoints e ORDER BY e.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +427,7 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	rows, err := a.configurationReader(ctx).Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,e.capability_status FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding') ORDER BY r.role`)
+	rows, err := a.configurationReader(ctx).Query(ctx, `SELECT r.role,r.provider_endpoint_id,r.model_id,r.token_budget,r.timeout_seconds,r.context_window_tokens,r.max_input_tokens,r.prompt_budget_policy_version,COALESCE(e.capability_status,'unavailable'),r.temperature,r.top_p FROM public.model_roles r LEFT JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role IN ('generic_llm','embedding','conversation_reply','vision_understanding') OR r.role LIKE 'agent:%' ORDER BY r.role`)
 	if err != nil {
 		return nil, err
 	}
@@ -428,8 +438,12 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 		var budget, timeout, contextWindowTokens, maxInputTokens int
 		var promptBudgetPolicyVersion string
 		var endpointStatus string
-		if err := rows.Scan(&role, &endpoint, &model, &budget, &timeout, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion, &endpointStatus); err != nil {
+		var temperature, topP *float64
+		if err := rows.Scan(&role, &endpoint, &model, &budget, &timeout, &contextWindowTokens, &maxInputTokens, &promptBudgetPolicyVersion, &endpointStatus, &temperature, &topP); err != nil {
 			return nil, err
+		}
+		if strings.HasPrefix(role, "agent:") && !validAgentModelBindingRole(role) {
+			continue
 		}
 		margin, err := promptSafetyMargin(promptBudgetPolicyVersion)
 		if err != nil {
@@ -441,6 +455,7 @@ func (a *App) ProviderBindings(ctx context.Context, actorID string) ([]map[strin
 			"context_window_tokens": contextWindowTokens, "max_input_tokens": maxInputTokens,
 			"prompt_budget_policy_version": promptBudgetPolicyVersion, "safety_margin_tokens": margin,
 			"endpoint_status": endpointStatus,
+			"temperature":     temperature, "top_p": topP,
 		})
 	}
 	return out, nil

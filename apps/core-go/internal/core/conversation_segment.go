@@ -287,7 +287,8 @@ func (a *App) processConversationSegmentIntent(ctx context.Context, intentID str
 	if a.Provider == nil {
 		return nil, errors.New("conversation_segment_provider_unavailable")
 	}
-	assignment, err := a.Provider.assignment(ctx, "reflection")
+	routeCtx := withAgentModelRoute(ctx, FormalAgentConversationSummary, "conversation_segment_v1")
+	assignment, err := a.Provider.assignment(routeCtx, "reflection")
 	if err != nil {
 		return nil, err
 	}
@@ -295,13 +296,14 @@ func (a *App) processConversationSegmentIntent(ctx context.Context, intentID str
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id,COALESCE(identity->>'name','') FROM public.fluctlights WHERE id=$1`, work.FluctlightID).Scan(&owner, &selfName); err != nil {
 		return nil, err
 	}
-	response, err := a.RunConversationSegmentTask(WithProviderCorrelation(ctx, "conversation-segment:"+intentID), ConversationSegmentTaskInput{Messages: work.Messages, OwnerActorID: owner, FluctlightID: work.FluctlightID, SelfName: selfName})
+	modelCtx := withFrozenProviderAssignment(routeCtx, "reflection", assignment)
+	response, err := a.RunConversationSegmentTask(WithProviderCorrelation(modelCtx, "conversation-segment:"+intentID), ConversationSegmentTaskInput{Messages: work.Messages, OwnerActorID: owner, FluctlightID: work.FluctlightID, SelfName: selfName})
 	if err != nil {
 		return nil, err
 	}
 	response.Summary = strings.TrimSpace(response.Summary)
 	response.EndingState = strings.TrimSpace(response.EndingState)
-	liveAssignment, err := a.Provider.assignment(ctx, "reflection")
+	liveAssignment, err := a.Provider.assignment(routeCtx, "reflection")
 	if err != nil {
 		return nil, err
 	}

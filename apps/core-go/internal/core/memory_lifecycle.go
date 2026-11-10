@@ -1005,7 +1005,7 @@ func writeMemoryRevisionTx(ctx context.Context, tx pgx.Tx, command PreparedMemor
 	if inserted.RowsAffected() != 1 {
 		return errors.New("memory_revision_identity_conflict")
 	}
-	if err := writeMemorySourceLinksTx(ctx, tx, command, row); err != nil {
+	if err := writeMemorySourceLinksTx(ctx, tx, command, row, baseRevision); err != nil {
 		return err
 	}
 	return invalidateEpisodeSummariesForMemoryTx(ctx, tx, command, row)

@@ -86,15 +86,14 @@ func (a *App) ProcessReplyContinuation(ctx context.Context, ref string) (map[str
 	}
 	// Credentials stay in their existing encrypted store. The endpoint/model and
 	// generation parameters remain the snapshot accepted by the original run.
-	if binding.Assignment.EndpointID != "" {
-		var purpose string
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT secret_purpose FROM public.provider_endpoints WHERE id=$1`, binding.Assignment.EndpointID).Scan(&purpose); err != nil {
+	if binding.Assignment.EndpointID != "" || binding.Assignment.SecretPurpose != "" {
+		if err := a.restoreAssignmentCredential(ctx, &binding.Assignment); err != nil {
 			return nil, err
 		}
-		binding.Assignment.Secret, err = a.Provider.secret(ctx, purpose)
-		if err != nil {
-			return nil, err
-		}
+	} else {
+		// An older binding without an endpoint cannot prove a current secret
+		// version; do not report its stored revision as a fresh read.
+		binding.Assignment.CredentialRevision = 0
 	}
 	ctx, release, leaseErr := a.enterLogicalRun(ctx, fluctlight, "reply_continuation")
 	if leaseErr != nil {

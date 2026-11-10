@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -47,7 +48,7 @@ func TestDerivedVisualQualityPhysicalRequestUsesChosenAvatarSubject(t *testing.T
 				t.Fatal(err)
 			}
 			wire := jsonString(captured["messages"])
-			for _, required := range []string{test.design, test.required, base64.StdEncoding.EncodeToString([]byte("reference")), base64.StdEncoding.EncodeToString([]byte("candidate"))} {
+			for _, required := range []string{test.design, test.required, "not automatically delivered", base64.StdEncoding.EncodeToString([]byte("reference")), base64.StdEncoding.EncodeToString([]byte("candidate"))} {
 				if !strings.Contains(wire, required) {
 					t.Fatalf("quality request missing %q: %s", required, wire)
 				}
@@ -174,7 +175,7 @@ func TestMediaQualityMessagesCarryFrozenPromptAndImageWithoutProviderURL(t *test
 		t.Fatalf("messages = %#v", messages)
 	}
 	systemInstruction := stringValue(messages[0]["content"])
-	if strings.Contains(systemInstruction, "should not be delivered") || !strings.Contains(systemInstruction, "delivers the second candidate") || !strings.Contains(systemInstruction, "never change a failing verdict to pass") {
+	if strings.Contains(systemInstruction, "delivers the second candidate") || !strings.Contains(systemInstruction, "never change a failing verdict to pass") || !strings.Contains(systemInstruction, "not automatically delivered") {
 		t.Fatalf("quality instruction conflicts with delivery policy: %s", systemInstruction)
 	}
 	parts, ok := messages[1]["content"].([]any)
@@ -325,7 +326,7 @@ func TestMediaPromptRetryInstructionUsesQualityFeedbackWithoutChangingFrozenFact
 	}
 }
 
-func TestMediaQualityDispositionRetriesEveryFirstNonPassAndAcceptsSecond(t *testing.T) {
+func TestMediaQualityDispositionRetriesOnceAndStopsOnSecondNonPass(t *testing.T) {
 	cases := []struct {
 		verdict string
 		count   int
@@ -335,13 +336,41 @@ func TestMediaQualityDispositionRetriesEveryFirstNonPassAndAcceptsSecond(t *test
 		{verdict: mediaQualityVerdictPass, count: 1, want: mediaQualityVerdictPass},
 		{verdict: mediaQualityVerdictRetry, count: 0, want: mediaQualityActionRetry},
 		{verdict: mediaQualityVerdictReject, count: 0, want: mediaQualityActionRetry},
-		{verdict: mediaQualityVerdictRetry, count: 1, want: mediaQualityActionAcceptAfterRetry},
-		{verdict: mediaQualityVerdictReject, count: 1, want: mediaQualityActionAcceptAfterRetry},
+		{verdict: mediaQualityVerdictRetry, count: 1, want: "stop"},
+		{verdict: mediaQualityVerdictReject, count: 1, want: "stop"},
+		{verdict: mediaQualityVerdictReject, count: 2, want: "stop"},
 	}
 	for _, testCase := range cases {
 		if got := mediaQualityDisposition(testCase.count, testCase.verdict); got != testCase.want {
 			t.Errorf("mediaQualityDisposition(%d, %q) = %q, want %q", testCase.count, testCase.verdict, got, testCase.want)
 		}
+	}
+}
+
+func TestTerminalMediaQualityFailureDoesNotInventVisualIdentityFailure(t *testing.T) {
+	ordinary := mediaIntent{Status: "failed", ProviderJobID: "job", QualityCandidateSHA: "sha", QualityVerdict: mediaQualityVerdictReject}
+	if !terminalMediaQualityFailure(ordinary) {
+		t.Fatal("ordinary rejected candidate did not retain its terminal quality failure")
+	}
+	for _, stage := range []string{"avatar", "character_sheet"} {
+		candidate := ordinary
+		candidate.Prompt = jsonString(map[string]any{"purpose": "visual_identity", "stage": stage})
+		if terminalMediaQualityFailure(candidate) {
+			t.Fatalf("visual %s upload failure was incorrectly classified as quality failure", stage)
+		}
+	}
+	incomplete := ordinary
+	incomplete.QualityCandidateSHA = ""
+	if terminalMediaQualityFailure(incomplete) {
+		t.Fatal("failure without a checked candidate was classified as a review rejection")
+	}
+	legacy := mediaIntent{Status: "running", QualityVerdict: mediaQualityVerdictRetryAccepted}
+	if !terminalMediaQualityFailure(legacy) || mediaQualityFailureCode(legacy.QualityVerdict) != "media_quality_legacy_review_required" {
+		t.Fatal("unsettled legacy non-pass could be published automatically")
+	}
+	legacy.Status = "completed"
+	if terminalMediaQualityFailure(legacy) {
+		t.Fatal("completed historical media was reclassified")
 	}
 }
 
@@ -366,7 +395,7 @@ func TestMediaQualityRetryFeedbackIncludesAllBoundedReviewerFields(t *testing.T)
 	}
 }
 
-func TestMediaQualityRetryPersistsStructuredFeedbackAndAcceptsSecondCandidate(t *testing.T) {
+func TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	intentID := "media-quality-retry-structured"
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,provider_job_id,workflow_id,status,quality_retry_count) VALUES($1,'owner-1','image','image/png','{"scene":"library"}','request-1','job-first','workflow-1','running',0)`, intentID); err != nil {
@@ -396,16 +425,175 @@ func TestMediaQualityRetryPersistsStructuredFeedbackAndAcceptsSecondCandidate(t 
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.media_intents SET provider_job_id='job-second',status='running' WHERE id=$1`, intentID); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.acceptMediaQualityAfterRetry(ctx, intentID, "job-second", "sha-second"); err != nil {
-		t.Fatalf("acceptMediaQualityAfterRetry() error = %v", err)
+	if err := app.rejectMediaQuality(ctx, intentID, "job-second", "sha-second", mediaQualityVerdictReject); err != nil {
+		t.Fatalf("rejectMediaQuality() error = %v", err)
+	}
+	if err := app.rejectMediaQuality(ctx, intentID, "job-second", "sha-second", mediaQualityVerdictReject); err != nil {
+		t.Fatalf("replaying the same rejection failed: %v", err)
+	}
+	if err := app.rejectMediaQuality(ctx, intentID, "job-second", "different-sha", mediaQualityVerdictReject); err == nil {
+		t.Fatal("rejection replay accepted a different candidate")
 	}
 	var verdict, candidateSHA, providerJobID, status string
 	var retryCount int
 	if err := repository.Pool().QueryRow(ctx, `SELECT quality_verdict,COALESCE(quality_candidate_sha256,''),COALESCE(provider_job_id,''),status,quality_retry_count FROM public.media_intents WHERE id=$1`, intentID).Scan(&verdict, &candidateSHA, &providerJobID, &status, &retryCount); err != nil {
 		t.Fatal(err)
 	}
-	if verdict != mediaQualityVerdictRetryAccepted || candidateSHA != "sha-second" || providerJobID != "job-second" || status != "running" || retryCount != 1 {
-		t.Fatalf("accepted second candidate = verdict:%q sha:%q job:%q status:%q retries:%d", verdict, candidateSHA, providerJobID, status, retryCount)
+	if verdict != mediaQualityVerdictReject || candidateSHA != "sha-second" || providerJobID != "job-second" || status != "failed" || retryCount != 1 {
+		t.Fatalf("rejected second candidate = verdict:%q sha:%q job:%q status:%q retries:%d", verdict, candidateSHA, providerJobID, status, retryCount)
+	}
+}
+
+func TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction(t *testing.T) {
+	ctx, repository, app, owner, fid, _ := setupDirectPublicationToolTest(t, "quality-recovery")
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'controlled','test')`, owner); err != nil {
+		t.Fatal(err)
+	}
+	const intentID = "quality-recovery-intent"
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,provider_job_id,workflow_id,status,revision,quality_retry_count,quality_verdict,quality_candidate_sha256) VALUES($1,$2,'image','image/png','{}','quality-recovery-request','quality-recovery-job','quality-recovery-workflow','failed',1,1,'reject','candidate-sha')`, intentID, fid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.cognition_action_outcomes(id,fluctlight_id,action_id,call_id,capability_name,status,success_boundary,external_ref,request_digest) VALUES('quality-recovery-outcome',$1,'quality-recovery-action','quality-recovery-call','media.image.generate','failed','asset_ready',$2,$3)`, fid, intentID, stableDigest("quality-recovery")); err != nil {
+		t.Fatal(err)
+	}
+	source, err := ownerDiagnosticSource("media-prompts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rawDiagnostic []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT data FROM (`+source+`) AS source WHERE key=$2`, owner, intentID).Scan(&rawDiagnostic); err != nil {
+		t.Fatal(err)
+	}
+	diagnostic := decodeObject(rawDiagnostic)
+	if diagnostic["quality_candidate_terminal"] != true || diagnostic["quality_terminal_action"] != true || diagnostic["quality_asset_ready"] != false {
+		t.Fatalf("diagnostic did not expose real recovery restrictions: %#v", diagnostic)
+	}
+	for _, tc := range []struct{ mode, code string }{{"resume", "media_quality_candidate_terminal"}, {"regenerate", "media_quality_new_request_required"}} {
+		t.Run(tc.mode, func(t *testing.T) {
+			_, err := app.RetryOwnerDiagnosticMedia(ctx, owner, intentID, map[string]any{"expected_revision": 1, "mode": tc.mode, "idempotency_key": "quality-recovery-" + tc.mode, "reason": "test"})
+			var surface *SurfaceError
+			if !errors.As(err, &surface) || surface.Code != tc.code {
+				t.Fatalf("recovery error = %v, want %s", err, tc.code)
+			}
+		})
+	}
+	var status string
+	var retryIntents int
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, intentID).Scan(&status); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.platform_workflow_intents WHERE payload->>'intent_id'=$1`, intentID).Scan(&retryIntents); err != nil {
+		t.Fatal(err)
+	}
+	if status != "failed" || retryIntents != 0 {
+		t.Fatalf("terminal candidate changed: status=%s queued=%d", status, retryIntents)
+	}
+}
+
+func TestLegacyNonPassRecoveryUsesCommittedDeliveryWithoutRepublishing(t *testing.T) {
+	ctx, repository, app, owner, fid, conversation := setupDirectPublicationToolTest(t, "legacy-quality")
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'controlled','test')`, owner); err != nil {
+		t.Fatal(err)
+	}
+	for index, tc := range []struct {
+		id, status string
+		delivered  bool
+	}{{"legacy-delivered-running", "running", true}, {"legacy-delivered-failed", "failed", true}, {"legacy-not-delivered", "running", false}, {"legacy-completed-removed", "completed", false}} {
+		asset := "asset_" + tc.id
+		workflow := "workflow-" + tc.id
+		if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,provider_job_id,workflow_id,conversation_id,status,revision,quality_retry_count,quality_verdict,quality_candidate_sha256) VALUES($1,$2,'image','image/png','{}',$3,$4,$5,$6,$7,1,1,'retry_accepted','candidate-sha')`, tc.id, fid, "request-"+tc.id, "job-"+tc.id, workflow, conversation, tc.status); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES($1,$2,'v1','image','image/png',1,'candidate-sha','fixture','fixture',$3,$4,'ready')`, asset, fid, "request-"+tc.id, workflow); err != nil {
+			t.Fatal(err)
+		}
+		if tc.delivered {
+			if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES($1,$2,$3,$4,'media_reference','图片已生成。',$5,$6)`, "message-"+tc.id, conversation, index+1, fid, jsonBytes([]string{asset}), "media:"+tc.id+":conversation-result"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_references(id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES($1,$2,$3,'conversation',$4)`, "reference-"+tc.id, asset, fid, conversation); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if tc.status == "failed" {
+			if _, err := app.RetryOwnerDiagnosticMedia(ctx, owner, tc.id, map[string]any{"expected_revision": 1, "mode": "resume", "idempotency_key": "resume-" + tc.id, "reason": "核对已交付结果"}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		result, err := app.ProcessMediaIntent(ctx, tc.id)
+		if tc.delivered {
+			if err != nil || result["status"] != "completed" || result["recovered_existing_delivery"] != true {
+				t.Fatalf("existing delivery did not settle: result=%#v err=%v", result, err)
+			}
+		} else if tc.status == "completed" {
+			if err != nil || result["status"] != "completed" {
+				t.Fatalf("completed historical task was reprocessed: result=%#v err=%v", result, err)
+			}
+		} else if err == nil || replyErrorCode(err) != "media_quality_legacy_review_required" {
+			t.Fatalf("undelivered candidate was not held for review: result=%#v err=%v", result, err)
+		}
+		var messages int
+		if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND idempotency_key=$2`, conversation, "media:"+tc.id+":conversation-result").Scan(&messages); err != nil {
+			t.Fatal(err)
+		}
+		if tc.delivered && messages != 1 || !tc.delivered && messages != 0 {
+			t.Fatalf("unexpected publication count for %s: %d", tc.id, messages)
+		}
+	}
+}
+
+func TestLegacyNonPassPartialMultiTargetDeliveryDoesNotBecomeComplete(t *testing.T) {
+	ctx, repository, app, _, fid, conversation := setupDirectPublicationToolTest(t, "legacy-quality-partial")
+	const intentID, momentID = "legacy-partial-media", "legacy-partial-moment"
+	asset := "asset_" + intentID
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.moments(id,owner_fluctlight_id,author_actor_id,text,visibility,status,media_asset_ids) VALUES($1,$2,$2,'正文','participants','visible','[]')`, momentID, fid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,provider_job_id,workflow_id,conversation_id,moment_id,status,quality_retry_count,quality_verdict,quality_candidate_sha256) VALUES($1,$2,'image','image/png','{}','legacy-partial-request','legacy-partial-job','legacy-partial-workflow',$3,$4,'running',1,'retry_accepted','candidate-sha')`, intentID, fid, conversation, momentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES($1,$2,'v1','image','image/png',1,'candidate-sha','fixture','fixture','legacy-partial-request','legacy-partial-workflow','ready')`, asset, fid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES('legacy-partial-message',$1,1,$2,'media_reference','图片已生成。',$3,$4)`, conversation, fid, jsonBytes([]string{asset}), "media:"+intentID+":conversation-result"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_references(id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES('legacy-partial-reference',$1,$2,'conversation',$3)`, asset, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	_, err := app.ProcessMediaIntent(ctx, intentID)
+	if err == nil || replyErrorCode(err) != "media_quality_legacy_review_required" {
+		t.Fatalf("partially delivered candidate was treated as complete: %v", err)
+	}
+	var status string
+	var momentAssets, messageAssets []byte
+	if err := repository.Pool().QueryRow(ctx, `SELECT status FROM public.media_intents WHERE id=$1`, intentID).Scan(&status); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT media_asset_ids FROM public.moments WHERE id=$1`, momentID).Scan(&momentAssets); err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.Pool().QueryRow(ctx, `SELECT attachment_refs FROM public.conversation_messages WHERE id='legacy-partial-message'`).Scan(&messageAssets); err != nil {
+		t.Fatal(err)
+	}
+	if status == "completed" || len(decodeArray(momentAssets)) != 0 || !containsStringValue(decodeArray(messageAssets), asset) {
+		t.Fatalf("partial effects changed: status=%s moment=%s message=%s", status, momentAssets, messageAssets)
+	}
+	// Reconstruct the distinct historical state in which the second target had
+	// also committed before settlement; the retry must only settle it.
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.moments SET media_asset_ids=$2 WHERE id=$1`, momentID, jsonBytes([]string{asset})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_references(id,asset_id,owner_fluctlight_id,target_type,target_id) VALUES('legacy-partial-moment-reference',$1,$2,'moment',$3)`, asset, fid, momentID); err != nil {
+		t.Fatal(err)
+	}
+	result, err := app.ProcessMediaIntent(ctx, intentID)
+	if err != nil || result["status"] != "completed" || result["recovered_existing_delivery"] != true {
+		t.Fatalf("fully delivered targets did not settle: result=%#v err=%v", result, err)
+	}
+	var references int
+	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.media_references WHERE asset_id=$1`, asset).Scan(&references); err != nil || references != 2 {
+		t.Fatalf("settlement changed already committed references: count=%d err=%v", references, err)
 	}
 }
 

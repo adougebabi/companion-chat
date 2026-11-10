@@ -259,9 +259,9 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 	// The private task uses its own frozen refs; ordinary runtime catalog/alias
 	// selection is not installed in this trusted internal evaluation session.
 	capabilityProjection := ContextProjection{OwnerActorID: input.OwnerActorID, FluctlightID: input.FluctlightID, SourceFactID: input.RequestID, PersonalityRuntime: map[string]any{"active_profile_id": input.ProfileID}}
-	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentGoalEvaluation, assembly.Messages, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalEvaluation), "goal_evaluation_v1", schema, false, &ADKCapabilityRequest{TargetKind: "goal_evaluation_run", TargetRef: input.RequestID, AuthorizationActorID: input.OwnerActorID, FluctlightID: input.FluctlightID, SourceFactID: input.RequestID, OperationID: runID, Surface: CapabilitySurfaceGoalEvaluation, Projection: capabilityProjection})
+	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentGoalEvaluation, assembly, capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalEvaluation), "goal_evaluation_v1", schema, false, &ADKCapabilityRequest{TargetKind: "goal_evaluation_run", TargetRef: input.RequestID, AuthorizationActorID: input.OwnerActorID, FluctlightID: input.FluctlightID, SourceFactID: input.RequestID, OperationID: runID, Surface: CapabilitySurfaceGoalEvaluation, Projection: capabilityProjection})
 
-	return ProjectionTaskResult{Completion: run.Completion, Projection: refreshed, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
+	return ProjectionTaskResult{Completion: run.Completion, Projection: refreshed, Diagnostics: assembly.Diagnostics, Trace: run.Trace, providerBinding: assembly.providerBinding}, err
 }
 
 func goalEvaluationCandidateOutput(input goalEvaluationSnapshot, binding *goalEvaluationWireBinding, raw map[string]any) (GoalEvaluationTaskOutput, error) {

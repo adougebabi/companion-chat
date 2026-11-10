@@ -105,13 +105,17 @@ func (c factOnlyReplyCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 	if err := json.Unmarshal(jsonBytes(data["draft"]), &draft); err != nil {
 		return failedCapabilityResult(invocation, "reply_prepared_invalid", false), err
 	}
-	if len(draft.MediaRequests) > 0 {
-		return c.acceptMediaTx(ctx, tx, invocation, target, draft, stringValue(data["draft_ref"]))
-	}
 	if draft.FactsRevision != "" {
 		if err := c.service.app.requireCurrentFactsRevisionTx(ctx, tx, target.FluctlightID, draft.FactsRevision); err != nil {
 			return failedCapabilityResult(invocation, "reply_context_stale", false), newCapabilityError("reply_context_stale", false, err)
 		}
+	}
+	if err := validateExpressionSuggestionsTx(ctx, tx, target.AuthorizationActorID, target.FluctlightID, firstString(invocation.Metadata.SubjectActorID, target.AuthorizationActorID), target.ConversationID, draft.ExpressionSuggestions); err != nil {
+		code, retryable := capabilityErrorInfo(err, "reply_expression_check_failed", true)
+		return failedCapabilityResult(invocation, code, retryable), err
+	}
+	if len(draft.MediaRequests) > 0 {
+		return c.acceptMediaTx(ctx, tx, invocation, target, draft, stringValue(data["draft_ref"]))
 	}
 	args := decodeObject(invocation.Arguments)
 	publicationPurpose := factOnlyReplyPublicationPurpose
@@ -210,6 +214,16 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 		run.mu.Unlock()
 		if err := json.Unmarshal(payload, &stored); err != nil {
 			return stored, ref, err
+		}
+		if status != "published" {
+			if err := s.app.validateExpressionSuggestions(ctx, invocation.Metadata.AuthorizationActorID, invocation.Metadata.FluctlightID, firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID), invocation.Metadata.ConversationID, stored.ExpressionSuggestions); err != nil {
+				if code, _ := capabilityErrorInfo(err, "", false); code == "reply_expression_suggestion_stale" {
+					if _, updateErr := s.app.DB.Pool().Exec(ctx, `UPDATE public.conversation_reply_drafts SET status='failed',last_error='reply_expression_suggestion_stale',generation_owner=NULL,generation_until=NULL,updated_at=now() WHERE id=$1 AND status IN ('prepared','needs_action','waiting_media','ready')`, ref); updateErr != nil {
+						return stored, ref, updateErr
+					}
+				}
+				return stored, ref, err
+			}
 		}
 		if stored.ExpressionVersion == "" {
 			stored.ExpressionVersion = factOnlyReplyLegacyPromptVersion
@@ -430,6 +444,7 @@ func (s *factOnlyReplyService) generateFromProjection(ctx context.Context, invoc
 	if err != nil {
 		return draft, err
 	}
+	draft.ExpressionSuggestions = append([]expressionSuggestionBinding(nil), input.ExpressionSuggestions...)
 	draft.LifeRevision = projection.LifeContextRevision
 	draft.FactsRevision = projection.CurrentFactsRevision
 	if len(draft.MediaRequests) > 0 {
@@ -477,6 +492,7 @@ func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation C
 		projection = privateTextChatProjection(projection)
 	}
 	current := firstString(run.CurrentInput, projection.CurrentUserText)
+	actualCurrent := current
 	if run.Scope.Surface == CapabilitySurfaceWakeUp && scene != replySceneMoment {
 		// WakeUp has no current user message; the Writer assembles its own typed
 		// task event without forwarding an old message or an internal instruction.
@@ -490,6 +506,29 @@ func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation C
 			current += "\n" + run.CurrentInput
 		}
 	}
+	var suggestions []expressionSuggestionBinding
+	if scene != replySceneMoment {
+		run.mu.Lock()
+		frozen := run.ExpressionSuggestionsFrozen
+		suggestions = append(suggestions, run.ExpressionSuggestions...)
+		run.mu.Unlock()
+		if !frozen {
+			if run.Scope.Surface != CapabilitySurfaceWakeUp {
+				suggestions, err = s.app.selectExpressionSuggestions(ctx, invocation.Metadata.AuthorizationActorID, invocation.Metadata.FluctlightID, firstString(invocation.Metadata.SubjectActorID, invocation.Metadata.AuthorizationActorID), invocation.Metadata.ConversationID, actualCurrent)
+				if err != nil {
+					return ConversationReplyTaskInput{}, err
+				}
+			}
+			run.mu.Lock()
+			if !run.ExpressionSuggestionsFrozen {
+				run.ExpressionSuggestions = append([]expressionSuggestionBinding(nil), suggestions...)
+				run.ExpressionSuggestionsFrozen = true
+			} else {
+				suggestions = append([]expressionSuggestionBinding(nil), run.ExpressionSuggestions...)
+			}
+			run.mu.Unlock()
+		}
+	}
 	vision, _, err := s.app.visionUnderstandingSettings(ctx)
 	if err != nil {
 		return ConversationReplyTaskInput{}, err
@@ -499,6 +538,7 @@ func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation C
 		visionState = "configured_separately_no_observation_yet"
 	}
 	_, imageRegistered := s.app.capabilityRegistryForContext(ctx).Definition("media.image.generate")
+	imageRegistered = imageRegistered && domainCapabilityEnabled(ctx, "media.image.generate")
 	if scene == replySceneMoment {
 		imageRegistered = false
 	}
@@ -506,10 +546,10 @@ func (s *factOnlyReplyService) writerTaskInput(ctx context.Context, invocation C
 	if err != nil {
 		return ConversationReplyTaskInput{}, err
 	}
-	input := ConversationReplyTaskInput{Context: ReplyContextInput{Scene: scene, Proactive: run.Scope.Surface == CapabilitySurfaceWakeUp, ExpressionVersion: firstString(run.Expression.Version, run.Settings.ExpressionVersion), Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts, Summaries: summaries,
+	input := ConversationReplyTaskInput{Context: ReplyContextInput{Scene: scene, Proactive: run.Scope.Surface == CapabilitySurfaceWakeUp, ExpressionVersion: firstString(run.Expression.Version, run.Settings.ExpressionVersion), Projection: projection, WorkingPersona: persona, CurrentInput: current, ToolFacts: toolFacts, Summaries: summaries, ExpressionSuggestions: expressionSuggestionPromptData(suggestions),
 		PersonaSource:   map[string]any{"source_kind": "stored_compiled_working_persona", "profile_id": compiled.ProfileID, "source_revision": compiled.SourceRevision, "source_hash": compiled.SourceHash, "canonical_persona_hash": stableDigest(jsonString(projection.CorePersona)), "overlay_revision": compiled.OverlayRevision, "compiler_version": compiled.RulesVersion},
 		CapabilityFacts: map[string]any{"image_generation_registered": imageRegistered, "persona_detail_registered": scene != replySceneMoment, "media_requires_real_tool_result": true, "sticker_attachments": false, "vision_understanding": visionState}},
-		DraftRef: ref, Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency}
+		DraftRef: ref, Assignment: run.Assignment, ConfigVersion: run.ConfigVersion, CorrelationID: "reply:" + stableDigest(ref+invocation.ProviderRequestID), ParentRunID: providerCorrelation(ctx), Concurrency: run.Settings.Concurrency, ExpressionSuggestions: suggestions}
 	input.ClaimStyleRepair = func(ctx context.Context, trace ReplyStyleTrace) error {
 		run.mu.Lock()
 		owner := run.GenerationOwner

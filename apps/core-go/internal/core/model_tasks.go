@@ -9,10 +9,11 @@ import (
 )
 
 type ProjectionTaskResult struct {
-	Trace       *ADKCapabilityTrace
-	Completion  ProviderCompletion
-	Projection  ContextProjection
-	Diagnostics map[string]any
+	Trace           *ADKCapabilityTrace
+	Completion      ProviderCompletion
+	Projection      ContextProjection
+	Diagnostics     map[string]any
+	providerBinding *promptProviderBinding
 }
 
 func (a *App) modelTaskProvider() (*ProviderClient, error) {
@@ -23,8 +24,13 @@ func (a *App) modelTaskProvider() (*ProviderClient, error) {
 }
 
 func (a *App) runFormalStructuredTask(ctx context.Context, id FormalAgentID, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, capability *ADKCapabilityRequest) (ADKStructuredTaskResult, error) {
+	return a.runFormalStructuredAssemblyTask(ctx, id, PromptAssemblyResult{Messages: messages}, definitions, schemaName, schema, enableThinking, capability)
+}
+
+func (a *App) runFormalStructuredAssemblyTask(ctx context.Context, id FormalAgentID, assembly PromptAssemblyResult, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, capability *ADKCapabilityRequest) (ADKStructuredTaskResult, error) {
+	assembly.ResponseFormat = schema
 	return a.RunFormalAgent(ctx, id, FormalAgentRunInput{
-		Prompt: PromptAssemblyResult{Messages: messages, ResponseFormat: schema}, Definitions: definitions,
+		Prompt: assembly, Definitions: definitions,
 		SchemaName: schemaName, EnableThinking: enableThinking, Capability: capability,
 	})
 }
@@ -237,6 +243,7 @@ type MediaQualityTaskInput struct {
 }
 
 func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInput) (mediaQualityAcceptance, error) {
+	ctx = withAgentModelRoute(ctx, FormalAgentMediaQuality, "media_quality_acceptance_response")
 	vision := a.resolveVisionCapability(ctx)
 	if err := vision.err(); err != nil {
 		return mediaQualityAcceptance{}, err
@@ -290,6 +297,7 @@ type VisualIdentityVisionTaskInput struct {
 var visualIdentityVisionTaskInstruction = "Inspect the supplied candidate image for visual identity continuity. The required target is one complete text-free CHARACTER PROFILE card on a white minimalist background with an editorial vertical layout, accepting either 2:3 or legacy 3:4 cards. It must contain these visual sections, represented by layout, figures, diagrams, swatches and whitespace rather than rendered text: " + visualIdentityRequiredCardSectionsText + ". " + visualIdentityTextFreeReviewInstruction + " If any forbidden characters or marks are visible, report a low identity_match and describe the text defect in observations even if the face matches. Verify that the same face is preserved across the front, side and back views. If the image is anime, chibi, an unrelated art photo, abstract silhouette, landscape, object-only image, missing a person, missing a required visual section, or inconsistent across views, report a low identity_match and make that mismatch explicit in observations. Return bounded structured observations only."
 
 func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdentityVisionTaskInput) (map[string]any, error) {
+	ctx = withAgentModelRoute(ctx, FormalAgentVisualIdentityVision, "visual_identity_vision_response")
 	vision := a.resolveVisionCapability(ctx)
 	if err := vision.err(); err != nil {
 		return nil, err
@@ -640,7 +648,7 @@ func (a *App) RunNativeCognitionTask(ctx context.Context, input NativeCognitionT
 	if input.EventType == ownerDiaryReplyFactType {
 		capabilityRequest.AuthorizationPolicy = ""
 	}
-	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentNativeCognition, assembly.Messages, definitions, "native_cognition_response", schema, true, capabilityRequest)
+	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentNativeCognition, assembly, definitions, "native_cognition_response", schema, true, capabilityRequest)
 	if run.Projection != nil {
 		projection = *run.Projection
 	}
@@ -667,7 +675,7 @@ func (a *App) RunDailyReviewTask(ctx context.Context, input DailyReviewTaskInput
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "daily_review"), assembly.Diagnostics)
 	providerCtx = a.bindProjectionRefresh(providerCtx, input.ProjectionRequest, ProviderContextSurfaceDailyReview, "cognitive_assessment", operationRules, currentInput, definitions, "daily_review_response", schema, nil)
-	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentDailyReview, assembly.Messages, definitions, "daily_review_response", schema, true, formalTaskCapabilityRequest(FormalAgentDailyReview, projection, CapabilitySurfaceAutonomy))
+	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentDailyReview, assembly, definitions, "daily_review_response", schema, true, formalTaskCapabilityRequest(FormalAgentDailyReview, projection, CapabilitySurfaceAutonomy))
 	if run.Projection != nil {
 		projection = *run.Projection
 	}
@@ -691,7 +699,7 @@ func (a *App) RunPersistentSwitchTask(ctx context.Context, input PersistentSwitc
 		return ProjectionTaskResult{}, err
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderCorrelation(WithProviderScenario(ctx, "cognitive_assessment"), "persona-switch-after:"+input.InboxID), assembly.Diagnostics)
-	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentPersistentSwitch, assembly.Messages, nil, persistentSwitchAssessmentSchemaName, schema, false, nil)
+	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentPersistentSwitch, assembly, nil, persistentSwitchAssessmentSchemaName, schema, false, nil)
 	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 
@@ -740,7 +748,7 @@ func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionPro
 		return ProjectionTaskResult{}, err
 	}
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "reflection"), assembly.Diagnostics)
-	run, err := a.runFormalStructuredTask(providerCtx, FormalAgentReflection, assembly.Messages, nil, "reflection_proposal_v2", schema, true, nil)
+	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentReflection, assembly, nil, "reflection_proposal_v2", schema, true, nil)
 	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
 }
 

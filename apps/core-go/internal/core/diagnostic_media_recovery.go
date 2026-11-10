@@ -57,6 +57,33 @@ func (a *App) RetryOwnerDiagnosticMedia(ctx context.Context, owner, id string, b
 		if previous["status"] != "failed" {
 			return nil, &SurfaceError{Status: 409, Code: "media_not_retryable", Message: "只有真实失败的媒体任务可以恢复"}
 		}
+		qualityVerdict := stringValue(previous["quality_verdict"])
+		if qualityVerdict == mediaQualityVerdictRetryAccepted || ((qualityVerdict == mediaQualityVerdictReject || qualityVerdict == mediaQualityVerdictRetry) && stringValue(previous["provider_job_id"]) != "" && stringValue(previous["quality_candidate_sha256"]) != "") {
+			var outcomeStatus string
+			if err := tx.QueryRow(ctx, `SELECT COALESCE((SELECT status FROM public.cognition_action_outcomes WHERE external_ref=$1),'')`, id).Scan(&outcomeStatus); err != nil {
+				return nil, err
+			}
+			if mode == "resume" {
+				delivered := false
+				if qualityVerdict == mediaQualityVerdictRetryAccepted {
+					delivered, err = mediaLegacyDeliveryCommittedWith(ctx, tx, id)
+					if err != nil {
+						return nil, err
+					}
+				}
+				if !delivered {
+					return nil, &SurfaceError{Status: 409, Code: "media_quality_candidate_terminal", Message: "原图片已确认未通过质量检查，不能通过恢复同一结果改变结论。"}
+				}
+				if outcomeStatus == "failed" || outcomeStatus == "cancelled" {
+					return nil, &SurfaceError{Status: 409, Code: "media_quality_outcome_conflict", Message: "已找到原交付记录，但原操作已结束且状态不一致，请先查看诊断。"}
+				}
+			}
+			if mode == "regenerate" && (outcomeStatus == "completed" || outcomeStatus == "failed" || outcomeStatus == "cancelled") {
+				// A terminal action outcome cannot be overwritten by a later
+				// success. A new request owns a new effect identity instead.
+				return nil, &SurfaceError{Status: 409, Code: "media_quality_new_request_required", Message: "原图片操作已失败并结算；请发起新的图片请求。"}
+			}
+		}
 		var active bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.platform_workflow_intents WHERE intent_type='media.generation' AND payload->>'intent_id'=$1 AND status IN ('pending','retry','started','paused','cancel_requested'))`, id).Scan(&active); err != nil {
 			return nil, err

@@ -29,7 +29,7 @@ func (a *App) runNPCOpportunityTask(ctx context.Context, owner, fid, inbox strin
 	}
 	ctx = a.bindProjectionRefresh(ctx, request, ProviderContextSurfaceNativeCognition, "cognitive_assessment", rules, input, defs, "npc_opportunity_decision", schema, nil)
 	scope := formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition)
-	run, err := a.runFormalStructuredTask(ctx, FormalAgentNativeCognition, assembly.Messages, defs, "npc_opportunity_decision", schema, true, scope)
+	run, err := a.runFormalStructuredAssemblyTask(ctx, FormalAgentNativeCognition, assembly, defs, "npc_opportunity_decision", schema, true, scope)
 	return ProjectionTaskResult{Trace: run.Trace, Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics}, err
 }
 

@@ -54,6 +54,18 @@ func (a *App) readResidentMemorySnapshot(ctx context.Context, ownerActorID, spea
 			if status := stringValue(item["provenance_status"]); status != "verified" && status != "partial" {
 				continue
 			}
+			var current bool
+			err := a.DB.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.memories m
+				WHERE m.id=$1 AND m.owner_fluctlight_id=$2 AND m.revision=$3 AND m.request_digest=$4
+				AND m.status='active' AND m.provenance_status IN ('verified','partial')
+				AND public.memory_source_is_live('memory',m.id,m.revision,m.request_digest))`,
+				stringValue(item["id"]), fluctlightID, intValue(item["revision"]), stringValue(item["request_digest"])).Scan(&current)
+			if err != nil {
+				return residentMemorySnapshot{}, err
+			}
+			if !current {
+				continue
+			}
 			result.Memories = append(result.Memories, cloneMap(item))
 		case "active_memory":
 			var current bool

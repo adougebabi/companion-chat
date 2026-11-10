@@ -56,6 +56,9 @@ func (t *replyImageRequestTool) Execute(ctx context.Context, inv CapabilityInvoc
 	if err := ctx.Err(); err != nil {
 		return CapabilityResult{}, err
 	}
+	if !domainCapabilityEnabled(ctx, replyImageRequestName) {
+		return failedCapabilityResult(inv, "domain_plugin_disabled", false), domainPluginDisabledError()
+	}
 	normalized, err := normalizeNativeModelArguments(inv.Arguments, t.Definition())
 	if err != nil {
 		return handledCapabilityResult(inv, "invalid_arguments", "needs_input", nil), nil
@@ -69,7 +72,7 @@ func (t *replyImageRequestTool) Execute(ctx context.Context, inv CapabilityInvoc
 	}
 	args.Intent = strings.TrimSpace(args.Intent)
 	if args.Intent == "" {
-		return CapabilityResult{}, ErrInvalidArguments
+		return handledCapabilityResult(inv, "invalid_arguments", "needs_input", nil), nil
 	}
 	t.mu.Lock()
 	defer t.mu.Unlock()

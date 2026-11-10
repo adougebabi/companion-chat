@@ -11,7 +11,7 @@ func TestImageTaskWithoutComfyUINamesMissingProvider(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `DELETE FROM public.runtime_settings WHERE key='media.comfyui'`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.app.queueStudioMedia(f.ctx, f.ownerID, "studio-job-"+f.suffix, "attempt-"+f.suffix, map[string]any{}); !errors.Is(err, errImageProviderNotConfigured) || err.Error() != "图像 provider 未配置" {
+	if _, err := f.app.queueStudioMedia(f.ctx, f.ownerID, "studio-job-"+f.suffix, "attempt-"+f.suffix, map[string]any{}, nil); !errors.Is(err, errImageProviderNotConfigured) || err.Error() != "图像 provider 未配置" {
 		t.Fatalf("studio image error=%v", err)
 	}
 	if err := f.app.preflightImageCapability(f.ctx); !errors.Is(err, errImageProviderNotConfigured) || err.Error() != "图像 provider 未配置" {

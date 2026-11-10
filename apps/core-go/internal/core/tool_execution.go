@@ -60,6 +60,12 @@ type DirectToolCapability interface {
 	ExecuteDirectTx(context.Context, pgx.Tx, CapabilityInvocation, CapabilityContext, DirectToolTarget) (CapabilityResult, error)
 }
 
+// A capability that owns a turn-level settlement can finish it after its
+// durable Tool receipt is written, in the same transaction as its effect.
+type atomicToolSettlement interface {
+	SettleToolTx(context.Context, pgx.Tx, ToolExecutionRequest, CapabilityInvocation, CapabilityResult) error
+}
+
 // ToolExecutionReceipt keeps business idempotency and model correlation
 // visibly separate while returning the canonical CapabilityResult unchanged.
 type ToolExecutionReceipt struct {
@@ -123,7 +129,10 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 	if authorizationErr != nil {
 		return ToolExecutionReceipt{}, fmt.Errorf("authorize tool resource: %w", authorizationErr)
 	}
-	var scopeErr error
+	ctx, scopeErr := a.withDomainPluginScope(ctx)
+	if scopeErr != nil {
+		return ToolExecutionReceipt{}, scopeErr
+	}
 	ctx, scopeErr = a.withPrivateReplyRun(ctx, request, "")
 	if scopeErr != nil {
 		return ToolExecutionReceipt{}, scopeErr
@@ -237,6 +246,10 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 			return receipt, nil
 		}
 	}
+	if !domainCapabilityEnabled(ctx, definition.Name) {
+		err := domainPluginDisabledError()
+		return toolExecutionReceipt(request, callID, failedCapabilityResult(invocation, "domain_plugin_disabled", false)), err
+	}
 	prepared, resolved, err := runtime.Prepare(ctx, invocation)
 	if err != nil {
 		code, retryable, detail := classifyToolPrepareError(err)
@@ -266,6 +279,12 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 			Kind:                 strings.TrimSpace(request.TargetKind),
 			Ref:                  strings.TrimSpace(request.TargetRef),
 		}
+		var settle func(pgx.Tx, CapabilityResult) error
+		if atomic, ok := implementation.(atomicToolSettlement); ok {
+			settle = func(tx pgx.Tx, result CapabilityResult) error {
+				return atomic.SettleToolTx(ctx, tx, request, prepared, result)
+			}
+		}
 		result, authority, replayed, err = a.executeToolMutation(ctx, request, func(tx pgx.Tx) (CapabilityResult, error) {
 			if result, handled, markerErr := preparedHandledCapabilityResult(prepared); markerErr != nil {
 				return CapabilityResult{}, markerErr
@@ -285,7 +304,7 @@ func (a *App) ExecuteTool(ctx context.Context, request ToolExecutionRequest) (To
 				}
 			}
 			return result, nil
-		})
+		}, settle)
 	} else {
 		switch executionClass {
 		case CapabilityExecutionPureQuery:

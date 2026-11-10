@@ -62,7 +62,7 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 					}
 					tools := arrayValue(payload["tools"])
 					want := len(definitions)
-					if mode == "after_discovery" && requests == 1 {
+					if mode == "after_discovery" && requests <= 2 {
 						want = 1
 					}
 					if strings.HasPrefix(mode, "kev_") {
@@ -86,6 +86,9 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 							if properties["names"] == nil || parameters["additionalProperties"] != false {
 								t.Errorf("catalog no-argument contract changed: %#v", parameters)
 							}
+							if !strings.Contains(stringValue(function["description"]), `{"names":[]}`) || !strings.Contains(jsonString(parameters["required"]), `"names"`) {
+								t.Errorf("catalog wire description does not match its required names field: %#v", function)
+							}
 						}
 					}
 					if !catalogFound {
@@ -93,13 +96,22 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 					}
 					message := map[string]any{"role": "assistant", "content": "done"}
 					finish := "stop"
-					if mode == "after_discovery" && requests < 3 {
-						name, args := capabilityCatalogName, `{"names":["habit.inspect"]}`
+					if mode == "after_discovery" && requests < 4 {
+						name, args := capabilityCatalogName, `{"names":[]}`
 						if requests == 2 {
+							args = `{"names":["habit.inspect"]}`
+						}
+						if requests == 3 {
 							name, args = "habit.inspect", "{}"
 						}
 						message = map[string]any{"role": "assistant", "tool_calls": []any{map[string]any{"index": 0, "id": fmt.Sprint("no-arg-", requests), "type": "function", "function": map[string]any{"name": name, "arguments": args}}}}
 						finish = "tool_calls"
+					}
+					if mode == "after_discovery" && requests == 2 && !strings.Contains(jsonString(payload["messages"]), "habit.inspect") {
+						t.Error("directory result did not reach the next native model request")
+					}
+					if mode == "after_discovery" && requests == 4 && !strings.Contains(jsonString(payload["messages"]), "hidden-service-result") {
+						t.Error("executed tool result did not reach the continuation")
 					}
 					part := "message"
 					if streaming {
@@ -129,8 +141,8 @@ func TestNoArgToolPropertiesOnNativeProviderWire(t *testing.T) {
 				}
 				wantRequests := 1
 				if mode == "after_discovery" {
-					wantRequests = 3
-					if invoker.executions != 1 || len(result.ToolResults) != 2 {
+					wantRequests = 4
+					if invoker.executions != 1 || len(result.ToolResults) != 3 {
 						t.Fatalf("discovery feedback/execution missing: executions=%d results=%d", invoker.executions, len(result.ToolResults))
 					}
 				}
@@ -155,6 +167,10 @@ func TestNoArgCatalogSchemaValidationAndCatalogParity(t *testing.T) {
 	invocation := CapabilityInvocation{CallID: "catalog-contract", CapabilityName: capabilityCatalogName, Arguments: json.RawMessage(`{}`), Metadata: InvocationMetadata{Source: "direct", Surface: CapabilitySurfaceConversation}}
 	if err := invocation.Validate(definition); err != nil {
 		t.Fatal(err)
+	}
+	invocation.Arguments = json.RawMessage(`{"names":[]}`)
+	if err := invocation.Validate(definition); err != nil {
+		t.Fatalf("model-facing empty names were rejected: %v", err)
 	}
 	invocation.Arguments = json.RawMessage(`{"extra":true}`)
 	if err := invocation.Validate(definition); err == nil {

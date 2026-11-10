@@ -12,6 +12,8 @@ import (
 
 const conversationDailyMemorySchemaVersion = "conversation-daily-memory.v1"
 
+var errConversationDailyCorrectedSource = errors.New("conversation_daily_memory_corrected_source")
+
 type conversationDailyEpisodeResponse struct {
 	SchemaVersion string `json:"schema_version"`
 	Episode       string `json:"episode"`
@@ -46,10 +48,16 @@ func (a *App) enqueueConversationDailyMemoryTx(ctx context.Context, tx pgx.Tx, f
 	}
 	identity := stableDigest(fluctlightID + "\x1f" + conversationID + "\x1f" + localDate + "\x1f" + timezone)
 	intentID := "conversation_daily_memory_intent:" + identity
-	payload := map[string]any{"intent_id": intentID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "local_date": localDate, "timezone": timezone, "day_start_utc": day.UTC().Format(time.RFC3339Nano), "day_end_utc": day.AddDate(0, 0, 1).UTC().Format(time.RFC3339Nano)}
+	payload := map[string]any{"intent_id": intentID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "local_date": localDate, "timezone": timezone, "day_start_utc": day.UTC().Format(time.RFC3339Nano), "day_end_utc": day.AddDate(0, 0, 1).UTC().Format(time.RFC3339Nano), "source_generation": 0}
 	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at)
 		VALUES($1,$2,'lifecycle','conversation.daily_memory',$3,'pending',$4)
-		ON CONFLICT(intent_id) DO UPDATE SET status=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN 'retry' ELSE public.platform_workflow_intents.status END,
+		ON CONFLICT(intent_id) DO UPDATE SET
+		 payload=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN public.platform_workflow_intents.payload || jsonb_build_object('source_generation',
+		  CASE WHEN COALESCE(public.platform_workflow_intents.payload->>'source_generation','') ~ '^[0-9]{1,17}$' THEN (public.platform_workflow_intents.payload->>'source_generation')::bigint+1 ELSE 1 END)
+		  ELSE public.platform_workflow_intents.payload END,
+		 last_error=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN NULL ELSE public.platform_workflow_intents.last_error END,
+		 completed_at=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN NULL ELSE public.platform_workflow_intents.completed_at END,
+		 status=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN 'retry' ELSE public.platform_workflow_intents.status END,
 		 next_attempt_at=LEAST(COALESCE(public.platform_workflow_intents.next_attempt_at,excluded.next_attempt_at),excluded.next_attempt_at)`, intentID, "conversation_daily_memory:"+identity, jsonBytes(payload), due)
 	return err
 }
@@ -83,6 +91,13 @@ func readConversationDailySources(ctx context.Context, tx pgx.Tx, fluctlightID, 
 		if length < 1 || length > conversationSummaryMaxMessages {
 			return nil, errors.New("conversation_daily_memory_source_window_invalid")
 		}
+		corrected, err := summaryContainsCorrectedMemorySource(ctx, tx, fluctlightID, conversationID, item.FromSequence, item.ToSequence)
+		if err != nil {
+			return nil, err
+		}
+		if corrected {
+			return nil, errConversationDailyCorrectedSource
+		}
 		messages, err := readConversationSummaryMessages(ctx, tx, conversationID, item.FromSequence, item.ToSequence, length)
 		if err != nil {
 			return nil, err
@@ -102,10 +117,26 @@ func dailySourceFingerprint(sources []conversationDailySource) string {
 	return stableDigest(strings.Join(parts, "\x1f"))
 }
 
+func dailyMemoryReplay(lastError string) map[string]any {
+	if lastError == errConversationDailyCorrectedSource.Error() {
+		return map[string]any{"status": "blocked", "reason": "corrected_memory_source", "replayed": true}
+	}
+	return map[string]any{"status": "completed", "replayed": true}
+}
+
+// A corrected source is a durable, quiet outcome for this run. A new segment
+// can reopen the stable intent; it must recheck the whole day before sending.
+func markDailyMemoryCorrectedSourceTx(ctx context.Context, tx pgx.Tx, intentID string) (map[string]any, error) {
+	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now(),next_attempt_at=NULL,last_error=$2 WHERE intent_id=$1`, intentID, errConversationDailyCorrectedSource.Error()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"status": "blocked", "reason": "corrected_memory_source"}, nil
+}
+
 func (a *App) ProcessConversationDailyMemoryIntent(ctx context.Context, intentID string) (map[string]any, error) {
-	var status string
+	var status, lastError string
 	var raw []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&status, &raw); err != nil {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&status, &raw, &lastError); err != nil {
 		return nil, err
 	}
 	payload := decodeObject(raw)
@@ -117,10 +148,16 @@ func (a *App) ProcessConversationDailyMemoryIntent(ctx context.Context, intentID
 	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, fluctlightID); blockErr != nil {
 		return nil, blockErr
 	} else if blocked {
+		// The activity may finish while the dispatcher is recovering an accepted
+		// start whose ledger still says pending. Settle that exact source set so
+		// it does not spin after the Temporal run has completed.
+		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now(),last_error=NULL WHERE intent_id=$1 AND status IN ('pending','retry','started') AND payload=$2::jsonb`, intentID, raw); err != nil {
+			return nil, err
+		}
 		return map[string]any{"intent_id": intentID, "fluctlight_id": fluctlightID, "status": "inactive", "reason": autonomousStopReason(life)}, nil
 	}
 	if status == "completed" {
-		return map[string]any{"status": "completed", "replayed": true}, nil
+		return dailyMemoryReplay(lastError), nil
 	}
 	return a.runConversationDailyMemoryIntentWork(ctx, fluctlightID, func(runCtx context.Context) (map[string]any, error) {
 		return a.processConversationDailyMemoryIntent(runCtx, intentID, fluctlightID)
@@ -132,9 +169,9 @@ func (a *App) runConversationDailyMemoryIntentWork(ctx context.Context, owner st
 }
 
 func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID, expectedFluctlightID string) (map[string]any, error) {
-	var status string
+	var status, lastError string
 	var raw []byte
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&status, &raw); err != nil {
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&status, &raw, &lastError); err != nil {
 		return nil, err
 	}
 	payload := decodeObject(raw)
@@ -144,7 +181,7 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 		return nil, errors.New("conversation_daily_memory_intent_invalid")
 	}
 	if status == "completed" {
-		return map[string]any{"status": "completed", "replayed": true}, nil
+		return dailyMemoryReplay(lastError), nil
 	}
 	dayEnd, err := time.Parse(time.RFC3339Nano, stringValue(payload["day_end_utc"]))
 	if err != nil {
@@ -154,9 +191,30 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 		return nil, errors.New("conversation_daily_memory_day_open")
 	}
 	var sources []conversationDailySource
+	var earlyResult map[string]any
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
+		var locked, liveStatus, liveError string
+		// Memory mutations lock the owner. Hold the same lock through the
+		// source check so a committed correction cannot race this decision.
+		if err := tx.QueryRow(ctx, `SELECT id FROM public.fluctlights WHERE id=$1 FOR NO KEY UPDATE`, fluctlightID).Scan(&locked); err != nil {
+			return err
+		}
+		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversations WHERE id=$1 FOR UPDATE`, conversationID).Scan(&locked); err != nil {
+			return err
+		}
+		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, intentID).Scan(&liveStatus, &liveError); err != nil {
+			return err
+		}
+		if liveStatus == "completed" {
+			earlyResult = dailyMemoryReplay(liveError)
+			return nil
+		}
 		var err error
 		sources, err = readConversationDailySources(ctx, tx, fluctlightID, conversationID, localDate, timezone)
+		if errors.Is(err, errConversationDailyCorrectedSource) {
+			earlyResult, err = markDailyMemoryCorrectedSourceTx(ctx, tx, intentID)
+			return err
+		}
 		if err != nil {
 			return err
 		}
@@ -168,22 +226,34 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 		if pending {
 			return errors.New("conversation_daily_memory_segment_pending")
 		}
+		if len(sources) > 64 {
+			return errors.New("conversation_daily_memory_source_limit")
+		}
+		if len(sources) == 0 {
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now(),last_error=NULL WHERE intent_id=$1`, intentID); err != nil {
+				return err
+			}
+			earlyResult = map[string]any{"status": "no_source"}
+			return nil
+		}
+		var priorFingerprint string
+		err = tx.QueryRow(ctx, `SELECT source_fingerprint FROM public.conversation_daily_memories WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND local_date=$3::date AND timezone=$4`, fluctlightID, conversationID, localDate, timezone).Scan(&priorFingerprint)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if err == nil && priorFingerprint == dailySourceFingerprint(sources) {
+			if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now(),last_error=NULL WHERE intent_id=$1`, intentID); err != nil {
+				return err
+			}
+			earlyResult = map[string]any{"status": "completed", "replayed": true}
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if len(sources) == 0 {
-		return map[string]any{"status": "no_source"}, nil
-	}
-	if len(sources) > 64 {
-		return nil, errors.New("conversation_daily_memory_source_limit")
-	}
-	var priorFingerprint string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT source_fingerprint FROM public.conversation_daily_memories WHERE owner_fluctlight_id=$1 AND conversation_id=$2 AND local_date=$3::date AND timezone=$4`, fluctlightID, conversationID, localDate, timezone).Scan(&priorFingerprint); err == nil && priorFingerprint == dailySourceFingerprint(sources) {
-		return map[string]any{"status": "completed", "replayed": true}, nil
-	} else if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return nil, err
+	if earlyResult != nil {
+		return earlyResult, nil
 	}
 	if a.Provider == nil {
 		return nil, errors.New("conversation_daily_memory_provider_unavailable")
@@ -198,18 +268,25 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 	var result map[string]any
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var locked string
+		if err := tx.QueryRow(ctx, `SELECT id FROM public.fluctlights WHERE id=$1 FOR NO KEY UPDATE`, fluctlightID).Scan(&locked); err != nil {
+			return err
+		}
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversations WHERE id=$1 FOR UPDATE`, conversationID).Scan(&locked); err != nil {
 			return err
 		}
-		var liveStatus string
-		if err := tx.QueryRow(ctx, `SELECT status FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, intentID).Scan(&liveStatus); err != nil {
+		var liveStatus, liveError string
+		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, intentID).Scan(&liveStatus, &liveError); err != nil {
 			return err
 		}
 		if liveStatus == "completed" {
-			result = map[string]any{"status": "completed", "replayed": true}
+			result = dailyMemoryReplay(liveError)
 			return nil
 		}
 		live, err := readConversationDailySources(ctx, tx, fluctlightID, conversationID, localDate, timezone)
+		if errors.Is(err, errConversationDailyCorrectedSource) {
+			result, err = markDailyMemoryCorrectedSourceTx(ctx, tx, intentID)
+			return err
+		}
 		if err != nil {
 			return err
 		}
@@ -267,7 +344,7 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 				return err
 			}
 		}
-		if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now() WHERE intent_id=$1`, intentID); err != nil {
+		if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now(),last_error=NULL WHERE intent_id=$1`, intentID); err != nil {
 			return err
 		}
 		result = map[string]any{"status": "completed", "memory_id": applied.MemoryID, "source_count": len(sources)}

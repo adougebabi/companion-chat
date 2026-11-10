@@ -264,6 +264,9 @@ func (b *browserBackend) dispatch(ctx context.Context, method, endpoint, session
 	case path == "/internal/providers/roles" && method == http.MethodPut:
 		err = b.server.app.ConfigureProviderRole(ctx, actorID, values)
 		if err == nil {
+			if values["clear_override"] == true {
+				return map[string]any{"role": values["role"], "available": false, "cleared": true}, nil
+			}
 			return map[string]any{"role": values["role"], "available": true, "capability_version": "models-v1"}, nil
 		}
 		if validation := browserProviderRoleValidationError(err); validation != nil {
@@ -674,7 +677,7 @@ func browserProviderRoleValidationError(err error) error {
 		return nil
 	}
 	switch err.Error() {
-	case "provider_prompt_budget_invalid", "prompt_budget_policy_unknown", "provider_role_invalid", "provider_endpoint_not_found", "provider_model_not_available":
+	case "provider_prompt_budget_invalid", "prompt_budget_policy_unknown", "provider_role_invalid", "provider_sampling_invalid", "provider_endpoint_not_found", "provider_model_not_available":
 		return &browser.CoreError{Status: http.StatusUnprocessableEntity, Code: err.Error(), Details: map[string]any{"configuration_admission": "rejected"}}
 	}
 	return nil

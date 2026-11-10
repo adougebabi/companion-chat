@@ -515,7 +515,7 @@ func TestDerivedVisualModelReviewReceivesReferenceAndCandidate(t *testing.T) {
 		t.Fatalf("model review failed: %#v %v", result, err)
 	}
 	wire := jsonString(payload["messages"])
-	for _, required := range []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(reference), "data:image/png;base64," + base64.StdEncoding.EncodeToString(candidate), "第一张图片是已确认的角色形象参考", "Do not require a person or face", "Only a genuine pass"} {
+	for _, required := range []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(reference), "data:image/png;base64," + base64.StdEncoding.EncodeToString(candidate), "第一张图片是已确认的角色形象参考", "Do not require a person or face", "A second non-pass is not automatically delivered"} {
 		if !strings.Contains(wire, required) {
 			t.Fatalf("model review request missing %q: %s", required, wire)
 		}

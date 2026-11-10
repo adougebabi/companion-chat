@@ -152,6 +152,9 @@ func TestR4WriterDiagnosticsKeepAuthoritativeScope(t *testing.T) {
 	if metadata["fluctlight_id"] != input.Projection.FluctlightID || metadata["conversation_id"] != input.Projection.ConversationID {
 		t.Fatal("Writer diagnostics lost/borrowed identity", metadata)
 	}
+	if projection := mapValue(metadata["context_projection"]); projection["agent_id"] != "conversation_reply" || projection["task_variant"] != "private_reply" || projection["schema"] != "conversation_reply_text" {
+		t.Fatalf("physical Writer request lost task variant: %#v", projection)
+	}
 	if strings.Contains(jsonString(metadata), "foreign-parent") {
 		t.Fatal("parent metadata restored")
 	}

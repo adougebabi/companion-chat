@@ -92,15 +92,16 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 	defer release()
 	var job map[string]any
 	var output map[string]any
+	var stageProvenance map[string]any
 	err = withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		job, err = readStudioJobWith(ctx, tx, owner, id, true)
 		if err != nil {
 			return err
 		}
 		var status string
-		var raw []byte
+		var raw, provenanceRaw []byte
 		var attempt int
-		if err := tx.QueryRow(ctx, `SELECT status,output,attempt FROM public.studio_job_attempts WHERE id=$1 FOR UPDATE`, aid).Scan(&status, &raw, &attempt); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT status,output,attempt,provenance FROM public.studio_job_attempts WHERE id=$1 FOR UPDATE`, aid).Scan(&status, &raw, &attempt, &provenanceRaw); err != nil {
 			return err
 		}
 		if job["status"] == "completed" || job["status"] == "discarded" {
@@ -110,9 +111,10 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 			return errors.New("studio_failed_requires_explicit_retry")
 		}
 		output = decodeObject(raw)
-		if _, err := tx.Exec(ctx, `UPDATE public.studio_job_attempts SET status='running' WHERE id=$1`, aid); err != nil {
+		if err := tx.QueryRow(ctx, `UPDATE public.studio_job_attempts SET status='running',provenance=CASE WHEN status='queued' THEN provenance||jsonb_build_object($2::text,$3::text) ELSE provenance END WHERE id=$1 RETURNING provenance`, aid, studioModelSnapshotContractKey, workflowModelSnapshotVersion).Scan(&provenanceRaw); err != nil {
 			return err
 		}
+		stageProvenance = decodeObject(provenanceRaw)
 		_, err := tx.Exec(ctx, `UPDATE public.studio_jobs SET status='running',revision=revision+1,updated_at=now() WHERE id=$1 AND status='queued'`, id)
 		return err
 	})
@@ -129,6 +131,10 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 			code := safeAgentFailureCode(ProviderErrorCode(runErr), "generation_failed")
 			if errors.Is(runErr, errStudioMediaNotConfigured) || errors.Is(runErr, errImageProviderNotConfigured) {
 				code = "media_not_configured"
+			} else if errors.Is(runErr, errStudioModelSnapshotMissing) {
+				code = "model_snapshot_missing"
+			} else if errors.Is(runErr, errStudioModelSnapshotInvalid) {
+				code = "model_snapshot_invalid"
 			}
 			_ = a.ReconcileStudioWorkflowTerminal(cleanup, intentID, code)
 		}
@@ -145,12 +151,28 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 		return nil, harmError()
 	}
 	if kind == "image_preview" {
-		return a.queueStudioMedia(ctx, owner, id, aid, job)
+		return a.queueStudioMedia(ctx, owner, id, aid, job, stageProvenance)
 	}
 	if len(output) == 0 {
 		provenance := map[string]any{"correlation_id": "studio:" + aid, "source_digest": job["source_digest"]}
 		modelCtx := WithPromptDiagnostics(WithProviderCorrelation(ctx, "studio:"+aid), map[string]any{"owner_actor_id": owner, "studio_job_id": id, "studio_attempt_id": aid, "source_digest": job["source_digest"]})
 		if kind == "assistant" && snapshot["purpose"] == "foundation_prepare" {
+			modelCtx = withAgentModelRoute(modelCtx, FormalAgentInitialization, "initialization_response")
+			_, assignment, err := a.studioStageModel(modelCtx, aid, "initialization", stageProvenance, FormalAgentInitialization, "initialization_response", "initialization", func() (workflowModelSnapshot, providerAssignment, error) {
+				provider, err := a.modelTaskProvider()
+				if err != nil {
+					return workflowModelSnapshot{}, providerAssignment{}, err
+				}
+				assignment, err := provider.assignment(modelCtx, "initialization")
+				if err != nil {
+					return workflowModelSnapshot{}, providerAssignment{}, err
+				}
+				return newWorkflowModelSnapshot(FormalAgentInitialization, "initialization_response", "initialization", assignment, 0, 0), assignment, nil
+			})
+			if err != nil {
+				return nil, err
+			}
+			modelCtx = withFrozenProviderAssignment(modelCtx, "initialization", assignment)
 			output, err = a.prepareStudioCharacterDefinition(modelCtx, snapshot)
 			if err != nil {
 				return nil, err
@@ -181,11 +203,18 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 			if snapshot["resource_kind"] == "character_template" {
 				rules += "\n角色模板完整body只能含schema='character-template.v1'及description（完整角色描述）或initialization（二选一）。结构化initialization只能含schema_version、core_persona、developing_self、extensions、initial_goals、initial_intentions、initial_relationships；不能包含analysis_id、correlation_id、Actor背景或运行存档。保留原输入方式及未要求修改的定义，缺少用户必需选择时needs_input。"
 			}
-			provider, err := a.modelTaskProvider()
-			if err != nil {
-				return nil, err
-			}
-			assignment, err := provider.assignment(modelCtx, "cognitive_assessment")
+			modelCtx = withAgentModelRoute(modelCtx, FormalAgentStudioAssistant, "studio_assistant_v1")
+			_, assignment, err := a.studioStageModel(modelCtx, aid, "assistant", stageProvenance, FormalAgentStudioAssistant, "studio_assistant_v1", "cognitive_assessment", func() (workflowModelSnapshot, providerAssignment, error) {
+				provider, err := a.modelTaskProvider()
+				if err != nil {
+					return workflowModelSnapshot{}, providerAssignment{}, err
+				}
+				assignment, err := provider.assignment(modelCtx, "cognitive_assessment")
+				if err != nil {
+					return workflowModelSnapshot{}, providerAssignment{}, err
+				}
+				return newWorkflowModelSnapshot(FormalAgentStudioAssistant, "studio_assistant_v1", "cognitive_assessment", assignment, 0, 0), assignment, nil
+			})
 			if err != nil {
 				return nil, err
 			}
@@ -211,16 +240,22 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 			provenance["model_role"] = "cognitive_assessment"
 			provenance["prompt_budget"] = prompt.Trace
 		} else {
-			config, version, err := a.conversationReplySettings(ctx)
+			binding, assignment, err := a.studioStageModel(modelCtx, aid, "text_preview", stageProvenance, FormalAgentStudioTextPreview, "studio_preview_text", conversationReplyModelRole, func() (workflowModelSnapshot, providerAssignment, error) {
+				config, version, err := a.conversationReplySettings(ctx)
+				if err != nil {
+					return workflowModelSnapshot{}, providerAssignment{}, err
+				}
+				writer := &privateReplyRun{Settings: config, ConfigVersion: version}
+				a.freezePersonaWriterAssignment(ctx, writer, FormalAgentStudioTextPreview, "studio_preview_text")
+				if writer.AssignmentError != nil {
+					return workflowModelSnapshot{}, providerAssignment{}, writer.AssignmentError
+				}
+				return newWorkflowModelSnapshot(FormalAgentStudioTextPreview, "studio_preview_text", conversationReplyModelRole, writer.Assignment, version, config.Concurrency), writer.Assignment, nil
+			})
 			if err != nil {
 				return nil, err
 			}
-			writer := &privateReplyRun{Settings: config, ConfigVersion: version}
-			a.freezePersonaWriterAssignment(ctx, writer)
-			if writer.AssignmentError != nil {
-				return nil, writer.AssignmentError
-			}
-			assignment := writer.Assignment
+			version := binding.ConfigVersion
 			policy, err := promptBudgetPolicyForAssignment(assignment)
 			if err != nil {
 				return nil, err
@@ -230,7 +265,7 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 				return nil, err
 			}
 			writerCtx := withFrozenProviderAssignment(isolatedReplyModelContext(modelCtx), conversationReplyModelRole, assignment)
-			writerCtx = withProviderCapacity(writerCtx, conversationReplyModelRole, max(1, config.Concurrency))
+			writerCtx = withProviderCapacity(writerCtx, conversationReplyModelRole, max(1, binding.Concurrency))
 			writerCtx = WithPromptDiagnostics(writerCtx, map[string]any{"owner_actor_id": owner, "studio_job_id": id, "studio_attempt_id": aid, "source_digest": job["source_digest"], "config_version": version, "prompt_budget": prompt.Trace})
 			provenance["agent_id"] = string(FormalAgentStudioTextPreview)
 			provenance["model_id"] = assignment.ModelID
@@ -252,7 +287,7 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 		}
 		// Persist a completed validated model stage separately from publication.
 		// A retry after an interrupted final commit can reuse this exact output.
-		stored, err := a.DB.Pool().Exec(ctx, `UPDATE public.studio_job_attempts a SET output=$2,provenance=$3 FROM public.studio_jobs j WHERE a.id=$1 AND j.id=a.job_id AND j.status='running' AND j.latest_attempt=a.attempt AND a.status='running'`, aid, jsonBytes(output), jsonBytes(provenance))
+		stored, err := a.DB.Pool().Exec(ctx, `UPDATE public.studio_job_attempts a SET output=$2,provenance=a.provenance||$3::jsonb FROM public.studio_jobs j WHERE a.id=$1 AND j.id=a.job_id AND j.status='running' AND j.latest_attempt=a.attempt AND a.status='running'`, aid, jsonBytes(output), jsonBytes(provenance))
 		if err != nil {
 			return nil, err
 		}

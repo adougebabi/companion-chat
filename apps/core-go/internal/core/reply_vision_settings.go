@@ -74,7 +74,7 @@ func decodeConversationReplySettings(raw []byte) (ConversationReplySettings, err
 	if rawVersion, present := decodeObject(raw)["expression_version"]; present && strings.TrimSpace(stringValue(rawVersion)) == "" {
 		return value, errors.New("conversation_reply_config_invalid")
 	}
-	if (value.Mode != "legacy" && value.Mode != "fact_only") ||
+	if (value.Mode != "legacy" && value.Mode != "fact_only" && value.Mode != "direct") ||
 		(!replyUsesTextChatProtocol(value.ExpressionVersion) && value.ExpressionVersion != factOnlyReplyLegacyPromptVersion) ||
 		(value.ModelRef != "" && value.ModelRef != conversationReplyModelRole) ||
 		(value.FailurePolicy != "error" && value.FailurePolicy != "legacy_fallback") ||
@@ -138,17 +138,60 @@ func providerQueueBindingRole(role string) string {
 
 type frozenProviderAssignmentKey struct{}
 type frozenProviderAssignment struct {
-	role  string
-	value providerAssignment
+	role   string
+	value  providerAssignment
+	route  agentModelRoute
+	scoped bool
 }
 
 func withFrozenProviderAssignment(ctx context.Context, role string, value providerAssignment) context.Context {
-	return context.WithValue(ctx, frozenProviderAssignmentKey{}, frozenProviderAssignment{role: role, value: value})
+	route, scoped := ctx.Value(agentModelRouteKey{}).(agentModelRoute)
+	return context.WithValue(ctx, frozenProviderAssignmentKey{}, frozenProviderAssignment{role: role, value: value, route: route, scoped: scoped && route.agent != ""})
 }
 
 func providerAssignmentSnapshot(ctx context.Context, role string) (providerAssignment, bool) {
 	value, ok := ctx.Value(frozenProviderAssignmentKey{}).(frozenProviderAssignment)
-	return value.value, ok && value.role == role
+	if !ok || value.role != role {
+		return providerAssignment{}, false
+	}
+	if value.scoped {
+		route, ok := ctx.Value(agentModelRouteKey{}).(agentModelRoute)
+		if !ok || route != value.route {
+			return providerAssignment{}, false
+		}
+	}
+	return value.value, true
+}
+
+func restoredAssignmentSecretPurpose(assignment providerAssignment, currentBaseURL, currentPurpose string) (string, error) {
+	if assignment.SecretPurpose != "" {
+		return assignment.SecretPurpose, nil
+	}
+	// Old snapshots did not record the credential reference. Reusing the
+	// endpoint's current reference is safe only while the destination remains
+	// the same; otherwise a new credential could be sent to the old URL.
+	if strings.TrimRight(assignment.BaseURL, "/") == "" || strings.TrimRight(assignment.BaseURL, "/") != strings.TrimRight(currentBaseURL, "/") {
+		return "", errors.New("reply_snapshot_credential_source_unknown")
+	}
+	return currentPurpose, nil
+}
+
+func (a *App) restoreAssignmentCredential(ctx context.Context, assignment *providerAssignment) error {
+	purpose := assignment.SecretPurpose
+	if purpose == "" {
+		var currentBaseURL, currentPurpose string
+		if err := a.DB.Pool().QueryRow(ctx, `SELECT base_url,secret_purpose FROM public.provider_endpoints WHERE id=$1`, assignment.EndpointID).Scan(&currentBaseURL, &currentPurpose); err != nil {
+			return err
+		}
+		var err error
+		purpose, err = restoredAssignmentSecretPurpose(*assignment, currentBaseURL, currentPurpose)
+		if err != nil {
+			return err
+		}
+	}
+	var err error
+	assignment.Secret, assignment.CredentialRevision, err = a.Provider.secretWithRevision(ctx, purpose)
+	return err
 }
 
 func providerSamplingFields(assignment providerAssignment) map[string]any {
@@ -160,6 +203,27 @@ func providerSamplingFields(assignment providerAssignment) map[string]any {
 		fields["top_p"] = *assignment.TopP
 	}
 	return fields
+}
+
+// Model configuration provenance is diagnostic metadata, never prompt input.
+// Legacy persisted assignments lack revisions and remain explicitly unknown.
+func providerAssignmentDiagnostics(assignment providerAssignment) map[string]any {
+	result := map[string]any{"binding_role": assignment.Role, "endpoint_id": assignment.EndpointID, "model_id": assignment.ModelID, "timeout_ms": assignment.Timeout.Milliseconds()}
+	if assignment.SourceBindingRole == "" {
+		result["source_status"] = "unrecorded_snapshot"
+	} else {
+		result["source_status"] = "recorded"
+		result["source_binding_role"] = assignment.SourceBindingRole
+	}
+	for key, revision := range map[string]int64{"binding_revision": assignment.BindingRevision, "endpoint_revision": assignment.EndpointRevision, "credential_revision": assignment.CredentialRevision} {
+		if revision > 0 {
+			result[key] = revision
+		}
+	}
+	for key, value := range providerSamplingFields(assignment) {
+		result[key] = value
+	}
+	return result
 }
 
 func (a *App) replyVisionCapabilityStatus(ctx context.Context, values map[string]any) map[string]any {

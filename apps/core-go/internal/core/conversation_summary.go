@@ -393,8 +393,18 @@ func (a *App) retrieveConversationSummaries(ctx context.Context, query Conversat
 			}
 			validSource = len(sourceMessages) == windowLength && sameStringSlice(conversationSummarySourceRefs(sourceMessages), candidate.refs) && conversationSummarySourceDigest(sourceMessages) == candidate.digest
 		}
+		corrected := false
+		if validSource {
+			var correctionErr error
+			corrected, correctionErr = summaryContainsCorrectedMemorySource(ctx, a.DB.Pool(), query.FluctlightID, query.ConversationID, candidate.from, candidate.to)
+			if correctionErr != nil {
+				return ConversationSummaryRetrievalResult{}, correctionErr
+			}
+		}
 		if !validSource {
 			disposition, reason = "dropped", "source_invalid"
+		} else if corrected {
+			disposition, reason = "dropped", "source_memory_corrected"
 		} else if len(items) >= query.Limit {
 			disposition, reason = "dropped", "result_limit"
 		} else if trace.BudgetUsed+cost > query.MaxRunes {

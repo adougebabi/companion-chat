@@ -103,7 +103,7 @@ func TestMemoryProvenanceKeepsOtherSourceAndRejectsLastSourceLoss(t *testing.T) 
 	}
 }
 
-func TestOwnerMemoryCorrectionInvalidatesOnlyAffectedEpisodeAndOldWorkerResult(t *testing.T) {
+func TestMemoryRevisionInvalidatesAffectedEpisodeAndLegacyFixture(t *testing.T) {
 	ctx, repository, ownerID, fluctlightID, conversationID := seedConversationSummaryAuthority(t)
 	seedConversationSummaryMessages(t, ctx, repository, ownerID, fluctlightID, conversationID, 1, 4)
 	messages, err := readConversationSummaryMessages(ctx, repository.Pool(), conversationID, 1, 4, 4)
@@ -155,6 +155,8 @@ VALUES('episode-unaffected',$1,$2,3,4,$3,$4,'其他经历','active',1,'test-prov
 	if err != nil || len(visible.Items) != 1 || stringValue(visible.Items[0]["summary"]) != "其他经历" {
 		t.Fatalf("corrected old episode still visible: %#v err=%v", visible, err)
 	}
+	// settleConversationSummary is a test-only legacy fixture; this does not
+	// establish production runtime or segment worker concurrency guarantees.
 	work := conversationSummaryWork{FluctlightID: fluctlightID, ConversationID: conversationID, FromSequence: 1, ToSequence: 2, SourceMessageRefs: refs[:2], SourceDigest: conversationSummarySourceDigest(messages[:2]), Messages: messages[:2]}
 	if _, err := app.settleConversationSummary(ctx, work, conversationSummaryProviderResponse{SchemaVersion: conversationSummarySchemaVersion, Summary: "后台旧结论"}, providerAssignment{EndpointID: "test-provider", ModelID: "test-model"}, "late-provider", digest); err == nil || err.Error() != "conversation_summary_source_invalidated" {
 		t.Fatalf("late summary result resurrected correction: %v", err)

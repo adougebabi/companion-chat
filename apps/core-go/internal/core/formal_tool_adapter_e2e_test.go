@@ -919,6 +919,7 @@ func newFormalToolAdapterFixture(t *testing.T) *formalToolAdapterFixture {
 	if _, err := base.repository.Pool().Exec(base.ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'controlled-formal-adapter-model','structured_output,tool_calling',4096,30,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	seedConversationReplyFromCognitive(t, base.ctx, base.repository)
 	return fixture
 }
 

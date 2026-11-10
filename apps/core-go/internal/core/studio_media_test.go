@@ -114,3 +114,46 @@ func TestStudioMediaConceptNeverBorrowedTaskActorOrCurrentLife(t *testing.T) {
 		t.Fatal("formal appearance leaked into preview")
 	}
 }
+
+func TestStudioReadyNonPassingCandidateIsNotPromotedDuringRecovery(t *testing.T) {
+	ctx, repo, app, owner, _, _ := setupDirectPublicationToolTest(t, "studio-quality-failure")
+	resource, err := app.DispatchOwnerSurface(ctx, "POST", "/internal/studio/resources", nil, owner, map[string]any{"kind": "place", "name": "Review fixture", "body": map[string]any{"description": "fictional room"}, "reason": "fixture", "idempotency_key": "studio-quality-resource"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, verdict := range []string{mediaQualityVerdictRetryAccepted, mediaQualityVerdictReject} {
+		job, err := app.DispatchStudioJobSurface(ctx, "POST", "/internal/studio/jobs", nil, owner, map[string]any{"resource_id": resource["id"], "resource_revision": resource["revision"], "kind": "image_preview", "name": "Review fixture", "body": map[string]any{"description": "fictional room"}, "instruction": "an empty room", "reason": "fixture", "idempotency_key": "studio-quality-" + verdict})
+		if err != nil {
+			t.Fatal(err)
+		}
+		jobID := stringValue(job["id"])
+		intentID, workflow := "studio-quality-"+verdict, "studio-quality-workflow-"+verdict
+		if _, err := repo.Pool().Exec(ctx, `UPDATE public.studio_jobs SET status='running' WHERE id=$1`, jobID); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.Pool().Exec(ctx, `UPDATE public.studio_job_attempts SET status='running',output=$2 WHERE job_id=$1`, jobID, jsonBytes(map[string]any{"media_intent_id": intentID, "workflow_id": workflow})); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,media_scope,studio_owner_actor_id,studio_job_id,kind,mime_type,prompt,provider_request_id,workflow_id,status,quality_verdict) VALUES($1,NULL,'studio',$2,$3,'image','image/png','{}',$4,$5,'running',$6)`, intentID, owner, jobID, "request-"+intentID, workflow, verdict); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,media_scope,studio_owner_actor_id,studio_job_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES($1,NULL,'studio',$2,$3,'v1','image','image/png',1,'fixture-digest','private-fixture','not-read',$4,$5,'ready')`, "asset_"+intentID, owner, jobID, "request-"+intentID, workflow); err != nil {
+			t.Fatal(err)
+		}
+		intent, err := app.readMediaIntent(ctx, intentID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := app.settleStudioMedia(ctx, intent, false, "quality_review_required"); err != nil {
+			t.Fatal(err)
+		}
+		actual, err := app.StudioJob(ctx, owner, jobID)
+		if err != nil || actual["status"] != "failed" || mapValue(actual["result"])["asset_id"] != nil {
+			t.Fatalf("non-passing ready asset was promoted: %#v err=%v", actual, err)
+		}
+		var assetStatus string
+		if err := repo.Pool().QueryRow(ctx, `SELECT status FROM public.media_assets WHERE id=$1`, "asset_"+intentID).Scan(&assetStatus); err != nil || assetStatus != "ready" {
+			t.Fatalf("original asset was not preserved: status=%s err=%v", assetStatus, err)
+		}
+	}
+}

@@ -58,10 +58,17 @@ func committedConversationReplyResult(results []CapabilityResult) (CapabilityRes
 
 func committedConversationReplyResults(results []CapabilityResult) []CapabilityResult {
 	replies := make([]CapabilityResult, 0)
+	seen := make(map[string]bool)
 	for _, result := range results {
-		if result.CapabilityName == "conversation.reply" && result.Status == "completed" && stringValue(mapValue(result.Output)["target_kind"]) == "conversation_message" && strings.TrimSpace(stringValue(mapValue(result.Output)["target_ref"])) != "" {
-			replies = append(replies, result)
+		if result.CapabilityName != "conversation.reply" || result.Status != "completed" || stringValue(mapValue(result.Output)["target_kind"]) != "conversation_message" {
+			continue
 		}
+		messageID := stringValue(mapValue(result.Output)["target_ref"])
+		if messageID == "" || seen[messageID] {
+			continue
+		}
+		seen[messageID] = true
+		replies = append(replies, result)
 	}
 	return replies
 }
@@ -293,11 +300,27 @@ func (a *App) handleTurn(ctx context.Context, actorID, conversationID string, pa
 	if retryCount > 0 {
 		runID = fmt.Sprintf("%s:retry:%d", runID, retryCount)
 	}
-	run, err := a.RunConversationCognitionAgent(WithProviderCorrelation(ctx, "turn:"+turnID), ConversationCognitionAgentInput{
+	runCtx := context.WithValue(WithProviderCorrelation(ctx, "turn:"+turnID), directMainConversationKey{}, true)
+	run, err := a.RunConversationCognitionAgent(runCtx, ConversationCognitionAgentInput{
 		AuthorizationActorID: authorizationActorID, SpeakerActorID: actorID, FluctlightID: fluctlightID,
 		ConversationID: conversationID, SourceFactID: inboxID, RunID: runID, CorrelationID: "turn:" + turnID, CurrentInput: text, EnableStreaming: claimStream,
 	})
 	projection := run.Projection
+	var atomicSettled bool
+	if readErr := a.DB.Pool().QueryRow(ctx, `SELECT status='processed' AND COALESCE(payload->'agent_result'->>'settlement_contract','')='direct-main.v1' FROM public.cognition_inbox WHERE id=$1`, inboxID).Scan(&atomicSettled); readErr != nil {
+		return TurnResult{}, readErr
+	}
+	if atomicSettled {
+		replayed, messages, replayErr := a.replayCommittedAgentTurn(ctx, user, inboxID, fluctlightID, conversationID, turnID)
+		if replayErr != nil || replayed == nil {
+			return TurnResult{}, errors.Join(errors.New("direct_reply_settlement_replay_failed"), replayErr)
+		}
+		if err := emitCommittedAssistantMessages(callbacks, messages, replayed.CorrelationID); err != nil {
+			return TurnResult{}, err
+		}
+		claimSettled = true
+		return *replayed, nil
+	}
 	outcome, outcomeErr := committedAgentOutcome(run.Trace)
 	if outcomeErr != nil {
 		_ = a.failAgentTurnAfterRun(ctx, inboxID, agentCommittedOutcome{}, "agent_run_failed", outcomeErr)
@@ -421,6 +444,23 @@ func emitCommittedAssistantMessages(callbacks turnCallbacks, messages []map[stri
 	return nil
 }
 
+func replayAgentResultMessageIDs(result map[string]any) []string {
+	messageIDs := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, raw := range arrayValue(result["message_ids"]) {
+		if id := stringValue(raw); id != "" && !seen[id] {
+			seen[id] = true
+			messageIDs = append(messageIDs, id)
+		}
+	}
+	if len(messageIDs) == 0 {
+		if id := strings.TrimSpace(stringValue(result["message_id"])); id != "" {
+			messageIDs = append(messageIDs, id)
+		}
+	}
+	return messageIDs
+}
+
 func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any, inboxID, fluctlightID, conversationID, turnID string) (*TurnResult, []map[string]any, error) {
 	var status, errorCode string
 	var payload []byte
@@ -442,17 +482,7 @@ func (a *App) replayCommittedAgentTurn(ctx context.Context, user map[string]any,
 		return nil, nil, nil
 	}
 	result := mapValue(decodeObject(payload)["agent_result"])
-	messageIDs := make([]string, 0)
-	for _, raw := range arrayValue(result["message_ids"]) {
-		if id := strings.TrimSpace(stringValue(raw)); id != "" {
-			messageIDs = append(messageIDs, id)
-		}
-	}
-	if len(messageIDs) == 0 {
-		if id := strings.TrimSpace(stringValue(result["message_id"])); id != "" {
-			messageIDs = append(messageIDs, id)
-		}
-	}
+	messageIDs := replayAgentResultMessageIDs(result)
 	if len(messageIDs) == 0 {
 		rows, err := a.DB.Pool().Query(ctx, `SELECT id FROM public.conversation_messages WHERE conversation_id=$1 AND (turn_id=$2 OR idempotency_key=$3) AND kind='assistant' ORDER BY sequence ASC`, conversationID, turnID, "assistant:"+turnID)
 		if err == nil {
@@ -567,107 +597,114 @@ func (a *App) failAgentTurnAfterRun(ctx context.Context, inboxID string, outcome
 
 func (a *App) settleAgentConversationTurn(ctx context.Context, inboxID, turnID, fluctlightID, actorID string, projection ContextProjection, decision, responsePlan, assistant map[string]any, mediaIntentID string, outcome agentCommittedOutcome) error {
 	return withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
-		if err := requireConversationBudgetTx(ctx, tx, inboxID, a.now().UTC(), true); err != nil {
-			return err
-		}
-		var inboxStatus, inboxError string
-		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&inboxStatus, &inboxError); err != nil {
-			return err
-		}
-		if inboxStatus == "failed" && inboxError == "superseded_by_newer_turn" {
-			return errCognitionTurnSuperseded
-		}
-		if inboxStatus != "pending" && inboxStatus != "claimed" {
-			return ErrConflict
-		}
-		expectedFoundation, expectedState, expectedLife, expectedFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
-		if err != nil {
-			return err
-		}
-		if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundation, expectedState, expectedLife, a.now().UTC()); err != nil {
-			return err
-		}
-		if expectedFacts != "" {
-			if err := a.requireCurrentFactsRevisionTx(ctx, tx, fluctlightID, expectedFacts); err != nil {
-				return err
-			}
-		}
-		actionType := "reply"
-		if strings.TrimSpace(stringValue(assistant["id"])) == "" && pendingReplyDraft(outcome.Results) == "" {
-			actionType = "no_op"
-		}
-		actionID := "agent_turn_" + stableDigest(inboxID)
-		if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, actionType, actionID, expectedState); err != nil {
-			return err
-		}
-		if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan, a.now()); err != nil {
-			return err
-		}
-		assessmentID := "assessment_" + stableDigest(inboxID)
-		decisionID := "decision_" + stableDigest(inboxID)
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_assessments(id,inbox_id,fluctlight_id,payload,schema_version,model,model_version,prompt_version,correlation_id) VALUES($1,$2,$3,$4,'structured-turn.v2','configured','configured','formal-agent.v1',$5) ON CONFLICT DO NOTHING`, assessmentID, inboxID, fluctlightID, jsonBytes(decision), "turn:"+turnID); err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_decision_proposals(id,assessment_id,fluctlight_id,action_type,payload,confidence,evidence_refs) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, decisionID, assessmentID, fluctlightID, actionType, jsonBytes(decision), jsonString(decision["confidence"]), jsonBytes(arrayValue(decision["evidence_refs"]))); err != nil {
-			return err
-		}
-		messageIDs := make([]any, 0)
-		for _, reply := range committedConversationReplyResults(outcome.Results) {
-			if id := strings.TrimSpace(stringValue(mapValue(reply.Output)["target_ref"])); id != "" {
-				messageIDs = append(messageIDs, id)
-			}
-		}
-		if len(messageIDs) == 0 {
-			if id := strings.TrimSpace(stringValue(assistant["id"])); id != "" {
-				messageIDs = append(messageIDs, id)
-			}
-		}
-		if err := a.enqueueTurnGoalCandidatesTx(ctx, tx, fluctlightID, inboxID, projection, decision); err != nil {
-			return err
-		}
-		causality, err := frozenDecisionCausality(decision)
-		if err != nil {
-			return err
-		}
-		resultPayload := map[string]any{
-			"message_id": stringValue(assistant["id"]), "message_ids": messageIDs, "media_intent_id": mediaIntentID,
-			"capability_invocations": outcome.Invocations, "capability_results": outcome.Results,
-			"goal_refs": decision["goal_refs"], "intention_refs": decision["intention_refs"], "context_references": causality["context_references"],
-		}
-		settlementStatus := "processed"
-		if ref := pendingReplyDraft(outcome.Results); ref != "" && len(messageIDs) == 0 {
-			settlementStatus = "waiting_reply"
-			resultPayload["reply_draft_ref"] = ref
-			if err := enqueueReplyContinuationTx(ctx, tx, ref); err != nil {
-				return err
-			}
-		}
-		command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status=$3::varchar,processed_at=CASE WHEN $3::varchar='processed' THEN now() ELSE NULL END,claimed_by=NULL,claimed_at=NULL,error_code=NULL,payload=jsonb_set(payload,'{agent_result}',$2::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, jsonBytes(resultPayload), settlementStatus)
-		if err != nil {
-			return err
-		}
-		if command.RowsAffected() != 1 {
-			return ErrConflict
-		}
-		if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads h SET last_processed_sequence=GREATEST(h.last_processed_sequence,i.sequence) FROM public.cognition_inbox i WHERE h.fluctlight_id=i.fluctlight_id AND i.id=$1`, inboxID); err != nil {
-			return err
-		}
-		if err := a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, actorID, len(mapValue(decision["appraisal"])) > 0, replyProfileFromOutcome(outcome, projection)); err != nil {
-			return err
-		}
-		if err := enqueueQuietPeriodReflectionIntentTx(ctx, tx, fluctlightID, inboxID, a.now().UTC().Add(a.reflectionDelay(ctx)), "conversation_quiet_period"); err != nil {
-			return err
-		}
-		outcomes, err := buildActionOutcomes(actionID, fluctlightID, inboxID, actionType, outcome.Results, resultPayload, a.capabilityRegistry(), a.now().UTC())
-		if err != nil {
-			return err
-		}
-		if err := persistActionOutcomesTx(ctx, tx, outcomes); err != nil {
-			return err
-		}
-		_, err = appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": actionID, "source_fact_id": inboxID, "result": resultPayload, "outcomes": outcomes}, "action-result:"+actionID)
-		return err
+		return a.settleAgentConversationTurnTx(ctx, tx, inboxID, turnID, fluctlightID, actorID, projection, decision, responsePlan, assistant, mediaIntentID, outcome, false)
 	})
+}
+
+func (a *App) settleAgentConversationTurnTx(ctx context.Context, tx pgx.Tx, inboxID, turnID, fluctlightID, actorID string, projection ContextProjection, decision, responsePlan, assistant map[string]any, mediaIntentID string, outcome agentCommittedOutcome, atomicDirect bool) error {
+	if err := requireConversationBudgetTx(ctx, tx, inboxID, a.now().UTC(), true); err != nil {
+		return err
+	}
+	var inboxStatus, inboxError string
+	if err := tx.QueryRow(ctx, `SELECT status,COALESCE(error_code,'') FROM public.cognition_inbox WHERE id=$1 FOR UPDATE`, inboxID).Scan(&inboxStatus, &inboxError); err != nil {
+		return err
+	}
+	if inboxStatus == "failed" && inboxError == "superseded_by_newer_turn" {
+		return errCognitionTurnSuperseded
+	}
+	if inboxStatus != "pending" && inboxStatus != "claimed" {
+		return ErrConflict
+	}
+	expectedFoundation, expectedState, expectedLife, expectedFacts, err := a.agentSettlementAuthorityRevisionsTx(ctx, tx, fluctlightID, projection, outcome)
+	if err != nil {
+		return err
+	}
+	if err := a.requireCognitionAuthorityRevisionsTx(ctx, tx, fluctlightID, expectedFoundation, expectedState, expectedLife, a.now().UTC()); err != nil {
+		return err
+	}
+	if expectedFacts != "" {
+		if err := a.requireCurrentFactsRevisionTx(ctx, tx, fluctlightID, expectedFacts); err != nil {
+			return err
+		}
+	}
+	actionType := "reply"
+	if strings.TrimSpace(stringValue(assistant["id"])) == "" && pendingReplyDraft(outcome.Results) == "" {
+		actionType = "no_op"
+	}
+	actionID := "agent_turn_" + stableDigest(inboxID)
+	if err := a.applyFrozenCognitiveStagesTx(ctx, tx, fluctlightID, inboxID, decision, actionType, actionID, expectedState); err != nil {
+		return err
+	}
+	if err := persistClaimsTx(ctx, tx, fluctlightID, inboxID, responsePlan, a.now()); err != nil {
+		return err
+	}
+	assessmentID := "assessment_" + stableDigest(inboxID)
+	decisionID := "decision_" + stableDigest(inboxID)
+	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_assessments(id,inbox_id,fluctlight_id,payload,schema_version,model,model_version,prompt_version,correlation_id) VALUES($1,$2,$3,$4,'structured-turn.v2','configured','configured','formal-agent.v1',$5) ON CONFLICT DO NOTHING`, assessmentID, inboxID, fluctlightID, jsonBytes(decision), "turn:"+turnID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO public.cognition_decision_proposals(id,assessment_id,fluctlight_id,action_type,payload,confidence,evidence_refs) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`, decisionID, assessmentID, fluctlightID, actionType, jsonBytes(decision), jsonString(decision["confidence"]), jsonBytes(arrayValue(decision["evidence_refs"]))); err != nil {
+		return err
+	}
+	messageIDs := make([]any, 0)
+	for _, reply := range committedConversationReplyResults(outcome.Results) {
+		if id := strings.TrimSpace(stringValue(mapValue(reply.Output)["target_ref"])); id != "" {
+			messageIDs = append(messageIDs, id)
+		}
+	}
+	if len(messageIDs) == 0 {
+		if id := strings.TrimSpace(stringValue(assistant["id"])); id != "" {
+			messageIDs = append(messageIDs, id)
+		}
+	}
+	if err := a.enqueueTurnGoalCandidatesTx(ctx, tx, fluctlightID, inboxID, projection, decision); err != nil {
+		return err
+	}
+	causality, err := frozenDecisionCausality(decision)
+	if err != nil {
+		return err
+	}
+	resultPayload := map[string]any{
+		"message_id": stringValue(assistant["id"]), "message_ids": messageIDs, "media_intent_id": mediaIntentID,
+		"capability_invocations": outcome.Invocations, "capability_results": outcome.Results,
+		"goal_refs": decision["goal_refs"], "intention_refs": decision["intention_refs"], "context_references": causality["context_references"],
+	}
+	if atomicDirect {
+		resultPayload["settlement_contract"] = "direct-main.v1"
+	}
+	settlementStatus := "processed"
+	if ref := pendingReplyDraft(outcome.Results); ref != "" && len(messageIDs) == 0 {
+		settlementStatus = "waiting_reply"
+		resultPayload["reply_draft_ref"] = ref
+		if err := enqueueReplyContinuationTx(ctx, tx, ref); err != nil {
+			return err
+		}
+	}
+	command, err := tx.Exec(ctx, `UPDATE public.cognition_inbox SET status=$3::varchar,processed_at=CASE WHEN $3::varchar='processed' THEN now() ELSE NULL END,claimed_by=NULL,claimed_at=NULL,error_code=NULL,payload=jsonb_set(payload,'{agent_result}',$2::jsonb,true) WHERE id=$1 AND status IN ('pending','claimed')`, inboxID, jsonBytes(resultPayload), settlementStatus)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != 1 {
+		return ErrConflict
+	}
+	if _, err := tx.Exec(ctx, `UPDATE public.cognition_inbox_heads h SET last_processed_sequence=GREATEST(h.last_processed_sequence,i.sequence) FROM public.cognition_inbox i WHERE h.fluctlight_id=i.fluctlight_id AND i.id=$1`, inboxID); err != nil {
+		return err
+	}
+	if err := a.recordRelationshipInteractionTx(ctx, tx, fluctlightID, actorID, len(mapValue(decision["appraisal"])) > 0, replyProfileFromOutcome(outcome, projection)); err != nil {
+		return err
+	}
+	if err := enqueueQuietPeriodReflectionIntentTx(ctx, tx, fluctlightID, inboxID, a.now().UTC().Add(a.reflectionDelay(ctx)), "conversation_quiet_period"); err != nil {
+		return err
+	}
+	outcomes, err := buildActionOutcomes(actionID, fluctlightID, inboxID, actionType, outcome.Results, resultPayload, a.capabilityRegistry(), a.now().UTC())
+	if err != nil {
+		return err
+	}
+	if err := persistActionOutcomesTx(ctx, tx, outcomes); err != nil {
+		return err
+	}
+	_, err = appendProcessedCognitionFactTx(ctx, tx, fluctlightID, "autonomy.result", map[string]any{"action_id": actionID, "source_fact_id": inboxID, "result": resultPayload, "outcomes": outcomes}, "action-result:"+actionID)
+	return err
 }
 
 func (a *App) agentSettlementAuthorityRevisionsTx(ctx context.Context, tx pgx.Tx, fluctlightID string, projection ContextProjection, outcome agentCommittedOutcome) (int, int, string, string, error) {
@@ -924,8 +961,9 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 	projection = assembledProjection
 	providerCtx := WithPromptDiagnostics(WithProviderCancellationKey(WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID), WakeUpProviderCancellationMarker(fluctlightID, cycle)), replyRunDiagnostics(ctx, assembly.Diagnostics))
 	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceWakeUp, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema, decorateProjection)
+	assembly.ResponseFormat = schema
 	run, runErr := a.RunFormalAgent(providerCtx, FormalAgentWakeUp, FormalAgentRunInput{
-		Prompt: PromptAssemblyResult{Messages: assembly.Messages, ResponseFormat: schema}, Definitions: definitions,
+		Prompt: assembly, Definitions: definitions,
 		SchemaName: "wake_up_response", EnableThinking: structuredThinkingEnabledForSchema("wake_up_response"),
 		Capability: &ADKCapabilityRequest{
 			AuthorizationPolicy:  "autonomy",
@@ -971,13 +1009,13 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 // authoritative native Tool receipts. The final model field remains useful as
 // a diagnostic intent, but cannot claim an effect that did not commit.
 func wakeUpPublishedReplyResults(results []CapabilityResult) []CapabilityResult {
-	replies := []CapabilityResult{}
-	for _, result := range committedConversationReplyResults(results) {
+	unsuppressed := make([]CapabilityResult, 0, len(results))
+	for _, result := range results {
 		if stringValue(mapValue(result.Output)["delivery_status"]) != "duplicate_suppressed" {
-			replies = append(replies, result)
+			unsuppressed = append(unsuppressed, result)
 		}
 	}
-	return replies
+	return committedConversationReplyResults(unsuppressed)
 }
 
 func wakeUpCommittedActionType(outcome agentCommittedOutcome) string {

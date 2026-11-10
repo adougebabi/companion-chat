@@ -463,6 +463,15 @@ func (s *Server) routeAPI(response http.ResponseWriter, request *http.Request) {
 			"model_id":        body["modelId"],
 			"timeout_seconds": body["timeoutSeconds"],
 		}
+		if body["clearOverride"] == true {
+			corePayload["clear_override"] = true
+		}
+		if value, present := body["temperature"]; present {
+			corePayload["temperature"] = value
+		}
+		if value, present := body["topP"]; present {
+			corePayload["top_p"] = value
+		}
 		value, err := s.backend.DoJSON(request.Context(), http.MethodPut, "/internal/providers/roles", session, corePayload)
 		if err != nil {
 			if s.publicUnauthorized(response, err) {
@@ -1272,6 +1281,7 @@ func providerRoleError(response http.ResponseWriter, err error) {
 		"provider_model_not_available":   "Selected model is not available on the provider endpoint",
 		"provider_models_unavailable":    "Provider model list is unavailable",
 		"provider_role_invalid":          "Provider role configuration is invalid",
+		"provider_sampling_invalid":      "模型温度或 Top P 超出允许范围",
 		"provider_prompt_budget_invalid": "输入预算、输出上限与安全预留之和超过模型上下文窗口，配置未保存",
 		"prompt_budget_policy_unknown":   "Prompt budget policy version is unknown",
 		"provider_preflight_failed":      "Provider preflight failed",
@@ -1791,14 +1801,27 @@ func validateProviderEndpoint(value map[string]any) bool {
 	return validateString(value["endpointId"], 1, 128) && validateString(value["kind"], 1, 64) && validateString(value["baseUrl"], 8, 1<<20) && validateString(value["secretPurpose"], 1, 128)
 }
 func validateModelRole(value map[string]any) bool {
-	if !onlyKeys(value, "role", "endpointId", "modelId", "tokenBudget", "timeoutSeconds", "contextWindowTokens", "maxInputTokens", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {
+	if !onlyKeys(value, "role", "endpointId", "modelId", "tokenBudget", "timeoutSeconds", "contextWindowTokens", "maxInputTokens", "temperature", "topP", "clearOverride", "expectedVersions", "idempotencyKey") || !validConfigurationIdentity(value) {
 		return false
 	}
 	role := stringValue(value["role"])
+	agentRole := validAgentModelRoleSyntax(role)
+	if value["clearOverride"] == true {
+		return agentRole && len(value) == 4
+	}
+	if raw, ok := value["clearOverride"]; ok && raw != false {
+		return false
+	}
 	legacy := map[string]struct{}{"initialization": {}, "cognitive_assessment": {}, "action_realization": {}, "interaction": {}, "reflection": {}, "media_prompt": {}}
 	_, legacyRole := legacy[role]
-	valid := (role == "generic_llm" || role == "embedding" || role == "conversation_reply" || role == "vision_understanding" || legacyRole) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["timeoutSeconds"], 1)
+	valid := (role == "generic_llm" || role == "embedding" || role == "conversation_reply" || role == "vision_understanding" || legacyRole || agentRole) && validateString(value["endpointId"], 1, 128) && validateString(value["modelId"], 1, 256) && validateInteger(value["timeoutSeconds"], 1)
 	if !valid {
+		return false
+	}
+	if temperature, present := value["temperature"]; present && temperature != nil && !validateNumber(temperature, 0, 2) {
+		return false
+	}
+	if topP, present := value["topP"]; present && topP != nil && (!validateNumber(topP, 0, 1) || topP.(float64) == 0) {
 		return false
 	}
 	if budget, ok := value["tokenBudget"]; ok && !validateInteger(budget, 1) {
@@ -1809,6 +1832,24 @@ func validateModelRole(value map[string]any) bool {
 	}
 	if mi, ok := value["maxInputTokens"]; ok && !validateInteger(mi, 1) {
 		return false
+	}
+	return true
+}
+
+func validAgentModelRoleSyntax(role string) bool {
+	parts := strings.Split(role, ":")
+	if len(role) > 64 || len(parts) < 2 || len(parts) > 3 || parts[0] != "agent" {
+		return false
+	}
+	for _, part := range parts[1:] {
+		if part == "" {
+			return false
+		}
+		for _, char := range part {
+			if !(char >= 'a' && char <= 'z' || char >= '0' && char <= '9' || char == '_') {
+				return false
+			}
+		}
 	}
 	return true
 }

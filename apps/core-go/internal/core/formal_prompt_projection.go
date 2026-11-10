@@ -53,7 +53,7 @@ func projectFormalPromptBoundary(ctx context.Context, input ADKStructuredTaskInp
 		}
 	}
 	diagnostics["context_projection"] = map[string]any{
-		"role": input.Role, "schema": input.SchemaName, "source_map": mapping,
+		"agent_id": input.AgentID, "task_variant": firstString(input.TaskVariant, input.SchemaName), "role": input.Role, "schema": input.SchemaName, "source_map": mapping,
 		"versions": versions, "token_estimate_method": "rune_heuristic",
 		"selected": input.Prompt.Trace.Selected, "dropped": input.Prompt.Trace.Dropped,
 	}

@@ -119,7 +119,7 @@ func (a *App) ReconcileStudioWorkflowFailure(ctx context.Context, intentID, fail
 		if !retry {
 			return nil
 		}
-		if err := retryStudioAttemptTx(ctx, tx, owner, job); err != nil {
+		if err := retryStudioAttemptTx(ctx, tx, owner, job, true); err != nil {
 			return err
 		}
 		out.NextIntentID = fmt.Sprintf("studio_intent:%s_attempt_%d", id, attempt+1)

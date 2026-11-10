@@ -62,6 +62,7 @@ func TestFormalConversationAgentRecallsRandomDatabaseSecretThroughRealToolBridge
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('cognitive_assessment',$1,'formal-agent-model','structured_output,tool_calling',4096,10,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	seedConversationReplyFromCognitive(t, ctx, repository)
 
 	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: server.Client()}}
 	app.ContextResolver = NewAppContextResolver(app)

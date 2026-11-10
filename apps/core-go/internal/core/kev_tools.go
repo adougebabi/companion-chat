@@ -58,7 +58,7 @@ func capabilityUtilitySurfaces() []CapabilitySurface {
 }
 
 func (c capabilityCatalogCapability) Definition() CapabilityDefinition {
-	return CapabilityDefinition{Name: capabilityCatalogName, Version: "v1", Type: CapabilityTypeQuery, Description: "Discover authorized query/action tools beyond the initial set. Unknown names: call {} first; use returned names, never guesses. Supply names to load full schemas for the next request; listing/loading never executes an action. Kev recommendations are advisory; installed tools on this surface remain callable. Uninstalled names are reported separately. Historical source_refs are not actionable evidence_refs.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "uniqueItems": true, "items": stringSchema()}}, nil, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
+	return CapabilityDefinition{Name: capabilityCatalogName, Version: "v1", Type: CapabilityTypeQuery, Description: "Discover authorized query/action tools beyond the initial set. Unknown names: call {\"names\":[]} first; use returned names, never guesses. Supply names to load full schemas for the next request; listing/loading never executes an action. Kev recommendations are advisory. Installed but disabled capabilities are reported separately and cannot be loaded or executed. Historical source_refs are not actionable evidence_refs.", InputSchema: objectSchema(map[string]any{"names": map[string]any{"type": "array", "uniqueItems": true, "items": stringSchema()}}, nil, false), OutputSchema: openObjectSchema(), Surfaces: capabilityUtilitySurfaces(), SupportsCancel: true, FailurePolicy: FailurePolicyOptionalInternal, SideEffectClass: "read_only", ConcurrencyClass: "parallel", SuccessBoundary: "catalog_read"}
 }
 func (c capabilityCatalogCapability) RequiredContext() []ContextSlot { return nil }
 func (c capabilityCatalogCapability) Execute(ctx context.Context, inv CapabilityInvocation, _ CapabilityContext) (CapabilityResult, error) {
@@ -87,7 +87,9 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 	args.Names = nil
 	unavailable := []toolDisclosureAvailability{}
 	for _, name := range sortedUniqueStrings(requestedNames) {
-		if available[name] {
+		if available[name] && !domainCapabilityEnabled(ctx, name) {
+			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "disabled", ErrorCode: "domain_plugin_disabled"})
+		} else if available[name] {
 			args.Names = append(args.Names, name)
 		} else {
 			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
@@ -123,6 +125,9 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 			continue
 		}
 		item := map[string]any{"name": definition.Name, "purpose": definition.Description}
+		if !domainCapabilityEnabled(ctx, definition.Name) {
+			item["status"] = "disabled"
+		}
 		if len(requestedNames) == 0 {
 			item["purpose"] = capabilityDirectoryPurpose(definition)
 		}
@@ -171,13 +176,19 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 	items := []map[string]any{}
 	for _, d := range definitions {
 		available[d.Name] = d
-		items = append(items, map[string]any{"name": d.Name, "description": d.Description})
+		item := map[string]any{"name": d.Name, "description": d.Description}
+		if !domainCapabilityEnabled(ctx, d.Name) {
+			item["status"] = "disabled"
+		}
+		items = append(items, item)
 	}
 	loaded := []string{}
 	validNames := []string{}
 	unavailable := []toolDisclosureAvailability{}
 	for _, name := range sortedUniqueStrings(args.Names) {
-		if _, ok := available[name]; ok {
+		if _, ok := available[name]; ok && !domainCapabilityEnabled(ctx, name) {
+			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "disabled", ErrorCode: "domain_plugin_disabled"})
+		} else if ok {
 			validNames = append(validNames, name)
 		} else {
 			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
@@ -212,7 +223,7 @@ func (a *App) prepareKevTools(ctx context.Context, input ADKStructuredTaskInput)
 		return ctx, nil, err
 	}
 	if kevToolSelectionBypassed(input.AgentID) || len(input.Definitions) == 0 {
-		return context.WithValue(ctx, kevRunSelectionKey{}, (*kevRunSelection)(nil)), input.Definitions, nil
+		return context.WithValue(ctx, kevRunSelectionKey{}, (*kevRunSelection)(nil)), filterDomainPluginDefinitions(ctx, input.Definitions), nil
 	}
 	registry := a.capabilityRegistryForContext(ctx)
 	full := appendCapabilityUtilities(registry, firstCapabilitySurface(input.Capability), input.Definitions)
@@ -273,7 +284,9 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 	validNames := []string{}
 	unavailable := []toolDisclosureAvailability{}
 	for _, name := range sortedUniqueStrings(names) {
-		if _, ok := allowed[name]; ok {
+		if _, ok := allowed[name]; ok && !domainCapabilityEnabled(ctx, name) {
+			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "disabled", ErrorCode: "domain_plugin_disabled"})
+		} else if ok {
 			validNames = append(validNames, name)
 		} else {
 			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
@@ -546,6 +559,9 @@ func (s *kevRunSelection) definitions(ctx context.Context) ([]CapabilityDefiniti
 	s.revalidateWindowLocked(config, version, err)
 	out := []CapabilityDefinition{}
 	for _, d := range s.original {
+		if !domainCapabilityEnabled(ctx, d.Name) {
+			continue
+		}
 		if d.Name == capabilityDiscoverName {
 			continue
 		}
@@ -562,6 +578,13 @@ func (s *kevRunSelection) permits(ctx context.Context, name string) bool {
 	if ctx.Err() != nil {
 		return false
 	}
+	if !domainCapabilityEnabled(ctx, name) {
+		return false
+	}
+	return s.installed(name)
+}
+
+func (s *kevRunSelection) installed(name string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, definition := range s.original {

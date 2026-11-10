@@ -83,6 +83,32 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 		return a.DispatchOwnerMediaSurface(ctx, method, path, query, owner, body)
 	}
 	parts := surfaceParts(path)
+	if op, ok := matchSurface(method, parts); ok {
+		switch op.name {
+		case "expression_learning":
+			settings, err := a.OwnerExpressionLearningSettings(ctx, owner, op.fid)
+			if err != nil {
+				return nil, err
+			}
+			candidates, err := a.OwnerExpressionLearningCandidates(ctx, owner, op.fid)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"settings": settings, "items": candidates["items"]}, nil
+		case "expression_sources":
+			return a.OwnerExpressionLearningSources(ctx, owner, op.fid, query)
+		case "expression_source":
+			return a.OwnerExpressionLearningSource(ctx, owner, op.fid, op.a)
+		case "expression_settings":
+			return a.UpdateOwnerExpressionLearningSettings(ctx, owner, op.fid, body)
+		case "expression_extract":
+			return a.ExtractOwnerExpressionCandidates(ctx, owner, op.fid, body)
+		case "expression_extraction_status":
+			return a.OwnerExpressionExtractionStatus(ctx, owner, op.fid, query.Get("key"))
+		case "expression_review":
+			return a.ReviewOwnerExpressionLearningCandidate(ctx, owner, op.fid, op.a, op.c, body)
+		}
+	}
 	if method == "GET" && len(parts) >= 2 && parts[0] == "studio" && parts[1] == "resources" {
 		if len(parts) == 2 {
 			return a.OwnerStudioResources(ctx, owner, query)
