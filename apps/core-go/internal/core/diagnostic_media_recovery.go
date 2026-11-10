@@ -101,7 +101,9 @@ func (a *App) RetryOwnerDiagnosticMedia(ctx context.Context, owner, id string, b
 		attempt := randomID("media_recovery_")
 		wf := "media-recovery:" + attempt
 		intent := "media_recovery_intent:" + attempt
-		if _, err := tx.Exec(ctx, `INSERT INTO public.media_recovery_attempts(id,owner_actor_id,media_intent_id,source_workflow_id,workflow_id,intent_id,mode,reason,previous) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, attempt, owner, id, previous["workflow_id"], wf, intent, mode, body["reason"], raw); err != nil {
+		safePrevious := cloneMap(previous)
+		delete(safePrevious, "model_provenance")
+		if _, err := tx.Exec(ctx, `INSERT INTO public.media_recovery_attempts(id,owner_actor_id,media_intent_id,source_workflow_id,workflow_id,intent_id,mode,reason,previous) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)`, attempt, owner, id, previous["workflow_id"], wf, intent, mode, body["reason"], jsonBytes(safePrevious)); err != nil {
 			return nil, err
 		}
 		// Resume retains prompt, provider job, quality verdict, retries and candidate.

@@ -22,7 +22,7 @@
   "failure": "",
   "result": "",
   "created": "2026-11-10T08:34:30.498512Z",
-  "updated": "2026-11-10T09:25:52.680498Z",
+  "updated": "2026-11-10T09:46:32.705425Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -56,6 +56,17 @@
         "input_version": "88681a0935e5f90d00964ec5fb10a17740a839fcf9e82e19f7698f805ba096f9",
         "candidate_version": "",
         "started": "2026-11-10T08:58:01.934116Z",
+        "ended": "2026-11-10T09:46:07.65964Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-5eed7715560ac0462178",
+        "unit": "execute",
+        "executor": "codex-t02-routing",
+        "input_version": "95781a4f8013325d1db2ec6f3ebef51afb16519581b85e6e51b9340086f1bb9b",
+        "candidate_version": "",
+        "started": "2026-11-10T09:46:17.645028Z",
         "ended": null,
         "status": "running",
         "reason": ""

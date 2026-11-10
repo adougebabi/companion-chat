@@ -33,6 +33,7 @@ type mediaIntent struct {
 	QualityRetryFeedback                                                            map[string]any
 	QualityRetryCount                                                               int
 	ConversationID, MessageID, MomentID                                             *string
+	modelProvenance                                                                 map[string]any
 }
 
 func (a *App) ProcessMediaIntent(ctx context.Context, intentID string) (result map[string]any, runErr error) {
@@ -680,14 +681,19 @@ func recordMediaHeartbeat(ctx context.Context, details any) {
 
 func (a *App) readMediaIntent(ctx context.Context, intentID string) (mediaIntent, error) {
 	var i mediaIntent
-	var qualityRetryFeedback []byte
-	err := a.DB.Pool().QueryRow(ctx, `SELECT id,COALESCE(owner_fluctlight_id,''),prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_retry_feedback,'{}'::jsonb),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id,COALESCE(studio_owner_actor_id,''),COALESCE(studio_job_id,''),COALESCE(owner_request_id,''),COALESCE(owner_item_id,'') FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &qualityRetryFeedback, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID, &i.StudioOwner, &i.StudioJobID, &i.OwnerRequestID, &i.OwnerItemID)
+	var qualityRetryFeedback, modelProvenance []byte
+	err := a.DB.Pool().QueryRow(ctx, `SELECT id,COALESCE(owner_fluctlight_id,''),prompt,COALESCE(provider_prompt,''),provider_request_id,COALESCE(provider_job_id,''),workflow_id,kind,mime_type,status,quality_retry_count,COALESCE(quality_retry_guidance,''),COALESCE(quality_retry_feedback,'{}'::jsonb),COALESCE(quality_verdict,''),COALESCE(quality_candidate_sha256,''),conversation_id,message_id,moment_id,COALESCE(studio_owner_actor_id,''),COALESCE(studio_job_id,''),COALESCE(owner_request_id,''),COALESCE(owner_item_id,''),model_provenance FROM public.media_intents WHERE id=$1`, intentID).Scan(&i.ID, &i.Owner, &i.Prompt, &i.ProviderPrompt, &i.ProviderRequestID, &i.ProviderJobID, &i.WorkflowID, &i.Kind, &i.MimeType, &i.Status, &i.QualityRetryCount, &i.QualityRetryGuidance, &qualityRetryFeedback, &i.QualityVerdict, &i.QualityCandidateSHA, &i.ConversationID, &i.MessageID, &i.MomentID, &i.StudioOwner, &i.StudioJobID, &i.OwnerRequestID, &i.OwnerItemID, &modelProvenance)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return i, ErrNotFound
 	}
 	if err == nil && len(qualityRetryFeedback) > 0 {
 		if decodeErr := json.Unmarshal(qualityRetryFeedback, &i.QualityRetryFeedback); decodeErr != nil {
 			return i, decodeErr
+		}
+	}
+	if err == nil {
+		if decodeErr := json.Unmarshal(modelProvenance, &i.modelProvenance); decodeErr != nil || i.modelProvenance == nil {
+			return i, errMediaModelSnapshotInvalid
 		}
 	}
 	return i, err

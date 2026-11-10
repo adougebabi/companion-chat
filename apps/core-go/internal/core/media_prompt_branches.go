@@ -235,7 +235,7 @@ func (a *App) runBranchedMediaPrompt(ctx context.Context, input MediaPromptTaskI
 			if err != nil {
 				return nil, err
 			}
-			selected, err := provider.assignment(ctx, "media_prompt")
+			selected, err := a.mediaStageAssignment(ctx, input.Intent, FormalAgentMediaPrompt, "media_prompt_normalized", "media_prompt")
 			if err != nil {
 				diagnosticCtx := ensureProviderAttemptIdentity(WithProviderScenario(ctx, "media_prompt"))
 				messages := formalPromptMessages(FormalAgentMediaPrompt, formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": mediaNormalizationInstruction}, {"role": "user", "content": jsonString(packet)}}, "media_prompt"))
