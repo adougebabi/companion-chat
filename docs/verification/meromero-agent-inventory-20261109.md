@@ -41,7 +41,7 @@
 | `virtual_activity_result` / `virtual_activity_result` | `core/life_activity_capabilities.go:493` → `core/model_tasks.go:492` | G | —；购物/理发内部结果，外层活动结算产生真实状态。 |
 | `world_event_generation` / `world_event_generation_v1` | `workflow/world_events.go:74` → `core/world_event_generation.go:303` | G | —；世界事件提议，准入、事务和通知由外层负责。 |
 
-后续新增 `expression_learning` / `expression_learning_v1`，使用现有正式结构化运行入口，默认继承 `conversation_reply` 文本模型，可按 Agent/变体覆盖。Owner 可从已发送人类消息发起提取；Core 核对来源身份、版本和连续原文，候选须经审核才可被 fact-only Writer 按会话及触发词选用，发布前再次校验。隔离数据库和受控请求已覆盖部分链路；实验 `direct` 主 Agent 尚未消费表达参考，真实模型和 UI 到运行的完整链路未验收。
+后续新增 `expression_learning` / `expression_learning_v1`，使用现有正式结构化运行入口，默认继承 `conversation_reply` 文本模型，可按 Agent/变体覆盖。Owner 可从已发送人类消息发起提取；Core 核对来源身份、版本和连续原文，候选须经审核才可被 fact-only Writer 或实验 `direct` 主 Agent 按会话及触发词选用，发布前再次校验。隔离数据库和受控请求已覆盖部分链路；真实模型和 UI 到运行的完整链路未验收。
 
 ## 非注册入口及尚需核实
 
