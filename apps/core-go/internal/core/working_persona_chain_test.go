@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -452,6 +453,71 @@ func TestPersonaCompilerUsesOneBoundedSemanticRepair(t *testing.T) {
 	}
 }
 
+func TestPersonaCompilerRepairKeepsItsFirstModelBinding(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	seedCognitiveProviderRole(t, ctx, repository, "portrait-repair-routing-endpoint")
+	role := agentModelBindingKey(FormalAgentPersonaCompilation, "persona_compilation_response")
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status) VALUES('portrait-repair-next-endpoint','openai_compatible','http://next.invalid','next-secret','ready')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds,temperature,top_p) VALUES($1,'portrait-repair-routing-endpoint','first-model',30,0.2,0.7)`, role); err != nil {
+		t.Fatal(err)
+	}
+	var models, hosts []string
+	var temperatures, topPs []float64
+	router := newFakeProviderRouter().on("persona_compilation_response", func(payload map[string]any) fakeProviderResult {
+		models = append(models, stringValue(payload["model"]))
+		temperature, temperatureOK := numberFloat(payload["temperature"])
+		topP, topPOK := numberFloat(payload["top_p"])
+		if !temperatureOK || !topPOK {
+			t.Errorf("request omitted configured sampling: %#v", payload)
+		}
+		temperatures, topPs = append(temperatures, temperature), append(topPs, topP)
+		if len(models) == 1 {
+			if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET provider_endpoint_id='portrait-repair-next-endpoint',model_id='next-model',temperature=0.6,top_p=0.9 WHERE role=$1`, role); err != nil {
+				t.Error(err)
+			}
+			return fakeProviderResult{Structured: map[string]any{"portrait_text": " "}}
+		}
+		return fakeProviderResult{Structured: map[string]any{"portrait_text": "表达直接，尊重边界。"}}
+	})
+	transport := projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		hosts = append(hosts, request.URL.Host)
+		return router.RoundTrip(request)
+	})
+	app := newTestApp(t, repository, transport)
+	input := PersonaCompilationInput{CorePersona: map[string]any{"identity": map[string]any{"name": "角色"}}, ProfileID: "default", TargetBudgetRunes: 1024}
+	parent := withAgentModelRoute(ctx, FormalAgentInitialization, "initialization_response")
+	parent = withFrozenProviderAssignment(parent, "initialization", providerAssignment{ModelID: "parent-model"})
+	if _, err := app.CompileWorkingPersona(parent, input); err != nil {
+		t.Fatal(err)
+	}
+	if len(models) != 2 || models[0] != "first-model" || models[1] != "first-model" || hosts[0] != "turn.invalid" || hosts[1] != "turn.invalid" || temperatures[0] != 0.2 || temperatures[1] != 0.2 || topPs[0] != 0.7 || topPs[1] != 0.7 {
+		t.Fatalf("semantic repair changed its binding: models=%v hosts=%v temperatures=%v top_p=%v", models, hosts, temperatures, topPs)
+	}
+	if _, err := app.CompileWorkingPersona(ctx, input); err != nil {
+		t.Fatal(err)
+	}
+	if len(models) != 3 || models[2] != "next-model" || hosts[2] != "next.invalid" || temperatures[2] != 0.6 || topPs[2] != 0.9 {
+		t.Fatalf("new compilation did not use updated binding: models=%v hosts=%v temperatures=%v top_p=%v", models, hosts, temperatures, topPs)
+	}
+}
+
+func TestPersonaCompilerMissingModelKeepsPreflightDiagnostic(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ctx = WithProviderCorrelation(ctx, "persona-compiler-missing-model")
+	app := newTestApp(t, repository, newFakeProviderRouter())
+	input := PersonaCompilationInput{CorePersona: map[string]any{"identity": map[string]any{"name": "角色"}}, ProfileID: "default", TargetBudgetRunes: 1024}
+	if _, err := app.CompileWorkingPersona(ctx, input); err == nil {
+		t.Fatal("compiler accepted an unavailable model binding")
+	}
+	var count int
+	err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.diagnostic_events WHERE correlation_id=$1 AND event_type='provider.preflight.failed' AND payload->>'stage'='assignment' AND payload->>'scenario'='persona_compilation'`, "persona-compiler-missing-model").Scan(&count)
+	if err != nil || count != 1 {
+		t.Fatalf("missing or duplicated assignment diagnostic: count=%d err=%v", count, err)
+	}
+}
+
 func TestPersonaDetailTraceSurvivesModelContinuationFailure(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID, conversationID := "portrait-continuation-owner", "portrait-continuation-fluctlight", "portrait-continuation-conversation"
@@ -487,7 +553,7 @@ func TestInitializationTextToStoredPortraitToFormalRequest(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.provider_endpoints(id,kind,base_url,secret_purpose,capability_status,checked_at) VALUES('portrait-init-endpoint','openai_compatible','http://portrait-init.invalid','portrait-init-secret','ready',now())`); err != nil {
 		t.Fatal(err)
 	}
-	for _, role := range []string{"initialization", "cognitive_assessment"} {
+	for _, role := range []string{"initialization", "cognitive_assessment", "conversation_reply"} {
 		if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES($1,'portrait-init-endpoint','portrait-init-model','structured_output,tool_calling',8192,30,'{}')`, role); err != nil {
 			t.Fatal(err)
 		}

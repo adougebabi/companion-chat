@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
   "failure": "",
   "result": "",
   "created": "2026-11-10T08:34:30.498512Z",
-  "updated": "2026-11-10T08:34:30.498532Z",
+  "updated": "2026-11-10T09:10:02.770335Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-c7661ca16af5835f0341",
+        "unit": "define",
+        "executor": "codex-t02-routing",
+        "input_version": "88681a0935e5f90d00964ec5fb10a17740a839fcf9e82e19f7698f805ba096f9",
+        "candidate_version": "88681a0935e5f90d00964ec5fb10a17740a839fcf9e82e19f7698f805ba096f9",
+        "started": "2026-11-10T08:54:03.534384Z",
+        "ended": "2026-11-10T08:54:03.881059Z",
+        "status": "pass",
+        "reason": "继承原始 T02 模型路由和快照要求：按变体、Agent、默认用途选择模型，核对恢复快照、Provider 实际消费、视觉隔离及配置来源；保留现有架构和无 token 上限约束。"
+      },
+      {
+        "id": "AT-f7d93c952595b8e40b59",
+        "unit": "analysis",
+        "executor": "codex-t02-routing",
+        "input_version": "88681a0935e5f90d00964ec5fb10a17740a839fcf9e82e19f7698f805ba096f9",
+        "candidate_version": "88681a0935e5f90d00964ec5fb10a17740a839fcf9e82e19f7698f805ba096f9",
+        "started": "2026-11-10T08:54:15.212051Z",
+        "ended": "2026-11-10T08:57:48.271347Z",
+        "status": "pass",
+        "reason": "现有任务级路由、视觉隔离和 Diary/Studio 部分快照已实现；发现人格编译语义修复同次运行可重新选模型、衣柜准备跨阶段及媒体/视觉后台恢复缺少持久绑定。先使用隔离 PostgreSQL 复现并修复人格编译续接，再按任务逐批补持久快照；真实能力检查和 UI 闭环继续保留。"
+      },
+      {
+        "id": "AT-ede14f9648f5e1a28a4b",
+        "unit": "execute",
+        "executor": "codex-t02-routing",
+        "input_version": "88681a0935e5f90d00964ec5fb10a17740a839fcf9e82e19f7698f805ba096f9",
+        "candidate_version": "",
+        "started": "2026-11-10T08:58:01.934116Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
     "checks": null
   }
 }

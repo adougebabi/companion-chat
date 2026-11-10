@@ -25,6 +25,8 @@
 
 聊天页面现在支持刷新或重新进入后向已确认的后台对话追加消息，并保留未知受理结果的身份与草稿；代码及测试提交 `7b6ad337`。受控 React/HTTP 回归 84 项和前端类型检查通过，本地浏览器内存夹具的追加操作通过；真实数据库多轮并发及模型综合回应仍未验收。
 
+T02 已修复人格编译同次语义纠错中途换模型的问题：初次请求后即使模型、端点和采样设置变化，修复请求仍使用原绑定；新的编译任务使用新设置。隔离 PostgreSQL 与受控 Provider 的 6 项回归及 2 项初始化/人格链回归通过。后一组旧夹具缺少当前默认聊天模型，已在原提交的隔离副本复现并补齐夹具；真实 Provider 及跨进程多 profile 恢复尚未验收。
+
 ## B. 代码基线
 
 - 开始 commit：`ffa808bc81cc4d800376432216f3ea679da8de30`；当前分支：`codex/fluctlight-meromero-plugin-humanization`；结束 commit 尚未确定。
@@ -37,7 +39,7 @@
 
 | 编号 | 状态 | 已有落点、测试或下一步 |
 | --- | --- | --- |
-| R01 / T02 | IN_PROGRESS | `agent_model_routing.go`、`provider.go` 使用现有表按 variant → Agent → 默认用途解析；隔离 PostgreSQL 已验证采样迁移、配置保存/恢复及 Diary、Studio 部分阶段快照，模型请求使用受控 Provider。其他后台恢复及真实 Provider 未验证。 |
+| R01 / T02 | IN_PROGRESS | `agent_model_routing.go`、`provider.go` 使用现有表按 variant → Agent → 默认用途解析；人格编译同次纠错、采样配置及 Diary/Studio 部分阶段快照已用隔离 PostgreSQL 和受控 Provider 检查。衣柜准备、媒体与视觉等后台持久恢复仍有实现缺口；真实 Provider 未验收。 |
 | R02 / T04 | IN_PROGRESS | 已修复低置信度 claim 状态；显式 `direct` 实验把主 Agent 正文、原生回执和认知结算放在同一事务，受控 PostgreSQL 的提交、重放与回滚通过。真实 MeroMero 对该合同的字段输出尚未通过，默认 `fact_only` 私聊仍另调 Writer，旧草稿兼容和默认切换仍需完成。 |
 | R03 / T03 | IN_PROGRESS | 目录查询指令与实际 schema 对齐；全 Agent 输入契约和来源追踪未完成。 |
 | R04 / T05 | IN_PROGRESS | `domain_plugins.go` 组合既有 Image/Moment 能力并声明配置、事件、依赖和在途策略；隔离 PostgreSQL 已验证设置、独立调用及部分原生回执重放；完整重启恢复和真实服务尚未验证。 |
@@ -47,7 +49,7 @@
 | R08 / T09 | IN_PROGRESS | `0106` 对已解析的纠错来源保护摘要、派生记忆、混合来源及常驻快照；每日任务在模型前和提交前检查整日来源。隔离 PostgreSQL 已覆盖旧 Confirm、同一 ref 重新冻结、调用中纠错和受控调度重开交错；未知来源、生成中的请求、可证明吸收纠错的重建、既有锁序及真实 Temporal 并发仍未闭环。 |
 | R09 / T10 | TODO | 保留现有领域代码；Goal、日程、人格、NPC、Studio、日记等尚无本轮完整验收。 |
 | R10 / T11 | IN_PROGRESS | 正式 React 管理页已接任务模型覆盖、恢复继承及插件开关；受控页面测试通过。数据库到真实运行的闭环、完整 Prompt/Trace 和安全重放仍未完成。 |
-| R11 / T00、T01、T12 | IN_PROGRESS | 有范围台账和静态入口底稿；完整证据矩阵及真实验收未完成。 |
+| R11 / T00、T01、T12 | IN_PROGRESS | 范围台账与 T01 源码入口盘点已完成；T12 完整证据矩阵及真实验收未完成。 |
 
 ## D. 当前关键链路
 

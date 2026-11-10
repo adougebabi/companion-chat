@@ -241,14 +241,31 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		{"role": "system", "content": personaCompilationInstruction},
 		{"role": "user", "content": promptTaskData(personaCompilationModelPayload(input, source))},
 	})
+	// A semantic correction is another request for this same compilation,
+	// not a new task that should silently adopt a changed model binding.
+	runCtx := WithProviderScenario(withoutPhysicalModelRequestPolicy(ctx), "persona_compilation")
+	runCtx = withAgentModelRoute(runCtx, FormalAgentPersonaCompilation, "persona_compilation_response")
+	provider, err := a.modelTaskProvider()
+	if err != nil {
+		return CompiledWorkingPersona{}, err
+	}
+	assignment, err := provider.assignment(runCtx, "initialization")
+	if err != nil {
+		diagnosticCtx := ensureProviderAttemptIdentity(runCtx)
+		diagnosticMessages := formalPromptMessages(FormalAgentPersonaCompilation, formatProviderMessagesForRole(messages, "initialization"))
+		correlation := firstString(providerCorrelation(runCtx), diagnosticCorrelation(diagnosticMessages, ""))
+		provider.recordProviderPreflightFailure(diagnosticCtx, providerAssignment{}, "initialization", correlation, "assignment", diagnosticMessages, err)
+		return CompiledWorkingPersona{}, err
+	}
+	runCtx = withFrozenProviderAssignment(runCtx, "initialization", assignment)
 	for attempt := 0; attempt < 2; attempt++ {
 		// Compilation is an independent Tool-free model task. Parent publication
 		// constraints must not force a conversation Tool into this request.
-		runCtx := WithProviderScenario(withoutPhysicalModelRequestPolicy(ctx), "persona_compilation")
+		attemptCtx := runCtx
 		if attempt > 0 {
-			runCtx = WithProviderCorrelation(runCtx, firstString(providerCorrelation(ctx), "persona-compilation")+":repair")
+			attemptCtx = WithProviderCorrelation(attemptCtx, firstString(providerCorrelation(ctx), "persona-compilation")+":repair")
 		}
-		run, runErr := a.runFormalStructuredTask(runCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(), false, nil)
+		run, runErr := a.runFormalStructuredTask(attemptCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(), false, nil)
 		if runErr != nil {
 			return CompiledWorkingPersona{}, runErr
 		}
