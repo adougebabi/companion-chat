@@ -19,6 +19,8 @@
 
 用户要求后的最新一次真实重试没有遇到显存不足；主 Agent 连续三次调用回复工具后仍因认知字段类型错误终止，未获得成功发布回执。前两次可见错误为 `self_evaluation` 和 `state_expression` 应为对象，模型却填写了数组；第三次具体字段未被证据捕获。日志 `/private/tmp/fluctlight-direct-user-retry.log`。
 
+进一步按用户要求把 direct 工具的 15 个业务可选字段改为真正可以省略；有值仍做原样类型和业务校验，`null` 按缺省处理，代码及测试提交 `33a10b1d`。受控物理请求及隔离数据库回归通过，本机单次合成对照的可选版本通过参数校验。正式私聊一次未产生可用 ToolCall，原始响应复核又遇本机 GPU 内存不足，仍不能宣称端到端通过；其他任务的严格 schema 保持原样。详见 [实施台账](docs/verification/meromero-first-ledger-20261109.md)。
+
 ## B. 代码基线
 
 - 开始 commit：`ffa808bc81cc4d800376432216f3ea679da8de30`；当前分支：`codex/fluctlight-meromero-plugin-humanization`；结束 commit 尚未确定。
