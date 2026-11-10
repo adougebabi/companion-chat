@@ -15,6 +15,49 @@
 每个任务按下表选择资料。统一构造并不表示所有任务共享整套摇光状态、记忆
 和私聊；共享 Agent ID 的不同子任务仍各有独立资料范围。
 
+从 `assembleProjectionPromptForSurface` 构造的请求在进程内携带组装时选定的
+Provider 绑定；FormalAgent 运行时复用该快照，若调用方同时给出不同的冻结绑定
+则报冲突，不静默换模型。快照字段不序列化到 Prompt 或普通 Trace。快照归属
+具体 Agent/variant，嵌套 Agent 不因逻辑用途相同而继承父任务模型；显式视觉
+绑定和同一任务纠错继续使用各自快照。此机制并不代表所有后台任务的跨进程
+恢复已经实现。正式请求的 `context_projection` 诊断增加 Agent ID 与任务
+变体：默认使用 schema 名，`conversation_reply` 区分私聊、主动消息、动态及
+修复；它们是请求来源信息，不注入模型正文。受控物理请求测试已
+核对这两个字段和凭据不进入诊断，不等于完整 Trace 或真实模型验收。
+私聊、WakeUp、原生认知、日审、持久切换、反思、Goal 评估、NPC 相遇机会和
+Owner 生活请求的生产调用会将完整组装结果传入 Runner；工具后刷新继续使用同一
+进程内绑定。其他自行构造消息的任务仍沿各自既有绑定和恢复规则。
+媒体提示词规范化在校验失败后的同次纠错复用首次选定的 Agent/variant
+绑定；配置变化和跨进程恢复的 PostgreSQL 用例尚未执行。
+Diary 的素材选择与正文表达各自作为独立阶段，在首次物理请求前将无密钥的
+模型绑定保存在原 attempt 的服务端 provenance；同阶段恢复使用原绑定并按原
+凭据用途重取密钥。显式新 attempt 对未完成阶段重新选配置，已完成阶段继续
+复用；升级前已运行且没有快照的阶段明确失败、保留材料并允许显式重试。
+普通日记读取不返回内部绑定或凭据用途。两种阶段的受控物理请求已检查，
+数据库落盘、进程恢复和真实 Provider 仍未验收。
+Studio 普通助手、文字预览及角色定义准备同样在各自模型阶段首次请求前保存
+服务端绑定，自动重试保留该绑定，显式新 attempt 对未完成阶段可重新选配置；
+已保存的有效输出继续复用。升级前 running 且无快照/输出的任务明确失败并
+保留草稿，供显式重试。Studio 图片预览在确实需要 `media_subject_parse` 模型
+回退时也保存该阶段绑定；KEV 已能完成规划时不额外要求模型。后续独立媒体
+工作流的跨进程绑定仍需分别验证。四种阶段的受控请求通过，数据库恢复与真实
+Provider 尚未验收。
+经 `ProviderClient.assignment` 解析的绑定、连接和凭据版本在同一数据库读取中
+取得；该路径的物理请求诊断记录可获得的版本与非敏感采样值，不写入凭据。旧快照没有
+来源版本时标为未知；新草稿冻结服务端凭据用途引用，恢复时重新读取该用途及其
+当前凭据版本。旧草稿缺少用途引用且端点地址已变化时明确失败，不向旧地址发送
+新连接的凭据。数据库版本读写和跨进程恢复仍需隔离 PostgreSQL 回归。
+
+正式 Agent 的文本绑定按 variant → Agent → 默认用途解析，保存在现有
+`model_roles`；普通聊天认知、WakeUp、NPC 和新增表达候选提取默认继承 `conversation_reply`，
+其余尚未验证的内部任务保留现有默认。视觉输入和 embedding 不由文本覆盖
+接管。实际 React 管理页可提交覆盖和恢复继承，但本轮只运行了受控页面测试；
+数据库持久化、实际 Provider 生效及全部恢复入口仍未验收。Writer 的显式任务
+覆盖保留各自的物理请求超时；私聊、主动私聊和动态仍受现有
+`conversation.reply` 总时限约束，日记与 Studio 使用各自的工作流时限。
+温度与 Top P 可从同一模型绑定读取；Writer 对未配置字段分别回退到原全局
+回复设置。受控物理请求已检查采样参数，数据库迁移和真实配置回读仍未验收。
+
 ## 记忆与历史数量
 
 表中 P 为该任务协议，D 为所需生活事实，M 为记忆，S 为累计摘要，H 为近期对话。
@@ -33,7 +76,7 @@
   是 `historical_conversation` 数据，不模拟当前用户发来旧请求。
 - 表中“0”表示不追加通用私聊；Goal、日记、摘要的显式证据可包含源消息。
 
-## 30 个正式 Agent
+## 31 个正式 Agent
 
 表内文件均在 `apps/core-go/internal/core/`；这些文件与函数可用于定位具体入口。
 
@@ -43,6 +86,7 @@
 | conversation_cognition | 私聊认知协议 + Working Persona + 私聊 D/M/S + H + 当前输入；legacy 与 fact-only 投影不同 | H | cognition_agent.go；conversation_runtime.go |
 | conversation_reply | 用户提供的 v8 私聊运行协议 + Working Persona + 独立事实视图/能力边界/实际 Tool facts + M/S + H + 当前输入 | H | reply_context.go；reply_provider.go |
 | reply_action_check | 换装未生效时核验未发送正文；实际动作回执 + 当前状态 + 候选正文，无人格扮演，无工具 | 0 | reply_action_consistency.go |
+| expression_learning | Owner 显式选择的已发送 human 消息原文和局部来源引用；仅提议连续原文摘录及适用语境，无人格、关系、生活状态或工具。Core 校验来源身份、版本、引用及摘录并持久化待审核候选；该任务不能自行启用候选 | 仅调用方显式提供的消息 | expression_learning_extract.go；expression_learning_task.go |
 | wake_up | 专属完整唤醒协议 + Working Persona + D/M/S + 历史资料 H + 本次唤醒事件 | H，作为历史数据 | agent_result_adapter.go；capability_prompt_policy.go |
 | takeover_judge | Judge 协议 + 本轮 user/candidate/接管规则/控制与关系事实 + 可选 recent references | 无全量 H/M | turn_takeover.go；conversation_runtime.go |
 | takeover_reply | 接管任务规则 + caller 提供的选定人格、上下文及 messages + 授权 Tools | 取决于 caller | conversation_runtime.go |
@@ -69,6 +113,26 @@
 | goal_planner | Planner 协议 + run/mode + goal-set snapshot；后续 query/commit 原生结果 | 0 | goal_planner.go |
 | goal_evaluation | 评估协议 + Working Persona + stable 目标/criteria/actor refs + 专属事实/记忆/其他目标背景 + 当前目标状态/sources/reviews/accepted submissions；重复正文通过 evidence_payloads 复用 | 0；sources 包含消息证据 | goal_evaluation_task.go；goal_evaluation_wire.go |
 | virtual_activity_result | 活动结果规则 + 请求/当前 appearance/life/近期结果/开始和最早结束时间 | 0 | model_tasks.go |
+
+实验性的私聊 `direct` 模式仍使用同一个 `conversation_cognition` Agent 和原生
+`conversation.reply`：主 Agent 的工具参数同时包含自拟正文和该轮 decision。
+运行协议保留人格差异、自然表达、可信来源和真实工具结果边界；decision
+按既有认知 schema 与当前 Core 引用验证。正文、工具回执和认知结算在同一
+数据库事务提交。该模式目前只供显式配置的主私聊实验；既有默认和旧草稿
+恢复没有切换，WakeUp、Moment 和独立工具沿原合同。受控 Provider 的隔离
+PostgreSQL 测试覆盖提交、先执行工具再回复、重放和结算失败回滚；旧草稿
+各状态选择旧合同且 ready 草稿实际回读。真实 MeroMero 复测仍未能提供有效
+决策字段，三次错误纠正后停止且没有发布；故实验模式尚不作为默认，详情见本轮实施台账。
+
+已审核的表达候选目前只在 fact-only Writer 路径按来源会话和当前输入触发词
+选择；传给模型的只有原文摘录和适用情境，并标记为非指令资料。Core 在发布
+前重新校验候选、来源版本与使用开关。实验 `direct` 主 Agent 尚未接入此消费，
+不能据此宣称迁移后的表达学习闭环已完成。
+
+WakeUp 协议区分未回应的同一话题与真实的新事件：前者没有新进展时不追问，
+后者可成为自主分享机会，但不强制联系；明确拒绝、自治权限、安静时段、主题
+冷却与实际 Tool 回执仍由原流程约束。受控物理请求只核对协议传输，尚不能
+证明真实模型的主动或静默选择。
 
 空白人格首版由 `working_persona_persistence.go` 本地合成。共享特质被合并到
 profile 后，完全相同的输出行仅保留一次；同名但不同取值的事实均保留，原始
@@ -154,7 +218,12 @@ WakeUp 主动私聊没有新的用户消息：Writer 在任务规则中明确这
 
 R7 换装回归明确阶段职责：fact-only `conversation_cognition` 自主决定是否接受
 本人生活动作；接受且可执行时先发现、查询和执行，再交 `conversation.reply`。
-未知能力名先空参数查询 catalog，不能猜名字。目录加载和库存查询不算执行。
+未知能力名先以 `{"names":[]}` 查询 catalog，不能猜名字；模型侧 strict schema
+要求提供 `names`，直接调用仍兼容 `{}`。目录加载和库存查询不算执行。
+Image/Moment 的 Owner 停用状态独立于 Kev 推荐：目录可报告已安装但停用，
+不能加载其新工作 schema；当前进程内已准入运行沿用其快照，持久回执先回放。
+Image 停用时 Writer 的 capability facts 标记不可用且物理请求不含私有图片工具；
+目录与 Writer 的受控请求回归见 `domain_plugins_test.go`，不代表真实模型已验证。
 Writer 的当前事实视图增加 `action_execution_boundary`：当前为表达阶段、
 其工具不是角色完整目录、文字聊天不禁用本人生活动作、叙述不能改写状态。
 当前人格原文、旧 Writer protocol/hash 和原生工具授权仍使用原契约。
@@ -237,6 +306,14 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 任何提示词精简都不能通过 token 上限、按估算截断或预算拒绝实现。
 
 ## 图片禁字与可选视觉审核（2026-11-02）
+
+2026-11-09 质量策略调整：`media_quality` 继续根据实际图片返回原始审核结论；
+首张不通过可按既有规则重试一次，第二张仍不通过时不得声称会自动交付。普通
+媒体以真实 `retry`/`reject` 结束，视觉身份候选可保留给显式审核，只有实际
+`pass` 自动采用。历史 `retry_accepted` 记录不等于审核通过；未完成的普通媒体
+恢复时停止自动发布；有对应目标和附件回执证明已交付时只补结算、不重发，
+已完成记录和真实效果保留。现有受控物理请求
+测试检查实际图片和更新后的系统文本，不代表真实模型看图质量已验证。
 
 `media_prompt` 的普通、质量重试和分支规范化指令明确要求最终图片无文字、
 伪文字、字母、数字、标题、标签、字幕、签名、徽标和水印。Visual Identity

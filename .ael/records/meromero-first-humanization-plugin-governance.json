@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "id": "meromero-first-humanization-plugin-governance",
+  "definition_hash": "9188bc5de26b535d13889f13c4565ea24927cd4db7c1d60f09a57e5e0a62f273",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "按用户要求保存各批代码并复测局部回归；真实 MeroMero direct 仍有已记录的参数合同失败，整体实施尚未完成。",
+  "result": "",
+  "created": "2026-11-09T09:58:08.337449Z",
+  "updated": "2026-11-10T05:48:58.802174Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-50cbedb9c42f33ea0d33",
+        "unit": "define",
+        "executor": "codex",
+        "input_version": "a379ac04d37a9cdcbb900ca9b16f2a612d02f505f550b78aab83c6a1c9d656b2",
+        "candidate_version": "a379ac04d37a9cdcbb900ca9b16f2a612d02f505f550b78aab83c6a1c9d656b2",
+        "started": "2026-11-09T09:58:31.682301Z",
+        "ended": "2026-11-09T09:59:37.42654Z",
+        "status": "pass",
+        "reason": "原始 T00–T12、R01–R11 和 E01–E18 已载入任务定义；以当前源码为依据，使用专用分支；保留既有业务权威、无 token 上限与不提交图片约束。"
+      },
+      {
+        "id": "AT-c40ebe8ea1e45aa95b03",
+        "unit": "analysis",
+        "executor": "codex",
+        "input_version": "a379ac04d37a9cdcbb900ca9b16f2a612d02f505f550b78aab83c6a1c9d656b2",
+        "candidate_version": "a379ac04d37a9cdcbb900ca9b16f2a612d02f505f550b78aab83c6a1c9d656b2",
+        "started": "2026-11-09T10:00:09.061434Z",
+        "ended": "2026-11-09T10:03:43.600076Z",
+        "status": "pass",
+        "reason": "已核对当前 FormalAgent、模型绑定、原生 ADK 对话与 Writer、能力注册、媒体质量、WakeUp、记忆纠错和管理链；发现第二次图片 reject 会交付、替换记忆来源可能遗漏旧摘要失效。迁移需保护已提交消息、认知结算及原生工具回执。实施与验收仍未完成。"
+      },
+      {
+        "id": "AT-9c5712c171459898b249",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "a379ac04d37a9cdcbb900ca9b16f2a612d02f505f550b78aab83c6a1c9d656b2",
+        "candidate_version": "",
+        "started": "2026-11-09T10:04:16.536504Z",
+        "ended": "2026-11-09T11:12:50.561275Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-925a59fe4424f3bc2504",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "48d073c6ed06e5b912811335774937cf9566e17b44cbca6f22849a5a252b3617",
+        "candidate_version": "",
+        "started": "2026-11-09T11:13:10.14017Z",
+        "ended": "2026-11-09T12:05:33.544712Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-f3573d157a1afc29a96c",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "08d93fe0ab24d787a90c3e66fffe812e318375ea62cbd8df6289c82eb9396e50",
+        "candidate_version": "",
+        "started": "2026-11-09T12:06:20.658018Z",
+        "ended": "2026-11-09T12:43:01.21669Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-1a006f50bda281d85465",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "2930abf1dcfe45df8ab167d61c9148809373b4c34974d7662de40a23abd48510",
+        "candidate_version": "",
+        "started": "2026-11-09T12:43:13.67622Z",
+        "ended": "2026-11-09T13:47:55.984208Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-30eefcb9287a213b879a",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "e90875ed913ae1023af4d73b20e9d048166f4b899e2c6b104ea48572f3ab6385",
+        "candidate_version": "",
+        "started": "2026-11-09T13:48:15.848486Z",
+        "ended": "2026-11-09T14:39:23.08188Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-7dd81dc5bd57c43e7367",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "d4343eef8e4734cd35a2ed9883a4243831edd0d0e8e77f88385912274cebd1cf",
+        "candidate_version": "",
+        "started": "2026-11-09T14:39:48.398554Z",
+        "ended": "2026-11-09T16:09:14.829739Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-fe892acc89f4b34f78a2",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "3448b8cd756f342299a1167c02652cde682bfe8bc32e9b8797a80cb0a990e99a",
+        "candidate_version": "",
+        "started": "2026-11-09T16:09:34.277582Z",
+        "ended": "2026-11-09T17:24:39.043934Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-7983fc353b578ef06395",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "66f2f139b8f821f998ce531d0ded7ffa6a4cc3d471da67019fa071764adec15b",
+        "candidate_version": "",
+        "started": "2026-11-09T17:25:12.890081Z",
+        "ended": "2026-11-09T23:23:13.643137Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-d15a40fd3de0ba24ac67",
+        "unit": "execute",
+        "executor": "codex",
+        "input_version": "7dcc4819a79123cda955c96caab52d8d866429f76ac85b87c4aca5308582d68c",
+        "candidate_version": "",
+        "started": "2026-11-09T23:23:23.671936Z",
+        "ended": "2026-11-10T00:52:03.1792Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-6cdc37aa8753c0e9640f",
+        "unit": "execute",
+        "executor": "codex-postgres",
+        "input_version": "d9f7cb9cd93bc7e2e9aa12b62a4cb6f022c8ed051b326f2574eeab0789a06716",
+        "candidate_version": "",
+        "started": "2026-11-10T00:52:14.521269Z",
+        "ended": "2026-11-10T01:34:28.468904Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-855af8a8b8b297f8ad00",
+        "unit": "execute",
+        "executor": "codex-postgres",
+        "input_version": "2a9f8fb6a65e2b18874ea0ebe7996d1a559b8d27ea2fe7a16b3b1256705f3c8f",
+        "candidate_version": "",
+        "started": "2026-11-10T01:34:39.724766Z",
+        "ended": "2026-11-10T03:06:25.514488Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-678b442ab51908f70fd0",
+        "unit": "execute",
+        "executor": "codex-local-meromero",
+        "input_version": "2d810937578ae1c6b9c276c9a0d85e8403bd2b74a577eac426d5526b7e09824b",
+        "candidate_version": "",
+        "started": "2026-11-10T03:07:26.627579Z",
+        "ended": "2026-11-10T03:52:36.422733Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-a5d34c44c7a7f691d418",
+        "unit": "execute",
+        "executor": "codex-direct-main",
+        "input_version": "36fb249cebd459243841c73ed11b9eaaaa04c65473efd4b90a27447181df90d4",
+        "candidate_version": "",
+        "started": "2026-11-10T03:53:55.149602Z",
+        "ended": "2026-11-10T04:55:14.505098Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-aebb8104094720ed3e38",
+        "unit": "execute",
+        "executor": "codex-chat-chain-verification",
+        "input_version": "7c1d451fcace0539b051d8f6dbbfe929d1e584dbb5fee8b150208a6317893313",
+        "candidate_version": "f61ffccb0aa9a44786ca06b7d23c2cc0cff77c2dad634e903425bf043f6c3976",
+        "started": "2026-11-10T04:55:36.340242Z",
+        "ended": "2026-11-10T05:15:24.73516Z",
+        "status": "fail",
+        "reason": "真实 MeroMero 的 direct 私聊因连续无效认知参数三次后停止，未发布；默认单主模型链和全任务未完成。表达恢复修复及局部隔离回归通过，详见台账。"
+      },
+      {
+        "id": "AT-d8a67db362abba42d283",
+        "unit": "execute",
+        "executor": "codex-checkpoint",
+        "input_version": "f61ffccb0aa9a44786ca06b7d23c2cc0cff77c2dad634e903425bf043f6c3976",
+        "candidate_version": "88247c62cab7822228715876592613ac14269c4e40083c6475b1e44f4293e214",
+        "started": "2026-11-10T05:39:48.501664Z",
+        "ended": "2026-11-10T05:48:48.536497Z",
+        "status": "fail",
+        "reason": "按用户要求保存各批代码并复测局部回归；真实 MeroMero direct 仍有已记录的参数合同失败，整体实施尚未完成。"
+      }
+    ],
+    "checks": null
+  }
+}

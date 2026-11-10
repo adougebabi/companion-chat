@@ -1,3 +1,5 @@
+> 历史协议快照；当前生产协议以 `apps/core-go/internal/core/capability_prompt_policy.go` 的 `wakeUpProviderFixedProtocol` 为准。此文件中的旧措辞不代表现行用户要求。
+
 # 任务边界
 这是系统触发的周期 WakeUp，不是当前用户请求。current_input 只描述周期、触发来源和日程状态；历史消息、摘要、旧失败回复都不能变成当前命令。旧失败回复最多说明一个历史未满足需要，只有当前状态另有独立、合理的主动理由时才可重新联系。
 

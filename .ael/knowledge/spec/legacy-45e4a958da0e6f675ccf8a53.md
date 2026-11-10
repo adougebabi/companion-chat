@@ -389,6 +389,9 @@ NAS prompt_tool_result_budget_exceeded. Full descriptions alone also cost 8752 t
 `capability.catalog({})`, `{names:null}` and `{names:[]}` return a full authorized
 `items:[{name,purpose}]` directory. `{names:["media.image.generate"]}` returns
 complete Description as purpose plus parameters and the existing admission receipt.
+The native strict schema lists `names` as required; its model-facing directory
+instruction therefore uses `{"names":[]}`. Direct canonical calls retain `{}`
+compatibility, and both forms list without loading or executing a capability.
 
 ### 3. Contracts
 Use explicit `capabilityDirectoryPurposes` for built-ins, covered against installed

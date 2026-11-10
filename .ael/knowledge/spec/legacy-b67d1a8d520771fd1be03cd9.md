@@ -322,7 +322,10 @@ Chat automatic polling remains disabled during a send. Explicit progress reads
 preserve incremental text while the server says pending/running. Only the same
 scope/epoch and a confirmed terminal active turn may abort local observation,
 remove its transient messages, merge saved records and restore the original
-retry identity. A timer alone cannot mark a turn failed or create a new turn.
+retry identity. The later continuous-message exception below allows transfer
+after exact admission when the user has already submitted a queued follow-up;
+it also supersedes the older untargeted completion-only drain in the r18 UI
+state contract. A timer alone cannot mark a turn failed or create a new turn.
 
 The library exposes saved creation drafts and never hides a server character
 because its group has not loaded. Auto-select a sole published world only on the
@@ -482,8 +485,17 @@ The latest revised report takes precedence over the earlier navigation proposal.
 error prose and excludes newer queued drafts. Failure codes survive the browser
 allowlist, with gateway timeout, budget, interruption and connection categories.
 One follow-up may be stored under its own immutable queued identity while a reply
-runs; only after successful settlement is it sent. Failure keeps it for recovery.
-A failed cancel transport must not synthesize a cancelled message.
+runs. The 2026-11-10 continuous-message request supersedes the former rule to
+wait for the full reply: after an exact committed user-message receipt for the
+previous turn, send the queued identity and let Core supersede the older turn.
+HTTP success alone does not establish admission. If the observer is lost, an
+untargeted reread may resume the queued identity only when its exact predecessor
+is the latest confirmed pending/running user message; a targeted status read is
+still GET-only. Unknown admission keeps the queue. Preserve predecessor identity
+across a partial local-storage transition, ignore late old stream/cancel results,
+and do not submit the same unedited draft twice. A failed cancel transport must
+not synthesize a cancelled message. Real PostgreSQL supersession and model behavior
+require separate verification from controlled browser fixtures.
 
 Calendar counts/dots use the same visible records as the reading list. Diary
 non-body states have a separate generation-record panel with actual progress and

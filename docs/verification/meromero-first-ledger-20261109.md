@@ -1,0 +1,135 @@
+# MeroMero-first 实施台账
+
+更新时间：2026-11-10。此记录区分已实现、已验证和未完成事项；它不是验收通过声明。
+
+## 基线与边界
+
+- 起始 commit：`ffa808bc81cc4d800376432216f3ea679da8de30`；分支：`codex/fluctlight-meromero-plugin-humanization`。
+- 开始时只有未跟踪的 `docs/llm-agent-prompts.md`；用户随后说明已删除、不用处理，复查工作区为空。本轮不恢复该文件。
+- Go `1.26.3 darwin/arm64`，Node `24.12.0`，pnpm `11.0.7`。开始时测试数据库变量及 ComfyUI 变量未设置。用户随后授权本地 Docker，现有一次性 PostgreSQL 16/pgvector 容器仅监听回环，测试各自创建隔离数据库；临时凭据不写入项目或报告。未读取或修改真实业务数据库。
+- 工作区 `.env` 中存在旧 `MTPLX_*` 与 ComfyUI 键，相关 URL 均为非 loopback；只核对键、是否设置和地址类别，没有连接或将其当作已验证的 Go Provider 绑定。
+- 用户指定的目标模型为 `llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4`；本机 `mlx-serve` 的回环接口 `127.0.0.1:11234` 已列出该 ID，合成输入的真实文本请求返回“收到，测试开始。”，证据 `/private/tmp/fluctlight-local-meromero-smoke.json`。匿名查询公开 Hugging Face 未找到完全相同的仓库，不能仅凭此否定本机服务别名。隔离 PostgreSQL 和受控 Provider 验证了完整 ID 的保存、继承和请求体：`/private/tmp/fluctlight-pg-target-model-controlled.jsonl`。此前携带旧 `.env` 配置凭据查询非回环地址的请求被自动审批拒绝，随后只使用无凭据的本机回环接口；未修改真实业务数据库配置，也未把模型 ID 写死在业务逻辑。
+- 基线 Web 测试：`node --test apps/web/test/configuration-structured-fields.test.mjs apps/web/test/ux-settings-support.test.mjs apps/web/test/runtime-config.test.mjs`，11 通过，0 失败；本地原始日志 `/private/tmp/fluctlight-meromero-baseline-web.log`。选定的 Go 基线检查通过，日志 `/private/tmp/fluctlight-meromero-baseline-go.log`。
+- `apps/web/test/diagnostic-task-detail.test.mjs` 在当前工作区 14 通过、5 失败；从起始 commit 导出的隔离副本复现同一 5 项失败（任务详情布局、检查点和文案断言），日志 `/private/tmp/fluctlight-meromero-ui-baseline.log`。新媒体质量展示断言通过；这些失败不能计为整套 UI 验收通过。
+- 不向生产环境写入；不删除真实业务数据、不提交图片；保持现有 Go/Eino/ADK、持久化、Capability、事务和唯一发布边界。不建设插件市场、第二套 Runtime 或整体 UI 重设计。
+- 现行提示词合同 `.ael/knowledge/spec/legacy-9b89c41b4be449b963dcba95.md`：不得增加输入/输出 token 上限，不发送 `max_tokens` 或 `max_completion_tokens`；保留原生工具、图片、完整历史组和真实来源。
+
+## 工作包
+
+状态：`TODO` 未开始；`IN_PROGRESS` 正在处理；`IMPLEMENTED` 有实现但验收未完；`VERIFIED` 有对应代码及测试证据；`BLOCKED` 有具体解除条件；`NOT_APPLICABLE` 须有源码依据。
+
+| 包 | 需求 | 状态 | 当前证据或下一步 |
+| --- | --- | --- | --- |
+| T00 | 范围、基线、台账 | VERIFIED | 本文件记录起始 commit、分支、用户文件、环境、失败基线、工作包、依赖及验收状态；后续继续追加事实。 |
+| T01 | 完整运行入口盘点 | IN_PROGRESS | [逐 Agent 底稿](meromero-agent-inventory-20261109.md)列出起始 30 个注册项及新增表达提取任务、已确认上游、模型绑定、工具和发布职责；Prompt hash、所有旁路及逐变体验收仍待补齐。 |
+| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。隔离 PostgreSQL 迁移、配置写读和 Diary/Studio 部分阶段恢复通过；真实 Provider 及其他后台持久快照仍未验证。 |
+| T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
+| T04 | R02 主对话与认知结算 | IN_PROGRESS | 已修复低置信度 claim 状态；新增显式实验性 `direct` 模式，使主 Agent 同一原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交，受控 PostgreSQL 验证提交、重放及回滚。默认生产链仍是 fact-only 加独立 Writer，旧草稿兼容、真实模型和默认切换尚未完成。 |
+| T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；受控 Tool 目录、物理 schema、Writer 与 React 通过。隔离 PostgreSQL 已验证直接调用、配置及部分回执回放；NPC 完整重启及真实媒体尚未验证。 |
+| T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。隔离 PostgreSQL 的部分媒体恢复、历史回执及重放测试通过；真实渲染和媒体正文语义仍未验证。 |
+| T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发并隔离旧流，恢复和重复提交有受控测试。真实数据库并发、最终上下文合并及真实模型正反场景未验收。 |
+| T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；现有 fact-only Writer 可按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；实验 `direct` 主 Agent 尚未消费表达参考，真实模型及 UI 到实际运行的完整闭环未验收。 |
+| T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。隔离 PostgreSQL 已验证旧 Confirm、相同引用重新绑定、旧快照、调用中纠错及受控调度重开交错。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决；真实 Temporal 并发尚未验证。 |
+| T10 | R09 现有领域回归 | TODO | 不降低 Goal、人设、日程、衣柜、NPC、Studio 与日记既有语义。 |
+| T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；受控页面及部分数据库配置/回放已测。实际 Provider 消费、完整 Trace 和全场景重放仍未验收。 |
+| T12 | R11 全链路验收 | TODO | E01–E18 分层核验；当前已有隔离 PostgreSQL，真实模型、渲染及全链路仍未验收。 |
+
+## 已发现的冲突与依赖
+
+1. 历史 `docs/capability-architecture.md` 描述固定认知与 Writer、有限 continuation 和旧 token 预算；本轮用户要求取消固定双模型及非原生工具兼容，现行提示词合同禁止应用层 token 上限。旧文档为历史核对材料，不作为本轮新要求的替代。
+2. `CONTEXT.md` 的 Cognitive runtime 段仍描述固定结构化认知后单独 realization；本轮新授权取代该固定模型/顺序决定，身份、记忆、Goal、权限和真实效果等领域语义继续有效。
+3. 主对话变更依赖模型选择、原生工具、可持久恢复草稿与认知结算契约；不得用简单删除 Writer 调用宣称迁移完成。
+4. 图片质量和记忆纠错可在不改变真实用户数据的隔离测试中独立修复。用户已授权并启动隔离 PostgreSQL；真实 Provider、ComfyUI 和 UI 端到端的可用性仍未证明。
+5. `capability.catalog` 的 canonical schema 允许空 `names`，strict 模型 schema 又将可选字段转为 required nullable；需核对完整生产传输后统一语义，不能仅凭定义猜测缺陷。
+6. 已结算失败的媒体 ActionOutcome 是终态，不能在同一个效果身份上覆盖为成功；对未交付的旧候选禁止 resume，已有终态动作时要求新图片请求。历史候选若有原目标与附件回执证明已经交付，只允许补结算、不重发；若原动作终态与交付不一致则保留冲突。为保留原业务规则，尚未实现一个新的跨尝试 ActionOutcome 机制，真实恢复链待数据库验证。
+7. `conversation_summary_legacy_test.go` 的 `settleConversationSummary` 是仅测试辅助函数，不能证明生产摘要 worker 被纠错栅栏保护。当前 `processRuntimeSummary` 使用 `conversation_runtime_summaries`，现有失效器未覆盖它；旧分段 worker、无前缀来源、摘要来源链接以及缺少纠错覆盖的同源重建也有恢复错误结论的风险。累计和片段摘要的本轮失效扩展均发现会扩大与现有 generation trigger 的锁反转风险，已撤回；需要统一锁顺序和生产源版本栅栏，并用隔离 PostgreSQL 验证并发，不得删改原始对话。
+8. `decodeReplyCompletion` 的正文检查只覆盖少量占位形式，`ensureReplyActionConsistency` 当前仅检查换装失败。媒体失败后自然语言仍可能声称已发，ready 附件也可能与否认或拒绝的正文一起发布；初次原生生图请求可能与拒绝正文并存。需要依据真实媒体回执完成语义核验和发布控制，不能只加正则、强迫角色同意或把未交付当成功。
+9. 插件开关以进程内 run 快照和已受理媒体 intent 为续办边界；进程恢复时尚无 intent 的工作重新检查设置，未开始的 NPC 动态互动在停用时抑制，已持久化决定可收尾。视觉身份已有 seed 可派生设定图/头像；诊断重试与 Studio retry 可重用既有 intent。该策略的真实 PostgreSQL 并发、重启和已受理媒体恢复仍未验收。
+10. 旧 UI 合同要求追发等到上一条完整结算；本轮用户明确要求改善连续消息和 superseded，因此改为先证明上一条用户消息已被服务端接收，再提交保持原身份的追发。定向状态查询仍只读。真实数据库并发及模型是否综合回应多条消息尚未验证。
+11. Diary 的素材/表达以及 Studio 普通助手、文字预览、角色定义准备与按需媒体主体规划各自在首次请求前冻结无密钥绑定；同 attempt 恢复按阶段绑定重取凭据。Studio 自动重试保持原绑定，显式新 attempt 对未完成阶段可重新选择；Diary 显式重试仅保留已完成阶段快照。升级前 running 且需要继续的阶段没有快照时明确失败，原材料保留供显式重试。隔离数据库已验证这些阶段的部分恢复；后续独立媒体工作流的跨进程绑定仍需分别验证。
+12. 为避免扩大上述写入锁反转，本次采用只读的保守摘要屏障：对已解析来源追溯修订前历史，整段摘要在无法证明已吸收纠错时不注入。它保留原始消息和独立 Memory，但同一来源中无关事实可能随摘要一起退出，后台仍可能写出旧摘要。`0106` 将同一判断用于派生记忆及常驻快照的来源校验；每日汇总对被污染的一整天停止生成并保留可重开状态。已发出的请求、未知旧来源和正确吸收纠错后的摘要重建仍不能保证；不能由局部数据库测试推断整个 T09 已完成。
+13. 每日任务沿用现有稳定 intent，终态重开时递增 Core 内部来源代次。调度、终态结算使用原 payload 和 attempt 原子比较；遇到旧 run 的 AlreadyStarted 不接管旧运行。隔离 PostgreSQL 与受控 Temporal 客户端验证了旧 run 未结束、Describe 期间重开和 Execute 期间重开；真实 Temporal worker、数据库锁并发和旧 run 失败交错尚未验收。无来源、角色暂停及来源被纠错的成功返回均会持久结算，避免启动已被接受但 ledger 尚未写入时无限重试。
+
+## 主聊天认知结算迁移底稿
+
+以下是对当前生产源码的静态核验，不表示迁移完成。当前模型通过 `cognitiveTurnResponseSchema` 可产生这些字段，`handleTurn` 消费结构化输出并在 `settleAgentConversationTurn` 中结算；发布工具可能已在结算事务之前提交消息。迁移后的生产者、触发时机及持久恢复必须随主链实现重新确定，不能用本表代替实现或真实回归。
+
+| 字段/效果 | 当前生产者与消费者 | 证据、幂等和缺口 |
+| --- | --- | --- |
+| claims | `intelligence.go` 的 `normalizeResponsePlan` → `evaluateClaims` → `persistClaimsTx`；有效 claim 后续进入 hypothesis、记忆检索线索及上下文。低置信度记录现在保留 uncertain 状态和过期时间，真实数据库尚未验证。 | evidence 必须绑定本轮 Core 引用；`cognition_claims` 按 `(fluctlight_id,repetition_key)` 冲突不写。现有评估允许相同 repetition key 带新证据，但持久化仍 `DO NOTHING`，新证据可能未落入旧 claim；需在不覆盖历史证据前提下解决。字段可为空，无法据此证明主动判断过无候选。 |
+| influences | `freezeDecisionInfluences` 校验并冻结本轮引用，`frozenDecisionCausality` 导出 Goal、Intention 及引用；assessment/proposal 保存完整 decision，appraisal 存在时其因果字段也被保存。 | 引用必须在当前 `ReferenceIndex`；assessment/decision ID 由 inbox 确定，冲突不重复写。允许空数组，发布后的合成最小终态可能使引用无故为空。 |
+| appraisal / attention / thought / desire / agency | `applyFrozenCognitiveStagesTx` 在私聊结算事务内消费；appraisal 和状态归约写入 appraisal、focus、dynamics 与 state revision。 | 以 source fact 和状态 revision 防止重复；无 appraisal 时显式为 `not_proposed`。已发布回复后的结算失败只保留工具 partial，不代表这些状态已经结算。 |
+| output_preference_decision | `normalizeResponsePlan` 调用 `normalizeOutputPreferenceDecision`，原 decision 可进入 assessment/proposal。 | 缺省合法；当前结算未保存完整 normalized plan，`evaluateOutputPreferenceAction` 没有生产调用，不能声称媒体偏好已实际执行或校验。 |
+| goal_event_candidates | `enqueueTurnGoalCandidatesTx` 验证本轮 Goal ref，关联同 inbox 的 committed 消息来源，再对新增关联排 Goal 评估。 | source event 和 `(goal_id,source_event_id)` 关联均有幂等键；候选不直接完成 Goal。空候选或找不到匹配来源均不建关联；等待媒体续接是否补关联仍待核验。 |
+| 人格/关系 | root personality decision 可进入原始 decision/plan；真正人格切换由 `persona.switch` 等实际工具或 Owner 工作流经 CAS 和规则执行。普通私聊的 `recordRelationshipInteractionTx` 更新已有关系的互动次数与时间。 | 不能把 root 字段视为已切换人格；互动频次依赖 inbox 结算守卫去重，语义关系变化由反思或 Goal 等独立生产路径处理。 |
+
+`visibleReplyTerminalMessage` 可能在工具发布后合成不含以上字段的最小终态；`failAgentTurnAfterRun` 在结算失败时保留已提交消息和工具回执，却不会自动补交完整认知结算。任何替代方案都必须让真实 decision、真实发布/媒体事实和可恢复结算共享明确身份，保留旧草稿与已发布消息的重放语义。
+
+## MaiBot 参考
+
+实际只读参考 [Mai-with-u/MaiBot](https://github.com/Mai-with-u/MaiBot) commit `e5391507531706a8bfce011d55ed94628039f2de`，没有复制代码或引入其 Python/IPC/插件市场。仓库标注 GPL-3.0；本项目实现须独立设计。
+
+- 插件方面读取了 `src/plugin_runtime/plugin_catalog.py`、`host/component_registry.py`、`host/reply_extensions.py`、`integration.py`。可借鉴声明与运行状态分离、单插件组件先整体校验再替换、按调用作用域过滤，以及扩展准备后交回统一发送。后者不证明跨存储原子性或完整依赖回滚。关键依据：[组件注册](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/plugin_runtime/host/component_registry.py#L827)、[回复扩展](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/plugin_runtime/host/reply_extensions.py#L129)。
+- 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
+
+## 验收及变更记录
+
+- E01–E18 以用户原始任务的场景为准，分别记录单元、契约、工具、原生循环、隔离集成、真实模型、真实媒体及 UI 证据；当前均未标为通过。
+- 2026-11-10：按用户要求分批保存代码：`21c70620` 保存 claim 状态修复，`6b0b9af1` 保存三项迁移，`5228258a` 保存后端与日记集成，`5229a5b8` 保存客户端契约，`016f2752` 保存前端。后端与日记因共享模型路由签名一并提交；该中间版本在隔离源码副本中全部 Go 包编译通过。当前工作树重新执行：claim 两项、迁移三项、后端隔离 PostgreSQL 25 个主测试、客户端 44 项、前端 101 项均通过，客户端与前端类型检查通过；日志分别为 `/private/tmp/fluctlight-checkpoint-claims.log`、`/private/tmp/fluctlight-checkpoint-migrations.log`、`/private/tmp/fluctlight-checkpoint-core-pg.log`、`/private/tmp/fluctlight-checkpoint-client.log`、`/private/tmp/fluctlight-checkpoint-web.log`。这些是定向回归，不等于整个任务验收；实验 `direct` 的真实 MeroMero 失败尚未修复。
+- 2026-11-10：本机真实 MeroMero + 隔离 PostgreSQL 重新测试显式 `direct` 私聊：同一主 Agent 因 `conversation.reply` 的认知参数连续不符合 schema 实际请求三次，触发无进展终止并返回 `direct_reply_arguments_unresolved`，未正式发布。对应日志 `/private/tmp/fluctlight-current-explicit-direct-live.log`、脱敏合成夹具证据 `/private/tmp/fluctlight-current-explicit-direct-evidence.json`。这是单 Agent 的三次失败纠错，与默认旧链「主 Agent 两次 + 独立 Writer 一次」是两个不同样本；不代表正常聊天固定三次。受控原生回复的一次请求、事务提交/回滚及连续三次无效停止在当前隔离数据库复测通过：`/private/tmp/fluctlight-current-direct-count-test.log`。真实 `direct` 私聊仍不通过，不切换默认。
+- 2026-11-10：表达学习已接受控真实来源、审核与 fact-only Writer 参考；修复 `expression_source_changed` 可能在受理后返回却被前端当成受理前拒绝的问题，以及账号切换未清理表达恢复记录的问题。旧的假定拒绝记录也须重新核对。隔离 PostgreSQL 的 `TestExpression*` 及 `0107` 迁移通过：`/private/tmp/fluctlight-current-expression-pg.log`；表达恢复及共享命令 React/Web 回归 49 项通过：`/private/tmp/fluctlight-expression-recovery-web-final.log`，前端类型检查通过：`/private/tmp/fluctlight-expression-recovery-typecheck-final.log`。本地浏览器使用内存夹具实际操作原请求运行、失败确认、来源核对与重新提交，未接真实数据库或模型、未保存图片；真实模型/浏览器到服务端的整链仍未验证。
+- 2026-11-10：用户授权启动本地 Docker，使用缓存的 `pgvector/pgvector:pg16` 建立只绑定回环、独立凭据和数据的临时 PostgreSQL；迁移及 claim 落库冒烟通过。配置/快照 16 项、记忆 8 项和媒体恢复 10 个主测试在隔离数据库通过。首次运行中 3 项 Diary 测试因夹具 SQL 参数类型、2 项插件测试因夹具缺 Owner 记录失败，修正夹具后均通过。日志 `/private/tmp/fluctlight-pg-smoke.jsonl`、`/private/tmp/fluctlight-pg-configuration.jsonl`、`/private/tmp/fluctlight-pg-fixtures-retry.jsonl`、`/private/tmp/fluctlight-pg-configuration-final.jsonl`、`/private/tmp/fluctlight-pg-memory-final.jsonl`、`/private/tmp/fluctlight-pg-media-final.jsonl`；Provider 和渲染仍使用替身或未执行。
+- 2026-11-10：真实 PostgreSQL 复现 Owner 修订后旧累计摘要仍可读取，以及旧 Confirm 丢失 typed source 后递归屏障漏封。新增保守读取屏障，追溯纠错前历史链接及递归 Memory/摘要来源，阻止同源旧摘要在读取时复活；Confirm 继承未重新声明的类型化来源，并把确认时已失效来源标为 invalid。测试覆盖不同 Owner/会话/窗口、旧来源写法、多层历史 Confirm、源文本 A→B→A、未受影响 Memory 与原始消息；修复前日志 `/private/tmp/fluctlight-pg-memory-fence-red.jsonl`、`/private/tmp/fluctlight-pg-memory-confirm-red.jsonl`、`/private/tmp/fluctlight-pg-confirm-provenance-red.jsonl`、`/private/tmp/fluctlight-pg-memory-parent-red.jsonl`，当前回归 `/private/tmp/fluctlight-pg-memory-fence-latest.jsonl`。这不是完整的纠错覆盖重建或全部并发保证。
+- 2026-11-10：隔离 PostgreSQL 中新增 `0106_summary_correction_guard`，让 summary 和 Memory 来源活性、长期记忆候选及常驻快照消费拒绝受纠错摘要污染的派生内容，包括混合来源；按当前版本有效绑定追溯，兼容旧 Confirm 丢失类型，但同名 ref 重新冻结到新版本后不会误读更早的绑定。每日汇总整日阻断污染来源，模型调用期间发生纠错时丢弃返回结果；保留明确阻断原因并允许新来源重新排队。原始消息、独立事实及正常原文修复后重建均保留。数据库证据：`/private/tmp/fluctlight-pg-refreeze-red.jsonl`、`/private/tmp/fluctlight-pg-refreeze-legacy-final.jsonl`、`/private/tmp/fluctlight-pg-daily-guard-retry.jsonl`、`/private/tmp/fluctlight-pg-resident-guard-retry.jsonl`、`/private/tmp/fluctlight-pg-migration-fixture-final.jsonl`；均为受控 Provider 或本地数据，不代表真实模型验收。
+- 2026-11-10：修复每日 intent 重开时旧 Temporal run 可能覆盖新来源的问题；来源代次随重开递增，派发、旧终态写入均做来源快照和 attempt 比较。受控 Temporal 状态与隔离 PostgreSQL 的交错测试、无来源/暂停角色安静结算及原有日程恢复通过：`/private/tmp/fluctlight-pg-daily-dispatch-final.jsonl`、`/private/tmp/fluctlight-pg-daily-generation-final.jsonl`。未连接真实 Temporal，不能据此宣称生产并发全部验收。
+- 2026-11-10：本机 `mlx-serve` 真实列出并响应指定 MeroMero；单句合成请求成功。带隔离 PostgreSQL 的真实 `HandleTurn` 普通私聊测试实际到达该本地服务，但服务对约 2493 tokens 的请求返回 HTTP 400，提示可用 GPU 内存约 29 MB、请求约需 1382 MB；未通过、未发布消息。日志 `/private/tmp/fluctlight-local-meromero-turn.jsonl`、请求证据 `/private/tmp/fluctlight-local-meromero-turn-evidence.json`。未通过截断上下文或调整 token 上限绕开错误。该用例的旧夹具同时更新 `cognitive_assessment` 与 `conversation_reply` 测试绑定，保证真实请求选择所指定模型。
+- 2026-11-10：本机内存回升后原样重试，真实 MeroMero + 隔离 PostgreSQL 的普通会话调用成功、原生 `conversation.reply` 提交一条消息，`/private/tmp/fluctlight-local-meromero-turn-retry.jsonl`、`/private/tmp/fluctlight-local-meromero-general-evidence.json`。该夹具不是 `fluctlight_direct_conversations` 私聊，不能证明私聊链迁移。新增真实私聊验收测试，实测一轮产生三次物理请求，三次的模型 ID 均是用户指定的同一个 MeroMero：主 Agent 循环的首次请求返回普通 JSON、同一循环的第二次请求纠正后真实调用 `conversation.reply`，该工具内部再启动独立 Writer 发起第三次请求生成正文；不是三个不同模型，也不是同一个 Agent 的三轮循环。因此 T04 明确未通过，日志 `/private/tmp/fluctlight-local-meromero-direct-red.jsonl`，证据 `/private/tmp/fluctlight-local-meromero-old-direct-evidence.json`。首次正文里的 claims/影响不能当成已完成认知结算。
+- 2026-11-10：新增显式 `direct` 私聊实验合同，主 Agent 的真实原生 reply 工具参数携带正文和决策；Core 使用当轮权威 projection 校验后，在现有 Tool 事务写入唯一消息及回执，再原子结算 claims、Goal、影响及既有副作用。隔离 PostgreSQL + 受控原生 ToolCall 验证一次请求、claim 落库、无重复重放，以及注入结算失败时消息、回执与结算全部回滚；另验证先执行领域动作再回复及重放不重复执行：`/private/tmp/fluctlight-pg-direct-atomic-restored.jsonl`、`/private/tmp/fluctlight-pg-direct-action.jsonl`。旧草稿的九种状态均选择旧合同，ready 草稿实际回读，其他状态的完整恢复仍待验收：`/private/tmp/fluctlight-pg-direct-old-draft.jsonl`。该实验尚不是默认路径；真实模型及其他行动场景仍需验证。
+- 2026-11-10：本机真实 MeroMero 对实验合同发出原生 reply，但填入了多个不符合 schema 的可选认知字段，逐项纠错后仍未发布；补充同类 schema 错误和越权 Goal 引用最多三次反馈的无进展停止，防止无界循环。调整可选字段说明后的复测又因本机可用 GPU 内存不足中断，不能算通过：`/private/tmp/fluctlight-local-meromero-explicit-direct.jsonl`、`/private/tmp/fluctlight-local-meromero-direct-invalid-evidence.json`、`/private/tmp/fluctlight-local-meromero-explicit-direct-retry.jsonl`、`/private/tmp/fluctlight-pg-direct-semantic-bound.jsonl`。曾尝试为简短决策和完整决策提供原生 union schema，但受控测试出现持续高 CPU/内存增长，已中断并撤回该 schema 尝试；原子提交实验及默认路径保留。
+- 2026-11-10：直接使用本机 MeroMero 完成合成工具的原生两轮交互：模型发送 `get_test_status` ToolCall，测试端回传 `ready`，同一模型随后回答状态就绪。证据 `/private/tmp/fluctlight-local-meromero-native-loop.json`；这是模型服务层能力验证，工具为测试替身，不证明项目全部领域能力或发现/权限链已验收。
+- 2026-11-10：入口测试库迁移到 `0106` 后启动全量 Go PostgreSQL 回归，发现旧迁移测试夹具需先移除新函数并恢复旧刷新定义，修复后相关迁移测试通过。图片参数 `enum-rejected` 测试在起始 commit 的隔离副本复现同样失败（校验拒绝且未调用渲染，但发生一次结构化修复调用），`/private/tmp/fluctlight-pg-capture-baseline.jsonl`；两项 Goal cadence 也已在起始版本复现。该全量诊断运行在发现失败后主动中断，日志 `/private/tmp/fluctlight-pg-go-full-0106.jsonl`，不得记为通过。
+- 2026-11-10：新增表达候选结构化提取任务，模型只获得指定原文和局部引用；Core 拒绝未知引用、非来源连续摘录、重复候选和空语境。受控物理请求与 schema 检查通过；任务尚无生产调用方，真实来源身份、持久化、审核、停用及 Writer 发布复核均未实现。真实模型未验收。
+- 2026-11-10：复现并修复同步聊天回调与已完成 turn 重放中，同一已提交消息的多个回执或历史 ID 导致重复事件；顺序及全部原始工具回执保留，WakeUp 先排除抑制结果再去重。修复前、后日志分别为 `/private/tmp/fluctlight-reply-dedup-red.log`、`/private/tmp/fluctlight-reply-expression-focused.log`。新增持久重放用例因缺隔离 PostgreSQL 尚未执行；普通 durable observer 的消息本就按数据库序号读取，此处不声称修复了它的重复问题。
+- 2026-11-10：上述两个变更后的 Go 全量回归中，18 个有测试包通过；按事件计数 3,035 通过、948 跳过。新增 PostgreSQL 历史重放测试明确因缺 `GO_CORE_TEST_DATABASE_URL` 跳过，真实模型测试同样未执行。日志 `/private/tmp/fluctlight-expression-reply-go-final.jsonl`。
+- 2026-11-10：`reply.image.request` 的空白画面意图现在返回无副作用的 `invalid_arguments/needs_input` 原生工具结果，供同一 Writer 纠正；已经登记的有效图片请求保留。受控原生循环覆盖先空白后有效、先有效后空白，修复前后日志 `/private/tmp/fluctlight-image-whitespace-red.log`、`/private/tmp/fluctlight-image-whitespace-green.log`；插件相关两项 PostgreSQL 测试仍跳过。这不解决媒体结果与最终正文的语义一致性。
+- 2026-11-10：复现并修复一致性纠错遇到 503 时错误地调用备用模型，以及工具依赖失败包装 503/504 时被误判为模型不可用；前者保留原输出一致性错误，后者保留工具失败码。初次模型生成阶段的合格技术故障可按显式策略回退；独立模型超时可回退，整个回复超时或取消不回退。原生工具请求内的可重试执行错误也与回执一起保留，重复同一调用时继续终止当前 run；没有执行错误的可重试回执仍正常交给模型。修复前日志 `/private/tmp/fluctlight-correction-fallback-red.log`、`/private/tmp/fluctlight-tool-fallback-red.log`、`/private/tmp/fluctlight-native-replay-failure-red.log`、`/private/tmp/fluctlight-timeout-fallback-red.log`；受控回归 `/private/tmp/fluctlight-failure-replay-final2.log`。真实 Provider 尚未验收。
+- 2026-11-10：上述最新代码的 Go 全量回归退出 0，18 个有测试包通过；按 Go 事件计数（含子测试及包事件）3,047 通过、948 跳过。跳过项包括新增持久重放、其他 PostgreSQL 和真实服务用例，不能计为已验收。日志 `/private/tmp/fluctlight-meromero-latest-go.jsonl`。
+- 2026-11-10：补测物理模型超时与整体超时的不同回退行为，并以 Go race 检查并发写入回执及错误；检查通过，日志 `/private/tmp/fluctlight-failure-replay-final2.log`、`/private/tmp/fluctlight-native-trace-race.log`。当前完整 Go 回归 18 个有测试包通过，按事件计数 3,048 通过、948 跳过，日志 `/private/tmp/fluctlight-meromero-go-final-current.jsonl`。
+- 2026-11-10：补充真实 Eino 原生循环内的受控工具故障测试，确认 `persona.detail` 桥接返回的工具错误经循环包装后仍保留工具归属，不会被 HTTP 503 误判成可换模型。该测试使用替身工具与受控 Provider，不依赖真实 PostgreSQL，日志 `/private/tmp/fluctlight-tool-fallback-native-loop.log`。
+- 2026-11-10：最新全量 Go 回归退出 0，18 个有测试包通过；按事件计数（含子测试及包事件）3,049 通过、948 跳过，日志 `/private/tmp/fluctlight-meromero-final-verified.jsonl`。这不是 PostgreSQL、真实模型或真实媒体验收。
+- 2026-11-10：在主聊天结算映射中发现低置信度 observed claim 已被评估为 uncertain，写入时却按 kind 错误标为 active；现在按评估分组持久化，并为 uncertain 设置既有七天有效期。评估 → 事务写参数的受控测试修复前失败、修复后通过；独立复核后补测普通 observed、supported hypothesis、unsupported self 和 omitted 边界。日志 `/private/tmp/fluctlight-claim-uncertainty-red.log`、`/private/tmp/fluctlight-claim-uncertainty-final.log`；隔离 PostgreSQL 落库及重复写入用例跳过。此修复只影响新插入，历史错误状态不会自动重写。主聊天去双模型及同 repetition key 新证据问题仍未解决。
+- 2026-11-10：claim 状态调整后的 Go 全量回归退出 0，18 个有测试包通过；按 Go 事件计数（含子测试及包事件）3,050 通过、949 跳过，日志 `/private/tmp/fluctlight-meromero-claim-go-current.jsonl`。数据库及真实服务跳过项不计为通过。
+- 2026-11-10：连续消息受控回归覆盖精确接收回执、旧流迟到、取消竞态、刷新恢复、本机存储部分失败、跨客户端新消息和同一草稿重复提交；正式 React 页面可在回应期间追加一条。聊天、恢复及相关 React 回归 62 项通过，日志 `/private/tmp/fluctlight-meromero-chat-followups-final.log`。本地浏览器使用内存夹具检查输入、追加按钮和排队气泡，未保存截图；数据库 superseded 和真实模型综合回应仍未验收。
+- 2026-11-10：Diary 素材/表达阶段增加服务端模型快照及旧在途任务的显式失败策略；显式重试可为未完成阶段重新选择模型。无数据库的快照隐私、阶段身份、采样与两种正式 Agent 受控请求通过，新增三个 PostgreSQL 恢复用例和既有完成阶段恢复用例因未配置隔离数据库而跳过。全量 Go 18 个有测试包通过，按事件计数 2,995 通过、929 跳过，日志 `/private/tmp/fluctlight-meromero-go-diary-snapshot.jsonl`；该全量日志早于最后新增的素材恢复测试和损坏容器校验，相关定向测试已重跑。
+- 2026-11-10：Studio 的助手、文字预览、角色定义准备及按需媒体主体规划接入服务端模型快照。独立复核发现自动重试丢快照，已区分自动重试与显式新 attempt；四种阶段的受控物理请求通过，自动/显式重试、媒体规划和旧任务兼容的 PostgreSQL 用例尚未执行。当前全量 Go 18 个有测试包通过，按事件计数 3,000 通过、934 跳过，日志 `/private/tmp/fluctlight-meromero-go-all-current.jsonl`；相关 Web 93 项通过，日志 `/private/tmp/fluctlight-meromero-web-current.log`。
+- 2026-11-10：Image/Moment 复用现有 Capability Runtime 注册，增加 `plugins.domains`、主要新请求门禁、原生回执优先回放、目录 disabled 状态及 React 管理开关。独立复核发现并补齐旧动态评论/回应入口、未开始 NPC 动态机会及无 checkpoint 的手动重试；已有视觉 seed 派生及已有媒体 intent 续办保持可用。全量 Go 18 个有测试包通过，按事件计数 2,987 通过、927 跳过，日志 `/private/tmp/fluctlight-meromero-go-plugins-final.jsonl`；新增两项 PostgreSQL 插件用例跳过。受控 React 和本地浏览器内存夹具验证开关、保存、回读及错误恢复，没有连接实际数据库或服务，也没有保存截图。
+- 2026-11-09：建立专用分支和 AEL 任务，核对起始状态、现行规范和初步源码调用链；未对真实业务数据执行写入。
+- 2026-11-09：质量策略旧行为的测试先失败，日志 `/private/tmp/fluctlight-meromero-red.log`；修改后质量与工作流定向测试通过，日志分别为 `/private/tmp/fluctlight-meromero-core-focused.log`、`/private/tmp/fluctlight-meromero-workflow.log`。包含图片的受控 Provider HTTP 请求通过；并非真实模型或真实出图证据。数据库相关测试保持 SKIP。
+- 2026-11-09：`capability.catalog` 模型端改用严格 schema 可接受的 `{"names":[]}`；受控原生 Generate/Stream 覆盖目录、加载、执行和结果续接，日志 `/private/tmp/fluctlight-meromero-catalog.log`。
+- 2026-11-09：清除数据库和外部服务变量后，全量 Go 包测试在可用本机回环端口的环境中通过；沙箱首次运行因禁止监听本机端口失败。相关日志 `/private/tmp/fluctlight-meromero-go-all.log`、`/private/tmp/fluctlight-meromero-go-all-loopback.log`。Web typecheck 与 2 项本轮 UI 定向测试通过；真实数据库、模型与媒体测试仍未执行。
+- 2026-11-09：受控 HTTP 先复现未交付图片的正文纠正失败后仍调用另一个模型的旧行为，日志 `/private/tmp/fluctlight-meromero-fallback-red.log`；修复后拒绝、未兑现图片声明、业务错误和显式技术回退的定向测试通过，日志 `/private/tmp/fluctlight-meromero-fallback-full.log`。这不是 MeroMero 真实模型验收，也不代表固定双模型主链已经移除。
+- 2026-11-09：独立源码核验发现旧任务可能已交付却未结算，或会话、动态只交付一侧；补对应原目标的交付证据检查和 Studio 非通过资产保护。8 项 UI 夹具通过，数据库测试仍 SKIP：`/private/tmp/fluctlight-meromero-ui-quality-recovery.log`、`/private/tmp/fluctlight-meromero-legacy-recovery.log`。
+- 2026-11-09：为公共 Prompt 组装入口保存进程内 Provider 快照，补齐 9 个生产调用的转交，FormalAgent 复用并在已有快照冲突时失败；物理请求诊断补充 Agent ID/schema 变体与实际绑定来源及可获得的配置版本。新草稿冻结凭据用途引用，旧草稿端点地址已变且来源未知时安全失败。9 项定向测试通过、1 项 PostgreSQL 测试跳过，日志 `/private/tmp/fluctlight-meromero-model-snapshot.log`。这不是持久恢复或真实配置切换验收。
+- 2026-11-09：最新 `core` 与 `workflow` 回归退出 0；按 Go 测试事件计数含子测试 2,225 通过、841 跳过，日志 `/private/tmp/fluctlight-meromero-core-current.jsonl`。跳过中有 795 条明确缺隔离 PostgreSQL、23 条明确未启用真实 Provider；不能将跳过项称为通过。
+- 2026-11-09：WakeUp 协议区分未回应的同主题与真实新事件的自主分享机会，明确不强制联系；两个受控物理请求场景及协议边界测试通过，日志 `/private/tmp/fluctlight-meromero-wakeup-protocol.log`。这不是实际主动联系或静默行为的模型验收。
+- 2026-11-09：共享 `conversation_reply` 的物理请求诊断区分私聊、主动消息、动态及修复变体，保留原 schema 名；受控请求测试日志 `/private/tmp/fluctlight-meromero-task-variants.log`。这只是可追踪变体，尚不能按变体配置模型。
+- 2026-11-09：最新全量 Go 回归的 18 个有测试包退出 0；按事件计数含子测试 2,944 通过、919 跳过，其中 867 条明确缺隔离 PostgreSQL、23 条明确未启用真实 Provider，日志 `/private/tmp/fluctlight-meromero-go-current.jsonl`。最新前端构建在仓库外临时目录通过，未覆盖原有 `dist`。
+- 2026-11-09：模型路由静态复核发现父任务快照串入嵌套 Agent、显式旧回退受父路由影响、Moment 误继承私聊变体和视觉子任务快照归属错误；修复并补受控物理请求及来源测试。修复前日志 `/private/tmp/fluctlight-meromero-route-isolation-red.log`，修复后 `/private/tmp/fluctlight-meromero-route-isolation-green.log`；真实 PostgreSQL/Provider 未测。
+- 2026-11-09：发现最初 Agent 路由界面位于不被产品入口使用的旧原型，已撤回该部分并接入正式 React 管理页。受控 React 页面覆盖覆盖的保存、恢复继承、回执丢失后的恢复、默认模型更新及其他未保存输入；数据库回读和下一次真实请求未测。日志 `/private/tmp/fluctlight-meromero-react-recovery.log`。
+- 2026-11-09：包含模型路由变更的全量 Go 测试退出 0；18 个有测试包通过，按事件（含子测试）2,955 通过、921 跳过。日志 `/private/tmp/fluctlight-meromero-go-routing.jsonl`；跳过输出中 876 条提到 PostgreSQL 配置、24 条提到真实 Provider 开关，未执行项不算通过。
+- 2026-11-09：旧同步流式重试会重新 claim 已 superseded 的 inbox；修复前受控事务测试失败，修复后通过，已提交副作用仍保持终态。日志 `/private/tmp/fluctlight-meromero-continuity-red.log`、`/private/tmp/fluctlight-meromero-continuity-final.log`。同一日志中的无前缀事实来源尝试随后因锁反转风险撤回，不能作为最终实现证据。
+- 2026-11-09：包含上述修复的全量 Go 回归退出 0；18 个有测试包通过，按事件（含子测试）2,957 通过、922 跳过。日志 `/private/tmp/fluctlight-meromero-go-continuity-final.jsonl`。Web 设置和 React 定向套件 54 项通过，临时目录构建与类型检查通过；数据库及真实模型仍未执行。
+- 2026-11-09：正式管理页在配置命令已确认但路由目录重读失败时要求重新读取基线，不重复已接受的写入。受控页面回归 `/private/tmp/fluctlight-meromero-react-readback-recovery-pass.log`；此前测试夹具缺少设置写入口导致失败，日志保留于 `/private/tmp/fluctlight-meromero-react-readback-debug2.log`。
+- 2026-11-09：曾尝试使 Memory 纠错提升累计摘要 revision；受控事务替身测试通过，但独立复核发现与现有 trigger 的潜在死锁，真实 PostgreSQL 并发未执行，故已撤回该尝试。尝试日志保留 `/private/tmp/fluctlight-meromero-continuity-runtime-fence.log`；生产累计摘要失效和重建仍未解决。
+- 2026-11-09：进一步独立复核发现既有片段摘要失效同样可能与分段结算发生 generation/summary 锁反转；本轮对旧证据和无前缀来源的失效扩展会扩大暴露范围，因此已撤回，保留问题证据及后续并发验证要求。
+- 2026-11-09：撤回后重新运行 Go 全量回归，18 个有测试包通过，2,956 通过、921 跳过、0 失败（按事件计数）：`/private/tmp/fluctlight-meromero-go-post-review.jsonl`。正式 React 设置相关 54 项测试和类型检查通过：`/private/tmp/fluctlight-meromero-react-suite-stable.log`、`/private/tmp/fluctlight-meromero-web-typecheck-stable.log`。
+- 2026-11-09：显式 Writer Agent/variant 的绑定超时不再被全局物理超时覆盖；私聊、主动私聊、动态保留回复总时限，日记和 Studio 保留各自工作流时限。受控物理请求检查 deadline；失败与修复日志 `/private/tmp/fluctlight-meromero-writer-timeout-red.log`、`/private/tmp/fluctlight-meromero-writer-timeout-green.log`。
+- 2026-11-09：包含任务超时改动的 Go 全量回归 18 个有测试包通过，2,958 通过、921 跳过、0 失败（按事件计数）：`/private/tmp/fluctlight-meromero-go-latest.jsonl`。Web 设置相关回归和类型检查退出 0：`/private/tmp/fluctlight-meromero-react-latest.log`、`/private/tmp/fluctlight-meromero-web-latest.log`。
+- 2026-11-09：媒体提示词规范化首次调用与其一次校验纠错复用同一进程内 Agent/variant 绑定；受控 Provider 的两次请求通过，修改配置后的 PostgreSQL 用例跳过：`/private/tmp/fluctlight-meromero-media-normalization-binding.log`。独立复核发现提前读取配置会绕过失败诊断，已调整为输入校验后读取并保留 preflight/归一化失败记录；跨进程恢复仍未解决。
+- 2026-11-09：媒体规范化输入先校验、纠错间取消不再发请求的受控测试通过；绑定变更和失败诊断的 PostgreSQL 测试跳过：`/private/tmp/fluctlight-meromero-media-normalization-verified.log`。随后的 Go 全量回归 18 个有测试包通过，2,960 通过、923 跳过（按事件计数）：`/private/tmp/fluctlight-meromero-go-current-final.jsonl`。
+- 2026-11-09：在本机内存配置夹具中使用浏览器检查正式 React 管理页，选择任务变体后验证来源展示、恢复继承草稿及保存后回读；发现任务卡片远离选择器后调整为紧随其后。夹具不访问真实账户或数据库，结束后删除临时页面并停止本地服务；未保存或提交图片。调整后的设置相关测试与类型检查退出 0：`/private/tmp/fluctlight-meromero-react-post-visual.log`、`/private/tmp/fluctlight-meromero-web-post-visual.log`。
+- 2026-11-09：在 `model_roles` 新增可空温度与 Top P（前向迁移 `0105_agent_model_sampling`），缺省保留旧行为；旧客户端省略字段保留原值，显式 null 清除，Writer 按字段回退原全局设置。受控物理请求、React 表单和客户端测试通过；升级、保存/回读及真实配置切换的 PostgreSQL 用例跳过：`/private/tmp/fluctlight-meromero-sampling-go-final.log`、`/private/tmp/fluctlight-meromero-sampling-web-post-review.log`、`/private/tmp/fluctlight-meromero-sampling-client-test-loopback.log`。首次客户端测试因沙箱禁止本地 IPC 失败：`/private/tmp/fluctlight-meromero-sampling-client-test.log`。
+- 2026-11-09：采样修改后的全量 Go 测试 18 个有测试包通过，2,970 通过、925 跳过（按事件计数）；Web 设置相关 56 项通过：`/private/tmp/fluctlight-meromero-go-sampling.jsonl`、`/private/tmp/fluctlight-meromero-web-sampling-full.log`。
+- 2026-11-09：重新打开本机内存夹具，在窄视口核对任务卡片中温度 `0`、Top P `0.75` 的呈现与顺序；未连接数据库或模型，临时页面和本地服务已清理，未保存图片。
+- 2026-11-09：生产原生工具路径的静态核验未找到正文转 ToolCall 的可达分支；移除真实模型测试助手中从正文 `tool_calls` 补造调用的旧回退，且只接受标准原生字段形状。受控回归 `/private/tmp/fluctlight-meromero-native-evidence-final.log`；真实 MeroMero 工具调用仍未执行。
+- 2026-11-09：采样 HTTP 错误与原生证据调整后，Go 全量回归 18 个有测试包通过，2,976 通过、925 跳过（按事件计数），日志 `/private/tmp/fluctlight-meromero-go-native-evidence.jsonl`。没有将跳过项计为通过。
