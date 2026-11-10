@@ -609,6 +609,10 @@ func testGeneratedAvatarRealMediaHTTPModelReview(t *testing.T, verdict string) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.provider_endpoints SET base_url=$2 WHERE id=$1`, "avatar-e2e-vision", provider.URL); err != nil {
 		t.Fatal(err)
 	}
+	role := agentModelBindingKey(FormalAgentMediaPrompt, "media_prompt_text")
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,'avatar-e2e-vision','avatar-designer',30)`, role); err != nil {
+		t.Fatal(err)
+	}
 	enableControlledVision(t, f.ctx, f.repository)
 	f.app.Provider.HTTP = &http.Client{}
 	graph := map[string]any{"positive": map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}}, "reference": map[string]any{"class_type": "LoadImage", "inputs": map[string]any{"image": "{{visual_identity_reference_image}}"}}}
@@ -616,7 +620,7 @@ func testGeneratedAvatarRealMediaHTTPModelReview(t *testing.T, verdict string) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES('media.comfyui',$1) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json`, jsonBytes(config)); err != nil {
 		t.Fatal(err)
 	}
-	ctx := withFrozenProviderAssignment(f.ctx, "media_prompt", providerAssignment{Role: "media_prompt", BaseURL: provider.URL, ModelID: "avatar-designer", Timeout: time.Second})
+	ctx := f.ctx
 	result, err := f.app.ProcessMediaIntent(ctx, avatarIntent)
 	if verdict == "reject" {
 		if err != nil || result["status"] != "quality_retry" {

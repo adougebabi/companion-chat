@@ -127,7 +127,11 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 		prompt.ResponseFormat = providerResponseFormatForSchema("media_prompt", "current_capture_plan", currentCapturePlanSchema())
 	}
 	prompt.Messages = formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": mediaPromptInput(promptIntent)}}, "media_prompt")
-	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
+	modelCtx, err := a.mediaPromptTextContext(ctx, input.Intent, prompt.Messages)
+	if err != nil {
+		return MediaPromptTaskResult{}, err
+	}
+	run, err := a.RunFormalAgent(modelCtx, FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
 	if err != nil {
 		return MediaPromptTaskResult{}, err
 	}
@@ -197,7 +201,11 @@ func avatarPromptMessages(intent mediaIntent, concept map[string]any) []map[stri
 
 func (a *App) runAvatarPromptTask(ctx context.Context, intent mediaIntent, concept map[string]any) (MediaPromptTaskResult, error) {
 	prompt := PromptAssemblyResult{Messages: avatarPromptMessages(intent, concept)}
-	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
+	modelCtx, err := a.mediaPromptTextContext(ctx, intent, prompt.Messages)
+	if err != nil {
+		return MediaPromptTaskResult{}, err
+	}
+	run, err := a.RunFormalAgent(modelCtx, FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
 	if err != nil {
 		return MediaPromptTaskResult{}, err
 	}

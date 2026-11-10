@@ -132,6 +132,82 @@ func TestMediaNormalizerSnapshotSurvivesProcessRecovery(t *testing.T) {
 	}
 }
 
+func TestAvatarPromptKeepsModelAcrossIntentReload(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	seedCognitiveProviderRole(t, ctx, repository, "avatar-snapshot-endpoint")
+	role := agentModelBindingKey(FormalAgentMediaPrompt, "media_prompt_text")
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,'avatar-snapshot-endpoint','first-model',30)`, role); err != nil {
+		t.Fatal(err)
+	}
+	concept := map[string]any{"purpose": "visual_identity", "stage": "avatar", "avatar_character": map[string]any{"preference": "宁静风景"}}
+	insert := func(id string) {
+		t.Helper()
+		if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.media_intents(id,owner_fluctlight_id,kind,mime_type,prompt,provider_request_id,workflow_id,status) VALUES($1,'owner-1','image','image/png',$2,$3,$4,'pending')`, id, jsonString(concept), id+":request", id+":workflow"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	insert("avatar-snapshot-intent")
+	var models []string
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		models = append(models, stringValue(payload["model"]))
+		return fakeProviderResult{Text: "A quiet moonlit landscape."}
+	})
+	app := newTestApp(t, repository, router)
+	intent, err := app.readMediaIntent(ctx, "avatar-snapshot-intent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: intent}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id='next-model' WHERE role=$1`, role); err != nil {
+		t.Fatal(err)
+	}
+	restarted := newTestApp(t, repository, router)
+	intent, err = restarted.readMediaIntent(ctx, "avatar-snapshot-intent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: intent}); err != nil {
+		t.Fatal(err)
+	}
+	insert("avatar-snapshot-new")
+	newIntent, err := restarted.readMediaIntent(ctx, "avatar-snapshot-new")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: newIntent}); err != nil {
+		t.Fatal(err)
+	}
+	if len(models) != 3 || models[0] != "first-model" || models[1] != "first-model" || models[2] != "next-model" {
+		t.Fatalf("avatar intent did not retain its task binding: %v", models)
+	}
+	concept = map[string]any{"subject": "a quiet street", "scene": "after rain"}
+	insert("ordinary-snapshot-intent")
+	ordinaryApp := newTestApp(t, repository, router)
+	ordinary, err := ordinaryApp.readMediaIntent(ctx, "ordinary-snapshot-intent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ordinaryApp.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: ordinary}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id='third-model' WHERE role=$1`, role); err != nil {
+		t.Fatal(err)
+	}
+	ordinaryRestored := newTestApp(t, repository, router)
+	ordinary, err = ordinaryRestored.readMediaIntent(ctx, "ordinary-snapshot-intent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ordinaryRestored.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: ordinary}); err != nil {
+		t.Fatal(err)
+	}
+	if len(models) != 5 || models[3] != "next-model" || models[4] != "next-model" {
+		t.Fatalf("ordinary media intent did not retain its task binding: %v", models)
+	}
+}
+
 func TestLegacyMediaNormalizerReportsUnfrozenBinding(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	seedCognitiveProviderRole(t, ctx, repository, "media-legacy-snapshot-endpoint")
@@ -154,6 +230,21 @@ func TestLegacyMediaNormalizerReportsUnfrozenBinding(t *testing.T) {
 	err = repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.diagnostic_events WHERE correlation_id='media:legacy-media-model' AND event_type='media.model_binding.legacy_unfrozen' AND payload->>'task_variant'='media_prompt_normalized'`).Scan(&count)
 	if err != nil || count != 1 {
 		t.Fatalf("legacy unfrozen model use was not diagnosed: count=%d err=%v", count, err)
+	}
+}
+
+func TestMediaPromptTextMissingModelKeepsPreflightDiagnostic(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	ctx = WithProviderCorrelation(ctx, "media-text-missing-model")
+	app := newTestApp(t, repository, newFakeProviderRouter())
+	intent := mediaIntent{Kind: "image", Prompt: jsonString(map[string]any{"subject": "a quiet street", "scene": "after rain"})}
+	if _, err := app.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: intent}); err == nil {
+		t.Fatal("media prompt accepted an unavailable model")
+	}
+	var count int
+	err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.diagnostic_events WHERE correlation_id=$1 AND event_type='provider.preflight.failed' AND payload->>'stage'='assignment' AND payload->>'scenario'='media_prompt'`, "media-text-missing-model").Scan(&count)
+	if err != nil || count != 1 {
+		t.Fatalf("missing or duplicated media assignment diagnostic: count=%d err=%v", count, err)
 	}
 }
 
