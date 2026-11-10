@@ -497,6 +497,16 @@ and do not submit the same unedited draft twice. A failed cancel transport must
 not synthesize a cancelled message. Real PostgreSQL supersession and model behavior
 require separate verification from controlled browser fixtures.
 
+When an observer has been lost and a server-confirmed turn is still pending or
+running, the user may submit a new follow-up without issuing an explicit cancel;
+Core owns supersession. If a prior local request exists, its full admission
+identity and content must first match a confirmed server message. An uncertain
+new follow-up retains its own identity even if an older turn later finishes.
+Retry that same follow-up only while the latest confirmed message is the
+follow-up itself or its captured predecessor; a newer message from another
+client must not be overtaken. If session draft cleanup fails, preserve the
+visible draft and explain the storage problem without interrupting the stream.
+
 Calendar counts/dots use the same visible records as the reading list. Diary
 non-body states have a separate generation-record panel with actual progress and
 recovery links. Opening date controls exposes the calendar grid even in list mode.

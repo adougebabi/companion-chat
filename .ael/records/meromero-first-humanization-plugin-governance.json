@@ -22,7 +22,7 @@
   "failure": "按用户要求保存各批代码并复测局部回归；真实 MeroMero direct 仍有已记录的参数合同失败，整体实施尚未完成。",
   "result": "",
   "created": "2026-11-09T09:58:08.337449Z",
-  "updated": "2026-11-10T07:43:29.451396Z",
+  "updated": "2026-11-10T08:17:52.889489Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -221,6 +221,17 @@
         "input_version": "36034138f8b8968efb3546e50b8179b122c37246aade2507d01045a4c25e2865",
         "candidate_version": "",
         "started": "2026-11-10T05:52:20.523511Z",
+        "ended": "2026-11-10T08:13:39.732451Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-4b10a9060912ca46074e",
+        "unit": "execute",
+        "executor": "codex-chat-continuity",
+        "input_version": "5f6d41af8e3fac2ca2f827146cba22d0371a2df76ecb7e1d1b7d654d2fa500d0",
+        "candidate_version": "",
+        "started": "2026-11-10T08:14:05.157798Z",
         "ended": null,
         "status": "running",
         "reason": ""
