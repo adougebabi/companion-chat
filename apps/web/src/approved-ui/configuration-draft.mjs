@@ -13,19 +13,23 @@ function safeURL(value) {
 export function connectionDraft({endpoints,bindings,versions}) {
   return {version:1,versions:{...versions},credentialPending:endpoints.some(e=>!!e.secret||!!e.clearSecret),
     endpoints:endpoints.map(e=>({id:e.id,name:e.name,protocol:e.protocol,url:safeURL(e.url)})),
-    bindings:bindings.map(b=>({role:b.role,endpoint:b.endpoint,model:b.model,timeout:b.timeout}))};
+    bindings:bindings.map(b=>({role:b.role,endpoint:b.endpoint,model:b.model,timeout:b.timeout,...(Object.hasOwn(b,'temperature')?{temperature:b.temperature??''}:{}),...(Object.hasOwn(b,'topP')?{topP:b.topP??''}:{}),...(b.clearOverride?{clearOverride:true}:{})}))};
 }
 export function connectionDraftDirty(draft,catalog){
  if(draft.credentialPending)return true;
  const endpoints=rows=>rows.map(e=>[e.id,e.name,e.protocol,e.url.replace(/\/+$/,'')]).sort((a,b)=>a[0].localeCompare(b[0]));
- const bindings=rows=>rows.filter(b=>b.endpoint||b.model||b.timeout!==''&&b.timeout!=null).map(b=>[b.role,b.endpoint,b.model.trim(),b.timeout===''||b.timeout==null?defaultModelTimeoutSeconds:Number(b.timeout)]).sort((a,b)=>a[0].localeCompare(b[0]));
- return JSON.stringify(endpoints(draft.endpoints))!==JSON.stringify(endpoints(catalog.endpoints.map(e=>({id:e.id,name:e.id,protocol:e.kind,url:e.base_url}))))||JSON.stringify(bindings(draft.bindings))!==JSON.stringify(bindings(catalog.bindings.map(b=>({role:b.role,endpoint:b.endpoint_id,model:b.model_id,timeout:b.timeout_seconds}))));
+ const optional=value=>value===''||value==null?null:Number(value);
+ const bindings=rows=>rows.filter(b=>b.clearOverride||b.endpoint||b.model||b.timeout!==''&&b.timeout!=null||b.temperature!==''&&b.temperature!=null||b.topP!==''&&b.topP!=null).map(b=>[b.role,b.endpoint,b.model.trim(),b.timeout===''||b.timeout==null?defaultModelTimeoutSeconds:Number(b.timeout),optional(b.temperature),optional(b.topP),!!b.clearOverride]).sort((a,b)=>a[0].localeCompare(b[0]));
+ const editableRoles=new Set(draft.bindings.map(b=>b.role));
+ const current=catalog.bindings.filter(b=>editableRoles.has(b.role)).map(b=>({role:b.role,endpoint:b.endpoint_id,model:b.model_id,timeout:b.timeout_seconds,temperature:b.temperature,topP:b.top_p}));
+ const draftBindings=draft.bindings.map(b=>{const saved=current.find(row=>row.role===b.role);return {...b,temperature:Object.hasOwn(b,'temperature')?b.temperature:saved?.temperature,topP:Object.hasOwn(b,'topP')?b.topP:saved?.topP};});
+ return JSON.stringify(endpoints(draft.endpoints))!==JSON.stringify(endpoints(catalog.endpoints.map(e=>({id:e.id,name:e.id,protocol:e.kind,url:e.base_url}))))||JSON.stringify(bindings(draftBindings))!==JSON.stringify(bindings(current));
 }
 export function restoreConnectionDraft(raw,catalog) {
   let draft;try{draft=JSON.parse(raw);}catch{return null;}
   if(draft?.version!==1||!Array.isArray(draft.endpoints)||!Array.isArray(draft.bindings)||!draft.versions||typeof draft.versions!=='object')return null;
   if(!draft.endpoints.every(e=>e&&['id','name','protocol','url'].every(k=>typeof e[k]==='string'))||
-     !draft.bindings.every(b=>b&&['role','endpoint','model'].every(k=>typeof b[k]==='string')&&['string','number'].includes(typeof b.timeout)))return null;
+     !draft.bindings.every(b=>b&&['role','endpoint','model'].every(k=>typeof b[k]==='string')&&['string','number'].includes(typeof b.timeout)&&['temperature','topP'].every(k=>!Object.hasOwn(b,k)||['string','number'].includes(typeof b[k]))&&(!Object.hasOwn(b,'clearOverride')||typeof b.clearOverride==='boolean')))return null;
   const clean=connectionDraft(draft);
   clean.credentialPending=!!draft.credentialPending;
   const dirty=connectionDraftDirty(clean,catalog),connectionVersion=key=>['endpoint:','binding:','secret:'].some(prefix=>key.startsWith(prefix)),originalVersions=Object.fromEntries(Object.entries(clean.versions).filter(([key])=>connectionVersion(key)));

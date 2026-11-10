@@ -9,6 +9,12 @@ const errorMessages: Record<string, string> = {
   unavailable: "服务暂时不可用，请稍后重试。",
   current_facts_stale: "当前资料已变化，请读取最新版本后核对草稿。",
   actor_context_stale: "背景资料已变化，草稿已保留，请读取最新版本。",
+  media_quality_rejected: "图片未通过质量检查，未自动交付。",
+  media_quality_retry_exhausted: "图片复核仍未通过，未自动交付。",
+  media_quality_legacy_review_required: "旧任务的复核未通过，请核对已生成或已交付的结果。",
+  media_quality_legacy_delivery_needs_resume: "已找到旧图片的交付记录，请继续核对结算；不会重复发送。",
+  media_quality_review_incomplete: "图片质量检查尚未通过，请查看实际检查结果。",
+  reply_snapshot_credential_source_unknown: "原回复使用的连接已变化，无法安全确认旧凭据来源；请检查原任务及模型连接。",
   goal_evaluation_required_evidence_budget_exceeded: "本次评估所需资料超出处理预算，请查看诊断。",
 };
 export function userError(value: unknown, fallback = "操作未完成，请稍后重试。") {
@@ -20,7 +26,7 @@ export function userError(value: unknown, fallback = "操作未完成，请稍�
   return /[\u3400-\u9fff]/.test(message) ? message : fallback;
 }
 const statusLabels: Record<string, string> = {
-  active: "运行中", running: "执行中", paused: "已暂停", candidate: "候选", completed: "已完成", succeeded: "已完成", failed: "失败", cancelled: "已取消", abandoned: "已放弃", pending: "待处理", queued: "排队中", waiting: "等待中", timeout: "超时", unavailable: "不可用", available: "可用", unknown: "未知", apply: "应用规划", closed: "已关闭", no_change: "保留当前规划", original_used: "采用原方案", not_applied: "未应用", use_original: "保留原方案", ok: "成功", info: "信息", error: "错误", warning: "注意", retry_accepted: "已通过复核",
+  active: "运行中", running: "执行中", paused: "已暂停", candidate: "候选", completed: "已完成", succeeded: "已完成", failed: "失败", cancelled: "已取消", abandoned: "已放弃", pending: "待处理", queued: "排队中", waiting: "等待中", timeout: "超时", unavailable: "不可用", available: "可用", unknown: "未知", apply: "应用规划", closed: "已关闭", no_change: "保留当前规划", original_used: "采用原方案", not_applied: "未应用", use_original: "保留原方案", ok: "成功", info: "信息", error: "错误", warning: "注意", retry_accepted: "复核未通过，按旧策略保留",
   terminated: "已终止", continued_as_new: "转入新运行", timed_out: "超时", original: "原方案", guarded: "置信度筛选", direct: "直接表达",
 };
 export function displayStatus(value: unknown) { const code = String(value ?? ""); return statusLabels[code] ?? (code || "未知"); }

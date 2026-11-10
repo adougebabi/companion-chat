@@ -178,7 +178,9 @@ type RetryTurn = {
   senderUtcOffsetMinutes?: number;
   senderSentAt?: string;
   messageId?: string;
+  priorAdmission?: TurnAdmissionIdentity;
 };
+type TurnAdmissionIdentity = Pick<RetryTurn, "conversationId" | "fluctlightId" | "text" | "idempotencyKey" | "turnId" | "attachmentRefs" | "senderActorId">;
 type QueuedTurn = RetryTurn & {
   messageId: string;
   createdAt: string;
@@ -227,6 +229,17 @@ function validRecovery(value: unknown, queued = false): value is QueuedTurn {
     (!queued ||
       (typeof v.messageId === "string" && typeof v.createdAt === "string"))
   );
+}
+function isAcceptedTurnMessage(message: BrowserMessage, request: TurnAdmissionIdentity): boolean {
+  return message.kind === "user" && !isTransientMessage(message) &&
+    message.conversationId === request.conversationId && message.turnId === request.turnId &&
+    message.idempotencyKey === request.idempotencyKey && message.text === request.text &&
+    JSON.stringify(message.attachmentRefs ?? []) === JSON.stringify(request.attachmentRefs) &&
+    (!request.senderActorId || message.authorActorId === request.senderActorId);
+}
+function turnAdmissionIdentity(request: RetryTurn): TurnAdmissionIdentity {
+  const {conversationId, fluctlightId, text, idempotencyKey, turnId, attachmentRefs, senderActorId} = request;
+  return {conversationId, fluctlightId, text, idempotencyKey, turnId, attachmentRefs: [...attachmentRefs], senderActorId};
 }
 function recoveryRecords(
   archiveKey: string,
@@ -469,6 +482,7 @@ export const conversationDefinition = defineDomain({
     historyLoading: false,
     sending: false,
     activeTurnId: null as string | null,
+    activeTurnAccepted: false,
     attemptStartedAt: null as number | null,
     error: "" as string,
     directoryError: "" as string,
@@ -733,6 +747,10 @@ export const conversationDefinition = defineDomain({
           this.queuedTurn.fluctlightId === this.fluctlightId
         ) {
           await this.sendQueuedTurn();
+        } else if (this.queuedAfterConfirmedTurn(page.messages)) {
+          // The former observer may have been lost during a reload. The
+          // server's exact pending message is enough to order the follow-up.
+          void this.sendQueuedTurn();
         }
       } catch {
         if (
@@ -854,8 +872,13 @@ export const conversationDefinition = defineDomain({
             !["completed", "failed", "cancelled"].includes(
               confirmed.turnStatus ?? "",
             )
-          )
+          ) {
+            if (!targetTurnId && this.queuedAfterConfirmedTurn(page.messages)) {
+              this.activeTurnAccepted = true;
+              this.promoteQueuedAfterAdmission();
+            }
             return confirmed?.turnStatus;
+          }
           this.invalidateRequest();
           this.messages = mergeConversationMessages(
             page.messages,
@@ -874,6 +897,10 @@ export const conversationDefinition = defineDomain({
         const status = page.messages.findLast(
           (message) => message.kind === "user",
         )?.turnStatus;
+        if (!targetTurnId && !this.sending && this.queuedAfterConfirmedTurn(page.messages)) {
+          void this.sendQueuedTurn();
+          return status;
+        }
         if (
           !targetTurnId &&
           status === "completed" &&
@@ -948,9 +975,10 @@ export const conversationDefinition = defineDomain({
           idempotencyKey: queued.idempotencyKey,
         });
         onAccepted?.();
+        this.promoteQueuedAfterAdmission();
         return true;
       }
-      if (!retry && this.hasPendingTurn) {
+      if (!retry && !queuedRequest && this.hasPendingTurn) {
         if (!this.sending) {
           await this.cancel();
         }
@@ -989,6 +1017,7 @@ export const conversationDefinition = defineDomain({
       if (
         pendingRetry &&
         !retry &&
+        !queuedRequest &&
         !this.messages.some(
           (message) =>
             message.kind === "user" &&
@@ -1023,10 +1052,25 @@ export const conversationDefinition = defineDomain({
                 senderActorId: this.senderActorId ?? undefined,
                 ...captureSenderTime(),
               };
+      if (queuedRequest && pendingRetry) {
+        // The two localStorage updates below cannot be atomic. Preserve the
+        // confirmed predecessor in B if transferring the queued identity
+        // fails midway, so recovery can still establish A-before-B ordering.
+        request.priorAdmission = pendingRetry.idempotencyKey === request.idempotencyKey
+          ? pendingRetry.priorAdmission
+          : turnAdmissionIdentity(pendingRetry);
+      }
       this.activeTurnId = request.turnId;
+      this.activeTurnAccepted = false;
       request.attemptStartedAt = Date.now();
       this.attemptStartedAt = request.attemptStartedAt;
-      try{persistRetry(request);}catch{this.recoveryStorageError=recoveryStorageMessage;this.error=recoveryStorageMessage;this.sending=false;this.abortController=null;this.activeTurnId=null;this.attemptStartedAt=null;return false;}
+      try{
+        persistRetry(request);
+        if (queuedRequest && this.queuedTurn?.idempotencyKey === request.idempotencyKey) {
+          persistQueuedTurn(null, request.conversationId, request.fluctlightId);
+          this.queuedTurn = null;
+        }
+      }catch{this.recoveryStorageError=recoveryStorageMessage;this.error=recoveryStorageMessage;this.sending=false;this.abortController=null;this.activeTurnId=null;this.activeTurnAccepted=false;this.attemptStartedAt=null;return false;}
       this.retryTurn = request;
       let optimisticMessageId = request.messageId ?? null;
       if (!retry) {
@@ -1152,6 +1196,12 @@ export const conversationDefinition = defineDomain({
                 request.messageId = message.id;
                 optimisticMessageId = message.id;
               } else this.messages.push(message);
+              if (this.requestEpoch === requestEpoch && isAcceptedTurnMessage(message, request)) {
+                // This frame is emitted only after the server commits the
+                // exact user turn. HTTP success alone may be a stream error.
+                this.activeTurnAccepted = true;
+                this.promoteQueuedAfterAdmission();
+              }
             }
           }
           if (event.type === "error") {
@@ -1177,6 +1227,7 @@ export const conversationDefinition = defineDomain({
             if (!line.trim()) continue;
             applyEvent(JSON.parse(line) as BrowserTurnEvent);
           }
+          if (this.requestEpoch !== requestEpoch) return false;
         }
         if (this.requestEpoch !== requestEpoch) return false;
         buffer += decoder.decode();
@@ -1275,6 +1326,7 @@ export const conversationDefinition = defineDomain({
           this.abortController = null;
           this.sending = false;
           this.activeTurnId = null;
+          this.activeTurnAccepted = false;
           if (
             !retry &&
             !this.retrying &&
@@ -1300,7 +1352,32 @@ export const conversationDefinition = defineDomain({
       this.abortController = null;
       this.sending = false;
       this.activeTurnId = null;
+      this.activeTurnAccepted = false;
       this.retrying = false;
+    },
+    promoteQueuedAfterAdmission() {
+      if (!this.sending || !this.activeTurnAccepted || !this.queuedTurn ||
+          this.queuedTurn.conversationId !== this.conversation?.id ||
+          this.queuedTurn.fluctlightId !== this.fluctlightId) return;
+      // Stop observing the old durable turn only after its exact user message
+      // is committed. The new turn uses its own saved identity and Core owns
+      // supersession; closing this observer does not cancel the Worker.
+      this.invalidateRequest();
+      this.messages = this.messages.filter(message => !message.id.startsWith("stream-"));
+      void this.sendQueuedTurn();
+    },
+    queuedAfterConfirmedTurn(messages: BrowserMessage[]): boolean {
+      const queued = this.queuedTurn, retry = this.retryTurn;
+      if (!queued || !retry || queued.conversationId !== this.conversation?.id ||
+          queued.fluctlightId !== this.fluctlightId || retry.conversationId !== queued.conversationId ||
+          retry.fluctlightId !== queued.fluctlightId) return false;
+      const sameRequest = retry.turnId === queued.turnId && retry.idempotencyKey === queued.idempotencyKey;
+      if ((retry.turnId === queued.turnId || retry.idempotencyKey === queued.idempotencyKey) && !sameRequest) return false;
+      const prior = sameRequest ? retry.priorAdmission : retry;
+      if (!prior || prior.conversationId !== queued.conversationId || prior.fluctlightId !== queued.fluctlightId ||
+          prior.turnId === queued.turnId || prior.idempotencyKey === queued.idempotencyKey || !Array.isArray(prior.attachmentRefs)) return false;
+      const latest = messages.findLast(message => message.kind === "user" && !isTransientMessage(message));
+      return !!latest && ["pending", "running"].includes(latest.turnStatus ?? "") && isAcceptedTurnMessage(latest, prior);
     },
     pruneOrphanedLocalTurns() {
       const available = new Set(this.fluctlights.map((item) => item.id));
@@ -1386,6 +1463,12 @@ export const conversationDefinition = defineDomain({
     },
     async cancel() {
       const conversationId = this.conversation?.id;
+      const fluctlightId = this.fluctlightId;
+      const epoch = this.requestEpoch;
+      const controller = this.abortController;
+      const activeTurnId = this.activeTurnId;
+      const stillCurrent = () => this.requestEpoch === epoch && this.conversation?.id === conversationId &&
+        this.fluctlightId === fluctlightId && this.activeTurnId === activeTurnId && this.abortController === controller;
       const pending = [...this.messages]
         .reverse()
         .find(
@@ -1401,13 +1484,15 @@ export const conversationDefinition = defineDomain({
       }
       try {
         await client.cancelTurn(conversationId, pending.turnId);
-        this.abortController?.abort();
+        if (!stillCurrent()) return;
+        if (this.activeTurnId === pending.turnId && this.abortController === controller) controller?.abort();
         const page = await client.messages(conversationId);
-        if (this.conversation?.id !== conversationId) return;
+        if (!stillCurrent()) return;
         this.messages = mergeConversationMessages(page.messages, this.messages);
         this.syncServerTurnState();
       } catch {
-        this.error = "取消请求结果尚未确认，请刷新进度核对。原消息已保留。";
+        if (stillCurrent())
+          this.error = "取消请求结果尚未确认，请刷新进度核对。原消息已保留。";
       }
     },
     async retryMessage(messageId: string) {
@@ -1506,8 +1591,6 @@ export const conversationDefinition = defineDomain({
         this.sending
       )
         return;
-      this.queuedTurn = null;
-      persistQueuedTurn(null, this.conversation?.id, this.fluctlightId);
       await this.send(queued.text, false, queued);
     },
     ensureRetryMessageVisible() {

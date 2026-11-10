@@ -3,8 +3,14 @@ import test from "node:test";
 import { validateFields } from "../src/lib/form-validation.ts";
 import { parseWorkflowTemplate, mediaSettingsPatch, autonomySettingsPatch, workflowSummary } from "../src/lib/configuration-forms.ts";
 import { workflowPresentation } from "../src/lib/diagnostic-presentation.ts";
-import { userError } from "../src/lib/user-feedback.ts";
+import { displayStatus, userError } from "../src/lib/user-feedback.ts";
 import { backgroundDraft, backgroundFromDraft, actorUserBackgroundFields } from "../src/lib/actor-user-background.ts";
+test("media quality failures and historical retained results are not shown as passed", () => {
+  assert.match(userError({ code: "media_quality_rejected" }), /未通过.*未自动交付/);
+  assert.match(userError({ code: "media_quality_retry_exhausted" }), /未通过.*未自动交付/);
+  assert.match(userError({ code: "media_quality_legacy_delivery_needs_resume" }), /交付记录.*不会重复发送/);
+  assert.match(displayStatus("retry_accepted"), /未通过.*旧策略/);
+});
 test("field validation rejects whitespace, invalid numbers and timezone aliases while preserving false and zero", () => {
   const errors = validateFields([{
     id: "name",

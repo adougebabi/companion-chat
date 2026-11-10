@@ -13,6 +13,11 @@ test('readable failures preserve Chinese business meaning and leave raw values u
   assert.match(chatFailureText('回复未完成：request_timeout'), /稍后重试/);
   assert.doesNotMatch(chatFailureText('回复未完成：request_timeout'), /request_timeout/);
   assert.equal(errorMessage('unmapped_code', '读取失败，请重试'), '读取失败，请重试');
+  const disabled = errorMessage({status:409, code:'domain_plugin_disabled'});
+  assert.match(disabled, /已停用/);
+  assert.doesNotMatch(disabled, /版本已变化/);
+  assert.match(errorMessage({code:'diary_model_snapshot_missing'}), /未记录原模型配置.*重试/);
+  assert.match(errorMessage({code:'studio_model_snapshot_missing'}), /未记录原模型配置.*重试/);
 });
 test('long waiting remains observable processing after thirty seconds without a fake failure', () => {
   const state = {

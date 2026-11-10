@@ -45,6 +45,7 @@ export function ManagementPageView({ view: view }) {
     {id:'models',label:'模型服务与用途',icon:Server,sections:['服务地址','模型用途']},
     {id:'conversation',label:'聊天与视觉',icon:MessageSquare,sections:['聊天回复','看图理解']},
     {id:'media',label:'图片生成',icon:ImageIcon,sections:['图片（ComfyUI）']},
+    {id:'plugins',label:'能力插件',icon:SlidersHorizontal,sections:['能力插件']},
     {id:'autonomy',label:'自主性与安静时段',icon:Leaf,sections:['角色自主与主动联系','安静时段']},
     {id:'runtime',label:'通知与后台',icon:Bell,sections:['通知','作息与后台节奏','资源与预算']},
     {id:'diagnostics',label:'诊断与任务',icon:Activity,sections:[]},
@@ -71,8 +72,8 @@ export function ManagementPageView({ view: view }) {
               onSubmit={eventModifiers(view.save, ["prevent"])}
             >
               <div className="replica-management-section-header">
-              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small className="replica-model-summary">{view.catalogReady.value?view.endpoints.value.length+' 个服务 · '+view.bindings.value.length+' 个用途':'正在读取服务与用途'}</small>}{categories.filter(item=>item.id===category&&category!=='models').map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
-              {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>void view.scrollTo(value,false).then(()=>document.querySelector('.replica-management-main')?.scrollTo({top:0,behavior:'instant'}))}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.length}</Badge></TabsTrigger></TabsList></Tabs>}
+              <div className="replica-settings-head"><div><h2>{categories.find(c=>c.id===category)?.label}</h2><p>{category==='models'?'先连接服务，再为每一种能力选择合适的模型。':'修改正式配置；保存后读取实际回执。'}</p></div>{category==='models'&&<small className="replica-model-summary">{view.catalogReady.value?view.endpoints.value.length+' 个服务 · '+view.bindings.value.filter(binding=>!binding.role.startsWith('agent:')).length+' 个默认用途':'正在读取服务与用途'}</small>}{categories.filter(item=>item.id===category&&category!=='models').map(item=><item.icon key={item.id} size={25} className="replica-settings-section-icon"/>)}</div>
+              {category==='models'&&<Tabs value={view.currentSection.value} onValueChange={value=>void view.scrollTo(value,false).then(()=>document.querySelector('.replica-management-main')?.scrollTo({top:0,behavior:'instant'}))}><TabsList variant="line"><TabsTrigger value="服务地址">模型服务 <Badge variant="secondary">{view.endpoints.value.length}</Badge></TabsTrigger><TabsTrigger value="模型用途">用途分配 <Badge variant="secondary">{view.bindings.value.filter(binding=>!binding.role.startsWith('agent:')).length}</Badge></TabsTrigger></TabsList></Tabs>}
               </div>
               {view.catalogLoading.value&&<p role="status" data-feedback-kind="progress">正在读取正式配置…</p>}
               {!view.catalogReady.value&&view.error.value&&<InlineFeedback role="alert">{view.error.value}<ActionButton type="button" variant="outline" onClick={view.retryCatalog}>重新读取配置</ActionButton></InlineFeedback>}
@@ -190,25 +191,38 @@ export function ManagementPageView({ view: view }) {
                 <h2>{"为每种能力选择模型"}</h2>
                 <p className="muted" id="model-role-timeout-hint">
                   {
-                    "多个用途可以共用同一个服务，也可以分别配置。未使用的用途可以留空；请求超时留空时使用 120 秒。"
+                    "多个用途可以共用同一个服务，也可以分别配置。未使用的用途可以留空；请求超时留空时使用 120 秒。私聊、主动私聊和动态仍受回复设置中的总时限约束。"
                   }
                 </p>
+                <Disclosure className="management-block" title="按 Agent 或任务变体覆盖">
+                  <p className="muted">未设置覆盖时使用展示的继承来源。保存后只影响新任务，视觉输入继续使用独立配置。</p>
+                  <label>选择任务
+                    <ChoiceSelect aria-label="选择 Agent 模型任务" value={view.selectedAgentRoute.value} onChange={event=>view.selectedAgentRoute.value=event.target.value}>
+                      <option value="">请选择任务</option>
+                      {view.agentModelRoutes.value.filter(route=>route.writable&&route.key).map(route=><option key={route.key} value={route.key}>{route.agent_id}{route.variant?' · '+route.variant:' · 全任务'}</option>)}
+                    </ChoiceSelect>
+                  </label>
+                  {view.agentModelRoutes.value.some(route=>!route.writable)&&<Disclosure title="视觉任务的现有绑定">{view.agentModelRoutes.value.filter(route=>!route.writable).map(route=><p className="muted" key={route.agent_id}>{route.agent_id} · {route.model_id||'按阶段或视觉配置确定'} · {route.state==='unavailable'?'当前不可用':'能力待验证'}</p>)}</Disclosure>}
+                </Disclosure>
                 <Fragment>
-                  {listValues(view.bindings.value).map((h) => {
+                  {listValues(view.bindings.value).filter(h=>!h.role.startsWith('agent:')||h.role===view.selectedAgentRoute.value).sort((a,b)=>Number(b.role.startsWith('agent:'))-Number(a.role.startsWith('agent:'))).map((h) => {
                     var b;
                     const required =
                       !!h._source ||
                       !!h.endpoint ||
                       !!h.model ||
-                      (h.timeout != null && h.timeout !== "");
+                      (h.timeout != null && h.timeout !== "") ||
+                      (h.temperature != null && h.temperature !== "") ||
+                      (h.topP != null && h.topP !== "");
                     return (
                       <section key={h.role} className="management-block replica-model-role" aria-label={h.name}>
-                        <div className="replica-role-heading"><h3>{h.name}</h3><p>{({generic_llm:'规划日程、理解描述、整理记忆',conversation_reply:'组织语言，回应每次对话',vision_understanding:'理解聊天中分享的照片',embedding:'检索已经保存的记忆'})[h.role]||'为这项能力选择已连接的模型服务。'}</p></div>
+                        <div className="replica-role-heading"><h3>{h.name}</h3><p>{({generic_llm:'规划日程、理解描述、整理记忆',conversation_reply:'组织语言，回应每次对话',vision_understanding:'理解聊天中分享的照片',embedding:'检索已经保存的记忆'})[h.role]||'为这项任务选择已连接的模型服务。'}</p>{h._route&&<p data-testid="agent-model-source">生效来源：{({variant:'任务变体覆盖',agent:'Agent 覆盖',default:'默认用途',legacy:'旧用途绑定',unconfigured:'尚未配置'})[h._route.source]||h._route.source}；模型：{h._route.model_id||'未配置'}；{h._route.state==='unavailable'?'当前绑定不可用':h._route.state==='configured'?'能力兼容性尚未验证':'等待配置'}。</p>}{h._source&&h.role.startsWith('agent:')&&<ActionButton type="button" variant="outline" disabled={view.saving.value} onClick={()=>h.clearOverride=!h.clearOverride}>{h.clearOverride?'撤销恢复继承':'恢复继承'}</ActionButton>}{h.clearOverride&&<p role="status">已加入恢复继承的草稿，保存后生效。</p>}</div>
                         <div className="form-grid">
                           <label>
                             {"模型服务"}
                             <ChoiceSelect
                               required={required}
+                              disabled={!!h.clearOverride}
                               aria-label="模型服务"
                               value={h.endpoint}
                               onChange={(event) => {
@@ -236,13 +250,14 @@ export function ManagementPageView({ view: view }) {
                           </label>
                           <label>
                             {"模型标识"}
-                            <Input aria-label="模型标识" required={required} list={'role-models-'+h.role} value={h.model} placeholder="填写模型标识" onChange={event=>h.model=event.target.value}/>
+                            <Input aria-label="模型标识" required={required} disabled={!!h.clearOverride} list={'role-models-'+h.role} value={h.model} placeholder="填写模型标识" onChange={event=>h.model=event.target.value}/>
                             <datalist id={'role-models-'+h.role}>{(view.endpoints.value.find(endpoint=>endpoint.id===h.endpoint)?.models||[]).map(model=>typeof model==='string'?model:model.id||model.name).filter(Boolean).map(model=><option key={model} value={model}/>)}</datalist>
                           </label>
                           <label>
                             {"请求超时（秒，可选）"}
                             <Input
                               type="number"
+                              disabled={!!h.clearOverride}
                               min="1"
                               placeholder="默认 120 秒"
                               aria-label="请求超时（秒，可选）"
@@ -255,6 +270,8 @@ export function ManagementPageView({ view: view }) {
                               }}
                             />
                           </label>
+                          {h.role !== 'embedding' && <label>温度（可选）<Input type="number" min="0" max="2" step="any" disabled={!!h.clearOverride} aria-label="温度（可选）" value={h.temperature ?? ''} placeholder="沿用任务默认" onChange={event=>h.temperature=numberInput(event.target.value)}/></label>}
+                          {h.role !== 'embedding' && <label>Top P（可选）<Input type="number" min="0" max="1" step="any" disabled={!!h.clearOverride} aria-label="Top P（可选）" value={h.topP ?? ''} placeholder="沿用任务默认" onChange={event=>h.topP=numberInput(event.target.value)}/></label>}
                         </div>
                       </section>
                     );

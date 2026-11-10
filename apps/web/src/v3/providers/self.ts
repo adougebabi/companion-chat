@@ -12,6 +12,13 @@ export function createSelfProvider(client:BrowserClient){
   history:(fid:string,id:string,kind:'revisions'|'reviews',cursor='')=>client.selfClaimHistory(fid,id,kind,cursor),
   async summary(fid:string){const detail=await client.detail(fid);if(!Number.isSafeInteger(detail.current_revision))throw new Error('人格当前版本缺失，请重新读取');return detail;},
   reflections:(fid:string,cursor='')=>client.listReflections(fid,{cursor,limit:5}),
+  expressionLearning:(fid:string)=>client.expressionLearning(fid),
+  expressionSources:(fid:string,cursor='')=>client.expressionLearningSources(fid,cursor),
+  expressionSource:(fid:string,id:string)=>client.expressionLearningSource(fid,id),
+  updateExpressionLearning:(fid:string,body:{learningEnabled:boolean;useEnabled:boolean;expectedRevision:number},key:string)=>client.updateExpressionLearning(fid,{...body,idempotencyKey:key}),
+  extractExpressionLearning:(fid:string,sourceMessageId:string,key:string)=>client.extractExpressionLearning(fid,{sourceMessageId,idempotencyKey:key}),
+  expressionExtractionStatus:(fid:string,key:string)=>client.expressionExtractionStatus(fid,key),
+  reviewExpressionLearning:(fid:string,id:string,action:'enable'|'disable'|'revoke',body:{expectedRevision:number;reason:string;triggerText?:string},key:string)=>client.reviewExpressionLearning(fid,id,action,{...body,idempotencyKey:key}),
   async command(fid:string,id:string,...args:[operation:'review'|'forget',body:Omit<BrowserSelfCommandBody,'idempotencyKey'>,idempotencyKey?:string]|[operation:'restore',body:Omit<BrowserSelfRestoreBody,'idempotencyKey'>,idempotencyKey?:string]){
    const [operation,body,providedKey]=args;
    const identity=JSON.stringify([get('session')?.actorId,fid,id,operation,body]);let key=providedKey||identities.get(identity);if(!key){key=randomId();identities.set(identity,key);}

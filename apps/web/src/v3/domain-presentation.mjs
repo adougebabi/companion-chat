@@ -34,6 +34,10 @@ export function errorMessage(error, fallback='操作未完成，请稍后重试�
  if(/persona_preparation_failed/.test(source))return '人格资料准备失败，暂时无法聊天。请继续准备人格，完成后再发送；当前输入会保留。';
  if(/persona_preparation_pending/.test(source))return '人格资料正在准备，完成后即可聊天。当前输入会保留，请稍后重新读取准备状态。';
  if(/vision_disabled/.test(source))return '视觉理解未启用；候选图片已保存，尚未经视觉检验。请到设置开启视觉理解并选择独立视觉模型，或提交人工评审。';
+ if(/diary_model_snapshot_missing/.test(source))return '旧日记任务未记录原模型配置，未继续生成。已保存的素材和阶段结果仍在，可核对模型设置后重试。';
+ if(/diary_model_snapshot_invalid/.test(source))return '日记任务的模型配置快照无法核对，未继续生成。请查看运行记录并核对模型设置。';
+ if(/studio_model_snapshot_missing/.test(source))return '旧创作任务未记录原模型配置，未继续生成。原草稿和已完成结果仍在，可核对模型设置后重试。';
+ if(/studio_model_snapshot_invalid/.test(source))return '创作任务的模型配置快照无法核对，未继续生成。请查看运行记录并核对模型设置。';
  const providerRole=source.match(/provider role ([\w.-]+) (unavailable|preflight failed)/);
  if(/initialization_role_unconfigured|wardrobe_provider_unconfigured/.test(source)||providerRole){
   const model=({generic_llm:'通用模型',cognitive_assessment:'通用模型',initialization:'通用模型',conversation_reply:'聊天回复模型',vision_understanding:'视觉理解模型',embedding:'记忆检索模型'})[providerRole?.[1]]||'任务需要的通用模型';
@@ -49,6 +53,7 @@ export function errorMessage(error, fallback='操作未完成，请稍后重试�
  if(error?.status===403||/\b403\b|forbidden/.test(source))return '当前账户没有执行此操作的权限。';
  if(error?.status===404||/resource not found|could not be read|not_found/.test(source))return '没有找到这条记录，请返回列表核对。';
  if(code==='resource_referenced')return '这条记录已有资料或历史引用，暂不能移除。请保留原记录并核对引用来源。';
+ if(code==='domain_plugin_disabled')return '该能力已停用，新请求未受理。可在管理中心的能力插件设置中启用。';
  if(error?.status===409||/current_facts_stale|actor_context_stale|version_conflict|revision_conflict|resource revision conflict/.test(source))return '资料版本已变化，草稿已保留，请重新读取后核对。';
  if(/prompt_(?:required_|context_|tool_result_)?budget_exceeded/.test(source))return '要读取的资料超过模型输入上限，请在模型设置核对可用上下文。';
  if(/adk_final_(?:output|repair)|structured_response_invalid/.test(source))return '模型返回的内容格式不完整，请检查模型服务后重试。';

@@ -120,6 +120,142 @@ test("React settings stay busy through receipt readback and preserve newer model
   }
 });
 
+test("React model settings save a task override and restore inheritance", async () => {
+  const { default: Management } = await load("react-app/pages/ManagementPage.jsx");
+  const role = "agent:reflection:reflection_proposal_v2";
+  const server = {
+    endpoints:[{id:"service",base_url:"https://model.example",kind:"openai-compatible"}],
+    bindings:[{role:"generic_llm",endpoint_id:"service",model_id:"generic",timeout_seconds:120},{role,endpoint_id:"service",model_id:"special",timeout_seconds:30}],
+    versions:{["binding:"+role]:3,"endpoint:service":1},effective_values:{},
+    agent_model_routes:[{key:role,agent_id:"reflection",variant:"reflection_proposal_v2",writable:true,source:"variant",state:"configured",model_id:"special"}],
+  };
+  const submitted=[];
+  let finishClear,clearCount=0,loseReceipt=false,loseCatalogRead=false,lastRole='';
+  const w={...storeFacade(proxy({session:{actorId:"owner-agent-react"},managementTab:"配置中心",characters:[],operations:[],managementSection:"模型用途",runtimeCatalog:{}})),
+    services:{configurationClient:{
+      read:async()=>{if(loseCatalogRead){loseCatalogRead=false;throw Error('catalog unavailable');}return structuredClone(server);},models:async()=>({models:[]}),catalog:async()=>({agents:[]}),save:async body=>{Object.assign(server.effective_values,body.values||{});},
+      binding:async body=>{
+        submitted.push(structuredClone(body));
+        lastRole=body.role;
+        if(body.clearOverride){if(++clearCount===1)await new Promise(resolve=>finishClear=resolve);server.bindings=server.bindings.filter(binding=>binding.role!==role);server.agent_model_routes[0]={...server.agent_model_routes[0],source:"default",model_id:server.bindings.find(binding=>binding.role==='generic_llm').model_id};if(clearCount===2)loseReceipt=true;}
+        else {const previous=server.bindings.find(binding=>binding.role===body.role);server.bindings=[...server.bindings.filter(binding=>binding.role!==body.role),{role:body.role,endpoint_id:body.endpointId,model_id:body.modelId,timeout_seconds:body.timeoutSeconds,temperature:Object.hasOwn(body,'temperature')?body.temperature:previous?.temperature??null,top_p:Object.hasOwn(body,'topP')?body.topP:previous?.top_p??null}];if(body.role===role)server.agent_model_routes[0]={...server.agent_model_routes[0],source:'variant',model_id:body.modelId};else if(server.agent_model_routes[0].source==='default')server.agent_model_routes[0].model_id=body.modelId;}
+        server.versions["binding:"+body.role]=(server.versions["binding:"+body.role]||0)+1;
+        if(body.modelId==='readback-failure')loseCatalogRead=true;
+      },
+      command:async()=>{if(loseReceipt){loseReceipt=false;throw Error('receipt unavailable');}return {status:"applied",applied_versions:{["binding:"+lastRole]:server.versions["binding:"+lastRole]}};},recover:async()=>({status:'applied'}),
+    },diagnosticsClient:{page:async()=>({items:[]})}},notify(){},navigatePath(){}};
+  const view=await mountReact(vite,Management,{workspace:w});
+  try {
+    await view.click(button("按 Agent 或任务变体覆盖",view.host));
+    const trigger=view.host.querySelector('[aria-label="选择 Agent 模型任务"]');
+    await view.click(trigger);
+    const option=[...document.querySelectorAll('[role="option"]')].find(node=>node.textContent.includes('reflection_proposal_v2'));
+    assert.ok(option,'task variant was not offered by the real React page');
+    await view.click(option);
+    const row=()=>view.host.querySelector('section[aria-label="reflection · reflection_proposal_v2"]');
+    assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/任务变体覆盖.*special/);
+    assert.ok(row().compareDocumentPosition(view.host.querySelector('section[aria-label="思考与通用分析"]')) & window.Node.DOCUMENT_POSITION_FOLLOWING);
+    await view.input(row().querySelector('input[aria-label="模型标识"]'),'updated');
+    await view.input(row().querySelector('input[aria-label="温度（可选）"]'),'0');
+    await view.input(row().querySelector('input[aria-label="Top P（可选）"]'),'0.75');
+    const submit=async()=>{await act(async()=>view.host.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));await view.flush();};
+    await submit();
+    assert.equal(submitted[0].role,role);assert.equal(submitted[0].modelId,'updated');assert.equal(submitted[0].temperature,0);assert.equal(submitted[0].topP,0.75);
+    assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/updated/);
+    await view.click(button('恢复继承',row()));
+    await submit();
+    assert.equal(submitted[1].clearOverride,true);
+    assert.deepEqual(Object.keys(submitted[1]).sort(),['clearOverride','expectedVersions','idempotencyKey','role']);
+    assert.deepEqual(submitted[1].expectedVersions,{['binding:'+role]:4});
+    const generic=view.host.querySelector('section[aria-label="思考与通用分析"] input[aria-label="模型标识"]');
+    await view.input(generic,'newer-unsaved');
+    await act(async()=>finishClear());await view.flush();
+    assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/默认用途.*generic/);
+    assert.equal(generic.value,'newer-unsaved');
+    await view.input(generic,'new-default');await submit();
+    assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/默认用途.*new-default/);
+    await view.click(row().querySelector('[aria-label="模型服务"]'));
+    const service=[...document.querySelectorAll('[role="option"]')].find(node=>node.textContent.trim()==='service');
+    assert.ok(service);await view.click(service);
+    await view.input(row().querySelector('input[aria-label="模型标识"]'),'new-override');
+    await submit();
+    assert.equal(submitted[3].role,role);assert.equal(submitted[3].modelId,'new-override');assert.equal(submitted[3].endpointId,'service');
+    assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/任务变体覆盖.*new-override/);
+    await view.click(button('恢复继承',row()));await submit();
+    assert.equal(submitted[4].clearOverride,true);
+    await view.click(button('核对原提交',view.host));
+    await view.click(button('读取最新基线（保留输入）',view.host));
+    await submit();
+    assert.equal(submitted.length,5,'a recovered deletion must not recreate the old override');
+    assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/默认用途.*new-default/);
+    await view.input(view.host.querySelector('section[aria-label="思考与通用分析"] input[aria-label="模型标识"]'),'readback-failure');await submit();
+    assert.equal(submitted.length,6);
+    assert.match(view.host.textContent,/模型配置已保存，但生效来源读取失败/);
+    await view.click(button('读取最新基线（保留输入）',view.host));
+    assert.match(row().querySelector('[data-testid="agent-model-source"]').textContent,/默认用途.*readback-failure/);
+    assert.equal(submitted.length,6,'a failed source reread must not repeat an accepted write');
+  } finally { await view.dispose(); }
+});
+
+test("React plugin settings save and reread independent Image and Moment switches", async () => {
+  const {default: Management} = await load("react-app/pages/ManagementPage.jsx");
+  const server = {endpoints:[], bindings:[], versions:{}, effective_values:{"plugins.domains":{image:true,moment:true}},
+    domain_plugins:[{id:"image",version:"1",enabled:true,optional_dependencies:[]},{id:"moment",version:"1",enabled:true,optional_dependencies:["image"]}]};
+  const writes=[];let failNextRead=false;
+  const w={...storeFacade(proxy({session:{actorId:"owner-plugin-react"},managementTab:"配置中心",characters:[],operations:[],managementSection:"能力插件",runtimeCatalog:{}})),
+    services:{configurationClient:{read:async()=>{if(failNextRead){failNextRead=false;throw Error('catalog unavailable');}return structuredClone(server);},models:async()=>({models:[]}),catalog:async()=>({agents:[]}),
+      save:async body=>{writes.push(structuredClone(body));server.effective_values["plugins.domains"]=structuredClone(body.values["plugins.domains"]);server.versions["plugins.domains"]=writes.length;for(const plugin of server.domain_plugins)plugin.enabled=server.effective_values["plugins.domains"][plugin.id];if(writes.length===2)failNextRead=true;},
+      command:async()=>({status:"applied",applied_versions:{"plugins.domains":writes.length}})},diagnosticsClient:{page:async()=>({items:[]})}},notify(){},navigatePath(){}};
+  let view=await mountReact(vite,Management,{workspace:w});
+  try {
+    await view.click(view.host.querySelector('[data-testid="config-anchor-能力插件"]'));
+    let image=view.host.querySelector('[aria-label="启用图片能力"]');
+    let moment=view.host.querySelector('[aria-label="启用动态能力"]');
+    assert.ok(image&&moment);assert.equal(image.getAttribute('aria-checked'),'true');assert.equal(moment.getAttribute('aria-checked'),'true');
+    await view.click(image);
+    await act(async()=>view.host.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+    await view.flush();
+    assert.deepEqual(writes[0].values["plugins.domains"],{image:false,moment:true});
+    assert.match(view.host.textContent,/图片 · v1 · 已停用 · 健康状态未检测/);
+    assert.match(view.host.textContent,/动态 · v1 · 已启用 · 健康状态未检测 · 图片为可选依赖/);
+    await view.dispose();
+    view=await mountReact(vite,Management,{workspace:w});
+    await view.click(view.host.querySelector('[data-testid="config-anchor-能力插件"]'));
+    image=view.host.querySelector('[aria-label="启用图片能力"]');moment=view.host.querySelector('[aria-label="启用动态能力"]');
+    assert.equal(image.getAttribute('aria-checked'),'false');assert.equal(moment.getAttribute('aria-checked'),'true');
+    assert.equal(writes.length,1,'rereading must not repeat an accepted write');
+    await view.click(moment);
+    await act(async()=>view.host.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));await view.flush();
+    assert.equal(writes.length,2);
+    assert.match(view.host.textContent,/插件配置已保存，但生效来源读取失败/);
+    await view.click(button('读取最新基线（保留输入）',view.host));
+    assert.equal(writes.length,2,'readback failure must not repeat the accepted plugin write');
+  } finally { await view.dispose(); }
+});
+
+test("React configuration retries a definitively rejected plugin write with a fresh identity", async () => {
+  const {default: Management} = await load("react-app/pages/ManagementPage.jsx");
+  const server={endpoints:[],bindings:[],versions:{},effective_values:{"plugins.domains":{image:true,moment:true}},domain_plugins:[]};
+  const writes=[];
+  const w={...storeFacade(proxy({session:{actorId:"owner-plugin-rejected"},managementTab:"配置中心",characters:[],operations:[],managementSection:"能力插件",runtimeCatalog:{}})),
+    services:{configurationClient:{read:async()=>structuredClone(server),models:async()=>({models:[]}),catalog:async()=>({agents:[]}),
+      save:async body=>{writes.push(structuredClone(body));if(writes.length===1)throw Object.assign(Error('配置未保存'),{status:422,code:'domain_plugins_config_invalid',details:{configuration_admission:'rejected'}});server.effective_values["plugins.domains"]=structuredClone(body.values["plugins.domains"]);},
+      command:async()=>({status:'applied',applied_versions:{"plugins.domains":1}})},diagnosticsClient:{page:async()=>({items:[]})}},notify(){},navigatePath(){}};
+  const view=await mountReact(vite,Management,{workspace:w});
+  try {
+    await view.click(view.host.querySelector('[data-testid="config-anchor-能力插件"]'));
+    await view.click(view.host.querySelector('[aria-label="启用图片能力"]'));
+    const submit=async()=>{await act(async()=>view.host.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));await view.flush();};
+    await submit();
+    assert.equal(writes.length,1);
+    assert.equal(button('核对原提交',view.host),undefined,'a definite rejection must not look like an unknown commit');
+    await submit();
+    assert.equal(writes.length,2);
+    assert.notEqual(writes[0].idempotencyKey,writes[1].idempotencyKey);
+    assert.deepEqual(writes[1].values["plugins.domains"],{image:false,moment:true});
+  } finally {await view.dispose();}
+});
+
 test("React world editor preserves world identity, CAS and saved category on reread", async () => {
   const { createWorkspace } = await load("state/workspace.mjs"),
     store = await load("v3/proto/store.js"),

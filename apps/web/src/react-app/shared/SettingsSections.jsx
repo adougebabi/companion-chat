@@ -19,6 +19,7 @@ export default function SettingsSections({group,view,visible=true}){
  const test=()=> <Button type="button" variant="outline" onClick={()=>view.test(title)}>{title==='看图理解'?'测试看图（使用已保存配置）':'测试连接'}</Button>;
  let content;
  if(title==='聊天回复')content=card('回复方式',fields,'选择回复方式，调整表达的变化程度和采样范围。');
+ else if(title==='能力插件')content=<><Surface className="settings-card"><div className="replica-settings-section-head"><div><h2>能力插件</h2><p>停用后不再受理新请求。当前进程中已开始的运行可以完成；已创建的媒体任务继续恢复，已发布内容仍可读取。尚未创建媒体任务的排队工作在恢复时会检查当前设置。动态不依赖图片能力。</p></div></div>{input(fields)}{view.domainPlugins.value.map(plugin=><p className="muted" key={plugin.id}>{plugin.id==='image'?'图片':plugin.id==='moment'?'动态':plugin.id} · v{plugin.version} · {plugin.enabled?'已启用':'已停用'} · 健康状态未检测{plugin.optional_dependencies?.includes('image')?' · 图片为可选依赖':''}</p>)}</Surface></>;
  else if(title==='看图理解')content=card('图片理解',fields,'开启后使用独立视觉模型理解收到的图片。',test());
  else if(title==='图片（ComfyUI）')content=<>{card('图片服务',fields.filter(f=>['baseUrl','generation_timeout_seconds'].includes(f._key)),'连接图片服务，等待时间按真实工作流设置。',test())}{card('默认工作流',fields.filter(f=>f._key==='workflow'),'填写图片服务导出的 API 工作流，原结构会保留。')}{card('按用途覆盖',fields.filter(f=>!['baseUrl','generation_timeout_seconds','workflow'].includes(f._key)),'可选。留空时沿用默认工作流。')}</>;
  else if(title==='角色自主与主动联系'){

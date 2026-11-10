@@ -12,6 +12,10 @@ export function persistentCommand({key,storage,execute,cancelUnaccepted,preAdmis
   const raw=storage().getItem(key);if(!raw)return null;
   let record;try{record=JSON.parse(raw);}catch{throw new Error('原提交记录损坏，请先从请求记录核对结果；当前没有发起新提交。');}
   if(record?.version!==1||typeof record.idempotencyKey!=='string'||!record.idempotencyKey||!record.value||typeof record.value!=='object'||Array.isArray(record.value))throw new Error('原提交记录不可读取，请先核对原请求结果。');
+  // Recovery rules can be tightened between page loads. An old assumed
+  // rejection is no longer proof if this command no longer classifies that
+  // code as pre-admission; keep the original identity until it is reconciled.
+  if(record.rejection&&!record.rejection.confirmedNoEffect&&!preAdmissionConflicts.includes(record.rejection.code))delete record.rejection;
   return structuredClone(record);
  }
  async function run(record){
@@ -36,7 +40,18 @@ export function persistentCommand({key,storage,execute,cancelUnaccepted,preAdmis
  }
  return {
   pending,
-  releaseRejected(){const record=pending();if(running||!record?.rejection||record.attempts!==1)throw new Error('原提交尚未确认无效果，不能更换其内容或幂等身份。请先重试原提交。');storage().removeItem(key);},
+  releaseRejected(){const record=pending();if(running||!record?.rejection||(record.attempts!==1&&!record.rejection.confirmedNoEffect))throw new Error('原提交尚未确认无效果，不能更换其内容或幂等身份。请先重试原提交。');storage().removeItem(key);},
+  async confirmNoEffect(readStatus){
+   if(running||typeof readStatus!=='function')throw new Error('当前无法核对原提交状态');
+   const record=pending();if(!record)throw new Error('没有等待核对的原提交');
+   running=true;
+   try{
+    const result=await readStatus(record.idempotencyKey,structuredClone(record.value));
+    if(!owns(record,true))throw new Error('原提交记录已变化，请重新读取');
+    if(result?.status==='failed'&&result?.no_effect===true){record.rejection={status:409,code:'confirmed_no_effect',confirmedNoEffect:true};storage().setItem(key,JSON.stringify(record));}
+    return result;
+   }finally{running=false;}
+  },
   async submit(value){
    const previous=pending();
    if(previous){if(JSON.stringify(previous.value)!==JSON.stringify(value))throw new Error('原提议的受理结果尚未确认。新草稿已保留，请先查询或重试原提交。');return run(previous);}

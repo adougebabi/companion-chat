@@ -91,6 +91,8 @@ export default function ChatPage({
   const [historyOpen,setHistoryOpen]=useState(false);
   const [promptOffer,setPromptOffer]=useState('');
   const [readFailure,setReadFailure]=useState(''),[readLoading,setReadLoading]=useState(true);
+  const draftRevision=useRef(0),submittedDraftRevision=useRef<number|null>(null);
+  const editDraft=(value:string|((current:string)=>string))=>{draftRevision.current++;setDraft(value);};
   const latestDraft = useRef(draft);
   latestDraft.current = draft;
   const incomingPrompt=route?.query?.get('say')||'';
@@ -98,7 +100,7 @@ export default function ChatPage({
     setPromptOffer('');
     if(!incomingPrompt.trim()||(route?.fid&&route.fid!==character.id))return;
     const current=latestDraft.current;
-    if(!current.trim()||current.trim()===incomingPrompt.trim())setDraft(incomingPrompt);
+    if(!current.trim()||current.trim()===incomingPrompt.trim())editDraft(incomingPrompt);
     else setPromptOffer(incomingPrompt);
   },[incomingPrompt,route?.fid,character.id,scope]);
   const pageActive=useRef(false),historyFocus=useRef<HTMLButtonElement>(null);
@@ -114,6 +116,9 @@ export default function ChatPage({
   }
   const busy =
     snapshot.sending || store.hasPendingTurn || store.hasSettlingTurn;
+  const canQueueFollowUp = snapshot.sending && !store.queuedMessageId && !store.hasSettlingTurn;
+  const sendBusy = busy && !canQueueFollowUp;
+  const sameDraftPending = submittedDraftRevision.current === draftRevision.current;
   const preparationBlocked=!!character.detail?.persona_preparation&&character.detail.persona_preparation.status!=='ready';
   useEffect(()=>{
     let active=true;
@@ -181,17 +186,18 @@ export default function ChatPage({
       : [];
   async function send() {
     const submitted = latestDraft.current,
-      text = submitted.trim();
-    if (!text || busy || readLoading || preparationBlocked || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
-    await store.send(text, false, null, () => {
+      text = submitted.trim(), revision = draftRevision.current;
+    if (!text || submittedDraftRevision.current === revision || sendBusy || readLoading || preparationBlocked || snapshot.fluctlightId!==character.id || !snapshot.conversation) return;
+    submittedDraftRevision.current=revision;
+    try { await store.send(text, false, null, () => {
       if (
         pageActive.current && workspace.currentScope() === scope &&
-        latestDraft.current === submitted
+        draftRevision.current === revision && latestDraft.current === submitted
       ) {
-        setDraft("");
+        editDraft("");
         sessionStorage.removeItem(storageKey);
       }
-    });
+    }); } finally { if(submittedDraftRevision.current===revision)submittedDraftRevision.current=null; }
   }
   const turn = chatDiagnosticTurn(store),
     diagnosticHref = turn
@@ -354,12 +360,12 @@ export default function ChatPage({
         </MessageScrollerProvider>
         <div className="companion-composer">
           {snapshot.recoveryStorageError&&<Feedback kind="action-required" actions={<Button type="button" variant="outline" onClick={()=>store.rereadLocalRecovery()}>重新读取本机原请求记录</Button>}>{snapshot.recoveryStorageError}</Feedback>}
-          {promptOffer&&<div className="companion-prefill-note"><span>已保留你的草稿，还有一条来自其他页面的请求。</span><Button variant="link" onClick={()=>{setDraft(current=>current.trim()?current+'\n\n'+promptOffer:promptOffer);setPromptOffer('');}}>加入草稿</Button><Button variant="ghost" size="icon" aria-label="放下这条请求" onClick={()=>setPromptOffer('')}><XIcon size={12}/></Button></div>}
+          {promptOffer&&<div className="companion-prefill-note"><span>已保留你的草稿，还有一条来自其他页面的请求。</span><Button variant="link" onClick={()=>{editDraft(current=>current.trim()?current+'\n\n'+promptOffer:promptOffer);setPromptOffer('');}}>加入草稿</Button><Button variant="ghost" size="icon" aria-label="放下这条请求" onClick={()=>setPromptOffer('')}><XIcon size={12}/></Button></div>}
           <Textarea
             aria-label="聊天消息"
             placeholder="说点什么，分享你的今天…"
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => editDraft(event.target.value)}
             onCompositionStart={() => (composing.current = true)}
             onCompositionEnd={() => (composing.current = false)}
             onKeyDown={(event) => {
@@ -382,10 +388,10 @@ export default function ChatPage({
             <span>Enter 发送 <i/> Shift + Enter 换行</span>
             <Button
               className="touch-target"
-              disabled={!draft.trim() || busy || readLoading || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
+              disabled={!draft.trim() || sameDraftPending || sendBusy || readLoading || preparationBlocked || !snapshot.conversation || !!snapshot.recoveryStorageError}
               onClick={() => void send()}
             >
-              {snapshot.sending || store.hasPendingTurn ? "回应中" : store.hasSettlingTurn ? "等待结束" : "发送"}
+              {canQueueFollowUp ? "追加消息" : snapshot.sending || store.hasPendingTurn ? "回应中" : store.hasSettlingTurn ? "等待结束" : "发送"}
               <SendIcon size={14} />
             </Button>
           </div>

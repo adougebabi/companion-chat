@@ -1,12 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {activeChatFixture as fixture} from './support/active-chat.mjs';
+import {act} from './helpers/react-dom.mjs';
 test('React chat opens the selected conversation and retains drafts while rendering original attachments',async()=>{
  const f=await fixture();try{
   assert.deepEqual(f.calls[0],['open','role',true]);const field=f.view.host.querySelector('textarea');await f.view.input(field,'未提交的草稿');
   await f.update(()=>{f.store.messages=[{id:'answer',kind:'assistant',text:'原始正文 <tag>',createdAt:'2026-10-26T04:00:00Z',attachmentRefs:['real-asset']}];});
   assert.equal(field.value,'未提交的草稿');assert.match(f.view.host.innerHTML,/原始正文 &lt;tag&gt;/);assert.match(f.view.host.innerHTML,/\/api\/media\/real-asset/);
   assert.equal(f.button('回复设置'),undefined);assert.equal(field.value,'未提交的草稿');
+ }finally{await f.dispose();}
+});
+test('React chat accepts one follow-up during an observed reply without clearing a newer draft',async()=>{
+ const f=await fixture();try{
+  await f.update(()=>{f.store.sending=true;f.store.messages=[{id:'pending',kind:'user',text:'第一条',turnId:'turn-one',turnStatus:'running',createdAt:new Date().toISOString()}];});
+  const field=f.view.host.querySelector('textarea');await f.view.input(field,'再补充一句');
+  const send=f.button('追加消息');assert.ok(send);assert.equal(send.disabled,false);
+  await f.view.click(send);assert.deepEqual(f.calls.at(-1),['send','再补充一句']);
+  await f.update(()=>{f.store.queuedTurn={conversationId:'conversation',fluctlightId:'role',messageId:'queued',text:'再补充一句',turnId:'queued-turn',idempotencyKey:'queued-key',attachmentRefs:[],createdAt:new Date().toISOString()};});
+  await f.view.input(field,'下一条草稿');assert.equal(f.button('回应中').disabled,true);assert.equal(field.value,'下一条草稿');
+ }finally{await f.dispose();}
+});
+test('React ignores repeated submission of the same draft revision while preserving later edits',async()=>{
+ const f=await fixture();let finishFirst;try{
+  let count=0;Object.defineProperty(f.store,'send',{configurable:true,value:async(text,_a,_b,accepted)=>{
+   f.calls.push(['send',text]);count++;
+   if(count===1){f.store.sending=true;await new Promise(resolve=>finishFirst=()=>{accepted();resolve();});}
+   else accepted();
+  }});
+  const field=f.view.host.querySelector('textarea');await f.view.input(field,'同一草稿');await f.view.click(f.button('发送'));
+  await f.view.flush();
+  await act(async()=>field.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true})));
+  assert.equal(f.calls.filter(call=>call[0]==='send').length,1);
+  await f.view.input(field,'新的补充');await f.view.click(f.button('追加消息'));
+  assert.deepEqual(f.calls.filter(call=>call[0]==='send').map(call=>call[1]),['同一草稿','新的补充']);
+  await f.view.input(field,'同一草稿');await act(async()=>finishFirst());await f.view.flush();
+  assert.equal(field.value,'同一草稿','late acceptance must not clear a later edit with identical text');
  }finally{await f.dispose();}
 });
 test('React stop button follows cancellation authority and delegates to the original controller',async()=>{

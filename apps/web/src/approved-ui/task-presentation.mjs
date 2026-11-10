@@ -126,7 +126,7 @@ export function mediaTaskStageRecords(task,media){
  const result=[];
  if(typeof media.provider_prompt==='string'&&media.provider_prompt.trim())result.push({id:'media-prompt',name:'保存生成提示词',status:'completed'});
  if(typeof media.provider_job_id==='string'&&media.provider_job_id)result.push({id:'media-submission',name:'提交生成请求',status:'completed',detail:'生成服务已返回任务编号，生成结果仍需核对。'});
- if(media.quality_checked_at&&media.quality_verdict)result.push({id:'media-quality',name:'记录质量检查结果',status:'completed',detail:media.quality_verdict==='pass'?'检查通过':media.quality_verdict==='skip'?'本次质量检查未执行或不可用':media.quality_verdict==='retry_accepted'?'已保留再次生成后的结果':'已记录质量检查结论'});
+ if(media.quality_checked_at&&media.quality_verdict)result.push({id:'media-quality',name:'记录质量检查结果',status:'completed',detail:media.quality_verdict==='pass'?'检查通过':['skip','skipped'].includes(media.quality_verdict)?'本次质量检查未执行或不可用':media.quality_verdict==='retry_accepted'?'复核未通过，结果按旧策略保留':media.quality_verdict==='reject'?'检查未通过':media.quality_verdict==='retry'?'检查未通过，需要重新生成':'已记录质量检查结论'});
  const status=media.status||task.status||'unknown';
  const failure=['failed','dead_letter','error','timeout'].includes(status)?taskFailureReason({...task,status}):'';
  result.push({id:'media-result',name:'媒体任务结果',status,detail:failure?`失败原因：${failure}`:undefined});

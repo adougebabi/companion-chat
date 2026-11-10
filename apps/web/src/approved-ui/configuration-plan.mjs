@@ -87,7 +87,16 @@ export function configurationPlan({
     }
   }
   for (const binding of bindings) {
-    if (!binding.endpoint && !binding.model && !binding._source && (binding.timeout === "" || binding.timeout == null)) continue;
+    if (binding.clearOverride && binding.role.startsWith("agent:")) {
+      if (binding._source) writes.push({
+          kind: "binding:" + binding.role,
+          operation: "binding",
+          body: { role: binding.role, clearOverride: true },
+          previousDraft: { endpoint: binding.endpoint, model: binding.model, timeout: binding.timeout, temperature: binding.temperature, topP: binding.topP },
+        });
+      continue;
+    }
+    if (!binding.endpoint && !binding.model && !binding._source && (binding.timeout === "" || binding.timeout == null) && (binding.temperature === "" || binding.temperature == null) && (binding.topP === "" || binding.topP == null)) continue;
     const endpointId = endpointIds.get(binding.endpoint);
     if (!endpointId) throw Error("请为用途选择有效的服务地址");
     const source = binding._source,
@@ -105,12 +114,24 @@ export function configurationPlan({
       throw Error(binding.name + "：请核对模型和超时");
     const body = providerBindingBody(normalized, catalog.versions);
     delete body.expectedVersions;
+    const sampling = (raw, label, minimumExclusive, maximum) => {
+      if (raw === "" || raw == null) return null;
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value < 0 || (minimumExclusive && value === 0) || value > maximum) throw Error(binding.name + "：" + label + "超出范围");
+      return value;
+    };
+    const temperature = sampling(binding.temperature, "温度", false, 2), topP = sampling(binding.topP, "Top P", true, 1);
+    const sourceTemperature = source?.temperature ?? null, sourceTopP = source?.top_p ?? null;
+    const sourceWillBeRemoved = !!source && changedEndpoints.has(source.endpoint_id);
+    if (temperature !== sourceTemperature || ((changedEndpoints.has(endpointId) || sourceWillBeRemoved) && temperature !== null)) body.temperature = temperature;
+    if (topP !== sourceTopP || ((changedEndpoints.has(endpointId) || sourceWillBeRemoved) && topP !== null)) body.topP = topP;
     if (
       source &&
       !changedEndpoints.has(endpointId) &&
       source.endpoint_id === endpointId &&
       source.model_id === normalized.modelId &&
-      source.timeout_seconds === normalized.timeoutSeconds
+      source.timeout_seconds === normalized.timeoutSeconds &&
+      temperature === sourceTemperature && topP === sourceTopP
     )
       continue;
     writes.push({

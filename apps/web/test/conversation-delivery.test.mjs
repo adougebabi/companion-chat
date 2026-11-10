@@ -6,6 +6,7 @@ import test from "node:test";
 import { createServer } from "vite";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ref } from "valtio/vanilla";
 
 test("a new submit sends its own identity without implicitly retrying a confirmed failure", async () => {
   const originalWindow = globalThis.window;
@@ -614,7 +615,7 @@ async function withRetryFixture(clock, run) {
  if(url.endsWith("/cancel"))return cancelResponse();
 		if (url.endsWith("/turn")) {
 			requests.push(JSON.parse(String(init.body)));
-			return turnResponse();
+			return turnResponse(init);
 		}
 		if (url.includes("/conversation") || url.includes("/messages")) return Response.json(page);
 		if (url.includes("/read")) return new Response(null, { status: 204 });
@@ -628,7 +629,7 @@ async function withRetryFixture(clock, run) {
 		const store = createConversationController();
 		store.fluctlights = [{ id: "fluctlight-retry-clock", identity: { name: "摇光" }, status: "active" }];
 		await store.selectFluctlight("fluctlight-retry-clock");
-		await run({ store, server,  user, requests, values, setCancelResponse:response=>{cancelResponse=response;}, setTurnResponse: (response) => { turnResponse = response; } });
+		await run({ store, server, page, user, requests, values, setCancelResponse:response=>{cancelResponse=response;}, setTurnResponse: (response) => { turnResponse = response; } });
 	} finally {
 		await server.close();
 		Object.assign(globalThis, originals);
@@ -657,6 +658,131 @@ test('one follow-up stays visible and sends once after the running reply complet
   assert.equal(requests.length,1);assert.equal(store.queuedTurn.text,'再补充一句');assert.ok(store.messages.some(m=>m.text==='再补充一句'));assert.ok(values.has('fluctlight.queued-turn.v1'));
   const key=store.queuedTurn.idempotencyKey;release();await first;
   assert.equal(requests.length,2);assert.equal(requests[1].text,'再补充一句');assert.equal(requests[1].idempotencyKey,key);assert.equal(store.queuedTurn,null);
+ });
+});
+
+test('follow-up waits for durable first admission, then starts before the old reply and isolates late frames',async()=>{
+ await withRetryFixture({},async({store,user,requests,values,setTurnResponse})=>{
+  store.dismissRetry();user.turnStatus='completed';store.messages=[{...user}];
+  const encoder=new TextEncoder();let firstStream,secondStream;
+  setTurnResponse(async()=>{
+   const request=requests.at(-1);
+   return new Response(new ReadableStream({start(controller){if(requests.length===1)firstStream=controller;else secondStream=controller;}}),{headers:{'content-type':'application/x-ndjson'}});
+  });
+  const first=store.send('第一条');
+  for(let i=0;i<100&&!firstStream;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.ok(firstStream,'first observer did not start');
+  await store.send('再补充一句');
+  const queued=JSON.parse(JSON.stringify(store.queuedTurn));
+  assert.equal(requests.length,1,'a later request must not race ahead of an unconfirmed first admission');
+  assert.ok(values.has('fluctlight.queued-turn.v1'));
+  const accepted=(request,id)=>({id,conversationId:request.conversationId||user.conversationId,sequence:1,authorActorId:'human',kind:'user',text:request.text,attachmentRefs:[],createdAt:new Date().toISOString(),turnId:request.turnId,idempotencyKey:request.idempotencyKey,turnStatus:'pending'});
+  const firstUser=accepted(requests[0],'first-accepted');Object.assign(user,firstUser);
+  firstStream.enqueue(encoder.encode(JSON.stringify({type:'message',turnId:requests[0].turnId,sequence:0,payload:{message:firstUser}})+'\n'));
+  for(let i=0;i<100&&requests.length<2;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(requests.length,2,'accepted first turn must not hold the follow-up until its reply finishes');
+  assert.equal(requests[1].idempotencyKey,queued.idempotencyKey);assert.equal(requests[1].turnId,queued.turnId);
+  assert.equal(store.queuedTurn,null);assert.equal(store.activeTurnId,queued.turnId);
+  const secondUser=accepted(requests[1],'second-accepted');Object.assign(user,secondUser);
+  secondStream.enqueue(encoder.encode(JSON.stringify({type:'message',turnId:requests[1].turnId,sequence:0,payload:{message:secondUser}})+'\n'));
+  firstStream.enqueue(encoder.encode(JSON.stringify({type:'token',turnId:requests[0].turnId,sequence:1,payload:{text:'过期旧候选'}})+'\n'));
+  await first;
+  assert.equal(store.sending,true,'old observer must not clear the new turn');
+  assert.ok(!store.messages.some(message=>message.text==='过期旧候选'));
+  user.turnStatus='completed';
+  secondStream.enqueue(encoder.encode(JSON.stringify({type:'completed',turnId:requests[1].turnId,sequence:1,payload:{}})+'\n'));
+  secondStream.close();
+  for(let i=0;i<100&&store.sending;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(store.sending,false);assert.equal(store.retryTurn,null);assert.equal(requests.length,2);
+ });
+});
+
+test('a late cancel response for the old turn cannot abort the promoted follow-up',async()=>{
+ await withRetryFixture({},async({store,user,requests,setCancelResponse,setTurnResponse})=>{
+  store.dismissRetry();user.turnStatus='running';store.messages=[{...user}];
+  store.sending=true;store.activeTurnId=user.turnId;store.activeTurnAccepted=true;store.abortController=ref(new AbortController());
+  let releaseCancel,enteredCancel,secondStream,secondSignal;
+  const entered=new Promise(resolve=>enteredCancel=resolve),wait=new Promise(resolve=>releaseCancel=resolve);
+  setCancelResponse(async()=>{enteredCancel();await wait;return Response.json({status:'cancelled'});});
+  setTurnResponse(async init=>{secondSignal=init.signal;return new Response(new ReadableStream({start(controller){secondStream=controller;}}),{headers:{'content-type':'application/x-ndjson'}});});
+  const cancelling=store.cancel();await entered;
+  await store.send('取消时的新消息');
+  for(let i=0;i<100&&!secondSignal;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.ok(secondSignal);assert.equal(requests.length,1);assert.equal(secondSignal.aborted,false);
+  releaseCancel();await cancelling;
+  assert.equal(secondSignal.aborted,false);assert.equal(store.activeTurnId,requests[0].turnId);assert.equal(store.sending,true);
+  Object.assign(user,{id:'new-user',turnId:requests[0].turnId,idempotencyKey:requests[0].idempotencyKey,text:requests[0].text,turnStatus:'completed'});
+  secondStream.enqueue(new TextEncoder().encode(JSON.stringify({type:'completed',turnId:requests[0].turnId,sequence:0,payload:{}})+'\n'));secondStream.close();
+  for(let i=0;i<100&&store.sending;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(store.sending,false);
+ });
+});
+
+test('a late cancel response cannot clear a normally started newer turn identity',async()=>{
+ await withRetryFixture({},async({store,user,requests,values,setCancelResponse,setTurnResponse})=>{
+  store.dismissRetry();user.turnStatus='running';store.messages=[{...user}];
+  store.sending=true;store.activeTurnId=user.turnId;store.abortController=ref(new AbortController());
+  let releaseCancel,enteredCancel,nextStream;
+  const entered=new Promise(resolve=>enteredCancel=resolve),wait=new Promise(resolve=>releaseCancel=resolve);
+  setCancelResponse(async()=>{enteredCancel();await wait;return Response.json({status:'cancelled'});});
+  setTurnResponse(async()=>new Response(new ReadableStream({start(controller){nextStream=controller;}}),{headers:{'content-type':'application/x-ndjson'}}));
+  const cancelling=store.cancel();await entered;
+  user.turnStatus='completed';store.messages=[{...user}];store.sending=false;store.activeTurnId=null;store.abortController=null;
+  const next=store.send('正常开始的新消息');
+  for(let i=0;i<100&&!nextStream;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.ok(nextStream);const key=requests[0].idempotencyKey;
+  releaseCancel();await cancelling;
+  assert.equal(store.retryTurn.idempotencyKey,key);assert.equal(JSON.parse(values.get('fluctlight.retry-turn.v2')).idempotencyKey,key);
+  Object.assign(user,{id:'normal-new-user',turnId:requests[0].turnId,idempotencyKey:key,text:requests[0].text,attachmentRefs:requests[0].attachmentRefs,turnStatus:'completed'});
+  nextStream.enqueue(new TextEncoder().encode(JSON.stringify({type:'completed',turnId:requests[0].turnId,sequence:0,payload:{}})+'\n'));nextStream.close();await next;
+ });
+});
+
+test('a partial queue-to-retry storage failure retains predecessor ordering for recovery',async()=>{
+ await withRetryFixture({},async({store,user,requests,values,setTurnResponse})=>{
+  store.sending=true;store.activeTurnAccepted=false;await store.send('存储恢复后的追发');store.sending=false;
+  const queued=JSON.parse(JSON.stringify(store.queuedTurn));user.turnStatus='pending';store.messages=[{...user}];
+  const remove=globalThis.localStorage.removeItem;let fail=true;
+  globalThis.localStorage.removeItem=key=>{if(fail&&key==='fluctlight.queued-turns.v2'){fail=false;throw Error('controlled storage failure');}return remove(key);};
+  await store.refreshActiveTurn(true);
+  assert.equal(requests.length,0);assert.ok(store.recoveryStorageError);
+  const saved=JSON.parse(values.get('fluctlight.retry-turn.v2'));
+  assert.equal(saved.idempotencyKey,queued.idempotencyKey);assert.equal(saved.priorAdmission.idempotencyKey,user.idempotencyKey);
+  globalThis.localStorage.removeItem=remove;assert.equal(store.rereadLocalRecovery(),true);
+  setTurnResponse(async()=>{const request=requests.at(-1);Object.assign(user,{id:'storage-recovered',turnId:request.turnId,idempotencyKey:request.idempotencyKey,text:request.text,attachmentRefs:request.attachmentRefs,turnStatus:'completed'});return new Response(JSON.stringify({type:'completed',turnId:request.turnId,sequence:0,payload:{}})+'\n',{headers:{'content-type':'application/x-ndjson'}});});
+  await store.refreshActiveTurn(true);
+  for(let i=0;i<100&&requests.length===0;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(requests.length,1);assert.equal(requests[0].idempotencyKey,queued.idempotencyKey);
+ });
+});
+
+for (const source of ['selection','refresh']) test(`stored follow-up resumes after ${source} confirms the prior user turn`,async()=>{
+ await withRetryFixture({},async({store,user,requests,setTurnResponse})=>{
+  store.sending=true;store.activeTurnAccepted=false;await store.send('恢复后的追发');store.sending=false;
+  const queued=JSON.parse(JSON.stringify(store.queuedTurn));user.turnStatus='pending';store.messages=[{...user}];
+  setTurnResponse(async()=>{const request=requests.at(-1);Object.assign(user,{id:'resumed-user',turnId:request.turnId,idempotencyKey:request.idempotencyKey,text:request.text,attachmentRefs:request.attachmentRefs,turnStatus:'completed'});return new Response(JSON.stringify({type:'completed',turnId:request.turnId,sequence:0,payload:{}})+'\n',{headers:{'content-type':'application/x-ndjson'}});});
+  if(source==='selection')await store.selectFluctlight('fluctlight-retry-clock');else await store.refreshActiveTurn(true);
+  for(let i=0;i<100&&requests.length===0;i++)await new Promise(resolve=>setTimeout(resolve,1));
+  assert.equal(requests.length,1);assert.equal(requests[0].idempotencyKey,queued.idempotencyKey);assert.equal(requests[0].turnId,queued.turnId);
+ });
+});
+
+test('stored follow-up stays queued when the server message does not match the original identity and payload',async()=>{
+ await withRetryFixture({},async({store,user,requests})=>{
+  store.sending=true;store.activeTurnAccepted=false;await store.send('仍需保留的追发');store.sending=false;
+  const queued=JSON.parse(JSON.stringify(store.queuedTurn));user.turnStatus='pending';user.text='不匹配的正文';
+  await store.selectFluctlight('fluctlight-retry-clock');
+  assert.equal(requests.length,0);assert.equal(store.queuedTurn.idempotencyKey,queued.idempotencyKey);
+ });
+});
+
+test('stored follow-up does not overtake a newer user turn from another client',async()=>{
+ await withRetryFixture({},async({store,page,user,requests})=>{
+  store.sending=true;store.activeTurnAccepted=false;await store.send('原排队追发');store.sending=false;
+  const queued=JSON.parse(JSON.stringify(store.queuedTurn));user.turnStatus='pending';
+  page.messages.push({...user,id:'newer-user',sequence:2,turnId:'another-turn',idempotencyKey:'another-key',text:'另一端的新消息',turnStatus:'running'});
+  await store.selectFluctlight('fluctlight-retry-clock');
+  assert.equal(requests.length,0);assert.equal(store.queuedTurn.idempotencyKey,queued.idempotencyKey);
  });
 });
 

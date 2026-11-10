@@ -40,6 +40,7 @@ function diagnosticProjection(record,index,characters){
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const groupSpecs = [
   ["图片（ComfyUI）", ["media.comfyui"]],
+  ["能力插件", ["plugins.domains"]],
   ["聊天回复", ["conversation.reply"]],
   ["看图理解", ["vision.understanding"]],
   ["角色自主与主动联系", ["product.autonomy"]],
@@ -102,7 +103,29 @@ function uiField(settingKey, field, values) {
     _initial: raw,
   };
 }
-function editableConfiguration(settings,endpoints,bindings,quiet){const value=field=>{if(field.type==='json'){try{return JSON.parse(field.value);}catch{return field.value;}}if(field.type==='number'&&field.value!=='')return Number(field.value);if(field.type==='select')return field._choices?.find(choice=>choice.label===field.value)?.value??field.value;return field.value;};return JSON.stringify({settings:settings.map(group=>group.fields.map(value)),endpoints:endpoints.map(e=>[e.id,e.name,e.protocol,e.url.replace(/\/+$/,''),e.secret,e.clearSecret]).sort((a,b)=>a[0].localeCompare(b[0])),bindings:bindings.map(b=>[b.role,b.endpoint,b.model,b.timeout]).sort((a,b)=>a[0].localeCompare(b[0])),quiet:[quiet.enabled,quiet.start,quiet.end,quiet.days,quiet.character,quiet.behavior]});}
+function editableConfiguration(settings,endpoints,bindings,quiet){const value=field=>{if(field.type==='json'){try{return JSON.parse(field.value);}catch{return field.value;}}if(field.type==='number'&&field.value!=='')return Number(field.value);if(field.type==='select')return field._choices?.find(choice=>choice.label===field.value)?.value??field.value;return field.value;};return JSON.stringify({settings:settings.map(group=>group.fields.map(value)),endpoints:endpoints.map(e=>[e.id,e.name,e.protocol,e.url.replace(/\/+$/,''),e.secret,e.clearSecret]).sort((a,b)=>a[0].localeCompare(b[0])),bindings:bindings.map(b=>[b.role,b.endpoint,b.model,b.timeout,b.temperature??'',b.topP??'',!!b.clearOverride]).sort((a,b)=>a[0].localeCompare(b[0])),quiet:[quiet.enabled,quiet.start,quiet.end,quiet.days,quiet.character,quiet.behavior]});}
+
+function modelBindingRows(snapshot) {
+  const roles = [
+    ...Object.entries(roleNames).map(([role, name]) => ({role, name})),
+    ...(snapshot.agent_model_routes || []).filter(route => route.writable && route.key).map(route => ({role:route.key, name:route.agent_id + (route.variant ? ' · ' + route.variant : ' · 全任务'), route})),
+  ];
+  return roles.map(({role, name, route}) => {
+    const saved = snapshot.bindings.find(binding => binding.role === role);
+    return {name, role, endpoint:saved?.endpoint_id || '', model:saved?.model_id || '', timeout:saved?.timeout_seconds ?? '', temperature:saved?.temperature ?? '', topP:saved?.top_p ?? '', _source:saved, _route:route};
+  });
+}
+
+function reconcileClearedOverride(binding) {
+  if (binding.clearOverride && !binding._source) {
+    binding.endpoint = '';
+    binding.model = '';
+    binding.timeout = '';
+    binding.temperature = '';
+    binding.topP = '';
+    binding.clearOverride = false;
+  }
+}
 
 function createManagementPageController(props, context, lifecycle) {
   const w = lifecycle.workspace,
@@ -139,7 +162,7 @@ function createManagementPageController(props, context, lifecycle) {
     error = lifecycle.cell(""),
     reference = lifecycle.cell(""),
     testResult = lifecycle.cell(""),testRaw=lifecycle.cell(null),testKind=lifecycle.cell('information'),
-    currentSection=lifecycle.cell("服务地址");
+    currentSection=lifecycle.cell("服务地址"),selectedAgentRoute=lifecycle.cell(''),agentModelRoutes=lifecycle.cell([]),domainPlugins=lifecycle.cell([]);
   const catalogLoading=lifecycle.cell(true),catalogReady=lifecycle.cell(false);
   const settings = lifecycle.cell([]),
     endpoints = lifecycle.cell([]),
@@ -355,7 +378,7 @@ function createManagementPageController(props, context, lifecycle) {
       )
       .map((a) => catalogLabel("agent", a.name, a.description)),
   );
-  function confirmedEditable(){if(!catalog)return '';const hours=quiet.value._source||catalog.effective_values['product.autonomy']?.quiet_hours||{};return editableConfiguration(settings.value.map(group=>({...group,fields:group.fields.map(field=>uiField(field._settingKey,field._definition,catalog.effective_values[field._settingKey]))})),catalog.endpoints.map(endpoint=>({id:endpoint.id,name:endpoint.id,protocol:endpoint.kind,url:endpoint.base_url,secret:'',clearSecret:false})),Object.entries(roleNames).map(([role])=>{const saved=catalog.bindings.find(binding=>binding.role===role);return {role,endpoint:saved?.endpoint_id||'',model:saved?.model_id||'',timeout:saved?.timeout_seconds??''};}),{...quiet.value,enabled:!!hours.start,start:hours.start||'',end:hours.end||'',days:(hours.days||[0,1,2,3,4,5,6]).map(day=>weekdays[day])});}
+  function confirmedEditable(){if(!catalog)return '';const hours=quiet.value._source||catalog.effective_values['product.autonomy']?.quiet_hours||{};return editableConfiguration(settings.value.map(group=>({...group,fields:group.fields.map(field=>uiField(field._settingKey,field._definition,catalog.effective_values[field._settingKey]))})),catalog.endpoints.map(endpoint=>({id:endpoint.id,name:endpoint.id,protocol:endpoint.kind,url:endpoint.base_url,secret:'',clearSecret:false})),modelBindingRows(catalog),{...quiet.value,enabled:!!hours.start,start:hours.start||'',end:hours.end||'',days:(hours.days||[0,1,2,3,4,5,6]).map(day=>weekdays[day])});}
   async function readCatalog() {
     catalogLoading.value=true;
     const snapshot = await config.read();
@@ -387,17 +410,9 @@ function createManagementPageController(props, context, lifecycle) {
       status: e.secret_configured ? "已保存凭据" : "已保存",
       _source: e,
     }));
-    bindings.value = Object.entries(roleNames).map(([role, name]) => {
-      const b = snapshot.bindings.find((v) => v.role === role);
-      return {
-        name,
-        role,
-        endpoint: b?.endpoint_id || "",
-        model: b?.model_id || "",
-        timeout: b?.timeout_seconds ?? "",
-        _source: b,
-      };
-    });
+    agentModelRoutes.value = snapshot.agent_model_routes || [];
+    domainPlugins.value = snapshot.domain_plugins || [];
+    bindings.value = modelBindingRows(snapshot);
     const restored = restoreConnectionDraft(
       sessionStorage.getItem(connectionDraftKey(scope)),
       snapshot,
@@ -407,6 +422,7 @@ function createManagementPageController(props, context, lifecycle) {
       for (const binding of bindings.value) {
         const saved = restored.bindings.find((b) => b.role === binding.role);
         if (saved) Object.assign(binding, saved);
+        reconcileClearedOverride(binding);
       }
       versions = {
         ...restored.versions,
@@ -542,8 +558,10 @@ function createManagementPageController(props, context, lifecycle) {
       };
       throw Error("原配置提交结果待核对，当前新草稿已保留。");
     }
+    let submitted = false;
     try {
       await run(value.body, value.key);
+      submitted = true;
       if (!live()) throw Error("设置范围已经变化");
       let receipt = await config.command(value.key);
       if (receipt.wake_rearm_required)
@@ -553,6 +571,11 @@ function createManagementPageController(props, context, lifecycle) {
       sessionStorage.removeItem(keyName);
       return receipt;
     } catch (cause) {
+      if (!submitted && cause.status === 422 && cause.details?.configuration_admission === 'rejected') {
+        pending.delete(kind);
+        sessionStorage.removeItem(keyName);
+        throw cause;
+      }
       recovery.value = {
         key: value.key,
         keyName,
@@ -602,6 +625,8 @@ function createManagementPageController(props, context, lifecycle) {
       const next = await config.read();
       if (!live()) return;
       catalog = next;
+      agentModelRoutes.value = next.agent_model_routes || [];
+      domainPlugins.value = next.domain_plugins || [];
       versions = {
         ...next.versions,
       };
@@ -613,8 +638,11 @@ function createManagementPageController(props, context, lifecycle) {
         endpoint._source = next.endpoints.find(
           (e) => e.id === (endpoint._source?.id || endpoint.name),
         );
-      for (const binding of bindings.value)
+      for (const binding of bindings.value) {
         binding._source = next.bindings.find((b) => b.role === binding.role);
+        binding._route = agentModelRoutes.value.find(route => route.key === binding.role);
+        reconcileClearedOverride(binding);
+      }
       if (quiet.value.character !== "全部角色" && quiet.value._policy) {
         const fid = quiet.value._policy.fluctlight_id,
           policy = await w.client.autonomyPolicy(fid);
@@ -671,8 +699,11 @@ function createManagementPageController(props, context, lifecycle) {
         if (operation.operation === "endpoint")
           body.expectedVersions["endpoint:" + body.endpointId] ??= 0;
         if (operation.operation === "binding") {
-          body.expectedVersions["binding:" + body.role] ??= 0;
-          body.expectedVersions["endpoint:" + body.endpointId] ??= 0;
+          if (body.clearOverride) body.expectedVersions = {['binding:' + body.role]: versions['binding:' + body.role] ?? 0};
+          else {
+            body.expectedVersions["binding:" + body.role] ??= 0;
+            body.expectedVersions["endpoint:" + body.endpointId] ??= 0;
+          }
         }
         let result;
         if (operation.operation === "autonomy") {
@@ -714,6 +745,25 @@ function createManagementPageController(props, context, lifecycle) {
           operation.body,
         );
         completed++;
+      }
+      if (plan.some(operation => operation.operation === 'binding' || operation.operation === 'endpoint' || operation.operation === 'settings' && operation.body.values?.['plugins.domains'])) {
+        let latest;
+        try { latest = await config.read(); }
+        catch (cause) {
+          // The commands above already have receipts. Do not present a stale
+          // inheritance view as current or repeat an accepted write.
+          needsBaselineReview.value = true;
+          const modelChanged=plan.some(operation=>operation.operation==='binding'||operation.operation==='endpoint');
+          const pluginChanged=plan.some(operation=>operation.operation==='settings'&&operation.body.values?.['plugins.domains']);
+          const label=modelChanged&&pluginChanged?'模型与插件配置':pluginChanged?'插件配置':'模型配置';
+          throw Error(label+'已保存，但生效来源读取失败；请读取最新基线。', {cause});
+        }
+        if (!live()) return;
+        catalog.agent_model_routes = latest.agent_model_routes || [];
+        agentModelRoutes.value = catalog.agent_model_routes;
+        catalog.domain_plugins = latest.domain_plugins || [];
+        domainPlugins.value = catalog.domain_plugins;
+        for (const binding of bindings.value) binding._route = agentModelRoutes.value.find(route => route.key === binding.role);
       }
       if (live()) {
         saveKind.value=plan.length?'success':'information';
@@ -938,7 +988,7 @@ function createManagementPageController(props, context, lifecycle) {
           }),
         endpoints,
         test,
-        bindings,
+        bindings,selectedAgentRoute,agentModelRoutes,domainPlugins,
         quiet,
         characters,
         settings,

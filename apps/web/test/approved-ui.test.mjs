@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { configurationPlan } from "../src/approved-ui/configuration-plan.mjs";
 import { acknowledgeConfiguration, clearAcknowledgedCredentials } from "../src/approved-ui/configuration-ack.mjs";
+import { connectionDraftDirty, restoreConnectionDraft } from "../src/approved-ui/configuration-draft.mjs";
 import { stagedCommand } from "../src/approved-ui/staged-command.mjs";
 import { approvedHref, approvedRoute } from "../src/approved-ui/routing.mjs";
 const storage = () => {
@@ -48,6 +49,57 @@ const form = () => ({
     character: "全部角色"
   },
   characters: []
+});
+test("plugin settings save a complete pair and retain changes made during acknowledgement", () => {
+  const input = form();
+  input.catalog.effective_values = {"plugins.domains": {image: true, moment: true}};
+  input.settings = [{fields: [
+    {label:"图片", _settingKey:"plugins.domains", _key:"image", type:"checkbox", value:false, _initial:true},
+    {label:"动态", _settingKey:"plugins.domains", _key:"moment", type:"checkbox", value:true, _initial:true},
+  ]}];
+  const operation = configurationPlan(input).find(item => item.operation === "settings");
+  assert.deepEqual(operation.body.values["plugins.domains"], {image:false, moment:true});
+  input.settings[0].fields[1].value = false;
+  const versions = {};
+  acknowledgeConfiguration({...input, versions}, operation, {applied_versions:{"plugins.domains":1}});
+  assert.equal(input.settings[0].fields[1].value, false);
+  assert.equal(input.settings[0].fields[1]._initial, true);
+  assert.deepEqual(configurationPlan(input)[0].body.values["plugins.domains"], {image:false, moment:false});
+});
+test("an already-cleared override cannot be recreated by a recovered draft", () => {
+  const input = form();
+  input.settings = [];
+  input.endpoints = [{id:'service',name:'service',protocol:'openai-compatible',url:'https://model.test',secret:'',clearSecret:false,_source:{id:'service',kind:'openai-compatible',base_url:'https://model.test'}}];
+  input.bindings = [{role:'agent:reflection:reflection_proposal_v2',endpoint:'service',model:'old',timeout:30,clearOverride:true}];
+  assert.deepEqual(configurationPlan(input), []);
+});
+test("model sampling saves zero, clears one field and survives endpoint rebind", () => {
+  const input = form();input.settings=[];
+  const endpoint={id:'service',kind:'openai-compatible',base_url:'https://model.test'};
+  const source={role:'agent:reflection',endpoint_id:'service',model_id:'model',timeout_seconds:30,temperature:0.5,top_p:0.8};
+  input.catalog.endpoints=[endpoint];input.catalog.bindings=[source];
+  input.endpoints=[{id:'service',name:'service',protocol:endpoint.kind,url:endpoint.base_url,secret:'',clearSecret:false,_source:endpoint}];
+  input.bindings=[{role:source.role,name:'reflection',endpoint:'service',model:'model',timeout:30,temperature:0.5,topP:0.8,_source:source}];
+  assert.deepEqual(configurationPlan(input),[]);
+  input.bindings[0].temperature=0;input.bindings[0].topP='';
+  let binding=configurationPlan(input).find(operation=>operation.operation==='binding');
+  assert.equal(binding.body.temperature,0);assert.equal(binding.body.topP,null);
+  input.bindings[0].temperature=0.5;input.bindings[0].topP=0.8;input.endpoints[0].url='https://new-model.test';
+  binding=configurationPlan(input).find(operation=>operation.operation==='binding');
+  assert.equal(binding.body.temperature,0.5);assert.equal(binding.body.topP,0.8);
+  const other={id:'other',kind:'openai-compatible',base_url:'https://other-model.test'};
+  input.catalog.endpoints.push(other);input.endpoints.push({id:'other',name:'other',protocol:other.kind,url:other.base_url,secret:'',clearSecret:false,_source:other});
+  input.bindings[0].endpoint='other';
+  binding=configurationPlan(input).find(operation=>operation.operation==='binding');
+  assert.equal(binding.body.endpointId,'other');assert.equal(binding.body.temperature,0.5);assert.equal(binding.body.topP,0.8);
+  input.bindings[0].topP=0;assert.throws(()=>configurationPlan(input),/Top P/);
+});
+test("older connection drafts preserve new sampling fields on restore", () => {
+  const catalog={endpoints:[{id:'service',kind:'openai-compatible',base_url:'https://model.test'}],bindings:[{role:'generic_llm',endpoint_id:'service',model_id:'model',timeout_seconds:30,temperature:0.4,top_p:0.9}],versions:{}};
+  const old={version:1,versions:{},endpoints:[{id:'service',name:'service',protocol:'openai-compatible',url:'https://model.test'}],bindings:[{role:'generic_llm',endpoint:'service',model:'model',timeout:30}]};
+  assert.equal(connectionDraftDirty(old,catalog),false);
+  old.bindings[0].model='new-model';const restored=restoreConnectionDraft(JSON.stringify(old),catalog);
+  assert.equal(restored.dirty,true);assert.equal(Object.hasOwn(restored.bindings[0],'temperature'),false);assert.equal(Object.hasOwn(restored.bindings[0],'topP'),false);
 });
 test("configuration validates the entire form before writing and maps temporary endpoint IDs", () => {
   const input = form();

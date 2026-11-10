@@ -39,13 +39,32 @@ export function acknowledgeConfiguration(
         binding._source = undefined;
   }
   if (operation.operation === "binding") {
+    if (body.clearOverride) {
+      const field = bindings.find((b) => b.role === body.role);
+      if (field) {
+        field._source = undefined;
+        const previous = operation.previousDraft;
+        if (field.clearOverride && previous && field.endpoint === previous.endpoint && field.model === previous.model && field.timeout === previous.timeout && field.temperature === previous.temperature && field.topP === previous.topP) {
+          field.endpoint = "";
+          field.model = "";
+          field.timeout = "";
+          field.temperature = "";
+          field.topP = "";
+        }
+        field.clearOverride = false;
+      }
+      catalog.bindings = catalog.bindings.filter((b) => b.role !== body.role);
+      return;
+    }
+    const field = bindings.find((b) => b.role === body.role);
     const source = {
       role: body.role,
       endpoint_id: body.endpointId,
       model_id: body.modelId,
       timeout_seconds: body.timeoutSeconds,
+      temperature: Object.hasOwn(body, "temperature") ? body.temperature : field?._source?.temperature ?? null,
+      top_p: Object.hasOwn(body, "topP") ? body.topP : field?._source?.top_p ?? null,
     };
-    const field = bindings.find((b) => b.role === source.role);
     if (field) {
       field._source = source;
     }
