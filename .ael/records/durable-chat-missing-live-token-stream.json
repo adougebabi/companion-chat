@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "durable-chat-missing-live-token-stream",
+  "definition_hash": "34f05768982462e04a15e143740239ba7d5e4226cfad0e20df97df74dc2d73ce",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-11T14:47:32.612512Z",
+  "updated": "2026-11-11T14:47:32.612523Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}
