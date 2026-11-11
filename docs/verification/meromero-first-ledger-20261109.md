@@ -30,7 +30,7 @@
 | T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加。隔离 PostgreSQL 与受控 Provider 验证 direct、fact-only 追发及旧结果栅栏，并对照核验 WakeUp 新事件、未回应状态、静默和新话题发布；真实模型正反场景及无事退避仍未验收。 |
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；隔离 PostgreSQL 与受控 Provider 验证同一候选从受理消息提取、启用进入 direct 请求、停用后新请求不再注入，学习开关与使用开关独立，测试中人格和关系语义未变化。关系含义称呼的兼容性、任意注入/日志内容排除、真实模型及 UI 到实际运行的闭环仍未完成或未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。`memory.recall` 的原始会话回执区分真实发言主体并保留消息类型；隔离 PostgreSQL 与受控原生工具续轮验证主体标签和会话隔离。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决。 |
-| T10 | R09 现有领域回归 | TODO | 不降低 Goal、人设、日程、衣柜、NPC、Studio 与日记既有语义。 |
+| T10 | R09 现有领域回归 | IN_PROGRESS | 隔离 PostgreSQL 和受控 Provider 抽样验证 Goal 上限/空集、已完成旧愿望与 Owner 暂停保护、衣柜借还与穿着、人格切换、Actor/NPC 隔离、世界事件准入、Studio 与日记；四组 Goal/活动闭环测试在本轮及起始提交均失败，已另记 bug。真实模型、真实渲染及完整领域矩阵仍未验收。 |
 | T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；受控页面及部分数据库配置/回放已测。实际 Provider 消费、完整 Trace 和全场景重放仍未验收。 |
 | T12 | R11 全链路验收 | TODO | E01–E18 分层核验；当前已有隔离 PostgreSQL，真实模型、渲染及全链路仍未验收。 |
 
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T10 定向回归中，Goal 上限、无可行候选静默、原成功条件检查、旧愿望重新导入/规划器不得复活已完成目标，以及 Owner 暂停不得由规划器恢复的受控场景通过；已完成状态为测试夹具，非真实完成链证据。衣柜持有/穿着与借还、失败购物、人格持久切换和本轮接管、当前外貌、视觉候选、初始化、Actor/NPC 隔离、世界事件 Kev 准入、Studio 草稿隔离与日记两阶段抽样通过：`/private/tmp/fluctlight-t10-goal-protection.log`、`/private/tmp/fluctlight-t10-persona.log`、`/private/tmp/fluctlight-t10-world.log`。Goal 关系明确接受、只输出摘要、获取及染发后的最终 Goal 评估四组场景失败，起始提交独立源码也复现相同结果；其中多项返回 `evaluation_cadence` 延期，原因未确定，已登记 `goal-evaluation-cadence-domain-failures`，未调整旧行为：`/private/tmp/fluctlight-t10-goal.log`、`/private/tmp/fluctlight-t10-life.log`、`/private/tmp/fluctlight-t10-goal-baseline.log`。这些均为隔离库与受控 Provider，不等于真实模型、真实渲染或完整矩阵通过。
 
 - 2026-11-12：T09 隔离数据库通过真实消息受理保存“买了票”和随后“是玩笑”的两次发言，对已生成的旧购票判断执行 Owner 纠错，再通过实际 `memory.recall` 工具检索；两条原话仍作为历史发言可见，旧购票判断不再作为长期记忆返回，纠正后的购买状态保持未知：`/private/tmp/fluctlight-t09-ticket-correction.log`。这是受控纠错与检索场景，不代表摘要已能根据纠错重建。
 
