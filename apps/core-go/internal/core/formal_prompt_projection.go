@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"errors"
-	"strings"
 )
 
 // projectFormalPromptBoundary is the final read-only boundary for every
@@ -17,18 +16,28 @@ func projectFormalPromptBoundary(ctx context.Context, input ADKStructuredTaskInp
 	mapping := make([]map[string]any, 0, len(input.Prompt.Messages))
 	lastUser := -1
 	for index, message := range input.Prompt.Messages {
-		if stringValue(message["role"]) == "user" && !strings.HasPrefix(stringValue(message["content"]), "[RUNTIME CONTEXT]\n") {
+		if stringValue(message["role"]) == "user" {
 			lastUser = index
 		}
 	}
 	for index, message := range input.Prompt.Messages {
 		role := stringValue(message["role"])
 		source := "task_data"
+		origin := promptMessageOrigin{}
+		if len(input.Prompt.messageOrigins) == len(input.Prompt.Messages) {
+			origin = input.Prompt.messageOrigins[index]
+		}
 		switch {
 		case role == "system":
 			source = "trusted_task_configuration"
-		case role == "user" && strings.HasPrefix(stringValue(message["content"]), "[RUNTIME CONTEXT]\n"):
-			source = "scoped_runtime_projection"
+		case role == "tool":
+			source = "tool_result"
+		case role == "assistant" && message["tool_calls"] != nil:
+			source = "agent_tool_call"
+		case origin.Source == "current_task_input" && input.Role == "initialization":
+			source = "owner_description"
+		case origin.Source != "":
+			source = origin.Source
 		case index == lastUser && input.Role == "initialization":
 			source = "owner_description"
 		case index == lastUser:
@@ -36,7 +45,14 @@ func projectFormalPromptBoundary(ctx context.Context, input ADKStructuredTaskInp
 		case role == "user" || role == "assistant":
 			source = "historical_message"
 		}
-		mapping = append(mapping, map[string]any{"index": index, "role": role, "source": source, "estimated_tokens": estimateProviderMessageTokens(message)})
+		item := map[string]any{"index": index, "role": role, "source": source, "estimated_tokens": estimateProviderMessageTokens(message)}
+		if len(origin.SourceRefs) > 0 {
+			item["source_refs"] = append([]string(nil), origin.SourceRefs...)
+		}
+		if origin.Reason != "" {
+			item["reason"] = origin.Reason
+		}
+		mapping = append(mapping, item)
 	}
 	diagnostics := providerPromptDiagnostics(ctx)
 	versions := map[string]any{}

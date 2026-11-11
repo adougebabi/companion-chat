@@ -244,9 +244,18 @@ type PromptAssemblyResult struct {
 	ResponseFormat map[string]any      `json:"response_format"`
 	Trace          PromptAssemblyTrace `json:"trace"`
 	Diagnostics    map[string]any      `json:"-"`
+	// Origins are owned by the assembler, never derived from message text and
+	// never sent to the Provider. They remain aligned with Messages.
+	messageOrigins []promptMessageOrigin
 	// The assignment selected while assembling this request is process-local.
 	// It may contain a credential and must never be serialized or diagnosed.
 	providerBinding *promptProviderBinding
+}
+
+type promptMessageOrigin struct {
+	Source     string
+	SourceRefs []string
+	Reason     string
 }
 
 type promptProviderBinding struct {
@@ -395,7 +404,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	for _, candidate := range selected {
 		trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
 	}
-	messages := assemblePromptMessagesForSurface(surface, system, stable, current, selected)
+	messages, origins := assemblePromptMessagesForSurfaceWithOrigins(surface, system, stable, current, selected)
 	total := estimatePromptWireInput(messages, input.Tools, wireFormat)
 	trace.EstimatedInputTokens = total
 	trace.SectionTokens = promptAssemblySectionTokens(system, stable, current, selected, input.Tools, wireFormat)
@@ -405,7 +414,7 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	}
 	trace.TokenEstimateMethod = "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance"
 	trace.CountMode = "estimated"
-	return PromptAssemblyResult{Messages: messages, Tools: cloneMapSlice(input.Tools), ResponseFormat: cloneMap(input.ResponseFormat), Trace: trace}, nil
+	return PromptAssemblyResult{Messages: messages, Tools: cloneMapSlice(input.Tools), ResponseFormat: cloneMap(input.ResponseFormat), Trace: trace, messageOrigins: origins}, nil
 }
 
 func orderedPromptCandidates(candidates []promptOptionalCandidate) []promptOptionalCandidate {
@@ -480,6 +489,11 @@ func assemblePromptMessages(system, stable, current map[string]any, selected []p
 }
 
 func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, stable, current map[string]any, selected []promptOptionalCandidate) []map[string]any {
+	messages, _ := assemblePromptMessagesForSurfaceWithOrigins(surface, system, stable, current, selected)
+	return messages
+}
+
+func assemblePromptMessagesForSurfaceWithOrigins(surface ProviderContextSurface, system, stable, current map[string]any, selected []promptOptionalCandidate) ([]map[string]any, []promptMessageOrigin) {
 	runtimeContext := map[string]any{}
 	snapshotValue := boundedSnapshotValue
 	factOnly := surface == ProviderContextSurfaceFactOnlyCognition || surface == ProviderContextSurfaceFactOnlyReply || surface == ProviderContextSurfaceMomentReply
@@ -487,8 +501,13 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 		snapshotValue = factOnlyCopyValue
 	}
 	recent := make([]map[string]any, 0)
+	recentOrigins := make([]promptMessageOrigin, 0)
+	runtimeRefs := make([]string, 0)
 	for _, candidate := range selected {
 		fragment := candidate.fragment
+		if fragment.Kind != PromptFragmentRecentMessage || surface == ProviderContextSurfaceWakeUp || surface == ProviderContextSurfaceMomentReply {
+			runtimeRefs = append(runtimeRefs, fragment.SourceRefs...)
+		}
 		switch fragment.Kind {
 		case PromptFragmentRecentMessage:
 			if surface == ProviderContextSurfaceWakeUp || surface == ProviderContextSurfaceMomentReply {
@@ -508,6 +527,7 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 				}
 				recent = append(recent, item)
 			}
+			recentOrigins = append(recentOrigins, promptMessageOrigin{Source: "historical_message", SourceRefs: append([]string(nil), fragment.SourceRefs...), Reason: "selected conversation history"})
 		case PromptFragmentRuntimeFact:
 			fact := mapValue(fragment.Content)
 			kind := stringValue(fact["kind"])
@@ -533,10 +553,13 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 			"messages":           cloneMapSlice(recent),
 		}
 		recent = recent[:0]
+		recentOrigins = recentOrigins[:0]
 	}
 	messages := []map[string]any{cloneMap(system)}
+	origins := []promptMessageOrigin{{Source: "trusted_task_configuration", Reason: "task protocol and authorized persona"}}
 	if stable != nil {
 		messages = append(messages, cloneMap(stable))
+		origins = append(origins, promptMessageOrigin{Source: "stable_task_context", Reason: "task-owned stable context"})
 	}
 	if len(runtimeContext) > 0 {
 		formatted := formatRuntimeContextTimes(runtimeContext)
@@ -553,10 +576,13 @@ func assemblePromptMessagesForSurface(surface ProviderContextSurface, system, st
 			rendered = renderFactOnlyRuntimeContext(formatted)
 		}
 		messages = append(messages, map[string]any{"role": "user", "content": "[RUNTIME CONTEXT]\n" + rendered + "\n[/RUNTIME CONTEXT]"})
+		origins = append(origins, promptMessageOrigin{Source: "scoped_runtime_projection", SourceRefs: sortedUniqueStrings(runtimeRefs), Reason: "selected scoped context fragments"})
 	}
 	messages = append(messages, recent...)
+	origins = append(origins, recentOrigins...)
 	messages = append(messages, cloneMap(current))
-	return messages
+	origins = append(origins, promptMessageOrigin{Source: "current_task_input", Reason: "current task input"})
+	return messages, origins
 }
 
 // renderProviderRuntimeContext keeps slow-changing facts ahead of the clock,

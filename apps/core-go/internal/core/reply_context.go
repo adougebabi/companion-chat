@@ -183,8 +183,8 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 	for _, fragment := range workingInput.RecentMessages {
 		candidateChars += len([]rune(stringValue(mapValue(fragment.Content)["content"])))
 	}
-	for _, message := range result.Messages {
-		if stringValue(message["role"]) == "system" || strings.HasPrefix(stringValue(message["content"]), "[RUNTIME CONTEXT]") {
+	for index, message := range result.Messages {
+		if stringValue(message["role"]) == "system" || (index < len(result.messageOrigins) && result.messageOrigins[index].Source == "scoped_runtime_projection") {
 			continue
 		}
 		selectedMessages++

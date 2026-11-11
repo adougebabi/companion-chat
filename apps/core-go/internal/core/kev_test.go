@@ -681,7 +681,7 @@ func TestKevNativePersonaLoopExecutesOnlyRegeneratedB(t *testing.T) {
 			gate := &kevPersonaAdmission{app: application, domain: domain, denied: map[string]bool{}, request: ADKCapabilityRequest{AuthorizationActorID: "owner", FluctlightID: "actor", SourceFactID: "event", Projection: ContextProjection{FluctlightID: "actor", CorePersona: persona, PersonalityRuntime: map[string]any{"active_profile_id": "twilight", "revision": 0}, CurrentUserText: "Spark please"}}}
 			invoker := &kevReplyTestInvoker{}
 			trace := &ADKCapabilityTrace{}
-			refresh := &runtimeContextRefresh{refresh: func(context.Context) (modelContextRefreshContent, error) {
+			refresh := &runtimeContextRefresh{runtimeOriginIndex: 1, refresh: func(context.Context) (modelContextRefreshContent, error) {
 				return modelContextRefreshContent{System: "B persona", Runtime: "[RUNTIME CONTEXT]\n{}\n[/RUNTIME CONTEXT]"}, nil
 			}}
 			ctx := withADKCapabilityContext(context.Background(), invoker, trace, refresh)

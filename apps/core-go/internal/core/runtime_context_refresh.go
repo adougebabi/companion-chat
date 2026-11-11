@@ -31,16 +31,18 @@ func runtimeContextRefreshPlan(ctx context.Context) func(context.Context) (model
 }
 
 type runtimeContextRefresh struct {
-	kevVersion       int64
-	mu               sync.Mutex
-	target           *schema.Message
-	system           *schema.Message
-	dirty            bool
-	latest           *modelContextRefreshContent
-	refresh          func(context.Context) (modelContextRefreshContent, error)
-	base             ContextProjection
-	batches          map[uint64]map[string]string
-	staleReplyCallID string
+	kevVersion         int64
+	mu                 sync.Mutex
+	systemOriginIndex  int
+	runtimeOriginIndex int
+	target             *schema.Message
+	system             *schema.Message
+	dirty              bool
+	latest             *modelContextRefreshContent
+	refresh            func(context.Context) (modelContextRefreshContent, error)
+	base               ContextProjection
+	batches            map[uint64]map[string]string
+	staleReplyCallID   string
 }
 
 // A Schedule mutation and a visible reply from one physical model response
@@ -185,25 +187,33 @@ func isRuntimeContextMessage(message *schema.Message) bool {
 		strings.HasPrefix(message.Content, "[RUNTIME CONTEXT]\n") && strings.HasSuffix(message.Content, "\n[/RUNTIME CONTEXT]")
 }
 
-func modelContextContent(messages []map[string]any) (modelContextRefreshContent, error) {
-	content := modelContextRefreshContent{}
-	for _, message := range messages {
-		candidate := stringValue(message["content"])
-		if stringValue(message["role"]) == "system" {
-			if content.System != "" {
-				return modelContextRefreshContent{}, errors.New("system_context_duplicate")
-			}
-			content.System = candidate
-		}
-		if stringValue(message["role"]) != "user" || !strings.HasPrefix(candidate, "[RUNTIME CONTEXT]\n") || !strings.HasSuffix(candidate, "\n[/RUNTIME CONTEXT]") {
-			continue
-		}
-		if content.Runtime != "" {
-			return modelContextRefreshContent{}, errors.New("runtime_context_duplicate")
-		}
-		content.Runtime = candidate
+func promptMessageOriginIndex(assembly PromptAssemblyResult, source string) int {
+	if len(assembly.messageOrigins) != len(assembly.Messages) {
+		return -1
 	}
-	if content.System == "" || content.Runtime == "" {
+	index := -1
+	for position, origin := range assembly.messageOrigins {
+		if origin.Source == source {
+			if index >= 0 {
+				return -1
+			}
+			index = position
+		}
+	}
+	return index
+}
+
+func modelContextContent(assembly PromptAssemblyResult) (modelContextRefreshContent, error) {
+	content := modelContextRefreshContent{}
+	systemIndex := promptMessageOriginIndex(assembly, "trusted_task_configuration")
+	runtimeIndex := promptMessageOriginIndex(assembly, "scoped_runtime_projection")
+	if systemIndex >= 0 && stringValue(assembly.Messages[systemIndex]["role"]) == "system" {
+		content.System = stringValue(assembly.Messages[systemIndex]["content"])
+	}
+	if runtimeIndex >= 0 && stringValue(assembly.Messages[runtimeIndex]["role"]) == "user" {
+		content.Runtime = stringValue(assembly.Messages[runtimeIndex]["content"])
+	}
+	if content.System == "" || !strings.HasPrefix(content.Runtime, "[RUNTIME CONTEXT]\n") || !strings.HasSuffix(content.Runtime, "\n[/RUNTIME CONTEXT]") {
 		return modelContextRefreshContent{}, errors.New("model_context_refresh_content_missing")
 	}
 	return content, nil
@@ -219,22 +229,17 @@ func (r *runtimeContextRefresh) prepare(ctx context.Context, original []*schema.
 	}
 	r.mu.Lock()
 	if r.target == nil {
-		for _, message := range original {
+		if r.systemOriginIndex >= 0 && r.systemOriginIndex < len(original) {
+			message := original[r.systemOriginIndex]
 			if message != nil && message.Role == schema.System {
-				if r.system != nil {
-					r.mu.Unlock()
-					return nil, errors.New("system_context_duplicate")
-				}
 				r.system = message
 			}
-			if !isRuntimeContextMessage(message) {
-				continue
+		}
+		if r.runtimeOriginIndex >= 0 && r.runtimeOriginIndex < len(original) {
+			message := original[r.runtimeOriginIndex]
+			if isRuntimeContextMessage(message) {
+				r.target = message
 			}
-			if r.target != nil {
-				r.mu.Unlock()
-				return nil, errors.New("runtime_context_duplicate")
-			}
-			r.target = message
 		}
 	}
 	target := r.target

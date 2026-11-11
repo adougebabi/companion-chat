@@ -22,7 +22,7 @@ func TestRuntimeContextRefreshPreservesRawADKHistoryAndMultimodalInput(t *testin
 		t.Fatal(err)
 	}
 	refreshes := 0
-	refresh := &runtimeContextRefresh{refresh: func(context.Context) (modelContextRefreshContent, error) {
+	refresh := &runtimeContextRefresh{runtimeOriginIndex: 1, refresh: func(context.Context) (modelContextRefreshContent, error) {
 		refreshes++
 		return modelContextRefreshContent{System: "trusted new persona and task", Runtime: "[RUNTIME CONTEXT]\nshort hair\n[/RUNTIME CONTEXT]"}, nil
 	}}
@@ -47,7 +47,7 @@ func TestRuntimeContextRefreshPreservesRawADKHistoryAndMultimodalInput(t *testin
 	if len(second[2].UserInputMultiContent) != 2 || second[2].Content != "" || second[3].ToolCalls[0].ID != second[4].ToolCallID || second[4].Content != toolResult.Content {
 		t.Fatalf("multimodal input or Tool protocol changed: %#v", second)
 	}
-	mapping := physicalModelSourceMap(second)
+	mapping := physicalModelSourceMap(second, []any{map[string]any{"role": "system", "source": "trusted_task_configuration"}, map[string]any{"role": "user", "source": "scoped_runtime_projection"}, map[string]any{"role": "user", "source": "current_task_input"}})
 	if stringValue(mapping[0]["source"]) != "trusted_task_configuration" || stringValue(mapping[1]["source"]) != "scoped_runtime_projection" || stringValue(mapping[3]["source"]) != "agent_tool_call" || stringValue(mapping[4]["source"]) != "tool_result" || stringValue(mapping[4]["tool_call_id"]) != "call-1" {
 		t.Fatalf("physical source map lost Tool pairing: %#v", mapping)
 	}
@@ -62,7 +62,7 @@ func TestRuntimeContextRefreshFailsBeforePhysicalRequest(t *testing.T) {
 		{Role: schema.System, Content: "system"},
 		{Role: schema.User, Content: "[RUNTIME CONTEXT]\nold\n[/RUNTIME CONTEXT]"},
 	}
-	refresh := &runtimeContextRefresh{refresh: func(context.Context) (modelContextRefreshContent, error) {
+	refresh := &runtimeContextRefresh{runtimeOriginIndex: 1, refresh: func(context.Context) (modelContextRefreshContent, error) {
 		return modelContextRefreshContent{}, errors.New("source_revision_stale")
 	}}
 	if _, err := refresh.prepare(context.Background(), input); err != nil {

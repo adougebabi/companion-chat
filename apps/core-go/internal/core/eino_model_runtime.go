@@ -514,7 +514,7 @@ func (m *queuedToolCallingChatModel) withPhysicalPromptBudgetDiagnostics(ctx con
 		diagnostics["logical_prompt_budget"] = cloneMap(logical)
 	}
 	estimate := estimatePromptWireInput(messages, tools, m.responseFormat)
-	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(nil, messages, tools, m.responseFormat, m.assignment, estimate)
+	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(nil, messages, tools, m.responseFormat, m.assignment, estimate, arrayValue(mapValue(diagnostics["context_projection"])["source_map"]))
 	mapValue(diagnostics["prompt_budget"])["request_stage"] = "physical"
 	return WithPromptDiagnostics(ctx, diagnostics)
 }
@@ -557,7 +557,7 @@ func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClien
 		runID = correlationID
 	}
 	modelCallID := stringValue(diagnostics["model_call_id"])
-	sourceMap := physicalModelSourceMap(input)
+	sourceMap := physicalModelSourceMap(input, arrayValue(mapValue(diagnostics["context_projection"])["source_map"]))
 	versions := mapValue(mapValue(diagnostics["context_projection"])["versions"])
 	sectionTokens := mapValue(mapValue(diagnostics["prompt_budget"])["section_tokens"])
 	if adkContext, ok := adkCapabilityContext(ctx); ok && adkContext.Refresh != nil {
@@ -583,32 +583,42 @@ func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClien
 	})
 }
 
-func physicalModelSourceMap(input []*schema.Message) []map[string]any {
+func physicalModelSourceMap(input []*schema.Message, logical []any) []map[string]any {
 	lastUser := -1
 	for index, message := range input {
-		if message != nil && message.Role == schema.User && !isRuntimeContextMessage(message) {
+		if message != nil && message.Role == schema.User {
 			lastUser = index
 		}
 	}
-	mapping := make([]map[string]any, 0, min(len(input), 64))
+	mapping := make([]map[string]any, 0, len(input))
 	for index, message := range input {
-		if message == nil || len(mapping) >= 64 {
+		if message == nil {
 			continue
 		}
 		source := "historical_message"
+		origin := map[string]any{}
+		if index < len(logical) && stringValue(mapValue(logical[index])["role"]) == string(message.Role) {
+			origin = mapValue(logical[index])
+		}
 		switch {
 		case message.Role == schema.System:
 			source = "trusted_task_configuration"
-		case isRuntimeContextMessage(message):
-			source = "scoped_runtime_projection"
 		case message.Role == schema.Tool:
 			source = "tool_result"
 		case message.Role == schema.Assistant && len(message.ToolCalls) > 0:
 			source = "agent_tool_call"
+		case stringValue(origin["source"]) != "":
+			source = stringValue(origin["source"])
 		case index == lastUser:
 			source = "current_task_input"
 		}
 		item := map[string]any{"index": index, "role": string(message.Role), "source": source, "estimated_tokens": estimateProviderMessageTokens(einoMessageRaw(message))}
+		if refs := origin["source_refs"]; refs != nil {
+			item["source_refs"] = refs
+		}
+		if reason := stringValue(origin["reason"]); reason != "" {
+			item["reason"] = reason
+		}
 		if message.Role == schema.Tool && strings.TrimSpace(message.ToolCallID) != "" {
 			item["tool_call_id"] = message.ToolCallID
 		}

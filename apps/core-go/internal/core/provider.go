@@ -396,7 +396,7 @@ func (p *ProviderClient) completeWithToolsSchemaMode(ctx context.Context, role s
 		// generations receive separate model_call_id values below.
 		diagnostics["run_id"] = correlationID
 	}
-	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(mapValue(diagnostics["prompt_budget"]), messages, renderedTools, responseFormat, assignment, wireEstimate)
+	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(mapValue(diagnostics["prompt_budget"]), messages, renderedTools, responseFormat, assignment, wireEstimate, arrayValue(mapValue(diagnostics["context_projection"])["source_map"]))
 	if len(renderedTools) > 0 {
 		diagnostics["tools"] = renderedTools
 	}
@@ -900,7 +900,7 @@ func providerStreamingPayload(model string, messages []map[string]any, outputRes
 	return payload
 }
 
-func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, tools []map[string]any, responseFormat map[string]any, assignment providerAssignment, wireEstimate int) map[string]any {
+func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, tools []map[string]any, responseFormat map[string]any, assignment providerAssignment, wireEstimate int, sourceMaps ...[]any) map[string]any {
 	result := cloneMap(existing)
 	if result == nil {
 		result = map[string]any{}
@@ -918,12 +918,16 @@ func mergeProviderPromptBudgetDiagnostics(existing map[string]any, messages, too
 	}
 	for index, message := range messages {
 		section, tokens := "recent", estimateProviderMessageTokens(message)
+		origin := map[string]any{}
+		if len(sourceMaps) > 0 && index < len(sourceMaps[0]) && stringValue(mapValue(sourceMaps[0][index])["role"]) == stringValue(message["role"]) {
+			origin = mapValue(sourceMaps[0][index])
+		}
 		if index == 0 && stringValue(message["role"]) == "system" {
 			section = "system"
-		} else if index == len(messages)-1 && stringValue(message["role"]) == "user" {
-			section = "current_input"
-		} else if strings.Contains(stringValue(message["content"]), "[RUNTIME CONTEXT]") {
+		} else if stringValue(origin["source"]) == "scoped_runtime_projection" {
 			section = "runtime"
+		} else if stringValue(origin["source"]) == "current_task_input" || (len(origin) == 0 && index == len(messages)-1 && stringValue(message["role"]) == "user") {
+			section = "current_input"
 		}
 		sectionTokens[section] = intValue(sectionTokens[section]) + tokens
 		sectionCounts[section] = intValue(sectionCounts[section]) + 1

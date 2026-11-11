@@ -57,7 +57,7 @@ func (a *App) bindProjectionRefresh(
 			return modelContextRefreshContent{}, err
 		}
 		assembledProjection.RecentMessages = projection.RecentMessages
-		content, err := modelContextContent(assembly.Messages)
+		content, err := modelContextContent(assembly)
 		content.Projection = assembledProjection
 		content.BudgetTrace = assembly.Trace
 		return content, err

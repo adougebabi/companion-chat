@@ -674,7 +674,9 @@ func (a *App) RunADKStructuredTask(ctx context.Context, input ADKStructuredTaskI
 	}
 	var refresh *runtimeContextRefresh
 	if plan := runtimeContextRefreshPlan(ctx); plan != nil {
-		refresh = &runtimeContextRefresh{refresh: plan, base: request.Projection, kevVersion: request.Projection.KevContextVersion}
+		refresh = &runtimeContextRefresh{refresh: plan, base: request.Projection, kevVersion: request.Projection.KevContextVersion,
+			systemOriginIndex:  promptMessageOriginIndex(input.Prompt, "trusted_task_configuration"),
+			runtimeOriginIndex: promptMessageOriginIndex(input.Prompt, "scoped_runtime_projection")}
 	}
 	ctx = withADKCapabilityContextRefs(ctx, invoker, trace, refresh, refs)
 	if input.Capability != nil && refresh != nil && kevPersonaInstalled(input.Definitions) && a.kevService().Enabled(ctx, "persona.switch") {

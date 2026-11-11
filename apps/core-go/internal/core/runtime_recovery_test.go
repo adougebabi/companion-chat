@@ -72,7 +72,7 @@ func TestADKStaleReplyRefreshesContextWithoutPublishingOldProse(t *testing.T) {
 		t.Fatal(err)
 	}
 	trace := &ADKCapabilityTrace{}
-	refresh := &runtimeContextRefresh{base: projection, refresh: func(ctx context.Context) (modelContextRefreshContent, error) {
+	refresh := &runtimeContextRefresh{base: projection, runtimeOriginIndex: 1, refresh: func(ctx context.Context) (modelContextRefreshContent, error) {
 		updated, err := f.app.BuildContextProjectionFor(ctx, projectionRequest)
 		return modelContextRefreshContent{System: "system", Runtime: "[RUNTIME CONTEXT]\n" + stringValue(updated.LifeContext["scene"]) + "\n[/RUNTIME CONTEXT]", Projection: updated}, err
 	}}

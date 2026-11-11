@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
   "failure": "",
   "result": "",
   "created": "2026-11-10T08:34:30.58656Z",
-  "updated": "2026-11-10T08:34:30.586602Z",
+  "updated": "2026-11-11T11:13:23.594021Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-33e4a69ebd97971544bb",
+        "unit": "define",
+        "executor": "codex-t03-context",
+        "input_version": "99022dc4234da3cb808ed77728ac34b740d62b9729664a8cffbb5fc90c47578f",
+        "candidate_version": "99022dc4234da3cb808ed77728ac34b740d62b9729664a8cffbb5fc90c47578f",
+        "started": "2026-11-11T10:52:52.925627Z",
+        "ended": "2026-11-11T10:54:28.764537Z",
+        "status": "pass",
+        "reason": "继承原始 T03：逐 Agent/variant 明确任务输入及来源、人格/历史/状态/工具边界，核对可信来源和可追溯 Slot；保留完整历史组、原生工具与真实图片，不新增 token 限制。任务外非阻断问题只登记 Bug。"
+      },
+      {
+        "id": "AT-60045927807a00ba97bc",
+        "unit": "analysis",
+        "executor": "codex-t03-context",
+        "input_version": "99022dc4234da3cb808ed77728ac34b740d62b9729664a8cffbb5fc90c47578f",
+        "candidate_version": "99022dc4234da3cb808ed77728ac34b740d62b9729664a8cffbb5fc90c47578f",
+        "started": "2026-11-11T10:54:53.512044Z",
+        "ended": "2026-11-11T11:00:00.600964Z",
+        "status": "pass",
+        "reason": "现有清单已概括 Agent 输入但未逐变体声明必需/可选/禁止、来源及工具输出；实际 Slot 来源和选择原因追踪不完整。原始 T03 直接缺口包括用户正文伪造 runtime 标签可能被识别为上下文、记忆候选请求夹带衣着状态、衣柜任务输入混合旧卡社交文本。先修复可信来源识别，再逐项处理原验收。"
+      },
+      {
+        "id": "AT-db40c284da28918d05f4",
+        "unit": "execute",
+        "executor": "codex-t03-context",
+        "input_version": "99022dc4234da3cb808ed77728ac34b740d62b9729664a8cffbb5fc90c47578f",
+        "candidate_version": "",
+        "started": "2026-11-11T11:00:26.83582Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
     "checks": null
   }
 }

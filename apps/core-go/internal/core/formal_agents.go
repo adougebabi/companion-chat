@@ -242,7 +242,7 @@ func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input Formal
 	}
 	// Normalize only trusted system fragments. Already composed history, current
 	// input, images and native transcript content remain byte-for-byte intact.
-	input.Prompt.Messages = formalPromptMessages(id, input.Prompt.Messages)
+	input.Prompt = formalPromptAssembly(id, input.Prompt)
 	definition.EnableStreaming = input.EnableStreaming
 	if id == FormalAgentConversationSummary {
 		switch input.SchemaName {
@@ -260,6 +260,24 @@ func (a *App) RunFormalAgent(ctx context.Context, id FormalAgentID, input Formal
 		EnableThinking: input.EnableThinking, EnableStreaming: input.EnableStreaming,
 		TextOutput: definition.OutputKind == FormalAgentOutputText, Capability: input.Capability, Invoker: input.Invoker,
 	})
+}
+
+// Keep assembler-owned origins aligned when the formal boundary combines
+// system messages and retains the non-system messages in their original order.
+func formalPromptAssembly(id FormalAgentID, assembly PromptAssemblyResult) PromptAssemblyResult {
+	if len(assembly.messageOrigins) == len(assembly.Messages) && len(assembly.messageOrigins) > 0 {
+		origins := []promptMessageOrigin{{Source: "trusted_task_configuration", Reason: "task protocol and authorized persona"}}
+		for index, message := range assembly.Messages {
+			if stringValue(message["role"]) != "system" {
+				origins = append(origins, assembly.messageOrigins[index])
+			}
+		}
+		assembly.messageOrigins = origins
+	} else {
+		assembly.messageOrigins = nil
+	}
+	assembly.Messages = formalPromptMessages(id, assembly.Messages)
+	return assembly
 }
 
 // RunFormalAgentStream is the production streaming entry. It uses the same
