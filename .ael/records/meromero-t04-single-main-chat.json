@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "direct 主 Agent 原生回复、原子认知结算、输出偏好回执核对及隔离数据库的 Goal/claim/appraisal/关系/重放已实现或验证。但隔离红测证实 direct 在无媒体调用及附件时会发布‘照片已发送’，违反 T04/T06 发布条件，故缺省已恢复 fact_only；实时 token 流缺口已另记，真实 MeroMero direct 未通过。按用户授权卡壳先跳过并继续后续任务；待 T06 发布核验通过后回到 execute 恢复默认切换并完整验收。",
   "result": "",
   "created": "2026-11-10T08:34:30.674168Z",
-  "updated": "2026-11-11T15:00:03.037657Z",
+  "updated": "2026-11-11T15:00:59.059338Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -65,11 +65,11 @@
         "unit": "execute",
         "executor": "codex-t04-main-chat",
         "input_version": "aeb644332f972f502f5c7f2a05b0d7603e6805ed1e803c1f5af2f8ee1f53e985",
-        "candidate_version": "",
+        "candidate_version": "6f79f3fcc602454bd5bb13b4ad93bb1b44ac6732f20f7148066a98cbcda7ccda",
         "started": "2026-11-11T14:59:45.909784Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-11T15:00:54.798637Z",
+        "status": "fail",
+        "reason": "direct 主 Agent 原生回复、原子认知结算、输出偏好回执核对及隔离数据库的 Goal/claim/appraisal/关系/重放已实现或验证。但隔离红测证实 direct 在无媒体调用及附件时会发布‘照片已发送’，违反 T04/T06 发布条件，故缺省已恢复 fact_only；实时 token 流缺口已另记，真实 MeroMero direct 未通过。按用户授权卡壳先跳过并继续后续任务；待 T06 发布核验通过后回到 execute 恢复默认切换并完整验收。"
       }
     ],
     "checks": null
