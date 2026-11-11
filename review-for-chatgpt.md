@@ -79,7 +79,7 @@ Image 和 Moment 使用既有 Capability Registry 与领域实现。Image 声明
 | E09 插件启停 | 本次 `domain_plugins_integration_test.go:14` 验证两个插件停用、新工作拒绝、旧回执及纯文字路径；React 插件状态测试通过。 | 独立前后端测试不能代替真实浏览器到运行消费；NPC 和未 ready 媒体完整恢复、真实 ComfyUI 未验收。 |
 | E10 表达学习 | 本次 `expression_learning_lifecycle_integration_test.go:13` 从真实受理的测试消息提取候选，审核启用后进入受控请求，停用后不再注入，并核对人格/关系语义。 | 模型是否真实采用、所有错误草稿和诊断文本排除、关系称呼兼容性及浏览器到运行链未验收。 |
 | E11 记忆纠错 | 本次 `memory_correction_conversation_integration_test.go:9` 保留两次发言、经 Owner 修订后旧购票判断不再作为事实返回；`memory_recall_speaker_integration_test.go:10` 验证说话主体。 | 这是受控人工纠错；未知旧来源、生产摘要正确重建、在途请求和锁序仍未解决，不代表所有 Actor 均已覆盖。 |
-| E12 主动交流 | 本次 `wakeup_event_context_integration_test.go:12` 在受控 Provider 下覆盖无新理由静默、有新事件分享及未回应状态。 | 脚本结果不能证明真实模型自主选择；无事退避、避免重复播报和无限追问未做完整真实验收。 |
+| E12 主动交流 | 本次 `wakeup_event_context_integration_test.go:12` 在受控 Provider 下覆盖无新理由静默、有新事件分享及未回应状态。 | 脚本结果不能证明真实模型自主选择；源码静态复核确认现有固定十分钟周期没有连续无事退避，避免重复播报和无限追问也未做完整真实验收。 |
 | E13 人格与普通交流 | 人格切换/接管及拒绝不触发模型回退有受控测试。 | 两种人格在普通交流、分歧、玩笑、认真沟通和主动分享的多次独立真实模型样本未完成；不能评价是否压平人格。 |
 | E14 既有业务 | Goal 上限、暂停、已完成旧愿望、衣柜、人格、视觉候选、NPC、Studio 和日记有局部隔离回归。 | **未通过。** 四组 Goal/活动闭环在当前 T10 和起始提交均失败，部分显示 `evaluation_cadence`，根因未确定，已另建 bug；完整领域矩阵未验收。 |
 | E15 管理闭环 | 本次后端配置保存/回读/受控下一次请求，以及 React 图片插件设置/检查分别通过。 | 没有真实浏览器完成保存 → 刷新 → 回读 → 下一次运行消费的完整证据；其他管理入口及独立调试权限未全完成。 |
