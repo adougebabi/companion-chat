@@ -27,7 +27,8 @@ export default function FeedPage({ route, initialPostId } = {}) {
     [action, setAction] = useState(null),
     [suggestion, setSuggestion] = useState(null),
     [feedback, setFeedback] = useState(""),
-    [filterError, setFilterError] = useState("");
+    [filterError, setFilterError] = useState(""),
+    [pluginState, setPluginState] = useState({ owner: "", status: "checking" });
   const active = useRef(false),
     scopeRef = useRef(scope),
     trigger = useRef(null),
@@ -35,7 +36,11 @@ export default function FeedPage({ route, initialPostId } = {}) {
     feedRef = useRef(null),
     suggestionsRef = useRef(null),
     lastCreated = useRef(null),
-    lastSuggestion = useRef(null);
+    lastSuggestion = useRef(null),
+    refreshPlugin = useRef(() => {}),
+    momentEnabledRef = useRef(false);
+  const pluginStatus = pluginState.owner === owner ? pluginState.status : "checking";
+  momentEnabledRef.current = pluginStatus === "enabled";
   scopeRef.current = scope;
   useEffect(() => {
     active.current = true;
@@ -49,6 +54,25 @@ export default function FeedPage({ route, initialPostId } = {}) {
     setAction(null);
     setSuggestion(null);
   }, [scope, initialPostId]);
+  useEffect(() => {
+    let current = true, epoch = 0;
+    async function readPlugin() {
+      const token = ++epoch;
+      setPluginState({ owner, status: "checking" });
+      try {
+        const catalog = await w.services.configurationClient.read();
+        if (!current || token !== epoch || w.state.session?.actorId !== owner) return;
+        const plugin = catalog.domain_plugins?.find((item) => item.id === "moment");
+        setPluginState({ owner, status: typeof plugin?.enabled === "boolean" ? (plugin.enabled ? "enabled" : "disabled") : "unknown" });
+      } catch {
+        if (current && token === epoch && w.state.session?.actorId === owner) setPluginState({ owner, status: "unknown" });
+      }
+    }
+    refreshPlugin.current = readPlugin;
+    void readPlugin();
+    window.addEventListener("focus", readPlugin);
+    return () => { current = false; epoch++; window.removeEventListener("focus", readPlugin); };
+  }, [owner]);
   const live = () =>
     active.current &&
     scopeRef.current === scope &&
@@ -164,6 +188,10 @@ export default function FeedPage({ route, initialPostId } = {}) {
     feedback,
     setFeedback,
     filterError,
+    pluginStatus,
+    momentEnabled: pluginStatus === "enabled",
+    momentEnabledRef,
+    refreshPlugin: () => refreshPlugin.current(),
     navigateFilters,
     trigger,
     commandTrigger,
@@ -199,6 +227,7 @@ export default function FeedPage({ route, initialPostId } = {}) {
       initial: { revision: post.revision, kind: preset || "like" },
       submitLabel:
         "确认" + { reaction: "回应", hide: "隐藏", restore: "恢复展示" }[kind],
+      canSubmit: () => kind !== "reaction" || momentEnabledRef.current,
       build: (d) => ({
         expectedRevision: d.revision,
         reason:
@@ -277,7 +306,7 @@ export default function FeedPage({ route, initialPostId } = {}) {
           ? "这条动态将以「我」的身份发布。"
           : "你可以提出分享建议，由角色决定发不发、怎么写。",
       submitLabel: mode === "publish" ? "发布动态" : "提出分享建议",
-      canSubmit: (d) => !!d?.text?.trim(),
+      canSubmit: (d) => momentEnabledRef.current && !!d?.text?.trim(),
       initial,
       validate: (d) => {
         momentText(d.text);

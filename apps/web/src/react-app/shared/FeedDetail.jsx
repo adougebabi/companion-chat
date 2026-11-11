@@ -22,7 +22,7 @@ function CommentComposer({ model: m, post, onSaved, onClose }) {
     storageKey: `fluctlight-studio:${m.owner}:moment:replica:${post.id}:comment`,
     title: "评论这个片刻",
     submitLabel: "发布评论",
-    canSubmit: (d) => !!d?.text?.trim(),
+    canSubmit: (d) => m.momentEnabledRef.current && !!d?.text?.trim(),
     cancelLabel: "收起评论",
     initial: { text: "", revision: post.revision },
     validate: (d) => momentText(d.text),
@@ -79,6 +79,7 @@ function NPCInteractions({ model: m, post }) {
         "核对原结识来源、人物定义和运行世界；不会强制评论，也不会建立新关系。",
       initial: { revision: row.revision },
       submitLabel: "确认重新核对",
+      canSubmit: () => m.momentEnabledRef.current,
       build: (d) => ({
         expectedRevision: d.revision,
         reason: "所有者重新核对原人物动态互动",
@@ -151,7 +152,7 @@ function NPCInteractions({ model: m, post }) {
               </a>
             ))}
             {["failed", "suppressed"].includes(row.status) && (
-              <Button variant="outline" onClick={(e) => retry(row, e)}>
+              <Button variant="outline" disabled={!m.momentEnabled} onClick={(e) => retry(row, e)}>
                 重试本次互动
               </Button>
             )}
@@ -301,6 +302,7 @@ export default function FeedDetail({ model: m, id, onClose }) {
               <FeedMore source={comments} label="评论" />
             </section>
             {notice && <WorkspaceInfo>{notice}</WorkspaceInfo>}
+            {!m.momentEnabled && <WorkspaceInfo>{m.pluginStatus === "disabled" ? "动态能力已停用；原评论提交仍可核对。" : "动态能力状态尚未确认；原评论提交仍可核对。"}</WorkspaceInfo>}
             {post.status === "hidden" ? (
               <WorkspaceInfo>
                 这条动态已隐藏，恢复展示后可以继续评论。

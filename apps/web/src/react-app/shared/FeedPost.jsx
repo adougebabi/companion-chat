@@ -170,7 +170,7 @@ export default function FeedPost({
             post.viewer_reaction === "like" ? "取消点赞" : "赞这条动态"
           }
           aria-pressed={post.viewer_reaction === "like"}
-          disabled={hidden}
+          disabled={hidden || !m.momentEnabled}
           onClick={(event) =>
             onAction(
               "reaction",
@@ -214,7 +214,7 @@ export default function FeedPost({
               <Button
                 key={kind}
                 variant="outline"
-                disabled={hidden}
+                disabled={hidden || !m.momentEnabled}
                 aria-pressed={post.viewer_reaction === kind}
                 onClick={(event) =>
                   onAction(

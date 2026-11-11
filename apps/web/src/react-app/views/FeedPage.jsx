@@ -44,24 +44,29 @@ export default function FeedPageView({ model: m }) {
               onClick={() => {
                 void m.feed.load();
                 void m.suggestions.load();
+                void m.refreshPlugin();
               }}
             >
               <RefreshCw size={15} />
             </Button>
             <Button
               variant="outline"
+              disabled={!m.momentEnabled}
               onClick={(e) => m.compose("suggest", e.currentTarget)}
             >
               <Sparkles size={15} />
               邀请分享近况
             </Button>
-            <Button onClick={(e) => m.compose("publish", e.currentTarget)}>
+            <Button disabled={!m.momentEnabled} onClick={(e) => m.compose("publish", e.currentTarget)}>
               <Plus size={15} />
               我来发动态
             </Button>
           </>
         }
       />
+      {m.pluginStatus === "disabled" && <WorkspaceInfo>动态能力已停用，已发布内容仍可查看；原提交可以继续核对。</WorkspaceInfo>}
+      {m.pluginStatus === "checking" && <WorkspaceInfo>正在确认动态能力状态。</WorkspaceInfo>}
+      {m.pluginStatus === "unknown" && <WorkspaceInfo>暂时无法确认动态能力状态。<Button variant="outline" onClick={() => void m.refreshPlugin()}>重新读取能力状态</Button></WorkspaceInfo>}
       <form
         className="companion-toolbar feed-toolbar"
         onSubmit={(e) => {
@@ -326,6 +331,7 @@ function Suggestion({ model: m }) {
       {r?.status === "failed" && (
         <Button
           variant="outline"
+          disabled={!m.momentEnabled}
           onClick={(e) => {
             m.setSuggestion(null);
             m.compose("suggest", e.currentTarget, {

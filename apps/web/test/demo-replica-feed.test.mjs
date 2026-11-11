@@ -45,10 +45,13 @@ async function fixture({
   postId,
   noCharacter = false,
   intercept,
+  pluginEnabled = true,
+  pluginReadFails = false,
 } = {}) {
   if (!retainStorage) sessionStorage.clear();
   api ||= feedFixture({ scenario });
   const w = createWorkspace();
+  const plugin = { enabled: pluginEnabled, fail: pluginReadFails };
   store.replaceSnapshot({
     ...store.get(),
     session: { actorId: "feed-owner" },
@@ -66,6 +69,12 @@ async function fixture({
       body = init.body ? JSON.parse(init.body) : {};
     const override = await intercept?.({ url, method, body, api });
     if (override instanceof Response) return override;
+    if (url.pathname === "/api/configuration-catalog") {
+      return new Response(JSON.stringify(plugin.fail ? { message: "unavailable" } : { domain_plugins: [{ id: "moment", enabled: plugin.enabled }] }), {
+        status: plugin.fail ? 503 : 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
     let response;
     const handled = await api.handler({
       path: url.pathname,
@@ -90,9 +99,13 @@ async function fixture({
   const { installLifeProvider } = await vite.ssrLoadModule(
     "/src/v3/providers/life.ts",
   );
+  const { configureDomainService } = await vite.ssrLoadModule(
+    "/src/v3/proto/services.js",
+  );
   installMomentsProvider(w.client);
   installMediaProvider(w.client, async () => {});
   installLifeProvider(w.client);
+  configureDomainService("configuration", { read: () => w.client.configurationCatalog() });
   const props = {
     route: { page: "动态", query: new URLSearchParams(query) },
     initialPostId: postId,
@@ -102,6 +115,7 @@ async function fixture({
     w,
     v,
     api,
+    plugin,
     props,
     writes: () => api.calls.filter((c) => c.method !== "GET"),
     async dispose() {
@@ -204,7 +218,7 @@ test("unknown publication survives refresh and retries identical body and key wi
     assert.ok(button(dialog(), "核对或重试原提交"));
     const original = clone(f.writes()[0]);
     await f.dispose();
-    f = await fixture({ api, retainStorage: true });
+    f = await fixture({ api, retainStorage: true, pluginEnabled: false });
     assert.ok(button(f.v.host, "继续核对动态发布"));
     await f.v.click(button(f.v.host, "继续核对动态发布"));
     assert.equal(
@@ -216,6 +230,67 @@ test("unknown publication survives refresh and retries identical body and key wi
     assert.equal(api.posts.filter((p) => p.text === "原发布内容").length, 1);
     assert.match(dialog().textContent, /原发布内容/);
   } finally {
+    await f.dispose();
+  }
+});
+test("disabled Moment keeps history and original recovery but disables new actions", async () => {
+  const f = await fixture({ pluginEnabled: false });
+  try {
+    assert.match(f.v.host.textContent, /动态能力已停用/);
+    assert.equal(button(f.v.host, "我来发动态").disabled, true);
+    assert.equal(button(f.v.host, "邀请分享近况").disabled, true);
+    assert.ok(f.v.host.querySelector('[data-testid="feed-post-post-one"]'));
+    assert.equal(f.v.host.querySelector('[aria-label="赞这条动态"]').disabled, true);
+    await open(f);
+    await f.v.input(dialog().querySelector('[aria-label="评论内容"]'), "暂存的评论");
+    assert.equal(button(dialog(), "发布评论").disabled, true);
+    assert.equal(f.writes().length, 0);
+    f.plugin.enabled = true;
+    await act(async () => window.dispatchEvent(new window.Event("focus")));
+    await f.v.flush();
+    assert.equal(button(f.v.host, "我来发动态").disabled, false);
+    assert.equal(button(dialog(), "发布评论").disabled, false);
+  } finally {
+    await f.dispose();
+  }
+});
+test("unknown Moment status does not appear available", async () => {
+  const f = await fixture({ pluginReadFails: true });
+  try {
+    assert.match(f.v.host.textContent, /暂时无法确认动态能力状态/);
+    assert.equal(button(f.v.host, "我来发动态").disabled, true);
+    f.plugin.fail = false;
+    await f.v.click(button(f.v.host, "重新读取能力状态"));
+    assert.equal(button(f.v.host, "我来发动态").disabled, false);
+  } finally {
+    await f.dispose();
+  }
+});
+test("late plugin status from another Owner cannot enable new Moment actions", async () => {
+  let release, reads = 0;
+  const gate = new Promise((resolve) => (release = resolve));
+  const f = await fixture({
+    intercept: async ({ url, method }) => {
+      if (method !== "GET" || url.pathname !== "/api/configuration-catalog") return;
+      reads++;
+      if (reads === 1) {
+        await gate;
+        return new Response(JSON.stringify({ domain_plugins: [{ id: "moment", enabled: true }] }), { headers: { "content-type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ domain_plugins: [{ id: "moment", enabled: false }] }), { headers: { "content-type": "application/json" } });
+    },
+  });
+  try {
+    assert.equal(button(f.v.host, "我来发动态").disabled, true);
+    await act(async () => store.replaceSnapshot({ ...store.get(), session: { actorId: "next-owner" } }));
+    await f.v.flush();
+    assert.match(f.v.host.textContent, /动态能力已停用/);
+    await act(async () => release());
+    await f.v.flush();
+    assert.equal(button(f.v.host, "我来发动态").disabled, true);
+    assert.match(f.v.host.textContent, /动态能力已停用/);
+  } finally {
+    release();
     await f.dispose();
   }
 });
