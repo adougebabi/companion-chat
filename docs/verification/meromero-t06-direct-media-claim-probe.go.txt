@@ -1,0 +1,27 @@
+package core
+
+import (
+	"testing"
+)
+
+func TestDirectMediaClaimWithoutReceiptIsBlockedProbe(t *testing.T) {
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		decision := map[string]any{"action_type": "reply", "response_intent": "回复", "influences": []any{}}
+		return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("direct-media-probe", conversationReplyCapabilityName, map[string]any{"text": "我已经把照片发给你了。", "decision": decision})}}
+	})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "direct-media-probe", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `DELETE FROM public.runtime_settings WHERE key=$1`, conversationReplySettingKey); err != nil {
+		t.Fatal(err)
+	}
+	_, turnErr := app.HandleTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "照片呢？", "turn_id": "direct-media-probe", "idempotency_key": "direct-media-probe", "attachment_refs": []any{}})
+	var messages int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant' AND text='我已经把照片发给你了。' AND attachment_refs='[]'::jsonb`, conversation).Scan(&messages); err != nil {
+		t.Fatal(err)
+	}
+	if messages != 0 {
+		t.Fatalf("unverified media-delivery claim was published without an attachment: messages=%d turn_error=%v", messages, turnErr)
+	}
+}

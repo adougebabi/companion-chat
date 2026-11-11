@@ -1,0 +1,15 @@
+2026-11-11 — isolated PostgreSQL, controlled Provider, synthetic input
+Working directory: apps/core-go
+Command: python3 /private/tmp/fluctlight_run_isolated_memory_test.py '^TestDirectMediaClaimWithoutReceiptIsBlockedProbe$'
+Probe source: docs/verification/meromero-t06-direct-media-claim-probe.go.txt
+
+--- FAIL: TestDirectMediaClaimWithoutReceiptIsBlockedProbe (2.54s)
+    direct_media_unverified_probe_test.go:25: unverified media-delivery claim was published without an attachment: messages=1 turn_error=<nil>
+FAIL
+FAIL github.com/fluctlight/local-ai-companion/apps/core-go/internal/core 3.213s
+
+The controlled main Agent supplied the synthetic text “我已经把照片发给你了。”
+and made no media call. One assistant message with an empty attachment list was
+committed. This establishes the boundary failure, not live model behavior.
+To repeat, copy the probe source into apps/core-go/internal/core as a new
+*_test.go file, run against an isolated test database, then remove that copy.
