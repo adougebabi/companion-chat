@@ -26,4 +26,7 @@ func TestFormalPromptProjectionIncludesInitializationWithoutChangingMessages(t *
 	if len(mapping) != len(messages) || stringValue(mapValue(mapping[0])["source"]) != "trusted_task_configuration" || stringValue(mapValue(mapping[len(mapping)-1])["source"]) != "owner_description" || stringValue(projection["token_estimate_method"]) != "rune_heuristic" {
 		t.Fatalf("initialization source mapping=%#v", projection)
 	}
+	if mapValue(mapping[len(mapping)-1])["source_status"] != "inferred_from_message_shape" || projection["slot_trace_status"] != "not_declared_by_caller" {
+		t.Fatal("legacy message inference was reported as declared provenance")
+	}
 }

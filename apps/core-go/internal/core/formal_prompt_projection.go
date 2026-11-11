@@ -45,7 +45,14 @@ func projectFormalPromptBoundary(ctx context.Context, input ADKStructuredTaskInp
 		case role == "user" || role == "assistant":
 			source = "historical_message"
 		}
-		item := map[string]any{"index": index, "role": role, "source": source, "estimated_tokens": estimateProviderMessageTokens(message)}
+		sourceStatus := "declared_by_assembler"
+		if origin.Source == "" {
+			sourceStatus = "inferred_from_message_shape"
+		}
+		if role == "tool" || role == "assistant" && message["tool_calls"] != nil {
+			sourceStatus = "native_tool_protocol"
+		}
+		item := map[string]any{"index": index, "role": role, "source": source, "source_status": sourceStatus, "estimated_tokens": estimateProviderMessageTokens(message)}
 		if len(origin.SourceRefs) > 0 {
 			item["source_refs"] = append([]string(nil), origin.SourceRefs...)
 		}
@@ -71,7 +78,10 @@ func projectFormalPromptBoundary(ctx context.Context, input ADKStructuredTaskInp
 	diagnostics["context_projection"] = map[string]any{
 		"agent_id": input.AgentID, "task_variant": firstString(input.TaskVariant, input.SchemaName), "role": input.Role, "schema": input.SchemaName, "source_map": mapping,
 		"versions": versions, "token_estimate_method": "rune_heuristic",
-		"selected": input.Prompt.Trace.Selected, "dropped": input.Prompt.Trace.Dropped,
+		"selected": input.Prompt.Trace.Selected, "dropped": input.Prompt.Trace.Dropped, "slots": input.Prompt.Trace.Slots,
+	}
+	if len(input.Prompt.Trace.Slots) == 0 {
+		mapValue(diagnostics["context_projection"])["slot_trace_status"] = "not_declared_by_caller"
 	}
 	return WithPromptDiagnostics(ctx, diagnostics), nil
 }

@@ -97,6 +97,20 @@ func TestUpstreamRetriesRecordEachEffectiveModelConfiguration(t *testing.T) {
 			}
 			call := upstreamRetryCall("http://turn.invalid", "cognitive_assessment")
 			call.Assignment, call.EnableStreaming = assignment, streaming
+			working, err := ResolveWorkingMemory(WorkingMemoryInput{RuntimeFacts: []PromptFragment{{Kind: PromptFragmentRuntimeFact, Required: true, Content: map[string]any{"kind": "current_state", "value": map[string]any{"scene": "书房"}}, SourceRefs: []string{"state:retry"}}}}, DefaultWorkingMemoryPolicy())
+			if err != nil {
+				t.Fatal(err)
+			}
+			assembly, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", OperationRules: []string{"test task"}, WorkingMemory: working, CurrentInput: "本次输入", Policy: DefaultPromptBudgetPolicy(0)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			assembly = formalPromptAssembly(FormalAgentConversationCognition, assembly)
+			ctx, err = projectFormalPromptBoundary(ctx, ADKStructuredTaskInput{AgentID: FormalAgentConversationCognition, Role: "cognitive_assessment", SchemaName: call.SchemaName, Prompt: assembly})
+			if err != nil {
+				t.Fatal(err)
+			}
+			call.Messages = assembly.Messages
 			ctx = WithADKCapabilityInvoker(ctx, &adkFakeInvoker{}, &ADKCapabilityTrace{})
 			if _, err := provider.generateWithEino(ctx, call); err != nil || calls.Load() != 2 {
 				t.Fatalf("controlled retry calls=%d err=%v", calls.Load(), err)
@@ -142,6 +156,20 @@ func TestUpstreamRetriesRecordEachEffectiveModelConfiguration(t *testing.T) {
 					t.Fatalf("physical attempt %d reused its identity", count)
 				}
 				physicalIDs[physicalID] = true
+				slots := arrayValue(payload["prompt_slots"])
+				var runtimeFound, currentFound bool
+				for _, rawSlot := range slots {
+					slot := mapValue(rawSlot)
+					refs := arrayValue(slot["source_refs"])
+					runtimeFound = runtimeFound || slot["slot_id"] == "runtime_fact" && len(refs) == 1 && refs[0] == "state:retry" && slot["reason"] == "required_by_task"
+					currentFound = currentFound || slot["slot_id"] == "current_input"
+					if slot["slot_id"] == "tool_catalog" || slot["slot_id"] == "response_schema" {
+						t.Fatalf("physical request without tools/schema recorded a nonexistent slot: %#v", slot)
+					}
+				}
+				if !runtimeFound || !currentFound {
+					t.Fatalf("physical attempt %d lost its actual slot sources: %#v", count, slots)
+				}
 				if modelCallID == "" || stringValue(payload["model_call_id"]) != modelCallID || configuration["model_id"] != assignment.ModelID || intValue(configuration["endpoint_revision"]) != int(assignment.EndpointRevision) || intValue(configuration["binding_revision"]) != int(assignment.BindingRevision) || intValue(configuration["credential_revision"]) != int(assignment.CredentialRevision) || strings.Contains(string(raw), fixtureSecret) {
 					t.Fatalf("physical attempt %d did not record its effective configuration", count)
 				}

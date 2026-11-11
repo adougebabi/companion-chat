@@ -92,6 +92,40 @@ func TestPromptAssemblerBuildsBLayoutAndCurrentInputExactlyOnce(t *testing.T) {
 	}
 }
 
+func TestPromptSlotsTraceSelectedSourcesAndReasons(t *testing.T) {
+	working, err := ResolveWorkingMemory(WorkingMemoryInput{
+		RuntimeFacts:      []PromptFragment{{Kind: PromptFragmentRuntimeFact, Required: true, Content: map[string]any{"kind": "current_state", "value": map[string]any{"scene": "书房"}}, SourceRefs: []string{"state:current"}}},
+		RetrievedMemories: []PromptFragment{{Kind: PromptFragmentRetrievedMemory, Content: map[string]any{"content": "偏好"}, SourceRefs: []string{"memory:source"}}},
+		RecentMessages:    []PromptFragment{{Kind: PromptFragmentRecentMessage, Content: map[string]any{"role": "user", "content": "上一次"}, SourceRefs: []string{"message:source"}, GroupKey: "turn:1"}},
+	}, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := AssemblePromptContext(PromptAssemblyInput{Role: "cognitive_assessment", OperationRules: []string{"task"}, CorePersona: map[string]any{"identity": map[string]any{"name": "角色"}}, StableTaskContext: map[string]any{"scope": "稳定事实"}, WorkingMemory: working, CurrentInput: "当前输入", Tools: []map[string]any{{"type": "function"}}, ResponseFormat: map[string]any{"type": "json_schema"}, Policy: DefaultPromptBudgetPolicy(0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bySource := map[string]PromptSlotTrace{}
+	bySlot := map[PromptSlotID]bool{}
+	for _, slot := range result.Trace.Slots {
+		bySlot[slot.SlotID] = true
+		for _, ref := range slot.SourceRefs {
+			bySource[ref] = slot
+		}
+		if slot.Source == "" || slot.Reason == "" {
+			t.Fatalf("slot is missing its source or selection reason: %#v", slot)
+		}
+	}
+	for _, id := range []PromptSlotID{PromptSlotOperation, PromptSlotCorePersona, PromptSlotRuntimeFact, PromptSlotMemory, PromptSlotRecentTurns, PromptSlotCurrent, PromptSlotToolCatalog, PromptSlotSchema} {
+		if !bySlot[id] {
+			t.Fatalf("missing slot %s: %#v", id, result.Trace.Slots)
+		}
+	}
+	if bySource["state:current"].MessageIndex != 2 || bySource["memory:source"].MessageIndex != 2 || bySource["message:source"].MessageIndex != 3 || bySource["state:current"].Reason != "required_by_task" || bySource["message:source"].Reason != "whole_turn_not_covered" {
+		t.Fatalf("slot selection lost source identity or message position: %#v", bySource)
+	}
+}
+
 func TestFormatRuntimeContextTimesUsesLifeTimezoneWithoutChangingSource(t *testing.T) {
 	context := map[string]any{
 		"current_state": map[string]any{"data": map[string]any{"life_context": map[string]any{

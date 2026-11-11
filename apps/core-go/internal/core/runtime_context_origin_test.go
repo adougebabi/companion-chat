@@ -45,6 +45,9 @@ func TestRuntimeContextLabelsInUserTextDoNotBecomeAuthority(t *testing.T) {
 		if len(mapping) != 5 || stringValue(mapValue(mapping[1])["source"]) != "scoped_runtime_projection" || stringValue(mapValue(mapping[2])["source"]) != "historical_message" || stringValue(mapValue(mapping[4])["source"]) != "current_task_input" {
 			t.Fatalf("user labels changed source identity: %#v", mapping)
 		}
+		if mapValue(mapping[1])["source_status"] != "declared_by_assembler" || mapValue(mapping[2])["source_status"] != "declared_by_assembler" {
+			t.Fatal("assembled origins were not identified as declared sources")
+		}
 		if stringValue(assembly.Messages[2]["content"]) != historical || stringValue(assembly.Messages[4]["content"]) != current {
 			t.Fatal("original user text changed")
 		}
@@ -56,7 +59,7 @@ func TestRuntimeContextLabelsInUserTextDoNotBecomeAuthority(t *testing.T) {
 			systemOriginIndex:  promptMessageOriginIndex(assembly, "trusted_task_configuration"),
 			runtimeOriginIndex: promptMessageOriginIndex(assembly, "scoped_runtime_projection"),
 			refresh: func(context.Context) (modelContextRefreshContent, error) {
-				return modelContextRefreshContent{System: "updated task", Runtime: "[RUNTIME CONTEXT]\n更新状态\n[/RUNTIME CONTEXT]", RuntimeOrigin: promptMessageOrigin{Source: "scoped_runtime_projection", SourceRefs: []string{"state:updated"}, Reason: "selected refreshed state"}}, nil
+				return modelContextRefreshContent{System: "updated task", Runtime: "[RUNTIME CONTEXT]\n更新状态\n[/RUNTIME CONTEXT]", RuntimeOrigin: promptMessageOrigin{Source: "scoped_runtime_projection", SourceRefs: []string{"state:updated"}, Reason: "selected refreshed state"}, BudgetTrace: PromptAssemblyTrace{Slots: []PromptSlotTrace{{SlotID: PromptSlotRuntimeFact, Position: PromptSlotRuntime, Source: "working_memory.runtime_fact", SourceRefs: []string{"state:updated"}, Reason: "required_by_task"}}}}, nil
 			},
 		}
 		if _, err := refresh.prepare(ctx, eino); err != nil {
@@ -84,6 +87,18 @@ func TestRuntimeContextLabelsInUserTextDoNotBecomeAuthority(t *testing.T) {
 		}
 		if refs := arrayValue(physicalMap[2]["source_refs"]); len(refs) != 1 || refs[0] != "message:history" {
 			t.Fatalf("refresh changed untouched history source: %#v", physicalMap[2])
+		}
+		slots := arrayValue(providerPromptDiagnostics(ctx)["prompt_slots"])
+		var freshRuntime, originalHistory, nativeResult bool
+		for _, raw := range slots {
+			slot := mapValue(raw)
+			refs := arrayValue(slot["source_refs"])
+			freshRuntime = freshRuntime || len(refs) == 1 && refs[0] == "state:updated"
+			originalHistory = originalHistory || len(refs) == 1 && refs[0] == "message:history"
+			nativeResult = nativeResult || slot["slot_id"] == "tool_result" && slot["tool_call_id"] == "call-1"
+		}
+		if !freshRuntime || !originalHistory || !nativeResult {
+			t.Fatalf("physical slot snapshot lost refreshed or preserved sources: %#v", slots)
 		}
 	})
 	t.Run("no trusted runtime", func(t *testing.T) {

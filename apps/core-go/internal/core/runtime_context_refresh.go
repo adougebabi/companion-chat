@@ -174,7 +174,7 @@ func (r *runtimeContextRefresh) latestPromptOrigins() *modelContextRefreshConten
 	if r.latest == nil {
 		return nil
 	}
-	return &modelContextRefreshContent{SystemOrigin: r.latest.SystemOrigin, RuntimeOrigin: r.latest.RuntimeOrigin}
+	return &modelContextRefreshContent{SystemOrigin: r.latest.SystemOrigin, RuntimeOrigin: r.latest.RuntimeOrigin, BudgetTrace: r.latest.BudgetTrace}
 }
 
 func (r *runtimeContextRefresh) markDirty() {

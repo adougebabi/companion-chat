@@ -92,6 +92,7 @@ func (m *queuedToolCallingChatModel) recordPhysicalAttempt(ctx context.Context, 
 		"run_id": firstString(stringValue(diagnostics["run_id"]), m.correlationID), "model_call_id": requestID,
 		"physical_attempt_id": randomID("physical_attempt_"), "sequence": sequence, "attempt": attempt, "transport": transport,
 		"model_configuration": providerAssignmentDiagnostics(m.assignment),
+		"prompt_slots":        diagnostics["prompt_slots"], "source_map": mapValue(diagnostics["context_projection"])["source_map"],
 	}
 	support, diagnosticCtx := m.provider.runtimeSupport(), context.WithoutCancel(ctx)
 	fluctlightID, correlationID := stringValue(diagnostics["fluctlight_id"]), m.correlationID
@@ -511,10 +512,11 @@ func (m *queuedToolCallingChatModel) withPhysicalPromptBudgetDiagnostics(ctx con
 	tools := RenderCapabilityTools(m.definitions)
 	diagnostics := providerPromptDiagnostics(ctx)
 	projection := cloneMap(mapValue(diagnostics["context_projection"]))
+	mapping := physicalModelSourceMap(input, arrayValue(projection["source_map"]))
+	var refreshed *modelContextRefreshContent
 	if len(projection) > 0 {
-		mapping := physicalModelSourceMap(input, arrayValue(projection["source_map"]))
 		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Refresh != nil {
-			if refreshed := bridge.Refresh.latestPromptOrigins(); refreshed != nil {
+			if refreshed = bridge.Refresh.latestPromptOrigins(); refreshed != nil {
 				applyRefreshedPromptOrigins(mapping, *refreshed)
 				// The original fragment decisions also contain historical turns,
 				// which are not replaced by a runtime refresh. Do not present
@@ -526,6 +528,7 @@ func (m *queuedToolCallingChatModel) withPhysicalPromptBudgetDiagnostics(ctx con
 		projection["source_map_stage"] = "physical"
 		diagnostics["context_projection"] = projection
 	}
+	diagnostics["prompt_slots"] = physicalPromptSlots(arrayValue(projection["slots"]), mapping, refreshed, tools, m.responseFormat)
 	if logical := mapValue(diagnostics["prompt_budget"]); len(logical) > 0 {
 		diagnostics["logical_prompt_budget"] = cloneMap(logical)
 	}
@@ -533,6 +536,92 @@ func (m *queuedToolCallingChatModel) withPhysicalPromptBudgetDiagnostics(ctx con
 	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(nil, messages, tools, m.responseFormat, m.assignment, estimate, arrayValue(mapValue(diagnostics["context_projection"])["source_map"]))
 	mapValue(diagnostics["prompt_budget"])["request_stage"] = "physical"
 	return WithPromptDiagnostics(ctx, diagnostics)
+}
+
+func physicalPromptSlots(logical []any, mapping []map[string]any, refreshed *modelContextRefreshContent, tools []map[string]any, responseFormat map[string]any) []map[string]any {
+	slots := make([]map[string]any, 0, len(logical)+len(mapping)+2)
+	for _, raw := range logical {
+		slot := cloneMap(mapValue(raw))
+		position := stringValue(slot["position"])
+		if position == string(PromptSlotTools) || position == string(PromptSlotResponseSchema) || refreshed != nil && (position == string(PromptSlotSystem) || position == string(PromptSlotRuntime)) {
+			continue
+		}
+		slots = append(slots, slot)
+	}
+	messageIndex := func(source string) int {
+		for _, item := range mapping {
+			if stringValue(item["source"]) == source {
+				return intValue(item["index"])
+			}
+		}
+		return -1
+	}
+	if refreshed != nil {
+		found := map[PromptSlotPosition]bool{}
+		for _, slot := range refreshed.BudgetTrace.Slots {
+			if slot.Position != PromptSlotSystem && slot.Position != PromptSlotRuntime {
+				continue
+			}
+			if slot.Position == PromptSlotSystem {
+				slot.MessageIndex = messageIndex("trusted_task_configuration")
+			} else {
+				slot.MessageIndex = messageIndex("scoped_runtime_projection")
+			}
+			found[slot.Position] = true
+			slots = append(slots, promptSlotTraceMap(slot))
+		}
+		for _, entry := range []struct {
+			position PromptSlotPosition
+			source   string
+		}{{PromptSlotSystem, "trusted_task_configuration"}, {PromptSlotRuntime, "scoped_runtime_projection"}} {
+			if index := messageIndex(entry.source); index >= 0 && !found[entry.position] {
+				slots = append(slots, map[string]any{"slot_id": "unknown", "position": entry.position, "message_index": index, "source": "unknown", "reason": "refresh_slot_trace_unavailable"})
+			}
+		}
+	}
+	if len(logical) == 0 {
+		for _, item := range mapping {
+			source := stringValue(item["source"])
+			if source == "agent_tool_call" || source == "tool_result" {
+				continue
+			}
+			slots = append(slots, map[string]any{"slot_id": "unknown", "position": "message", "message_index": item["index"], "source": "unknown", "reason": "caller_did_not_declare_slot"})
+		}
+	}
+	for _, item := range mapping {
+		source := stringValue(item["source"])
+		if source == "agent_tool_call" || source == "tool_result" {
+			slot := map[string]any{"slot_id": source, "position": PromptSlotRecent, "message_index": item["index"], "source": source, "reason": "native_tool_transcript"}
+			if callID := stringValue(item["tool_call_id"]); callID != "" {
+				slot["tool_call_id"] = callID
+			}
+			slots = append(slots, slot)
+		}
+	}
+	if len(tools) > 0 {
+		names := make([]string, 0, len(tools))
+		for _, tool := range tools {
+			if name := stringValue(mapValue(tool["function"])["name"]); name != "" {
+				names = append(names, name)
+			}
+		}
+		slots = append(slots, map[string]any{"slot_id": PromptSlotToolCatalog, "position": PromptSlotTools, "message_index": -1, "source": "effective_tool_catalog", "reason": "physical_request_policy", "tool_names": names})
+	}
+	if len(responseFormat) > 0 {
+		slots = append(slots, map[string]any{"slot_id": PromptSlotSchema, "position": PromptSlotResponseSchema, "message_index": -1, "source": "task_output_contract", "reason": "effective_physical_response_format"})
+	}
+	return slots
+}
+
+func promptSlotTraceMap(slot PromptSlotTrace) map[string]any {
+	result := map[string]any{"slot_id": slot.SlotID, "position": slot.Position, "message_index": slot.MessageIndex, "source": slot.Source, "reason": slot.Reason}
+	if len(slot.SourceRefs) > 0 {
+		result["source_refs"] = append([]string(nil), slot.SourceRefs...)
+	}
+	if slot.FragmentKind != "" {
+		result["fragment_kind"] = slot.FragmentKind
+	}
+	return result
 }
 
 // Only the system and runtime messages are replaced by the refresh path;
@@ -553,8 +642,10 @@ func applyRefreshedPromptOrigins(mapping []map[string]any, refreshed modelContex
 		delete(item, "source_refs_status")
 		if origin.Source == "" {
 			item["source_refs_status"] = "unavailable_after_refresh"
+			item["source_status"] = "unavailable_after_refresh"
 			continue
 		}
+		item["source_status"] = "declared_by_assembler"
 		if len(origin.SourceRefs) > 0 {
 			item["source_refs"] = append([]string(nil), origin.SourceRefs...)
 		}
@@ -625,6 +716,7 @@ func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClien
 		"message_count": messageCount, "tool_result_ids": boundedDiagnosticStrings(toolResults, 32),
 		"tool_result_pair_count": matched, "tool_result_pair_status": map[bool]string{true: "present", false: "absent"}[matched > 0],
 		"source_map": sourceMap, "context_versions": versions, "section_tokens": sectionTokens,
+		"prompt_slots": diagnostics["prompt_slots"],
 	})
 }
 
@@ -658,11 +750,21 @@ func physicalModelSourceMap(input []*schema.Message, logical []any) []map[string
 			source = "current_task_input"
 		}
 		item := map[string]any{"index": index, "role": string(message.Role), "source": source, "estimated_tokens": estimateProviderMessageTokens(einoMessageRaw(message))}
+		if status := stringValue(origin["source_status"]); status != "" {
+			item["source_status"] = status
+		} else if source == "tool_result" || source == "agent_tool_call" {
+			item["source_status"] = "native_tool_protocol"
+		} else {
+			item["source_status"] = "inferred_from_message_shape"
+		}
 		if refs := origin["source_refs"]; refs != nil {
 			item["source_refs"] = refs
 		}
 		if reason := stringValue(origin["reason"]); reason != "" {
 			item["reason"] = reason
+		}
+		if status := stringValue(origin["source_refs_status"]); status != "" {
+			item["source_refs_status"] = status
 		}
 		if message.Role == schema.Tool && strings.TrimSpace(message.ToolCallID) != "" {
 			item["tool_call_id"] = message.ToolCallID

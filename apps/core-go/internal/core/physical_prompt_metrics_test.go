@@ -30,6 +30,17 @@ func TestPhysicalPromptMetricsRetainLogicalTraceButUseActualNativeAndRepairWire(
 			t.Fatal("logical trace lost")
 		}
 		counts := mapValue(budget["section_counts"])
+		slots := arrayValue(d["prompt_slots"])
+		var hasTool, hasSchema, unknownMessage bool
+		for _, raw := range slots {
+			slot := mapValue(raw)
+			hasTool = hasTool || slot["slot_id"] == "tool_catalog"
+			hasSchema = hasSchema || slot["slot_id"] == "response_schema"
+			unknownMessage = unknownMessage || slot["reason"] == "caller_did_not_declare_slot" && slot["source"] == "unknown"
+		}
+		if !unknownMessage || hasTool == repair || hasSchema != repair {
+			t.Fatalf("physical slots did not match the effective tools/schema or mark unknown sources: %#v", slots)
+		}
 		if repair {
 			if intValue(counts["response_schema"]) != 1 || intValue(counts["tools"]) != 0 {
 				t.Fatal("repair metrics use native tools")

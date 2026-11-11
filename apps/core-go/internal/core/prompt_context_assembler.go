@@ -218,6 +218,16 @@ type PromptAssemblyDecision struct {
 	Reason     string             `json:"reason"`
 }
 
+type PromptSlotTrace struct {
+	SlotID       PromptSlotID       `json:"slot_id"`
+	Position     PromptSlotPosition `json:"position"`
+	MessageIndex int                `json:"message_index"`
+	Source       string             `json:"source"`
+	SourceRefs   []string           `json:"source_refs,omitempty"`
+	Reason       string             `json:"reason"`
+	FragmentKind PromptFragmentKind `json:"fragment_kind,omitempty"`
+}
+
 type PromptAssemblyTrace struct {
 	ResponseFormatOmitted     bool                     `json:"response_format_omitted,omitempty"`
 	PolicyVersion             string                   `json:"policy_version"`
@@ -236,6 +246,7 @@ type PromptAssemblyTrace struct {
 	SectionChars              map[string]int           `json:"section_chars"`
 	Selected                  []PromptAssemblyDecision `json:"selected"`
 	Dropped                   []PromptAssemblyDecision `json:"dropped"`
+	Slots                     []PromptSlotTrace        `json:"slots"`
 }
 
 type PromptAssemblyResult struct {
@@ -402,9 +413,10 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	}
 	selected = orderedPromptCandidates(selected)
 	for _, candidate := range selected {
-		trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, "selected"))
+		trace.Selected = append(trace.Selected, promptAssemblyDecision(candidate.fragment, promptFragmentSelectionReason(candidate.fragment)))
 	}
 	messages, origins := assemblePromptMessagesForSurfaceWithOrigins(surface, system, stable, current, selected)
+	trace.Slots = promptAssemblySlots(input, surface, selected, origins, wireFormat)
 	total := estimatePromptWireInput(messages, input.Tools, wireFormat)
 	trace.EstimatedInputTokens = total
 	trace.SectionTokens = promptAssemblySectionTokens(system, stable, current, selected, input.Tools, wireFormat)
@@ -415,6 +427,75 @@ func AssemblePromptContext(input PromptAssemblyInput) (PromptAssemblyResult, err
 	trace.TokenEstimateMethod = "utf8_max_runes_or_bytes_div3_times1.25_plus_image_allowance"
 	trace.CountMode = "estimated"
 	return PromptAssemblyResult{Messages: messages, Tools: cloneMapSlice(input.Tools), ResponseFormat: cloneMap(input.ResponseFormat), Trace: trace, messageOrigins: origins}, nil
+}
+
+func promptFragmentSelectionReason(fragment PromptFragment) string {
+	if fragment.Required {
+		return "required_by_task"
+	}
+	switch fragment.Kind {
+	case PromptFragmentRuntimeFact:
+		return "selected_scoped_runtime_fact"
+	case PromptFragmentRecentMessage:
+		return "whole_turn_not_covered"
+	default:
+		return "selected_working_memory"
+	}
+}
+
+func promptAssemblySlots(input PromptAssemblyInput, surface ProviderContextSurface, selected []promptOptionalCandidate, origins []promptMessageOrigin, wireFormat map[string]any) []PromptSlotTrace {
+	indices := map[string][]int{}
+	for index, origin := range origins {
+		indices[origin.Source] = append(indices[origin.Source], index)
+	}
+	indexOf := func(source string) int {
+		if len(indices[source]) == 0 {
+			return -1
+		}
+		return indices[source][0]
+	}
+	result := []PromptSlotTrace{{SlotID: PromptSlotOperation, Position: PromptSlotSystem, MessageIndex: indexOf("trusted_task_configuration"), Source: "task_protocol", Reason: "required_by_task"}}
+	if len(filterCorePersona(input.CorePersona)) > 0 {
+		result = append(result, PromptSlotTrace{SlotID: PromptSlotCorePersona, Position: PromptSlotSystem, MessageIndex: indexOf("trusted_task_configuration"), Source: "selected_working_persona", Reason: "supplied_by_task"})
+	}
+	if index := indexOf("stable_task_context"); index >= 0 {
+		result = append(result, PromptSlotTrace{SlotID: PromptSlotID("stable_task_context"), Position: PromptSlotPosition("stable_task_context"), MessageIndex: index, Source: "task_stable_context", Reason: "supplied_by_task"})
+	}
+	recentIndex := 0
+	for _, candidate := range selected {
+		fragment := candidate.fragment
+		slotID, position, index := PromptSlotMemory, PromptSlotRuntime, indexOf("scoped_runtime_projection")
+		switch fragment.Kind {
+		case PromptFragmentRuntimeFact:
+			slotID = PromptSlotRuntimeFact
+		case PromptFragmentRecentMessage:
+			slotID = PromptSlotRecentTurns
+			if surface != ProviderContextSurfaceWakeUp && surface != ProviderContextSurfaceMomentReply {
+				position = PromptSlotRecent
+				index = -1
+				if recentIndex < len(indices["historical_message"]) {
+					index = indices["historical_message"][recentIndex]
+				}
+				recentIndex++
+			}
+		}
+		if fragment.SlotID != "" {
+			slotID = fragment.SlotID
+		}
+		result = append(result, PromptSlotTrace{SlotID: slotID, Position: position, MessageIndex: index, Source: "working_memory." + string(fragment.Kind), SourceRefs: append([]string(nil), fragment.SourceRefs...), Reason: promptFragmentSelectionReason(fragment), FragmentKind: fragment.Kind})
+	}
+	currentSource := "caller_current_input"
+	if input.CurrentInputIsTaskEvent {
+		currentSource = "caller_task_event"
+	}
+	result = append(result, PromptSlotTrace{SlotID: PromptSlotCurrent, Position: PromptSlotCurrentInput, MessageIndex: indexOf("current_task_input"), Source: currentSource, Reason: "required_by_task"})
+	if len(input.Tools) > 0 {
+		result = append(result, PromptSlotTrace{SlotID: PromptSlotToolCatalog, Position: PromptSlotTools, MessageIndex: -1, Source: "task_tool_catalog", Reason: "supplied_by_task"})
+	}
+	if len(wireFormat) > 0 {
+		result = append(result, PromptSlotTrace{SlotID: PromptSlotSchema, Position: PromptSlotResponseSchema, MessageIndex: -1, Source: "task_output_contract", Reason: "supplied_by_task"})
+	}
+	return result
 }
 
 func orderedPromptCandidates(candidates []promptOptionalCandidate) []promptOptionalCandidate {
