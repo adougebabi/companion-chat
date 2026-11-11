@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "goal-assessment-first-run-not-invoked",
+  "definition_hash": "c0a7b35e4b5c787de1e2b056a5b82e7e2fb65c53485640541c552246e6920550",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-11T12:50:16.409496Z",
+  "updated": "2026-11-11T12:50:16.409512Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

@@ -1,0 +1,5 @@
+--- FAIL: TestGoalAssessmentMemoSkipsDurablyAndOwnerForceOrNewProofReassesses (2.46s)
+    goal_assessment_memo_integration_test.go:41: first assessment calls = 0
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.127s
+FAIL
