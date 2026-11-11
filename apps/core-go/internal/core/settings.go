@@ -517,17 +517,17 @@ func (a *App) ProviderModels(ctx context.Context, actorID, endpointID string) (m
 	if _, err := a.ReadSettings(ctx, actorID); err != nil {
 		return nil, err
 	}
-	var base, purpose string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT base_url,secret_purpose FROM public.provider_endpoints WHERE id=$1`, endpointID).Scan(&base, &purpose); err != nil {
+	endpoint, err := a.Provider.endpointCredentialSnapshot(ctx, endpointID)
+	if err != nil {
 		return nil, err
 	}
-	secret, err := a.Provider.secret(ctx, purpose)
+	secret, err := a.Provider.decryptEndpointCredential(endpoint)
 	if err != nil {
 		return nil, err
 	}
 	requestCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	req, requestErr := http.NewRequestWithContext(requestCtx, http.MethodGet, strings.TrimRight(base, "/")+"/models", nil)
+	req, requestErr := http.NewRequestWithContext(requestCtx, http.MethodGet, strings.TrimRight(endpoint.BaseURL, "/")+"/models", nil)
 	if requestErr != nil {
 		return nil, errors.New("provider_endpoint_invalid")
 	}

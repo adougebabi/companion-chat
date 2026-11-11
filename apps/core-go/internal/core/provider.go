@@ -227,6 +227,27 @@ func (p *ProviderClient) secretWithRevision(ctx context.Context, purpose string)
 	return secret, revision, err
 }
 
+// Read the destination and the encrypted credential from one database
+// snapshot, so a concurrent configuration update cannot mix two versions.
+type providerEndpointCredentialSnapshot struct {
+	BaseURL, Purpose, CapabilityStatus   string
+	EndpointRevision, CredentialRevision int64
+	Ciphertext, Nonce                    []byte
+}
+
+func (p *ProviderClient) endpointCredentialSnapshot(ctx context.Context, endpointID string) (providerEndpointCredentialSnapshot, error) {
+	var result providerEndpointCredentialSnapshot
+	err := p.DB.Pool().QueryRow(ctx, `SELECT e.base_url,COALESCE(e.secret_purpose,''),COALESCE(e.capability_status,''),s.ciphertext,s.nonce,COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='endpoint:'||e.id),0),COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='secret:'||e.secret_purpose),0) FROM public.provider_endpoints e LEFT JOIN public.setting_secrets s ON s.purpose=e.secret_purpose WHERE e.id=$1`, endpointID).Scan(&result.BaseURL, &result.Purpose, &result.CapabilityStatus, &result.Ciphertext, &result.Nonce, &result.EndpointRevision, &result.CredentialRevision)
+	return result, err
+}
+
+func (p *ProviderClient) decryptEndpointCredential(snapshot providerEndpointCredentialSnapshot) (string, error) {
+	if snapshot.Ciphertext == nil {
+		return "", nil
+	}
+	return decryptSecret(p.SettingsKey, snapshot.Purpose, snapshot.Nonce, snapshot.Ciphertext)
+}
+
 func (p *ProviderClient) complete(ctx context.Context, role string, messages []map[string]any, jsonMode bool) (map[string]any, error) {
 	completion, err := p.completeWithToolsSchema(ctx, role, messages, jsonMode, nil, "", nil, role == "cognitive_assessment")
 	if err != nil {
@@ -1204,6 +1225,9 @@ func (p *ProviderClient) embedWithAssignment(ctx context.Context, text string, a
 	}
 	correlationID := "embedding:" + stableDigest(assignment.ModelID+":"+text)
 	ctx = ensureProviderAttemptIdentity(ctx)
+	diagnostics := providerPromptDiagnostics(ctx)
+	diagnostics["model_configuration"] = providerAssignmentDiagnostics(assignment)
+	ctx = WithPromptDiagnostics(ctx, diagnostics)
 	providerRequestID := providerDiagnosticRequestID("embedding", correlationID)
 	prompt := []map[string]any{{"role": "user", "content": text}}
 	scenario := providerScenario(ctx, "embedding", "")
@@ -1259,16 +1283,16 @@ func (p *ProviderClient) embeddingAssignmentByID(ctx context.Context, endpointID
 	if endpointID == "" || modelID == "" {
 		return providerAssignment{}, errors.New("embedding_assignment_identity_invalid")
 	}
-	var baseURL, purpose, capabilityStatus string
-	if err := p.DB.Pool().QueryRow(ctx, `SELECT base_url,secret_purpose,capability_status FROM public.provider_endpoints WHERE id=$1`, endpointID).Scan(&baseURL, &purpose, &capabilityStatus); err != nil {
-		return providerAssignment{}, err
-	}
-	if strings.EqualFold(capabilityStatus, "failed") {
-		return providerAssignment{}, errors.New("embedding_assignment_preflight_failed")
-	}
-	secret, err := p.secret(ctx, purpose)
+	endpoint, err := p.endpointCredentialSnapshot(ctx, endpointID)
 	if err != nil {
 		return providerAssignment{}, err
 	}
-	return providerAssignment{Role: "embedding", EndpointID: endpointID, BaseURL: strings.TrimRight(baseURL, "/"), ModelID: modelID, Secret: secret, Timeout: 120 * time.Second}, nil
+	if strings.EqualFold(endpoint.CapabilityStatus, "failed") {
+		return providerAssignment{}, errors.New("embedding_assignment_preflight_failed")
+	}
+	secret, err := p.decryptEndpointCredential(endpoint)
+	if err != nil {
+		return providerAssignment{}, err
+	}
+	return providerAssignment{Role: "embedding", EndpointID: endpointID, SecretPurpose: endpoint.Purpose, EndpointRevision: endpoint.EndpointRevision, CredentialRevision: endpoint.CredentialRevision, BaseURL: strings.TrimRight(endpoint.BaseURL, "/"), ModelID: modelID, Secret: secret, Timeout: 120 * time.Second}, nil
 }
