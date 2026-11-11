@@ -179,6 +179,10 @@ Studio 普通助手、文字预览及角色定义准备同样在各自模型阶�
 | goal_evaluation | 评估协议 + Working Persona + stable 目标/criteria/actor refs + 专属事实/记忆/其他目标背景 + 当前目标状态/sources/reviews/accepted submissions；重复正文通过 evidence_payloads 复用 | 0；sources 包含消息证据 | goal_evaluation_task.go；goal_evaluation_wire.go |
 | virtual_activity_result | 活动结果规则 + 请求/当前 appearance/life/近期结果/开始和最早结束时间 | 0 | model_tasks.go |
 
+Goal Planner 初始快照保留已选目标的完整 desired_outcome/motivation，以及已选
+稳定人格字段的完整 JSON；按状态保留多少个目标的既有查询范围和后续按目标
+查询详情的协议不变。完整性回归不代表真实模型已通过 Goal 验收。
+
 实验性的私聊 `direct` 模式仍使用同一个 `conversation_cognition` Agent 和原生
 `conversation.reply`：主 Agent 的工具参数同时包含自拟正文和该轮 decision。
 运行协议保留人格差异、自然表达、可信来源和真实工具结果边界；decision

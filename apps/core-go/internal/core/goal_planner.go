@@ -253,6 +253,10 @@ First query snapshot, triggers and stable persona, then current life constraints
 For pending Owner promises, the snapshot carries at most five short summaries. Query section=promise with promise_request_id to read the full chosen action, criteria and window before deciding; the trigger list retains other pending identities. Explicitly bind a compatible existing or new local Goal through promise_bindings [{request_id,goal_id,expected_revision}]. Use only the captured promise version, action, expected result and window. Binding creates its Commitment/Intention from the prior character decision, never fulfillment. Leave unrelated or unviable promises pending with the exact reason. Propose observable finite outcomes with criteria, motivation, actual source refs, Actor and deduplication decision. Compare outcomes, Actor, window, criteria and conditions with active, paused, cancelled and completed history, not just title/hash. A completed expression does not prove acceptance. Never repeat pressure after rejection, invent resources/responses, change completion/progress/evidence or manufacture relationship facts. Stable interests can motivate real new directions but do not prove actions happened. Reuse candidate IDs using resume with current revision. New changes have a stable local id and operation=create. Pauses require legitimate reasons and no Owner protection.
 In apply mode call goal_planner.commit using exact snapshot revision/facts_revision and run_id as idempotency_key, then query snapshot AGAIN and report only durable results. Missing technical versions may bind from the snapshot Core already provided or an earlier consumed snapshot query; explicit stale values are never upgraded. Read warning_code, disposition and detail on handled receipts: they have no committed business effect and are recoverable input/state conditions, not proof of a policy block. Read and adjust at most once using that guidance, then report the exact unresolved condition without claiming application. Actual Tool/provider failures remain failures. In suggestions mode do not commit. May retain fewer than five or zero goals if no viable direction: record reason and review condition. Tool/provider failure is failed, never no_viable_candidate. Do not force quota or create goals already satisfied. Return the final JSON contract.`
 
+func goalPlannerStablePersonaSummary(stable map[string]any) string {
+	return jsonString(compactStateMap(stable, []string{"personality", "profile.personality", "behavioral_policy", "profile.behavioral_policy", "life_profile", "profile.stable_motivations"}))
+}
+
 func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, runRef, mode string) (map[string]any, error) {
 	if a == nil || a.DB == nil {
 		return nil, errors.New("goal_planner_unavailable")
@@ -279,12 +283,7 @@ func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, ru
 		return nil, personaErr
 	}
 	delete(stable, "current_appearance")
-	summary := jsonString(compactStateMap(stable, []string{"personality", "profile.personality", "behavioral_policy", "profile.behavioral_policy", "life_profile", "profile.stable_motivations"}))
-	summaryRunes := []rune(summary)
-	if len(summaryRunes) > 2000 {
-		summaryRunes = summaryRunes[:2000]
-	}
-	snapshot["stable_persona_summary"] = string(summaryRunes)
+	snapshot["stable_persona_summary"] = goalPlannerStablePersonaSummary(stable)
 	snapshot["persona_revision"] = personaRevision
 	snapshot["overlay_revision"] = overlayRevision
 
@@ -739,11 +738,9 @@ func compactGoalPlannerSnapshot(snapshot map[string]any) map[string]any {
 		counts[status]++
 		item := compactStateMap(g, []string{"id", "revision", "criteria_version", "profile_id", "target_actor_id", "status", "scope", "deadline", "effective_order", "owner_protected", "context_review_required"})
 		for _, key := range []string{"desired_outcome", "motivation"} {
-			text := []rune(stringValue(g[key]))
-			if len(text) > 300 {
-				text = text[:300]
+			if text, ok := g[key].(string); ok {
+				item[key] = text
 			}
-			item[key] = string(text)
 		}
 		goals = append(goals, item)
 	}

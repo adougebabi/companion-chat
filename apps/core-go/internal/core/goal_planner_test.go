@@ -36,6 +36,55 @@ func plannerCommand(t *testing.T, f independentToolE2EFixture, key string) GoalS
 	s := plannerSnapshot(t, f)
 	return GoalSetCommand{ExpectedVersion: int64(intValue(s["revision"])), ExpectedFactsRevision: stringValue(s["facts_revision"]), IdempotencyKey: key, Reason: "Owner reviewed the final set"}
 }
+
+func TestGoalPlannerKeepsCompleteGoalAndPersonaInputs(t *testing.T) {
+	outcome := " " + strings.Repeat("目标", 180) + "末尾限制 "
+	motivation := strings.Repeat("动机", 180) + "末尾原因"
+	persona := strings.Repeat("人格", 1100) + "末尾偏好"
+	stable := map[string]any{"personality": map[string]any{"traits": persona}}
+	summary := goalPlannerStablePersonaSummary(stable)
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(summary), &decoded); err != nil || mapValue(decoded["personality"])["traits"] != persona {
+		t.Fatal("planner persona summary was truncated or became invalid JSON")
+	}
+	snapshot := compactGoalPlannerSnapshot(map[string]any{"goals": []any{map[string]any{"id": "goal", "status": "active", "desired_outcome": outcome, "motivation": motivation}}})
+	goal := mapValue(arrayValue(snapshot["goals"])[0])
+	if goal["desired_outcome"] != outcome || goal["motivation"] != motivation {
+		t.Fatalf("planner truncated or rewrote selected goal text: %#v", goal)
+	}
+}
+
+func TestGoalPlannerPhysicalRequestKeepsLongGoal(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	goalID := plannerOwnerGoal(t, f, "long-input", false)
+	longGoal := strings.Repeat("目标", 180) + "目标末尾约束"
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.fluctlight_goals SET desired_outcome=$2 WHERE id=$1`, goalID, longGoal); err != nil {
+		t.Fatal(err)
+	}
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "planner-long-"+f.suffix)
+	if _, err := f.app.RequestGoalPlanning(f.ctx, f.ownerID, f.fluctlightID, "long-input"); err != nil {
+		t.Fatal(err)
+	}
+	var runID string
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT id FROM public.goal_planning_runs WHERE fluctlight_id=$1 AND status='pending' ORDER BY available_at,id LIMIT 1`, f.fluctlightID).Scan(&runID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_planning_runs SET available_at=now()-interval '1 second' WHERE id=$1`, runID); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_planner_v1", func(payload map[string]any) fakeProviderResult {
+		calls++
+		if !strings.Contains(jsonString(payload["messages"]), longGoal) {
+			t.Fatal("physical planner request omitted part of the selected goal")
+		}
+		return fakeProviderResult{Structured: map[string]any{"decision": "no_viable_candidate", "reason": "No new opportunity", "review_condition": "Await new facts", "suggestions": []any{}}}
+	})}
+	result, err := f.app.ProcessGoalPlanningIntent(f.ctx, runID)
+	if err != nil || result["decision"] != "no_viable_candidate" || calls != 1 {
+		t.Fatalf("planner request result=%#v calls=%d err=%v", result, calls, err)
+	}
+}
 func TestGoalPlannerCapacityConcurrentAllEntrances(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
 	for i := 0; i < 4; i++ {
