@@ -28,7 +28,7 @@
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告配置缺口，动态页反映停用状态并保留历史/原提交核对。隔离 PostgreSQL 验证配置、直接调用、停用及 ready 夹具重建后去重交付。当前照片与创作场景的完整区分、真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
 | T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。direct 同批图片请求与回复会分别拒绝并等待重新决定；回复读取既有媒体状态时区分取消和失败，非 ready 的资产不会自动作为附件。工作流取消同步、未调用媒体却声称发送的正文语义缺口仍未解决，真实渲染未验证。 |
 | T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加。隔离 PostgreSQL 与受控 Provider 验证 direct、fact-only 追发及旧结果栅栏，并对照核验 WakeUp 新事件、未回应状态、静默和新话题发布；真实模型正反场景及无事退避仍未验收。 |
-| T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；fact-only Writer 和 `direct` 主 Agent 均按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；真实模型及 UI 到实际运行的完整闭环未验收。 |
+| T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；隔离 PostgreSQL 与受控 Provider 验证同一候选从受理消息提取、启用进入 direct 请求、停用后新请求不再注入，学习开关与使用开关独立，测试中人格和关系语义未变化。关系含义称呼的兼容性、任意注入/日志内容排除、真实模型及 UI 到实际运行的闭环仍未完成或未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。隔离 PostgreSQL 已验证旧 Confirm、相同引用重新绑定、旧快照、调用中纠错及受控调度重开交错。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决；真实 Temporal 并发尚未验证。 |
 | T10 | R09 现有领域回归 | TODO | 不降低 Goal、人设、日程、衣柜、NPC、Studio 与日记既有语义。 |
 | T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；受控页面及部分数据库配置/回放已测。实际 Provider 消费、完整 Trace 和全场景重放仍未验收。 |
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T08 在隔离 PostgreSQL 经实际消息受理和 Owner 服务入口提取并启用候选，关闭学习但保留使用后，在下一次 direct 物理请求看到该候选；停用后新一轮匹配请求不再包含表达参考。候选处理没有改动核心人格或关系的角色、指标、趋势、摘要及版本；两次真实对话的互动计数正常增加。来源审核、在途停用、撤销和原 Writer 路径定向回归通过：`/private/tmp/fluctlight-t08-expression-regression.log`。Provider 为替身，只证明参考进入请求，不证明真实模型采用；关系含义称呼兼容性和一般注入排除仍未完成。
 
 - 2026-11-12：T07 使用隔离 PostgreSQL 的既有未回应主动消息和已确认新事件夹具，经实际 `ProcessWakeUp` 物理请求核对无新用户消息、未回应状态和当前事件；受控 Provider 分别返回静默和新话题原生回复，前者不新增消息，后者在未回应旧话题时成功发布一次。睡眠静默、主题冷却、主动消息及既有十分钟时钟定向回归通过：`/private/tmp/fluctlight-t07-wakeup-regression.log`。Provider 为替身，此结果不证明真实模型会自主选择分享或静默。
 
