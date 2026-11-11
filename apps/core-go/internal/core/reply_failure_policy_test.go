@@ -188,6 +188,28 @@ func TestReplyRefusalAndFailedMediaClaimNeverInvokeFallbackModel(t *testing.T) {
 	}
 }
 
+func TestReplyBadRequestDoesNotInvokeExplicitFallback(t *testing.T) {
+	writerCalls, fallbackCalls := 0, 0
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		if payload["model"] == "writer" {
+			writerCalls++
+			return fakeProviderResult{Status: http.StatusBadRequest}
+		}
+		fallbackCalls++
+		return fakeProviderResult{Text: "不应调用备用模型"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	config := defaultConversationReplySettings()
+	config.FailurePolicy = "legacy_fallback"
+	writer := providerAssignment{Role: conversationReplyModelRole, EndpointID: "writer-endpoint", BaseURL: "http://controlled.invalid", ModelID: "writer", Timeout: time.Second}
+	fallback := providerAssignment{Role: "generic_llm", EndpointID: "fallback-endpoint", BaseURL: "http://controlled.invalid", ModelID: "fallback", Timeout: time.Second}
+	ctx := withFrozenProviderAssignment(context.Background(), "generic_llm", fallback)
+	_, err := app.runReplyWithFailurePolicy(ctx, ConversationReplyTaskInput{Context: replyContextFixture(), Assignment: writer, CorrelationID: "bad-request-no-fallback"}, &privateReplyRun{Settings: config})
+	if err == nil || writerCalls != 1 || fallbackCalls != 0 {
+		t.Fatalf("bad request triggered fallback: err=%v writer=%d fallback=%d", err, writerCalls, fallbackCalls)
+	}
+}
+
 func TestReplyConsistencyCorrectionTransportFailureDoesNotChangeModels(t *testing.T) {
 	withoutUpstreamRetryDelay(t)
 	writerCalls, fallbackCalls := 0, 0
