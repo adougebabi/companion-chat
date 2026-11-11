@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "T07 部分完成：隔离 PostgreSQL 与受控 Provider 验证 direct 连续消息、重复历史文本、superseded 旧回复以及先前已提交动作/回执保留；当前默认 fact-only 验证追发期间旧 Writer 草稿不发布、最新 Writer 获得完整两条消息；Go race 通过。WakeUp 生产请求对照验证持久新事件和未回应状态，受控静默与新话题发布及睡眠/冷却回归通过。仍未完成：真实 MeroMero 的自主主动/静默正反验收；原 T07 的无事退避与当前固定十分钟产品时钟之间的冲突；其余真实多端流式及并发矩阵。按用户授权先跳过未解决项并继续 T08，不降低验收。",
   "result": "",
   "created": "2026-11-10T08:34:30.930175Z",
-  "updated": "2026-11-10T08:34:30.930196Z",
+  "updated": "2026-11-11T16:32:22.174595Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-324066666565cd56edf9",
+        "unit": "define",
+        "executor": "codex-t07-rhythm",
+        "input_version": "b1e18f252a9ae3817adf0604f415475043211719303d7e1e3b8f31a98b4bbbd7",
+        "candidate_version": "b1e18f252a9ae3817adf0604f415475043211719303d7e1e3b8f31a98b4bbbd7",
+        "started": "2026-11-11T16:12:59.069472Z",
+        "ended": "2026-11-11T16:13:25.10319Z",
+        "status": "pass",
+        "reason": "按原 T07 逐项处理连续短消息和 superseded/追发，以及 WakeUp 的真实来源、静默与主动社交。复用现有收件与调度，保留已提交副作用、安静时段及自治权限；不加入随机延迟、第二时钟、强制人格意愿或 token 上限。隔离 PostgreSQL 和受控 Provider 验证事实链；真实模型受限时按用户授权先记录未验收并继续。任务外非阻断问题只登记 bug。"
+      },
+      {
+        "id": "AT-c4b46a8f6155cb0e67f0",
+        "unit": "analysis",
+        "executor": "codex-t07-rhythm",
+        "input_version": "b1e18f252a9ae3817adf0604f415475043211719303d7e1e3b8f31a98b4bbbd7",
+        "candidate_version": "b1e18f252a9ae3817adf0604f415475043211719303d7e1e3b8f31a98b4bbbd7",
+        "started": "2026-11-11T16:13:57.363563Z",
+        "ended": "2026-11-11T16:18:25.809317Z",
+        "status": "pass",
+        "reason": "现有消息路径在数据库中受理用户消息并 supersede 旧轮，投影将当前消息与历史分离；此前测试没有完整覆盖真实接收多条新消息、旧 Provider 迟到与新轮上下文。先以隔离 PostgreSQL 和受控 Provider 贯通该场景，必要时只修 T07 范围缺陷。WakeUp 固定十分钟与原任务所写退避存在冲突，暂不修改，保留待核实；真实模型自主正反场景按用户授权先记录未验收。"
+      },
+      {
+        "id": "AT-a19a8608a1bc2c47633f",
+        "unit": "execute",
+        "executor": "codex-t07-rhythm",
+        "input_version": "b1e18f252a9ae3817adf0604f415475043211719303d7e1e3b8f31a98b4bbbd7",
+        "candidate_version": "6bba6914508791921ce0159e043fcba9158ea4ae11a1f3ba223473c782c3f090",
+        "started": "2026-11-11T16:18:45.411137Z",
+        "ended": "2026-11-11T16:32:17.167728Z",
+        "status": "fail",
+        "reason": "T07 部分完成：隔离 PostgreSQL 与受控 Provider 验证 direct 连续消息、重复历史文本、superseded 旧回复以及先前已提交动作/回执保留；当前默认 fact-only 验证追发期间旧 Writer 草稿不发布、最新 Writer 获得完整两条消息；Go race 通过。WakeUp 生产请求对照验证持久新事件和未回应状态，受控静默与新话题发布及睡眠/冷却回归通过。仍未完成：真实 MeroMero 的自主主动/静默正反验收；原 T07 的无事退避与当前固定十分钟产品时钟之间的冲突；其余真实多端流式及并发矩阵。按用户授权先跳过未解决项并继续 T08，不降低验收。"
+      }
+    ],
     "checks": null
   }
 }
