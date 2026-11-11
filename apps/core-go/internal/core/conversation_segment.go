@@ -24,6 +24,27 @@ type conversationSegmentResponse struct {
 	CoreEvents    []string `json:"core_events"`
 }
 
+var errConversationSegmentGenerationChanged = errors.New("conversation_segment_generation_changed")
+
+func conversationSegmentGeneration(raw []byte) (int64, error) {
+	generation, err := conversationDailyGeneration(raw)
+	if err != nil {
+		return 0, errors.New("conversation_segment_generation_invalid")
+	}
+	return generation, nil
+}
+
+func requireConversationSegmentGeneration(raw []byte, expected int64) error {
+	generation, err := conversationSegmentGeneration(raw)
+	if err != nil {
+		return err
+	}
+	if expected < 0 || generation != expected {
+		return errConversationSegmentGenerationChanged
+	}
+	return nil
+}
+
 func validateConversationSegmentDay(messages []ConversationSummarySourceMessage, timezone, expectedDay string) error {
 	location, err := time.LoadLocation(timezone)
 	if err != nil {
@@ -153,7 +174,7 @@ func (a *App) enqueueConversationSegmentTx(ctx context.Context, tx pgx.Tx, fluct
 		"from_sequence": from, "to_sequence": to, "source_digest": digest,
 		"source_message_refs": conversationSummarySourceRefs(chunk),
 		"idle_epoch":          epoch, "idle_since": idleSince.UTC().Format(time.RFC3339Nano),
-		"local_date": firstDay, "timezone": timezone, "boundary_kind": boundaryKind,
+		"local_date": firstDay, "timezone": timezone, "boundary_kind": boundaryKind, "source_generation": 0,
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='superseded'
 		WHERE intent_type='conversation.segment' AND payload->>'conversation_id'=$1
@@ -163,7 +184,9 @@ func (a *App) enqueueConversationSegmentTx(ctx context.Context, tx pgx.Tx, fluct
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at)
 		VALUES($1,$2,'lifecycle','conversation.segment',$3,'pending',$4)
-		ON CONFLICT(intent_id) DO UPDATE SET status='pending',next_attempt_at=excluded.next_attempt_at
+		ON CONFLICT(intent_id) DO UPDATE SET status='pending',next_attempt_at=excluded.next_attempt_at,
+		 payload=public.platform_workflow_intents.payload || jsonb_build_object('source_generation',
+		  CASE WHEN COALESCE(public.platform_workflow_intents.payload->>'source_generation','') ~ '^[0-9]{1,17}$' THEN (public.platform_workflow_intents.payload->>'source_generation')::bigint+1 ELSE 1 END)
 		WHERE public.platform_workflow_intents.status='superseded'
 		   OR (public.platform_workflow_intents.status='completed' AND EXISTS (
 		     SELECT 1 FROM public.conversation_summaries s WHERE s.owner_fluctlight_id=$5 AND s.conversation_id=$6
@@ -223,23 +246,42 @@ func (a *App) EnsureConversationSegmentIntents(ctx context.Context, limit int) (
 }
 
 func (a *App) ProcessConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error) {
-	var fid string
-	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload->>'fluctlight_id' FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.segment'`, intentID).Scan(&fid); err != nil {
+	var raw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.segment'`, intentID).Scan(&raw); err != nil {
 		return nil, err
 	}
+	generation, err := conversationSegmentGeneration(raw)
+	if err != nil {
+		return nil, err
+	}
+	return a.ProcessConversationSegmentIntentAt(ctx, intentID, generation)
+}
+
+func (a *App) ProcessConversationSegmentIntentAt(ctx context.Context, intentID string, generation int64) (map[string]any, error) {
+	var raw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.segment'`, intentID).Scan(&raw); err != nil {
+		return nil, err
+	}
+	if err := requireConversationSegmentGeneration(raw, generation); err != nil {
+		return nil, err
+	}
+	fid := stringValue(decodeObject(raw)["fluctlight_id"])
 	if strings.TrimSpace(fid) == "" {
 		return nil, errors.New("conversation_segment_intent_invalid")
 	}
 	return a.runBackgroundLogicalWork(ctx, fid, "conversation_summary", func(runCtx context.Context) (map[string]any, error) {
-		return a.processConversationSegmentIntent(runCtx, intentID)
+		return a.processConversationSegmentIntent(runCtx, intentID, generation)
 	})
 }
 
-func (a *App) processConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error) {
+func (a *App) processConversationSegmentIntent(ctx context.Context, intentID string, generation int64) (map[string]any, error) {
 	var raw []byte
 	var status string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents
 		WHERE intent_id=$1 AND intent_type='conversation.segment'`, intentID).Scan(&status, &raw); err != nil {
+		return nil, err
+	}
+	if err := requireConversationSegmentGeneration(raw, generation); err != nil {
 		return nil, err
 	}
 	if status == "superseded" || status == "completed" {
@@ -320,20 +362,25 @@ func (a *App) processConversationSegmentIntent(ctx context.Context, intentID str
 			}
 		}
 	}
-	return a.settleConversationSegment(ctx, work, payload, response, assignment)
+	return a.settleConversationSegment(ctx, work, payload, response, assignment, generation)
 }
 
-func (a *App) settleConversationSegment(ctx context.Context, work conversationSummaryWork, payload map[string]any, response conversationSegmentResponse, assignment providerAssignment) (map[string]any, error) {
+func (a *App) settleConversationSegment(ctx context.Context, work conversationSummaryWork, payload map[string]any, response conversationSegmentResponse, assignment providerAssignment, generation int64) (map[string]any, error) {
 	result := map[string]any{"status": "superseded"}
 	err := withTransaction(ctx, a.DB.Pool(), func(tx pgx.Tx) error {
 		var locked string
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversations WHERE id=$1 FOR UPDATE`, work.ConversationID).Scan(&locked); err != nil {
 			return err
 		}
-		var status, epoch string
-		if err := tx.QueryRow(ctx, `SELECT status,payload->>'idle_epoch' FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, work.IntentID).Scan(&status, &epoch); err != nil {
+		var status string
+		var livePayload []byte
+		if err := tx.QueryRow(ctx, `SELECT status,payload FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, work.IntentID).Scan(&status, &livePayload); err != nil {
 			return err
 		}
+		if err := requireConversationSegmentGeneration(livePayload, generation); err != nil {
+			return err
+		}
+		epoch := stringValue(decodeObject(livePayload)["idle_epoch"])
 		if status == "completed" {
 			result = map[string]any{"status": "completed", "replayed": true}
 			return nil

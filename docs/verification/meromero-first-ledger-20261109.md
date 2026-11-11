@@ -48,7 +48,7 @@
 10. 旧 UI 合同要求追发等到上一条完整结算；本轮用户明确要求改善连续消息和 superseded，因此改为先证明上一条用户消息已被服务端接收，再提交保持原身份的追发。定向状态查询仍只读。真实数据库并发及模型是否综合回应多条消息尚未验证。
 11. Diary 的素材/表达以及 Studio 普通助手、文字预览、角色定义准备与按需媒体主体规划各自在首次请求前冻结无密钥绑定；同 attempt 恢复按阶段绑定重取凭据。Studio 自动重试保持原绑定，显式新 attempt 对未完成阶段可重新选择；Diary 显式重试仅保留已完成阶段快照。升级前 running 且需要继续的阶段没有快照时明确失败，原材料保留供显式重试。隔离数据库已验证这些阶段的部分恢复；后续独立媒体工作流的跨进程绑定仍需分别验证。
 12. 为避免扩大上述写入锁反转，本次采用只读的保守摘要屏障：对已解析来源追溯修订前历史，整段摘要在无法证明已吸收纠错时不注入。它保留原始消息和独立 Memory，但同一来源中无关事实可能随摘要一起退出，后台仍可能写出旧摘要。`0106` 将同一判断用于派生记忆及常驻快照的来源校验；每日汇总对被污染的一整天停止生成并保留可重开状态。已发出的请求、未知旧来源和正确吸收纠错后的摘要重建仍不能保证；不能由局部数据库测试推断整个 T09 已完成。
-13. 每日任务沿用现有稳定 intent，终态重开时递增 Core 内部来源代次。调度、终态结算使用原 payload 和 attempt 原子比较；遇到旧 run 的 AlreadyStarted 不接管旧运行。Activity 携带启动时的代次，模型前和最终事务锁定 intent 后均复核；缺代次的旧历史只属于第 0 代。隔离 PostgreSQL 与受控 Temporal 客户端验证了旧 run 未结束、Describe 和 Execute 期间重开，以及旧模型结果迟到；真实 Temporal worker、混合版本部署和所有数据库锁并发尚未验收。无来源、角色暂停及来源被纠错的成功返回均会持久结算并支持同代重放。
+13. 每日任务沿用现有稳定 intent，终态重开时递增 Core 内部来源代次。调度、终态结算使用原 payload 和 attempt 原子比较；遇到旧 run 的 AlreadyStarted 不接管旧运行。Activity 携带启动时的代次，模型前和最终事务锁定 intent 后均复核；未绑定代次的旧 Temporal Activity 会先失败，随后由调度器按当前代次重启。隔离 PostgreSQL 与受控 Temporal 客户端验证了旧 run 未结束、Describe 和 Execute 期间重开，以及旧模型结果迟到；真实 Temporal worker、混合版本部署和所有数据库锁并发尚未验收。无来源、角色暂停及来源被纠错的成功返回均会持久结算并支持同代重放。
 14. 凭据恢复在同一数据库读取中获取端点、密钥及版本；端点版本和密钥都变化时保守拒绝，包括地址 A→B→A。端点从未变化时同用途密钥轮换仍可恢复。地址与密钥目前允许独立保存：先把准备给新地址的密钥写入旧地址所用的用途，再保存新地址，间隙内系统无法知道未来意图；模型目录和 embedding 的既有分次读取也存在并发错配风险，完整原子配置仍待处理。
 
 ## 主聊天认知结算迁移底稿
@@ -82,6 +82,8 @@
 - 2026-11-11：每日记忆稳定 intent 将来源代次贯穿 Temporal 输入、Activity 和 Core 读取/结算；旧 Activity 不能在重开后消费新代，旧请求返回时也不能完成新代，纠错来源检查与同代暂停重放保留。修复前隔离数据库复现旧结果错误结算新代：`/private/tmp/fluctlight-t02-daily-generation-red.log`；修复后代次、纠错和 quiet 重放、受控 Temporal 派发/传参及原有片段到每日记忆链回归通过：`/private/tmp/fluctlight-t02-daily-generation-final.log`、`/private/tmp/fluctlight-t02-daily-workflow-final.log`、`/private/tmp/fluctlight-t02-daily-existing-chain.log`。该阶段每日任务的模型绑定快照和真实 Temporal 多版本并发尚未完成；快照随后补齐，见下一条。
 
 - 2026-11-11：每日记忆的新建或重开代次在入队事务创建独立模型快照行，同代重试复用绑定，新代重新选择；缺失或被清空的已选快照明确失败，旧代未冻结时记录诊断。隔离 PostgreSQL 的 9 项恢复、竞争和纠错链回归，2 项迁移及 3 项受控 Temporal 回归通过：`/private/tmp/fluctlight-t02-daily-model-final.log`、`/private/tmp/fluctlight-t02-daily-migration-final.log`、`/private/tmp/fluctlight-t02-daily-workflow-snapshot-final.log`。`0113` 仅在隔离数据库运行；真实 Temporal、混合版本 worker 和真实 Provider 仍未验收。
+
+- 2026-11-11：片段摘要的同一稳定 intent 重开时递增代次，Activity 在读取和结算时校验；Temporal 调度、失败和终态回写也比较原 payload。旧未绑定代次的片段或每日 Activity 先失败，调度器重新派发时绑定当前代次，避免把升级前无法辨别的旧运行当成新代。隔离 PostgreSQL 复现旧片段结果覆盖新代：`/private/tmp/fluctlight-t02-segment-generation-red.log`；修复后代次、纠错及受控 Temporal 回归通过：`/private/tmp/fluctlight-t02-segment-generation-final.log`、`/private/tmp/fluctlight-t02-segment-workflow-final.log`。片段模型快照仍未完成；部署时若旧版 Worker 仍在执行，它不受新版围栏约束，真实 Temporal 和混合版本验证尚未执行。
 
 - 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
 

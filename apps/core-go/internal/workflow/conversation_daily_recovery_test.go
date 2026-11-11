@@ -25,28 +25,52 @@ func (s *dailyGenerationActivityService) ProcessConversationDailyMemoryIntentAt(
 	return map[string]any{"status": "completed"}, nil
 }
 
+func (s *dailyGenerationActivityService) ProcessConversationSegmentIntentAt(_ context.Context, intentID string, generation int64) (map[string]any, error) {
+	s.intentID, s.generation = intentID, generation
+	return map[string]any{"status": "completed"}, nil
+}
+
 func TestDailyMemoryActivityForwardsWorkflowGeneration(t *testing.T) {
 	previous := app()
 	service := &dailyGenerationActivityService{}
 	Configure(service)
 	t.Cleanup(func() { Configure(previous) })
 	for _, generation := range []int64{0, 3} {
-		if _, err := ProcessConversationDailyMemoryActivity(context.Background(), Input{IntentID: "daily-activity", SourceGeneration: generation}); err != nil || service.intentID != "daily-activity" || service.generation != generation {
+		if _, err := ProcessConversationDailyMemoryActivity(context.Background(), Input{IntentID: "daily-activity", SourceGeneration: generation, GenerationBound: true}); err != nil || service.intentID != "daily-activity" || service.generation != generation {
 			t.Fatalf("activity did not forward the captured generation %d: %v", generation, err)
 		}
+		if _, err := ProcessConversationSegmentActivity(context.Background(), Input{IntentID: "segment-activity", SourceGeneration: generation, GenerationBound: true}); err != nil || service.intentID != "segment-activity" || service.generation != generation {
+			t.Fatalf("segment activity did not forward the captured generation %d: %v", generation, err)
+		}
+	}
+	service.intentID = "untouched"
+	if _, err := ProcessConversationSegmentActivity(context.Background(), Input{IntentID: "old-segment"}); err == nil || service.intentID != "untouched" {
+		t.Fatalf("old unbound segment workflow reached current intent: %v", err)
+	}
+	if _, err := ProcessConversationDailyMemoryActivity(context.Background(), Input{IntentID: "old-daily"}); err == nil || service.intentID != "untouched" {
+		t.Fatalf("old unbound daily workflow reached current intent: %v", err)
 	}
 }
 
 // A stable workflow ID may still name an older run after a new source set has
 // reopened its intent. The durable generation must survive every ledger race.
 func TestPostgresDailyMemoryReopenSurvivesOlderTemporalRun(t *testing.T) {
+	testPostgresConversationReopenSurvivesOlderTemporalRun(t, "conversation.daily_memory")
+}
+
+func TestPostgresSegmentReopenSurvivesOlderTemporalRun(t *testing.T) {
+	testPostgresConversationReopenSurvivesOlderTemporalRun(t, "conversation.segment")
+}
+
+func testPostgresConversationReopenSurvivesOlderTemporalRun(t *testing.T, intentType string) {
+	t.Helper()
 	ctx, app := scheduleRecoveryRepository(t)
 	const intent, workflowID = "daily-generation-test", "go:daily-generation-test"
 	if _, err := app.DB.Pool().Exec(ctx, `DELETE FROM public.platform_workflow_intents WHERE intent_id='schedule_intent:retry-role'`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := app.DB.Pool().Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,attempt_count,next_attempt_at)
-		VALUES($1,$2,'lifecycle','conversation.daily_memory','{"intent_id":"daily-generation-test","source_generation":1}','retry',1,now())`, intent, workflowID); err != nil {
+		VALUES($1,$2,'lifecycle',$3,'{"intent_id":"daily-generation-test","source_generation":1}','retry',1,now())`, intent, workflowID, intentType); err != nil {
 		t.Fatal(err)
 	}
 	check := func(wantStatus string, wantGeneration, wantAttempts int) {
@@ -72,7 +96,7 @@ func TestPostgresDailyMemoryReopenSurvivesOlderTemporalRun(t *testing.T) {
 		if err := app.DB.Pool().QueryRow(ctx, `SELECT (payload->>'source_generation')::bigint FROM public.platform_workflow_intents WHERE intent_id=$1`, intent).Scan(&generation); err != nil {
 			t.Fatal(err)
 		}
-		if options.ID != workflowID || args[0].(Input).IntentID != intent || args[0].(Input).SourceGeneration != generation {
+		if options.ID != workflowID || args[0].(Input).IntentID != intent || args[0].(Input).SourceGeneration != generation || !args[0].(Input).GenerationBound {
 			t.Fatalf("unexpected workflow start: %#v %#v", options, args)
 		}
 		if oldRunning {

@@ -764,7 +764,7 @@ func TestConversationSegmentAndDailyMemoryUseOneDurableActivity(t *testing.T) {
 		t.Run(item.name, func(t *testing.T) {
 			var suite testsuite.WorkflowTestSuite
 			env := suite.NewTestWorkflowEnvironment()
-			input := Input{IntentID: "conversation-" + item.name + "-intent", FluctlightID: "fl-1", ConversationID: "conv-1", SourceGeneration: 3}
+			input := Input{IntentID: "conversation-" + item.name + "-intent", FluctlightID: "fl-1", ConversationID: "conv-1", SourceGeneration: 3, GenerationBound: true}
 			calls := 0
 			env.OnActivity(item.activity, mock.Anything, input).Return(func(context.Context, Input) (map[string]any, error) {
 				calls++

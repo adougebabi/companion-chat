@@ -126,9 +126,13 @@ func visualIdentityReconcileDelay(attempt int) time.Duration {
 }
 
 func conversationLifecycleAwaitingNewRun(intentType, currentIntentStatus, terminalStatus string) bool {
-	return (intentType == "conversation.segment" || intentType == "conversation.daily_memory") &&
+	return conversationGenerationFencedIntent(intentType) &&
 		(terminalStatus == "completed" || terminalStatus == "failed") &&
 		(currentIntentStatus == "pending" || currentIntentStatus == "retry")
+}
+
+func conversationGenerationFencedIntent(intentType string) bool {
+	return intentType == "conversation.segment" || intentType == "conversation.daily_memory"
 }
 
 // ApplicationService specifies the narrow operations invoked by Temporal activities.
@@ -145,7 +149,7 @@ type ApplicationService interface {
 	ProcessReflection(ctx context.Context, fluctlightID, triggerEventID string) (map[string]any, error)
 	ProcessMemoryEmbeddingIntentAt(ctx context.Context, intentID, memoryID string, revision int, providerEndpointID, modelID string) (map[string]any, error)
 	ProcessConversationSummaryIntent(ctx context.Context, intentID, fluctlightID, conversationID, sourceMessageID string, sourceSequence, fromSequence, toSequence int, sourceDigest string, sourceMessageRefs []string) (map[string]any, error)
-	ProcessConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error)
+	ProcessConversationSegmentIntentAt(ctx context.Context, intentID string, generation int64) (map[string]any, error)
 	ProcessGoalEvaluationIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessGoalPlanningIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessConversationDailyMemoryIntentAt(ctx context.Context, intentID string, generation int64) (map[string]any, error)
@@ -271,6 +275,7 @@ type Input struct {
 	ToSequence         int      `json:"to_sequence"`
 	SourceDigest       string   `json:"source_digest"`
 	SourceGeneration   int64    `json:"source_generation,omitempty"`
+	GenerationBound    bool     `json:"conversation_generation_bound,omitempty"`
 	SourceMessageRefs  []string `json:"source_message_refs"`
 }
 
@@ -1197,14 +1202,20 @@ func ProcessConversationSummaryActivity(ctx context.Context, input Input) (map[s
 }
 
 func ProcessConversationSegmentActivity(ctx context.Context, input Input) (map[string]any, error) {
+	if !input.GenerationBound {
+		return nil, errors.New("conversation_segment_legacy_workflow_unbound")
+	}
 	application := app()
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessConversationSegmentIntent(ctx, input.IntentID)
+	return application.ProcessConversationSegmentIntentAt(ctx, input.IntentID, input.SourceGeneration)
 }
 
 func ProcessConversationDailyMemoryActivity(ctx context.Context, input Input) (map[string]any, error) {
+	if !input.GenerationBound {
+		return nil, errors.New("conversation_daily_memory_legacy_workflow_unbound")
+	}
 	application := app()
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
@@ -1480,7 +1491,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 		intentID, workflowID, intentType, currentIntentStatus, payload, attemptCount := item.id, item.workflowID, item.kind, item.status, item.payload, item.attempts
 		// Dispatch starts/adopts these stable clocks. The previous terminal Run
 		// must not close a queued recovery or move its backoff deadline forward.
-		if (intentType == "world.events.generate" || intentType == "schedule.current_day" || intentType == "wardrobe.initialize" || intentType == "conversation.daily_memory") && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
+		if (intentType == "world.events.generate" || intentType == "schedule.current_day" || intentType == "wardrobe.initialize" || conversationGenerationFencedIntent(intentType)) && (currentIntentStatus == "pending" || currentIntentStatus == "retry") {
 			continue
 		}
 		var input Input
@@ -1641,7 +1652,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 			if currentIntentStatus != "started" {
-				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),completed_at=NULL,next_attempt_at=NULL,attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry'))`, intentID)
+				command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),completed_at=NULL,next_attempt_at=NULL,attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry')) AND (intent_type NOT IN ('conversation.daily_memory','conversation.segment') OR payload=$2::jsonb)`, intentID, payload)
 				if err != nil {
 					return count, err
 				}
@@ -1782,7 +1793,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				continue
 			}
 		}
-		if (intentType == "conversation.segment" || intentType == "conversation.daily_memory") && intentStatus == "failed" {
+		if conversationGenerationFencedIntent(intentType) && intentStatus == "failed" {
 			retryDelay := 5 * time.Minute
 			nextAttemptCount := attemptCount
 			if attemptCount >= 5 {
@@ -1793,7 +1804,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 				SET status='retry',next_attempt_at=now()+($2 * interval '1 second'),attempt_count=$3,
 				started_at=NULL,completed_at=NULL,last_error=COALESCE(NULLIF($4,''),last_error,'conversation_lifecycle_workflow_terminal')
 				WHERE intent_id=$1 AND status IN ('pending','started','failed')
-				AND (intent_type<>'conversation.daily_memory' OR (status IN ('started','failed') AND attempt_count=$5 AND payload=$6::jsonb))`, intentID, int64(retryDelay/time.Second), nextAttemptCount, terminalFailure, attemptCount, payload)
+				AND (intent_type NOT IN ('conversation.daily_memory','conversation.segment') OR (status IN ('started','failed') AND attempt_count=$5 AND payload=$6::jsonb))`, intentID, int64(retryDelay/time.Second), nextAttemptCount, terminalFailure, attemptCount, payload)
 			if err != nil {
 				return count, err
 			}
@@ -2064,7 +2075,7 @@ func (d *Dispatcher) ReconcileOnce(ctx context.Context, limit int) (int, error) 
 			}
 		}
 		command, err := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status=$2::varchar,completed_at=COALESCE(completed_at,now()),last_error=CASE WHEN $2::varchar='failed' THEN COALESCE(NULLIF(last_error,''),NULLIF($3,''),'workflow_terminal_failure') ELSE last_error END WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','started','cancel_requested','retry','failed'))
-			AND (intent_type<>'conversation.daily_memory' OR (status IN ('started','cancel_requested','failed') AND attempt_count=$4 AND payload=$5::jsonb))`, intentID, intentStatus, terminalFailure, attemptCount, payload)
+			AND (intent_type NOT IN ('conversation.daily_memory','conversation.segment') OR (status IN ('started','cancel_requested','failed') AND attempt_count=$4 AND payload=$5::jsonb))`, intentID, intentStatus, terminalFailure, attemptCount, payload)
 		if err != nil {
 			return count, err
 		}
@@ -2413,6 +2424,11 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			continue
 		}
 		input = hydrateLifecycleInput(intentID, intentType, payload, input)
+		if conversationGenerationFencedIntent(intentType) {
+			// An older Temporal run did not bind a generation at dispatch time.
+			// Only a newly started run can prove which durable generation it owns.
+			input.GenerationBound = true
+		}
 		cognitionEventType := ""
 		if intentType != "reflection.run" && intentType != "wake_up.current" && workflowIntentRetryExhausted(intentType, attemptCount) {
 			if exhaustErr := d.deadLetterExhaustedIntent(ctx, input, intentID, workflowID, intentType, "", attemptCount, "workflow_retry_exhausted"); exhaustErr != nil {
@@ -2554,7 +2570,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				count++
 				continue
 			}
-			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry')) AND (intent_type<>'conversation.daily_memory' OR payload=$3::jsonb)`, intentID, boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()}), payload)
+			command, writeErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='retry',last_error=$2,attempt_count=attempt_count+1,next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry')) AND (intent_type NOT IN ('conversation.daily_memory','conversation.segment') OR payload=$3::jsonb)`, intentID, boundedTemporalFailureMessage(&failurepb.Failure{Message: err.Error()}), payload)
 			if writeErr != nil {
 				return count, fmt.Errorf("settle workflow start failure %s: %w", intentID, writeErr)
 			}
@@ -2563,7 +2579,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				if statusErr != nil {
 					return count, fmt.Errorf("read workflow start failure settlement %s: %w", intentID, statusErr)
 				}
-				if dispatchIntentRaceSettled(currentStatus) || (intentType == "conversation.daily_memory" && (currentStatus == "pending" || currentStatus == "retry")) {
+				if dispatchIntentRaceSettled(currentStatus) || (conversationGenerationFencedIntent(intentType) && (currentStatus == "pending" || currentStatus == "retry")) {
 					continue
 				}
 				return count, fmt.Errorf("settle workflow start failure %s: workflow_start_retry_not_written", intentID)
@@ -2573,7 +2589,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 		}
 		alreadyStarted := temporal.IsWorkflowExecutionAlreadyStartedError(err)
 		runID := workflowRunIdentity(execution, err)
-		if alreadyStarted && intentType == "conversation.daily_memory" {
+		if alreadyStarted && conversationGenerationFencedIntent(intentType) {
 			// The running execution may belong to a completed older source set.
 			// Do not consume the newly queued generation by adopting that run.
 			if _, retryErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=now()+interval '5 seconds' WHERE intent_id=$1 AND status IN ('pending','retry') AND payload=$2::jsonb`, intentID, payload); retryErr != nil {
@@ -2606,7 +2622,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 				continue
 			}
 		}
-		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry')) AND (intent_type<>'conversation.daily_memory' OR payload=$2::jsonb)`, intentID, payload)
+		command, statusErr := d.App.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',started_at=COALESCE(started_at,now()),attempt_count=attempt_count+1,last_error=NULL WHERE intent_id=$1 AND (status IS NULL OR status IN ('pending','retry')) AND (intent_type NOT IN ('conversation.daily_memory','conversation.segment') OR payload=$2::jsonb)`, intentID, payload)
 		if statusErr != nil || command.RowsAffected() != 1 {
 			// Temporal already accepted the start. Leave the durable row visible
 			// to the next reconciliation pass rather than hiding a DB failure in
@@ -2624,7 +2640,7 @@ func (d *Dispatcher) DispatchOnce(ctx context.Context, limit int) (int, error) {
 			if readErr != nil {
 				return count, fmt.Errorf("read workflow start settlement %s: %w", intentID, readErr)
 			}
-			if dispatchIntentRaceSettled(currentStatus) || (intentType == "conversation.daily_memory" && (currentStatus == "pending" || currentStatus == "retry")) {
+			if dispatchIntentRaceSettled(currentStatus) || (conversationGenerationFencedIntent(intentType) && (currentStatus == "pending" || currentStatus == "retry")) {
 				if currentStatus == "started" {
 					d.recordIntentLifecycle(ctx, input, intentType, goWorkflowID, runID, core.LifecycleTransitionAlreadyRunning, "workflow_start_settlement", "started", "workflow_start_race_reconciled", attemptCount+1, nil)
 					d.Started[intentID] = struct{}{}

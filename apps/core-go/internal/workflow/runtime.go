@@ -250,6 +250,9 @@ func (r *TemporalRuntime) Restart(ctx context.Context, spec core.WorkflowStart) 
 	if input.IntentID == "" {
 		input.IntentID = spec.WorkflowID
 	}
+	if conversationGenerationFencedIntent(spec.IntentType) {
+		input.GenerationBound = true
+	}
 	workflowID := normalizedWorkflowID(spec.WorkflowID)
 	reusePolicy := enumspb.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE
 	if spec.OwnerCommandID != "" {
