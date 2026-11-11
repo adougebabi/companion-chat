@@ -14,20 +14,20 @@ func persistConversationReplyMode(t *testing.T, ctx context.Context, repository 
 	}
 }
 
-func TestReplyVisionSettingsAreIndependentAndFactOnlyByDefault(t *testing.T) {
-	if got := defaultConversationReplySettings(); got.Mode != "fact_only" {
+func TestReplyVisionSettingsAreIndependentAndDirectByDefault(t *testing.T) {
+	if got := defaultConversationReplySettings(); got.Mode != "direct" {
 		t.Fatalf("default mode = %q", got.Mode)
 	}
 	unset, _, err := (&App{}).conversationReplySettings(context.Background())
-	if err != nil || unset.Mode != "fact_only" {
+	if err != nil || unset.Mode != "direct" {
 		t.Fatalf("missing reply settings: %#v %v", unset, err)
 	}
 	reply, err := decodeConversationReplySettings([]byte(`{}`))
-	if err != nil || reply.Mode != "fact_only" || reply.Concurrency != 1 || reply.FailurePolicy != "error" {
+	if err != nil || reply.Mode != "direct" || reply.Concurrency != 1 || reply.FailurePolicy != "error" {
 		t.Fatalf("unset reply mode: %#v %v", reply, err)
 	}
 	omitted, err := decodeConversationReplySettings([]byte(`{"temperature":0.2}`))
-	if err != nil || omitted.Mode != "fact_only" || omitted.Temperature != 0.2 {
+	if err != nil || omitted.Mode != "direct" || omitted.Temperature != 0.2 {
 		t.Fatalf("omitted mode was not the default: %#v %v", omitted, err)
 	}
 	legacy, err := decodeConversationReplySettings([]byte(`{"mode":"legacy"}`))
@@ -39,7 +39,7 @@ func TestReplyVisionSettingsAreIndependentAndFactOnlyByDefault(t *testing.T) {
 		t.Fatalf("vision enabled by default: %#v %v", vision, err)
 	}
 	reply, err = decodeConversationReplySettings([]byte(`{"mode":"fact_only","temperature":0,"retry_limit":0}`))
-	if err != nil || reply.Temperature != 0 || reply.RetryLimit != 0 || vision.Enabled {
+	if err != nil || reply.Mode != "fact_only" || reply.Temperature != 0 || reply.RetryLimit != 0 || vision.Enabled {
 		t.Fatalf("explicit zero/default separation lost: %#v %v", reply, err)
 	}
 	for _, raw := range []string{`null`, `[]`, `{"direction":"wait"}`, `{"mode":"guided"}`, `{"top_p":0}`, `{"retry_limit":99}`, `{} {}`} {

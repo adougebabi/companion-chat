@@ -2,12 +2,12 @@ import {autonomyModes} from './autonomy-modes.js';
 const f=(key,label,type='text',extra={})=>({key,label,type,...extra});
 export function conversationReplyDisplayValue(value){
  const next=value&&typeof value==='object'&&!Array.isArray(value)?{...value}:{};
- if(next.mode==null||String(next.mode).trim()==='')next.mode='fact_only';
+ if(next.mode==null||String(next.mode).trim()==='')next.mode='direct';
  return next;
 }
 export const configurationFields={
  'conversation.reply':[
-  f('mode','回复模式','select',{options:[{value:'legacy',label:'兼容模式'},{value:'fact_only',label:'独立回复模型'}]}),f('expression_version','表达版本','select',{options:[{value:'fact-only-reply.v8',label:'自然交流 · v8 当前协议'},{value:'fact-only-reply.v7',label:'自然交流 · v7 兼容协议'},{value:'fact-only-reply.v6',label:'自然交流 · v6 兼容协议'},{value:'fact-only-reply.v5',label:'自然交流 · v5 兼容协议'},{value:'fact-only-reply.v4',label:'自然交流 · v4 兼容协议'}]}),f('model_ref','模型绑定角色','select',{options:[{value:'conversation_reply',label:'交流表达'}]}),
+  f('mode','回复模式','select',{options:[{value:'direct',label:'主模型直接回复'},{value:'fact_only',label:'独立回复模型'},{value:'legacy',label:'兼容模式'}]}),f('expression_version','表达版本','select',{options:[{value:'fact-only-reply.v8',label:'自然交流 · v8 当前协议'},{value:'fact-only-reply.v7',label:'自然交流 · v7 兼容协议'},{value:'fact-only-reply.v6',label:'自然交流 · v6 兼容协议'},{value:'fact-only-reply.v5',label:'自然交流 · v5 兼容协议'},{value:'fact-only-reply.v4',label:'自然交流 · v4 兼容协议'}]}),f('model_ref','模型绑定角色','select',{options:[{value:'conversation_reply',label:'交流表达'}]}),
   f('temperature','表达温度','number',{min:0,max:2,step:'any'}),f('top_p','Top P','number',{min:0.01,max:1,step:'any'}),f('timeout_seconds','总超时（秒，含排队）','number',{min:1,max:3600}),f('concurrency','同时回复数量','number',{min:1,max:8}),f('retry_limit','可恢复错误重试次数','number',{min:0,max:2}),f('max_action_handoffs','媒体动作回交上限','number',{min:1,max:2}),f('failure_policy','回复失败策略','select',{options:[{value:'error',label:'明确返回失败'},{value:'legacy_fallback',label:'显式由认知模型独立表达'}]}),
  ],
  'vision.understanding':[f('enabled','启用视觉理解','boolean'),f('model_ref','独立视觉模型绑定','select',{options:[{value:'vision_understanding',label:'独立视觉理解'}]})],
@@ -21,7 +21,7 @@ export const configurationFields={
  'product.goal_retry':[f('max_attempts','意向重试上限','number',{min:1,max:20}),f('base_seconds','首次重试等待（秒）','number',{min:30,max:3600}),f('max_seconds','重试间隔上限（秒）','number',{min:30,max:86400})],
  'product.notifications':[f('messages','新消息通知','boolean'),f('goals','目标与请求结果提醒','boolean'),f('media','媒体结果通知','boolean')],
 };
-export const configurationTitles={'conversation.reply':'私聊回复与 Fact-only','vision.understanding':'视觉理解',kev:'KEV 选择与连接','media.comfyui':'媒体工作流','product.autonomy':'全局运行与自治','product.wakeup':'定时唤醒','llm.queue':'模型队列','product.summary':'上下文摘要','product.goal_retry':'意向失败重试','product.notifications':'通知分类偏好'};
+export const configurationTitles={'conversation.reply':'私聊与角色回复','vision.understanding':'视觉理解',kev:'KEV 选择与连接','media.comfyui':'媒体工作流','product.autonomy':'全局运行与自治','product.wakeup':'定时唤醒','llm.queue':'模型队列','product.summary':'上下文摘要','product.goal_retry':'意向失败重试','product.notifications':'通知分类偏好'};
 
 export const pointLabels={'world.event.admit':'审核世界事件入库','context.select':'选择上下文','goal.completion_check':'检查目标完成条件','goal.replenish_plan':'补充目标规划','media.capture_plan':'准备图片拍摄方案','media.subject_route':'选择图片主题','media.view_plan':'规划画面视角','persona.switch':'判断人格切换','runtime.reflection':'判断反思时机','runtime.wakeup':'判断日常唤醒','tools.select':'选择可用工具'};
 export const configurationPoints=Object.keys(pointLabels);

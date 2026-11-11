@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
   "failure": "",
   "result": "",
   "created": "2026-11-10T08:34:30.674168Z",
-  "updated": "2026-11-10T08:34:30.67418Z",
+  "updated": "2026-11-11T14:30:04.608661Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-2c04ffeb34861f755eaa",
+        "unit": "define",
+        "executor": "codex-t04-main-chat",
+        "input_version": "0433020dd94457b5b59068f066368c702cd66607147a1d5371eabd0e52ee6f3d",
+        "candidate_version": "0433020dd94457b5b59068f066368c702cd66607147a1d5371eabd0e52ee6f3d",
+        "started": "2026-11-11T14:18:38.474112Z",
+        "ended": "2026-11-11T14:19:26.900539Z",
+        "status": "pass",
+        "reason": "按原 T04 处理普通私聊的单主 Agent、原生工具和唯一发布，同时保留认知结算、事务、幂等与旧草稿恢复；独立动态/日记和任务内部模型不并入主链。使用隔离数据库及受控 Provider 验证，真实 MeroMero 如仍受阻按用户授权记录并跳过，不把未验证写成通过。任务外非阻断问题只建 bug。"
+      },
+      {
+        "id": "AT-056b17f480824071a8bd",
+        "unit": "analysis",
+        "executor": "codex-t04-main-chat",
+        "input_version": "0433020dd94457b5b59068f066368c702cd66607147a1d5371eabd0e52ee6f3d",
+        "candidate_version": "0433020dd94457b5b59068f066368c702cd66607147a1d5371eabd0e52ee6f3d",
+        "started": "2026-11-11T14:19:38.710793Z",
+        "ended": "2026-11-11T14:23:56.164427Z",
+        "status": "pass",
+        "reason": "当前默认 fact_only 会启动独立 Writer；direct 已通过主 Agent 原生回复工具在同事务发布并结算，但只由显式配置触发。将缺省设置及管理入口切到 direct，保留已明确保存的旧模式和同源在途草稿的冻结合同；随后核对 claims、influences、偏好、Goal 和关系结算及重放。已知真实 MeroMero 的 direct 结构化字段曾失败，依用户指示不在字段严谨度上循环；缺真实模型验证须明确保留。"
+      },
+      {
+        "id": "AT-23dc0549f5c2139a99ed",
+        "unit": "execute",
+        "executor": "codex-t04-main-chat",
+        "input_version": "0433020dd94457b5b59068f066368c702cd66607147a1d5371eabd0e52ee6f3d",
+        "candidate_version": "",
+        "started": "2026-11-11T14:24:08.627663Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
     "checks": null
   }
 }

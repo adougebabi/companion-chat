@@ -17,7 +17,7 @@
 
 | Agent ID / 实际 variant | 领域、当前 caller 与状态 | 模型/运行 | Prompt 来源、主要输入 Slot | 输出、工具及真实副作用/发布 |
 | --- | --- | --- | --- | --- |
-| `conversation_cognition` / `conversation_turn_response` | 私聊；`core/agent_result_adapter.go:304` → `core/cognition_agent.go:171`，恢复 `core/reply_continuation.go:144`；有上游 | R·A | 主认知协议、有效人格、会话状态、来源记忆与历史、当前输入；`cognition_agent.go` | 认知输出与授权原生工具；`conversation.reply` 等真实发布由 Core 执行。默认仍 fact-only + Writer；实验 direct 仅显式主私聊；迁移 T04 |
+| `conversation_cognition` / `conversation_turn_response` | 私聊；`core/agent_result_adapter.go:304` → `core/cognition_agent.go:171`，恢复 `core/reply_continuation.go:144`；有上游 | R·A | 主认知协议、有效人格、会话状态、来源记忆与历史、当前输入；`cognition_agent.go` | 认知输出与授权原生工具；`conversation.reply` 等真实发布由 Core 执行。未保存模式的新主私聊默认 direct；明确保存的旧模式及旧草稿沿原路径，真实模型验收未完成 |
 | `conversation_reply` / `private_reply`、`proactive`、`moment` | 私聊/主动/动态；`core/reply_failure_policy.go:181` → `core/reply_provider.go:227`；有上游 | R·A | Writer 协议及 v4–v8、人格、对应场景事实/真实回执、按需记忆历史和当前输入；`reply_context.go`、`reply_expression.go` | 正文草稿和私有 `reply.image.request` / `persona.detail`；外层校验后唯一发布；保留场景表达，主私聊迁移 T04 |
 | `conversation_reply` / `{private_reply,proactive,moment}.style_repair`、`*.correction` | 同一 Writer 的错误/格式修复；`core/reply_style.go:207`、`core/reply_action_consistency.go:79`、`core/reply_failure_policy.go:184`、`core/reply_provider.go:240`；条件触发 | R·A；继承冻结绑定或 Agent/默认配置 | 原场景资料、未发布候选及相应校验反馈；`reply_provider.go:166` | 修复候选仍须校验，已有真实效果不得重做；保留。修复后缀不在 `agentModelVariants` 基础列表中，不能当成独立可配置槽位 |
 | `reply_action_check` / `reply_action_consistency` | 动作核验；`core/reply_action_consistency.go:33`；有上游 | G·S | 失败换装的真实回执、状态与未发布候选；无人格扮演 | 内部一致性结论，无工具；外层决定是否修复/发布；媒体一致性范围未覆盖，T06 补齐 |

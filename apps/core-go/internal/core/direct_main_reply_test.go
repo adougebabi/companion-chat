@@ -212,7 +212,11 @@ func TestDirectMainReplyPublishesAndSettlesAtomically(t *testing.T) {
 			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
 				t.Fatal(err)
 			}
-			persistConversationReplyMode(t, ctx, repo, "direct")
+			if failSettlement {
+				persistConversationReplyMode(t, ctx, repo, "direct")
+			} else if _, err := repo.Pool().Exec(ctx, `DELETE FROM public.runtime_settings WHERE key=$1`, conversationReplySettingKey); err != nil {
+				t.Fatal(err)
+			}
 			if failSettlement {
 				if _, err := repo.Pool().Exec(ctx, `CREATE FUNCTION public.test_fail_direct_settlement() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected_direct_settlement_failure'; END $$;
 					CREATE TRIGGER test_fail_direct_settlement BEFORE INSERT ON public.cognition_assessments FOR EACH ROW EXECUTE FUNCTION public.test_fail_direct_settlement()`); err != nil {
@@ -273,6 +277,7 @@ func TestDirectMainReplyRetainsExistingDraftContract(t *testing.T) {
 	key := privateReplyLogicalKey(ctx, inv)
 	ref := "reply_draft_" + stableDigest(key)
 	oldSettings := defaultConversationReplySettings()
+	oldSettings.Mode = "fact_only"
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.conversation_reply_drafts(id,logical_key,fluctlight_id,conversation_id,authorization_actor_id,subject_actor_id,source_fact_id,profile_id,status,config_snapshot,config_version,binding_snapshot,payload)
 		VALUES($1,$2,$3,$4,$5,$5,$6,'','ready',$7,7,'{}',$8)`, ref, key, fid, conversation, owner, scope.EvidenceID, jsonBytes(oldSettings), jsonBytes(ReplyDraft{Text: "旧草稿保持原样", ExpressionVersion: factOnlyReplyPromptVersion})); err != nil {
 		t.Fatal(err)

@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// directMainReplyCapability is installed only for an explicitly selected new
-// direct-conversation run. The model supplies its own visible text and the
+// directMainReplyCapability is installed for a new direct-conversation main
+// run. The model supplies its own visible text and the
 // same turn's decision in one native ToolCall; Core owns scope and settlement.
 type directMainReplyCapability struct {
 	app         *App

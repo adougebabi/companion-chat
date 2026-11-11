@@ -24,11 +24,11 @@
 | T01 | 完整运行入口盘点 | VERIFIED | [当前入口清单](meromero-agent-inventory-20261109.md)按源码核对 31 个正式 Agent、36 个显式声明的可配置 variant及额外表达变体、实际 Writer 修复 variant、非正式 Provider/embedding/Kev、独立 Tool 与后台调度；记录版本/hash 的实际口径和未确认生产上游。逐项覆盖和源码位置检查及独立静态审查已完成；真实模型能力和后台快照分属后续任务。 |
 | T02 | R01 任务模型配置 | IN_PROGRESS | `model_roles` 支持 variant → Agent → 默认用途；新后台任务采用各自的模型快照。隔离 PostgreSQL 与受控 Provider 验证任务覆盖、拒绝不换模型及视觉隔离；本机 MeroMero 普通聊天真实请求通过。升级前无可证明快照的旧任务仍按既有策略并记录诊断；真实 Qwen 任务覆盖与真实 Temporal 尚未验收。地址/密钥原子保存作为任务外问题另记 `provider-endpoint-credential-atomic-save`。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
-| T04 | R02 主对话与认知结算 | IN_PROGRESS | 已修复低置信度 claim 状态；新增显式实验性 `direct` 模式，使主 Agent 同一原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交，受控 PostgreSQL 验证提交、重放及回滚。默认生产链仍是 fact-only 加独立 Writer，旧草稿兼容、真实模型和默认切换尚未完成。 |
+| T04 | R02 主对话与认知结算 | IN_PROGRESS | 未保存模式的新主私聊默认 `direct`：同一主 Agent 的原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交；隔离 PostgreSQL 与受控 Provider 验证单次请求、重放、回滚、旧草稿及先行动再回复。明确保存的旧模式仍生效，认知字段完整消费和真实 MeroMero 私聊仍未验收；此前真实 direct 请求失败，默认切换存在实际聊天失败风险。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；受控 Tool 目录、物理 schema、Writer 与 React 通过。隔离 PostgreSQL 已验证直接调用、配置及部分回执回放；NPC 完整重启及真实媒体尚未验证。 |
 | T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。隔离 PostgreSQL 的部分媒体恢复、历史回执及重放测试通过；真实渲染和媒体正文语义仍未验证。 |
 | T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加；未知受理结果保留身份，多端更新不会让旧追发超车。受控页面、状态恢复及本地浏览器夹具通过；真实数据库并发、最终上下文合并及真实模型正反场景未验收。 |
-| T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；fact-only Writer 和实验 `direct` 主 Agent 均按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；真实模型及 UI 到实际运行的完整闭环未验收。 |
+| T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；fact-only Writer 和 `direct` 主 Agent 均按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；真实模型及 UI 到实际运行的完整闭环未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。隔离 PostgreSQL 已验证旧 Confirm、相同引用重新绑定、旧快照、调用中纠错及受控调度重开交错。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决；真实 Temporal 并发尚未验证。 |
 | T10 | R09 现有领域回归 | TODO | 不降低 Goal、人设、日程、衣柜、NPC、Studio 与日记既有语义。 |
 | T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；受控页面及部分数据库配置/回放已测。实际 Provider 消费、完整 Trace 和全场景重放仍未验收。 |
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-11：按 T04 将未保存模式的新主私聊缺省切为 `direct`，管理入口显示并允许选择该模式；已明确保存的 `fact_only` / `legacy` 不被改写，同源旧草稿继续按原合同恢复。隔离 PostgreSQL 与受控 Provider 的 `TestDirectMainReply*`、`TestFactOnlyMoment*`、`TestFactOnlyReply*` 和认知续接回归通过；未保存模式下验证了一次物理请求、一次发布与认知结算，失败回滚和重放有效。Web 回复模式两项测试、类型检查及生产构建通过。真实 MeroMero 此前的 direct 私聊失败仍未消除，本次按用户指示跳过真实模型验证；不能将默认切换记为真实模型验收通过。
 
 - E01–E18 以用户原始任务的场景为准，分别记录单元、契约、工具、原生循环、隔离集成、真实模型、真实媒体及 UI 证据；当前均未标为通过。
 

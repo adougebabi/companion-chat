@@ -41,7 +41,7 @@ type VisionUnderstandingSettings struct {
 }
 
 func defaultConversationReplySettings() ConversationReplySettings {
-	return ConversationReplySettings{Mode: "fact_only", ModelRef: conversationReplyModelRole, ExpressionVersion: factOnlyReplyPromptVersion,
+	return ConversationReplySettings{Mode: "direct", ModelRef: conversationReplyModelRole, ExpressionVersion: factOnlyReplyPromptVersion,
 		Temperature: 0.8, TopP: 0.9, TimeoutSeconds: 300,
 		Concurrency: 1, RetryLimit: 1, FailurePolicy: "error", MaxActionHandoffs: 2}
 }
@@ -253,7 +253,7 @@ func (a *App) replyVisionCapabilityStatus(ctx context.Context, values map[string
 		ref       string
 		configErr error
 	}{
-		{conversationReplyModelRole, reply.Mode == "fact_only", reply.ModelRef, replyErr},
+		{conversationReplyModelRole, reply.Mode == "fact_only" || reply.Mode == "direct", reply.ModelRef, replyErr},
 		{visionUnderstandingModelRole, vision.Enabled, vision.ModelRef, visionErr},
 	} {
 		status := map[string]any{"state": "disabled", "config_complete": false, "last_call_status": "not_called", "last_error": ""}
