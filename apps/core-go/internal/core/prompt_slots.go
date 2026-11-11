@@ -83,10 +83,28 @@ func withTaskPromptSlots(ctx context.Context, slots ...PromptSlotTrace) context.
 	return context.WithValue(ctx, taskPromptSlotsKey{}, append([]PromptSlotTrace(nil), slots...))
 }
 
+func withContinuationPromptSlots(ctx context.Context, slots ...PromptSlotTrace) context.Context {
+	if len(slots) == 0 {
+		return ctx
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
+	projection := cloneMap(mapValue(diagnostics["context_projection"]))
+	if projection == nil {
+		projection = map[string]any{}
+	}
+	declared := append([]any(nil), arrayValue(projection["slots"])...)
+	for _, slot := range slots {
+		declared = append(declared, promptSlotTraceMap(slot))
+	}
+	projection["slots"] = declared
+	diagnostics["context_projection"] = projection
+	return WithPromptDiagnostics(ctx, diagnostics)
+}
+
 func taskPromptAssembly(ctx context.Context, messages []map[string]any) PromptAssemblyResult {
 	assembly := PromptAssemblyResult{Messages: messages}
 	slots, _ := ctx.Value(taskPromptSlotsKey{}).([]PromptSlotTrace)
-	if len(slots) == 0 || len(messages) < 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
+	if len(slots) == 0 || len(messages) < 2 || stringValue(messages[0]["role"]) != "system" {
 		return assembly
 	}
 	assembly.messageOrigins = make([]promptMessageOrigin, len(messages))
@@ -107,6 +125,20 @@ func taskPromptAssembly(ctx context.Context, messages []map[string]any) PromptAs
 		}
 		assembly.Trace.Slots = append(assembly.Trace.Slots, slot)
 	}
+	return assembly
+}
+
+// Compatibility wrappers accept caller-assembled messages. Their exact
+// business provenance is unavailable here; record the caller as the source
+// without guessing from the content or treating old messages as current.
+func callerConversationPrompt(ctx context.Context, id FormalAgentID, messages []map[string]any, responseFormat map[string]any) PromptAssemblyResult {
+	formatted := formalPromptMessages(id, messages)
+	slots := make([]PromptSlotTrace, 0, len(formatted)-1)
+	for index := 1; index < len(formatted); index++ {
+		slots = append(slots, PromptSlotTrace{SlotID: "caller_message", Position: PromptSlotPosition("caller_message"), MessageIndex: index, Source: "caller_supplied_messages", Reason: "compatibility_wrapper_input"})
+	}
+	assembly := taskPromptAssembly(withTaskPromptSlots(ctx, slots...), formatted)
+	assembly.ResponseFormat = responseFormat
 	return assembly
 }
 
@@ -147,6 +179,19 @@ func declareAssembledStableTaskSlots(assembly PromptAssemblyResult, slots ...Pro
 		kept = append(kept, slot)
 	}
 	assembly.Trace.Slots = kept
+	return assembly
+}
+
+func appendAssembledSourceSlots(assembly PromptAssemblyResult, origin string, position PromptSlotPosition, slots ...PromptSlotTrace) PromptAssemblyResult {
+	index := promptMessageOriginIndex(assembly, origin)
+	if index < 0 {
+		return assembly
+	}
+	for _, slot := range slots {
+		slot.Position = position
+		slot.MessageIndex = index
+		assembly.Trace.Slots = append(assembly.Trace.Slots, slot)
+	}
 	return assembly
 }
 

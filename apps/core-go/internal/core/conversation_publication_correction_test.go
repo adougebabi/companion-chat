@@ -20,6 +20,7 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 			t.Run(fmt.Sprintf("stream=%v/%s", streaming, outcome), func(t *testing.T) {
 				var requests []map[string]any
 				var identities []string
+				var requestDiagnostics []map[string]any
 				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					var payload map[string]any
 					if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
@@ -89,7 +90,12 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 				trace := &ADKCapabilityTrace{}
 				ctx := withADKCapabilityContext(context.Background(), conversationPublicationTestInvoker{trace: trace, rejectReply: outcome == "rejected_receipt", rejectFirstReply: outcome == "corrected_receipt"}, trace, nil)
 				ctx = withPhysicalModelRequestPolicy(ctx, conversationPublicationPhysicalRequestPolicy{})
-				p := &ProviderClient{HTTP: server.Client()}
+				transport := server.Client().Transport
+				client := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+					requestDiagnostics = append(requestDiagnostics, providerPromptDiagnostics(request.Context()))
+					return transport.RoundTrip(request)
+				})}
+				p := &ProviderClient{HTTP: client}
 				response, err := p.generateWithEino(ctx, EinoModelCall{Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fake", Timeout: time.Second, TokenBudget: 4096, ContextWindowTokens: 131072, MaxInputTokens: 98304, PromptBudgetPolicyVersion: "prompt-budget.v1"}, Role: "cognitive_assessment", Messages: []map[string]any{{"role": "user", "content": "Read memory then reply"}}, Definitions: []CapabilityDefinition{conversationReplyCapabilityDefinition(), {Name: "memory.recall", Description: "Read memory", InputSchema: map[string]any{"type": "object", "properties": map[string]any{"query": map[string]any{"type": "string"}}}}}, JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: cognitiveTurnResponseSchema(), EnableStreaming: streaming, EnableThinking: true, CorrelationID: "turn:correction"})
 				wantCalls, wantResults := 3, 1
 				if outcome == "rejected_receipt" {
@@ -122,6 +128,14 @@ func TestConversationNativePublicationCorrectionPhysicalRequests(t *testing.T) {
 					}
 				}
 				correction := requests[2]
+				var correctionTraced bool
+				for _, raw := range arrayValue(requestDiagnostics[2]["prompt_slots"]) {
+					slot := mapValue(raw)
+					correctionTraced = correctionTraced || slot["slot_id"] == "publication_correction_feedback" && slot["source"] == "core_publication_check"
+				}
+				if !correctionTraced {
+					t.Fatal("physical publication correction did not trace its Core feedback")
+				}
 				correctionTools := arrayValue(correction["tools"])
 				if len(correctionTools) != 1 || !capabilitycontract.CapabilityNamesMatch(stringValue(mapValue(mapValue(correctionTools[0])["function"])["name"]), conversationReplyCapabilityName) || correction["tool_choice"] != "required" || correction["response_format"] != nil || correction["enable_thinking"] != false {
 					t.Fatalf("correction wire=%#v", correction)

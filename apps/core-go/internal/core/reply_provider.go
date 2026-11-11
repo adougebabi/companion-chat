@@ -213,6 +213,13 @@ func (a *App) RunConversationReplyTask(ctx context.Context, input ConversationRe
 	if err != nil {
 		return ReplyDraft{}, err
 	}
+	if input.Context.Scene != replySceneMoment && len(input.Context.ExpressionSuggestions) > 0 {
+		refs := make([]string, 0, len(input.ExpressionSuggestions))
+		for _, suggestion := range input.ExpressionSuggestions {
+			refs = append(refs, taskOptionalSourceRef("expression_candidate", suggestion.ID)...)
+		}
+		prompt = appendAssembledSourceSlots(prompt, "scoped_runtime_projection", PromptSlotRuntime, PromptSlotTrace{SlotID: "expression_suggestions", Source: "reviewed_expression_candidates", SourceRefs: refs, Reason: "selected_for_current_reply"})
+	}
 	diagnostics := cloneMap(prompt.Diagnostics)
 	contract, err := replyExpressionContract(input.Context.ExpressionVersion)
 	if err != nil {

@@ -111,6 +111,29 @@ func TestFactOnlyReplyContextUsesAuthorityAndOriginalHistory(t *testing.T) {
 	}
 }
 
+func TestReplySourceSlotsSeparateCandidateFromActualReceipts(t *testing.T) {
+	for _, scene := range []string{"", replySceneMoment} {
+		input := replyContextFixture()
+		input.Scene = scene
+		input.ToolFacts = []map[string]any{
+			{"kind": "private_candidate_text", "value": "尚未发布的候选"},
+			{"kind": "current_action_result", "value": map[string]any{"capability_name": "wardrobe.wear", "status": "failed"}},
+			{"kind": "media_action_result", "value": map[string]any{"status": "requested_not_generated"}},
+		}
+		prompt, err := buildFactOnlyReplyContext(input, providerAssignment{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		seen := map[PromptSlotID]string{}
+		for _, slot := range prompt.Trace.Slots {
+			seen[slot.SlotID] = slot.Source
+		}
+		if seen["reply_unpublished_candidate"] != "unpublished_reply_candidate" || seen["reply_action_receipt"] != "actual_action_result" || seen["reply_media_state"] != "server_media_action_state" {
+			t.Fatalf("scene %q mixed candidate and receipt sources: %#v", scene, prompt.Trace.Slots)
+		}
+	}
+}
+
 func TestFactOnlyRequiredGoalOverflowIsExplicit(t *testing.T) {
 	input := replyContextFixture()
 	input.Projection.Goals[0]["success_criteria"] = []any{strings.Repeat("不可丢失的原始完成条件", 3000)}

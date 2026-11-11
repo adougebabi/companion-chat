@@ -212,7 +212,9 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 		}
 		if conversationPublicationOmission(result) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
 			correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
-			return m.Generate(correctionCtx, conversationPublicationCorrectionInput(originalInput), originalOpts...)
+			corrected := conversationPublicationCorrectionInput(originalInput)
+			correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})
+			return m.Generate(correctionCtx, corrected, originalOpts...)
 		}
 	}
 
@@ -364,7 +366,10 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 				return nil, err
 			}
 			if conversationPublicationOmission(candidate) && m.publicationCorrectionUsed != nil && m.publicationCorrectionUsed.CompareAndSwap(false, true) {
-				return m.Stream(context.WithValue(ctx, conversationPublicationCorrectionKey{}, true), conversationPublicationCorrectionInput(originalInput), originalOpts...)
+				correctionCtx := context.WithValue(ctx, conversationPublicationCorrectionKey{}, true)
+				corrected := conversationPublicationCorrectionInput(originalInput)
+				correctionCtx = withContinuationPromptSlots(correctionCtx, PromptSlotTrace{SlotID: "publication_correction_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(corrected) - 1, Source: "core_publication_check", Reason: "missing_publication_correction"})
+				return m.Stream(correctionCtx, corrected, originalOpts...)
 			}
 		}
 		candidate = canonicalizeModelToolNames(candidate)
@@ -1295,13 +1300,18 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			// The original Tool effects are already committed, so the repair loop
 			// must not receive the Tool catalog or execute another ToolCall.
 			correctionInput := append([]*schema.Message(nil), input...)
+			repairSlots := make([]PromptSlotTrace, 0)
 			for _, message := range loopResult.Messages {
 				if message == nil {
 					continue
 				}
+				if message.Role == schema.Assistant && len(message.ToolCalls) == 0 {
+					repairSlots = append(repairSlots, PromptSlotTrace{SlotID: "final_repair_candidate", Position: PromptSlotRecent, MessageIndex: len(correctionInput), Source: "previous_model_output", Reason: "final_contract_validation_failed"})
+				}
 				correctionInput = append(correctionInput, message)
 			}
 			correctionInput = append(correctionInput, schema.UserMessage(renderProviderJSON(map[string]any{"validation_feedback": validationErr.Error(), "instruction": "Correct the final response contract. Return one complete JSON object matching the supplied response schema, with every required field and no undeclared fields. Preserve valid values from the previous output; use only context references shown in this run. Do not call tools or describe an uncommitted action as completed."})))
+			repairSlots = append(repairSlots, PromptSlotTrace{SlotID: "final_validation_feedback", Position: PromptSlotCurrentInput, MessageIndex: len(correctionInput) - 1, Source: "core_final_contract_validation", Reason: "final_contract_validation_failed"})
 			repairModel := unboundChat
 			if queued, ok := unboundChat.(*queuedToolCallingChatModel); ok {
 				copyModel := *queued
@@ -1311,7 +1321,7 @@ func (p *ProviderClient) generateWithADK(ctx context.Context, call EinoModelCall
 			// Final repair is deliberately tool-free. A task-owned request policy
 			// governs the native business loop only; carrying it into this unbound
 			// model could emit tool_choice without a Tool catalog.
-			repairCtx := finalRepairContext(ctx)
+			repairCtx := withContinuationPromptSlots(finalRepairContext(ctx), repairSlots...)
 			correction, correctionErr := RunADKLoop(repairCtx, ADKLoopConfig{Name: call.Agent.Name + "-final-repair", Description: "Correct a final response without tools", Model: repairModel, MaxIterations: 1, EnableStreaming: call.EnableStreaming}, correctionInput)
 			preservePhysicalResponseMetadata(correction.FinalMessage, repairModel)
 			if correctionErr == nil && correction.FinalMessage != nil && len(correction.ToolCalls) == 0 {

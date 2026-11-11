@@ -103,6 +103,8 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	schema := cognitiveTurnResponseSchema()
 	operationRules := []string{providerContextAuthorityRule, capabilityConversationPolicyInstruction, capabilityLifeConsistencyInstruction}
 	surface := ProviderContextSurfaceConversationMain
+	var expressionRefs []string
+	expressionSelected := false
 	if replyRun := replyRunFromContext(ctx); replyRun != nil && replyRun.Settings.Mode == "fact_only" {
 		surface = ProviderContextSurfaceFactOnlyCognition
 		operationRules = []string{factOnlyExecutionBoundary}
@@ -114,6 +116,12 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 			return ConversationCognitionAgentResult{}, suggestionErr
 		}
 		if len(suggestions) > 0 {
+			expressionSelected = true
+			for _, suggestion := range suggestions {
+				if ref := taskOptionalSourceRef("expression_candidate", suggestion.ID); len(ref) > 0 {
+					expressionRefs = append(expressionRefs, ref...)
+				}
+			}
 			stable := providerStableTaskContext(ctx)
 			if stable == nil {
 				stable = map[string]any{}
@@ -142,6 +150,9 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 		return ConversationCognitionAgentResult{}, err
 	}
 	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "conversation_current_input", Source: "cognition_task_input", SourceRefs: taskOptionalSourceRef("fact", input.SourceFactID), Reason: "current_authorized_input"})
+	if expressionSelected {
+		assembly = appendAssembledSourceSlots(assembly, "stable_task_context", PromptSlotPosition("stable_task_context"), PromptSlotTrace{SlotID: "expression_suggestions", Source: "reviewed_expression_candidates", SourceRefs: expressionRefs, Reason: "selected_for_current_conversation"})
+	}
 
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), replyRunDiagnostics(ctx, assembly.Diagnostics))
 	providerCtx = WithProviderCorrelation(providerCtx, firstString(providerCorrelation(ctx), "conversation-cognition-agent:"+runID))

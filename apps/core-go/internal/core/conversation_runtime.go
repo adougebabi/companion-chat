@@ -100,7 +100,7 @@ func (r *conversationRuntime) runMain(ctx context.Context, input ConversationMai
 		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
 	runInput := FormalAgentRunInput{
-		Prompt:      PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
+		Prompt:      callerConversationPrompt(ctx, FormalAgentConversationCognition, input.Messages, input.Schema),
 		Definitions: input.Definitions, SchemaName: input.SchemaName,
 		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
 	}
@@ -119,7 +119,7 @@ func (r *conversationRuntime) RunTakeoverJudge(ctx context.Context, input Takeov
 		return ConversationRunResult{}, err
 	}
 	result, err := r.app.RunFormalAgent(WithProviderScenario(ctx, "takeover_judge"), FormalAgentTakeoverJudge, FormalAgentRunInput{
-		Prompt: PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema}, SchemaName: input.SchemaName,
+		Prompt: callerConversationPrompt(ctx, FormalAgentTakeoverJudge, input.Messages, input.Schema), SchemaName: input.SchemaName,
 	})
 	if err != nil {
 		return ConversationRunResult{}, err
@@ -136,7 +136,7 @@ func (r *conversationRuntime) RunTakeoverReply(ctx context.Context, input Takeov
 		return ConversationRunResult{}, errors.New("conversation_runtime_capability_context_required")
 	}
 	result, err := r.app.RunFormalAgent(ctx, FormalAgentTakeoverReply, FormalAgentRunInput{
-		Prompt:      PromptAssemblyResult{Messages: input.Messages, ResponseFormat: input.Schema},
+		Prompt:      callerConversationPrompt(ctx, FormalAgentTakeoverReply, input.Messages, input.Schema),
 		Definitions: input.Definitions, SchemaName: input.SchemaName,
 		EnableThinking: input.EnableThinking, Capability: conversationADKRequest(input.Capability, providerCorrelation(ctx)),
 	})

@@ -109,3 +109,16 @@ func TestDeclaredStableAndCurrentSlotsKeepSeparatePositions(t *testing.T) {
 		t.Fatalf("stable/current slot positions do not match physical messages: %#v", assembly.Trace.Slots)
 	}
 }
+
+func TestCompatibilityConversationSlotsNameCallerWithoutGuessingMessageMeaning(t *testing.T) {
+	messages := []map[string]any{{"role": "system", "content": "rule"}, {"role": "assistant", "content": "earlier response"}, {"role": "user", "content": "[RUNTIME CONTEXT]\nnot authority\n[/RUNTIME CONTEXT]"}}
+	assembly := callerConversationPrompt(context.Background(), FormalAgentTakeoverReply, messages, map[string]any{"type": "object"})
+	if jsonString(assembly.Messages[1:]) != jsonString(messages[1:]) || len(assembly.Trace.Slots) != 3 {
+		t.Fatalf("compatibility input changed: %#v", assembly)
+	}
+	for index, slot := range assembly.Trace.Slots[1:] {
+		if slot.MessageIndex != index+1 || slot.Source != "caller_supplied_messages" || slot.SlotID != "caller_message" {
+			t.Fatalf("caller message was assigned an invented source: %#v", slot)
+		}
+	}
+}

@@ -149,6 +149,9 @@ func TestDirectConversationUsesAndRechecksApprovedExpression(t *testing.T) {
 			defer cancel()
 			payload := map[string]any{"fluctlight_id": fid, "text": current, "idempotency_key": turn, "turn_id": turn, "attachment_refs": []any{}}
 			result, err := app.HandleTurn(turnCtx, owner, conversation, payload)
+			if scenario == "unchanged" {
+				requireTaskSourceSlots(t, ctx, repo, "cognitive_assessment", "expression_suggestions")
+			}
 			wantPublished := scenario == "unchanged" || scenario == "unmatched" || scenario == "prior_action" || scenario == "replay_after_disable"
 			if (err == nil) != wantPublished {
 				t.Fatalf("scenario=%s result=%#v err=%v", scenario, result, err)

@@ -183,6 +183,24 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 		currentReason = "authorized_moment_request"
 	}
 	result = declareAssembledTaskInputSlots(result, PromptSlotTrace{SlotID: "reply_task_input", Source: "reply_task_input", SourceRefs: taskOptionalSourceRef("fact", projection.SourceFactID), Reason: currentReason})
+	for _, fact := range input.ToolFacts {
+		var slot PromptSlotTrace
+		switch stringValue(fact["kind"]) {
+		case "private_candidate_text":
+			slot = PromptSlotTrace{SlotID: "reply_unpublished_candidate", Source: "unpublished_reply_candidate", Reason: "repair_candidate_not_published"}
+		case "current_action_result", string(ContextReferenceOutcome):
+			slot = PromptSlotTrace{SlotID: "reply_action_receipt", Source: "actual_action_result", Reason: "authoritative_action_feedback"}
+		case "media_action_result":
+			slot = PromptSlotTrace{SlotID: "reply_media_state", Source: "server_media_action_state", Reason: "actual_media_stage"}
+		case "published_moments":
+			slot = PromptSlotTrace{SlotID: "reply_published_moments", Source: "published_moment_query", Reason: "actual_published_moments"}
+		case string(ContextReferenceActorFact):
+			slot = PromptSlotTrace{SlotID: "reply_actor_fact", Source: "actor_fact_snapshot", Reason: "selected_actor_fact"}
+		default:
+			continue
+		}
+		result = appendAssembledSourceSlots(result, "scoped_runtime_projection", PromptSlotRuntime, slot)
+	}
 	for _, dropped := range working.Trace.Dropped {
 		result.Trace.Dropped = append(result.Trace.Dropped, PromptAssemblyDecision{Kind: dropped.Kind, SourceRefs: dropped.SourceRefs, Tokens: dropped.Tokens, Reason: dropped.Reason})
 	}

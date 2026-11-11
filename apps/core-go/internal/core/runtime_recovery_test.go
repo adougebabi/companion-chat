@@ -41,6 +41,7 @@ func TestADKRepairsUnknownInfluenceWithoutReplayingTools(t *testing.T) {
 		t.Fatal(err)
 	}
 	var requests atomic.Int32
+	var requestDiagnostics []map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		result := map[string]any{"influences": []any{}}
@@ -51,9 +52,14 @@ func TestADKRepairsUnknownInfluenceWithoutReplayingTools(t *testing.T) {
 		_, _ = w.Write(jsonBytes(map[string]any{"choices": []any{map[string]any{"finish_reason": "stop", "message": map[string]any{"role": "assistant", "content": jsonString(result)}}}}))
 	}))
 	defer server.Close()
+	transport := server.Client().Transport
+	client := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		requestDiagnostics = append(requestDiagnostics, providerPromptDiagnostics(request.Context()))
+		return transport.RoundTrip(request)
+	})}
 	invoker := &adkResultInvoker{results: map[string]string{}}
 	ctx := withADKCapabilityContextRefs(context.Background(), invoker, &ADKCapabilityTrace{}, nil, codec)
-	response, err := (&ProviderClient{HTTP: server.Client()}).generateWithEino(ctx, EinoModelCall{
+	response, err := (&ProviderClient{HTTP: client}).generateWithEino(ctx, EinoModelCall{
 		Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: server.URL, ModelID: "fixture", Timeout: 10 * time.Second, TokenBudget: 1000},
 		Role:       "cognitive_assessment", Scenario: "conversation", Messages: []map[string]any{{"role": "user", "content": "only current scoped refs"}},
 		JSONMode: true, SchemaName: "conversation_turn_response", ResponseSchema: objectSchema(map[string]any{"influences": decisionInfluencesSchema()}, []string{"influences"}, false),
@@ -61,6 +67,15 @@ func TestADKRepairsUnknownInfluenceWithoutReplayingTools(t *testing.T) {
 	})
 	if err != nil || requests.Load() != 2 || len(invoker.calls) != 0 || response.Message == nil || !strings.Contains(response.Message.Content, `"influences":[]`) {
 		t.Fatalf("unknown ref was not corrected in a tool-free final repair: requests=%d calls=%v response=%#v err=%v", requests.Load(), invoker.calls, response, err)
+	}
+	var feedbackFound, candidateFound bool
+	for _, raw := range arrayValue(requestDiagnostics[1]["prompt_slots"]) {
+		slot := mapValue(raw)
+		feedbackFound = feedbackFound || slot["slot_id"] == "final_validation_feedback" && slot["source"] == "core_final_contract_validation"
+		candidateFound = candidateFound || slot["slot_id"] == "final_repair_candidate" && slot["source"] == "previous_model_output"
+	}
+	if !feedbackFound || !candidateFound {
+		t.Fatal("physical final repair did not distinguish the model candidate and Core feedback")
 	}
 }
 
