@@ -5,8 +5,8 @@ import {fileURLToPath} from 'node:url';
 import {configurationFields,conversationReplyDisplayValue} from '../src/v3/proto/components/configuration-fields.js';
 import {SavedReplySummary} from '../src/v3/proto/components/configuration-summary.js';
 import {React,installDOM,mountReact} from './helpers/react-dom.mjs';
-test('unset reply mode uses direct and React Select preserves explicit saved modes',async()=>{
- for(const value of [undefined,{}, {temperature:.2}])assert.equal(conversationReplyDisplayValue(value).mode,'direct');
+test('unset reply mode retains fact_only and React Select preserves explicit saved modes',async()=>{
+ for(const value of [undefined,{}, {temperature:.2}])assert.equal(conversationReplyDisplayValue(value).mode,'fact_only');
  const saved=conversationReplyDisplayValue({mode:'legacy',temperature:.2});assert.equal(saved.mode,'legacy');assert.equal(saved.temperature,.2);
  assert.equal(conversationReplyDisplayValue({mode:'fact_only'}).mode,'fact_only');
  const environment=installDOM(),vite=await createServer({root:fileURLToPath(new URL('../',import.meta.url)),appType:'custom',logLevel:'silent',server:{middlewareMode:true}});

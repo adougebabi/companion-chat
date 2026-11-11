@@ -215,11 +215,7 @@ func TestDirectMainReplyPublishesAndSettlesAtomically(t *testing.T) {
 			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
 				t.Fatal(err)
 			}
-			if failSettlement {
-				persistConversationReplyMode(t, ctx, repo, "direct")
-			} else if _, err := repo.Pool().Exec(ctx, `DELETE FROM public.runtime_settings WHERE key=$1`, conversationReplySettingKey); err != nil {
-				t.Fatal(err)
-			}
+			persistConversationReplyMode(t, ctx, repo, "direct")
 			if failSettlement {
 				if _, err := repo.Pool().Exec(ctx, `CREATE FUNCTION public.test_fail_direct_settlement() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected_direct_settlement_failure'; END $$;
 					CREATE TRIGGER test_fail_direct_settlement BEFORE INSERT ON public.cognition_assessments FOR EACH ROW EXECUTE FUNCTION public.test_fail_direct_settlement()`); err != nil {
@@ -331,6 +327,7 @@ func TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce(t *testing.T) {
 	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, f.ownerID, f.fluctlightID, f.conversationID); err != nil {
 		t.Fatal(err)
 	}
+	persistConversationReplyMode(t, f.ctx, f.repository, "direct")
 	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,role,metrics,revision) VALUES($1,$2,$3,'{"label":"friend"}','{}',1)`, relationshipID, f.fluctlightID, f.ownerID); err != nil {
 		t.Fatal(err)
 	}

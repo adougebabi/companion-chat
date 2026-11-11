@@ -180,6 +180,7 @@ func TestDurableObserverReceivesDirectMainReply(t *testing.T) {
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
 		t.Fatal(err)
 	}
+	persistConversationReplyMode(t, ctx, repo, "direct")
 	payload := map[string]any{"fluctlight_id": fid, "text": "你好", "turn_id": "durable-direct-turn", "idempotency_key": "durable-direct", "attachment_refs": []any{}}
 	accepted, err := app.AcceptTurn(ctx, owner, conversation, payload)
 	if err != nil {
