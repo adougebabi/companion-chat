@@ -25,7 +25,7 @@
 | T02 | R01 任务模型配置 | IN_PROGRESS | `model_roles` 支持 variant → Agent → 默认用途；新后台任务采用各自的模型快照。隔离 PostgreSQL 与受控 Provider 验证任务覆盖、拒绝不换模型及视觉隔离；本机 MeroMero 普通聊天真实请求通过。升级前无可证明快照的旧任务仍按既有策略并记录诊断；真实 Qwen 任务覆盖与真实 Temporal 尚未验收。地址/密钥原子保存作为任务外问题另记 `provider-endpoint-credential-atomic-save`。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | `direct` 使用同一主 Agent 的原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交；隔离 PostgreSQL 与受控 Provider 验证单次请求、重放、回滚、旧草稿及先行动再回复。隔离场景发现无附件却可发布“照片已发送”，因此暂不切为默认，缺口归 T06；真实 MeroMero 私聊和实时增量流仍未验收。 |
-| T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告未配置/配置不完整，已配置仍显示未检测。隔离 PostgreSQL 验证配置回读、直接调用、停用及部分回执回放；已受理图片的完整恢复、真实连通/渲染与 NPC 完整重启仍未验收。 |
+| T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告未配置/配置不完整，已配置仍显示未检测。隔离 PostgreSQL 验证配置回读、直接调用、停用及回执回放；已受理图片的 ready 夹具在停用并重建应用后可去重交付。真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
 | T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。隔离 PostgreSQL 的部分媒体恢复、历史回执及重放测试通过；真实渲染和媒体正文语义仍未验证。 |
 | T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加；未知受理结果保留身份，多端更新不会让旧追发超车。受控页面、状态恢复及本地浏览器夹具通过；真实数据库并发、最终上下文合并及真实模型正反场景未验收。 |
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；fact-only Writer 和 `direct` 主 Agent 均按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；真实模型及 UI 到实际运行的完整闭环未验收。 |
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-11：`TestDisabledImagePluginRecoversAcceptedReadyIntentOnce` 在隔离 PostgreSQL 先通过独立 Tool 受理图片任务，再停用 Image、插入明确标注的 ready 资源夹具并重建 App；两次处理均完成，核对仅有一个 intent、资源、消息和引用，停用后新请求被拒。未调用真实渲染器，未验证未 ready 的任务完整生成。
 
 - 2026-11-11：T05 插件目录补充 Image 的渲染依赖及未配置/配置不完整错误，Moment 仍将 Image 列为可选依赖；配置存在时健康保持 `not_checked`，不伪称真实连通。隔离 PostgreSQL 验证缺配置、保存后回读、插件开关和独立/原生回执重放；受控 React 插件设置场景及类型检查通过。尚未验证真实 ComfyUI 连通或出图。
 

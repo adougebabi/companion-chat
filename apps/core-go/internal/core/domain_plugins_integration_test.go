@@ -131,6 +131,49 @@ func TestDomainPluginCatalogReportsSavedRendererConfiguration(t *testing.T) {
 	}
 }
 
+// The ready asset is an explicit database fixture, not a real renderer result.
+func TestDisabledImagePluginRecoversAcceptedReadyIntentOnce(t *testing.T) {
+	ctx, repo, app, owner, fid, conversation := setupDirectPublicationToolTest(t, "plugin-image-recovery")
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'fixture','fixture')`, owner); err != nil {
+		t.Fatal(err)
+	}
+	request := ToolExecutionRequest{CapabilityName: "media.image.generate", OperationID: "accepted-before-disable", AuthorizationActorID: owner, FluctlightID: fid, ConversationID: conversation, TargetKind: "conversation", TargetRef: conversation, Arguments: jsonBytes(map[string]any{"intent": "窗外风景", "media_plan": mediaTestPlan("landscape", "none", "no", "unknown")})}
+	receipt, err := app.ExecuteTool(ctx, request)
+	if err != nil || receipt.Result.Status != "accepted" {
+		t.Fatalf("Image intent was not accepted: %#v %v", receipt, err)
+	}
+	intentID := stringValue(mapValue(receipt.Result.Output)["media_intent_id"])
+	if intentID == "" {
+		t.Fatal("accepted Image request did not return its intent")
+	}
+	if _, err := app.UpdateSettings(ctx, owner, map[string]any{"values": map[string]any{domainPluginsSettingKey: map[string]any{"image": false, "moment": true}}, "expected_versions": map[string]any{}, "idempotency_key": "disable-after-accept"}); err != nil {
+		t.Fatal(err)
+	}
+	assetID := "asset_" + intentID
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) SELECT $2,owner_fluctlight_id,'1','image','image/png',68,'controlled-ready-digest','controlled','not-read',provider_request_id,workflow_id,'ready' FROM public.media_intents WHERE id=$1`, intentID, assetID); err != nil {
+		t.Fatal(err)
+	}
+	restarted := newTestApp(t, repo, nil)
+	for attempt := 0; attempt < 2; attempt++ {
+		result, err := restarted.ProcessMediaIntent(ctx, intentID)
+		if err != nil || result["status"] != "completed" {
+			t.Fatalf("accepted intent did not recover after disable: %#v %v", result, err)
+		}
+	}
+	var intents, assets, messages, references int
+	if err := repo.Pool().QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM public.media_intents WHERE id=$1 AND status='completed'),
+		(SELECT count(*) FROM public.media_assets WHERE id=$2 AND status='ready'),
+		(SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$3 AND idempotency_key=$4 AND attachment_refs ? $2),
+		(SELECT count(*) FROM public.media_references WHERE asset_id=$2 AND target_type='conversation' AND target_id=$3)`, intentID, assetID, conversation, "media:"+intentID+":conversation-result").Scan(&intents, &assets, &messages, &references); err != nil || intents != 1 || assets != 1 || messages != 1 || references != 1 {
+		t.Fatalf("recovery duplicated or lost delivery: intents=%d assets=%d messages=%d references=%d err=%v", intents, assets, messages, references, err)
+	}
+	request.OperationID = "new-after-disable"
+	if _, err := restarted.ExecuteTool(ctx, request); err == nil {
+		t.Fatal("disabled Image accepted a new request after restart")
+	}
+}
+
 // A fresh Agent trace can replay the same durable operation after disable;
 // a different operation must instead return a disabled ToolResult.
 func TestDomainPluginPostgresNativeAgentReceiptReplay(t *testing.T) {
