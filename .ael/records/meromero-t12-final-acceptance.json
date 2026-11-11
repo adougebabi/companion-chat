@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "T12 已更新 review-for-chatgpt.md、E01–E18 矩阵和脱敏证据：42b43abf 干净源码 Go 全量 18 包通过、3108 测试事件通过/1073 跳过；隔离 PostgreSQL 与受控 Provider 14 个顶层专项通过；Web 定向 8 项与类型检查通过。另跑衣柜/无人主体 9 个顶层测试，8 通过、1 失败；两个换衣不可用后回退纠错子场景在起始提交通过、当前失败，临时将 400 改为 503 仍失败，已登记 reply-wear-fallback-correction-regression。新增的 400 不回退独立测试在提交 45489e84 后通过。E14 四组旧 Goal/活动失败、E16 正文与媒体不一致、真实模型多场景、真实媒体和 UI 到运行闭环均未完成，不能将任何 E 项整体标为通过；当前默认 fact_only 仍使用独立 Writer。按用户要求保留未完成状态并继续原任务。",
   "result": "",
   "created": "2026-11-10T08:34:31.35389Z",
-  "updated": "2026-11-10T08:34:31.353904Z",
+  "updated": "2026-11-11T19:01:40.007311Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-4a5886a681e690b28e6a",
+        "unit": "define",
+        "executor": "codex-t12-acceptance",
+        "input_version": "70719de1dfa2a6f98e7714c3e5b85bd486f3241c040dd3e69bbd1fabc09ad2f6",
+        "candidate_version": "70719de1dfa2a6f98e7714c3e5b85bd486f3241c040dd3e69bbd1fabc09ad2f6",
+        "started": "2026-11-11T18:35:53.605249Z",
+        "ended": "2026-11-11T18:36:21.896005Z",
+        "status": "pass",
+        "reason": "按原 T12 逐项核对 E01–E18 的源码、测试、证据和限制，区分单元、契约、工具、受控集成、真实模型、真实媒体和 UI 到运行消费；复用已验证结果并对关键缺口做可执行回归，更新 review-for-chatgpt.md。未完成实现和不可用外部服务保持未通过或跳过，不以测试替身冒充真实能力；任务外非阻断缺陷只登记。"
+      },
+      {
+        "id": "AT-11f977d6a957db9c0f42",
+        "unit": "analysis",
+        "executor": "codex-t12-acceptance",
+        "input_version": "70719de1dfa2a6f98e7714c3e5b85bd486f3241c040dd3e69bbd1fabc09ad2f6",
+        "candidate_version": "70719de1dfa2a6f98e7714c3e5b85bd486f3241c040dd3e69bbd1fabc09ad2f6",
+        "started": "2026-11-11T18:36:40.153909Z",
+        "ended": "2026-11-11T18:41:21.593745Z",
+        "status": "pass",
+        "reason": "核对 E01–E18 后，已有隔离数据库、受控 Provider 和受控 React 的局部证据，但没有一项可以仅据现有证据宣布完整通过；E14 有起始提交可复现的 Goal/活动失败，E16 有正文与媒体状态不一致缺口。当前代码缺省 fact_only，显式 direct 尚未真实私聊通过，旧报告和矩阵多处过期。以提交后的干净源码运行代表性回归，保留未完成项及历史失败，更新主报告与台账；真实模型、真实媒体和 UI 端到端仅按实际执行情况报告。"
+      },
+      {
+        "id": "AT-c07dad44b2b20b366da3",
+        "unit": "execute",
+        "executor": "codex-t12-acceptance",
+        "input_version": "70719de1dfa2a6f98e7714c3e5b85bd486f3241c040dd3e69bbd1fabc09ad2f6",
+        "candidate_version": "6920f10493d85380dc78cf45db6eb25b2471c78e41b533ac9b78fb336d6f72b4",
+        "started": "2026-11-11T18:41:37.833145Z",
+        "ended": "2026-11-11T19:01:29.851882Z",
+        "status": "fail",
+        "reason": "T12 已更新 review-for-chatgpt.md、E01–E18 矩阵和脱敏证据：42b43abf 干净源码 Go 全量 18 包通过、3108 测试事件通过/1073 跳过；隔离 PostgreSQL 与受控 Provider 14 个顶层专项通过；Web 定向 8 项与类型检查通过。另跑衣柜/无人主体 9 个顶层测试，8 通过、1 失败；两个换衣不可用后回退纠错子场景在起始提交通过、当前失败，临时将 400 改为 503 仍失败，已登记 reply-wear-fallback-correction-regression。新增的 400 不回退独立测试在提交 45489e84 后通过。E14 四组旧 Goal/活动失败、E16 正文与媒体不一致、真实模型多场景、真实媒体和 UI 到运行闭环均未完成，不能将任何 E 项整体标为通过；当前默认 fact_only 仍使用独立 Writer。按用户要求保留未完成状态并继续原任务。"
+      }
+    ],
     "checks": null
   }
 }
