@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "T09 部分完成：memory.recall 原始会话结果保留消息类型、时间及实际发言主体，使用本轮已授权的当前说话者/Owner/自身与会话内稳定匿名标签，不暴露数据库 ID；隔离 PostgreSQL 验证多主体、其他 Fluctlight、原生工具续轮、跨会话隔离和纠错检索。另以真实消息受理与 Owner 纠错验证买票玩笑：保留两次原话、旧购票判断不再作为记忆事实返回、购买状态未知。仍未完成：ReplaceEvidence 纠错后旧摘要不能可靠进入可证明吸收纠正的重建；完全未知来源的传播、在途请求及摘要与代次锁顺序未完整解决；真实 Temporal 和真实模型仍未验收。按用户授权卡壳先跳过，保留 execute 待修复并继续 T10。",
   "result": "",
   "created": "2026-11-10T08:34:31.100173Z",
-  "updated": "2026-11-10T08:34:31.100185Z",
+  "updated": "2026-11-11T17:12:44.863389Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-a0679ad35212f69cc4bd",
+        "unit": "define",
+        "executor": "codex-t09-memory",
+        "input_version": "47e19281af59d8a8f110eace1550b60a0ddec7608ac38dd45cfb8f3cfa1b026a",
+        "candidate_version": "47e19281af59d8a8f110eace1550b60a0ddec7608ac38dd45cfb8f3cfa1b026a",
+        "started": "2026-11-11T16:43:24.457024Z",
+        "ended": "2026-11-11T16:43:40.784708Z",
+        "status": "pass",
+        "reason": "按原 T09 复用现有记忆与证据引用，验证纠正或撤回后摘要、派生记忆、画像、缓存和后续检索的失效/重建，同时保留原始交流及 Actor/会话隔离。先核实既有纠错屏障和隔离 PostgreSQL 交错场景，任务外非阻断问题只建 bug；不修改真实业务数据，不降低未知来源或并发锁序验收。"
+      },
+      {
+        "id": "AT-e032bc2cd07feed4df5c",
+        "unit": "analysis",
+        "executor": "codex-t09-memory",
+        "input_version": "47e19281af59d8a8f110eace1550b60a0ddec7608ac38dd45cfb8f3cfa1b026a",
+        "candidate_version": "47e19281af59d8a8f110eace1550b60a0ddec7608ac38dd45cfb8f3cfa1b026a",
+        "started": "2026-11-11T16:44:01.484449Z",
+        "ended": "2026-11-11T16:49:46.045723Z",
+        "status": "pass",
+        "reason": "可解析来源的纠错读屏障已存在，但纠错后摘要重建、未知旧来源及摘要/代次锁序仍未完整解决。发现按需 memory.recall 的原始交流结果丢失实际发言者：原始查询已带作者，工具投影却只保留正文和时间。先在既有授权会话内补充安全的发言主体与消息类型，并用隔离数据库、原生工具回执及跨会话隔离验证；不把发言当成外部事实，也不暴露原始数据库 ID。"
+      },
+      {
+        "id": "AT-b6b23a08edf7b4c8fe0a",
+        "unit": "execute",
+        "executor": "codex-t09-memory",
+        "input_version": "47e19281af59d8a8f110eace1550b60a0ddec7608ac38dd45cfb8f3cfa1b026a",
+        "candidate_version": "5d4ffcb8051a2683d335f1b4317c32099dd5f74d44baffe885ae80ca1d3f176e",
+        "started": "2026-11-11T16:50:06.005822Z",
+        "ended": "2026-11-11T17:12:40.020684Z",
+        "status": "fail",
+        "reason": "T09 部分完成：memory.recall 原始会话结果保留消息类型、时间及实际发言主体，使用本轮已授权的当前说话者/Owner/自身与会话内稳定匿名标签，不暴露数据库 ID；隔离 PostgreSQL 验证多主体、其他 Fluctlight、原生工具续轮、跨会话隔离和纠错检索。另以真实消息受理与 Owner 纠错验证买票玩笑：保留两次原话、旧购票判断不再作为记忆事实返回、购买状态未知。仍未完成：ReplaceEvidence 纠错后旧摘要不能可靠进入可证明吸收纠正的重建；完全未知来源的传播、在途请求及摘要与代次锁顺序未完整解决；真实 Temporal 和真实模型仍未验收。按用户授权卡壳先跳过，保留 execute 待修复并继续 T10。"
+      }
+    ],
     "checks": null
   }
 }
