@@ -279,6 +279,9 @@ func (s *factOnlyReplyService) prepare(ctx context.Context, invocation Capabilit
 	safeAssignment := run.Assignment
 	safeAssignment.Secret = ""
 	binding := map[string]any{"assignment": safeAssignment, "endpoint_id": run.Assignment.EndpointID, "model_id": run.Assignment.ModelID, "binding_role": run.Assignment.Role, "run_id": currentRunID}
+	if cognition, ok := replyCognitionSnapshotFromContext(ctx); ok {
+		binding[replyCognitionSnapshotKey] = cognition
+	}
 	contract, contractErr := replyExpressionContract(run.Settings.ExpressionVersion)
 	if contractErr != nil {
 		return ReplyDraft{}, ref, contractErr

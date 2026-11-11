@@ -113,6 +113,13 @@ func (a *App) ProcessReplyContinuation(ctx context.Context, ref string) (map[str
 	}
 	ctx = context.WithValue(ctx, privateReplyRunKey{}, run)
 	ctx = context.WithValue(ctx, replyContinuationKey{}, ref)
+	ctx, frozenCognition, err := a.restoreReplyCognitionSnapshot(ctx, decodeObject(bindingBytes))
+	if err != nil {
+		return nil, err
+	}
+	if !frozenCognition && stored.Scope.Surface != CapabilitySurfaceWakeUp {
+		a.recordDiagnosticEvent(ctx, "reply_continuation.model_binding.legacy_unfrozen", "warn", fluctlight, source, ref, map[string]any{"reason_code": "legacy_model_binding_unavailable"})
+	}
 	if source != "" && stored.Scope.Surface != CapabilitySurfaceWakeUp {
 		var sourceStatus string
 		if err := a.DB.Pool().QueryRow(ctx, `SELECT status FROM public.cognition_inbox WHERE id=$1`, source).Scan(&sourceStatus); err != nil {

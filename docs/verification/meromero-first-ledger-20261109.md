@@ -93,7 +93,9 @@
 
 - 2026-11-11：按 T02 原始验收重跑：隔离 PostgreSQL 和受控 Provider 验证默认 MeroMero、单个内部任务覆盖为 `Huihui-Qwen3.8-27B-3.8bpw` 后其他任务不变、拒绝不触发换模型及视觉配置独立，日志 `/private/tmp/fluctlight-t02-acceptance-controlled-final.log`；正式 React 覆盖和恢复继承的受控测试通过。本机指定 MeroMero 的真实普通聊天通过，实际请求 1 次且发出原生 `conversation.reply`，日志 `/private/tmp/fluctlight-t02-meromero-live-current.log`，证据 `/private/tmp/fluctlight-t02-meromero-live-current.json`。这是真实普通聊天，不证明 T04 私聊单主链或真实 Qwen/视觉验收。
 
-- 2026-11-11：原始 T02 复核发现累计会话摘要同一任务重试会换模型，修复前实际序列为 `[summary-model next-summary-model]`：`/private/tmp/fluctlight-t02-runtime-summary-red.log`。新任务保存无密钥模型快照；隔离数据库验证事务失败、进程重建、启动后的空重试时间和新任务重新选模，旧任务保留原策略并记录诊断：`/private/tmp/fluctlight-t02-runtime-summary-verified.log`、`/private/tmp/fluctlight-t02-runtime-summary-migration-final.log`。`0116` 仅在隔离库运行；回复等待媒体后的认知续接快照仍未完成。
+- 2026-11-11：原始 T02 复核发现累计会话摘要同一任务重试会换模型，修复前实际序列为 `[summary-model next-summary-model]`：`/private/tmp/fluctlight-t02-runtime-summary-red.log`。新任务保存无密钥模型快照；隔离数据库验证事务失败、进程重建、启动后的空重试时间和新任务重新选模，旧任务保留原策略并记录诊断：`/private/tmp/fluctlight-t02-runtime-summary-verified.log`、`/private/tmp/fluctlight-t02-runtime-summary-migration-final.log`。`0116` 仅在隔离库运行；该阶段回复等待媒体后的认知续接快照尚未完成，见下一条。
+
+- 2026-11-11：私聊草稿新增独立于 Writer 的原认知模型快照，等待媒体后的续接使用原绑定；旧草稿无快照保留既有选模并记录诊断，WakeUp 不使用私聊认知快照。隔离数据库与受控 Provider 验证配置从 `main-a` 改为 `main-b` 后续接仍请求 `main-a`，草稿不含测试密钥，旧草稿和媒体权限回归通过：`/private/tmp/fluctlight-t02-continuation-verified.log`。该续接测试在观察到物理请求后故意让 Provider 失败，不能作为完整媒体发布验收。
 
 - 2026-11-11：按用户纠正停止扩展原始任务外的地址/密钥原子保存；已登记独立 Bug `provider-endpoint-credential-atomic-save`，未完成实验仅保存在分支 `codex/t02-provider-atomic-wip` 的提交 `f644c8bc`，未合入主线。
 
