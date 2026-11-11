@@ -84,13 +84,19 @@ func (a *App) enqueueRuntimeSummaryTx(ctx context.Context, tx pgx.Tx, owner, con
 	if tokens >= conversationSummaryTargetTokens || len(messages) >= conversationSummaryMaxMessages {
 		due = a.now().UTC()
 	}
-	payload := map[string]any{"intent_id": intentID, "fluctlight_id": owner, "conversation_id": conversation, "source_message_id": sourceID, "source_sequence": sourceSeq, "from_sequence": from, "to_sequence": to, "source_digest": digest, "source_message_refs": refs, "runtime_revision": state.Revision, "runtime_covered": state.Covered, "runtime_digest": state.Digest}
+	payload := map[string]any{"intent_id": intentID, "fluctlight_id": owner, "conversation_id": conversation, "source_message_id": sourceID, "source_sequence": sourceSeq, "from_sequence": from, "to_sequence": to, "source_digest": digest, "source_message_refs": refs, "runtime_revision": state.Revision, "runtime_covered": state.Covered, "runtime_digest": state.Digest, runtimeSummaryModelContractKey: workflowModelSnapshotVersion}
 	// A longer queue window supersedes an unstarted predecessor. A running
 	// worker still must pass source/revision CAS; it cannot advance this cursor.
 	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='superseded',last_error='runtime_summary_window_replaced' WHERE intent_type='conversation.summary' AND payload->>'fluctlight_id'=$1 AND payload->>'conversation_id'=$2 AND status IN ('pending','retry') AND intent_id<>$3`, owner, conversation, intentID); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle','conversation.summary',$3,$4) ON CONFLICT(intent_id) DO NOTHING`, intentID, "conversation_summary:"+identity, jsonBytes(payload), due)
+	inserted, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,next_attempt_at) VALUES($1,$2,'lifecycle','conversation.summary',$3,$4) ON CONFLICT(intent_id) DO NOTHING`, intentID, "conversation_summary:"+identity, jsonBytes(payload), due)
+	if err != nil {
+		return err
+	}
+	if inserted.RowsAffected() == 1 {
+		_, err = tx.Exec(ctx, `INSERT INTO public.runtime_summary_model_snapshots(intent_id) VALUES($1)`, intentID)
+	}
 	return err
 }
 func (a *App) processRuntimeSummary(ctx context.Context, work conversationSummaryWork) (map[string]any, error) {
@@ -98,7 +104,7 @@ func (a *App) processRuntimeSummary(ctx context.Context, work conversationSummar
 		return nil, err
 	}
 	var payloadRaw []byte
-	var due time.Time
+	var due *time.Time
 	var intentStatus string
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload,next_attempt_at,status FROM public.platform_workflow_intents WHERE intent_id=$1`, work.IntentID).Scan(&payloadRaw, &due, &intentStatus); err != nil {
 		return nil, err
@@ -129,8 +135,8 @@ func (a *App) processRuntimeSummary(ctx context.Context, work conversationSummar
 	if state.Revision != intValue(payload["runtime_revision"]) || state.Covered != intValue(payload["runtime_covered"]) || work.FromSequence <= state.Covered {
 		return nil, errors.New("runtime_summary_revision_stale")
 	}
-	if a.now().Before(due) {
-		return map[string]any{"status": "pending", "next_due_at": formatInstant(due)}, nil
+	if due != nil && a.now().Before(*due) {
+		return map[string]any{"status": "pending", "next_due_at": formatInstant(*due)}, nil
 	}
 	work.Messages, err = readConversationSummaryMessages(ctx, a.DB.Pool(), work.ConversationID, work.FromSequence, work.ToSequence, conversationSummaryMaxMessages)
 	if err != nil {
@@ -146,8 +152,8 @@ func (a *App) processRuntimeSummary(ctx context.Context, work conversationSummar
 	if err != nil {
 		return nil, err
 	}
-	routeCtx := withAgentModelRoute(ctx, FormalAgentConversationSummary, "conversation_summary_v1")
-	assignment, err := a.Provider.assignment(routeCtx, "reflection")
+	routeCtx := withAgentModelRoute(ctx, FormalAgentConversationSummary, runtimeSummaryModelVariant)
+	assignment, frozen, err := a.runtimeSummaryAssignment(routeCtx, work.IntentID)
 	if err != nil {
 		return nil, err
 	}
@@ -159,17 +165,19 @@ func (a *App) processRuntimeSummary(ctx context.Context, work conversationSummar
 	if err != nil {
 		return nil, err
 	}
-	modelCtx := withFrozenProviderAssignment(routeCtx, "reflection", assignment)
+	modelCtx := withFrozenProviderAssignment(routeCtx, runtimeSummaryModelRole, assignment)
 	response, err := a.RunConversationSummaryTask(WithProviderCorrelation(modelCtx, "conversation-summary:"+work.IntentID), ConversationSummaryTaskInput{Messages: work.Messages, PreviousSummary: state.Summary, ActorFacts: actorFacts, MaxRunes: outputBudget, OwnerActorID: ownerActorID, FluctlightID: work.FluctlightID})
 	if err != nil {
 		return nil, err
 	}
-	liveAssignment, err := a.Provider.assignment(routeCtx, "reflection")
-	if err != nil {
-		return nil, err
-	}
-	if liveAssignment.EndpointID != assignment.EndpointID || liveAssignment.ModelID != assignment.ModelID {
-		return nil, errors.New("conversation_summary_provider_assignment_stale")
+	if !frozen {
+		liveAssignment, err := a.Provider.assignment(routeCtx, runtimeSummaryModelRole)
+		if err != nil {
+			return nil, err
+		}
+		if liveAssignment.EndpointID != assignment.EndpointID || liveAssignment.ModelID != assignment.ModelID {
+			return nil, errors.New("conversation_summary_provider_assignment_stale")
+		}
 	}
 	if len([]rune(response.Summary)) > outputBudget {
 		return nil, errors.New("runtime_summary_output_budget_exceeded")

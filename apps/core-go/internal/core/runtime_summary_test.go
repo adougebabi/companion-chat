@@ -1,6 +1,8 @@
 package core
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"io"
@@ -108,9 +110,15 @@ func TestRuntimeSummaryFailureDeleteRebuildAndConfiguredOutputBudget(t *testing.
 	}
 	at := time.Now().UTC()
 	responseText := strings.Repeat("约定尚待实际完成。", 300)
+	var models []string
 	app := &App{DB: repo, Provider: &ProviderClient{DB: repo}, Clock: func() time.Time { return at }}
 	app.Provider.HTTP = &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		body, _ := io.ReadAll(request.Body)
+		var payload map[string]any
+		if err := json.Unmarshal(body, &payload); err != nil {
+			return nil, err
+		}
+		models = append(models, stringValue(payload["model"]))
 		if !strings.Contains(string(body), `"enable_thinking":false`) {
 			t.Fatal("summary did not explicitly request no thinking")
 		}
@@ -159,8 +167,32 @@ func TestRuntimeSummaryFailureDeleteRebuildAndConfiguredOutputBudget(t *testing.
 	if _, err := repo.Pool().Exec(ctx, `DROP TRIGGER reject_summary_commit_test ON public.conversation_runtime_summaries`); err != nil {
 		t.Fatal(err)
 	}
+	var savedSnapshot []byte
+	if err := repo.Pool().QueryRow(ctx, `SELECT snapshot FROM public.runtime_summary_model_snapshots WHERE intent_id=$1`, work.IntentID).Scan(&savedSnapshot); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.runtime_summary_model_snapshots SET snapshot='{}' WHERE intent_id=$1`, work.IntentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := process(work); !errors.Is(err, errRuntimeSummaryModelSnapshotInvalid) || len(models) != 1 {
+		t.Fatalf("missing summary snapshot was silently replaced: requests=%d err=%v", len(models), err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.runtime_summary_model_snapshots SET snapshot=$2 WHERE intent_id=$1`, work.IntentID, savedSnapshot); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id='next-summary-model' WHERE role='reflection'`); err != nil {
+		t.Fatal(err)
+	}
+	// Reconciliation of an accepted Temporal start clears the retry deadline.
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='started',next_attempt_at=NULL WHERE intent_id=$1`, work.IntentID); err != nil {
+		t.Fatal(err)
+	}
+	app = &App{DB: repo, Provider: &ProviderClient{DB: repo, HTTP: app.Provider.HTTP}, Clock: func() time.Time { return at }}
 	if result, err := process(work); err != nil || result["status"] != "active" {
 		t.Fatalf("retry %#v %v", result, err)
+	}
+	if len(models) != 2 || models[0] != "summary-model" || models[1] != "summary-model" {
+		t.Fatalf("same summary intent changed models across retry: %v", models)
 	}
 	if len([]rune(responseText)) <= runtimeSummaryMaxRunes {
 		t.Fatal("fixture did not exceed old fixed budget")
@@ -177,6 +209,9 @@ func TestRuntimeSummaryFailureDeleteRebuildAndConfiguredOutputBudget(t *testing.
 	}
 	if result, err := process(rebuilt); err != nil || result["status"] != "active" {
 		t.Fatalf("DELETE rebuild %#v %v", result, err)
+	}
+	if len(models) != 3 || models[2] != "next-summary-model" {
+		t.Fatalf("new summary intent did not use current model: %v", models)
 	}
 	state, err = readRuntimeSummaryState(ctx, repo.Pool(), fl, conversation)
 	if err != nil || state.Covered <= work.ToSequence || state.Summary != responseText {

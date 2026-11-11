@@ -93,6 +93,8 @@
 
 - 2026-11-11：按 T02 原始验收重跑：隔离 PostgreSQL 和受控 Provider 验证默认 MeroMero、单个内部任务覆盖为 `Huihui-Qwen3.8-27B-3.8bpw` 后其他任务不变、拒绝不触发换模型及视觉配置独立，日志 `/private/tmp/fluctlight-t02-acceptance-controlled-final.log`；正式 React 覆盖和恢复继承的受控测试通过。本机指定 MeroMero 的真实普通聊天通过，实际请求 1 次且发出原生 `conversation.reply`，日志 `/private/tmp/fluctlight-t02-meromero-live-current.log`，证据 `/private/tmp/fluctlight-t02-meromero-live-current.json`。这是真实普通聊天，不证明 T04 私聊单主链或真实 Qwen/视觉验收。
 
+- 2026-11-11：原始 T02 复核发现累计会话摘要同一任务重试会换模型，修复前实际序列为 `[summary-model next-summary-model]`：`/private/tmp/fluctlight-t02-runtime-summary-red.log`。新任务保存无密钥模型快照；隔离数据库验证事务失败、进程重建、启动后的空重试时间和新任务重新选模，旧任务保留原策略并记录诊断：`/private/tmp/fluctlight-t02-runtime-summary-verified.log`、`/private/tmp/fluctlight-t02-runtime-summary-migration-final.log`。`0116` 仅在隔离库运行；回复等待媒体后的认知续接快照仍未完成。
+
 - 2026-11-11：按用户纠正停止扩展原始任务外的地址/密钥原子保存；已登记独立 Bug `provider-endpoint-credential-atomic-save`，未完成实验仅保存在分支 `codex/t02-provider-atomic-wip` 的提交 `f644c8bc`，未合入主线。
 
 - 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
