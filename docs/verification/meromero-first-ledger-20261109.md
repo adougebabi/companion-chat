@@ -57,9 +57,9 @@
 
 | 字段/效果 | 当前生产者与消费者 | 证据、幂等和缺口 |
 | --- | --- | --- |
-| claims | `intelligence.go` 的 `normalizeResponsePlan` → `evaluateClaims` → `persistClaimsTx`；有效 claim 后续进入 hypothesis、记忆检索线索及上下文。隔离 PostgreSQL 已验证 direct 低置信度 claim 保存为 uncertain。 | evidence 必须绑定本轮 Core 引用；`cognition_claims` 按 `(fluctlight_id,repetition_key)` 冲突不写。已有 claim 的新证据可能未落库，已另记 `cognition-claim-new-evidence-not-persisted`，当前 T04 不改通用持久化。字段可为空，无法据此证明主动判断过无候选。 |
+| claims | `intelligence.go` 的 `normalizeResponsePlan` → `evaluateClaims` → `persistClaimsTx`；有效 claim 后续进入 hypothesis、记忆检索线索及上下文。隔离 PostgreSQL 已验证 direct 低置信度 claim 保存为 uncertain，以及有 Goal 证据的 claim 保存为 active。 | evidence 必须绑定本轮 Core 引用；`cognition_claims` 按 `(fluctlight_id,repetition_key)` 冲突不写。已有 claim 的新证据可能未落库，已另记 `cognition-claim-new-evidence-not-persisted`，当前 T04 不改通用持久化。字段可为空，无法据此证明主动判断过无候选。 |
 | influences | `freezeDecisionInfluences` 校验并冻结本轮引用，`frozenDecisionCausality` 导出 Goal、Intention 及引用；assessment/proposal 保存完整 decision，appraisal 存在时其因果字段也被保存。 | 引用必须在当前 `ReferenceIndex`；隔离 PostgreSQL 的 direct 场景验证非空 Goal 影响、引用及重放。其他引用种类和真实模型尚未验收。 |
-| appraisal / attention / thought / desire / agency | `applyFrozenCognitiveStagesTx` 在私聊结算事务内消费；appraisal 和状态归约写入 appraisal、focus、dynamics 与 state revision。 | 以 source fact 和状态 revision 防止重复；无 appraisal 时显式为 `not_proposed`。已发布回复后的结算失败只保留工具 partial，不代表这些状态已经结算。 |
+| appraisal / attention / thought / desire / agency | `applyFrozenCognitiveStagesTx` 在私聊结算事务内消费；appraisal 和状态归约写入 appraisal、focus、dynamics 与 state revision。 | 隔离 PostgreSQL 的 direct 场景验证非空 appraisal 和认知阶段落库、状态版本一次推进，重放不重复；无 appraisal 时显式为 `not_proposed`。真实模型语义仍未验收。 |
 | output_preference_decision | 原路径由 `normalizeResponsePlan` 规范化，原 decision 进入 assessment/proposal，但此前未找到规范化结果的生产消费方。`direct` 现由 `settledOutputPreference` 结合本轮真实工具回执校对，并随 `agent_result` 和已处理事件在回复事务内保存。 | 缺省合法；文本回应、未申请媒体、媒体未受理及已受理的状态分开记录，不把偏好本身当作媒体生成或交付。隔离 PostgreSQL 验证文本结果、回滚和重放；媒体状态目前为受控回执单元测试，真实媒体未验收。 |
 | goal_event_candidates | `enqueueTurnGoalCandidatesTx` 验证本轮 Goal ref，关联同 inbox 的 committed 消息来源，再对新增关联排 Goal 评估。 | 隔离 PostgreSQL 的 direct 场景验证候选关联真实消息、持久评估请求及工作流意图，重放不重复；Goal 保持 active。实际评估完成与媒体续接仍待核验。 |
 | 人格/关系 | root personality decision 可进入原始 decision/plan；真正人格切换由 `persona.switch` 等实际工具或 Owner 工作流经 CAS 和规则执行。普通私聊的 `recordRelationshipInteractionTx` 更新已有关系的互动次数与时间。 | 不能把 root 字段视为已切换人格；隔离 PostgreSQL 的 direct 场景验证已有关系互动仅计一次，语义关系变化由反思或 Goal 等独立生产路径处理。 |
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-11：在同一个 direct Goal 场景中增加有 Goal 引用支持的 claim、appraisal 和四类认知阶段；隔离 PostgreSQL 验证 active claim、appraisal、focus 与一次状态版本推进，重放不重复。Provider 为测试替身，不代表真实模型会生成这些字段。
 
 - 2026-11-11：隔离 PostgreSQL 与受控 Provider 的 direct 原生续轮验证，第三次请求实际包含前一步 `affect_event` 的 completed ToolResult；行动单独提交后，回复失败不会抹除或重复行动。`TestDurableObserverReceivesDirectMainReply` 验证浏览器持久观察器收到用户消息、已提交的主模型回复和完成帧，且模型只调用一次；该路径当前没有模型生成中的 token 增量，已另记 `durable-chat-missing-live-token-stream`，不能把已提交消息帧当作实时逐字流验收。
 

@@ -338,6 +338,10 @@ func TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce(t *testing.T) {
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND status='pending' AND goal_ids ? $2`, f.fluctlightID, goalID).Scan(&existingPending); err != nil || existingPending != 1 {
 		t.Fatalf("fixture preexisting Goal request count=%d err=%v", existingPending, err)
 	}
+	var initialStateRevision int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$1`, f.fluctlightID).Scan(&initialStateRevision); err != nil {
+		t.Fatal(err)
+	}
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "direct-goal-"+f.suffix)
 	calls := 0
 	var offeredGoalRef string
@@ -352,6 +356,11 @@ func TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce(t *testing.T) {
 			"action_type": "reply", "response_intent": "表达自己的心意",
 			"influences":            []any{map[string]any{"ref": offeredGoalRef, "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}},
 			"goal_event_candidates": []any{map[string]any{"goal_ref": offeredGoalRef, "reason": "正式表达可能满足原条件"}},
+			"claims":                []any{map[string]any{"kind": "observed_fact", "content": "存在一个表达心意的目标", "confidence": 0.8, "evidence_refs": []any{offeredGoalRef}}},
+			"appraisal": map[string]any{"relevance": 0.5, "goal_congruence": 0.5, "reward": 0.5, "loss": 0.0, "social_threat": 0.0,
+				"controllability": 0.8, "responsibility": 0.5, "relationship_significance": 0.7, "expected_effect": 0.7,
+				"evidence_refs": []any{offeredGoalRef}, "event_kind": "conversation", "direction": "mixed", "drive_signals": []any{}},
+			"attention": "关注本轮交流", "thought": "认真表达", "desire": "坦诚", "agency": "自主回应",
 		}
 		args := map[string]any{"text": "我很在意你，想认真告诉你。", "decision": decision}
 		return fakeProviderResult{ToolCalls: []map[string]any{{"id": "direct-goal-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(args)}}}}
@@ -363,7 +372,7 @@ func TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce(t *testing.T) {
 	}
 	check := func() {
 		t.Helper()
-		var messages, links, pending, frequency int
+		var messages, links, pending, frequency, claims, appraisals, focus, stateRevision int
 		var state string
 		var goalRefs, references []byte
 		err := f.repository.Pool().QueryRow(f.ctx, `SELECT
@@ -371,11 +380,15 @@ func TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce(t *testing.T) {
 			(SELECT count(*) FROM public.goal_evidence_links l JOIN public.goal_source_events e ON e.id=l.source_event_id WHERE l.goal_id=$2 AND e.source_id=$3 AND e.source_kind='message' AND e.source_status='committed' AND l.status='candidate'),
 			(SELECT count(*) FROM public.goal_evaluation_requests r JOIN public.platform_workflow_intents i ON i.intent_id=r.id AND i.intent_type='goal.evaluate' WHERE r.fluctlight_id=$4 AND r.status='pending' AND r.reason='conversation_candidate' AND r.goal_ids ? $2),
 			(SELECT interaction_frequency FROM public.relationships WHERE id=$5),
+			(SELECT count(*) FROM public.cognition_claims WHERE fluctlight_id=$4 AND content='存在一个表达心意的目标' AND status='active' AND evidence_refs ? $2),
+			(SELECT count(*) FROM public.cognition_appraisals WHERE fluctlight_id=$4 AND evidence_refs ? $7 AND source_fact_id=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$4 AND payload->>'turn_id'=$6)),
+			(SELECT count(*) FROM public.cognition_focus_cycles WHERE fluctlight_id=$4 AND attention #>> '{}'='关注本轮交流' AND thought #>> '{}'='认真表达' AND desire #>> '{}'='坦诚' AND agency #>> '{}'='自主回应' AND source_fact_id=(SELECT id FROM public.cognition_inbox WHERE fluctlight_id=$4 AND payload->>'turn_id'=$6)),
+			(SELECT revision FROM public.fluctlight_inner_states WHERE fluctlight_id=$4),
 			(SELECT status FROM public.fluctlight_goals WHERE id=$2),
 			(SELECT payload->'agent_result'->'goal_refs' FROM public.cognition_inbox WHERE fluctlight_id=$4 AND payload->>'turn_id'=$6),
-			(SELECT payload->'agent_result'->'context_references' FROM public.cognition_inbox WHERE fluctlight_id=$4 AND payload->>'turn_id'=$6)`, f.conversationID, goalID, turn.Assistant["id"], f.fluctlightID, relationshipID, payload["turn_id"]).Scan(&messages, &links, &pending, &frequency, &state, &goalRefs, &references)
-		if err != nil || messages != 1 || links != 1 || pending != 1 || frequency != 1 || state != "active" || !strings.Contains(string(goalRefs), offeredGoalRef) || !strings.Contains(string(references), offeredGoalRef) {
-			t.Fatalf("direct Goal settlement messages=%d links=%d pending=%d frequency=%d state=%s refs=%s err=%v", messages, links, pending, frequency, state, goalRefs, err)
+			(SELECT payload->'agent_result'->'context_references' FROM public.cognition_inbox WHERE fluctlight_id=$4 AND payload->>'turn_id'=$6)`, f.conversationID, goalID, turn.Assistant["id"], f.fluctlightID, relationshipID, payload["turn_id"], offeredGoalRef).Scan(&messages, &links, &pending, &frequency, &claims, &appraisals, &focus, &stateRevision, &state, &goalRefs, &references)
+		if err != nil || messages != 1 || links != 1 || pending != 1 || frequency != 1 || claims != 1 || appraisals != 1 || focus != 1 || stateRevision != initialStateRevision+1 || state != "active" || !strings.Contains(string(goalRefs), offeredGoalRef) || !strings.Contains(string(references), offeredGoalRef) {
+			t.Fatalf("direct Goal settlement messages=%d links=%d pending=%d frequency=%d claims=%d appraisals=%d focus=%d state_revision=%d goal_state=%s refs=%s err=%v", messages, links, pending, frequency, claims, appraisals, focus, stateRevision, state, goalRefs, err)
 		}
 	}
 	check()
