@@ -2,7 +2,9 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -37,5 +39,57 @@ func TestWakeUpPhysicalRequestSeparatesNewReasonFromUnansweredTopic(t *testing.T
 				t.Fatalf("invalid controlled WakeUp request: %#v", wire)
 			}
 		})
+	}
+}
+
+func TestWakeUpPhysicalRequestPreservesGoalCriteria(t *testing.T) {
+	memoryRef := "memory:ctx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	criteria := []any{"原始条件\n第二行", map[string]any{"id": "business-id", "source_ref": memoryRef, "valid": false, "amount": 0.0, "ratio": 0.123456, "changed_at": "2026-10-10T01:02:03Z", "schema": map[string]any{"properties": map[string]any{"customer_id": map[string]any{"type": "string"}}}}}
+	projection := ContextProjection{
+		ReferenceTimezone: "Asia/Shanghai", AsOf: "2026-10-10T01:00:00Z",
+		ReferenceIndex: ContextReferenceIndex{ByRef: map[string]ContextReference{memoryRef: {Ref: memoryRef, Kind: ContextReferenceMemory}}},
+		Goals: []map[string]any{{"id": "private-goal", "description": "完成目标", "status": "active", "success_criteria": criteria,
+			"execution": map[string]any{"stage": "waiting", "last_evaluation": map[string]any{"impact": "old assessment"}}}},
+	}
+	before := jsonString(projection)
+	input := workingMemoryInputFromProjectionForSurface(projection, ProviderContextSurfaceWakeUp, nil, nil)
+	memory, err := ResolveWorkingMemory(input, DefaultWorkingMemoryPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly, err := AssemblePromptContext(PromptAssemblyInput{
+		Surface: ProviderContextSurfaceWakeUp, Role: "cognitive_assessment", OperationRules: []string{capabilityWakeUpPolicyInstruction},
+		WorkingMemory: memory, CurrentInput: `{"trigger":"new_event"}`, ResponseFormat: wakeUpResponseSchema(), Policy: DefaultPromptBudgetPolicy(4096),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wire map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		wire = payload
+		return fakeProviderResult{Structured: map[string]any{"action_type": "no_op", "response_intent": "fixture", "evidence_refs": []any{}, "influences": []any{}}}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	assignment := providerAssignment{Role: "generic_llm", BaseURL: "http://controlled.invalid", ModelID: "controlled-wakeup", Timeout: time.Second}
+	ctx := withFrozenProviderAssignment(context.Background(), "cognitive_assessment", assignment)
+	if _, err := app.RunFormalAgent(ctx, FormalAgentWakeUp, FormalAgentRunInput{Prompt: assembly, SchemaName: "wake_up_response"}); err != nil {
+		t.Fatal(err)
+	}
+	var runtime map[string]any
+	for _, raw := range arrayValue(wire["messages"]) {
+		content := stringValue(mapValue(raw)["content"])
+		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+			if err := json.Unmarshal([]byte(text), &runtime); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	goals := arrayValue(runtime["goals"])
+	if len(goals) != 1 || !reflect.DeepEqual(mapValue(goals[0])["success_criteria"], criteria) {
+		t.Fatalf("physical WakeUp request changed Goal criteria: %#v", goals)
+	}
+	if strings.Contains(jsonString(goals), "private-goal") || strings.Contains(jsonString(goals), "old assessment") || jsonString(projection) != before {
+		t.Fatal("physical WakeUp request leaked Core data or mutated source")
 	}
 }

@@ -71,7 +71,7 @@ func TestGoalEvaluationPersonaSurvivesPhysicalProviderRequest(t *testing.T) {
 
 func TestGoalRuntimeOmitsNestedBookkeeping(t *testing.T) {
 	execution := map[string]any{"stage": "waiting", "current_stage": map[string]any{"id": "stage-secret", "criteria_version": 8, "revision": 7, "status": "active", "purpose": "真实沟通"}, "commitments": []any{map[string]any{"id": "commit-secret", "profile_id": "profile-secret", "window_end": "2026-10-09", "status": "blocked"}}}
-	view := jsonString(goalRuntimeSemantics(execution))
+	view := jsonString(goalExecutionPromptView(execution))
 	for _, forbidden := range []string{"stage-secret", "commit-secret", "profile-secret", "criteria_version", "revision", "profile_id"} {
 		if strings.Contains(view, forbidden) {
 			t.Fatalf("execution bookkeeping leaked: %s", view)

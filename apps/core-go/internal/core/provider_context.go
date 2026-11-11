@@ -282,7 +282,13 @@ func workingMemoryInputFromProjectionForSurface(projection ContextProjection, su
 		default:
 			critical = false
 		}
-		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Required: critical, Content: map[string]any{"kind": key, "value": providerEncodeContextRefs(value, refIndex)}, SourceRefs: []string{"runtime:" + key}})
+		encoded := value
+		if key != "goals" && key != "related_goals" {
+			encoded = providerEncodeContextRefs(value, refIndex)
+		}
+		// Goal refs are not shortenable; nested fields belong to Goal data, not
+		// to the reference codec, even when their names end in _ref.
+		input.RuntimeFacts = append(input.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Priority: priority, Required: critical, Content: map[string]any{"kind": key, "value": encoded}, SourceRefs: []string{"runtime:" + key}})
 	}
 	for _, item := range compactActiveMemoriesForSurface(active, surface, projection.ReferenceIndex) {
 		cleaned := mapValue(cleanPromptValue(item))
@@ -690,6 +696,13 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 	}
 	cleaned := cleanPromptValue(compact)
 	if m, ok := cleaned.(map[string]any); ok && len(m) > 0 {
+		// The Goal view contains original business criteria and values. General
+		// runtime cleanup must not round or remove data inside those fields.
+		for _, key := range []string{"goals", "related_goals"} {
+			if goals, exists := compact[key]; exists {
+				m[key] = copyPromptData(goals)
+			}
+		}
 		return m
 	}
 	return compact
@@ -1003,10 +1016,14 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 		item := map[string]any{}
 		for _, key := range []string{"description", "desired_outcome", "success_criteria", "motivation", "deadline_policy", "execution", "importance", "urgency", "progress", "scope", "deadline", "state"} {
 			if raw, ok := value[key]; ok && raw != nil && raw != "" {
-				if key == "execution" && surface == ProviderContextSurfaceWakeUp {
-					item[key] = compactWakeGoalExecution(raw)
+				if key == "execution" {
+					if surface == ProviderContextSurfaceWakeUp {
+						item[key] = compactWakeGoalExecution(raw)
+					} else {
+						item[key] = goalExecutionPromptView(raw)
+					}
 				} else {
-					item[key] = goalRuntimeSemantics(raw)
+					item[key] = copyPromptData(raw)
 				}
 			}
 		}
@@ -1029,7 +1046,7 @@ func compactProviderGoalsForSurface(values []map[string]any, actors []map[string
 // autonomous decision while removing prior model assessment prose. The source
 // projection remains untouched and available to its owning Goal services.
 func compactWakeGoalExecution(value any) any {
-	result := mapValue(goalRuntimeSemantics(value))
+	result := goalExecutionPromptView(value)
 	delete(result, "last_evaluation")
 	if rawRequest := mapValue(mapValue(value)["evaluation_request"]); len(rawRequest) > 0 {
 		request := map[string]any{}

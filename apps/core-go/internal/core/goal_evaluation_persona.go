@@ -1,30 +1,51 @@
 package core
 
-import "strings"
-
-// Goal execution is also exposed through the common runtime projection.
-// Keep business state and time windows, not storage/version/retry controls.
-func goalRuntimeSemantics(value any) any {
-	switch typed := value.(type) {
-	case map[string]any:
-		result := map[string]any{}
-		for key, child := range typed {
-			normalized := strings.ToLower(strings.ReplaceAll(key, "_", ""))
-			if normalized == "id" || strings.HasSuffix(normalized, "id") || strings.HasSuffix(normalized, "ids") || strings.HasSuffix(normalized, "revision") || strings.HasSuffix(normalized, "version") || strings.HasSuffix(normalized, "ref") || strings.HasSuffix(normalized, "refs") || normalized == "retrycount" || normalized == "attemptcount" || normalized == "updatedat" || normalized == "createdat" {
-				continue
-			}
-			result[key] = goalRuntimeSemantics(child)
+// Goal execution is a Core read model with known nested envelopes. Project
+// those envelopes explicitly; values inside their business fields are opaque.
+func goalExecutionPromptView(value any) map[string]any {
+	source := mapValue(value)
+	result := copyPromptFields(source, "stage", "next_step", "next_retry_at", "retry_reason", "due_at", "blocker", "wait_condition", "next_review_at", "ready_for_settlement")
+	for key, fields := range map[string][]string{
+		"last_attempt":       {"status", "started_at", "settled_at", "deadline", "error_code"},
+		"last_result":        {"status", "reason", "occurred_at", "kind", "capability", "error_code"},
+		"current_stage":      {"purpose", "strategy", "status"},
+		"last_evidence":      {"kind", "status", "reason", "occurred_at"},
+		"evaluation_request": {"status", "error_code", "available_at"},
+	} {
+		if item := copyPromptFields(mapValue(source[key]), fields...); len(item) > 0 {
+			result[key] = item
 		}
-		return result
-	case []any:
-		result := make([]any, 0, len(typed))
-		for _, child := range typed {
-			result = append(result, goalRuntimeSemantics(child))
-		}
-		return result
-	default:
-		return value
 	}
+	if rows := arrayValue(source["commitments"]); len(rows) > 0 {
+		items := make([]any, 0, len(rows))
+		for _, row := range rows {
+			items = append(items, copyPromptFields(mapValue(row), "expected_result", "status", "blocker", "window_start", "window_end"))
+		}
+		result["commitments"] = items
+	}
+	if governance := mapValue(source["review_governance"]); len(governance) > 0 {
+		item := copyPromptFields(governance, "missed_opportunity_count", "ineffective_attempt_count")
+		if policy := copyPromptFields(mapValue(governance["policy"]), "missed_opportunity_threshold", "ineffective_attempt_threshold", "reset_after"); len(policy) > 0 {
+			item["policy"] = policy
+		}
+		if len(item) > 0 {
+			result["review_governance"] = item
+		}
+	}
+	if assessment := mapValue(source["last_evaluation"]); len(assessment) > 0 {
+		item := copyPromptFields(assessment, "impact", "occurred_at")
+		if rows := arrayValue(assessment["judgments"]); len(rows) > 0 {
+			judgments := make([]any, 0, len(rows))
+			for _, row := range rows {
+				judgments = append(judgments, copyPromptFields(mapValue(row), "kind", "verdict", "discourse", "subject", "reason"))
+			}
+			item["judgments"] = judgments
+		}
+		if len(item) > 0 {
+			result["last_evaluation"] = item
+		}
+	}
+	return result
 }
 
 // Only the compiled-persona and roster envelopes are Core bookkeeping.

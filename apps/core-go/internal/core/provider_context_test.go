@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -758,6 +759,34 @@ func TestWakeGoalProjectionDropsPriorAssessmentNoiseWithoutMutatingSource(t *tes
 	}
 	if jsonString(goal) != before {
 		t.Fatalf("Wake goal projection mutated source: before=%s after=%s", before, jsonString(goal))
+	}
+}
+
+func TestWakeGoalProjectionPreservesOriginalBusinessValues(t *testing.T) {
+	criteria := []any{"first line\nsecond line", map[string]any{"id": "business-id", "source_ref": "business-ref", "valid": false, "precision": 0.123456, "schema": map[string]any{"properties": map[string]any{"customer_id": map[string]any{"type": "string"}}}}}
+	policy := map[string]any{"version": "business-version", "valid": false, "amount": 0, "ratio": 0.123456, "missing": nil}
+	goal := map[string]any{
+		"id": "private-goal", "description": "完成目标", "status": "active", "success_criteria": criteria, "deadline_policy": policy,
+		"execution": map[string]any{"stage": "waiting", "current_stage": map[string]any{"id": "private-stage", "purpose": "正在阅读", "status": "active"}, "last_evaluation": map[string]any{"impact": "old assessment"}},
+	}
+	before := jsonString(goal)
+	view := compactCognitionContextForSurface(ContextProjection{Goals: []map[string]any{goal}}, ProviderContextSurfaceWakeUp)
+	goals := arrayValue(view["goals"])
+	if len(goals) != 1 {
+		t.Fatalf("missing Wake goal: %#v", view)
+	}
+	got := mapValue(goals[0])
+	if !reflect.DeepEqual(got["success_criteria"], criteria) || !reflect.DeepEqual(got["deadline_policy"], policy) {
+		t.Fatalf("Wake changed original Goal data: %#v", got)
+	}
+	wire := jsonString(got)
+	for _, forbidden := range []string{"private-goal", "private-stage", "old assessment", "last_evaluation"} {
+		if strings.Contains(wire, forbidden) {
+			t.Fatalf("Wake leaked Core metadata or old evaluation %q: %s", forbidden, wire)
+		}
+	}
+	if jsonString(goal) != before {
+		t.Fatal("Wake projection mutated Goal source")
 	}
 }
 

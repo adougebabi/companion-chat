@@ -720,6 +720,10 @@ func formatRuntimeContextTimeValue(value any, key string, zone *time.Location) a
 	case map[string]any:
 		result := make(map[string]any, len(typed))
 		for childKey, childValue := range typed {
+			if childKey == "goals" || childKey == "related_goals" {
+				result[childKey] = formatRuntimeGoalTimes(childValue, zone)
+				continue
+			}
 			if childKey == "world_environment" || promptOpaqueDataField(childKey, childValue) {
 				result[childKey] = copyPromptData(childValue)
 				continue
@@ -754,6 +758,19 @@ func formatRuntimeContextTimeValue(value any, key string, zone *time.Location) a
 	default:
 		return value
 	}
+}
+
+// Only execution is a known Core envelope inside each Goal. Goal definitions
+// and their original criteria are business data, not time-formatting targets.
+func formatRuntimeGoalTimes(value any, zone *time.Location) any {
+	result := copyPromptData(value)
+	for _, raw := range arrayValue(result) {
+		goal := mapValue(raw)
+		if execution, ok := goal["execution"]; ok {
+			goal["execution"] = formatRuntimeContextTimeValue(execution, "execution", zone)
+		}
+	}
+	return result
 }
 
 func estimatePromptWireInput(messages, tools []map[string]any, responseFormat map[string]any) int {
