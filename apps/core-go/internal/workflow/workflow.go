@@ -148,7 +148,7 @@ type ApplicationService interface {
 	ProcessConversationSegmentIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessGoalEvaluationIntent(ctx context.Context, intentID string) (map[string]any, error)
 	ProcessGoalPlanningIntent(ctx context.Context, intentID string) (map[string]any, error)
-	ProcessConversationDailyMemoryIntent(ctx context.Context, intentID string) (map[string]any, error)
+	ProcessConversationDailyMemoryIntentAt(ctx context.Context, intentID string, generation int64) (map[string]any, error)
 	EnsureCurrentDaySchedule(ctx context.Context, fluctlightID string) (map[string]any, error)
 	ProcessVisualIdentity(ctx context.Context, sessionID string) (map[string]any, error)
 	EnsureVisualIdentityInitializationWithPersona(ctx context.Context, fluctlightID, personaID, visualIdentityID string, options map[string]any) (string, error)
@@ -270,6 +270,7 @@ type Input struct {
 	FromSequence       int      `json:"from_sequence"`
 	ToSequence         int      `json:"to_sequence"`
 	SourceDigest       string   `json:"source_digest"`
+	SourceGeneration   int64    `json:"source_generation,omitempty"`
 	SourceMessageRefs  []string `json:"source_message_refs"`
 }
 
@@ -1208,7 +1209,7 @@ func ProcessConversationDailyMemoryActivity(ctx context.Context, input Input) (m
 	if application == nil {
 		return nil, fmt.Errorf("Go Core Worker is not configured")
 	}
-	return application.ProcessConversationDailyMemoryIntent(ctx, input.IntentID)
+	return application.ProcessConversationDailyMemoryIntentAt(ctx, input.IntentID, input.SourceGeneration)
 }
 
 func EnsureCurrentDayScheduleActivity(ctx context.Context, input Input) (map[string]any, error) {

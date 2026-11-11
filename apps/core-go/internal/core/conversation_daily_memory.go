@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,6 +14,36 @@ import (
 const conversationDailyMemorySchemaVersion = "conversation-daily-memory.v1"
 
 var errConversationDailyCorrectedSource = errors.New("conversation_daily_memory_corrected_source")
+var errConversationDailyGenerationChanged = errors.New("conversation_daily_memory_generation_changed")
+
+// Old Temporal histories and intents without this field belong to generation
+// zero only; they must never follow a stable intent into a later generation.
+func conversationDailyGeneration(raw []byte) (int64, error) {
+	var payload struct {
+		SourceGeneration *int64 `json:"source_generation"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return 0, errors.New("conversation_daily_memory_generation_invalid")
+	}
+	if payload.SourceGeneration == nil {
+		return 0, nil
+	}
+	if *payload.SourceGeneration < 0 {
+		return 0, errors.New("conversation_daily_memory_generation_invalid")
+	}
+	return *payload.SourceGeneration, nil
+}
+
+func requireConversationDailyGeneration(raw []byte, expected int64) error {
+	generation, err := conversationDailyGeneration(raw)
+	if err != nil {
+		return err
+	}
+	if expected < 0 || generation != expected {
+		return errConversationDailyGenerationChanged
+	}
+	return nil
+}
 
 type conversationDailyEpisodeResponse struct {
 	SchemaVersion string `json:"schema_version"`
@@ -134,9 +165,25 @@ func markDailyMemoryCorrectedSourceTx(ctx context.Context, tx pgx.Tx, intentID s
 }
 
 func (a *App) ProcessConversationDailyMemoryIntent(ctx context.Context, intentID string) (map[string]any, error) {
+	var raw []byte
+	if err := a.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&raw); err != nil {
+		return nil, err
+	}
+	generation, err := conversationDailyGeneration(raw)
+	if err != nil {
+		return nil, err
+	}
+	return a.ProcessConversationDailyMemoryIntentAt(ctx, intentID, generation)
+}
+
+// The caller supplies the generation captured when the workflow was started.
+func (a *App) ProcessConversationDailyMemoryIntentAt(ctx context.Context, intentID string, generation int64) (map[string]any, error) {
 	var status, lastError string
 	var raw []byte
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&status, &raw, &lastError); err != nil {
+		return nil, err
+	}
+	if err := requireConversationDailyGeneration(raw, generation); err != nil {
 		return nil, err
 	}
 	payload := decodeObject(raw)
@@ -145,22 +192,37 @@ func (a *App) ProcessConversationDailyMemoryIntent(ctx context.Context, intentID
 	if fluctlightID == "" || conversationID == "" || localDate == "" || timezone == "" {
 		return nil, errors.New("conversation_daily_memory_intent_invalid")
 	}
+	if status == "completed" {
+		return dailyMemoryReplay(lastError), nil
+	}
 	if blocked, life, blockErr := a.autonomousActivityBlocked(ctx, fluctlightID); blockErr != nil {
 		return nil, blockErr
 	} else if blocked {
 		// The activity may finish while the dispatcher is recovering an accepted
 		// start whose ledger still says pending. Settle that exact source set so
 		// it does not spin after the Temporal run has completed.
-		if _, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now(),last_error=NULL WHERE intent_id=$1 AND status IN ('pending','retry','started') AND payload=$2::jsonb`, intentID, raw); err != nil {
+		tag, err := a.DB.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed',completed_at=now(),last_error=NULL WHERE intent_id=$1 AND status IN ('pending','retry','started') AND payload=$2::jsonb`, intentID, raw)
+		if err != nil {
 			return nil, err
+		}
+		if tag.RowsAffected() == 0 {
+			var currentStatus, currentError string
+			var currentPayload []byte
+			if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&currentStatus, &currentPayload, &currentError); err != nil {
+				return nil, err
+			}
+			if err := requireConversationDailyGeneration(currentPayload, generation); err != nil {
+				return nil, err
+			}
+			if currentStatus == "completed" {
+				return dailyMemoryReplay(currentError), nil
+			}
+			return nil, ErrConflict
 		}
 		return map[string]any{"intent_id": intentID, "fluctlight_id": fluctlightID, "status": "inactive", "reason": autonomousStopReason(life)}, nil
 	}
-	if status == "completed" {
-		return dailyMemoryReplay(lastError), nil
-	}
 	return a.runConversationDailyMemoryIntentWork(ctx, fluctlightID, func(runCtx context.Context) (map[string]any, error) {
-		return a.processConversationDailyMemoryIntent(runCtx, intentID, fluctlightID)
+		return a.processConversationDailyMemoryIntent(runCtx, intentID, fluctlightID, generation)
 	})
 }
 
@@ -168,10 +230,13 @@ func (a *App) runConversationDailyMemoryIntentWork(ctx context.Context, owner st
 	return a.runBackgroundLogicalWork(ctx, owner, "conversation_daily_memory", work)
 }
 
-func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID, expectedFluctlightID string) (map[string]any, error) {
+func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID, expectedFluctlightID string, generation int64) (map[string]any, error) {
 	var status, lastError string
 	var raw []byte
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT status,payload,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 AND intent_type='conversation.daily_memory'`, intentID).Scan(&status, &raw, &lastError); err != nil {
+		return nil, err
+	}
+	if err := requireConversationDailyGeneration(raw, generation); err != nil {
 		return nil, err
 	}
 	payload := decodeObject(raw)
@@ -202,7 +267,11 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 		if err := tx.QueryRow(ctx, `SELECT id FROM public.conversations WHERE id=$1 FOR UPDATE`, conversationID).Scan(&locked); err != nil {
 			return err
 		}
-		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, intentID).Scan(&liveStatus, &liveError); err != nil {
+		var livePayload []byte
+		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(last_error,''),payload FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, intentID).Scan(&liveStatus, &liveError, &livePayload); err != nil {
+			return err
+		}
+		if err := requireConversationDailyGeneration(livePayload, generation); err != nil {
 			return err
 		}
 		if liveStatus == "completed" {
@@ -275,7 +344,11 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 			return err
 		}
 		var liveStatus, liveError string
-		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(last_error,'') FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, intentID).Scan(&liveStatus, &liveError); err != nil {
+		var livePayload []byte
+		if err := tx.QueryRow(ctx, `SELECT status,COALESCE(last_error,''),payload FROM public.platform_workflow_intents WHERE intent_id=$1 FOR UPDATE`, intentID).Scan(&liveStatus, &liveError, &livePayload); err != nil {
+			return err
+		}
+		if err := requireConversationDailyGeneration(livePayload, generation); err != nil {
 			return err
 		}
 		if liveStatus == "completed" {

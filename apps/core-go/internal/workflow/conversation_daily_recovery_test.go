@@ -14,6 +14,29 @@ import (
 	"go.temporal.io/sdk/mocks"
 )
 
+type dailyGenerationActivityService struct {
+	ApplicationService
+	intentID   string
+	generation int64
+}
+
+func (s *dailyGenerationActivityService) ProcessConversationDailyMemoryIntentAt(_ context.Context, intentID string, generation int64) (map[string]any, error) {
+	s.intentID, s.generation = intentID, generation
+	return map[string]any{"status": "completed"}, nil
+}
+
+func TestDailyMemoryActivityForwardsWorkflowGeneration(t *testing.T) {
+	previous := app()
+	service := &dailyGenerationActivityService{}
+	Configure(service)
+	t.Cleanup(func() { Configure(previous) })
+	for _, generation := range []int64{0, 3} {
+		if _, err := ProcessConversationDailyMemoryActivity(context.Background(), Input{IntentID: "daily-activity", SourceGeneration: generation}); err != nil || service.intentID != "daily-activity" || service.generation != generation {
+			t.Fatalf("activity did not forward the captured generation %d: %v", generation, err)
+		}
+	}
+}
+
 // A stable workflow ID may still name an older run after a new source set has
 // reopened its intent. The durable generation must survive every ledger race.
 func TestPostgresDailyMemoryReopenSurvivesOlderTemporalRun(t *testing.T) {
@@ -45,7 +68,11 @@ func TestPostgresDailyMemoryReopenSurvivesOlderTemporalRun(t *testing.T) {
 	run := &mocks.WorkflowRun{}
 	run.On("GetRunID").Return("new-run")
 	temporalClient.On("ExecuteWorkflow", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(func(_ context.Context, options client.StartWorkflowOptions, _ interface{}, args ...interface{}) (client.WorkflowRun, error) {
-		if options.ID != workflowID || args[0].(Input).IntentID != intent {
+		var generation int64
+		if err := app.DB.Pool().QueryRow(ctx, `SELECT (payload->>'source_generation')::bigint FROM public.platform_workflow_intents WHERE intent_id=$1`, intent).Scan(&generation); err != nil {
+			t.Fatal(err)
+		}
+		if options.ID != workflowID || args[0].(Input).IntentID != intent || args[0].(Input).SourceGeneration != generation {
 			t.Fatalf("unexpected workflow start: %#v %#v", options, args)
 		}
 		if oldRunning {

@@ -162,6 +162,13 @@ func TestDailyMemoryQuietResultSettlesPendingIntent(t *testing.T) {
 			if err := repo.Pool().QueryRow(ctx, `SELECT status FROM public.platform_workflow_intents WHERE intent_id=$1`, intent).Scan(&status); err != nil || status != "completed" {
 				t.Fatalf("quiet result was not settled: status=%s err=%v", status, err)
 			}
+			if _, err := repo.Pool().Exec(ctx, `UPDATE public.fluctlights SET status='paused' WHERE id=$1`, fid); err != nil {
+				t.Fatal(err)
+			}
+			replay, err := app.ProcessConversationDailyMemoryIntentAt(ctx, intent, 0)
+			if err != nil || replay["status"] != "completed" || replay["replayed"] != true {
+				t.Fatalf("completed generation did not replay while paused: result=%v err=%v", replay, err)
+			}
 		})
 	}
 }
