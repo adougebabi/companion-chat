@@ -169,6 +169,53 @@ func TestDurableObserverEmitsWorkerCommittedReplyAndTerminal(t *testing.T) {
 	}
 }
 
+func TestDurableObserverReceivesDirectMainReply(t *testing.T) {
+	calls := 0
+	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+		calls++
+		decision := map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}
+		return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall("durable-direct-reply", conversationReplyCapabilityName, map[string]any{"text": "这是主模型的一次回复。", "decision": decision})}}
+	})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "durable-direct", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	payload := map[string]any{"fluctlight_id": fid, "text": "你好", "turn_id": "durable-direct-turn", "idempotency_key": "durable-direct", "attachment_refs": []any{}}
+	accepted, err := app.AcceptTurn(ctx, owner, conversation, payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := httptest.NewRecorder()
+	done := make(chan error, 1)
+	go func() { done <- app.StreamDurableTurn(ctx, response, owner, conversation, payload) }()
+	if _, err := app.ProcessCognitionInbox(ctx, accepted.InboxID); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("durable observer did not receive the committed direct reply")
+	}
+	var frames []map[string]any
+	scanner := bufio.NewScanner(response.Body)
+	for scanner.Scan() {
+		var frame map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &frame); err != nil {
+			t.Fatal(err)
+		}
+		frames = append(frames, frame)
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 || len(frames) != 3 || frames[0]["type"] != "action_result" || frames[1]["type"] != "action_result" || stringValue(mapValue(mapValue(frames[1]["payload"])["message"])["text"]) != "这是主模型的一次回复。" || frames[2]["type"] != "completed" {
+		t.Fatalf("durable direct frames=%#v model calls=%d", frames, calls)
+	}
+}
+
 func TestExplicitCancelIsRetryableWithoutDuplicateUserMessage(t *testing.T) {
 	ctx, repository, app, ownerID, fluctlightID, conversationID := durableReplyFixture(t, "cancel")
 	payload := map[string]any{"fluctlight_id": fluctlightID, "text": "取消再试", "idempotency_key": "durable-cancel", "turn_id": "durable-cancel-turn", "attachment_refs": []any{}}

@@ -435,6 +435,16 @@ func TestDirectMainReplyRetainsPriorNativeAction(t *testing.T) {
 					name = "affect_event"
 					args = map[string]any{"event": map[string]any{"type": "calm", "confidence": 0.8}}
 				case 3:
+					var observed bool
+					for _, raw := range arrayValue(payload["messages"]) {
+						message := mapValue(raw)
+						if message["role"] == "tool" && message["tool_call_id"] == "direct-action-2" && strings.Contains(stringValue(message["content"]), "completed") {
+							observed = true
+						}
+					}
+					if !observed {
+						t.Error("direct continuation did not receive the real affect_event result")
+					}
 					name = conversationReplyCapabilityName
 					args = map[string]any{"text": "我现在平静一些了。", "decision": map[string]any{"action_type": "reply", "response_intent": "回应", "influences": []any{}}}
 				}

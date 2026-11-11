@@ -75,6 +75,8 @@
 
 ## 验收及变更记录
 
+- 2026-11-11：隔离 PostgreSQL 与受控 Provider 的 direct 原生续轮验证，第三次请求实际包含前一步 `affect_event` 的 completed ToolResult；行动单独提交后，回复失败不会抹除或重复行动。`TestDurableObserverReceivesDirectMainReply` 验证浏览器持久观察器收到用户消息、已提交的主模型回复和完成帧，且模型只调用一次；该路径当前没有模型生成中的 token 增量，已另记 `durable-chat-missing-live-token-stream`，不能把已提交消息帧当作实时逐字流验收。
+
 - 2026-11-11：`TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce` 使用隔离 PostgreSQL 和受控原生 ToolCall，验证一条回复、非空 Goal 影响引用、真实消息的 candidate 关联、持久评估工作流和一次既有关系互动；重放不重复，Goal 未被候选直接完成。首次测试错误地要求该 Goal 的所有 pending 评估总数为 1，实际为 2；随后核实夹具在回复前已存在 1 条，并将断言收窄到本轮 `conversation_candidate` 的请求及工作流，重跑通过。未运行真实 MeroMero 或 Goal 评估完成链。
 
 - 2026-11-11：T04 将 direct 主回复的规范化输出偏好接入结算结果，按实际匹配的 ToolCall/ToolResult 区分媒体未申请、未受理与已受理；不新增媒体动作，也不把 accepted 当成生成或交付。单元测试覆盖无请求、失败、accepted、completed、错误配对和不支持渠道；隔离 PostgreSQL 验证文本偏好与消息、认知结算同事务提交/回滚及重放。非空 Goal、influences、关系等 direct 消费的完整回归仍待补齐。
