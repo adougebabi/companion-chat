@@ -21,9 +21,11 @@ func memoryRecallCapabilityDefinition() CapabilityDefinition {
 			"ref":         map[string]any{"type": "string", "minLength": 1, "maxLength": maxContextReferenceRunes},
 			"source_kind": map[string]any{"type": "string", "enum": []any{"active_memory", "long_term_memory", "conversation_record", "episode_memory"}},
 			"kind":        map[string]any{"type": "string"}, "content": map[string]any{"type": "string", "minLength": 1, "maxLength": 12000},
-			"confidence":  map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
-			"importance":  map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
-			"occurred_at": map[string]any{"type": "string"}, "recorded_at": map[string]any{"type": "string"}, "time_expression": map[string]any{"type": "string"},
+			"speaker":      map[string]any{"type": "string", "description": "For a conversation record: actor_self, current_speaker, actor_owner, a conversation-local other_actor label, or unknown. This identifies who spoke, not whether their statement is true."},
+			"message_kind": map[string]any{"type": "string", "description": "The stored conversation message kind, when available."},
+			"confidence":   map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
+			"importance":   map[string]any{"type": "number", "minimum": 0.0, "maximum": 1.0},
+			"occurred_at":  map[string]any{"type": "string"}, "recorded_at": map[string]any{"type": "string"}, "time_expression": map[string]any{"type": "string"},
 			"scope":          map[string]any{"type": "string", "enum": []any{"global", "conversation"}},
 			"revision":       map[string]any{"type": "integer", "minimum": 0},
 			"validity":       map[string]any{"type": "string"},
@@ -33,7 +35,7 @@ func memoryRecallCapabilityDefinition() CapabilityDefinition {
 	}
 	return CapabilityDefinition{
 		Name: "memory.recall", Version: "v1", Type: CapabilityTypeQuery,
-		Description: "Recall authorized absent memory/correction refs. Revise via returned memory_event refs; never invent.",
+		Description: "Recall authorized absent memory/correction refs. Revise via returned memory_event refs; never invent. Conversation-record speaker identifies actor_self, current_speaker, actor_owner, a conversation-local other_actor label, or unknown; speech is not proof of the stated external fact.",
 		Surfaces:    []CapabilitySurface{CapabilitySurfaceConversation}, FailurePolicy: FailurePolicyOptionalInternal,
 		RequiredContext: []ContextSlot{SlotMemoryScope},
 		InputSchema:     map[string]any{"type": "object", "additionalProperties": false, "required": []any{"intent"}, "properties": map[string]any{"intent": map[string]any{"type": "string", "minLength": 1, "maxLength": 1000}}},
@@ -56,6 +58,7 @@ type MemoryRecallRequest struct {
 	FluctlightID         string
 	ConversationID       string
 	ViewerActorIDs       []string
+	SpeakerActorID       string
 	ConversationMode     MemoryConversationScopeMode
 	ActiveProfileID      string
 	Intent               string
@@ -211,7 +214,26 @@ func recallRawItem(event RawHistoryEvent, request MemoryRecallRequest) map[strin
 	if content == "" {
 		return nil
 	}
-	return compactRecallItem(map[string]any{"ref": recallOpaqueRef("conversation_record", event.SourceRef, request), "source_kind": "conversation_record", "kind": string(event.Kind), "content": content, "occurred_at": formatInstant(event.OccurredAt), "validity": "historical"})
+	return compactRecallItem(map[string]any{"ref": recallOpaqueRef("conversation_record", event.SourceRef, request), "source_kind": "conversation_record", "kind": string(event.Kind), "message_kind": event.Content["kind"], "speaker": recallConversationSpeaker(event.ActorID, request), "content": content, "occurred_at": formatInstant(event.OccurredAt), "validity": "historical"})
+}
+
+// The current speaker comes from the authorized invocation, not the viewer
+// list. Other labels are stable within this conversation and do not claim a
+// name, relationship, or executable Actor reference.
+func recallConversationSpeaker(actorID string, request MemoryRecallRequest) string {
+	actorID = strings.TrimSpace(actorID)
+	switch {
+	case actorID == "":
+		return "unknown"
+	case actorID == request.FluctlightID:
+		return "actor_self"
+	case actorID == request.SpeakerActorID:
+		return "current_speaker"
+	case actorID == request.AuthorizationActorID:
+		return "actor_owner"
+	default:
+		return "other_actor_" + stableDigest(strings.Join([]string{request.FluctlightID, request.ConversationID, actorID}, "\x1f"))
+	}
 }
 
 func recallSummaryItem(item map[string]any, request MemoryRecallRequest) map[string]any {
@@ -233,7 +255,7 @@ func recallSummaryItem(item map[string]any, request MemoryRecallRequest) map[str
 
 func compactRecallItem(item map[string]any) map[string]any {
 	result := make(map[string]any, len(item))
-	for _, key := range []string{"ref", "source_kind", "kind", "content", "confidence", "importance", "occurred_at", "recorded_at", "time_expression", "scope", "revision", "validity", "epistemic_kind", "source_refs"} {
+	for _, key := range []string{"ref", "source_kind", "kind", "speaker", "message_kind", "content", "confidence", "importance", "occurred_at", "recorded_at", "time_expression", "scope", "revision", "validity", "epistemic_kind", "source_refs"} {
 		if value, ok := item[key]; ok && value != nil && value != "" {
 			result[key] = value
 		}

@@ -882,7 +882,7 @@ func (c memoryRecallCapability) Execute(ctx context.Context, invocation Capabili
 	viewers := decisionServiceRefValues(resolved.Memory.Data["viewer_actor_ids"])
 	request := MemoryRecallRequest{
 		AuthorizationActorID: stringValue(resolved.Memory.Data["owner_actor_id"]), FluctlightID: invocation.Metadata.FluctlightID,
-		ConversationID: invocation.Metadata.ConversationID, ViewerActorIDs: viewers,
+		ConversationID: invocation.Metadata.ConversationID, ViewerActorIDs: viewers, SpeakerActorID: invocation.Metadata.SubjectActorID,
 		ConversationMode: MemoryConversationScopeMode(stringValue(resolved.Memory.Data["conversation_mode"])),
 		ActiveProfileID:  stringValue(resolved.Memory.Data["active_profile_id"]), Intent: stringValue(args["intent"]),
 	}
