@@ -16,17 +16,62 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "T11 部分实施：诊断导出隐私投影、逐次模型尝试状态、图片插件显式连接检查和可识别凭据的错误脱敏已分批提交并通过各自隔离回归。仍未完成独立开发调试权限：模型运行、媒体提示词和事件存在多个读取入口，完整内容亦持续写入诊断，且搜索可能泄露命中。尚无通用安全 Trace 重放：现存运行记录缺少可保证完整的原始输入、模型可见工具结果及部分流数据；业务幂等回执回读不等于执行重放。Moment 真实健康、实际 ComfyUI/出图及浏览器到运行消费仍未验收；仅凭可识别格式不能保证所有凭据已脱敏。按用户指示保留未完成，先继续 T12。",
   "result": "",
   "created": "2026-11-10T08:34:31.268392Z",
-  "updated": "2026-11-10T08:34:31.268403Z",
+  "updated": "2026-11-11T18:34:54.465066Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-e64b12c5e979a276ef56",
+        "unit": "define",
+        "executor": "codex-t11-trace",
+        "input_version": "7c4f7751d93d7058dcb49b0cf7839a459bed06239bf3510115fa4199557d7b88",
+        "candidate_version": "7c4f7751d93d7058dcb49b0cf7839a459bed06239bf3510115fa4199557d7b88",
+        "started": "2026-11-11T17:27:27.561461Z",
+        "ended": "2026-11-11T17:27:47.582929Z",
+        "status": "pass",
+        "reason": "按原 T11 补齐并验证现有管理入口到持久化、回读和真实请求消费，追踪 Agent/模型/Slot/工具/状态并保护凭据；重放只读或使用隔离环境，不触发真实副作用。沿现有 UI 和技术栈，不重做页面；任务外非阻断问题只登记 bug，缺真实服务不伪称通过。"
+      },
+      {
+        "id": "AT-090b5db079329fb53810",
+        "unit": "analysis",
+        "executor": "codex-t11-trace",
+        "input_version": "7c4f7751d93d7058dcb49b0cf7839a459bed06239bf3510115fa4199557d7b88",
+        "candidate_version": "7c4f7751d93d7058dcb49b0cf7839a459bed06239bf3510115fa4199557d7b88",
+        "started": "2026-11-11T17:28:09.174921Z",
+        "ended": "2026-11-11T17:35:20.848967Z",
+        "status": "pass",
+        "reason": "管理页面和配置持久化/受控消费已有部分链路；插件目录仍未消费真实连通检查，完整隔离重放未提供。明确发现流式及旧诊断导出会保留用户正文、错误自由文本和可识别标识，违背原 T11 导出隐私边界；先为导出添加独立的最小安全投影并验证两条导出，不修改实际模型请求或 Owner 页面原始视图。物理重试的早期失败、Prompt 真实版本和真实健康后续分别处理。"
+      },
+      {
+        "id": "AT-6ad8552e491032762680",
+        "unit": "execute",
+        "executor": "codex-t11-trace",
+        "input_version": "7c4f7751d93d7058dcb49b0cf7839a459bed06239bf3510115fa4199557d7b88",
+        "candidate_version": "",
+        "started": "2026-11-11T17:35:42.291667Z",
+        "ended": "2026-11-11T18:25:37.95771Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-5f45a57579d1a4bd079e",
+        "unit": "execute",
+        "executor": "codex-t11-resume",
+        "input_version": "0406aa14bfa037bdb063a78cde24ddea4d1d8a021d4c8e088b0186b54bd777ee",
+        "candidate_version": "f7e6457d2b0335af99677c82e39e5de652a377df41828bcda2576aa89d29c32a",
+        "started": "2026-11-11T18:25:52.374617Z",
+        "ended": "2026-11-11T18:34:49.005016Z",
+        "status": "fail",
+        "reason": "T11 部分实施：诊断导出隐私投影、逐次模型尝试状态、图片插件显式连接检查和可识别凭据的错误脱敏已分批提交并通过各自隔离回归。仍未完成独立开发调试权限：模型运行、媒体提示词和事件存在多个读取入口，完整内容亦持续写入诊断，且搜索可能泄露命中。尚无通用安全 Trace 重放：现存运行记录缺少可保证完整的原始输入、模型可见工具结果及部分流数据；业务幂等回执回读不等于执行重放。Moment 真实健康、实际 ComfyUI/出图及浏览器到运行消费仍未验收；仅凭可识别格式不能保证所有凭据已脱敏。按用户指示保留未完成，先继续 T12。"
+      }
+    ],
     "checks": null
   }
 }
