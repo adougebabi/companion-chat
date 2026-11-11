@@ -1,0 +1,44 @@
+{
+  "id": "meromero-t02-task-model-routing",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "be284e33ba9a1c5bfaae19a6da4bc473222809db140dea3b04f5bb1c034426d7",
+  "completed": "2026-11-11T10:50:47.925693Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "t02-review",
+      "result": "pass",
+      "source": "model:codex-t02-routing-review",
+      "config_hash": "508ad9273b895a6a9fe0d15a3d8ab42ef8d88ed76f93d0f2b6c0a0cd4a0faa7c",
+      "at": "2026-11-11T10:49:57.894347Z",
+      "artifact_hashes": {
+        ".ael/outcomes/meromero-t02-routing-review.md": "a428ca277796f3a06243e4379713ac7b7b50c8a14c613961cbab3cbdb7dd8913",
+        "apps/core-go/internal/core/agent_model_routing.go": "5a160fe65c4fb7657c302979855c7790f29f72f3ca5a172ebf48a0f699053655",
+        "apps/core-go/internal/core/eino_model_runtime.go": "5f3cc3f71efa5a67653e612d7cda6d6affc69139a71a55d0651065ea672110bb",
+        "apps/core-go/internal/core/provider.go": "a1a3addb19c46e68286429046c4fe892bead68c4595076d582672e226634f59f",
+        "apps/core-go/internal/core/reply_cognition_model_snapshot.go": "029985d9f81cc63963a40ba01ddedfd92003c4d0603e30dcc939f434dacbd04e",
+        "apps/core-go/internal/core/runtime_summary_model_snapshot.go": "16721c2b1a63f0fde0bcc1e8a907658e2664e533c44abd3de38205d9dfcab0e8",
+        "apps/web/src/react-app/views/ManagementPage.jsx": "35d81ad794f1b300ee4402610f6a464a824b8649e7c68b8c0c155fb03d31606b",
+        "docs/verification/meromero-first-ledger-20261109.md": "853c688e573ec3e6408b41e36d334029c60f1bf8dcd1c84d848231596d80f101"
+      }
+    },
+    {
+      "id": "t02-scenario",
+      "result": "pass",
+      "source": "scenario:codex-t02-routing-scenario",
+      "config_hash": "c990107f6f55a140f8a3264933219f2345882318e939210c4af223dc389314df",
+      "at": "2026-11-11T10:50:37.867335Z",
+      "artifact_hashes": {
+        ".ael/outcomes/meromero-t02-routing-scenario.md": "d54008d8957c873ce93638ef55d4c9287e4ae8c1843a6b58f191d7eea35b762b",
+        "apps/core-go/internal/core/agent_model_routing_test.go": "fd915b8ac77bf99faf7b4de99680d994aab49059435abea4f252c80780792436",
+        "apps/core-go/internal/core/formal_agent_e2e_test.go": "9dc28c783dcbaec229cc7e2dd301d5561c0d0eb01558a06e41de1f62bfdb8378",
+        "apps/core-go/internal/core/provider_live_e2e_test.go": "86570b9ac3f4ee3658aaa0c95a4ee42cd46b00ac064c48c5802e714b3e097290",
+        "apps/core-go/internal/core/reply_continuation_model_snapshot_integration_test.go": "f3c8a5b26ab24700a688d4e0a9f08ac01f0e58e622a6253d4fa4d1292af1f4b6",
+        "docs/verification/meromero-first-ledger-20261109.md": "853c688e573ec3e6408b41e36d334029c60f1bf8dcd1c84d848231596d80f101"
+      }
+    }
+  ]
+}
