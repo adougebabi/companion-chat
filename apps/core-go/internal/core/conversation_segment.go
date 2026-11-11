@@ -175,6 +175,7 @@ func (a *App) enqueueConversationSegmentTx(ctx context.Context, tx pgx.Tx, fluct
 		"source_message_refs": conversationSummarySourceRefs(chunk),
 		"idle_epoch":          epoch, "idle_since": idleSince.UTC().Format(time.RFC3339Nano),
 		"local_date": firstDay, "timezone": timezone, "boundary_kind": boundaryKind, "source_generation": 0,
+		conversationSegmentModelContractKey: workflowModelSnapshotVersion,
 	}
 	if _, err := tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET status='superseded'
 		WHERE intent_type='conversation.segment' AND payload->>'conversation_id'=$1
@@ -182,15 +183,27 @@ func (a *App) enqueueConversationSegmentTx(ctx context.Context, tx pgx.Tx, fluct
 		  AND status IN ('pending','retry','started','running')`, conversationID, intentID); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at)
+	var insertedPayload []byte
+	err = tx.QueryRow(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at)
 		VALUES($1,$2,'lifecycle','conversation.segment',$3,'pending',$4)
 		ON CONFLICT(intent_id) DO UPDATE SET status='pending',next_attempt_at=excluded.next_attempt_at,
 		 payload=public.platform_workflow_intents.payload || jsonb_build_object('source_generation',
-		  CASE WHEN COALESCE(public.platform_workflow_intents.payload->>'source_generation','') ~ '^[0-9]{1,17}$' THEN (public.platform_workflow_intents.payload->>'source_generation')::bigint+1 ELSE 1 END)
+		  CASE WHEN COALESCE(public.platform_workflow_intents.payload->>'source_generation','') ~ '^[0-9]{1,17}$' THEN (public.platform_workflow_intents.payload->>'source_generation')::bigint+1 ELSE 1 END,$10::text,$11::text)
 		WHERE public.platform_workflow_intents.status='superseded'
 		   OR (public.platform_workflow_intents.status='completed' AND EXISTS (
 		     SELECT 1 FROM public.conversation_summaries s WHERE s.owner_fluctlight_id=$5 AND s.conversation_id=$6
-		       AND s.from_sequence=$7 AND s.to_sequence=$8 AND s.source_digest=$9 AND s.status='invalidated'))`, intentID, "conversation_segment:"+identity, jsonBytes(payload), due, fluctlightID, conversationID, from, to, digest)
+		       AND s.from_sequence=$7 AND s.to_sequence=$8 AND s.source_digest=$9 AND s.status='invalidated')) RETURNING payload`, intentID, "conversation_segment:"+identity, jsonBytes(payload), due, fluctlightID, conversationID, from, to, digest, conversationSegmentModelContractKey, workflowModelSnapshotVersion).Scan(&insertedPayload)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	generation, err := conversationSegmentGeneration(insertedPayload)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO public.conversation_segment_model_snapshots(intent_id,source_generation) VALUES($1,$2)`, intentID, generation)
 	return err
 }
 
@@ -329,8 +342,8 @@ func (a *App) processConversationSegmentIntent(ctx context.Context, intentID str
 	if a.Provider == nil {
 		return nil, errors.New("conversation_segment_provider_unavailable")
 	}
-	routeCtx := withAgentModelRoute(ctx, FormalAgentConversationSummary, "conversation_segment_v1")
-	assignment, err := a.Provider.assignment(routeCtx, "reflection")
+	routeCtx := withAgentModelRoute(ctx, FormalAgentConversationSummary, conversationSegmentModelVariant)
+	assignment, frozen, err := a.conversationSegmentAssignment(routeCtx, intentID, generation)
 	if err != nil {
 		return nil, err
 	}
@@ -338,19 +351,21 @@ func (a *App) processConversationSegmentIntent(ctx context.Context, intentID str
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT created_by_actor_id,COALESCE(identity->>'name','') FROM public.fluctlights WHERE id=$1`, work.FluctlightID).Scan(&owner, &selfName); err != nil {
 		return nil, err
 	}
-	modelCtx := withFrozenProviderAssignment(routeCtx, "reflection", assignment)
+	modelCtx := withFrozenProviderAssignment(routeCtx, conversationSegmentModelRole, assignment)
 	response, err := a.RunConversationSegmentTask(WithProviderCorrelation(modelCtx, "conversation-segment:"+intentID), ConversationSegmentTaskInput{Messages: work.Messages, OwnerActorID: owner, FluctlightID: work.FluctlightID, SelfName: selfName})
 	if err != nil {
 		return nil, err
 	}
 	response.Summary = strings.TrimSpace(response.Summary)
 	response.EndingState = strings.TrimSpace(response.EndingState)
-	liveAssignment, err := a.Provider.assignment(routeCtx, "reflection")
-	if err != nil {
-		return nil, err
-	}
-	if liveAssignment.EndpointID != assignment.EndpointID || liveAssignment.ModelID != assignment.ModelID {
-		return nil, errors.New("conversation_segment_provider_assignment_stale")
+	if !frozen {
+		liveAssignment, err := a.Provider.assignment(routeCtx, conversationSegmentModelRole)
+		if err != nil {
+			return nil, err
+		}
+		if liveAssignment.EndpointID != assignment.EndpointID || liveAssignment.ModelID != assignment.ModelID {
+			return nil, errors.New("conversation_segment_provider_assignment_stale")
+		}
 	}
 	if response.SchemaVersion != conversationSegmentSchemaVersion || response.Summary == "" || len([]rune(response.Summary)) > conversationSummaryMaxRunes || response.EndingState == "" || len([]rune(response.EndingState)) > 1000 || len(response.OpenThreads) > 12 || len(response.CoreEvents) > 20 {
 		return nil, errors.New("conversation_segment_response_invalid")

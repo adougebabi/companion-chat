@@ -22,7 +22,7 @@
 | --- | --- | --- | --- |
 | T00 | 范围、基线、台账 | VERIFIED | 本文件记录起始 commit、分支、用户文件、环境、失败基线、工作包、依赖及验收状态；后续继续追加事实。 |
 | T01 | 完整运行入口盘点 | VERIFIED | [当前入口清单](meromero-agent-inventory-20261109.md)按源码核对 31 个正式 Agent、36 个显式声明的可配置 variant及额外表达变体、实际 Writer 修复 variant、非正式 Provider/embedding/Kev、独立 Tool 与后台调度；记录版本/hash 的实际口径和未确认生产上游。逐项覆盖和源码位置检查及独立静态审查已完成；真实模型能力和后台快照分属后续任务。 |
-| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。新人格准备、衣柜准备、新媒体各模型阶段、新视觉身份会话、新 Goal 评估及每日记忆新代已冻结绑定；隔离 PostgreSQL 和受控 Provider 验证了部分恢复、并发、视觉开关、错误及回放。旧任务及对话片段等后台恢复策略尚未补齐，真实 Provider 仍未验收。 |
+| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。新人格准备、衣柜准备、新媒体各模型阶段、新视觉身份会话、新 Goal 评估、每日记忆和片段摘要新代已冻结绑定；隔离 PostgreSQL 和受控 Provider 验证了部分恢复、并发、视觉开关、错误及回放。升级前旧任务策略和凭据配置原子性仍有缺口，真实 Provider 及真实 Temporal 仍未验收。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | 已修复低置信度 claim 状态；新增显式实验性 `direct` 模式，使主 Agent 同一原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交，受控 PostgreSQL 验证提交、重放及回滚。默认生产链仍是 fact-only 加独立 Writer，旧草稿兼容、真实模型和默认切换尚未完成。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；受控 Tool 目录、物理 schema、Writer 与 React 通过。隔离 PostgreSQL 已验证直接调用、配置及部分回执回放；NPC 完整重启及真实媒体尚未验证。 |
@@ -83,7 +83,9 @@
 
 - 2026-11-11：每日记忆的新建或重开代次在入队事务创建独立模型快照行，同代重试复用绑定，新代重新选择；缺失或被清空的已选快照明确失败，旧代未冻结时记录诊断。隔离 PostgreSQL 的 9 项恢复、竞争和纠错链回归，2 项迁移及 3 项受控 Temporal 回归通过：`/private/tmp/fluctlight-t02-daily-model-final.log`、`/private/tmp/fluctlight-t02-daily-migration-final.log`、`/private/tmp/fluctlight-t02-daily-workflow-snapshot-final.log`。`0113` 仅在隔离数据库运行；真实 Temporal、混合版本 worker 和真实 Provider 仍未验收。
 
-- 2026-11-11：片段摘要的同一稳定 intent 重开时递增代次，Activity 在读取和结算时校验；Temporal 调度、失败和终态回写也比较原 payload。旧未绑定代次的片段或每日 Activity 先失败，调度器重新派发时绑定当前代次，避免把升级前无法辨别的旧运行当成新代。隔离 PostgreSQL 复现旧片段结果覆盖新代：`/private/tmp/fluctlight-t02-segment-generation-red.log`；修复后代次、纠错及受控 Temporal 回归通过：`/private/tmp/fluctlight-t02-segment-generation-final.log`、`/private/tmp/fluctlight-t02-segment-workflow-final.log`。片段模型快照仍未完成；部署时若旧版 Worker 仍在执行，它不受新版围栏约束，真实 Temporal 和混合版本验证尚未执行。
+- 2026-11-11：片段摘要的同一稳定 intent 重开时递增代次，Activity 在读取和结算时校验；Temporal 调度、失败和终态回写也比较原 payload。旧未绑定代次的片段或每日 Activity 先失败，调度器重新派发时绑定当前代次，避免把升级前无法辨别的旧运行当成新代。隔离 PostgreSQL 复现旧片段结果覆盖新代：`/private/tmp/fluctlight-t02-segment-generation-red.log`；修复后代次、纠错及受控 Temporal 回归通过：`/private/tmp/fluctlight-t02-segment-generation-final.log`、`/private/tmp/fluctlight-t02-segment-workflow-final.log`。该阶段片段模型快照尚未完成；部署时若旧版 Worker 仍在执行，它不受新版围栏约束，真实 Temporal 和混合版本验证尚未执行。
+
+- 2026-11-11：片段摘要新建或重开代次在同一入队事务建立独立模型快照，同代失败重试保持模型、采样和端点，新代选择当时配置；旧代缺快照保留原有调用后配置变更检查并记录诊断。隔离 PostgreSQL 的并发竞争、快照缺失/损坏、旧代行为、原文纠错重建及受控 Temporal 回归通过：`/private/tmp/fluctlight-t02-segment-model-current.log`、`/private/tmp/fluctlight-t02-segment-migration-current.log`、`/private/tmp/fluctlight-t02-segment-workflow-model-current.log`。`0114` 只在隔离数据库运行，真实模型和真实 Temporal 尚未验收。
 
 - 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
 

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -8,7 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func TestConversationSegmentOlderGenerationCannotSettleReopenedIntent(t *testing.T) {
+func seedConversationSegmentSource(t *testing.T) (context.Context, *PostgresRepository, *App, string, func()) {
+	t.Helper()
 	ctx, repo, owner, fid, conversation := seedConversationSummaryAuthority(t)
 	seedConversationSummaryMessages(t, ctx, repo, owner, fid, conversation, 1, 2)
 	if _, err := repo.Pool().Exec(ctx, `UPDATE public.conversation_messages SET created_at=now()-interval '2 days' + sequence * interval '1 minute' WHERE conversation_id=$1`, conversation); err != nil {
@@ -34,6 +36,11 @@ func TestConversationSegmentOlderGenerationCannotSettleReopenedIntent(t *testing
 	if err := repo.Pool().QueryRow(ctx, `SELECT intent_id FROM public.platform_workflow_intents WHERE intent_type='conversation.segment'`).Scan(&intentID); err != nil {
 		t.Fatal(err)
 	}
+	return ctx, repo, app, intentID, enqueue
+}
+
+func TestConversationSegmentOlderGenerationCannotSettleReopenedIntent(t *testing.T) {
+	ctx, repo, app, intentID, enqueue := seedConversationSegmentSource(t)
 	// Old Temporal histories omitted generation; they belong to generation zero.
 	if _, err := repo.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET payload=payload-'source_generation' WHERE intent_id=$1`, intentID); err != nil {
 		t.Fatal(err)
