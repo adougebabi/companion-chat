@@ -746,7 +746,7 @@ function createManagementPageController(props, context, lifecycle) {
         );
         completed++;
       }
-      if (plan.some(operation => operation.operation === 'binding' || operation.operation === 'endpoint' || operation.operation === 'settings' && operation.body.values?.['plugins.domains'])) {
+      if (plan.some(operation => operation.operation === 'binding' || operation.operation === 'endpoint' || operation.operation === 'settings' && (operation.body.values?.['plugins.domains'] || operation.body.values?.['media.comfyui']))) {
         let latest;
         try { latest = await config.read(); }
         catch (cause) {
@@ -754,7 +754,7 @@ function createManagementPageController(props, context, lifecycle) {
           // inheritance view as current or repeat an accepted write.
           needsBaselineReview.value = true;
           const modelChanged=plan.some(operation=>operation.operation==='binding'||operation.operation==='endpoint');
-          const pluginChanged=plan.some(operation=>operation.operation==='settings'&&operation.body.values?.['plugins.domains']);
+          const pluginChanged=plan.some(operation=>operation.operation==='settings'&&(operation.body.values?.['plugins.domains']||operation.body.values?.['media.comfyui']));
           const label=modelChanged&&pluginChanged?'模型与插件配置':pluginChanged?'插件配置':'模型配置';
           throw Error(label+'已保存，但生效来源读取失败；请读取最新基线。', {cause});
         }
@@ -833,6 +833,9 @@ function createManagementPageController(props, context, lifecycle) {
           return;
         }
         testRaw.value=result;
+        if(name==='图片（ComfyUI）'&&(result?.state==='configuration_changed'||(typeof result?.config_version==='number'&&result.config_version!==Number(versions['media.comfyui']??0)))){
+          testKind.value='warning';testResult.value=name+'：配置已变化，请重新检查已保存配置。';return result;
+        }
         const summary=configurationTestSummary(result);
         testKind.value=summary.state==='success'?'success':summary.state==='failed'?'error':'warning';
         testResult.value =
@@ -989,6 +992,7 @@ function createManagementPageController(props, context, lifecycle) {
         endpoints,
         test,
         bindings,selectedAgentRoute,agentModelRoutes,domainPlugins,
+        mediaHealthScope:()=>({owner:w.state.session?.actorId||'',version:Number(versions['media.comfyui']??0)}),
         quiet,
         characters,
         settings,

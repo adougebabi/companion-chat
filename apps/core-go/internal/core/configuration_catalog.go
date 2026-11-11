@@ -232,35 +232,58 @@ func (a *App) TestSavedMediaConnection(ctx context.Context, owner string) (map[s
 		return nil, err
 	}
 	raw, ok := mapValue(saved["values"])["media.comfyui"]
-	if !ok {
-		return map[string]any{"state": "unconfigured", "config_version": 0, "generation_tested": false}, nil
+	var probeErr error
+	if ok {
+		probeErr = probeSavedMediaConnection(ctx, raw)
 	}
-	if err := validateComfySetting(raw); err != nil {
+	// Any probe outcome describes the configuration read before the request.
+	// Another client may save a different one while it is in flight.
+	latest, err := a.ReadSettings(ctx, owner)
+	if err != nil {
 		return nil, err
+	}
+	testedVersion, _ := parseRevision(mapValue(saved["versions"])["media.comfyui"])
+	currentVersion, _ := parseRevision(mapValue(latest["versions"])["media.comfyui"])
+	current, present := mapValue(latest["values"])["media.comfyui"]
+	if present != ok || currentVersion != testedVersion || jsonString(current) != jsonString(raw) {
+		return map[string]any{"state": "configuration_changed", "tested_config_version": testedVersion, "config_version": currentVersion, "generation_tested": false}, nil
+	}
+	if !ok {
+		return map[string]any{"state": "unconfigured", "config_version": currentVersion, "generation_tested": false}, nil
+	}
+	if probeErr != nil {
+		return nil, probeErr
+	}
+	return map[string]any{"state": "reachable", "config_version": currentVersion, "generation_tested": false, "workflow_structure_valid": true}, nil
+}
+
+func probeSavedMediaConnection(ctx context.Context, raw any) error {
+	if err := validateComfySetting(raw); err != nil {
+		return err
 	}
 	base, _, _ := comfyConfig(mapValue(raw))
 	requestCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	request, err := http.NewRequestWithContext(requestCtx, http.MethodGet, base+"/system_stats", nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	response, err := (&http.Client{Timeout: 10 * time.Second}).Do(request)
 	if err != nil {
-		return nil, &SurfaceError{Status: 502, Code: "media_connection_failed", Message: "已保存 ComfyUI 地址连接失败"}
+		return &SurfaceError{Status: 502, Code: "media_connection_failed", Message: "已保存 ComfyUI 地址连接失败"}
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, &SurfaceError{Status: 502, Code: "media_connection_failed", Message: "ComfyUI 状态接口未成功返回"}
+		return &SurfaceError{Status: 502, Code: "media_connection_failed", Message: "ComfyUI 状态接口未成功返回"}
 	}
 	var result map[string]any
 	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {
-		return nil, &SurfaceError{Status: 502, Code: "media_connection_invalid", Message: "ComfyUI 状态响应不是有效 JSON"}
+		return &SurfaceError{Status: 502, Code: "media_connection_invalid", Message: "ComfyUI 状态响应不是有效 JSON"}
 	}
 	if result["system"] == nil {
-		return nil, &SurfaceError{Status: 502, Code: "media_connection_invalid", Message: "响应缺少 ComfyUI 系统状态"}
+		return &SurfaceError{Status: 502, Code: "media_connection_invalid", Message: "响应缺少 ComfyUI 系统状态"}
 	}
-	return map[string]any{"state": "reachable", "config_version": mapValue(saved["versions"])["media.comfyui"], "generation_tested": false, "workflow_structure_valid": true}, nil
+	return nil
 }
 
 func defaultNotificationPreferences() map[string]any {

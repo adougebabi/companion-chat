@@ -1,6 +1,6 @@
 import {Checkbox} from '@/components/ui/checkbox';
 import {FieldError} from '@/components/ui/field';
-import {useId} from 'react';
+import {useEffect,useId,useRef,useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Surface,Disclosure} from '../controls';
 import {autonomyActionChoices} from '@/v3/proto/components/configuration-fields.js';
@@ -9,6 +9,23 @@ function pluginHealthLabel(plugin){
  if(plugin.health==='unconfigured')return '图片服务未配置';
  if(plugin.health==='configuration_invalid')return '图片服务配置不完整';
  return '健康状态未检测';
+}
+
+export function PluginStatus({plugin,view}){
+ const scope=view.mediaHealthScope(),key=JSON.stringify([scope.owner,scope.version]),observed=useRef({key,epoch:0}),active=useRef(true),[probe,setProbe]=useState(null);
+ if(observed.current.key!==key)observed.current={key,epoch:observed.current.epoch+1};
+ useEffect(()=>{active.current=true;return()=>{active.current=false;};},[]);
+ const current=probe?.key===key&&probe?.epoch===observed.current.epoch?probe:null;
+ async function check(){
+  const epoch=observed.current.epoch;setProbe({key,epoch,busy:true});
+  const result=await view.test('图片（ComfyUI）');
+  if(!active.current||observed.current.epoch!==epoch||observed.current.key!==key)return;
+  const stale=result?.state==='configuration_changed'||(typeof result?.config_version==='number'&&result.config_version!==scope.version);
+  const state=!result?'superseded':stale?'stale':result?.state==='reachable'&&result.generation_tested===false&&result.config_version===scope.version?'reachable':'failed';
+  setProbe({key,epoch,state});
+ }
+ const label=current?.busy?'正在检查图片服务':current?.state==='stale'?'配置已变化，请重新检查':current?.state==='superseded'?'检查结果已失效，请重新检查':current?.state==='reachable'?'图片服务可连接，未验证图片生成':current?.state==='failed'?'图片服务检查未通过':pluginHealthLabel(plugin);
+ return <div className="grid gap-2"><p className="muted">{plugin.id==='image'?'图片':plugin.id==='moment'?'动态':plugin.id} · v{plugin.version} · {plugin.enabled?'已启用':'已停用'} · {label}{plugin.required_dependencies?.includes('comfyui')?' · 生图需要 ComfyUI':''}{plugin.optional_dependencies?.includes('image')?' · 图片为可选依赖':''}</p>{plugin.id==='image'&&<Button className="w-fit" type="button" variant="outline" disabled={current?.busy||plugin.health==='unconfigured'||plugin.health==='configuration_invalid'} onClick={check}>检查图片服务连接</Button>}</div>;
 }
 
 function ActionCards({allowed,confirmed}){
@@ -25,7 +42,7 @@ export default function SettingsSections({group,view,visible=true}){
  const test=()=> <Button type="button" variant="outline" onClick={()=>view.test(title)}>{title==='看图理解'?'测试看图（使用已保存配置）':'测试连接'}</Button>;
  let content;
  if(title==='聊天回复')content=card('回复方式',fields,'选择回复方式，调整表达的变化程度和采样范围。');
- else if(title==='能力插件')content=<><Surface className="settings-card"><div className="replica-settings-section-head"><div><h2>能力插件</h2><p>停用后不再受理新请求。当前进程中已开始的运行可以完成；已创建的媒体任务继续恢复，已发布内容仍可读取。尚未创建媒体任务的排队工作在恢复时会检查当前设置。动态不依赖图片能力。</p></div></div>{input(fields)}{view.domainPlugins.value.map(plugin=><p className="muted" key={plugin.id}>{plugin.id==='image'?'图片':plugin.id==='moment'?'动态':plugin.id} · v{plugin.version} · {plugin.enabled?'已启用':'已停用'} · {pluginHealthLabel(plugin)}{plugin.required_dependencies?.includes('comfyui')?' · 生图需要 ComfyUI':''}{plugin.optional_dependencies?.includes('image')?' · 图片为可选依赖':''}</p>)}</Surface></>;
+ else if(title==='能力插件')content=<><Surface className="settings-card"><div className="replica-settings-section-head"><div><h2>能力插件</h2><p>停用后不再受理新请求。当前进程中已开始的运行可以完成；已创建的媒体任务继续恢复，已发布内容仍可读取。尚未创建媒体任务的排队工作在恢复时会检查当前设置。动态不依赖图片能力。</p></div></div>{input(fields)}{view.domainPlugins.value.map(plugin=><PluginStatus key={plugin.id} plugin={plugin} view={view}/>)}</Surface></>;
  else if(title==='看图理解')content=card('图片理解',fields,'开启后使用独立视觉模型理解收到的图片。',test());
  else if(title==='图片（ComfyUI）')content=<>{card('图片服务',fields.filter(f=>['baseUrl','generation_timeout_seconds'].includes(f._key)),'连接图片服务，等待时间按真实工作流设置。',test())}{card('默认工作流',fields.filter(f=>f._key==='workflow'),'填写图片服务导出的 API 工作流，原结构会保留。')}{card('按用途覆盖',fields.filter(f=>!['baseUrl','generation_timeout_seconds','workflow'].includes(f._key)),'可选。留空时沿用默认工作流。')}</>;
  else if(title==='角色自主与主动联系'){
