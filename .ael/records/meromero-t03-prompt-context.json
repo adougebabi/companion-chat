@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "本轮分批提交了 Goal 人格和条件、Moment Goal/部分证据投影及隔离场景验证。T03 仍未完成：其他 Moment 证据类型保真未逐类验证；部分兼容调用只能记录调用方或 unknown，物理诊断遵循现行尽力写入合同；真实模型验证尚未通过。用户已授权卡住和真实 LLM 验证先跳过以继续后续任务，因此保留未完成状态，后续回到 execute 核对剩余范围，不降低验收条件。",
+  "failure": "本批提交 17cc7fb2：Moment 选中 Active Memory 时保留业务内容、有效性及时间，将作用域中的 Actor ID 投影为关联人物别名或未知，并明确关联不等于语义主体；提交后的干净源码在隔离 PostgreSQL 与受控 Writer 的 11 个顶层相关回归通过，实际 Moment 准备入口验证 offered/live 引用及物理请求。外貌证据仍经递归删键，伤情值混合用户内容和系统事件 ID，直接整体保留会泄露后者；暂未安全解决。Outcome 等其他证据的业务语义与 Core 引用仍需逐类界定；通用大整数精度已有独立 bug，未在此顺手修改。真实模型及全 Agent/variant 完整验收未完成，按用户授权保留未完成并继续不依赖这些缺口的原任务。",
   "result": "",
   "created": "2026-11-10T08:34:30.58656Z",
-  "updated": "2026-11-11T14:17:54.907224Z",
+  "updated": "2026-11-11T19:32:12.417493Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -81,6 +81,17 @@
         "ended": "2026-11-11T14:17:49.937124Z",
         "status": "fail",
         "reason": "本轮分批提交了 Goal 人格和条件、Moment Goal/部分证据投影及隔离场景验证。T03 仍未完成：其他 Moment 证据类型保真未逐类验证；部分兼容调用只能记录调用方或 unknown，物理诊断遵循现行尽力写入合同；真实模型验证尚未通过。用户已授权卡住和真实 LLM 验证先跳过以继续后续任务，因此保留未完成状态，后续回到 execute 核对剩余范围，不降低验收条件。"
+      },
+      {
+        "id": "AT-7cd377249ec8e793befc",
+        "unit": "execute",
+        "executor": "codex-t03-evidence",
+        "input_version": "28ae85c058ee1049859b3ef24ab9081532ea9a6df6042e820bea97360f524923",
+        "candidate_version": "7cd8100b46b7e66b9460803e96bea43bf0fbedd4ad3fd3d339b58cebc1059742",
+        "started": "2026-11-11T19:02:52.259091Z",
+        "ended": "2026-11-11T19:32:02.671855Z",
+        "status": "fail",
+        "reason": "本批提交 17cc7fb2：Moment 选中 Active Memory 时保留业务内容、有效性及时间，将作用域中的 Actor ID 投影为关联人物别名或未知，并明确关联不等于语义主体；提交后的干净源码在隔离 PostgreSQL 与受控 Writer 的 11 个顶层相关回归通过，实际 Moment 准备入口验证 offered/live 引用及物理请求。外貌证据仍经递归删键，伤情值混合用户内容和系统事件 ID，直接整体保留会泄露后者；暂未安全解决。Outcome 等其他证据的业务语义与 Core 引用仍需逐类界定；通用大整数精度已有独立 bug，未在此顺手修改。真实模型及全 Agent/variant 完整验收未完成，按用户授权保留未完成并继续不依赖这些缺口的原任务。"
       }
     ],
     "checks": null
