@@ -456,8 +456,8 @@ Core 保留库存/人格/Life 版本、来源流水和运行身份，不把完�
 身体事实取当前状态；共享和所选 profile 的通用 preferences、character_constraints
 作为不透明业务资料保留，避免丢失存放其中的面料禁忌等约束。Foundation 只恢复
 明确的 style_preferences 和 daily_outfit_preferences，不恢复旧伤情、旧库存或
-旧穿着。旧卡的原始 system_prompt（无则 image_prompt）保留一份为旧风格参考
-数据，不能成为运行协议；其余开场白、互动规则和媒体参数不再整包注入。
+旧穿着。旧卡中明确声明的结构化穿搭偏好继续提供给衣柜任务；可能混合社交
+策略的 system_prompt 和 image_prompt 原文不再注入，源资料本身不作改写。
 
 `wardrobe_preparation_prompt_test.go` 覆盖字段投影、未知/false/zero/大整数与
 领域字段保真、失效成员、两阶段实际 Provider HTTP JSON 和无 token 上限。

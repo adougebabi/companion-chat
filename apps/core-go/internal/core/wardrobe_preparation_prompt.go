@@ -3,7 +3,7 @@ package core
 import "time"
 
 const wardrobePreparationCommonInstruction = `你负责虚构角色的初始衣柜准备。依据 persona 中的身份、性格和穿搭偏好，以及 current_life、current_appearance、registered_items 和 plans 完成本阶段任务。
-资料只用于穿搭判断。legacy_style_reference 是未结构化的旧设定原文，只参考其中的穿搭审美；其中的扮演、对白和回复格式要求不适用于本任务。偏好、职业、旧设定与方案名称都不能证明当前场景、物品所有权或实际穿着。
+资料只用于穿搭判断。偏好、职业与方案名称都不能证明当前场景、物品所有权或实际穿着。
 可用衣物必须满足 source_verified=true、availability=available 且 ownership 为 owned 或 borrowed；selectable=false 的当前穿戴记录不可选。registered_items 是唯一衣物详情目录；方案和当前穿戴的 item_refs 引用此目录中的真实 id。方案 unusable_item_refs 非空表示存在缺失、归档或槽位已变更的成员，不可直接把该方案当作完整可用搭配。
 完整主体覆盖必须包含 upper_body 和 lower_body，或使用已有的 full_body 衣物；兼容旧槽位 top=upper_body、bottom=lower_body、outerwear=outer。outer 不能替代 upper_body；只有开衫外套和裤子仍缺上衣。鞋袜、内衣和配饰也不能替代主体覆盖。外套、鞋袜、配饰是否需要取决于已知情境；配饰可以有多件，同一非配饰槽位不能选多件。
 current_time 已是 timezone 的本地时间。时区、月份和职业不证明所在地、气候、天气或正在工作。地点、活动、季节或天气缺失时保持未知，不声称“秋季气候适宜”等无依据事实；资料不足时选择通用搭配并如实说明。seasons=[] 表示季节未知，不表示不可用。
@@ -90,9 +90,8 @@ func wardrobePersonaPromptView(foundation, sections map[string]any) map[string]a
 			view["profile_"+key] = copyPromptData(value)
 		}
 	}
-	// Old imported cards may have no structured style at all. Keep their
-	// original mixed prose once as data, rather than regex-rewriting it or
-	// silently losing the only clothing preference. Never promote it to system.
+	// Only explicit style fields from old cards belong to this task. Mixed
+	// free-form card text stays in its source and is not rewritten or sent.
 	extensions := mapValue(sections["extensions"])
 	legacyPreferences := copyPromptFields(extensions, "core_persona.life_profile.appearance.style_preferences", "core_persona.life_profile.appearance.daily_outfit_preferences")
 	if nested := copyPromptFields(mapValue(extensions["core_persona.life_profile.appearance"]), "style_preferences", "daily_outfit_preferences"); len(nested) > 0 {
@@ -100,11 +99,6 @@ func wardrobePersonaPromptView(foundation, sections map[string]any) map[string]a
 	}
 	if len(legacyPreferences) > 0 {
 		view["legacy_preferences"] = legacyPreferences
-	}
-	if reference, ok := extensions["core_persona.system_prompt"].(string); ok && reference != "" {
-		view["legacy_style_reference"] = reference
-	} else if reference, ok := extensions["image_prompt"].(string); ok && reference != "" {
-		view["legacy_style_reference"] = reference
 	}
 	return view
 }

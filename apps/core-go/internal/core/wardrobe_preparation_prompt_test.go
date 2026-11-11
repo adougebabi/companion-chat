@@ -47,7 +47,7 @@ func TestWardrobePreparationPromptKeepsPreferencesAndInvalidPlanMembers(t *testi
 	preference := map[string]any{"fabric": "喜欢棉质，避开粗羊毛", "version": json.Number("9007199254740993"), "properties": map[string]any{"item_ids": false}, "price": 0}
 	foundation := map[string]any{"life_profile": map[string]any{"appearance": map[string]any{"style_preferences": preference, "daily_outfit_preferences": []any{"宽松长裤"}, "injuries": "private-historical-injury", "wardrobe_items": []any{"private-historical-stock"}}}}
 	current := map[string]any{"body_fields": map[string]any{"injuries": map[string]any{"status": "known", "value": "当前脚踝不适"}}, "wearing_state": "unknown", "worn_items": []any{map[string]any{"id": "outside-stock", "description": "当前记录", "slot": "top", "availability": "available", "ownership": "owned", "source_verified": true}}}
-	sections := map[string]any{"current_appearance": current, "profile.style_preferences": map[string]any{"fit": "舒适"}, "extensions": map[string]any{"core_persona.system_prompt": "旧卡原文，喜欢莫兰迪色；每句加括号。", "image_prompt": "private-duplicate-image", "mbti": "private-irrelevant-type", "core_persona.life_profile.appearance.style_preferences": map[string]any{"color": "青绿"}}}
+	sections := map[string]any{"current_appearance": current, "profile.style_preferences": map[string]any{"fit": "舒适"}, "extensions": map[string]any{"core_persona.system_prompt": "旧卡原文，喜欢莫兰迪色；转向周末约会。", "image_prompt": "private-duplicate-image", "mbti": "private-irrelevant-type", "core_persona.life_profile.appearance.style_preferences": map[string]any{"color": "青绿"}}}
 	sharedPreferences := map[string]any{"clothing": "拒绝皮革", "allow_leather": false, "quota": 0, "version": json.Number("9007199254740993")}
 	profilePreferences := map[string]any{"clothing": "不穿裙子", "allow_skirts": false, "quota": 0, "version": json.Number("9007199254740993")}
 	sections["life_profile"] = map[string]any{"preferences": sharedPreferences, "character_constraints": []any{"服饰不得使用动物皮毛"}}
@@ -74,8 +74,11 @@ func TestWardrobePreparationPromptKeepsPreferencesAndInvalidPlanMembers(t *testi
 		if jsonString(persona["character_constraints"]) != jsonString(mapValue(sections["life_profile"])["character_constraints"]) || jsonString(persona["profile_character_constraints"]) != jsonString(sections["profile.character_constraints"]) {
 			t.Fatal("shared or selected profile character constraint lost")
 		}
-		if strings.Contains(jsonString(messages), "private-") || strings.Count(jsonString(input), "旧卡原文") != 1 || strings.Contains(stringValue(messages[0]["content"]), "旧卡原文") {
-			t.Fatal("irrelevant persona data leaked or legacy text promoted")
+		if strings.Contains(jsonString(messages), "private-") || strings.Contains(jsonString(messages), "旧卡原文") || strings.Contains(jsonString(messages), "转向周末约会") {
+			t.Fatal("mixed legacy card text leaked into the wardrobe task")
+		}
+		if mapValue(mapValue(persona["legacy_preferences"])["core_persona.life_profile.appearance.style_preferences"])["color"] != "青绿" {
+			t.Fatal("declared legacy style preference lost")
 		}
 		members := mapValue(arrayValue(input["plans"])[0])
 		if !reflect.DeepEqual(decisionServiceRefValues(members["unusable_item_refs"]), []string{"archived", "dress"}) {
@@ -124,7 +127,8 @@ func TestWardrobePreparationPromptPhysicalRequest(t *testing.T) {
 				return fakeProviderResult{Structured: map[string]any{"items": []any{}, "plans": []any{}, "wear_item_refs": []any{}, "reason": "受控传输测试"}}
 			})
 			life := map[string]any{"instant": "2026-10-30T01:36:26.918+00:00", "timezone": "Asia/Shanghai", "revision": 7, "context_revision": "private-life"}
-			messages := wardrobePreparationMessages(nil, nil, life, nil, nil, selectOnly)
+			sections := map[string]any{"extensions": map[string]any{"core_persona.system_prompt": "旧卡：转向周末约会", "core_persona.life_profile.appearance.style_preferences": map[string]any{"color": "青绿"}}}
+			messages := wardrobePreparationMessages(nil, sections, life, nil, nil, selectOnly)
 			ctx := WithADKCapabilityInvoker(context.Background(), &adkFakeInvoker{}, &ADKCapabilityTrace{})
 			_, err := (&ProviderClient{HTTP: &http.Client{Transport: router}}).generateWithEino(ctx, EinoModelCall{
 				Assignment: providerAssignment{Role: "cognitive_assessment", BaseURL: "http://wardrobe.invalid", ModelID: "fake", Timeout: 10 * time.Second, TokenBudget: 1},
@@ -141,7 +145,7 @@ func TestWardrobePreparationPromptPhysicalRequest(t *testing.T) {
 				}
 			}
 			physical := arrayValue(wire["messages"])
-			if len(physical) != 2 || strings.Count(jsonString(physical), "# 运行协议") != 1 || strings.Contains(jsonString(physical), "private-") || wire["response_format"] == nil {
+			if len(physical) != 2 || strings.Count(jsonString(physical), "# 运行协议") != 1 || strings.Contains(jsonString(physical), "private-") || strings.Contains(jsonString(physical), "转向周末约会") || !strings.Contains(jsonString(physical), "青绿") || wire["response_format"] == nil {
 				t.Fatal("physical protocol/structured transport changed")
 			}
 			input := decodeObject([]byte(stringValue(mapValue(physical[1])["content"])))
