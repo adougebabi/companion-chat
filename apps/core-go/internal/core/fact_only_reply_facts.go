@@ -78,6 +78,52 @@ func factOnlyReplyEvidenceFact(entry ContextReference, projection ContextProject
 	return map[string]any{"kind": string(entry.Kind), "value": value, "certainty": "仅证明对应来源的陈述或真实工具状态；不证明语义成立、对方接受或Goal完成。"}
 }
 
+// Moment already receives Goals through its independent Goal view. Actor
+// facts have a separate Core envelope and an opaque owner-supplied value.
+func momentReplyEvidenceFact(entry ContextReference, projection ContextProjection) map[string]any {
+	row := decodeObject(entry.Snapshot)
+	if stringValue(row["assertion_type"]) == "inference" {
+		return nil
+	}
+	switch entry.Kind {
+	case ContextReferenceGoal:
+		return nil
+	case ContextReferenceActorFact:
+		return factOnlyReplyEvidenceFact(entry, projection)
+	case ContextReferenceDrive, ContextReferencePreference, ContextReferenceTrigger:
+		value := copyPromptFields(row, "key", "label", "description", "value_schema", "trigger_schema", "value", "confidence", "status", "updated_at", "pressure", "salience", "direction")
+		return map[string]any{"kind": string(entry.Kind), "value": value, "certainty": "对应类型的当前记录；不代表外部事件已经发生。"}
+	case ContextReferenceMemory, ContextReferenceIntention, ContextReferenceDevelopingSelf:
+		return nil
+	}
+	return map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(row), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"}
+}
+
+func momentReplyToolFacts(facts []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(facts))
+	for _, fact := range facts {
+		switch stringValue(fact["kind"]) {
+		case string(ContextReferenceGoal):
+			continue
+		case string(ContextReferenceActorFact):
+			value := mapValue(fact["value"])
+			if value["assertion_type"] == "inference" || value["epistemic_kind"] == "inference" {
+				continue
+			}
+			item := copyPromptFields(fact, "kind", "certainty")
+			item["value"] = copyPromptFields(value, "attribute", "value", "epistemic_kind", "effective_at", "valid_until", "subject")
+			result = append(result, item)
+		case string(ContextReferenceDrive), string(ContextReferencePreference), string(ContextReferenceTrigger):
+			item := copyPromptFields(fact, "kind", "certainty")
+			item["value"] = copyPromptFields(mapValue(fact["value"]), "key", "label", "description", "value_schema", "trigger_schema", "value", "confidence", "status", "updated_at", "pressure", "salience", "direction")
+			result = append(result, item)
+		default:
+			result = append(result, mapValue(replySemanticValue(fact)))
+		}
+	}
+	return result
+}
+
 func factOnlyReplyToolFacts(facts []map[string]any) []map[string]any {
 	result := []map[string]any{}
 	for _, fact := range facts {

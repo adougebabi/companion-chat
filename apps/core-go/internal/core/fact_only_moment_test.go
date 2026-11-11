@@ -86,6 +86,74 @@ func TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy(t *testing.T
 	}
 }
 
+func TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope(t *testing.T) {
+	input := replyContextFixture()
+	input.Scene = replySceneMoment
+	input.Projection.Actors = []map[string]any{{"actor_id": "private-actor", "ref": "actor_user", "type": "human"}}
+	value := map[string]any{"id": "business-id", "source_ref": "business-ref", "revision": 7, "valid": false, "ratio": 0.625, "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}
+	entry := ContextReference{Kind: ContextReferenceActorFact, Snapshot: jsonBytes(map[string]any{
+		"fact_id": "private-fact", "actor_id": "private-actor", "revision": 9, "attribute": "preferences", "value": value, "epistemic_kind": "self_reported",
+	})}
+	fact := momentReplyEvidenceFact(entry, input.Projection)
+	if fact == nil || jsonString(mapValue(fact["value"])["value"]) != jsonString(value) {
+		t.Fatalf("Actor evidence was changed: %#v", fact)
+	}
+	if momentReplyEvidenceFact(ContextReference{Kind: ContextReferenceActorFact, Snapshot: jsonBytes(map[string]any{"epistemic_kind": "inference", "value": "inferred"})}, input.Projection) != nil {
+		t.Fatal("inferred Actor fact became authority")
+	}
+	if momentReplyEvidenceFact(ContextReference{Kind: ContextReferencePreference, Snapshot: jsonBytes(map[string]any{"assertion_type": "inference", "value": "inferred"})}, input.Projection) != nil {
+		t.Fatal("inferred preference became authority")
+	}
+	if momentReplyEvidenceFact(ContextReference{Kind: ContextReferenceGoal, Snapshot: jsonBytes(input.Projection.Goals[0])}, input.Projection) != nil {
+		t.Fatal("Goal snapshot bypassed the independent Goal view")
+	}
+	input.ToolFacts = []map[string]any{fact}
+	for _, kind := range []ContextReferenceKind{ContextReferenceDrive, ContextReferencePreference, ContextReferenceTrigger} {
+		slot := ContextReference{Kind: kind, Snapshot: jsonBytes(map[string]any{"id": "private-slot", "key": "quiet", "value": value, "confidence": 0.8, "update_policy": map[string]any{"private_policy": "secret-policy"}})}
+		input.ToolFacts = append(input.ToolFacts, momentReplyEvidenceFact(slot, input.Projection))
+	}
+	input.ToolFacts = append(input.ToolFacts, map[string]any{"kind": "goal", "value": map[string]any{"next_step": "old-snapshot-strategy"}})
+	before := jsonString(input)
+	var request map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "今天想分享一些阅读感受。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var runtime map[string]any
+	for _, raw := range arrayValue(request["messages"]) {
+		content := stringValue(mapValue(raw)["content"])
+		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+			if err := json.Unmarshal([]byte(text), &runtime); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	facts := arrayValue(runtime["tool_facts"])
+	if len(facts) != 4 {
+		t.Fatalf("physical Moment request changed evidence count: %#v", facts)
+	}
+	for _, fact := range facts {
+		if jsonString(mapValue(mapValue(fact)["value"])["value"]) != jsonString(value) {
+			t.Fatalf("physical Moment request changed Actor evidence: %#v", facts)
+		}
+	}
+	wire := jsonString(runtime)
+	for _, forbidden := range []string{"private-fact", "private-actor", "private-slot", "secret-policy", "old-snapshot-strategy"} {
+		if strings.Contains(wire, forbidden) {
+			t.Fatalf("physical Moment request included %q: %s", forbidden, wire)
+		}
+	}
+	if jsonString(input) != before {
+		t.Fatal("Moment projection mutated evidence")
+	}
+}
+
 func TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker(t *testing.T) {
 	ctx, repo, app, owner, self, conversation := setupDirectPublicationToolTest(t, "moment-cache-identity")
 	config := defaultConversationReplySettings()

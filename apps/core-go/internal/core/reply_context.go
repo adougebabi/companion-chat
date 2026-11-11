@@ -293,7 +293,7 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 	delete(compact, "recent_outcomes")
 	delete(compact, "goal_policy")
 	if len(input.ToolFacts) > 0 {
-		compact["tool_facts"] = input.ToolFacts
+		compact["tool_facts"] = momentReplyToolFacts(input.ToolFacts)
 	}
 	workingInput := WorkingMemoryInput{}
 	keys := make([]string, 0, len(compact))
@@ -306,7 +306,7 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 			continue
 		}
 		value := compact[key]
-		if key != "actor_background" && key != "goals" {
+		if key != "actor_background" && key != "goals" && key != "tool_facts" {
 			value = replySemanticValue(value)
 		}
 		workingInput.RuntimeFacts = append(workingInput.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Required: true, Priority: 100,

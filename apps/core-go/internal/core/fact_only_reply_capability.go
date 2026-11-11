@@ -370,11 +370,9 @@ func (s *factOnlyReplyService) resolveReplyEvidence(ctx context.Context, invocat
 	var toolFacts []map[string]any
 	for _, entry := range entries {
 		if invocation.CapabilityName == "moment.publish" {
-			fact := decodeObject(entry.Snapshot)
-			if stringValue(fact["assertion_type"]) == "inference" || entry.Kind == ContextReferenceMemory || entry.Kind == ContextReferenceIntention || entry.Kind == ContextReferenceDevelopingSelf {
-				continue
+			if fact := momentReplyEvidenceFact(entry, projection); fact != nil {
+				toolFacts = append(toolFacts, fact)
 			}
-			toolFacts = append(toolFacts, map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(fact), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"})
 			continue
 		}
 		if fact := factOnlyReplyEvidenceFact(entry, projection); fact != nil {
