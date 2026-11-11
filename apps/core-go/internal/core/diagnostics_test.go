@@ -581,7 +581,7 @@ func TestPostgresAgentRunDiagnosticsShowLogicalFailureWithoutChangingPhysicalSta
 		t.Fatalf("all logical runs: %#v %v", allRuns, err)
 	}
 	for _, run := range allRuns {
-		if run["run_id"] == "legacy-run" && (run["association_status"] != "unknown" || run["safe_cause"] != "Authorization: Bearer private-token") {
+		if run["run_id"] == "legacy-run" && (run["association_status"] != "unknown" || run["safe_cause"] != "[REDACTED]") {
 			t.Fatalf("legacy run inferred association or changed Owner cause: %#v", run)
 		}
 	}

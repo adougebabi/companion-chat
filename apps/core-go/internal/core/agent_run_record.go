@@ -178,7 +178,8 @@ func (a *App) admitFormalRun(ctx context.Context, definition FormalAgentDefiniti
 		return nil, result, errors.New("agent_run_incomplete: inspect committed results before starting a new business run")
 	}
 	if status == "failed" {
-		return nil, result, fmt.Errorf("agent_run_failed: %s", failure)
+		safe := sanitizeAgentRunResult(*result)
+		return nil, &safe, fmt.Errorf("agent_run_failed: %s", boundedOperationalCause(failure))
 	}
 	if status != "completed" {
 		return nil, result, errors.New("agent_run_status_invalid")
@@ -196,12 +197,10 @@ func (a *App) finishFormalRun(ctx context.Context, record *formalRunRecord, resu
 	failureStage, failureCode := classifyAgentRunFailure(runErr)
 	if runErr != nil {
 		status = "failed"
-		failure = strings.TrimSpace(runErr.Error())
-		if len(failure) > 4096 {
-			failure = failure[:4096]
-		}
+		failure = boundedOperationalCause(runErr.Error())
 	}
-	tag, err := a.DB.Pool().Exec(ctx, `UPDATE public.agent_runs SET status=$4,error_detail=$5,failure_stage=$6,failure_code=$7,result=$8,finished_at=now() WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3 AND status='running'`, record.FluctlightID, record.AgentID, record.RunID, status, failure, failureStage, failureCode, jsonBytes(result))
+	safeResult := sanitizeAgentRunResult(result)
+	tag, err := a.DB.Pool().Exec(ctx, `UPDATE public.agent_runs SET status=$4,error_detail=$5,failure_stage=$6,failure_code=$7,result=$8,finished_at=now() WHERE fluctlight_id=$1 AND agent_id=$2 AND run_id=$3 AND status='running'`, record.FluctlightID, record.AgentID, record.RunID, status, failure, failureStage, failureCode, jsonBytes(safeResult))
 	if err != nil {
 		return fmt.Errorf("record Agent result: %w", err)
 	}
@@ -209,4 +208,19 @@ func (a *App) finishFormalRun(ctx context.Context, record *formalRunRecord, resu
 		return ErrConflict
 	}
 	return nil
+}
+
+func sanitizeAgentRunResult(result ADKStructuredTaskResult) ADKStructuredTaskResult {
+	safe := result
+	safe.Trace = result.Trace.Clone()
+	if safe.Trace == nil {
+		return safe
+	}
+	for index := range safe.Trace.Results {
+		item := &safe.Trace.Results[index]
+		if item.Status == "failed" || item.Status == "rejected" || item.Status == "handled" {
+			item.Output = redactDiagnosticFailureOutput(item.Output)
+		}
+	}
+	return safe
 }

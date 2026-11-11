@@ -82,6 +82,34 @@ func (trace *ADKCapabilityTrace) Snapshot() ([]capability.CapabilityInvocation, 
 	return append([]capability.CapabilityInvocation(nil), trace.Invocations...), append([]capability.CapabilityResult(nil), trace.Results...)
 }
 
+// Clone retains the complete trace identity while allowing a caller to
+// prepare a separate persistence or diagnostic projection without mutating
+// the live Tool results shared with the Agent.
+func (trace *ADKCapabilityTrace) Clone() *ADKCapabilityTrace {
+	if trace == nil {
+		return nil
+	}
+	trace.mu.RLock()
+	defer trace.mu.RUnlock()
+	copyTrace := &ADKCapabilityTrace{
+		Invocations: append([]capability.CapabilityInvocation(nil), trace.Invocations...),
+		Results:     append([]capability.CapabilityResult(nil), trace.Results...),
+	}
+	if trace.ModelCalls != nil {
+		copyTrace.ModelCalls = make(map[string]ADKToolCallModelIdentity, len(trace.ModelCalls))
+		for key, value := range trace.ModelCalls {
+			copyTrace.ModelCalls[key] = value
+		}
+	}
+	if trace.failures != nil {
+		copyTrace.failures = make(map[string]error, len(trace.failures))
+		for key, value := range trace.failures {
+			copyTrace.failures[key] = value
+		}
+	}
+	return copyTrace
+}
+
 func (trace *ADKCapabilityTrace) FindInvocation(callID string) (capability.CapabilityInvocation, bool) {
 	if trace == nil {
 		return capability.CapabilityInvocation{}, false

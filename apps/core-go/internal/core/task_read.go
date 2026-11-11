@@ -51,7 +51,7 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 		}
 	}
 	if lastError != "" {
-		source["last_error"] = boundedLifecycleCause(lastError)
+		source["last_error"] = boundedOperationalCause(lastError)
 	}
 	if kind == "cognition.processing" && stringValue(input["inbox_id"]) != "" {
 		var raw []byte
@@ -94,7 +94,7 @@ func (a *App) OwnerTask(ctx context.Context, owner, id string) (map[string]any, 
 		}
 		step := map[string]any{"id": event, "event_type": eventType, "name": stage, "status": stageStatus, "reason_code": reason, "at": at.Format(time.RFC3339Nano)}
 		if safeCause != "" && kind == "media.generation" {
-			step["safe_cause"] = boundedLifecycleCause(safeCause)
+			step["safe_cause"] = boundedOperationalCause(safeCause)
 		}
 		steps = append(steps, step)
 	}

@@ -76,7 +76,7 @@ func (a *App) agentRunsQuery(ctx context.Context, limit int, correlationID strin
 		if status == "failed" {
 			item["failure_stage"] = firstString(stage, "unknown")
 			item["failure_code"] = safeAgentFailureCode(code, "agent_run_failed")
-			if cause := boundedLifecycleCause(detail); cause != "" {
+			if cause := boundedOperationalCause(detail); cause != "" {
 				item["safe_cause"] = cause
 			}
 		}

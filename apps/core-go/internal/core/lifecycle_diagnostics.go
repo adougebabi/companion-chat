@@ -184,7 +184,7 @@ func lifecycleDiagnosticPayload(value LifecycleDiagnostic, recordedAt time.Time)
 			payload[key] = text
 		}
 	}
-	if cause := boundedLifecycleCause(value.SafeCause); cause != "" {
+	if cause := boundedOperationalCause(value.SafeCause); cause != "" {
 		payload["safe_cause"] = cause
 		payload["first_safe_cause"] = cause
 		payload["latest_safe_cause"] = cause

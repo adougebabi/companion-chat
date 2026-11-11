@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -268,10 +269,22 @@ func redactDiagnostic(value any) any {
 	case map[string]any:
 		result := make(map[string]any, len(typed))
 		imagePart := stringValue(typed["type"]) == "image" || stringValue(typed["type"]) == "image_url"
+		status := stringValue(typed["status"])
+		failedTool := status == "failed" || status == "rejected" || status == "handled"
 		for key, child := range typed {
 			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
 			if diagnosticSecretField(normalized) {
 				result[key] = "[REDACTED_SECRET]"
+				continue
+			}
+			if normalized == "errordetail" || normalized == "errormessage" || normalized == "safecause" || normalized == "firstsafecause" || normalized == "latestsafecause" || normalized == "lasterror" || normalized == "failurereason" {
+				if text, ok := child.(string); ok {
+					result[key] = boundedOperationalCause(text)
+					continue
+				}
+			}
+			if failedTool && normalized == "output" {
+				result[key] = redactDiagnosticFailureOutput(child)
 				continue
 			}
 			if normalized == "imageurl" {
@@ -326,6 +339,54 @@ func redactDiagnostic(value any) any {
 	default:
 		return value
 	}
+}
+
+// Failure output is diagnostic text, but its canonical Tool receipt must stay
+// untouched. Redact obvious credential-bearing strings in a copied projection.
+func redactDiagnosticFailureOutput(value any) any {
+	var scrub func(any) any
+	scrub = func(current any) any {
+		switch typed := current.(type) {
+		case string:
+			if boundedOperationalCause(typed) == "[REDACTED]" {
+				return "[REDACTED]"
+			}
+			return typed
+		case map[string]any:
+			result := make(map[string]any, len(typed))
+			for key, child := range typed {
+				if boundedOperationalCause(key) == "[REDACTED]" {
+					key = "[REDACTED]"
+				}
+				result[key] = scrub(child)
+			}
+			return result
+		case []any:
+			result := make([]any, len(typed))
+			for index, child := range typed {
+				result[index] = scrub(child)
+			}
+			return result
+		case json.RawMessage:
+			if !json.Valid(typed) {
+				return "[REDACTED]"
+			}
+			decoder := json.NewDecoder(bytes.NewReader(typed))
+			decoder.UseNumber()
+			var decoded any
+			if err := decoder.Decode(&decoded); err != nil {
+				return "[REDACTED]"
+			}
+			return scrub(redactDiagnostic(decoded))
+		case []byte:
+			// Byte slices are opaque here and would otherwise be serialized as
+			// base64, hiding a possible credential rather than removing it.
+			return "[REDACTED_BINARY]"
+		default:
+			return current
+		}
+	}
+	return scrub(redactDiagnostic(value))
 }
 
 func diagnosticImagePayloadField(key string) bool {
