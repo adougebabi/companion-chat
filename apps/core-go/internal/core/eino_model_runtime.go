@@ -81,6 +81,23 @@ type queuedToolCallingChatModel struct {
 	toolCallFallback          *schema.Message
 }
 
+// Retries share a Provider idempotency key, but each actual request records
+// its effective model configuration separately. Diagnostics remain best effort.
+func (m *queuedToolCallingChatModel) recordPhysicalAttempt(ctx context.Context, requestID string, sequence uint64, attempt int, transport string) {
+	if m.provider == nil || m.provider.DB == nil {
+		return
+	}
+	diagnostics := providerPromptDiagnostics(ctx)
+	payload := map[string]any{
+		"run_id": firstString(stringValue(diagnostics["run_id"]), m.correlationID), "model_call_id": requestID,
+		"physical_attempt_id": randomID("physical_attempt_"), "sequence": sequence, "attempt": attempt, "transport": transport,
+		"model_configuration": providerAssignmentDiagnostics(m.assignment),
+	}
+	support, diagnosticCtx := m.provider.runtimeSupport(), context.WithoutCancel(ctx)
+	fluctlightID, correlationID := stringValue(diagnostics["fluctlight_id"]), m.correlationID
+	go support.RecordDiagnosticEvent(diagnosticCtx, "provider.physical_attempt", "info", fluctlightID, requestID, correlationID, payload)
+}
+
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
 	if terminal, ok := visibleReplyEndsTurn(ctx, input); ok {
 		return terminal, nil
@@ -136,6 +153,7 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 	}
 	started := time.Now()
 	result, err := runProviderQueued(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.Message, error) {
+		attempt := 0
 		generate := func() (*schema.Message, error) {
 			attemptCtx := runCtx
 			if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
@@ -147,7 +165,10 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 			if err := m.provider.guardVisionInput(attemptCtx, m.assignment, input); err != nil {
 				return nil, err
 			}
-			return m.inner.Generate(attemptCtx, input, opts...)
+			attempt++
+			result, err := m.inner.Generate(attemptCtx, input, opts...)
+			m.recordPhysicalAttempt(attemptCtx, callRequestID, sequence, attempt, "generate")
+			return result, err
 		}
 		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
 			return generate()
@@ -274,6 +295,7 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 		m.recordUsageComparison(callCtx, full)
 	})
 	stream, err := runProviderQueuedStream(m.provider, callCtx, m.role, m.scenario, m.priority, callDiagnosticID, func(runCtx context.Context) (*schema.StreamReader[*schema.Message], error) {
+		attempt := 0
 		open := func() (*schema.StreamReader[*schema.Message], error) {
 			attemptCtx := runCtx
 			if gate := kevPersona(ctx); conversationPublicationProposal(ctx) || (gate != nil && gate.needsCheck(ctx)) {
@@ -282,7 +304,10 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 			if err := m.provider.guardVisionInput(attemptCtx, m.assignment, input); err != nil {
 				return nil, err
 			}
-			return m.inner.Stream(attemptCtx, input, opts...)
+			attempt++
+			stream, err := m.inner.Stream(attemptCtx, input, opts...)
+			m.recordPhysicalAttempt(attemptCtx, callRequestID, sequence, attempt, "stream")
+			return stream, err
 		}
 		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
 			return open()

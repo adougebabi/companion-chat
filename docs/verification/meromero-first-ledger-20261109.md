@@ -97,6 +97,8 @@
 
 - 2026-11-11：私聊草稿新增独立于 Writer 的原认知模型快照，等待媒体后的续接使用原绑定；旧草稿无快照保留既有选模并记录诊断，WakeUp 不使用私聊认知快照。隔离数据库与受控 Provider 验证配置从 `main-a` 改为 `main-b` 后续接仍请求 `main-a`，草稿不含测试密钥，旧草稿和媒体权限回归通过：`/private/tmp/fluctlight-t02-continuation-verified.log`。该续接测试在观察到物理请求后故意让 Provider 失败，不能作为完整媒体发布验收。
 
+- 2026-11-11：按 T02“每次请求记录有效配置与版本”补充 ADK 上游重试的逐次配置事件，保留相同请求幂等键，不记录密钥；按现行诊断规范异步尽力写入，不阻断业务，进程中断或诊断存储失败时不能保证留存。隔离 PostgreSQL 验证普通与流式重试、同一逻辑任务重新进入、诊断阻塞及工具不重复执行：`/private/tmp/fluctlight-t02-attempt-config-final.log`。
+
 - 2026-11-11：按用户纠正停止扩展原始任务外的地址/密钥原子保存；已登记独立 Bug `provider-endpoint-credential-atomic-save`，未完成实验仅保存在分支 `codex/t02-provider-atomic-wip` 的提交 `f644c8bc`，未合入主线。
 
 - 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
