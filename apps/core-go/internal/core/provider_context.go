@@ -1514,7 +1514,7 @@ func compactCorePersona(projection ContextProjection) map[string]any {
 // State semantics are not rewritten here; this function only changes the
 // Provider input shape.
 func compactCurrentState(projection ContextProjection) map[string]any {
-	result := cloneMap(projection.CurrentState)
+	result := mapValue(copyPromptData(projection.CurrentState))
 	if result == nil {
 		result = make(map[string]any, 2)
 	}

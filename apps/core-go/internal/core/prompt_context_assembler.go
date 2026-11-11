@@ -720,7 +720,7 @@ func formatRuntimeContextTimeValue(value any, key string, zone *time.Location) a
 	case map[string]any:
 		result := make(map[string]any, len(typed))
 		for childKey, childValue := range typed {
-			if promptOpaqueDataField(childKey, childValue) {
+			if childKey == "world_environment" || promptOpaqueDataField(childKey, childValue) {
 				result[childKey] = copyPromptData(childValue)
 				continue
 			}

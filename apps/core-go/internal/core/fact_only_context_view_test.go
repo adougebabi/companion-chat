@@ -5,9 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cloudwego/eino/schema"
 )
@@ -107,6 +109,56 @@ func TestFactOnlyStateExpiryIsFieldLocal(t *testing.T) {
 		if mapValue(fields["unknown"])["status"] != "unknown" || mapValue(fields["cleared"])["status"] != "cleared" || mapValue(fields["flag"])["value"] != false {
 			t.Fatal("expiry erased unrelated state/false", fields)
 		}
+	}
+}
+
+func TestWriterCurrentStatePreservesOpaqueBodyAndWorldValues(t *testing.T) {
+	input := replyContextFixture()
+	value := map[string]any{"id": "business-id", "source_ref": "business-ref", "revision": 7, "large": json.Number("9007199254740993"), "event_at": "2026-10-16T00:00:00Z", "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}
+	input.Projection.CurrentState = map[string]any{"data": map[string]any{
+		"life_context":      map[string]any{"source": "confirmed_event", "scene": "书房", "world_environment": value},
+		"appearance":        map[string]any{"ref": "appearance:private-ref", "wearing_state": "known", "body_fields": map[string]any{"custom": map[string]any{"status": "known", "value": value}}, "worn_items": []any{map[string]any{"id": "private-item", "slot": "top", "description": "上衣"}}, "used_items": []any{map[string]any{"id": "private-object", "event_id": "private-event", "description": "书", "activity": "阅读"}}},
+		"active_activities": []any{map[string]any{"id": "private-activity", "kind": "reading", "status": "in_progress"}},
+	}}
+	before := jsonString(input)
+	state := factOnlyCurrentState(input.Projection, false)
+	data := mapValue(state["data"])
+	appearance := mapValue(data["appearance"])
+	if jsonString(mapValue(mapValue(appearance["body_fields"])["custom"])["value"]) != jsonString(value) || jsonString(mapValue(data["life_context"])["world_environment"]) != jsonString(value) || mapValue(data["life_context"])["source"] != "confirmed_event" {
+		t.Fatalf("Writer changed body/world business values: %#v", data)
+	}
+	if strings.Contains(jsonString(state), "private-") || jsonString(input) != before {
+		t.Fatal("Writer leaked Core state identifiers or mutated the source")
+	}
+	prompt, err := buildFactOnlyReplyContext(input, providerAssignment{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	index := promptMessageOriginIndex(prompt, "scoped_runtime_projection")
+	content := stringValue(prompt.Messages[index]["content"])
+	text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+	decoder := json.NewDecoder(strings.NewReader(text))
+	decoder.UseNumber()
+	var runtime map[string]any
+	if err := decoder.Decode(&runtime); err != nil {
+		t.Fatal(err)
+	}
+	physicalState := mapValue(mapValue(runtime["current_state"])["data"])
+	if jsonString(mapValue(mapValue(physicalState["appearance"])["body_fields"])["custom"]) != jsonString(mapValue(appearance["body_fields"])["custom"]) || jsonString(mapValue(physicalState["life_context"])["world_environment"]) != jsonString(value) {
+		t.Fatal("Writer request changed opaque body/world data")
+	}
+	var wire map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		wire = payload
+		return fakeProviderResult{Text: "好，我明白了。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err = app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(jsonString(wire["messages"]), "9007199254740993") || !strings.Contains(jsonString(wire["messages"]), "business-ref") || strings.Contains(jsonString(wire["messages"]), "private-activity") {
+		t.Fatal("physical Writer request changed business values or leaked Core activity identity")
 	}
 }
 

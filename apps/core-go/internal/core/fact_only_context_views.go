@@ -173,7 +173,7 @@ func factOnlyCurrentState(projection ContextProjection, cognition bool) map[stri
 	if len(life) > 0 {
 		item := compactLifeContextForSurface(life, projection.ReferenceIndex, ProviderContextSurfaceFactOnlyCognition)
 		if !cognition {
-			item = mapValue(replySemanticValue(item))
+			item = copyPromptFields(item, "source", "authority_status", "scene", "activity", "location", "current_time", "timezone", "effective_at", "expires_at", "world_environment")
 		}
 		if factOnlyExpired(life, "expires_at", projection.AsOf) {
 			// Expiry removes only this source's transient assertions.
@@ -213,7 +213,7 @@ func factOnlyCurrentState(projection ContextProjection, cognition bool) map[stri
 			item["body_fields"] = fields
 		}
 		if !cognition {
-			item = mapValue(replySemanticValue(item))
+			item = replyAppearanceView(item)
 		}
 		result["appearance"] = item
 	}
@@ -227,7 +227,11 @@ func factOnlyCurrentState(projection ContextProjection, cognition bool) map[stri
 		if factOnlyExpired(row, "active_until", projection.AsOf) {
 			continue
 		}
-		item := factOnlyFields(row, "id", "kind", "status", "started_at", "not_before", "active_until", "ready_for_resolution")
+		fields := []string{"kind", "status", "started_at", "not_before", "active_until", "ready_for_resolution"}
+		if cognition {
+			fields = append(fields, "id")
+		}
+		item := factOnlyFields(row, fields...)
 		if request := factOnlyFields(mapValue(row["request"]), "category", "slot", "description", "desired_hair_length", "desired_hair_color"); len(request) > 0 {
 			item["request"] = request
 		}
@@ -244,6 +248,20 @@ func factOnlyCurrentState(projection ContextProjection, cognition bool) map[stri
 		result["mood"] = mood
 	}
 	return map[string]any{"subject": "actor_self", "data": result}
+}
+
+func replyAppearanceView(appearance map[string]any) map[string]any {
+	result := copyPromptFields(appearance, "wearing_state", "body_fields")
+	for _, key := range []string{"worn_items", "used_items"} {
+		if rawItems, exists := appearance[key]; exists {
+			items := make([]map[string]any, 0)
+			for _, raw := range arrayValue(rawItems) {
+				items = append(items, copyPromptFields(mapValue(raw), "slot", "category", "description", "activity", "started_at", "source_verified"))
+			}
+			result[key] = items
+		}
+	}
+	return result
 }
 
 func factOnlyExpired(value map[string]any, key, asOf string) bool {
@@ -303,7 +321,7 @@ func factOnlySchedule(projection ContextProjection, cognition bool) map[string]a
 		}
 		item := mapValue(compactScheduleValueForSurface(row, projection.ReferenceIndex, ProviderContextSurfaceFactOnlyCognition))
 		if !cognition {
-			item = mapValue(replySemanticValue(item))
+			item = copyPromptFields(item, "start_at", "end_at", "activity", "scene", "location", "item_type", "status", "action_status", "priority", "flexibility", "interruption_cost", "local_start_time", "local_end_time", "local_time_range", "local_start_at", "local_end_at")
 		}
 		result[key] = item
 	}
