@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "T06 部分完成：已分批提交 direct 同批媒体与回复的未执行保护、有界重复检测，以及回复读取既有媒体取消/失败状态和附件选择；隔离 PostgreSQL 与受控 Provider 回归通过。仍未完成：无媒体调用却声称已发送的正文语义核验；Temporal 取消与媒体状态、在途 Activity、已交付效果、视觉身份及 ActionOutcome 的一致性；其余 queued/ready/failed/delivered/cancelled/部分完成全矩阵与真实渲染验收。取消直接落库实验因独立复核发现竞态而撤回，实验 patch 和测试保存在 /private/tmp/fluctlight-t06-cancellation-reconcile-wip.patch 与 /private/tmp/fluctlight-t06-cancellation-reconcile-test.go。依用户指示卡壳先跳过，后续回到 execute 继续，不降低原验收条件；已登记任务外媒体重试 bug 的未提交草稿保持原样。",
   "result": "",
   "created": "2026-11-10T08:34:30.844802Z",
-  "updated": "2026-11-10T08:34:30.844815Z",
+  "updated": "2026-11-11T16:11:49.071318Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-e51d50f1dd3a6b42d710",
+        "unit": "define",
+        "executor": "codex-t06-delivery",
+        "input_version": "2ce98d0bda0c415d17e960b2be9ec1c0d9d65e9e7a62fb0072e0973c1d7ec891",
+        "candidate_version": "2ce98d0bda0c415d17e960b2be9ec1c0d9d65e9e7a62fb0072e0973c1d7ec891",
+        "started": "2026-11-11T15:29:58.243474Z",
+        "ended": "2026-11-11T15:30:29.2022Z",
+        "status": "pass",
+        "reason": "按原 T06 处理真实工具/媒体状态、幂等恢复和发布核验；首先处理隔离红测复现的 direct 无附件却声称已发送。不能仅用正则或同一模型自报一致，不能固定引入 Qwen 或对普通聊天强制多模型审核；保留失败回执、角色意愿及已有权限事务。真实模型或渲染受限时如实跳过。"
+      },
+      {
+        "id": "AT-3c95a9759d9c8f709740",
+        "unit": "analysis",
+        "executor": "codex-t06-delivery",
+        "input_version": "2ce98d0bda0c415d17e960b2be9ec1c0d9d65e9e7a62fb0072e0973c1d7ec891",
+        "candidate_version": "2ce98d0bda0c415d17e960b2be9ec1c0d9d65e9e7a62fb0072e0973c1d7ec891",
+        "started": "2026-11-11T15:30:41.705738Z",
+        "ended": "2026-11-11T15:35:32.081383Z",
+        "status": "pass",
+        "reason": "direct 在发布前可读取同作用域的真实 native 轨迹，但同批次媒体调用可能尚无回执，ready/accepted 也不证明送达；现有独立一致性检查只覆盖 fact-only 的换装失败，不能拦截无工具时的虚构图片声明。先修已登记的分支媒体质量重试丢失上一轮真实反馈，并核对同批次发布与真实回执边界；语义检查必须避免只靠正则、自报一致或固定 Qwen，未能证明可靠前保持 direct 非默认。"
+      },
+      {
+        "id": "AT-886123756c4c45699f3a",
+        "unit": "execute",
+        "executor": "codex-t06-delivery",
+        "input_version": "2ce98d0bda0c415d17e960b2be9ec1c0d9d65e9e7a62fb0072e0973c1d7ec891",
+        "candidate_version": "e2263762311c7484910b2e47af4cc31f08e82bdbf82ec4b386f836b476234205",
+        "started": "2026-11-11T15:35:45.151426Z",
+        "ended": "2026-11-11T16:11:38.207793Z",
+        "status": "fail",
+        "reason": "T06 部分完成：已分批提交 direct 同批媒体与回复的未执行保护、有界重复检测，以及回复读取既有媒体取消/失败状态和附件选择；隔离 PostgreSQL 与受控 Provider 回归通过。仍未完成：无媒体调用却声称已发送的正文语义核验；Temporal 取消与媒体状态、在途 Activity、已交付效果、视觉身份及 ActionOutcome 的一致性；其余 queued/ready/failed/delivered/cancelled/部分完成全矩阵与真实渲染验收。取消直接落库实验因独立复核发现竞态而撤回，实验 patch 和测试保存在 /private/tmp/fluctlight-t06-cancellation-reconcile-wip.patch 与 /private/tmp/fluctlight-t06-cancellation-reconcile-test.go。依用户指示卡壳先跳过，后续回到 execute 继续，不降低原验收条件；已登记任务外媒体重试 bug 的未提交草稿保持原样。"
+      }
+    ],
     "checks": null
   }
 }
