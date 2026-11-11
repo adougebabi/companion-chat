@@ -14,7 +14,7 @@ type factOnlyContextView struct {
 }
 
 // Copy the complete value; prompt size never permits erasing a required field.
-func factOnlyCopyValue(value any) any { return cloneMap(map[string]any{"value": value})["value"] }
+func factOnlyCopyValue(value any) any { return copyPromptData(value) }
 
 func factOnlyFields(value map[string]any, keys ...string) map[string]any {
 	result := map[string]any{}
@@ -55,7 +55,7 @@ func factOnlyContextFacts(projection ContextProjection, cognition bool) factOnly
 		if cognition {
 			facts["actor_background"] = background
 		} else {
-			facts["actor_background"] = replySemanticValue(background)
+			facts["actor_background"] = replyActorBackgroundView(background)
 		}
 	}
 	if len(projection.CommunicationState) > 0 {
@@ -109,6 +109,14 @@ func factOnlyContextFacts(projection ContextProjection, cognition bool) factOnly
 		"as_of": projection.AsOf, "source_fact_id": projection.SourceFactID, "facts_revision": projection.CurrentFactsRevision,
 		"life_revision": projection.LifeContextRevision, "working_profile_id": profile,
 	}}
+}
+
+func replyActorBackgroundView(background []map[string]any) []map[string]any {
+	result := make([]map[string]any, 0, len(background))
+	for _, row := range background {
+		result = append(result, copyPromptFields(row, "attribute", "value", "value_state", "subject", "epistemic_kind", "effective_at", "transition_kind", "interpretation_boundary"))
+	}
+	return result
 }
 
 func factOnlyAddRef(item, source map[string]any, index ContextReferenceIndex, kind ContextReferenceKind) {

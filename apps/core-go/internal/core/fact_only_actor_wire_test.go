@@ -1,10 +1,14 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestFactOnlyActorWirePreservesEveryFieldAndOrder(t *testing.T) {
@@ -55,6 +59,63 @@ func TestFactOnlyActorWirePreservesEveryFieldAndOrder(t *testing.T) {
 		t.Fatal("representation did not reduce real wire estimate")
 	}
 	t.Logf("same-data Actor context estimate %d -> %d", EstimatePromptTokens(original), EstimatePromptTokens(wire))
+}
+
+func TestWriterActorBusinessValueSurvivesPhysicalPromptProjection(t *testing.T) {
+	input := replyContextFixture()
+	value := map[string]any{"id": "business-id", "item_id": "business-item", "source_ref": "business-ref", "revision": 7, "large": json.Number("9007199254740993"), "event_at": "2026-10-16T00:00:00Z", "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}
+	input.Projection.Actors = []map[string]any{{"actor_id": input.Projection.OwnerActorID, "ref": "actor_user", "type": "human"}}
+	input.Projection.ActorFacts = []map[string]any{{"actor_id": input.Projection.OwnerActorID, "ref": "actor_fact:private-ref", "attribute": "preferences", "value": value, "epistemic_kind": "self_reported"}}
+	before := jsonString(input)
+	prompt, err := buildFactOnlyReplyContext(input, providerAssignment{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	index := promptMessageOriginIndex(prompt, "scoped_runtime_projection")
+	if index < 0 {
+		t.Fatal("missing runtime projection")
+	}
+	content := stringValue(prompt.Messages[index]["content"])
+	body := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+	decoder := json.NewDecoder(strings.NewReader(body))
+	decoder.UseNumber()
+	var runtime map[string]any
+	if err := decoder.Decode(&runtime); err != nil {
+		t.Fatal(err)
+	}
+	background := arrayValue(runtime["actor_background"])
+	if len(background) != 1 || jsonString(mapValue(background[0])["value"]) != jsonString(value) {
+		t.Fatalf("Writer changed actor-owned business data: %#v", background)
+	}
+	if strings.Contains(body, "actor_fact:private-ref") || strings.Contains(body, input.Projection.OwnerActorID) || jsonString(input) != before {
+		t.Fatal("Writer leaked Core actor metadata or mutated the source")
+	}
+	var request map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "好，我记住了。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err = app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var physicalRuntime map[string]any
+	for _, raw := range arrayValue(request["messages"]) {
+		content := stringValue(mapValue(raw)["content"])
+		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+			decoder := json.NewDecoder(strings.NewReader(text))
+			decoder.UseNumber()
+			if err := decoder.Decode(&physicalRuntime); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	physicalBackground := arrayValue(physicalRuntime["actor_background"])
+	if len(physicalBackground) != 1 || jsonString(mapValue(physicalBackground[0])["value"]) != jsonString(value) {
+		t.Fatal("physical Writer request changed actor-owned business data")
+	}
 }
 
 // Optional private capture, not a checked-in user-data fixture or live model

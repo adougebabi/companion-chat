@@ -41,7 +41,7 @@ func factOnlyActorBackgroundWire(value any) any {
 
 // Factor repeated Actor provenance deterministically, without token policy.
 func renderFactOnlyRuntimeContext(value map[string]any) string {
-	copy := cloneMap(value)
+	copy := copyPromptData(value).(map[string]any)
 	if background, ok := copy["actor_background"]; ok {
 		copy["actor_background"] = factOnlyActorBackgroundWire(background)
 	}
