@@ -73,14 +73,20 @@ func TestPostgresPersonaPreparationAdmissionCompileReplay(t *testing.T) {
 func TestPostgresPersonaPreparationSaveFailureRecoveryAndCAS(t *testing.T) {
 	fail := true
 	calls := 0
-	router := newFakeProviderRouter().on("persona_compilation_response", func(_ map[string]any) fakeProviderResult {
+	var models []string
+	router := newFakeProviderRouter().on("persona_compilation_response", func(payload map[string]any) fakeProviderResult {
 		calls++
+		models = append(models, stringValue(payload["model"]))
 		if fail {
 			return fakeProviderResult{Status: 500}
 		}
 		return fakeProviderResult{Structured: map[string]any{"portrait_text": "摇光温暖直接，喜欢咖啡。"}}
 	})
 	ctx, repo, app := personaPreparationFixture(t, router)
+	role := agentModelBindingKey(FormalAgentPersonaCompilation, personaPreparationModelVariant)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,'preparation-provider','first-model',30)`, role); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := app.ProcessPersonaPreparationIntent(ctx, latestPreparationID(t, ctx, repo)); err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +118,9 @@ func TestPostgresPersonaPreparationSaveFailureRecoveryAndCAS(t *testing.T) {
 	if _, err = app.RecoverPersonaPreparation(ctx, "prep-owner", "prep-role", 0, "recover"); !errors.Is(err, ErrConflict) {
 		t.Fatal("stale recovery accepted", err)
 	}
+	if _, err = repo.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id='next-model' WHERE role=$1`, role); err != nil {
+		t.Fatal(err)
+	}
 	fail = false
 	first, err := app.RecoverPersonaPreparation(ctx, "prep-owner", "prep-role", 1, "recover")
 	if err != nil || first["id"] == id {
@@ -123,6 +132,9 @@ func TestPostgresPersonaPreparationSaveFailureRecoveryAndCAS(t *testing.T) {
 	}
 	if _, err = app.ProcessPersonaPreparationIntent(ctx, stringValue(first["id"])); err != nil {
 		t.Fatal(err)
+	}
+	if len(models) < 2 || models[0] != "first-model" || models[len(models)-1] != "next-model" {
+		t.Fatalf("explicit new preparation did not use the current model: %v", models)
 	}
 	if err = repo.Pool().QueryRow(ctx, "SELECT source_revision FROM public.fluctlight_working_personas WHERE fluctlight_id='prep-role'").Scan(&revision); err != nil || revision != 1 {
 		t.Fatal(revision, err)

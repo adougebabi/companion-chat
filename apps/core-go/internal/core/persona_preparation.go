@@ -70,8 +70,14 @@ func (a *App) AdmitFoundationDecisionExpected(ctx context.Context, actor, fid, p
 func enqueuePersonaPreparationTx(ctx context.Context, tx pgx.Tx, owner, fid string, revision int, source, key string) (string, error) {
 	id := "persona_compile_" + stableDigest(fmt.Sprintf("%s:%s:%d:%s", owner, fid, revision, key))
 	payload := map[string]any{"intent_id": id, "fluctlight_id": fid, "owner_actor_id": owner, "expected_revision": revision, "source": source, "source_fact_id": id}
-	if _, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle',$3,$4) ON CONFLICT DO NOTHING`, id, "persona-compile:"+id, personaPreparationIntent, jsonBytes(payload)); err != nil {
+	inserted, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle',$3,$4) ON CONFLICT DO NOTHING`, id, "persona-compile:"+id, personaPreparationIntent, jsonBytes(payload))
+	if err != nil {
 		return "", err
+	}
+	if inserted.RowsAffected() == 1 {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.persona_preparation_model_snapshots(intent_id) VALUES($1)`, id); err != nil {
+			return "", err
+		}
 	}
 	if err := appendOutboxTx(ctx, tx, "persona.compilation.requested", "fluctlight", fid, fid, id, "persona-compile:"+id, "persona-compilation:"+id, payload); err != nil {
 		return "", err
@@ -138,7 +144,7 @@ func (a *App) ProcessPersonaPreparationIntent(ctx context.Context, id string) (m
 	if err := a.DB.Pool().QueryRow(ctx, `SELECT initialization_mode FROM public.fluctlights WHERE id=$1`, fid).Scan(&mode); err != nil {
 		return nil, err
 	}
-	compiled, err := a.compileFoundationWorkingPersonas(ctx, fid, resource.CorePersona, revision, mode, true)
+	compiled, err := a.compileFoundationWorkingPersonas(withPersonaPreparationModelIntent(ctx, id), fid, resource.CorePersona, revision, mode, true)
 	if err != nil {
 		a.recordPersonaPreparationFailure(ctx, id)
 		return nil, err

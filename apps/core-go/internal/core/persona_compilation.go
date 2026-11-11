@@ -249,7 +249,12 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 	if err != nil {
 		return CompiledWorkingPersona{}, err
 	}
-	assignment, err := provider.assignment(runCtx, "initialization")
+	var assignment providerAssignment
+	if intentID, ok := runCtx.Value(personaPreparationModelIntentKey{}).(string); ok && intentID != "" {
+		assignment, err = a.personaPreparationAssignment(runCtx, intentID)
+	} else {
+		assignment, err = provider.assignment(runCtx, "initialization")
+	}
 	if err != nil {
 		diagnosticCtx := ensureProviderAttemptIdentity(runCtx)
 		diagnosticMessages := formalPromptMessages(FormalAgentPersonaCompilation, formatProviderMessagesForRole(messages, "initialization"))
