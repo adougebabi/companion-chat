@@ -1,6 +1,9 @@
 package core
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 // The Writer is a child of the current native loop. Optional model-selected
 // refs must not decide whether it learns that a just-attempted action failed.
@@ -90,6 +93,16 @@ func momentReplyEvidenceFact(entry ContextReference, projection ContextProjectio
 		return nil
 	case ContextReferenceActorFact:
 		return factOnlyReplyEvidenceFact(entry, projection)
+	case ContextReferenceActiveMemory:
+		value := momentReplyActiveMemoryEvidence(row)
+		if refs := arrayValue(row["actor_refs"]); len(refs) > 0 {
+			associated := make([]map[string]any, 0, len(refs))
+			for _, raw := range refs {
+				associated = append(associated, momentReplyAssociatedActor(actorRefForID(projection.Actors, stringValue(raw))))
+			}
+			value["associated_actors"] = associated
+		}
+		return map[string]any{"kind": string(entry.Kind), "value": value, "certainty": "关联人物不一定是内容主体；记忆或转述不能代替当前状态或真实结果。"}
 	case ContextReferenceDrive, ContextReferencePreference, ContextReferenceTrigger:
 		value := copyPromptFields(row, "key", "label", "description", "value_schema", "trigger_schema", "value", "confidence", "status", "updated_at", "pressure", "salience", "direction")
 		return map[string]any{"kind": string(entry.Kind), "value": value, "certainty": "对应类型的当前记录；不代表外部事件已经发生。"}
@@ -97,6 +110,31 @@ func momentReplyEvidenceFact(entry ContextReference, projection ContextProjectio
 		return nil
 	}
 	return map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(row), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"}
+}
+
+func momentReplyActiveMemoryEvidence(row map[string]any) map[string]any {
+	result := copyPromptFields(row, "kind", "content", "status", "confidence", "importance", "source_validity", "original_time_expression", "valid_from", "valid_until", "time_precision", "timezone", "last_relevant_at", "created_at", "updated_at")
+	if raw, exists := row["associated_actors"]; exists {
+		associated := make([]map[string]any, 0)
+		for _, item := range arrayValue(raw) {
+			associated = append(associated, momentReplyAssociatedActor(mapValue(item)))
+		}
+		result["associated_actors"] = associated
+	}
+	return result
+}
+
+func momentReplyAssociatedActor(row map[string]any) map[string]any {
+	view := copyPromptFields(row, "type", "role", "label", "display_name")
+	alias := firstString(row["actor"], stringValue(row["ref"]))
+	suffix := []rune(strings.TrimPrefix(alias, "actor_"))
+	// Actor projection continues with one-rune aliases after actor_z.
+	if alias == "actor_self" || alias == "actor_user" || strings.HasPrefix(alias, "actor_") && len(suffix) == 1 && suffix[0] >= 'a' {
+		view["actor"] = alias
+	} else {
+		view["actor"] = "unknown"
+	}
+	return view
 }
 
 func momentReplyToolFacts(facts []map[string]any) []map[string]any {
@@ -112,6 +150,10 @@ func momentReplyToolFacts(facts []map[string]any) []map[string]any {
 			}
 			item := copyPromptFields(fact, "kind", "certainty")
 			item["value"] = copyPromptFields(value, "attribute", "value", "epistemic_kind", "effective_at", "valid_until", "subject")
+			result = append(result, item)
+		case string(ContextReferenceActiveMemory):
+			item := copyPromptFields(fact, "kind", "certainty")
+			item["value"] = momentReplyActiveMemoryEvidence(mapValue(fact["value"]))
 			result = append(result, item)
 		case string(ContextReferenceDrive), string(ContextReferencePreference), string(ContextReferenceTrigger):
 			item := copyPromptFields(fact, "kind", "certainty")

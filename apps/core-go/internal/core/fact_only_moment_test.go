@@ -154,6 +154,145 @@ func TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope(t *testing
 	}
 }
 
+func TestMomentActiveMemoryEvidenceKeepsAssociationsWithoutCoreIDs(t *testing.T) {
+	input := replyContextFixture()
+	input.Scene = replySceneMoment
+	input.Projection.Actors = []map[string]any{
+		{"actor_id": "private-memory-actor", "ref": "actor_user", "type": "human"},
+		{"actor_id": "private-third-actor", "ref": "actor_c", "type": "human"},
+		{"actor_id": "private-extra-actor", "ref": "actor_{", "type": "human"},
+	}
+	row := map[string]any{
+		"id": "private-active-memory", "owner_fluctlight_id": input.Projection.FluctlightID, "conversation_id": input.Projection.ConversationID,
+		"actor_refs": []any{"private-memory-actor", "private-third-actor", "private-extra-actor", "private-unknown-actor"}, "source_fact_id": "private-memory-source", "revision": 1,
+		"kind": "commitment", "content": "你明天要去看医生", "status": "active", "confidence": 0.75,
+		"source_validity": "valid", "valid_until": "2027-01-01T00:00:00Z",
+	}
+	index := newContextReferenceIndex(input.Projection)
+	if err := addActiveMemoryReferences(&index, []map[string]any{row}); err != nil {
+		t.Fatal(err)
+	}
+	entry := index.ByRef[stringValue(row["ref"])]
+	input.ToolFacts = []map[string]any{momentReplyEvidenceFact(entry, input.Projection)}
+	before := jsonString(input)
+	var request map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "今天想记录一点见闻。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var runtime map[string]any
+	for _, raw := range arrayValue(request["messages"]) {
+		content := stringValue(mapValue(raw)["content"])
+		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+			if err := json.Unmarshal([]byte(text), &runtime); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	facts := arrayValue(runtime["tool_facts"])
+	if len(facts) != 1 {
+		t.Fatalf("physical Moment request changed evidence count: %#v", facts)
+	}
+	fact := mapValue(facts[0])
+	memory := mapValue(fact["value"])
+	if memory["content"] != "你明天要去看医生" || memory["source_validity"] != "valid" || memory["valid_until"] != "2027-01-01T00:00:00Z" {
+		t.Fatalf("physical Moment request lost memory semantics: %#v", memory)
+	}
+	associated := arrayValue(memory["associated_actors"])
+	if len(associated) != 4 || mapValue(associated[0])["actor"] != "actor_user" || mapValue(associated[1])["actor"] != "actor_c" || mapValue(associated[2])["actor"] != "actor_{" || mapValue(associated[3])["actor"] != "unknown" {
+		t.Errorf("physical Moment request lost associated actor identities: %#v", associated)
+	}
+	if _, exists := memory["subjects"]; exists || !strings.Contains(stringValue(fact["certainty"]), "关联人物不一定是内容主体") {
+		t.Error("memory evidence did not distinguish associated actors from the content's subject")
+	}
+	wire := jsonString(runtime)
+	for _, forbidden := range []string{"private-active-memory", "private-memory-actor", "private-third-actor", "private-extra-actor", "private-unknown-actor", "private-memory-source", "actor_refs"} {
+		if strings.Contains(wire, forbidden) {
+			t.Errorf("physical Moment request exposed Core envelope %q", forbidden)
+		}
+	}
+	if jsonString(input) != before {
+		t.Fatal("Moment projection mutated evidence")
+	}
+}
+
+func TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs(t *testing.T) {
+	ctx, repo, app, owner, self, conversation := setupDirectPublicationToolTest(t, "moment-active-memory")
+	config := defaultConversationReplySettings()
+	config.Mode = "fact_only"
+	config.RetryLimit = 0
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.runtime_settings(key,value_json) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value_json=EXCLUDED.value_json`, conversationReplySettingKey, jsonString(config)); err != nil {
+		t.Fatal(err)
+	}
+	created, err := app.ExecuteTool(ctx, ToolExecutionRequest{CapabilityName: "active_memory_event", OperationID: "moment-active-create",
+		AuthorizationActorID: owner, FluctlightID: self, ConversationID: conversation, EvidenceID: "moment-active-source", Surface: CapabilitySurfaceNativeCognition,
+		Arguments: jsonBytes(map[string]any{"operation": "create", "kind": "commitment", "content": "你明天要去看医生", "confidence": 0.9, "importance": 0.9, "original_time_expression": "", "time_precision": "unknown"})})
+	if err != nil || created.Result.Status != "completed" {
+		t.Fatalf("create Active Memory: %#v %v", created.Result, err)
+	}
+	projection, err := app.BuildContextProjectionFor(ctx, ContextProjectionRequest{AuthorizationActorID: owner, SpeakerActorID: owner, FluctlightID: self, ConversationID: conversation, MemoryOperation: MemoryForConversation, MemoryConversationMode: MemoryConversationExact})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := ""
+	for key, entry := range projection.ReferenceIndex.ByRef {
+		if entry.Kind == ContextReferenceActiveMemory {
+			ref = key
+			break
+		}
+	}
+	if ref == "" {
+		t.Fatal("Active Memory was not offered in the scoped projection")
+	}
+	var request map[string]any
+	app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "今天想记录一点见闻。"}
+	})}
+	ctx = withFrozenProviderAssignment(ctx, conversationReplyModelRole, providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: 10 * time.Second})
+	ctx, err = app.withMomentWriterRun(ctx, ToolExecutionRequest{AuthorizationActorID: owner, FluctlightID: self, ConversationID: conversation})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := ctx.Value(momentWriterRunKey{}).(*factOnlyMomentService)
+	invocation := CapabilityInvocation{CallID: "moment-active-evidence", CapabilityName: "moment.publish", Arguments: jsonBytes(map[string]any{"evidence_refs": []any{ref}}),
+		Metadata:        InvocationMetadata{Source: "model_tool", AuthorizationActorID: owner, SubjectActorID: owner, FluctlightID: self, ConversationID: conversation, OperationID: "moment-active-evidence"},
+		ContextSnapshot: map[string]any{"context_reference_index": projection.ReferenceIndex}}
+	if _, err := service.prepare(ctx, invocation); err != nil {
+		t.Fatal(err)
+	}
+	var runtime map[string]any
+	for _, raw := range arrayValue(request["messages"]) {
+		content := stringValue(mapValue(raw)["content"])
+		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+			if err := json.Unmarshal([]byte(text), &runtime); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	facts := arrayValue(runtime["tool_facts"])
+	if len(facts) != 1 || mapValue(mapValue(facts[0])["value"])["content"] != "你明天要去看医生" {
+		t.Fatalf("selected Active Memory did not reach the Writer: %#v", facts)
+	}
+	associated := arrayValue(mapValue(mapValue(facts[0])["value"])["associated_actors"])
+	if len(associated) != 1 || mapValue(associated[0])["actor"] != "actor_user" {
+		t.Fatalf("selected Active Memory lost its associated actor: %#v", associated)
+	}
+	wire := jsonString(facts)
+	for _, forbidden := range []string{owner, self, "moment-active-source", "actor_refs"} {
+		if strings.Contains(wire, forbidden) {
+			t.Errorf("selected Active Memory exposed Core envelope %q", forbidden)
+		}
+	}
+}
+
 func TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker(t *testing.T) {
 	ctx, repo, app, owner, self, conversation := setupDirectPublicationToolTest(t, "moment-cache-identity")
 	config := defaultConversationReplySettings()

@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "5c21fb1f4c87fb3f6fa750d69ea36b32fcbbb705c47bb6e72f7c29d6b4a2d658",
+      "hash": "79b45b901a561799b0c8459bbf8ac530cc3024b58eab27f7d28740b0e5808394",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -102,7 +102,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "5c21fb1f4c87fb3f6fa750d69ea36b32fcbbb705c47bb6e72f7c29d6b4a2d658",
+        "hash": "79b45b901a561799b0c8459bbf8ac530cc3024b58eab27f7d28740b0e5808394",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -193,7 +193,7 @@
     },
     {
       "path": "docs/verification/meromero-first-ledger-20261109.md",
-      "hash": "1d22f13f54505fc4e9f5eda593fd28b49307107e4b3506f02267bfd303ab4abc",
+      "hash": "d7ee0b62a810a70c50ab2790dea4a0430d13654e2586f5fc43a5f9435e53bdf8",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -207,14 +207,14 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-first-ledger-20261109.md",
-        "hash": "1d22f13f54505fc4e9f5eda593fd28b49307107e4b3506f02267bfd303ab4abc",
+        "hash": "d7ee0b62a810a70c50ab2790dea4a0430d13654e2586f5fc43a5f9435e53bdf8",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
     },
     {
       "path": "docs/verification/meromero-t03-context-isolation-20261111.md",
-      "hash": "f174c3ccd0543386dca326fe0ff90e169193ef1dc11393b92c78e4dbb591e001",
+      "hash": "487737db96aaba184a31266e79c2203385de31ddca33b82363ee9650061fce4a",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -228,7 +228,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-t03-context-isolation-20261111.md",
-        "hash": "f174c3ccd0543386dca326fe0ff90e169193ef1dc11393b92c78e4dbb591e001",
+        "hash": "487737db96aaba184a31266e79c2203385de31ddca33b82363ee9650061fce4a",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

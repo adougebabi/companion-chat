@@ -23,7 +23,7 @@
 | T00 | 范围、基线、台账 | VERIFIED | 本文件记录起始 commit、分支、用户文件、环境、失败基线、工作包、依赖及验收状态；后续继续追加事实。 |
 | T01 | 完整运行入口盘点 | VERIFIED | [当前入口清单](meromero-agent-inventory-20261109.md)按源码核对 31 个正式 Agent、36 个显式声明的可配置 variant及额外表达变体、实际 Writer 修复 variant、非正式 Provider/embedding/Kev、独立 Tool 与后台调度；记录版本/hash 的实际口径和未确认生产上游。逐项覆盖和源码位置检查及独立静态审查已完成；真实模型能力和后台快照分属后续任务。 |
 | T02 | R01 任务模型配置 | IN_PROGRESS | `model_roles` 支持 variant → Agent → 默认用途；新后台任务采用各自的模型快照。隔离 PostgreSQL 与受控 Provider 验证任务覆盖、拒绝不换模型及视觉隔离；本机 MeroMero 普通聊天真实请求通过。升级前无可证明快照的旧任务仍按既有策略并记录诊断；真实 Qwen 任务覆盖与真实 Temporal 尚未验收。地址/密钥原子保存作为任务外问题另记 `provider-endpoint-credential-atomic-save`。 |
-| T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
+| T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；Moment 选中的 Active Memory 将内部 Actor 引用投影为关联别名或未知，避免误称内容主体。外貌证据的业务值/系统伤情 ID 边界、其他证据类型、全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | `direct` 使用同一主 Agent 的原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交；隔离 PostgreSQL 与受控 Provider 验证单次请求、重放、回滚、旧草稿及先行动再回复。隔离场景发现无附件却可发布“照片已发送”，因此暂不切为默认，缺口归 T06；真实 MeroMero 私聊和实时增量流仍未验收。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告配置缺口，动态页反映停用状态并保留历史/原提交核对。隔离 PostgreSQL 验证配置、直接调用、停用及 ready 夹具重建后去重交付。当前照片与创作场景的完整区分、真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
 | T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。direct 同批图片请求与回复会分别拒绝并等待重新决定；回复读取既有媒体状态时区分取消和失败，非 ready 的资产不会自动作为附件。工作流取消同步、未调用媒体却声称发送的正文语义缺口仍未解决，真实渲染未验证。 |
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T03 修复 Moment Writer 的 Active Memory 证据投影：保留记忆内容、状态、时间和可信度，将 Core `actor_refs` 映射为当前作用域中的关联人物别名或未知，不把关联人物当作记忆内容主体。旧代码的受控物理请求复现内部 Actor ID 泄露，修复后物理请求及隔离 PostgreSQL 的真实 Moment 准备路径通过；后者从持久记忆构建并复核 offered/live 引用，再发往受控 Writer，未实际发布或调用真实模型。回归 `/private/tmp/fluctlight-t03-active-memory-red.log`、`/private/tmp/fluctlight-t03-active-memory-regression-final.log`。独立复核发现外貌 `injuries` 混有用户数据与系统事件 ID，直接整体保留会泄露后者；该实验已撤回，外貌及其他类型仍未完成。
 
 - 2026-11-12：T12 在干净提交 `42b43abf` 加隔离 PostgreSQL 中补跑无人主体、当前穿着、独立衣柜权限、来源及原生换衣的 9 个顶层测试：8 通过、1 失败；子场景 28 通过、2 失败。两项失败均为 `TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair` 的流式和非流式版本，起始提交对照均通过。旧夹具用 HTTP 400 触发跨模型回退，与当前只允许合格技术故障回退的策略不一致；临时改为 503 后两项仍失败，实验已撤回。新增独立受控检查确认 HTTP 400 不调用备用模型；整体原因未确定，不将 503 实验当作通过，已登记 `reply-wear-fallback-correction-regression`。日志 `/private/tmp/fluctlight-t12-head-capture-wear.log`、`/private/tmp/fluctlight-t12-baseline-wear-fallback.log`、`/private/tmp/fluctlight-t12-wear-fallback-updated.log`、`/private/tmp/fluctlight-t12-bad-request-no-fallback.log`。
 
