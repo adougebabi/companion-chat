@@ -297,7 +297,15 @@ func (a *App) RunGoalPlannerAgent(ctx context.Context, owner, actor, profile, ru
 	}
 	ctx = withPhysicalModelRequestPolicy(ctx, goalPlannerPhysicalRequestPolicy{})
 	ctx = withGoalPlannerInitialSnapshot(ctx, snapshot)
-	run, err := a.RunFormalAgent(ctx, FormalAgentGoalPlanner, FormalAgentRunInput{Prompt: PromptAssemblyResult{Messages: formatProviderMessagesForRole(messages, "cognitive_assessment"), ResponseFormat: schema}, Definitions: capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalPlanner), SchemaName: "goal_planner_v1", Capability: &ADKCapabilityRequest{TargetKind: "goal_planning_run", TargetRef: runRef, AuthorizationActorID: actor, FluctlightID: owner, SourceFactID: runRef, OperationID: runRef, CorrelationID: "goal-planner:" + runRef, Surface: CapabilitySurfaceGoalPlanner, Projection: ContextProjection{OwnerActorID: actor, FluctlightID: owner, SourceFactID: runRef, PersonalityRuntime: map[string]any{"active_profile_id": profile}}}})
+	ctx = withTaskPromptSlots(ctx,
+		PromptSlotTrace{SlotID: "goal_planning_run", Source: "goal_planning_run", SourceRefs: []string{"goal_planning_run:" + runRef}, Reason: "authorized_planning_mode"},
+		PromptSlotTrace{SlotID: "goal_set_snapshot", Source: "goal_set_snapshot", SourceRefs: taskValueSourceRefs(snapshot["goals"], "goal"), Reason: "selected_existing_goals_and_policy"},
+		PromptSlotTrace{SlotID: "goal_planner_persona", Source: "effective_persona_detail", SourceRefs: []string{"profile:" + profile}, Reason: "stable_planning_preferences"},
+		PromptSlotTrace{SlotID: "goal_planning_triggers", Source: "goal_planning_events", Reason: "pending_planning_reasons"},
+	)
+	prompt := taskPromptAssembly(ctx, formatProviderMessagesForRole(messages, "cognitive_assessment"))
+	prompt.ResponseFormat = schema
+	run, err := a.RunFormalAgent(ctx, FormalAgentGoalPlanner, FormalAgentRunInput{Prompt: prompt, Definitions: capabilityCatalog(a.capabilityRegistry(), CapabilitySurfaceGoalPlanner), SchemaName: "goal_planner_v1", Capability: &ADKCapabilityRequest{TargetKind: "goal_planning_run", TargetRef: runRef, AuthorizationActorID: actor, FluctlightID: owner, SourceFactID: runRef, OperationID: runRef, CorrelationID: "goal-planner:" + runRef, Surface: CapabilitySurfaceGoalPlanner, Projection: ContextProjection{OwnerActorID: actor, FluctlightID: owner, SourceFactID: runRef, PersonalityRuntime: map[string]any{"active_profile_id": profile}}}})
 	if err != nil {
 		return nil, err
 	}

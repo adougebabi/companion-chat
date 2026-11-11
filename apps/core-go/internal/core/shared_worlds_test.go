@@ -184,6 +184,7 @@ func TestWorldEventGenerationRequiresKevAndRunsOncePerWorldHour(t *testing.T) {
 			if models != 1 {
 				t.Fatal("same world/hour repeated generation", models)
 			}
+			requireTaskSourceSlots(t, f.ctx, f.repository, "world_event_generation", "world_event_rules", "world_event_places_npcs", "world_event_presence")
 			var templates, runs int
 			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT (SELECT count(*) FROM public.world_event_templates WHERE generation_id IS NOT NULL),(SELECT count(*) FROM public.world_event_runs)`).Scan(&templates, &runs); err != nil {
 				t.Fatal(err)

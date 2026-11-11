@@ -300,7 +300,16 @@ func (a *App) GenerateWorldEventCycle(ctx context.Context, world string) (result
 			return nil, err
 		}
 		messages := (&PromptComposer{}).ComposeTaskMessages("cognitive_assessment", []map[string]any{{"role": "system", "content": worldEventGenerationInstruction}, {"role": "user", "content": promptTaskData(worldEventGenerationModelView(data))}})
-		run, modelErr := a.runFormalStructuredTask(ctx, FormalAgentWorldEventGeneration, messages, nil, "world_event_generation_v1", worldEventGenerationSchema(), false, nil)
+		traceSlots := []PromptSlotTrace{
+			PromptSlotTrace{SlotID: "world_event_rules", Source: "world_snapshot", SourceRefs: []string{"world:" + world}, Reason: "selected_world_rules_and_time"},
+			PromptSlotTrace{SlotID: "world_event_places_npcs", Source: "world_snapshot", SourceRefs: []string{"world:" + world}, Reason: "actual_world_entities"},
+			PromptSlotTrace{SlotID: "world_event_presence", Source: "world_presence_snapshot", Reason: "actors_actually_present"},
+		}
+		if _, present := data["recent_events"]; present {
+			traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "world_event_history", Source: "recent_world_events", Reason: "recent_occurred_events"})
+		}
+		modelCtx := withTaskPromptSlots(ctx, traceSlots...)
+		run, modelErr := a.runFormalStructuredTask(modelCtx, FormalAgentWorldEventGeneration, messages, nil, "world_event_generation_v1", worldEventGenerationSchema(), false, nil)
 		if modelErr != nil {
 			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 			_, _ = conn.Exec(cleanup, `UPDATE public.world_event_generations SET status='failed',error_code='world_event_model_failed',updated_at=now() WHERE id=$1 AND status='generating'`, id)

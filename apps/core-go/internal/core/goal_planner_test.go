@@ -84,6 +84,7 @@ func TestGoalPlannerPhysicalRequestKeepsLongGoal(t *testing.T) {
 	if err != nil || result["decision"] != "no_viable_candidate" || calls != 1 {
 		t.Fatalf("planner request result=%#v calls=%d err=%v", result, calls, err)
 	}
+	requireTaskSourceSlots(t, f.ctx, f.repository, "goal_planner", "goal_planning_run", "goal_set_snapshot", "goal_planner_persona")
 }
 func TestGoalPlannerCapacityConcurrentAllEntrances(t *testing.T) {
 	f := seedWardrobeToolFixture(t)

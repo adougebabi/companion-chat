@@ -65,7 +65,8 @@ func (a *App) RunInitializationTask(ctx context.Context, input InitializationTas
 	}
 	messages := initializationAnalysisMessages(input.Description)
 	messages = (&PromptComposer{}).ComposeTaskMessages("initialization", messages)
-	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "initialization"), FormalAgentInitialization, messages, nil, "initialization_response", initializationResponseSchema(), false, nil)
+	modelCtx := withTaskPromptSlots(WithProviderScenario(ctx, "initialization"), PromptSlotTrace{SlotID: "owner_description", Source: "owner_initialization_input", Reason: "explicit_owner_description"})
+	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentInitialization, messages, nil, "initialization_response", initializationResponseSchema(), false, nil)
 	return run.Completion.Structured, err
 }
 
@@ -558,7 +559,14 @@ func (a *App) RunVirtualActivityResultTask(ctx context.Context, input VirtualAct
 		{"role": "system", "content": virtualActivityResultInstruction},
 		{"role": "user", "content": promptTaskData(virtualActivityModelInput(input))},
 	})
-	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "virtual_activity_result"), FormalAgentVirtualActivityResult, messages,
+	modelCtx := withTaskPromptSlots(WithProviderScenario(ctx, "virtual_activity_result"),
+		PromptSlotTrace{SlotID: "activity_request", Source: "frozen_activity_request", Reason: "elapsed_activity_to_resolve"},
+		PromptSlotTrace{SlotID: "activity_timing", Source: "started_activity_window", Reason: "actual_start_and_due_time"},
+		PromptSlotTrace{SlotID: "activity_appearance", Source: "effective_appearance_snapshot", Reason: "activity_relevant_current_state"},
+		PromptSlotTrace{SlotID: "activity_life", Source: "life_context_snapshot", Reason: "activity_relevant_current_state"},
+		PromptSlotTrace{SlotID: "activity_recent_outcomes", Source: "recent_action_outcomes", SourceRefs: taskRowSourceRefs(input.RecentOutcomes, "outcome"), Reason: "recent_actual_results"},
+	)
+	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentVirtualActivityResult, messages,
 		nil, "virtual_activity_result", virtualActivityResultSchema(), false, nil)
 	return run.Completion.Structured, err
 }
@@ -593,7 +601,17 @@ func (a *App) RunScheduleGenerationTask(ctx context.Context, input ScheduleGener
 		{"role": "system", "content": instruction},
 		{"role": "user", "content": promptTaskData(scheduleGenerationModelInput(input))},
 	})
-	run, err := a.runFormalStructuredTask(ctx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleResponseSchema(), false, nil)
+	modelCtx := withTaskPromptSlots(ctx,
+		PromptSlotTrace{SlotID: "schedule_day", Source: "local_date_and_timezone", Reason: "requested_local_day"},
+		PromptSlotTrace{SlotID: "schedule_identity", Source: "schedule_task_input.identity", Reason: "identity_and_residence_for_planning"},
+		PromptSlotTrace{SlotID: "schedule_life_profile", Source: "schedule_task_input.life_profile", Reason: "habits_and_commitments_for_planning"},
+		PromptSlotTrace{SlotID: "schedule_current_state", Source: "schedule_task_input.current_state_and_life", Reason: "current_planning_context"},
+		PromptSlotTrace{SlotID: "schedule_goals", Source: "schedule_task_input.goals", SourceRefs: taskRowSourceRefs(input.Goals, "goal"), Reason: "provided_goals_for_planning"},
+		PromptSlotTrace{SlotID: "schedule_intentions", Source: "schedule_task_input.intentions", SourceRefs: taskRowSourceRefs(input.Intentions, "intention"), Reason: "provided_intentions_for_planning"},
+		PromptSlotTrace{SlotID: "schedule_recent_outcomes", Source: "schedule_task_input.recent_outcomes", SourceRefs: taskRowSourceRefs(input.RecentOutcomes, "outcome"), Reason: "provided_prior_results"},
+		PromptSlotTrace{SlotID: "schedule_world_places", Source: "schedule_task_input.world_places", Reason: "available_places_for_planning"},
+	)
+	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentScheduleGeneration, messages, nil, "schedule_response", scheduleResponseSchema(), false, nil)
 	return run.Completion.Structured, err
 }
 
@@ -862,7 +880,14 @@ func (a *App) RunScheduleReplanTask(ctx context.Context, input SchedulePlanInput
 		{"role": "system", "content": scheduleReplanPlannerInstruction(input)},
 		{"role": "user", "content": promptTaskData(scheduleReplanModelInput(input))},
 	})
-	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "schedule_replan_planner"), FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchemaForInput(input), false, nil)
+	modelCtx := withTaskPromptSlots(WithProviderScenario(ctx, "schedule_replan_planner"),
+		PromptSlotTrace{SlotID: "replan_intent", Source: "frozen_replan_request", Reason: "requested_schedule_change"},
+		PromptSlotTrace{SlotID: "replan_schedule", Source: "accepted_schedule_snapshot", Reason: "preserve_current_and_completed_items"},
+		PromptSlotTrace{SlotID: "replan_life", Source: "life_context_snapshot", Reason: "current_planning_context"},
+		PromptSlotTrace{SlotID: "replan_agency", Source: "authorized_goals_and_intentions", Reason: "preserve_existing_commitments"},
+		PromptSlotTrace{SlotID: "replan_identity_places", Source: "declared_identity_and_world_places", Reason: "authorized_planning_locations"},
+	)
+	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentScheduleReplan, messages, nil, "schedule_replan_plan", schedulePlannerOutputSchemaForInput(input), false, nil)
 	if err == nil {
 		input.WorldPlaces.bind(run.Completion.Structured)
 	}

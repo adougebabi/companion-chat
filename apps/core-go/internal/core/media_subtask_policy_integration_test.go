@@ -64,6 +64,7 @@ func TestPersonaCompilationSubtaskDoesNotInheritParentForcedToolPolicy(t *testin
 	if err != nil || result.PortraitText == "" || calls != 1 {
 		t.Fatal("independent compiler inherited parent policy", result, calls, err)
 	}
+	requireTaskSourceSlots(t, f.ctx, f.repository, "persona_compilation", "persona_compilation_source")
 	cancelled, cancel := context.WithCancel(parent)
 	cancel()
 	if _, err := f.app.CompileWorkingPersona(cancelled, input); !errors.Is(err, context.Canceled) || calls != 1 {

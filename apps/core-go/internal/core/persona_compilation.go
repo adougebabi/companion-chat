@@ -270,6 +270,14 @@ func (a *App) CompileWorkingPersona(ctx context.Context, input PersonaCompilatio
 		if attempt > 0 {
 			attemptCtx = WithProviderCorrelation(attemptCtx, firstString(providerCorrelation(ctx), "persona-compilation")+":repair")
 		}
+		traceSlots := []PromptSlotTrace{{SlotID: "persona_compilation_source", Source: "selected_persona_profile", SourceRefs: []string{"profile:" + strings.TrimSpace(input.ProfileID)}, Reason: "compile_authorized_profile"}}
+		if attempt > 0 {
+			traceSlots = append(traceSlots,
+				PromptSlotTrace{SlotID: "persona_previous_output", Position: PromptSlotRecent, MessageIndex: 2, Source: "previous_model_output", Reason: "validation_repair"},
+				PromptSlotTrace{SlotID: "persona_validation_feedback", MessageIndex: 3, Source: "core_validation", Reason: "validation_repair"},
+			)
+		}
+		attemptCtx = withTaskPromptSlots(attemptCtx, traceSlots...)
 		run, runErr := a.runFormalStructuredTask(attemptCtx, FormalAgentPersonaCompilation, messages, nil, "persona_compilation_response", personaCompilationResponseSchema(), false, nil)
 		if runErr != nil {
 			return CompiledWorkingPersona{}, runErr

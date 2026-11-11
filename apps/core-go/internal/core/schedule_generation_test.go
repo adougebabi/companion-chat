@@ -119,6 +119,7 @@ func TestScheduleGenerationFinalProviderRequestOmitsStorageIDs(t *testing.T) {
 	if !reflect.DeepEqual(mapValue(taskData["life_profile"])["preferences"], preference) || strings.Contains(modelText, "private-profile") {
 		t.Fatal("physical schedule request changed opaque preferences or leaked profile metadata")
 	}
+	requireTaskSourceSlots(t, ctx, repository, "schedule_generation", "schedule_day", "schedule_identity", "schedule_goals", "schedule_world_places")
 }
 
 func TestParseScheduleTimeAcceptsISOEndOfDay(t *testing.T) {

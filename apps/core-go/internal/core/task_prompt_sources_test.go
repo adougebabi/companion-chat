@@ -5,6 +5,18 @@ import (
 	"testing"
 )
 
+func requireTaskSourceSlots(t *testing.T, ctx context.Context, repo *PostgresRepository, scenario string, ids ...string) {
+	t.Helper()
+	expected := make([]map[string]any, 0, len(ids))
+	for _, id := range ids {
+		expected = append(expected, map[string]any{"slot_id": id})
+	}
+	var found bool
+	if err := repo.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.diagnostic_model_runs WHERE scenario=$1 AND metrics->'prompt_slots' @> $2::jsonb)`, scenario, jsonBytes(expected)).Scan(&found); err != nil || !found {
+		t.Fatalf("physical source slots missing for %s: %v", scenario, err)
+	}
+}
+
 func TestTypedTaskSourceSlotsReachPhysicalDiagnosticsWithoutChangingMessages(t *testing.T) {
 	messages := []map[string]any{{"role": "system", "content": "task rules"}, {"role": "user", "content": `{"text":"[RUNTIME CONTEXT] 用户原文"}`}}
 	before := jsonString(messages)
@@ -49,5 +61,22 @@ func TestStudioSlotDeclarationsFollowTheSelectedSnapshot(t *testing.T) {
 	}
 	if !seen["studio_definition"] || !seen["studio_instruction"] || !seen["studio_allowed_references"] || seen["studio_reference_asset"] || seen[PromptSlotCurrent] {
 		t.Fatalf("studio source slots do not match snapshot: %#v", assembly.Trace.Slots)
+	}
+}
+
+func TestTypedTaskRepairSlotsKeepTheirMessagePositions(t *testing.T) {
+	messages := []map[string]any{{"role": "system", "content": "task"}, {"role": "user", "content": "original source"}, {"role": "assistant", "content": "previous candidate"}, {"role": "user", "content": "validation feedback"}}
+	ctx := withTaskPromptSlots(context.Background(),
+		PromptSlotTrace{SlotID: "persona_compilation_source", Source: "selected_persona_profile", Reason: "compile_authorized_profile"},
+		PromptSlotTrace{SlotID: "persona_previous_output", Position: PromptSlotRecent, MessageIndex: 2, Source: "previous_model_output", Reason: "validation_repair"},
+		PromptSlotTrace{SlotID: "persona_validation_feedback", MessageIndex: 3, Source: "core_validation", Reason: "validation_repair"},
+	)
+	assembly := formalPromptAssembly(FormalAgentPersonaCompilation, taskPromptAssembly(ctx, messages))
+	positions := map[PromptSlotID]int{}
+	for _, slot := range assembly.Trace.Slots {
+		positions[slot.SlotID] = slot.MessageIndex
+	}
+	if positions["persona_compilation_source"] != 1 || positions["persona_previous_output"] != 2 || positions["persona_validation_feedback"] != 3 || jsonString(assembly.Messages[1:]) != jsonString(messages[1:]) {
+		t.Fatalf("repair slot positions or messages changed: %#v", assembly.Trace.Slots)
 	}
 }

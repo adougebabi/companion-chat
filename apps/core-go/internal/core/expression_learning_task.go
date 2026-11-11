@@ -71,11 +71,13 @@ func (a *App) runExpressionLearningTask(ctx context.Context, sources []expressio
 	offered := make(map[string]expressionLearningSource, len(sources))
 	ids := make(map[string]bool, len(sources))
 	projected := make([]map[string]any, 0, len(sources))
+	sourceRefs := make([]string, 0, len(sources))
 	for index, source := range sources {
 		if strings.TrimSpace(source.SourceID) == "" || strings.TrimSpace(source.Text) == "" || ids[source.SourceID] {
 			return nil, errors.New("expression_learning_source_invalid")
 		}
 		ids[source.SourceID] = true
+		sourceRefs = append(sourceRefs, "message:"+source.SourceID)
 		ref := fmt.Sprintf("s%d", index+1)
 		offered[ref] = source
 		projected = append(projected, map[string]any{"source_ref": ref, "text": source.Text})
@@ -84,7 +86,8 @@ func (a *App) runExpressionLearningTask(ctx context.Context, sources []expressio
 		{"role": "system", "content": expressionLearningInstruction},
 		{"role": "user", "content": jsonString(map[string]any{"sources": projected})},
 	}
-	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "expression_learning"), FormalAgentExpressionLearning, messages, nil, expressionLearningSchema, expressionLearningProviderSchema(), false, nil)
+	modelCtx := withTaskPromptSlots(WithProviderScenario(ctx, "expression_learning"), PromptSlotTrace{SlotID: "expression_source_messages", Source: "caller_supplied_human_messages", SourceRefs: sourceRefs, Reason: "explicit_expression_learning_sources"})
+	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentExpressionLearning, messages, nil, expressionLearningSchema, expressionLearningProviderSchema(), false, nil)
 	if err != nil {
 		return nil, err
 	}

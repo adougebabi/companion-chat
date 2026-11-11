@@ -89,6 +89,7 @@ func TestDiaryPostgresRestoresFrozenExpressionBinding(t *testing.T) {
 	if wire["temperature"] != 0.0 || wire["top_p"] != topP || wire["max_tokens"] != nil || wire["max_completion_tokens"] != nil {
 		t.Fatalf("frozen sampling or no-cap contract changed: %#v", wire)
 	}
+	requireTaskSourceSlots(t, ctx, repo, "diary_expression", "diary_selected_sources", "diary_date")
 	item, err := app.OwnerDiary(ctx, owner, fid, diary)
 	if err != nil {
 		t.Fatal(err)

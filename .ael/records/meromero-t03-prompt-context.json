@@ -22,7 +22,7 @@
   "failure": "",
   "result": "",
   "created": "2026-11-10T08:34:30.58656Z",
-  "updated": "2026-11-11T12:23:10.877016Z",
+  "updated": "2026-11-11T12:34:27.572431Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -56,6 +56,17 @@
         "input_version": "99022dc4234da3cb808ed77728ac34b740d62b9729664a8cffbb5fc90c47578f",
         "candidate_version": "",
         "started": "2026-11-11T11:00:26.83582Z",
+        "ended": "2026-11-11T12:24:56.060175Z",
+        "status": "abandoned",
+        "reason": ""
+      },
+      {
+        "id": "AT-9c3dfbf72ea2a250eb29",
+        "unit": "execute",
+        "executor": "codex-t03-context",
+        "input_version": "e2d10599a03834e67460bd04e6fc8255f68f8739145eda09a1a783c712a48944",
+        "candidate_version": "",
+        "started": "2026-11-11T12:25:16.689768Z",
         "ended": null,
         "status": "running",
         "reason": ""

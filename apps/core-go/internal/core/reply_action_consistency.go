@@ -45,6 +45,11 @@ func (s *factOnlyReplyService) checkReplyActionResult(ctx context.Context, input
 	ctx = isolatedReplyModelContext(ctx)
 	ctx = WithProviderCorrelation(ctx, fmt.Sprintf("%s:action-check:%d", input.CorrelationID, attempt))
 	ctx = WithPromptDiagnostics(ctx, map[string]any{"fluctlight_id": input.Context.Projection.FluctlightID, "conversation_id": input.Context.Projection.ConversationID, "parent_run_id": input.ParentRunID, "draft_ref": input.DraftRef})
+	ctx = withTaskPromptSlots(ctx,
+		PromptSlotTrace{SlotID: "action_check_receipts", Source: "actual_action_results", Reason: "unsuccessful_action_to_verify"},
+		PromptSlotTrace{SlotID: "action_check_state", Source: "current_state_projection", Reason: "verify_action_against_current_facts"},
+		PromptSlotTrace{SlotID: "action_check_candidate", Source: "unpublished_reply_candidate", Reason: "verify_before_publication"},
+	)
 	schema := objectSchema(map[string]any{"consistent": map[string]any{"type": "boolean"}, "reason": stringSchema()}, []string{"consistent", "reason"}, false)
 	result, err := s.app.runFormalStructuredTask(ctx, FormalAgentReplyActionCheck, messages, nil, "reply_action_consistency", schema, false, nil)
 	if err != nil {

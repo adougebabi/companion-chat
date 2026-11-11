@@ -50,6 +50,26 @@ type PromptCompositionResult struct {
 
 type taskPromptSlotsKey struct{}
 
+func taskRowSourceRefs(rows []map[string]any, prefix string) []string {
+	refs := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if id := stringValue(row["id"]); id != "" {
+			refs = append(refs, prefix+":"+id)
+		}
+	}
+	return refs
+}
+
+func taskValueSourceRefs(value any, prefix string) []string {
+	refs := make([]string, 0)
+	for _, raw := range arrayValue(value) {
+		if id := stringValue(mapValue(raw)["id"]); id != "" {
+			refs = append(refs, prefix+":"+id)
+		}
+	}
+	return refs
+}
+
 // Typed task callers declare where the fields in their own packet came from.
 // These declarations are diagnostic metadata and never enter model messages.
 func withTaskPromptSlots(ctx context.Context, slots ...PromptSlotTrace) context.Context {
@@ -59,14 +79,25 @@ func withTaskPromptSlots(ctx context.Context, slots ...PromptSlotTrace) context.
 func taskPromptAssembly(ctx context.Context, messages []map[string]any) PromptAssemblyResult {
 	assembly := PromptAssemblyResult{Messages: messages}
 	slots, _ := ctx.Value(taskPromptSlotsKey{}).([]PromptSlotTrace)
-	if len(slots) == 0 || len(messages) != 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
+	if len(slots) == 0 || len(messages) < 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
 		return assembly
 	}
-	assembly.messageOrigins = []promptMessageOrigin{{Source: "trusted_task_configuration", Reason: "typed task protocol"}, {Source: "task_data", Reason: "typed task input packet"}}
+	assembly.messageOrigins = make([]promptMessageOrigin, len(messages))
+	assembly.messageOrigins[0] = promptMessageOrigin{Source: "trusted_task_configuration", Reason: "typed task protocol"}
+	for index := 1; index < len(messages); index++ {
+		assembly.messageOrigins[index] = promptMessageOrigin{Source: "task_data", Reason: "typed task input or continuation"}
+	}
 	assembly.Trace.Slots = append(assembly.Trace.Slots, PromptSlotTrace{SlotID: PromptSlotOperation, Position: PromptSlotSystem, MessageIndex: 0, Source: "task_protocol", Reason: "required_by_task"})
 	for _, slot := range slots {
-		slot.Position = PromptSlotCurrentInput
-		slot.MessageIndex = 1
+		if slot.Position == "" {
+			slot.Position = PromptSlotCurrentInput
+		}
+		if slot.MessageIndex >= len(messages) {
+			continue
+		}
+		if slot.MessageIndex <= 0 {
+			slot.MessageIndex = 1
+		}
 		assembly.Trace.Slots = append(assembly.Trace.Slots, slot)
 	}
 	return assembly

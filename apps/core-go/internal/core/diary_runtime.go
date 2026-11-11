@@ -228,6 +228,16 @@ func (a *App) ProcessDiaryGeneration(ctx context.Context, attemptID string) (res
 			return nil, err
 		}
 		modelCtx = withFrozenProviderAssignment(modelCtx, "cognitive_assessment", assignment)
+		sourceRefs := make([]string, 0)
+		for _, raw := range arrayValue(snapshot["sources"]) {
+			if ref := stringValue(mapValue(raw)["ref"]); ref != "" {
+				sourceRefs = append(sourceRefs, ref)
+			}
+		}
+		modelCtx = withTaskPromptSlots(modelCtx,
+			PromptSlotTrace{SlotID: "diary_source_window", Source: "closed_day_source_snapshot", SourceRefs: sourceRefs, Reason: "explicit_local_day_sources"},
+			PromptSlotTrace{SlotID: "diary_date", Source: "diary_day", Reason: "local_day_and_timezone"},
+		)
 		run, err := a.runFormalStructuredTask(modelCtx, FormalAgentDiaryMaterial, messages, nil, "diary_material_v1", schema, false, nil)
 		if err != nil {
 			return nil, err
@@ -294,6 +304,16 @@ func (a *App) ProcessDiaryGeneration(ctx context.Context, attemptID string) (res
 		if err != nil {
 			return nil, err
 		}
+		selectedRefs := make([]string, 0, len(selected))
+		for _, raw := range selected {
+			if ref := stringValue(mapValue(raw)["ref"]); ref != "" {
+				selectedRefs = append(selectedRefs, ref)
+			}
+		}
+		prompt = declareAssembledTaskInputSlots(prompt,
+			PromptSlotTrace{SlotID: "diary_selected_sources", Source: "closed_day_source_snapshot", SourceRefs: selectedRefs, Reason: "validated_material_selection"},
+			PromptSlotTrace{SlotID: "diary_date", Source: "diary_day", Reason: "local_day_timezone_and_as_of"},
+		)
 		writerCtx := isolatedReplyModelContext(ctx)
 		writerCtx = withFrozenProviderAssignment(writerCtx, conversationReplyModelRole, assignment)
 		writerCtx = WithProviderCorrelation(writerCtx, "diary-expression:"+attemptID)
