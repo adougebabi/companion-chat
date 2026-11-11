@@ -475,7 +475,13 @@ func (a *App) ProcessGoalEvaluationIntent(ctx context.Context, id string) (map[s
 	var task ProjectionTaskResult
 	var runErr error
 	if len(missing) > 0 && priorResult["cycle_disposition"] != "awaiting_evidence" {
-		task, runErr = a.RunGoalEvaluationTask(ctx, snapshot, projection)
+		modelCtx := withAgentModelRoute(ctx, FormalAgentGoalEvaluation, goalEvaluationModelVariant)
+		assignment, assignmentErr := a.goalEvaluationAssignment(modelCtx, snapshot)
+		if assignmentErr != nil {
+			return priorResult, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, assignmentErr)
+		}
+		modelCtx = withFrozenProviderAssignment(modelCtx, goalEvaluationModelRole, assignment)
+		task, runErr = a.RunGoalEvaluationTask(modelCtx, snapshot, projection)
 		if err := a.recordGoalEvaluationSubmissionErrors(ctx, snapshot, task.Trace); err != nil {
 			return nil, a.failGoalEvaluation(ctx, id, snapshot.ClaimRevision, errors.Join(runErr, err))
 		}

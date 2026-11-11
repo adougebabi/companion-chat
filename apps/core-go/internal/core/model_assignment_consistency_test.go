@@ -245,6 +245,44 @@ func TestRestoredAssignmentKeepsCredentialDestinationBoundary(t *testing.T) {
 	}
 }
 
+func TestRestoredAssignmentRejectsRotatedCredentialAfterEndpointChange(t *testing.T) {
+	ctx, repository := isolatedCoreTestRepository(t)
+	seedCognitiveProviderRole(t, ctx, repository, "snapshot-destination-endpoint")
+	provider := &ProviderClient{DB: repository, SettingsKey: []byte("0123456789abcdef0123456789abcdef")}
+	original, err := encryptSecret(provider.SettingsKey, "turn-secret", "original-fixture-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.setting_secrets(purpose,ciphertext,nonce) VALUES('turn-secret',$1,$2)`, original.ciphertext, original.nonce); err != nil {
+		t.Fatal(err)
+	}
+	frozen, err := provider.assignment(ctx, "cognitive_assessment")
+	if err != nil {
+		t.Fatal(err)
+	}
+	frozen.Secret = ""
+	rotated, err := encryptSecret(provider.SettingsKey, "turn-secret", "rotated-fixture-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url='http://new-destination.invalid' WHERE id='snapshot-destination-endpoint'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.setting_secrets SET ciphertext=$1,nonce=$2 WHERE purpose='turn-secret'`, rotated.ciphertext, rotated.nonce); err != nil {
+		t.Fatal(err)
+	}
+	app := &App{DB: repository, Provider: provider}
+	if err := app.restoreAssignmentCredential(ctx, &frozen); err == nil || !strings.Contains(err.Error(), "snapshot_credential_destination_changed") || frozen.Secret != "" {
+		t.Fatalf("rotated credential was accepted for the former endpoint: err=%v", err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url='http://turn.invalid' WHERE id='snapshot-destination-endpoint'`); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.restoreAssignmentCredential(ctx, &frozen); err == nil || !strings.Contains(err.Error(), "snapshot_credential_destination_changed") || frozen.Secret != "" {
+		t.Fatalf("endpoint A-to-B-to-A accepted a credential rotated at B: err=%v", err)
+	}
+}
+
 func TestProviderAssignmentRecordsActualLegacySourceAndVersion(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	seedCognitiveProviderRole(t, ctx, repository, "model-provenance-endpoint")
@@ -278,16 +316,6 @@ func TestProviderAssignmentRecordsActualLegacySourceAndVersion(t *testing.T) {
 	if _, err := repository.Pool().Exec(ctx, `UPDATE public.setting_secrets SET ciphertext=$1,nonce=$2 WHERE purpose='turn-secret'`, secondSecret.ciphertext, secondSecret.nonce); err != nil {
 		t.Fatal(err)
 	}
-	newDestinationSecret, err := encryptSecret(provider.SettingsKey, "new-purpose", "different-service-secret")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.setting_secrets(purpose,ciphertext,nonce) VALUES('new-purpose',$1,$2)`, newDestinationSecret.ciphertext, newDestinationSecret.nonce); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url='http://different.invalid',secret_purpose='new-purpose' WHERE id='model-provenance-endpoint'`); err != nil {
-		t.Fatal(err)
-	}
 	settings := defaultConversationReplySettings()
 	contract, err := replyExpressionContract(settings.ExpressionVersion)
 	if err != nil {
@@ -300,7 +328,25 @@ func TestProviderAssignmentRecordsActualLegacySourceAndVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	if run.Assignment.ModelID != beforeRotation.ModelID || run.Assignment.Secret != "second-fixture-secret" || run.Assignment.CredentialRevision <= beforeRotation.CredentialRevision {
-		t.Fatalf("restored draft did not preserve model and re-read credential version: model=%q credential revision=%d", run.Assignment.ModelID, run.Assignment.CredentialRevision)
+		t.Fatalf("unchanged destination did not accept credential rotation: model=%q credential revision=%d", run.Assignment.ModelID, run.Assignment.CredentialRevision)
+	}
+	newDestinationSecret, err := encryptSecret(provider.SettingsKey, "new-purpose", "different-service-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.setting_secrets(purpose,ciphertext,nonce) VALUES('new-purpose',$1,$2)`, newDestinationSecret.ciphertext, newDestinationSecret.nonce); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url='http://different.invalid',secret_purpose='new-purpose' WHERE id='model-provenance-endpoint'`); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.restoreReplyRunBinding(ctx, &privateReplyRun{}, jsonBytes(settings), 1, map[string]any{"assignment": beforeRotation, "reply_contract": contract}); err == nil || err.Error() != "provider_snapshot_credential_destination_changed" {
+		t.Fatalf("changed destination accepted a credential rotated after the snapshot: %v", err)
+	}
+	unchangedCredential := run.Assignment
+	unchangedCredential.Secret = ""
+	if err := app.restoreAssignmentCredential(ctx, &unchangedCredential); err != nil || unchangedCredential.Secret != "second-fixture-secret" {
+		t.Fatalf("unchanged original credential could not be restored for its frozen destination: %v", err)
 	}
 	legacy := beforeRotation
 	legacy.SecretPurpose = ""

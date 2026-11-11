@@ -1,6 +1,6 @@
 # MeroMero-first 实施台账
 
-更新时间：2026-11-10。此记录区分已实现、已验证和未完成事项；它不是验收通过声明。
+更新时间：2026-11-11。此记录区分已实现、已验证和未完成事项；它不是验收通过声明。
 
 ## 基线与边界
 
@@ -22,7 +22,7 @@
 | --- | --- | --- | --- |
 | T00 | 范围、基线、台账 | VERIFIED | 本文件记录起始 commit、分支、用户文件、环境、失败基线、工作包、依赖及验收状态；后续继续追加事实。 |
 | T01 | 完整运行入口盘点 | VERIFIED | [当前入口清单](meromero-agent-inventory-20261109.md)按源码核对 31 个正式 Agent、36 个显式声明的可配置 variant及额外表达变体、实际 Writer 修复 variant、非正式 Provider/embedding/Kev、独立 Tool 与后台调度；记录版本/hash 的实际口径和未确认生产上游。逐项覆盖和源码位置检查及独立静态审查已完成；真实模型能力和后台快照分属后续任务。 |
-| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。新人格准备、衣柜准备、新媒体各模型阶段及新视觉身份会话已冻结绑定；隔离 PostgreSQL 和受控 Provider 验证了重载、并发、视觉开关、错误及回放。旧任务及对话片段、每日记忆、目标评估等后台持久快照尚未补齐，真实 Provider 仍未验收。 |
+| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。新人格准备、衣柜准备、新媒体各模型阶段、新视觉身份会话及新 Goal 评估已冻结绑定；隔离 PostgreSQL 和受控 Provider 验证了部分恢复、并发、视觉开关、错误及回放。旧任务及对话片段、每日记忆等后台持久快照尚未补齐，真实 Provider 仍未验收。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | 已修复低置信度 claim 状态；新增显式实验性 `direct` 模式，使主 Agent 同一原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交，受控 PostgreSQL 验证提交、重放及回滚。默认生产链仍是 fact-only 加独立 Writer，旧草稿兼容、真实模型和默认切换尚未完成。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；受控 Tool 目录、物理 schema、Writer 与 React 通过。隔离 PostgreSQL 已验证直接调用、配置及部分回执回放；NPC 完整重启及真实媒体尚未验证。 |
@@ -49,6 +49,7 @@
 11. Diary 的素材/表达以及 Studio 普通助手、文字预览、角色定义准备与按需媒体主体规划各自在首次请求前冻结无密钥绑定；同 attempt 恢复按阶段绑定重取凭据。Studio 自动重试保持原绑定，显式新 attempt 对未完成阶段可重新选择；Diary 显式重试仅保留已完成阶段快照。升级前 running 且需要继续的阶段没有快照时明确失败，原材料保留供显式重试。隔离数据库已验证这些阶段的部分恢复；后续独立媒体工作流的跨进程绑定仍需分别验证。
 12. 为避免扩大上述写入锁反转，本次采用只读的保守摘要屏障：对已解析来源追溯修订前历史，整段摘要在无法证明已吸收纠错时不注入。它保留原始消息和独立 Memory，但同一来源中无关事实可能随摘要一起退出，后台仍可能写出旧摘要。`0106` 将同一判断用于派生记忆及常驻快照的来源校验；每日汇总对被污染的一整天停止生成并保留可重开状态。已发出的请求、未知旧来源和正确吸收纠错后的摘要重建仍不能保证；不能由局部数据库测试推断整个 T09 已完成。
 13. 每日任务沿用现有稳定 intent，终态重开时递增 Core 内部来源代次。调度、终态结算使用原 payload 和 attempt 原子比较；遇到旧 run 的 AlreadyStarted 不接管旧运行。隔离 PostgreSQL 与受控 Temporal 客户端验证了旧 run 未结束、Describe 期间重开和 Execute 期间重开；真实 Temporal worker、数据库锁并发和旧 run 失败交错尚未验收。无来源、角色暂停及来源被纠错的成功返回均会持久结算，避免启动已被接受但 ledger 尚未写入时无限重试。
+14. 凭据恢复在同一数据库读取中获取端点、密钥及版本；端点版本和密钥都变化时保守拒绝，包括地址 A→B→A。端点从未变化时同用途密钥轮换仍可恢复。地址与密钥目前允许独立保存：先把准备给新地址的密钥写入旧地址所用的用途，再保存新地址，间隙内系统无法知道未来意图；模型目录和 embedding 的既有分次读取也存在并发错配风险，完整原子配置仍待处理。
 
 ## 主聊天认知结算迁移底稿
 
@@ -75,6 +76,8 @@
 ## 验收及变更记录
 
 - E01–E18 以用户原始任务的场景为准，分别记录单元、契约、工具、原生循环、隔离集成、真实模型、真实媒体及 UI 证据；当前均未标为通过。
+
+- 2026-11-11：T02 新 Goal 评估请求持久化首次模型绑定，claim 竞争只使用已保存的赢家；部分目标提交后，即使修改配置并重建服务，重试继续使用原模型。独立标记区分升级前旧请求与整个快照被清空的新请求，后者明确失败，旧请求保留原行为并记录 `legacy_unfrozen`。隔离 PostgreSQL、受控 Provider 的 6 项回归与 `0112` 迁移通过：`/private/tmp/fluctlight-t02-goal-revised.log`、`/private/tmp/fluctlight-t02-goal-migration-revised.log`；共享凭据恢复影响的 Diary、Studio、媒体、人格、视觉和衣柜 9 项恢复回归通过：`/private/tmp/fluctlight-t02-shared-credential-revised.log`。修复前真实物理请求序列曾为 `[first-model first-model next-model next-model]`，日志 `/private/tmp/fluctlight-t02-goal-model-red.log`。这不是 T02 的全部后台恢复或真实 Provider 验收。
 
 - 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
 

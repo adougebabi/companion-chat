@@ -24,10 +24,27 @@ func assertGoalEvaluationRequestPhase(t *testing.T, payload map[string]any, subm
 	}
 }
 
+func insertGoalExplicitExpressionMessage(t *testing.T, f independentToolE2EFixture) string {
+	t.Helper()
+	id := "explicit-goal-message-" + f.suffix
+	if err := withTransaction(f.ctx, f.repository.Pool(), func(tx pgx.Tx) error {
+		if _, err := tx.Exec(f.ctx, `INSERT INTO public.conversation_messages(id,conversation_id,sequence,author_actor_id,kind,text,attachment_refs,idempotency_key) VALUES($1,$2,50,$3,'assistant','我喜欢你，这是我真实的心意。','[]',$1)`, id, f.conversationID, f.fluctlightID); err != nil {
+			return err
+		}
+		return f.app.recordGoalMessageTx(f.ctx, tx, f.fluctlightID, id, "default")
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
 func TestGoalEvaluationProductionRequestPolicyReadsDurableRootCoverage(t *testing.T) {
 	f := seedWardrobeToolFixture(t)
 	createDialogueGoalForClosure(t, f, []string{"actual expression"})
 	requestID := latestPendingGoalRequest(t, f)
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET last_activity_at=now()-interval '31 minutes',evaluation_next_at=now() WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
 	snapshot, prior, err := f.app.claimGoalEvaluation(f.ctx, requestID)
 	if err != nil || prior != nil {
 		t.Fatal(prior, err)
@@ -198,13 +215,19 @@ func TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo(t 
 	other := f
 	other.suffix += "_other"
 	second := createDialogueGoalForClosure(t, other, []string{"实际表达"})
-	message := insertGoalBoundaryMessage(t, f)
+	message := insertGoalExplicitExpressionMessage(t, f)
 	seedCognitiveProviderRole(t, f.ctx, f.repository, "native-partial-"+f.suffix)
+	role := agentModelBindingKey(FormalAgentGoalEvaluation, "goal_evaluation_v1")
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,$2,'first-model',30)`, role, "native-partial-"+f.suffix); err != nil {
+		t.Fatal(err)
+	}
 	physical := 0
 	retry := false
+	var models []string
 	var frozenSecondRef string
-	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
+	router := newFakeProviderRouter().on("goal_evaluation_v1", func(payload map[string]any) fakeProviderResult {
 		physical++
+		models = append(models, stringValue(payload["model"]))
 		assertGoalEvaluationRequestPhase(t, payload, physical <= 3)
 		if !retry && physical == 2 {
 			return fakeProviderResult{Err: errors.New("controlled failure after accepted root")}
@@ -224,8 +247,14 @@ func TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo(t 
 			return fakeProviderResult{ToolCalls: []map[string]any{{"call_id": "root-native", "capability_name": goalEvaluationSubmit, "arguments": root}}}
 		}
 		return fakeProviderResult{Structured: map[string]any{"summary": "retry submitted remaining root"}}
-	})}
+	})
+	f.app.Provider.HTTP = &http.Client{Transport: router}
 	request := latestPendingGoalRequest(t, f)
+	// The fixture represents an already elapsed quiet period, not a change to
+	// the production cadence or Goal success conditions.
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET last_activity_at=now()-interval '31 minutes',evaluation_next_at=now() WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
 	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err == nil || len(arrayValue(result["goal_outcomes"])) != 1 {
 		t.Fatal("partial effect lost", result, err)
 	}
@@ -236,13 +265,42 @@ func TestGoalEvaluationNativePartialRetryPreservesFrozenRefsAndSuccessfulMemo(t 
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_source_events WHERE source_id=$1 AND processed_at IS NOT NULL`, message).Scan(&processed); err != nil || processed != 0 {
 		t.Fatal("unresolved sources consumed", processed, err)
 	}
+	var savedModelProvenance []byte
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT model_provenance FROM public.goal_evaluation_requests WHERE id=$1`, request).Scan(&savedModelProvenance); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET model_provenance='{}' WHERE id=$1`, request); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET available_at=now() WHERE id=$1`, request); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.model_roles SET model_id='next-model' WHERE role=$1`, role); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET last_activity_at=now()-interval '31 minutes' WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
 		t.Fatal(err)
 	}
 	advanceGoalEvaluationCycleForTest(t, f, request)
 	retry = true
+	f.app = newTestApp(t, f.repository, router)
+	if _, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); !errors.Is(err, errGoalEvaluationModelSnapshotInvalid) || physical != 2 {
+		t.Fatalf("missing snapshot after a committed root reached the model: requests=%d err=%v", physical, err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_evaluation_requests SET model_provenance=$2 WHERE id=$1`, request, savedModelProvenance); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `UPDATE public.goal_agent_cadence SET last_activity_at=now()-interval '31 minutes' WHERE fluctlight_id=$1`, f.fluctlightID); err != nil {
+		t.Fatal(err)
+	}
+	advanceGoalEvaluationCycleForTest(t, f, request)
 	if result, err := f.app.ProcessGoalEvaluationIntent(f.ctx, request); err != nil || len(arrayValue(result["goal_outcomes"])) != 2 {
 		t.Fatal(result, err)
+	}
+	for _, model := range models {
+		if model != "first-model" {
+			t.Fatalf("goal evaluation changed model after a partial submission: %v", models)
+		}
 	}
 	var count int
 	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_evaluations WHERE goal_id=$1`, first).Scan(&count); err != nil || count != 1 {

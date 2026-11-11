@@ -177,21 +177,38 @@ func restoredAssignmentSecretPurpose(assignment providerAssignment, currentBaseU
 }
 
 func (a *App) restoreAssignmentCredential(ctx context.Context, assignment *providerAssignment) error {
-	purpose := assignment.SecretPurpose
-	if purpose == "" {
-		var currentBaseURL, currentPurpose string
-		if err := a.DB.Pool().QueryRow(ctx, `SELECT base_url,secret_purpose FROM public.provider_endpoints WHERE id=$1`, assignment.EndpointID).Scan(&currentBaseURL, &currentPurpose); err != nil {
-			return err
+	// Read destination, credential and revision in one database snapshot. A
+	// changed destination must never receive a credential rotated for another
+	// endpoint under the same secret purpose.
+	var currentBaseURL, currentPurpose string
+	var ciphertext, nonce []byte
+	var endpointRevision, credentialRevision int64
+	err := a.DB.Pool().QueryRow(ctx, `SELECT e.base_url,COALESCE(e.secret_purpose,''),s.ciphertext,s.nonce,COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='endpoint:'||e.id),0),COALESCE((SELECT revision FROM public.configuration_revisions WHERE resource_key='secret:'||(CASE WHEN $2::text<>'' THEN $2::text ELSE e.secret_purpose END)),0) FROM public.provider_endpoints e LEFT JOIN public.setting_secrets s ON s.purpose=(CASE WHEN $2::text<>'' THEN $2::text ELSE e.secret_purpose END) WHERE e.id=$1`, assignment.EndpointID, assignment.SecretPurpose).Scan(&currentBaseURL, &currentPurpose, &ciphertext, &nonce, &endpointRevision, &credentialRevision)
+	if err != nil {
+		return err
+	}
+	purpose, err := restoredAssignmentSecretPurpose(*assignment, currentBaseURL, currentPurpose)
+	if err != nil {
+		return err
+	}
+	// An endpoint may have moved away and back since the snapshot. If both its
+	// revision and the credential changed, the current URL alone cannot prove
+	// that the new credential was intended for the frozen destination.
+	endpointChanged := strings.TrimRight(assignment.BaseURL, "/") != strings.TrimRight(currentBaseURL, "/") || assignment.SecretPurpose != currentPurpose || (assignment.EndpointRevision > 0 && assignment.EndpointRevision != endpointRevision)
+	if assignment.SecretPurpose != "" && endpointChanged {
+		if credentialRevision != assignment.CredentialRevision || (ciphertext != nil && assignment.CredentialRevision <= 0) {
+			return errors.New("provider_snapshot_credential_destination_changed")
 		}
-		var err error
-		purpose, err = restoredAssignmentSecretPurpose(*assignment, currentBaseURL, currentPurpose)
+	}
+	secret := ""
+	if ciphertext != nil {
+		secret, err = decryptSecret(a.Provider.SettingsKey, purpose, nonce, ciphertext)
 		if err != nil {
 			return err
 		}
 	}
-	var err error
-	assignment.Secret, assignment.CredentialRevision, err = a.Provider.secretWithRevision(ctx, purpose)
-	return err
+	assignment.Secret, assignment.CredentialRevision = secret, credentialRevision
+	return nil
 }
 
 func providerSamplingFields(assignment providerAssignment) map[string]any {
