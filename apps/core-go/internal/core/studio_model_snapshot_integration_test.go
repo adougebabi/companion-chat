@@ -11,7 +11,13 @@ import (
 // The Provider is controlled; PostgreSQL and the production Studio attempt
 // transition are real only when the isolated test database is configured.
 func TestStudioPostgresAutomaticRetryKeepsFrozenModel(t *testing.T) {
-	ctx, repo, app, owner, _, _ := setupDirectPublicationToolTest(t, "studio-snapshot-auto")
+	ctx, repo, app, owner, fluctlight, _ := setupDirectPublicationToolTest(t, "studio-snapshot-auto")
+	var persona, life string
+	err := repo.Pool().QueryRow(ctx, `UPDATE public.fluctlights SET personality=COALESCE(personality,'{}'::jsonb)||$2::jsonb,life_profile=COALESCE(life_profile,'{}'::jsonb)||$3::jsonb WHERE id=$1 RETURNING personality::text,life_profile::text`, fluctlight,
+		jsonString(map[string]any{"private_marker": "STUDIO_UNRELATED_PERSONA_SENTINEL"}), jsonString(map[string]any{"private_marker": "STUDIO_UNRELATED_LIFE_SENTINEL"})).Scan(&persona, &life)
+	if err != nil || !strings.Contains(persona, "STUDIO_UNRELATED_PERSONA_SENTINEL") || !strings.Contains(life, "STUDIO_UNRELATED_LIFE_SENTINEL") {
+		t.Fatalf("private isolation fixtures were not stored: %v", err)
+	}
 	resource, err := app.DispatchOwnerSurface(ctx, "POST", "/internal/studio/resources", nil, owner, map[string]any{"kind": "place", "name": "Snapshot fixture", "body": map[string]any{"description": "original"}, "reason": "test", "idempotency_key": "snapshot-resource"})
 	if err != nil {
 		t.Fatal(err)
@@ -26,6 +32,17 @@ func TestStudioPostgresAutomaticRetryKeepsFrozenModel(t *testing.T) {
 	fail := true
 	app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 		models = append(models, stringValue(payload["model"]))
+		wire := jsonString(payload["messages"])
+		for _, required := range []string{"Snapshot fixture", "original", "extend"} {
+			if !strings.Contains(wire, required) {
+				t.Errorf("Studio request omitted selected definition/input %q", required)
+			}
+		}
+		for _, forbidden := range []string{"STUDIO_UNRELATED_PERSONA_SENTINEL", "STUDIO_UNRELATED_LIFE_SENTINEL"} {
+			if strings.Contains(wire, forbidden) {
+				t.Errorf("Studio request received unrelated runtime data %q", forbidden)
+			}
+		}
 		if fail {
 			return fakeProviderResult{Err: context.DeadlineExceeded}
 		}

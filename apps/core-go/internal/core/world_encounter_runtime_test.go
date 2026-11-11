@@ -13,6 +13,12 @@ func TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs(t *testing.T) 
 	for _, scenario := range []string{"accept", "decline", "cancel_during_response", "provider_failure"} {
 		t.Run(scenario, func(t *testing.T) {
 			f, npc, _, now := seedNPCEncounterRuntime(t, true)
+			var persona, life string
+			err := f.repository.Pool().QueryRow(f.ctx, `UPDATE public.fluctlights SET personality=COALESCE(personality,'{}'::jsonb)||$2::jsonb,life_profile=COALESCE(life_profile,'{}'::jsonb)||$3::jsonb WHERE id=$1 RETURNING personality::text,life_profile::text`, f.fluctlightID,
+				jsonString(map[string]any{"private_marker": "CHARACTER_PRIVATE_PERSONA_SENTINEL"}), jsonString(map[string]any{"private_marker": "CHARACTER_PRIVATE_LIFE_SENTINEL"})).Scan(&persona, &life)
+			if err != nil || !strings.Contains(persona, "CHARACTER_PRIVATE_PERSONA_SENTINEL") || !strings.Contains(life, "CHARACTER_PRIVATE_LIFE_SENTINEL") {
+				t.Fatalf("private isolation fixtures were not stored: %v", err)
+			}
 			if _, err := f.app.RepairWorldNPCPresence(f.ctx, 20); err != nil {
 				t.Fatal(err)
 			}
@@ -30,6 +36,11 @@ func TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs(t *testing.T) 
 					responseCalls++
 					if !strings.Contains(jsonString(payload), "PRIVATE_NPC_BIO_NOT_AUTOMATIC_KNOWLEDGE") {
 						t.Error("NPC resolver did not consume its actual definition")
+					}
+					for _, forbidden := range []string{"CHARACTER_PRIVATE_PERSONA_SENTINEL", "CHARACTER_PRIVATE_LIFE_SENTINEL"} {
+						if strings.Contains(jsonString(payload), forbidden) {
+							t.Errorf("NPC resolver received unrelated character data %q", forbidden)
+						}
 					}
 					if scenario == "provider_failure" {
 						return fakeProviderResult{Err: errors.New("controlled NPC response outage")}
