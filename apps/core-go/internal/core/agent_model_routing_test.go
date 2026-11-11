@@ -247,6 +247,7 @@ func TestAgentModelConfigurationSavesReadsRunsAndClears(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	const owner, endpoint = "agent-route-owner", "agent-route-endpoint"
 	const targetModel = "llmfan46/G4-MeroMero-26B-A4B-it-uncensored-heretic-4bit-mxfp4"
+	const internalModel = "Huihui-Qwen3.8-27B-3.8bpw"
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'fixture','fixture')`, owner); err != nil {
 		t.Fatal(err)
 	}
@@ -260,7 +261,7 @@ func TestAgentModelConfigurationSavesReadsRunsAndClears(t *testing.T) {
 	})
 	client := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if strings.HasSuffix(request.URL.Path, "/models") {
-			return embeddingHTTPResponse(request, http.StatusOK, jsonString(map[string]any{"data": []any{map[string]any{"id": targetModel}, map[string]any{"id": "agent-fixture"}, map[string]any{"id": "variant-fixture"}, map[string]any{"id": "vision-fixture"}}})), nil
+			return embeddingHTTPResponse(request, http.StatusOK, jsonString(map[string]any{"data": []any{map[string]any{"id": targetModel}, map[string]any{"id": "agent-fixture"}, map[string]any{"id": internalModel}, map[string]any{"id": "vision-fixture"}}})), nil
 		}
 		return router.RoundTrip(request)
 	})}
@@ -292,7 +293,7 @@ func TestAgentModelConfigurationSavesReadsRunsAndClears(t *testing.T) {
 		t.Fatalf("default text request lost the configured target model: model=%q err=%v", actualModel, err)
 	}
 	save("agent:reflection", "agent-fixture", "route-agent")
-	save("agent:reflection:reflection_proposal_v2", "variant-fixture", "route-variant")
+	save("agent:reflection:reflection_proposal_v2", internalModel, "route-variant")
 	variantCtx := withAgentModelRoute(ctx, FormalAgentReflection, "reflection_proposal_v2")
 	if other, err := provider.assignment(mainCtx, "cognitive_assessment"); err != nil || other.ModelID != targetModel {
 		t.Fatalf("another task changed with reflection override: %#v err=%v", other, err)
@@ -305,14 +306,14 @@ func TestAgentModelConfigurationSavesReadsRunsAndClears(t *testing.T) {
 	for _, raw := range arrayValue(catalog["agent_model_routes"]) {
 		route := mapValue(raw)
 		if route["key"] == "agent:reflection:reflection_proposal_v2" {
-			found = route["source"] == "variant" && route["model_id"] == "variant-fixture"
+			found = route["source"] == "variant" && route["model_id"] == internalModel
 		}
 	}
 	if !found {
 		t.Fatal("saved variant was not visible as the effective route")
 	}
 	_, err = app.RunFormalAgent(ctx, FormalAgentReflection, FormalAgentRunInput{Prompt: PromptAssemblyResult{Messages: []map[string]any{{"role": "user", "content": "fixture"}}, ResponseFormat: schema}, SchemaName: "reflection_proposal_v2"})
-	if err != nil || actualModel != "variant-fixture" {
+	if err != nil || actualModel != internalModel {
 		t.Fatalf("next formal request did not use saved variant: model=%q err=%v", actualModel, err)
 	}
 	current, err := app.ReadSettings(ctx, owner)

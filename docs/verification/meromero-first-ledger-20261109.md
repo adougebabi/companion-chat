@@ -22,7 +22,7 @@
 | --- | --- | --- | --- |
 | T00 | 范围、基线、台账 | VERIFIED | 本文件记录起始 commit、分支、用户文件、环境、失败基线、工作包、依赖及验收状态；后续继续追加事实。 |
 | T01 | 完整运行入口盘点 | VERIFIED | [当前入口清单](meromero-agent-inventory-20261109.md)按源码核对 31 个正式 Agent、36 个显式声明的可配置 variant及额外表达变体、实际 Writer 修复 variant、非正式 Provider/embedding/Kev、独立 Tool 与后台调度；记录版本/hash 的实际口径和未确认生产上游。逐项覆盖和源码位置检查及独立静态审查已完成；真实模型能力和后台快照分属后续任务。 |
-| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。新人格准备、衣柜准备、新媒体各模型阶段、新视觉身份会话、新 Goal 评估、每日记忆、片段摘要及 embedding 新任务已冻结绑定；隔离 PostgreSQL 和受控 Provider 验证了部分恢复、并发、视觉开关、错误及回放。升级前旧任务策略和凭据配置原子性仍有缺口，真实 Provider 及真实 Temporal 仍未验收。 |
+| T02 | R01 任务模型配置 | IN_PROGRESS | `model_roles` 支持 variant → Agent → 默认用途；新后台任务采用各自的模型快照。隔离 PostgreSQL 与受控 Provider 验证任务覆盖、拒绝不换模型及视觉隔离；本机 MeroMero 普通聊天真实请求通过。升级前无可证明快照的旧任务仍按既有策略并记录诊断；真实 Qwen 任务覆盖与真实 Temporal 尚未验收。地址/密钥原子保存作为任务外问题另记 `provider-endpoint-credential-atomic-save`。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | 已修复低置信度 claim 状态；新增显式实验性 `direct` 模式，使主 Agent 同一原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交，受控 PostgreSQL 验证提交、重放及回滚。默认生产链仍是 fact-only 加独立 Writer，旧草稿兼容、真实模型和默认切换尚未完成。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；受控 Tool 目录、物理 schema、Writer 与 React 通过。隔离 PostgreSQL 已验证直接调用、配置及部分回执回放；NPC 完整重启及真实媒体尚未验证。 |
@@ -90,6 +90,10 @@
 - 2026-11-11：隔离 PostgreSQL 受控交错复现模型目录和 embedding 恢复分别读到旧地址与新密钥：`/private/tmp/fluctlight-t02-endpoint-secret-red.log`。改为单语句读取并在 embedding 诊断记录实际端点/凭据版本后，7 项数据库和受控请求回归通过：`/private/tmp/fluctlight-t02-endpoint-secret-final.log`；诊断不含密钥。该修复不解决地址和密钥分别保存的中间状态；embedding 快照随后补齐，见下一条。
 
 - 2026-11-11：新 embedding intent 与 Memory 同事务保存无密钥模型快照；无配置时先保留未选状态，首次配置可用后持久确定绑定。已选任务在重试和进程重建后保留原端点、模型及超时；已完成向量可在凭据不可用时重放。隔离库修复前复现地址漂移（`/private/tmp/fluctlight-t02-embedding-address-red.log`，测试替身中的断言导致进程等待，随后已终止）；修复后 10 项相关回归及迁移链通过：`/private/tmp/fluctlight-t02-embedding-snapshot-final-v2.log`、`/private/tmp/fluctlight-t02-embedding-migration-final-v2.log`；既有 Memory 生命周期和摘要到每日记忆回归通过：`/private/tmp/fluctlight-t02-embedding-memory-regression.log`。快照写入失败与 Memory 同事务回滚；未配置不影响 Memory 保存。旧任务无可证明地址，保留旧选模并标记诊断；真实 Provider 未验收。
+
+- 2026-11-11：按 T02 原始验收重跑：隔离 PostgreSQL 和受控 Provider 验证默认 MeroMero、单个内部任务覆盖为 `Huihui-Qwen3.8-27B-3.8bpw` 后其他任务不变、拒绝不触发换模型及视觉配置独立，日志 `/private/tmp/fluctlight-t02-acceptance-controlled-final.log`；正式 React 覆盖和恢复继承的受控测试通过。本机指定 MeroMero 的真实普通聊天通过，实际请求 1 次且发出原生 `conversation.reply`，日志 `/private/tmp/fluctlight-t02-meromero-live-current.log`，证据 `/private/tmp/fluctlight-t02-meromero-live-current.json`。这是真实普通聊天，不证明 T04 私聊单主链或真实 Qwen/视觉验收。
+
+- 2026-11-11：按用户纠正停止扩展原始任务外的地址/密钥原子保存；已登记独立 Bug `provider-endpoint-credential-atomic-save`，未完成实验仅保存在分支 `codex/t02-provider-atomic-wip` 的提交 `f644c8bc`，未合入主线。
 
 - 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
 
