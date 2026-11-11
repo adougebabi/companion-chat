@@ -60,12 +60,20 @@ func (a *App) readReplyActions(ctx context.Context, draft string) ([]replyAction
 					state.Status = "failed"
 					state.ErrorCode = "media_asset_missing"
 				}
-			case "failed", "cancelled":
+			case "failed":
 				state.Status = "failed"
 				state.ErrorCode = "media_generation_failed"
+			case "cancelled":
+				state.Status = "cancelled"
+				state.ErrorCode = "media_generation_cancelled"
 			default:
 				state.Status = "pending"
 			}
+		}
+		if state.Status != "ready" {
+			// A stored asset is not an approval to attach a failed, pending or
+			// cancelled action; retain the asset in storage for later inspection.
+			state.AssetID = ""
 		}
 		states = append(states, state)
 	}
