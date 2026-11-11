@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "本轮分批提交了 Goal 人格和条件、Moment Goal/部分证据投影及隔离场景验证。T03 仍未完成：其他 Moment 证据类型保真未逐类验证；部分兼容调用只能记录调用方或 unknown，物理诊断遵循现行尽力写入合同；真实模型验证尚未通过。用户已授权卡住和真实 LLM 验证先跳过以继续后续任务，因此保留未完成状态，后续回到 execute 核对剩余范围，不降低验收条件。",
   "result": "",
   "created": "2026-11-10T08:34:30.58656Z",
-  "updated": "2026-11-11T14:14:15.342822Z",
+  "updated": "2026-11-11T14:17:54.907224Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -76,11 +76,11 @@
         "unit": "execute",
         "executor": "codex-t03-context",
         "input_version": "74c032bd3f546e998d3cc66a850ca30ac17f86828bc2aedb7771b45fa0ab2131",
-        "candidate_version": "",
+        "candidate_version": "db71a1b55483a3b45f2c471968dc2cd62428d7b2c68380ba1dfe693dd1a917af",
         "started": "2026-11-11T13:28:46.755199Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-11T14:17:49.937124Z",
+        "status": "fail",
+        "reason": "本轮分批提交了 Goal 人格和条件、Moment Goal/部分证据投影及隔离场景验证。T03 仍未完成：其他 Moment 证据类型保真未逐类验证；部分兼容调用只能记录调用方或 unknown，物理诊断遵循现行尽力写入合同；真实模型验证尚未通过。用户已授权卡住和真实 LLM 验证先跳过以继续后续任务，因此保留未完成状态，后续回到 execute 核对剩余范围，不降低验收条件。"
       }
     ],
     "checks": null
