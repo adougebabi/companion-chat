@@ -106,7 +106,7 @@ func TestEinoDiagnosticMessagesKeepMultimodalTextWithImageMarker(t *testing.T) {
 	}
 }
 
-func TestPostgresOwnerModelRunWriteReadExportReplacesOnlyImages(t *testing.T) {
+func TestPostgresOwnerModelRunWriteReadAndPrivateExport(t *testing.T) {
 	ctx, repository := isolatedCoreTestRepository(t)
 	ownerID, fluctlightID := "image-diag-owner", "image-diag-fluctlight"
 	seedLifeContextFluctlight(t, ctx, repository, ownerID, fluctlightID)
@@ -137,7 +137,7 @@ func TestPostgresOwnerModelRunWriteReadExportReplacesOnlyImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, encoded := range []string{string(stored), jsonString(runs), jsonString(exported)} {
+	for _, encoded := range []string{string(stored), jsonString(runs)} {
 		for _, forbidden := range []string{"media.invalid", "hide-me"} {
 			if strings.Contains(encoded, forbidden) {
 				t.Fatalf("image locator %q reached diagnostics: %s", forbidden, encoded)
@@ -149,8 +149,10 @@ func TestPostgresOwnerModelRunWriteReadExportReplacesOnlyImages(t *testing.T) {
 			}
 		}
 	}
-	if exportedText := jsonString(exported); !strings.Contains(exportedText, "private reasoning") || !strings.Contains(exportedText, "private argument") {
-		t.Fatalf("Owner export lost non-image response: %s", exportedText)
+	for _, forbidden := range []string{"media.invalid", "hide-me", "Bearer keep-me", "private prompt", "private reasoning", "private argument"} {
+		if strings.Contains(jsonString(exported), forbidden) {
+			t.Fatalf("export retained private content %q", forbidden)
+		}
 	}
 }
 

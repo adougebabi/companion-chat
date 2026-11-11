@@ -2275,10 +2275,14 @@ func (a *App) DiagnosticsExportFiltered(ctx context.Context, actorID string, fil
 	if err != nil {
 		return nil, err
 	}
+	sanitizer, err := newDiagnosticExportSanitizer()
+	if err != nil {
+		return nil, err
+	}
 	return map[string]any{
-		"events": events, "model_runs": runs, "media_prompts": mediaPrompts,
-		"lifecycle": lifecycle["events"], "workflow_intents": lifecycle["workflow_intents"],
-		"filters": normalized.Map(), "complete": false, "export_mode": "bounded_legacy_view", "complete_export_path": "/api/diagnostic-export",
+		"events": sanitizer.rows(events), "model_runs": sanitizer.rows(runs), "media_prompts": sanitizer.rows(mediaPrompts),
+		"lifecycle": sanitizer.rows(lifecycle["events"]), "workflow_intents": sanitizer.rows(lifecycle["workflow_intents"]),
+		"filters": diagnosticExportFilters(normalized.Map()), "complete": false, "export_mode": "bounded_legacy_view", "complete_export_path": "/api/diagnostic-export",
 	}, nil
 }
 

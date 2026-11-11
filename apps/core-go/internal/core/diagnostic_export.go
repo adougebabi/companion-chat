@@ -22,6 +22,10 @@ func (a *App) ExportOwnerDiagnostics(ctx context.Context, owner string, q url.Va
 	if err != nil {
 		return err
 	}
+	sanitizer, err := newDiagnosticExportSanitizer()
+	if err != nil {
+		return err
+	}
 	kinds := []string{"events", "model-runs", "agent-runs", "media-prompts", "kev", "workflow-intents", "audit", "harm", "turns", "links", "media-recoveries"}
 	if selected := q.Get("dataset"); selected != "" && selected != "all" {
 		if !containsString(append(append([]string{}, kinds...), "lifecycle"), selected) {
@@ -45,7 +49,12 @@ func (a *App) ExportOwnerDiagnostics(ctx context.Context, owner string, q url.Va
 			_ = encoder.Encode(map[string]any{"type": "error", "complete": false, "code": "diagnostic_export_incomplete", "message": "诊断导出未完成，请重新导出；没有声明部分文件完整"})
 		}
 	}()
-	if err := encoder.Encode(map[string]any{"type": "manifest", "format": "fluctlight.diagnostics.jsonl.v1", "snapshot": snapshot, "consistency": "repeatable_read", "filters": f, "datasets": kinds, "exported_at": a.now().UTC().Format(time.RFC3339Nano), "record_policy": "Owner diagnostic views; image/credential redaction retained; Agent authority and media intents are not cleanup targets"}); err != nil {
+	filters := map[string]any{}
+	for key, value := range f {
+		filters[key] = value
+	}
+	exportSnapshot := sanitizer.alias(snapshot)
+	if err := encoder.Encode(map[string]any{"type": "manifest", "format": "fluctlight.diagnostics.jsonl.v2", "snapshot": exportSnapshot, "consistency": "repeatable_read", "filters": diagnosticExportFilters(filters), "datasets": kinds, "exported_at": a.now().UTC().Format(time.RFC3339Nano), "record_policy": "Privacy-safe metadata only; identities are pseudonymous within this export"}); err != nil {
 		return err
 	}
 	started = true
@@ -70,10 +79,7 @@ func (a *App) ExportOwnerDiagnostics(ctx context.Context, owner string, q url.Va
 				rows.Close()
 				return err
 			}
-			record := diagnosticRecord(kind, key, at, decodeObject(raw))
-			delete(record, "_cursor_time")
-			delete(record, "_cursor_key")
-			delete(record, "_cursor_null")
+			record := map[string]any{"id": sanitizer.alias(key), "ref": sanitizer.alias(kind + "\x1f" + key), "kind": kind, "data": sanitizer.data(decodeObject(raw))}
 			if err := encoder.Encode(map[string]any{"type": "record", "dataset": kind, "record": record}); err != nil {
 				rows.Close()
 				return err
@@ -93,7 +99,7 @@ func (a *App) ExportOwnerDiagnostics(ctx context.Context, owner string, q url.Va
 	if _, err := a.DB.Pool().Exec(ctx, `INSERT INTO public.owner_surface_audits(id,owner_actor_id,fluctlight_id,identity,actor,action,reason,record_id) VALUES($1,$2,'','owner_edit','owner','diagnostic_export','诊断记录已读取并完成服务端快照；客户端文件完成情况由完整性回执检查',$3)`, auditID, owner, "diagnostic_export_"+stableDigest(snapshot+":"+jsonString(counts))); err != nil {
 		return err
 	}
-	return encoder.Encode(map[string]any{"type": "end", "complete": true, "counts": counts, "snapshot": snapshot})
+	return encoder.Encode(map[string]any{"type": "end", "complete": true, "counts": counts, "snapshot": exportSnapshot})
 }
 
 func (a *App) ClearOwnerDiagnosticRecords(ctx context.Context, owner string, body map[string]any) (map[string]any, error) {
