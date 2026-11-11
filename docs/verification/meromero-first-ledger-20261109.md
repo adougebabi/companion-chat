@@ -57,12 +57,12 @@
 
 | 字段/效果 | 当前生产者与消费者 | 证据、幂等和缺口 |
 | --- | --- | --- |
-| claims | `intelligence.go` 的 `normalizeResponsePlan` → `evaluateClaims` → `persistClaimsTx`；有效 claim 后续进入 hypothesis、记忆检索线索及上下文。低置信度记录现在保留 uncertain 状态和过期时间，真实数据库尚未验证。 | evidence 必须绑定本轮 Core 引用；`cognition_claims` 按 `(fluctlight_id,repetition_key)` 冲突不写。现有评估允许相同 repetition key 带新证据，但持久化仍 `DO NOTHING`，新证据可能未落入旧 claim；需在不覆盖历史证据前提下解决。字段可为空，无法据此证明主动判断过无候选。 |
-| influences | `freezeDecisionInfluences` 校验并冻结本轮引用，`frozenDecisionCausality` 导出 Goal、Intention 及引用；assessment/proposal 保存完整 decision，appraisal 存在时其因果字段也被保存。 | 引用必须在当前 `ReferenceIndex`；assessment/decision ID 由 inbox 确定，冲突不重复写。允许空数组，发布后的合成最小终态可能使引用无故为空。 |
+| claims | `intelligence.go` 的 `normalizeResponsePlan` → `evaluateClaims` → `persistClaimsTx`；有效 claim 后续进入 hypothesis、记忆检索线索及上下文。隔离 PostgreSQL 已验证 direct 低置信度 claim 保存为 uncertain。 | evidence 必须绑定本轮 Core 引用；`cognition_claims` 按 `(fluctlight_id,repetition_key)` 冲突不写。已有 claim 的新证据可能未落库，已另记 `cognition-claim-new-evidence-not-persisted`，当前 T04 不改通用持久化。字段可为空，无法据此证明主动判断过无候选。 |
+| influences | `freezeDecisionInfluences` 校验并冻结本轮引用，`frozenDecisionCausality` 导出 Goal、Intention 及引用；assessment/proposal 保存完整 decision，appraisal 存在时其因果字段也被保存。 | 引用必须在当前 `ReferenceIndex`；隔离 PostgreSQL 的 direct 场景验证非空 Goal 影响、引用及重放。其他引用种类和真实模型尚未验收。 |
 | appraisal / attention / thought / desire / agency | `applyFrozenCognitiveStagesTx` 在私聊结算事务内消费；appraisal 和状态归约写入 appraisal、focus、dynamics 与 state revision。 | 以 source fact 和状态 revision 防止重复；无 appraisal 时显式为 `not_proposed`。已发布回复后的结算失败只保留工具 partial，不代表这些状态已经结算。 |
 | output_preference_decision | 原路径由 `normalizeResponsePlan` 规范化，原 decision 进入 assessment/proposal，但此前未找到规范化结果的生产消费方。`direct` 现由 `settledOutputPreference` 结合本轮真实工具回执校对，并随 `agent_result` 和已处理事件在回复事务内保存。 | 缺省合法；文本回应、未申请媒体、媒体未受理及已受理的状态分开记录，不把偏好本身当作媒体生成或交付。隔离 PostgreSQL 验证文本结果、回滚和重放；媒体状态目前为受控回执单元测试，真实媒体未验收。 |
-| goal_event_candidates | `enqueueTurnGoalCandidatesTx` 验证本轮 Goal ref，关联同 inbox 的 committed 消息来源，再对新增关联排 Goal 评估。 | source event 和 `(goal_id,source_event_id)` 关联均有幂等键；候选不直接完成 Goal。空候选或找不到匹配来源均不建关联；等待媒体续接是否补关联仍待核验。 |
-| 人格/关系 | root personality decision 可进入原始 decision/plan；真正人格切换由 `persona.switch` 等实际工具或 Owner 工作流经 CAS 和规则执行。普通私聊的 `recordRelationshipInteractionTx` 更新已有关系的互动次数与时间。 | 不能把 root 字段视为已切换人格；互动频次依赖 inbox 结算守卫去重，语义关系变化由反思或 Goal 等独立生产路径处理。 |
+| goal_event_candidates | `enqueueTurnGoalCandidatesTx` 验证本轮 Goal ref，关联同 inbox 的 committed 消息来源，再对新增关联排 Goal 评估。 | 隔离 PostgreSQL 的 direct 场景验证候选关联真实消息、持久评估请求及工作流意图，重放不重复；Goal 保持 active。实际评估完成与媒体续接仍待核验。 |
+| 人格/关系 | root personality decision 可进入原始 decision/plan；真正人格切换由 `persona.switch` 等实际工具或 Owner 工作流经 CAS 和规则执行。普通私聊的 `recordRelationshipInteractionTx` 更新已有关系的互动次数与时间。 | 不能把 root 字段视为已切换人格；隔离 PostgreSQL 的 direct 场景验证已有关系互动仅计一次，语义关系变化由反思或 Goal 等独立生产路径处理。 |
 
 `visibleReplyTerminalMessage` 可能在工具发布后合成不含以上字段的最小终态；`failAgentTurnAfterRun` 在结算失败时保留已提交消息和工具回执，却不会自动补交完整认知结算。任何替代方案都必须让真实 decision、真实发布/媒体事实和可恢复结算共享明确身份，保留旧草稿与已发布消息的重放语义。
 
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-11：`TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce` 使用隔离 PostgreSQL 和受控原生 ToolCall，验证一条回复、非空 Goal 影响引用、真实消息的 candidate 关联、持久评估工作流和一次既有关系互动；重放不重复，Goal 未被候选直接完成。首次测试错误地要求该 Goal 的所有 pending 评估总数为 1，实际为 2；随后核实夹具在回复前已存在 1 条，并将断言收窄到本轮 `conversation_candidate` 的请求及工作流，重跑通过。未运行真实 MeroMero 或 Goal 评估完成链。
 
 - 2026-11-11：T04 将 direct 主回复的规范化输出偏好接入结算结果，按实际匹配的 ToolCall/ToolResult 区分媒体未申请、未受理与已受理；不新增媒体动作，也不把 accepted 当成生成或交付。单元测试覆盖无请求、失败、accepted、completed、错误配对和不支持渠道；隔离 PostgreSQL 验证文本偏好与消息、认知结算同事务提交/回滚及重放。非空 Goal、influences、关系等 direct 消费的完整回归仍待补齐。
 

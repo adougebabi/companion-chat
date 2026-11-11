@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -320,6 +322,67 @@ func TestDirectMainReplyRetainsExistingDraftContract(t *testing.T) {
 	if _, ok := capability.(directMainReplyCapability); !ok {
 		t.Fatal("a new source did not select the direct contract")
 	}
+}
+
+func TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce(t *testing.T) {
+	f := seedWardrobeToolFixture(t)
+	goalID := createDialogueGoalForClosure(t, f, []string{"已实际清楚向对方表达自己的心意"})
+	relationshipID := "direct-relationship-" + f.suffix
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, f.ownerID, f.fluctlightID, f.conversationID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.repository.Pool().Exec(f.ctx, `INSERT INTO public.relationships(id,owner_fluctlight_id,target_actor_id,role,metrics,revision) VALUES($1,$2,$3,'{"label":"friend"}','{}',1)`, relationshipID, f.fluctlightID, f.ownerID); err != nil {
+		t.Fatal(err)
+	}
+	var existingPending int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(*) FROM public.goal_evaluation_requests WHERE fluctlight_id=$1 AND status='pending' AND goal_ids ? $2`, f.fluctlightID, goalID).Scan(&existingPending); err != nil || existingPending != 1 {
+		t.Fatalf("fixture preexisting Goal request count=%d err=%v", existingPending, err)
+	}
+	seedCognitiveProviderRole(t, f.ctx, f.repository, "direct-goal-"+f.suffix)
+	calls := 0
+	var offeredGoalRef string
+	f.app.Provider.HTTP = &http.Client{Transport: newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		calls++
+		offeredGoalRef = regexp.MustCompile(`goal:ctx_[a-f0-9]{32}`).FindString(jsonString(payload))
+		if offeredGoalRef == "" {
+			t.Error("direct request omitted the actual Goal reference")
+			return fakeProviderResult{Status: 500}
+		}
+		decision := map[string]any{
+			"action_type": "reply", "response_intent": "表达自己的心意",
+			"influences":            []any{map[string]any{"ref": offeredGoalRef, "role": "motivates", "confidence": 1.0, "note": "当前表达目标"}},
+			"goal_event_candidates": []any{map[string]any{"goal_ref": offeredGoalRef, "reason": "正式表达可能满足原条件"}},
+		}
+		args := map[string]any{"text": "我很在意你，想认真告诉你。", "decision": decision}
+		return fakeProviderResult{ToolCalls: []map[string]any{{"id": "direct-goal-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(args)}}}}
+	})}
+	payload := map[string]any{"fluctlight_id": f.fluctlightID, "text": "你现在想对我说什么？", "turn_id": "direct-goal-turn", "idempotency_key": "direct-goal-turn", "attachment_refs": []any{}}
+	turn, err := f.app.HandleTurn(f.ctx, f.ownerID, f.conversationID, payload)
+	if err != nil || calls != 1 || stringValue(turn.Assistant["id"]) == "" {
+		t.Fatalf("direct Goal turn=%#v calls=%d err=%v", turn, calls, err)
+	}
+	check := func() {
+		t.Helper()
+		var messages, links, pending, frequency int
+		var state string
+		var goalRefs, references []byte
+		err := f.repository.Pool().QueryRow(f.ctx, `SELECT
+			(SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'),
+			(SELECT count(*) FROM public.goal_evidence_links l JOIN public.goal_source_events e ON e.id=l.source_event_id WHERE l.goal_id=$2 AND e.source_id=$3 AND e.source_kind='message' AND e.source_status='committed' AND l.status='candidate'),
+			(SELECT count(*) FROM public.goal_evaluation_requests r JOIN public.platform_workflow_intents i ON i.intent_id=r.id AND i.intent_type='goal.evaluate' WHERE r.fluctlight_id=$4 AND r.status='pending' AND r.reason='conversation_candidate' AND r.goal_ids ? $2),
+			(SELECT interaction_frequency FROM public.relationships WHERE id=$5),
+			(SELECT status FROM public.fluctlight_goals WHERE id=$2),
+			(SELECT payload->'agent_result'->'goal_refs' FROM public.cognition_inbox WHERE fluctlight_id=$4 AND payload->>'turn_id'=$6),
+			(SELECT payload->'agent_result'->'context_references' FROM public.cognition_inbox WHERE fluctlight_id=$4 AND payload->>'turn_id'=$6)`, f.conversationID, goalID, turn.Assistant["id"], f.fluctlightID, relationshipID, payload["turn_id"]).Scan(&messages, &links, &pending, &frequency, &state, &goalRefs, &references)
+		if err != nil || messages != 1 || links != 1 || pending != 1 || frequency != 1 || state != "active" || !strings.Contains(string(goalRefs), offeredGoalRef) || !strings.Contains(string(references), offeredGoalRef) {
+			t.Fatalf("direct Goal settlement messages=%d links=%d pending=%d frequency=%d state=%s refs=%s err=%v", messages, links, pending, frequency, state, goalRefs, err)
+		}
+	}
+	check()
+	if _, err := f.app.HandleTurn(f.ctx, f.ownerID, f.conversationID, payload); err != nil || calls != 1 {
+		t.Fatalf("direct Goal replay made a new model call: calls=%d err=%v", calls, err)
+	}
+	check()
 }
 
 func TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls(t *testing.T) {
