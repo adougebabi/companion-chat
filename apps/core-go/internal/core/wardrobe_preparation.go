@@ -318,6 +318,25 @@ func (a *App) ProcessWardrobePreparation(ctx context.Context, id string) (result
 		return nil, err
 	}
 	modelCtx = withFrozenProviderAssignment(modelCtx, wardrobeModelRole, assignment)
+	itemRefs, planRefs := make([]string, 0, len(items)), make([]string, 0, len(plans))
+	for _, item := range items {
+		if itemID := stringValue(item["id"]); itemID != "" {
+			itemRefs = append(itemRefs, "wardrobe_item:"+itemID)
+		}
+	}
+	for _, plan := range plans {
+		if planID := stringValue(plan["id"]); planID != "" {
+			planRefs = append(planRefs, "wardrobe_plan:"+planID)
+		}
+	}
+	modelCtx = withTaskPromptSlots(modelCtx,
+		PromptSlotTrace{SlotID: "wardrobe_persona", Source: "effective_persona_detail", Reason: "selected_style_and_constraints"},
+		PromptSlotTrace{SlotID: "wardrobe_life", Source: "life_context_snapshot", Reason: "current_wardrobe_situation"},
+		PromptSlotTrace{SlotID: "wardrobe_appearance", Source: "effective_appearance_snapshot", Reason: "current_body_and_wearing"},
+		PromptSlotTrace{SlotID: "wardrobe_items", Source: "wardrobe_inventory", SourceRefs: itemRefs, Reason: "registered_selectable_catalog"},
+		PromptSlotTrace{SlotID: "wardrobe_plans", Source: "saved_wardrobe_plans", SourceRefs: planRefs, Reason: "plans_for_current_profile"},
+		PromptSlotTrace{SlotID: "wardrobe_stage", Source: "wardrobe_preparation_state", SourceRefs: []string{"wardrobe_preparation:" + id}, Reason: map[bool]string{true: "select_stage", false: "generate_stage"}[selectOnly]},
+	)
 	run, err := a.runFormalStructuredTask(modelCtx, FormalAgentWardrobePreparation, messages, nil, wardrobeModelVariant, wardrobePreparationSchema(), false, nil)
 	if err != nil {
 		return nil, err

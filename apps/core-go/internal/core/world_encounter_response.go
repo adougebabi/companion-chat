@@ -74,6 +74,16 @@ func (c npcEncounterCapability) Prepare(ctx context.Context, i CapabilityInvocat
 	inputDigest := stableDigest(jsonString(messages))
 	modelCtx := WithProviderCorrelation(ctx, "npc-response:"+requestKey)
 	modelCtx = WithPromptDiagnostics(modelCtx, map[string]any{"fluctlight_id": fid, "npc_id": p["npc_id"], "opportunity_id": id, "source_fact_id": i.SourceFactID, "response_input_digest": inputDigest})
+	traceSlots := []PromptSlotTrace{
+		{SlotID: "npc_definition", Source: "world_npc_definition", SourceRefs: []string{"npc:" + stringValue(p["npc_id"])}, Reason: "selected_encounter_npc"},
+		{SlotID: "npc_world_context", Source: "world_and_presence", SourceRefs: []string{"world:" + stringValue(p["world_id"])}, Reason: "actual_encounter_scope"},
+		{SlotID: "npc_opportunity", Source: "npc_opportunity", SourceRefs: []string{"npc_opportunity:" + id}, Reason: "current_authorized_opportunity"},
+		{SlotID: "public_approach", Source: "authorized_tool_arguments", Reason: "actual_character_approach"},
+	}
+	if len(arrayValue(definition["actual_prior_interactions"])) > 0 {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "npc_prior_encounters", Source: "world_encounter_history", Reason: "actual_prior_npc_interactions"})
+	}
+	modelCtx = withTaskPromptSlots(modelCtx, traceSlots...)
 	response, err := c.service.respond(modelCtx, messages, schema)
 	if err != nil {
 		return i, err

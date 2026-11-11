@@ -222,7 +222,7 @@ func TestR8SegmentParticipantsAndNativeSchema(t *testing.T) {
 		calls++
 		if calls == 1 {
 			schema := mapValue(mapValue(body["response_format"])["json_schema"])
-			if schema["name"] != "conversation_segment_v1" || !strings.Contains(string(raw), `actor_self`) || !strings.Contains(string(raw), `actor_user`) || !strings.Contains(string(raw), `苏晚`) {
+			if schema["name"] != "conversation_segment_v1" || !strings.Contains(string(raw), `actor_self`) || !strings.Contains(string(raw), `actor_user`) || !strings.Contains(string(raw), `苏晚`) || strings.Contains(string(raw), "segment-source-user") {
 				t.Fatal("identity or native schema missing", string(raw))
 			}
 			return embeddingHTTPResponse(req, 200, jsonString(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": "# Markdown is invalid"}}}})), nil
@@ -233,10 +233,14 @@ func TestR8SegmentParticipantsAndNativeSchema(t *testing.T) {
 		value := map[string]any{"schema_version": conversationSegmentSchemaVersion, "summary": "苏晚与用户谈论尚未完成的购物。", "ending_state": "购物尚未完成", "open_threads": []any{"等待结果"}, "core_events": []any{"用户提出购物"}}
 		return embeddingHTTPResponse(req, 200, jsonString(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"content": jsonString(value)}}}})), nil
 	}))
-	source := []ConversationSummarySourceMessage{{AuthorActorID: f.ownerID, Kind: "user", Text: "试试这件开衫", CreatedAt: time.Now()}, {AuthorActorID: f.fluctlightID, Kind: "assistant", Text: "我还没买到", CreatedAt: time.Now()}}
+	source := []ConversationSummarySourceMessage{{ID: "segment-source-user", AuthorActorID: f.ownerID, Kind: "user", Text: "试试这件开衫", CreatedAt: time.Now()}, {ID: "segment-source-assistant", AuthorActorID: f.fluctlightID, Kind: "assistant", Text: "我还没买到", CreatedAt: time.Now()}}
 	got, err := app.RunConversationSegmentTask(f.ctx, ConversationSegmentTaskInput{Messages: source, OwnerActorID: f.ownerID, FluctlightID: f.fluctlightID, SelfName: "苏晚"})
 	if err != nil || got.SchemaVersion != conversationSegmentSchemaVersion || calls != 2 {
 		t.Fatal(got, err, calls)
+	}
+	var traced bool
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT EXISTS(SELECT 1 FROM public.diagnostic_model_runs WHERE scenario='conversation_segment' AND metrics->'prompt_slots' @> '[{"slot_id":"segment_source_messages","source_refs":["message:segment-source-user","message:segment-source-assistant"]}]'::jsonb)`).Scan(&traced); err != nil || !traced {
+		t.Fatalf("segment source slots missing from actual request diagnostics: %v", err)
 	}
 }
 

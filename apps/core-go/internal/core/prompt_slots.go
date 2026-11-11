@@ -48,6 +48,50 @@ type PromptCompositionResult struct {
 	Trace    PromptAssemblyTrace
 }
 
+type taskPromptSlotsKey struct{}
+
+// Typed task callers declare where the fields in their own packet came from.
+// These declarations are diagnostic metadata and never enter model messages.
+func withTaskPromptSlots(ctx context.Context, slots ...PromptSlotTrace) context.Context {
+	return context.WithValue(ctx, taskPromptSlotsKey{}, append([]PromptSlotTrace(nil), slots...))
+}
+
+func taskPromptAssembly(ctx context.Context, messages []map[string]any) PromptAssemblyResult {
+	assembly := PromptAssemblyResult{Messages: messages}
+	slots, _ := ctx.Value(taskPromptSlotsKey{}).([]PromptSlotTrace)
+	if len(slots) == 0 || len(messages) != 2 || stringValue(messages[0]["role"]) != "system" || stringValue(messages[1]["role"]) != "user" {
+		return assembly
+	}
+	assembly.messageOrigins = []promptMessageOrigin{{Source: "trusted_task_configuration", Reason: "typed task protocol"}, {Source: "task_data", Reason: "typed task input packet"}}
+	assembly.Trace.Slots = append(assembly.Trace.Slots, PromptSlotTrace{SlotID: PromptSlotOperation, Position: PromptSlotSystem, MessageIndex: 0, Source: "task_protocol", Reason: "required_by_task"})
+	for _, slot := range slots {
+		slot.Position = PromptSlotCurrentInput
+		slot.MessageIndex = 1
+		assembly.Trace.Slots = append(assembly.Trace.Slots, slot)
+	}
+	return assembly
+}
+
+func declareAssembledTaskInputSlots(assembly PromptAssemblyResult, slots ...PromptSlotTrace) PromptAssemblyResult {
+	index := promptMessageOriginIndex(assembly, "current_task_input")
+	if index < 0 || len(slots) == 0 {
+		return assembly
+	}
+	kept := make([]PromptSlotTrace, 0, len(assembly.Trace.Slots)+len(slots))
+	for _, slot := range assembly.Trace.Slots {
+		if slot.SlotID != PromptSlotCurrent || slot.MessageIndex != index {
+			kept = append(kept, slot)
+		}
+	}
+	for _, slot := range slots {
+		slot.Position = PromptSlotCurrentInput
+		slot.MessageIndex = index
+		kept = append(kept, slot)
+	}
+	assembly.Trace.Slots = kept
+	return assembly
+}
+
 // PromptComposer is a pure renderer. It accepts already-resolved business
 // facts and never reaches into App, repositories, Redis or domain state.
 type PromptComposer struct {

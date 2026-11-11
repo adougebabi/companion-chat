@@ -58,6 +58,10 @@ func TestStudioPostgresAutomaticRetryKeepsFrozenModel(t *testing.T) {
 	if err != nil || current["status"] != "completed" {
 		t.Fatalf("studio result=%#v %v", current, err)
 	}
+	var traced bool
+	if err := repo.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.diagnostic_model_runs WHERE scenario='studio_assistant' AND metrics->'prompt_slots' @> '[{"slot_id":"studio_definition","source":"studio_job_snapshot"},{"slot_id":"studio_instruction","source":"studio_job_snapshot"}]'::jsonb)`).Scan(&traced); err != nil || !traced {
+		t.Fatalf("Studio physical source slots missing: %v", err)
+	}
 	for _, raw := range arrayValue(current["attempts"]) {
 		public := jsonString(mapValue(raw)["provenance"])
 		if strings.Contains(public, studioModelSnapshotsKey) || strings.Contains(public, "turn-secret") || strings.Contains(public, "turn.invalid") {

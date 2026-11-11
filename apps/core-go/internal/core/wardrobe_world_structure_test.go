@@ -272,6 +272,10 @@ func TestWardrobePreparationFormalAgentCommitsInventoryThenRealWearAndReplays(t 
 	if len(models) != 2 || models[0] != "first-model" || models[1] != "first-model" {
 		t.Fatalf("wardrobe stages did not retain their model binding after restart: %v", models)
 	}
+	var tracedStages int
+	if err := f.repository.Pool().QueryRow(f.ctx, `SELECT count(DISTINCT slot->>'reason') FROM public.diagnostic_model_runs r CROSS JOIN LATERAL jsonb_array_elements(r.metrics->'prompt_slots') slot WHERE r.scenario='wardrobe_preparation' AND slot->>'slot_id'='wardrobe_stage' AND slot->>'reason' IN ('generate_stage','select_stage')`).Scan(&tracedStages); err != nil || tracedStages != 2 {
+		t.Fatalf("wardrobe physical requests lack both stage source slots: stages=%d err=%v", tracedStages, err)
+	}
 	worn, err := readCurrentWornItems(f.ctx, f.repository.Pool(), f.fluctlightID)
 	if err != nil || len(worn) != 4 {
 		t.Fatal("actual tool did not persist wear", worn, err)

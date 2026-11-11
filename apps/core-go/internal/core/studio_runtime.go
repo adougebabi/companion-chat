@@ -9,6 +9,26 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+func studioPromptSourceSlots(snapshot map[string]any, jobID string) []PromptSlotTrace {
+	view := studioPromptView(snapshot)
+	refs := []string{}
+	if jobID != "" {
+		refs = append(refs, "studio_job:"+jobID)
+	}
+	slots := []PromptSlotTrace{{SlotID: "studio_definition", Source: "studio_job_snapshot", SourceRefs: refs, Reason: "selected_isolated_resource_definition"}}
+	for _, item := range []struct{ field, slot, reason string }{
+		{"instruction", "studio_instruction", "owner_creation_request"},
+		{"purpose", "studio_purpose", "declared_creation_purpose"},
+		{"allowed_references", "studio_allowed_references", "allowed_definition_references"},
+		{"reference_asset", "studio_reference_asset", "explicit_reference_asset"},
+	} {
+		if _, exists := view[item.field]; exists {
+			slots = append(slots, PromptSlotTrace{SlotID: PromptSlotID(item.slot), Source: "studio_job_snapshot", SourceRefs: refs, Reason: item.reason})
+		}
+	}
+	return slots
+}
+
 func validateStudioOutput(kind string, snapshot, out map[string]any) error {
 	if containsPermanentHarm(out) {
 		return harmError()
@@ -226,6 +246,7 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 			if err != nil {
 				return nil, err
 			}
+			prompt = declareAssembledTaskInputSlots(prompt, studioPromptSourceSlots(snapshot, id)...)
 			modelCtx = withFrozenProviderAssignment(modelCtx, "cognitive_assessment", assignment)
 			run, err := a.RunFormalAgent(modelCtx, FormalAgentStudioAssistant, FormalAgentRunInput{Prompt: prompt, SchemaName: "studio_assistant_v1"})
 			if err != nil {
@@ -264,6 +285,7 @@ func (a *App) ProcessStudioGeneration(ctx context.Context, intentID string) (res
 			if err != nil {
 				return nil, err
 			}
+			prompt = declareAssembledTaskInputSlots(prompt, studioPromptSourceSlots(snapshot, id)...)
 			writerCtx := withFrozenProviderAssignment(isolatedReplyModelContext(modelCtx), conversationReplyModelRole, assignment)
 			writerCtx = withProviderCapacity(writerCtx, conversationReplyModelRole, max(1, binding.Concurrency))
 			writerCtx = WithPromptDiagnostics(writerCtx, map[string]any{"owner_actor_id": owner, "studio_job_id": id, "studio_attempt_id": aid, "source_digest": job["source_digest"], "config_version": version, "prompt_budget": prompt.Trace})

@@ -63,6 +63,10 @@ func TestNPCNativeConsumerAndIndependentResponseUseSeparateInputs(t *testing.T) 
 			if err != nil {
 				t.Fatal(result, err)
 			}
+			var traced bool
+			if err := f.repository.Pool().QueryRow(f.ctx, `SELECT EXISTS(SELECT 1 FROM public.diagnostic_model_runs WHERE scenario='npc_response' AND metrics->'prompt_slots' @> '[{"slot_id":"npc_definition","source":"world_npc_definition"},{"slot_id":"npc_opportunity","source":"npc_opportunity"}]'::jsonb)`).Scan(&traced); err != nil || !traced {
+				t.Fatalf("NPC response physical source slots missing: %v", err)
+			}
 			stored, err := f.app.WorldNPCOpportunity(f.ctx, f.ownerID, f.fluctlightID, npc, stringValue(p["id"]))
 			if err != nil {
 				t.Fatal(err)

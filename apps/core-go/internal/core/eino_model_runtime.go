@@ -579,14 +579,22 @@ func physicalPromptSlots(logical []any, mapping []map[string]any, refreshed *mod
 			}
 		}
 	}
-	if len(logical) == 0 {
-		for _, item := range mapping {
-			source := stringValue(item["source"])
-			if source == "agent_tool_call" || source == "tool_result" {
-				continue
-			}
-			slots = append(slots, map[string]any{"slot_id": "unknown", "position": "message", "message_index": item["index"], "source": "unknown", "reason": "caller_did_not_declare_slot"})
+	covered := make(map[int]bool)
+	for _, slot := range slots {
+		if index := intValue(slot["message_index"]); index >= 0 {
+			covered[index] = true
 		}
+	}
+	for _, item := range mapping {
+		source := stringValue(item["source"])
+		if source == "agent_tool_call" || source == "tool_result" || covered[intValue(item["index"])] {
+			continue
+		}
+		reason := "physical_message_not_declared"
+		if len(logical) == 0 {
+			reason = "caller_did_not_declare_slot"
+		}
+		slots = append(slots, map[string]any{"slot_id": "unknown", "position": "message", "message_index": item["index"], "source": "unknown", "reason": reason})
 	}
 	for _, item := range mapping {
 		source := stringValue(item["source"])

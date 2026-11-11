@@ -24,7 +24,7 @@ func (a *App) modelTaskProvider() (*ProviderClient, error) {
 }
 
 func (a *App) runFormalStructuredTask(ctx context.Context, id FormalAgentID, messages []map[string]any, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, capability *ADKCapabilityRequest) (ADKStructuredTaskResult, error) {
-	return a.runFormalStructuredAssemblyTask(ctx, id, PromptAssemblyResult{Messages: messages}, definitions, schemaName, schema, enableThinking, capability)
+	return a.runFormalStructuredAssemblyTask(ctx, id, taskPromptAssembly(ctx, messages), definitions, schemaName, schema, enableThinking, capability)
 }
 
 func (a *App) runFormalStructuredAssemblyTask(ctx context.Context, id FormalAgentID, assembly PromptAssemblyResult, definitions []CapabilityDefinition, schemaName string, schema map[string]any, enableThinking bool, capability *ADKCapabilityRequest) (ADKStructuredTaskResult, error) {
@@ -386,6 +386,16 @@ type ConversationSummaryTaskInput struct {
 	FluctlightID    string
 }
 
+func conversationSummaryTraceSourceRefs(messages []ConversationSummarySourceMessage) []string {
+	refs := make([]string, 0, len(messages))
+	for _, message := range messages {
+		if id := strings.TrimSpace(message.ID); id != "" {
+			refs = append(refs, "message:"+id)
+		}
+	}
+	return refs
+}
+
 func (a *App) RunConversationSummaryTask(ctx context.Context, input ConversationSummaryTaskInput) (conversationSummaryProviderResponse, error) {
 	if a != nil && a.DB != nil {
 		a.recordDiagnosticEvent(ctx, "conversation_summary.thinking_mode", "info", input.FluctlightID, "", providerCorrelation(ctx), map[string]any{"requested_enable_thinking": false, "provider_support": "unverified", "effective_mode": "unverified"})
@@ -404,8 +414,15 @@ func (a *App) RunConversationSummaryTask(ctx context.Context, input Conversation
 	if input.MaxRunes > 0 {
 		mapValue(mapValue(summarySchema["properties"])["summary"])["maxLength"] = input.MaxRunes
 	}
+	traceSlots := []PromptSlotTrace{{SlotID: "summary_source_messages", Source: "conversation_messages", SourceRefs: conversationSummaryTraceSourceRefs(input.Messages), Reason: "explicit_uncovered_source_window"}}
+	if input.PreviousSummary != "" {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "previous_runtime_summary", Source: "conversation_runtime_summary", Reason: "previous_summary_supplied"})
+	}
+	if len(input.ActorFacts) > 0 {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "actor_corrections", Source: "authoritative_actor_facts", Reason: "explicit_corrections_supplied"})
+	}
 	run, err := a.runFormalStructuredTask(
-		WithProviderScenario(ctx, "conversation_summary"), FormalAgentConversationSummary, messages,
+		withTaskPromptSlots(WithProviderScenario(ctx, "conversation_summary"), traceSlots...), FormalAgentConversationSummary, messages,
 		nil, "conversation_summary_v1", summarySchema, false, nil,
 	)
 	if err != nil {
@@ -454,7 +471,11 @@ func (a *App) RunConversationSegmentTask(ctx context.Context, input Conversation
 		{"role": "system", "content": conversationSummaryInstruction + " 这是按真实时间界定的聊天阶段。只返回 response_format 规定的一个 JSON 对象：schema_version 必须为 conversation-segment.v1；summary 概括重要事件与变化，ending_state 说明这段实际怎样结束，open_threads 只列未完成线索，core_events 只列已发生的关键事情。无列表项用空数组。不输出 Markdown、围栏、started_at 或 ended_at。participants 标明真正说话人，assistant 是 actor_self 的历史发言，不是摘要模型的身份；历史自称、否认或假设只能作为该说话人当时的表述，不更改参与者身份或证明实际能力。不要逐条复述。"},
 		{"role": "user", "content": jsonString(map[string]any{"participants": []map[string]any{{"actor": "actor_self", "role": "assistant", "display_name": input.SelfName, "type": "fluctlight"}, {"actor": "actor_user", "role": "user", "display_name": "用户", "type": "human"}}, "started_at": from.Format(time.RFC3339Nano), "ended_at": to.Format(time.RFC3339Nano), "source_messages": rows})},
 	})
-	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "conversation_segment"), FormalAgentConversationSummary, messages, nil, "conversation_segment_v1", conversationSegmentProviderSchema(), false, nil)
+	traceSlots := []PromptSlotTrace{
+		{SlotID: "segment_source_messages", Source: "conversation_messages", SourceRefs: conversationSummaryTraceSourceRefs(source), Reason: "explicit_segment_window"},
+		{SlotID: "segment_participants", Source: "authorized_actor_scope", Reason: "preserve_sender_identity"},
+	}
+	run, err := a.runFormalStructuredTask(withTaskPromptSlots(WithProviderScenario(ctx, "conversation_segment"), traceSlots...), FormalAgentConversationSummary, messages, nil, "conversation_segment_v1", conversationSegmentProviderSchema(), false, nil)
 	if err != nil {
 		return conversationSegmentResponse{}, err
 	}
@@ -467,14 +488,22 @@ func (a *App) RunConversationSegmentTask(ctx context.Context, input Conversation
 
 func (a *App) RunConversationDailyEpisodeTask(ctx context.Context, localDate, timezone string, sources []conversationDailySource) (conversationDailyEpisodeResponse, error) {
 	segments := make([]map[string]any, 0, len(sources))
+	refs := make([]string, 0, len(sources))
 	for _, source := range sources {
 		segments = append(segments, map[string]any{"started_at": source.StartedAt.UTC().Format(time.RFC3339Nano), "ended_at": source.EndedAt.UTC().Format(time.RFC3339Nano), "summary": source.Summary, "ending_state": source.EndingState, "open_threads": source.OpenThreads, "core_events": source.CoreEvents})
+		if id := strings.TrimSpace(source.ID); id != "" {
+			refs = append(refs, "segment:"+id)
+		}
 	}
 	messages := (&PromptComposer{}).ComposeTaskMessages("reflection", []map[string]any{
 		{"role": "system", "content": "将同一当地日的阶段摘要合成一段简洁的对话经历记忆。只写已发生的交流、结束状态和未完成线索；不把愿望、玩笑、推测、模型回复或约定当成已执行事实，不推导稳定偏好或关系身份。按时间脉络叙述，避免逐条流水账。"},
 		{"role": "user", "content": jsonString(map[string]any{"local_date": localDate, "timezone": timezone, "segments": segments})},
 	})
-	run, err := a.runFormalStructuredTask(WithProviderScenario(ctx, "conversation_daily_memory"), FormalAgentConversationSummary, messages, nil, "conversation_daily_memory_v1", conversationDailyEpisodeProviderSchema(), false, nil)
+	traceSlots := []PromptSlotTrace{
+		{SlotID: "daily_segments", Source: "conversation_segments", SourceRefs: refs, Reason: "selected_closed_local_day"},
+		{SlotID: "daily_window", Source: "local_date_and_timezone", Reason: "explicit_daily_memory_window"},
+	}
+	run, err := a.runFormalStructuredTask(withTaskPromptSlots(WithProviderScenario(ctx, "conversation_daily_memory"), traceSlots...), FormalAgentConversationSummary, messages, nil, "conversation_daily_memory_v1", conversationDailyEpisodeProviderSchema(), false, nil)
 	if err != nil {
 		return conversationDailyEpisodeResponse{}, err
 	}
