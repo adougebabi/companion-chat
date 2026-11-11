@@ -189,3 +189,85 @@ func TestDirectFollowupKeepsPriorCommittedAction(t *testing.T) {
 		t.Fatalf("events=%d receipts=%d assistants=%d latest=%d calls=%d", events, receipts, assistants, latest, calls)
 	}
 }
+
+func TestFactOnlyFollowupRejectsStaleWriterDraft(t *testing.T) {
+	started, release := make(chan struct{}), make(chan struct{})
+	var releaseOnce sync.Once
+	unblock := func() { releaseOnce.Do(func() { close(release) }) }
+	defer unblock()
+	writerPayload := make(chan map[string]any, 1)
+	mainCalls, writerCalls := 0, 0
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		if payload["model"] == "followup-writer" {
+			writerCalls++
+			if writerCalls == 1 {
+				close(started)
+				<-release
+				return fakeProviderResult{Text: "旧草稿不应发布。"}
+			}
+			writerPayload <- payload
+			return fakeProviderResult{Text: "我看到了补充。"}
+		}
+		mainCalls++
+		return fakeProviderResult{ToolCalls: []map[string]any{nativePersonaToolCall(fmt.Sprintf("fact-reply-%d", mainCalls), conversationReplyCapabilityName, map[string]any{})}}
+	})
+	ctx, repo, app, owner, fid, conversation := setupMixedMediaReplyTurnWithTransport(t, "fact-only-followup", router)
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.fluctlight_direct_conversations(owner_actor_id,fluctlight_actor_id,conversation_id) VALUES($1,$2,$3)`, owner, fid, conversation); err != nil {
+		t.Fatal(err)
+	}
+	persistConversationReplyMode(t, ctx, repo, "fact_only")
+	writerRole := agentModelBindingKey(FormalAgentConversationReply, "private_reply")
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,timeout_seconds) VALUES($1,'mixed-endpoint-fact-only-followup','followup-writer',30)`, writerRole); err != nil {
+		t.Fatal(err)
+	}
+	first, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "原来的问题", "turn_id": "writer-first", "idempotency_key": "writer-first", "attachment_refs": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { _, err := app.ProcessCognitionInbox(ctx, first.InboxID); done <- err }()
+	select {
+	case <-started:
+	case <-time.After(10 * time.Second):
+		t.Fatal("first Writer request did not start")
+	}
+	second, err := app.AcceptTurn(ctx, owner, conversation, map[string]any{"fluctlight_id": fid, "text": "再补充一句", "turn_id": "writer-followup", "idempotency_key": "writer-followup", "attachment_refs": []any{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unblock()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("old Writer request did not stop")
+	}
+	if _, err := app.ProcessCognitionInbox(ctx, second.InboxID); err != nil {
+		t.Fatalf("follow-up failed: %v", err)
+	}
+	var latest map[string]any
+	select {
+	case latest = <-writerPayload:
+	default:
+		t.Fatal("latest Writer request was not observed")
+	}
+	var messages []string
+	for _, raw := range arrayValue(latest["messages"]) {
+		message := mapValue(raw)
+		if message["role"] == "user" {
+			text := stringValue(message["content"])
+			if text == "原来的问题" || text == "再补充一句" {
+				messages = append(messages, text)
+			}
+		}
+	}
+	if fmt.Sprint(messages) != "[原来的问题 再补充一句]" {
+		t.Fatalf("latest Writer lost or duplicated message history: %#v", messages)
+	}
+	var count, final int
+	if err := repo.Pool().QueryRow(ctx, `SELECT count(*),count(*) FILTER (WHERE source_fact_id=$2 AND text='我看到了补充。') FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'`, conversation, second.InboxID).Scan(&count, &final); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 || final != 1 || writerCalls != 2 || mainCalls != 2 {
+		t.Fatalf("assistants=%d latest=%d main_calls=%d writer_calls=%d", count, final, mainCalls, writerCalls)
+	}
+}

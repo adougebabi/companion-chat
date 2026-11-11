@@ -27,7 +27,7 @@
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | `direct` 使用同一主 Agent 的原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交；隔离 PostgreSQL 与受控 Provider 验证单次请求、重放、回滚、旧草稿及先行动再回复。隔离场景发现无附件却可发布“照片已发送”，因此暂不切为默认，缺口归 T06；真实 MeroMero 私聊和实时增量流仍未验收。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告配置缺口，动态页反映停用状态并保留历史/原提交核对。隔离 PostgreSQL 验证配置、直接调用、停用及 ready 夹具重建后去重交付。当前照片与创作场景的完整区分、真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
 | T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。direct 同批图片请求与回复会分别拒绝并等待重新决定；回复读取既有媒体状态时区分取消和失败，非 ready 的资产不会自动作为附件。工作流取消同步、未调用媒体却声称发送的正文语义缺口仍未解决，真实渲染未验证。 |
-| T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加。隔离 PostgreSQL 与受控 Provider 验证 direct 连续三条受理、相同历史文本保留、旧回复拦截和已提交动作保留；其他回复模式、真实模型正反场景及完整主动行为仍未验收。 |
+| T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加。隔离 PostgreSQL 与受控 Provider 验证 direct 连续三条受理、相同历史文本保留、旧回复拦截和已提交动作保留，fact-only 验证追发使旧 Writer 草稿失效及最新上下文；真实模型正反场景及完整主动行为仍未验收。 |
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；fact-only Writer 和 `direct` 主 Agent 均按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；真实模型及 UI 到实际运行的完整闭环未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。隔离 PostgreSQL 已验证旧 Confirm、相同引用重新绑定、旧快照、调用中纠错及受控调度重开交错。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决；真实 Temporal 并发尚未验证。 |
 | T10 | R09 现有领域回归 | TODO | 不降低 Goal、人设、日程、衣柜、NPC、Studio 与日记既有语义。 |
@@ -75,7 +75,7 @@
 
 ## 验收及变更记录
 
-- 2026-11-12：T07 在隔离 PostgreSQL 真实受理三条连续消息，首轮 Provider 被阻塞直至后两条受理；验证首两轮被 supersede，最新 direct 请求保留两条相同历史消息及一次当前输入，旧回复不发布，重放不重复请求。另一场景先由旧轮实际提交 `affect_event` 和工具回执，再受理新消息；验证旧效果与回执各保留一次、旧回复不发布、新轮正常回复。定向回归及 Go race 检查通过：`/private/tmp/fluctlight-t07-followups-pg.log`、`/private/tmp/fluctlight-t07-followups-race.log`。Provider 为测试替身，且未覆盖 fact-only 与真实模型。WakeUp 代码和测试固定十分钟，而原 T07 提及无事退避；在厘清冲突前未改变既有时钟。
+- 2026-11-12：T07 在隔离 PostgreSQL 真实受理三条连续消息，首轮 Provider 被阻塞直至后两条受理；验证首两轮被 supersede，最新 direct 请求保留两条相同历史消息及一次当前输入，旧回复不发布，重放不重复请求。另一场景先由旧轮实际提交 `affect_event` 和工具回执，再受理新消息；验证旧效果与回执各保留一次、旧回复不发布、新轮正常回复。当前默认 fact-only 模式也验证了 Writer 生成中收到追发，旧草稿不发布且最新 Writer 收到两条消息。定向回归及 Go race 检查通过：`/private/tmp/fluctlight-t07-followups-pg.log`、`/private/tmp/fluctlight-t07-fact-followup.log`、`/private/tmp/fluctlight-t07-followups-race-final.log`。Provider 为测试替身，不代表真实模型验收。WakeUp 代码和测试固定十分钟，而原 T07 提及无事退避；在厘清冲突前未改变既有时钟。
 
 - 2026-11-12：回复媒体状态读取区分已取消与生成失败，仅将 `ready` 结果提供给附件交付；已有资源不删除。隔离 PostgreSQL 夹具覆盖 pending、ready、资源缺失、带 ready 资源的 cancelled/failed。独立复核发现将 Temporal 取消直接写入媒体状态会遇到在途 Activity、已交付未结算、视觉身份状态机及 ActionOutcome 竞态，故撤回该未提交实验；工作流取消与媒体取消尚未打通。实验代码和测试暂存于 `/private/tmp/fluctlight-t06-cancellation-reconcile-wip.patch` 与 `/private/tmp/fluctlight-t06-cancellation-reconcile-test.go`，实验中的通过结果不能作为最终行为的验收依据。
 
