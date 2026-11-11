@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
@@ -10,7 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func TestDailyMemoryOlderGenerationCannotSettleReopenedIntent(t *testing.T) {
+func seedDailyMemorySource(t *testing.T) (context.Context, *PostgresRepository, *App, string, func()) {
+	t.Helper()
 	ctx, repo, owner, fid, conversation := seedConversationSummaryAuthority(t)
 	seedConversationSummaryMessages(t, ctx, repo, owner, fid, conversation, 1, 2)
 	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.conversation_participants(conversation_id,actor_id,role,status) VALUES($1,$2,'owner','active'),($1,$3,'member','active')`, conversation, owner, fid); err != nil {
@@ -48,11 +50,25 @@ func TestDailyMemoryOlderGenerationCannotSettleReopenedIntent(t *testing.T) {
 	if err := repo.Pool().QueryRow(ctx, `SELECT intent_id FROM public.platform_workflow_intents WHERE intent_type='conversation.daily_memory'`).Scan(&intentID); err != nil {
 		t.Fatal(err)
 	}
+	return ctx, repo, app, intentID, enqueue
+}
+
+func TestDailyMemoryOlderGenerationCannotSettleReopenedIntent(t *testing.T) {
+	ctx, repo, app, intentID, enqueue := seedDailyMemorySource(t)
 	calls := 0
+	var models []string
 	app.Provider = &ProviderClient{DB: repo, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		calls++
+		var payload map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		models = append(models, stringValue(payload["model"]))
 		if calls == 1 {
 			if _, err := repo.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET status='completed' WHERE intent_id=$1`, intentID); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := repo.Pool().Exec(ctx, `UPDATE public.model_roles SET model_id='next-model' WHERE role='reflection'`); err != nil {
 				t.Fatal(err)
 			}
 			enqueue()
@@ -74,6 +90,9 @@ func TestDailyMemoryOlderGenerationCannotSettleReopenedIntent(t *testing.T) {
 	result, err := app.ProcessConversationDailyMemoryIntent(ctx, intentID)
 	if err != nil || result["status"] != "completed" || calls != 2 {
 		t.Fatalf("new generation did not complete: result=%v calls=%d err=%v", result, calls, err)
+	}
+	if len(models) != 2 || models[0] != "fixture" || models[1] != "next-model" {
+		t.Fatalf("new generation did not select the current model: %v", models)
 	}
 }
 

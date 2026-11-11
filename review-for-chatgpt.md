@@ -37,13 +37,13 @@ T02 已修复人格编译同次语义纠错中途换模型的问题：初次请�
 
 新 Goal 评估请求在首次调用前冻结无密钥模型绑定，部分目标已提交后重试仍使用原模型；新请求使用当前配置。隔离 PostgreSQL 验证了并发选择、进程重建、损坏快照拒绝和旧请求兼容，Provider 使用受控替身。凭据恢复已防止地址变更及 A→B→A 后误用已轮换密钥，但地址和密钥分开保存时仍有中间状态，模型目录及 embedding 的既有分次读取也待处理。
 
-每日记忆的来源代次已从调度延伸到 Activity 和 Core 结算，隔离数据库验证旧请求不能结算重开后的新代，并保留纠错检查及同代重放。每日记忆模型快照、片段摘要代次围栏及真实 Temporal 多版本并发仍未完成。
+每日记忆的来源代次已从调度延伸到 Activity 和 Core 结算，新代按首次选择保存模型绑定。隔离数据库验证旧请求不能结算重开后的新代、同代重试不换模型和新代使用新配置，并保留纠错检查及同代重放。片段摘要代次围栏及真实 Temporal 多版本并发仍未完成。
 
 ## B. 代码基线
 
 - 开始 commit：`ffa808bc81cc4d800376432216f3ea679da8de30`；当前分支：`codex/fluctlight-meromero-plugin-humanization`；结束 commit 尚未确定。
 - 起始时有未跟踪的 `docs/llm-agent-prompts.md`；用户明确告知已删除、不用处理，复查工作区为空，本轮未恢复。没有执行 reset、clean 或删除业务数据。
-- 新增前向迁移 `0105_agent_model_sampling`、`0106_summary_correction_guard`、`0107_expression_learning`、`0108_wardrobe_model_snapshot`、`0109_media_model_snapshot`、`0110_visual_model_snapshot`、`0111_persona_model_snapshot` 和 `0112_goal_model_snapshot`；分别支持模型采样、摘要纠错屏障、表达候选/审核及衣柜、媒体、视觉身份、人格准备和 Goal 评估模型快照。Agent/variant 覆盖使用现有模型用途表的 `agent:<id>[:<variant>]` 键。已在一次性隔离 PostgreSQL 测试，未在业务数据库执行。AEL 创建了本轮任务记录，变更的来源索引由 AEL 更新。
+- 新增前向迁移 `0105_agent_model_sampling`、`0106_summary_correction_guard`、`0107_expression_learning`、`0108_wardrobe_model_snapshot`、`0109_media_model_snapshot`、`0110_visual_model_snapshot`、`0111_persona_model_snapshot`、`0112_goal_model_snapshot` 和 `0113_daily_model_snapshot`；分别支持模型采样、摘要纠错屏障、表达候选/审核及衣柜、媒体、视觉身份、人格准备、Goal 评估和每日记忆模型快照。Agent/variant 覆盖使用现有模型用途表的 `agent:<id>[:<variant>]` 键。已在一次性隔离 PostgreSQL 测试，未在业务数据库执行。AEL 创建了本轮任务记录，变更的来源索引由 AEL 更新。
 - 环境：Go 1.26.3 darwin/arm64、Node 24.12.0、pnpm 11.0.7。未读取或输出用户既有凭据；临时容器使用单独生成的凭据，仅保存在本机受限临时文件。未连接生产环境写入。
 - 工作区 `.env` 含旧 `MTPLX_*` 和 ComfyUI 配置键，所列 URL 均为非 loopback；仅检查了配置存在及地址类别，没有读取/输出凭据值，也没有把旧文件视为当前 Go Provider 绑定或连接这些服务。
 
@@ -51,7 +51,7 @@ T02 已修复人格编译同次语义纠错中途换模型的问题：初次请�
 
 | 编号 | 状态 | 已有落点、测试或下一步 |
 | --- | --- | --- |
-| R01 / T02 | IN_PROGRESS | `agent_model_routing.go`、`provider.go` 使用现有表按 variant → Agent → 默认用途解析；新人格准备、衣柜准备、新媒体提示词及质量审核、新视觉身份会话、新 Goal 评估、Diary/Studio 部分阶段快照已用隔离 PostgreSQL 和受控 Provider 检查。旧任务及对话片段、每日记忆等后台恢复仍有实现缺口；真实 Provider 未验收。 |
+| R01 / T02 | IN_PROGRESS | `agent_model_routing.go`、`provider.go` 使用现有表按 variant → Agent → 默认用途解析；新人格准备、衣柜准备、新媒体提示词及质量审核、新视觉身份会话、新 Goal 评估、每日记忆新代、Diary/Studio 部分阶段快照已用隔离 PostgreSQL 和受控 Provider 检查。旧任务及对话片段等后台恢复仍有实现缺口；真实 Provider 未验收。 |
 | R02 / T04 | IN_PROGRESS | 已修复低置信度 claim 状态；显式 `direct` 实验把主 Agent 正文、原生回执和认知结算放在同一事务，受控 PostgreSQL 的提交、重放与回滚通过。真实 MeroMero 对该合同的字段输出尚未通过，默认 `fact_only` 私聊仍另调 Writer，旧草稿兼容和默认切换仍需完成。 |
 | R03 / T03 | IN_PROGRESS | 目录查询指令与实际 schema 对齐；全 Agent 输入契约和来源追踪未完成。 |
 | R04 / T05 | IN_PROGRESS | `domain_plugins.go` 组合既有 Image/Moment 能力并声明配置、事件、依赖和在途策略；隔离 PostgreSQL 已验证设置、独立调用及部分原生回执重放；完整重启恢复和真实服务尚未验证。 |
@@ -187,7 +187,7 @@ T02 已修复人格编译同次语义纠错中途换模型的问题：初次请�
 - 隔离 PostgreSQL 中的配置、部分恢复和来源读取已验证，但真实模型语义、真实图片、完整事务/重放与 UI 端到端未验证。Memory 纠错后持久摘要仍可能保留旧内容；已知来源的读取屏障不会证明后台重建吸收纠错，也不保护所有在途请求或未知来源。图片正文仍可能与真实媒体状态冲突。
 - Diary 素材／表达和 Studio 文本及按需媒体主体规划的阶段绑定快照通过了隔离数据库恢复用例，Provider 使用受控替身；旧 running attempt 无快照时明确失败。后续独立媒体工作流及其他后台阶段的跨进程快照仍需验证。
 - 旧 `retry_accepted` 数据保留原状，只改变展示措辞。没有执行业务数据迁移或批量修改。
-- `0105` 至 `0112` 只在测试用临时数据库执行，未改业务数据库。升级业务库后回退到不认识新 head 的代码不能只替换可执行文件；需要先停止写入、备份，并由获授权的操作者核对迁移记录、既有字段、来源函数及在途任务。回退 `0112`/`0111`/`0110`/`0109`/`0108` 会失去相应 Goal 评估/人格准备/视觉身份/媒体/衣柜模型快照保障，回退 `0107` 会影响表达候选及来源版本消费，回退 `0106` 会移除纠错读取屏障，回退到 `0104` 还会失去 Agent 采样覆盖消费；不能通过重建数据库、删除用户数据或重发已完成动作处理。
+- `0105` 至 `0113` 只在测试用临时数据库执行，未改业务数据库。升级业务库后回退到不认识新 head 的代码不能只替换可执行文件；需要先停止写入、备份，并由获授权的操作者核对迁移记录、既有字段、来源函数及在途任务。回退 `0113`/`0112`/`0111`/`0110`/`0109`/`0108` 会失去相应每日记忆/Goal 评估/人格准备/视觉身份/媒体/衣柜模型快照保障，回退 `0107` 会影响表达候选及来源版本消费，回退 `0106` 会移除纠错读取屏障，回退到 `0104` 还会失去 Agent 采样覆盖消费；不能通过重建数据库、删除用户数据或重发已完成动作处理。
 
 ## 隔离环境恢复验证
 

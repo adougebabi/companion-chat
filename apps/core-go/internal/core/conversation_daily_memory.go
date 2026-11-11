@@ -79,17 +79,29 @@ func (a *App) enqueueConversationDailyMemoryTx(ctx context.Context, tx pgx.Tx, f
 	}
 	identity := stableDigest(fluctlightID + "\x1f" + conversationID + "\x1f" + localDate + "\x1f" + timezone)
 	intentID := "conversation_daily_memory_intent:" + identity
-	payload := map[string]any{"intent_id": intentID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "local_date": localDate, "timezone": timezone, "day_start_utc": day.UTC().Format(time.RFC3339Nano), "day_end_utc": day.AddDate(0, 0, 1).UTC().Format(time.RFC3339Nano), "source_generation": 0}
-	_, err = tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at)
+	payload := map[string]any{"intent_id": intentID, "fluctlight_id": fluctlightID, "conversation_id": conversationID, "local_date": localDate, "timezone": timezone, "day_start_utc": day.UTC().Format(time.RFC3339Nano), "day_end_utc": day.AddDate(0, 0, 1).UTC().Format(time.RFC3339Nano), "source_generation": 0, conversationDailyModelContractKey: workflowModelSnapshotVersion}
+	var insertedPayload []byte
+	err = tx.QueryRow(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,status,next_attempt_at)
 		VALUES($1,$2,'lifecycle','conversation.daily_memory',$3,'pending',$4)
 		ON CONFLICT(intent_id) DO UPDATE SET
-		 payload=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN public.platform_workflow_intents.payload || jsonb_build_object('source_generation',
-		  CASE WHEN COALESCE(public.platform_workflow_intents.payload->>'source_generation','') ~ '^[0-9]{1,17}$' THEN (public.platform_workflow_intents.payload->>'source_generation')::bigint+1 ELSE 1 END)
-		  ELSE public.platform_workflow_intents.payload END,
-		 last_error=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN NULL ELSE public.platform_workflow_intents.last_error END,
-		 completed_at=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN NULL ELSE public.platform_workflow_intents.completed_at END,
-		 status=CASE WHEN public.platform_workflow_intents.status IN ('completed','failed','dead_letter') THEN 'retry' ELSE public.platform_workflow_intents.status END,
-		 next_attempt_at=LEAST(COALESCE(public.platform_workflow_intents.next_attempt_at,excluded.next_attempt_at),excluded.next_attempt_at)`, intentID, "conversation_daily_memory:"+identity, jsonBytes(payload), due)
+		 payload=public.platform_workflow_intents.payload || jsonb_build_object('source_generation',
+		  CASE WHEN COALESCE(public.platform_workflow_intents.payload->>'source_generation','') ~ '^[0-9]{1,17}$' THEN (public.platform_workflow_intents.payload->>'source_generation')::bigint+1 ELSE 1 END,$5::text,$6::text),
+		 last_error=NULL,completed_at=NULL,status='retry',
+		 next_attempt_at=LEAST(COALESCE(public.platform_workflow_intents.next_attempt_at,excluded.next_attempt_at),excluded.next_attempt_at)
+		 WHERE public.platform_workflow_intents.status IN ('completed','failed','dead_letter') RETURNING payload`, intentID, "conversation_daily_memory:"+identity, jsonBytes(payload), due, conversationDailyModelContractKey, workflowModelSnapshotVersion).Scan(&insertedPayload)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Re-enqueuing an active generation must not recreate a missing binding.
+		_, err = tx.Exec(ctx, `UPDATE public.platform_workflow_intents SET next_attempt_at=LEAST(COALESCE(next_attempt_at,$2),$2) WHERE intent_id=$1`, intentID, due)
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	generation, err := conversationDailyGeneration(insertedPayload)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(ctx, `INSERT INTO public.conversation_daily_model_snapshots(intent_id,source_generation) VALUES($1,$2)`, intentID, generation)
 	return err
 }
 
@@ -327,7 +339,13 @@ func (a *App) processConversationDailyMemoryIntent(ctx context.Context, intentID
 	if a.Provider == nil {
 		return nil, errors.New("conversation_daily_memory_provider_unavailable")
 	}
-	response, err := a.RunConversationDailyEpisodeTask(WithProviderCorrelation(ctx, "conversation-daily:"+intentID+":"+dailySourceFingerprint(sources)), localDate, timezone, sources)
+	modelCtx := withAgentModelRoute(ctx, FormalAgentConversationSummary, conversationDailyModelVariant)
+	assignment, err := a.conversationDailyAssignment(modelCtx, intentID, generation)
+	if err != nil {
+		return nil, err
+	}
+	modelCtx = withFrozenProviderAssignment(modelCtx, conversationDailyModelRole, assignment)
+	response, err := a.RunConversationDailyEpisodeTask(WithProviderCorrelation(modelCtx, "conversation-daily:"+intentID+":"+dailySourceFingerprint(sources)), localDate, timezone, sources)
 	if err != nil {
 		return nil, err
 	}
