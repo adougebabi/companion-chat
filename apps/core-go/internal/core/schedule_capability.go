@@ -132,13 +132,13 @@ func scheduleReplanModelInput(input SchedulePlanInput) map[string]any {
 	schedule["items"] = items
 	result := map[string]any{
 		"intent":         input.Intent,
-		"planned_action": scheduleGenerationSemanticValue(input.PlannedAction),
+		"planned_action": copyPromptFields(input.PlannedAction, "goal", "action", "expected_outcome", "kind", "duration_minutes", "preferred_start_at", "action_plan"),
 		"schedule":       schedule,
 		"current_life":   compactMediaLifeContext(input.CurrentLife),
 		"agency":         compactSchedulePlannerAgency(input.Agency),
 		"timezone":       input.Timezone,
 		"world_places":   input.WorldPlaces.modelView(),
-		"identity":       scheduleGenerationSemanticValue(input.Identity),
+		"identity":       scheduleIdentityPromptView(input.Identity),
 	}
 	if len(input.TargetEdit) > 0 {
 		result["target_edit"] = input.TargetEdit

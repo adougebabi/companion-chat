@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,36 @@ func TestScheduleGenerationModelInputKeepsSemanticsWithoutStorageIDs(t *testing.
 		if !strings.Contains(encoded, necessary) {
 			t.Fatalf("schedule input lost %q: %s", necessary, encoded)
 		}
+	}
+}
+
+func TestScheduleInputsPreserveOpaqueBusinessFields(t *testing.T) {
+	value := map[string]any{"item_id": "domain-item", "source_ref": "domain-reference", "version": json.Number("9007199254740993"), "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}
+	input := ScheduleGenerationTaskInput{
+		Identity:       map[string]any{"name": "角色", "residence": value, "id": "private-identity"},
+		LifeProfile:    map[string]any{"preferences": value, "profile_id": "private-profile"},
+		CurrentState:   map[string]any{"appearance": map[string]any{"body_revision": 4, "body_fields": map[string]any{"custom": map[string]any{"status": "known", "value": value}}, "worn_items": []any{map[string]any{"id": "private-item", "description": "上衣", "slot": "top"}}}},
+		RecentOutcomes: []map[string]any{{"id": "private-outcome", "status": "completed", "observed": map[string]any{"resulting_state_ref": "private-state", "value_json": value}}},
+	}
+	before := jsonString(input)
+	got := scheduleGenerationModelInput(input)
+	if !reflect.DeepEqual(mapValue(got["identity"])["residence"], value) || !reflect.DeepEqual(mapValue(got["life_profile"])["preferences"], value) {
+		t.Fatal("schedule removed business-owned reference or schema fields")
+	}
+	body := mapValue(mapValue(mapValue(got["current_state"])["appearance"])["body_fields"])
+	if !reflect.DeepEqual(mapValue(body["custom"])["value"], value) || !reflect.DeepEqual(mapValue(arrayValue(got["recent_outcomes"])[0])["observed"], map[string]any{"value_json": value}) {
+		t.Fatal("schedule rewrote opaque body value or outcome data")
+	}
+	if strings.Contains(jsonString(got), "private-") || jsonString(input) != before {
+		t.Fatal("schedule leaked Core metadata or mutated its source")
+	}
+	planned := map[string]any{"action": "计划", "action_plan": map[string]any{"kind": "virtual_shopping", "value_json": value}}
+	if !reflect.DeepEqual(mapValue(scheduleReplanModelInput(SchedulePlanInput{PlannedAction: planned})["planned_action"])["action_plan"], planned["action_plan"]) {
+		t.Fatal("replan rewrote its declared action plan")
+	}
+	activity := virtualActivityModelInput(VirtualActivityResultTaskInput{RecentOutcomes: input.RecentOutcomes})
+	if !reflect.DeepEqual(mapValue(arrayValue(activity["recent_outcomes"])[0])["observed"], map[string]any{"value_json": value}) {
+		t.Fatal("virtual activity rewrote opaque outcome data")
 	}
 }
 
@@ -62,10 +93,12 @@ func TestScheduleGenerationFinalProviderRequestOmitsStorageIDs(t *testing.T) {
 		}}, "reschedule_policy": map[string]any{}}}
 	})
 	app := newTestApp(t, repository, router)
+	preference := map[string]any{"item_id": "business-value", "source_ref": "business-reference", "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}
 	_, err := app.RunScheduleGenerationTask(ctx, ScheduleGenerationTaskInput{
 		LocalDate: "2026-09-28", Timezone: "Asia/Shanghai",
-		Goals:      []map[string]any{{"id": "goal_initial_fluctlight_private_1", "desired_outcome": "练习钢琴", "description": "练习钢琴", "evidence_refs": []any{"foundation:fluctlight_private"}}},
-		Intentions: []map[string]any{{"id": "intention_initial_private", "action": "练习半小时", "action_intent": "练习半小时"}},
+		LifeProfile: map[string]any{"preferences": preference, "profile_id": "private-profile"},
+		Goals:       []map[string]any{{"id": "goal_initial_fluctlight_private_1", "desired_outcome": "练习钢琴", "description": "练习钢琴", "evidence_refs": []any{"foundation:fluctlight_private"}}},
+		Intentions:  []map[string]any{{"id": "intention_initial_private", "action": "练习半小时", "action_intent": "练习半小时"}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -82,6 +115,9 @@ func TestScheduleGenerationFinalProviderRequestOmitsStorageIDs(t *testing.T) {
 	goals, intentions := arrayValue(taskData["goals"]), arrayValue(taskData["intentions"])
 	if len(goals) != 1 || mapValue(goals[0])["desired_outcome"] != "练习钢琴" || len(intentions) != 1 || mapValue(intentions[0])["action_intent"] != "练习半小时" || taskData["local_date"] != "2026-09-28" || taskData["timezone"] != "Asia/Shanghai" {
 		t.Fatalf("final schedule Provider text lost readable semantics: %s", modelText)
+	}
+	if !reflect.DeepEqual(mapValue(taskData["life_profile"])["preferences"], preference) || strings.Contains(modelText, "private-profile") {
+		t.Fatal("physical schedule request changed opaque preferences or leaked profile metadata")
 	}
 }
 

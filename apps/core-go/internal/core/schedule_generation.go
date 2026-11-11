@@ -87,11 +87,7 @@ func (a *App) initialSchedulePayload(ctx context.Context, fluctlightID, localDat
 }
 
 func scheduleGenerationIdentity(identity map[string]any) map[string]any {
-	result := stableCompilationIdentity(identity)
-	if residence, present := identity["residence"]; present {
-		result["residence"] = copyPromptData(residence)
-	}
-	return result
+	return scheduleIdentityPromptView(identity)
 }
 
 // Keep the automatic current-day lifecycle on its existing acceptance path.

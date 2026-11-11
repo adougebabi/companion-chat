@@ -538,7 +538,7 @@ func virtualActivityModelInput(input VirtualActivityResultTaskInput) map[string]
 	outcomes := make([]map[string]any, 0, len(input.RecentOutcomes))
 	for _, source := range input.RecentOutcomes {
 		outcome := compactStateMap(source, []string{"capability_name", "status", "success_boundary", "error_code", "occurred_at"})
-		if observed := scheduleGenerationSemanticValue(source["observed"]); observed != nil {
+		if observed := scheduleOutcomeSemanticValue(source["observed"]); observed != nil {
 			outcome["observed"] = observed
 		}
 		outcomes = append(outcomes, outcome)
@@ -585,7 +585,7 @@ func scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]
 	for _, source := range input.RecentOutcomes {
 		outcome := compactStateMap(source, []string{"capability_name", "status", "success_boundary", "error_code", "occurred_at"})
 		for _, key := range []string{"expected", "observed"} {
-			if semantic := scheduleGenerationSemanticValue(source[key]); semantic != nil {
+			if semantic := scheduleOutcomeSemanticValue(source[key]); semantic != nil {
 				outcome[key] = semantic
 			}
 		}
@@ -597,42 +597,70 @@ func scheduleGenerationModelInput(input ScheduleGenerationTaskInput) map[string]
 	}
 	return map[string]any{
 		"local_date": input.LocalDate, "timezone": input.Timezone,
-		"identity":      scheduleGenerationSemanticValue(input.Identity),
-		"life_profile":  scheduleGenerationSemanticValue(input.LifeProfile),
-		"current_state": scheduleGenerationSemanticValue(input.CurrentState),
+		"identity":      scheduleIdentityPromptView(input.Identity),
+		"life_profile":  copyPromptFields(input.LifeProfile, "social_background", "preferences", "recurring_commitments", "character_constraints", "life_habits", "status"),
+		"current_state": scheduleCurrentStatePromptView(input.CurrentState),
 		"current_life":  currentLife,
 		"world_places":  input.WorldPlaces.modelView(),
 		"goals":         goals, "intentions": intentions, "recent_outcomes": outcomes,
 	}
 }
 
-func scheduleGenerationSemanticValue(value any) any {
-	switch typed := value.(type) {
-	case map[string]any:
-		result := make(map[string]any, len(typed))
-		for key, child := range typed {
-			normalized := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(key, "_", ""), "-", ""))
-			if normalized != "status" && (providerMetadataKey(key) || normalized == "profileid" || normalized == "activeprofileid" || normalized == "ref" || strings.HasSuffix(normalized, "revision") || strings.Contains(normalized, "digest") || strings.HasSuffix(normalized, "ref") || strings.HasSuffix(normalized, "refs")) {
-				continue
-			}
-			result[key] = scheduleGenerationSemanticValue(child)
-		}
-		return result
-	case []map[string]any:
-		result := make([]any, len(typed))
-		for index, child := range typed {
-			result[index] = scheduleGenerationSemanticValue(child)
-		}
-		return result
-	case []any:
-		result := make([]any, len(typed))
-		for index, child := range typed {
-			result[index] = scheduleGenerationSemanticValue(child)
-		}
-		return result
-	default:
-		return value
+func scheduleIdentityPromptView(identity map[string]any) map[string]any {
+	return copyPromptFields(identity, "name", "nickname", "gender", "occupation", "birthplace", "birthday", "core_values", "worldview", "residence")
+}
+
+func scheduleCurrentStatePromptView(state map[string]any) map[string]any {
+	result := map[string]any{}
+	if inner := compactInnerStateForSurface(mapValue(state["inner_state"])); len(inner) > 0 {
+		result["inner_state"] = inner
 	}
+	appearance := mapValue(state["appearance"])
+	view := copyPromptFields(appearance, "wearing_state", "hair", "outfit", "clothing", "description")
+	if fields := mapValue(appearance["body_fields"]); len(fields) > 0 {
+		body := make(map[string]any, len(fields))
+		for key, raw := range fields {
+			field := mapValue(raw)
+			if _, hasStatus := field["status"]; hasStatus {
+				body[key] = copyPromptFields(field, "status", "value")
+			} else if _, hasValue := field["value"]; hasValue {
+				body[key] = copyPromptFields(field, "status", "value")
+			} else {
+				body[key] = copyPromptData(raw)
+			}
+		}
+		view["body_fields"] = body
+	}
+	for _, key := range []string{"worn_items", "used_items"} {
+		if rawItems, exists := appearance[key]; exists {
+			items := make([]map[string]any, 0)
+			for _, raw := range arrayValue(rawItems) {
+				items = append(items, copyPromptFields(mapValue(raw), "slot", "category", "description", "clothing_type", "seasons", "ownership", "availability", "source_verified", "activity"))
+			}
+			view[key] = items
+		}
+	}
+	if len(view) > 0 {
+		result["appearance"] = view
+	}
+	return result
+}
+
+// Outcome objects are tool/domain data. Remove only known Core coordination
+// fields at this envelope; nested values and schemas remain opaque.
+func scheduleOutcomeSemanticValue(value any) any {
+	if value == nil {
+		return nil
+	}
+	source, ok := value.(map[string]any)
+	if !ok {
+		return copyPromptData(value)
+	}
+	result := copyPromptData(source).(map[string]any)
+	for _, key := range []string{"action_id", "call_id", "fluctlight_id", "source_fact_id", "resulting_state_ref", "resulting_context_revision", "request_digest", "idempotency_key", "native_tool_call_id"} {
+		delete(result, key)
+	}
+	return result
 }
 
 // Projection-backed tasks own selection of context surfaces, operation rules,
