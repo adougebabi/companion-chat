@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "cognition-claim-new-evidence-not-persisted",
+  "definition_hash": "28d8392635cfd87199cdbd22549323e90f2a848374b53151cb5425bcf67496ca",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-11T14:42:38.349281Z",
+  "updated": "2026-11-11T14:42:38.349292Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}
