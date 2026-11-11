@@ -286,7 +286,7 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 	// Keep the original Goal criteria and current progress, not a previous
 	// evaluator's strategy/assessment prose or the parent decision plan.
 	compact["goals"] = compactProviderGoalsForSurface(projection.Goals, projection.Actors, projection.ReferenceIndex, ProviderContextSurfaceFactOnlyReply)
-	compact["actor_background"] = compactActorBackground(projection)
+	compact["actor_background"] = replyActorBackgroundView(compactActorBackground(projection))
 	compact["time_view"] = projectionTimeView(projection)
 	compact["capability_boundaries"] = input.CapabilityFacts
 	delete(compact, "intentions")
@@ -304,8 +304,12 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 		if compact[key] == nil {
 			continue
 		}
+		value := compact[key]
+		if key != "actor_background" {
+			value = replySemanticValue(value)
+		}
 		workingInput.RuntimeFacts = append(workingInput.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Required: true, Priority: 100,
-			Content: map[string]any{"kind": key, "value": replySemanticValue(compact[key])}, SourceRefs: []string{"authority:" + key}})
+			Content: map[string]any{"kind": key, "value": value}, SourceRefs: []string{"authority:" + key}})
 	}
 	// History is a candidate window, as in cognition. Protect the last two whole
 	// turns (including their user corrections/refusals), not every old user row.

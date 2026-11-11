@@ -118,6 +118,46 @@ func TestWriterActorBusinessValueSurvivesPhysicalPromptProjection(t *testing.T) 
 	}
 }
 
+func TestMomentWriterActorBusinessValueRemainsOpaque(t *testing.T) {
+	input := replyContextFixture()
+	input.Scene = replySceneMoment
+	value := map[string]any{"id": "business-id", "source_ref": "business-ref", "revision": 7, "large": json.Number("9007199254740993"), "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}
+	input.Projection.Actors = []map[string]any{{"actor_id": input.Projection.OwnerActorID, "ref": "actor_user", "type": "human"}}
+	input.Projection.ActorFacts = []map[string]any{{"actor_id": input.Projection.OwnerActorID, "ref": "actor_fact:private-ref", "attribute": "preferences", "value": value, "epistemic_kind": "self_reported"}}
+	before := jsonString(input)
+	prompt, err := buildFactOnlyReplyContext(input, providerAssignment{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	index := promptMessageOriginIndex(prompt, "scoped_runtime_projection")
+	content := stringValue(prompt.Messages[index]["content"])
+	text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+	decoder := json.NewDecoder(strings.NewReader(text))
+	decoder.UseNumber()
+	var runtime map[string]any
+	if err := decoder.Decode(&runtime); err != nil {
+		t.Fatal(err)
+	}
+	background := arrayValue(runtime["actor_background"])
+	if len(background) != 1 || jsonString(mapValue(background[0])["value"]) != jsonString(value) || strings.Contains(text, "actor_fact:private-ref") || jsonString(input) != before {
+		t.Fatalf("Moment Writer changed Actor data or leaked a Core ref: %#v", background)
+	}
+	var request map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "今天想记录一点心情。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err = app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire := jsonString(request["messages"])
+	if !strings.Contains(wire, "business-ref") || !strings.Contains(wire, "9007199254740993") || strings.Contains(wire, "actor_fact:private-ref") {
+		t.Fatal("physical Moment request changed Actor data or leaked its Core ref")
+	}
+}
+
 // Optional private capture, not a checked-in user-data fixture or live model
 // test. It verifies the actual failing representation before another call.
 func TestFactOnlyActualActorWireReplay(t *testing.T) {
