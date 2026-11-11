@@ -10,7 +10,7 @@ import (
 
 func TestReflectionRequestKeepsEvidenceButExcludesAmbientWardrobe(t *testing.T) {
 	const ambient = "无关当前红色外套"
-	const source = "来源消息提到蓝色围巾"
+	source := " \n" + strings.Repeat("甲", 8000) + "来源消息撤回蓝色围巾的约定 \n"
 	projection := ContextProjection{CurrentState: map[string]any{"data": map[string]any{
 		"inner_state":       map[string]any{"mood": map[string]any{"label": "平静"}},
 		"life_context":      map[string]any{"scene": "书房"},
@@ -19,6 +19,9 @@ func TestReflectionRequestKeepsEvidenceButExcludesAmbientWardrobe(t *testing.T) 
 	}}}
 	before := jsonString(projection)
 	evidence := compactReflectionEvidenceV2([]map[string]any{{"sequence": 7, "event_type": "conversation.turn", "payload": map[string]any{"text": source}}})
+	if len(evidence) != 1 || evidence[0]["observation"] != source {
+		t.Fatal("reflection truncated or rewrote the source message")
+	}
 	working, err := ResolveWorkingMemory(workingMemoryInputFromProjectionForSurface(projection, ProviderContextSurfaceReflection, nil, nil), DefaultWorkingMemoryPolicy())
 	if err != nil {
 		t.Fatal(err)
@@ -28,8 +31,8 @@ func TestReflectionRequestKeepsEvidenceButExcludesAmbientWardrobe(t *testing.T) 
 		t.Fatal(err)
 	}
 	text := jsonString(assembly.Messages)
-	if strings.Contains(text, ambient) || strings.Contains(text, "wardrobe.inspect") || !strings.Contains(text, source) || !strings.Contains(text, "sequence:7") || !strings.Contains(text, "黑色") || !strings.Contains(text, "平静") {
-		t.Fatalf("reflection input mixed unrelated wardrobe with source evidence: %s", text)
+	if strings.Contains(text, ambient) || strings.Contains(text, "wardrobe.inspect") || !strings.Contains(text, "来源消息撤回蓝色围巾的约定") || !strings.Contains(text, "sequence:7") || !strings.Contains(text, "黑色") || !strings.Contains(text, "平静") {
+		t.Fatal("reflection input mixed unrelated wardrobe with source evidence")
 	}
 	if !strings.Contains(jsonString(compactCognitionContextForSurface(projection, ProviderContextSurfaceConversationMain)), ambient) {
 		t.Fatal("chat lost its authoritative wearing state")
@@ -51,8 +54,10 @@ func TestReflectionRequestKeepsEvidenceButExcludesAmbientWardrobe(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	wire := jsonString((<-captured)["messages"])
-	if strings.Contains(wire, ambient) || strings.Contains(wire, "wardrobe.inspect") || !strings.Contains(wire, source) || !strings.Contains(wire, "sequence:7") {
-		t.Fatalf("physical reflection request lost its evidence boundary: %s", wire)
+	physical := arrayValue((<-captured)["messages"])
+	wire := jsonString(physical)
+	current := decodeObject([]byte(stringValue(mapValue(physical[len(physical)-1])["content"])))
+	if strings.Contains(wire, ambient) || strings.Contains(wire, "wardrobe.inspect") || mapValue(arrayValue(current["evidence"])[0])["observation"] != source || !strings.Contains(wire, "sequence:7") {
+		t.Fatal("physical reflection request lost its evidence boundary")
 	}
 }

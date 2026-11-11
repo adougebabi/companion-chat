@@ -28,7 +28,9 @@ func compactReflectionEvidenceV2(evidence []map[string]any) []map[string]any {
 		payload := mapValue(item["payload"])
 		switch eventType {
 		case "conversation.turn":
-			if observation := boundedReflectionObservation(stringValue(payload["text"])); observation != "" {
+			if observation, ok := payload["text"].(string); ok && strings.TrimSpace(observation) != "" {
+				// This ref identifies the complete source message. Preserve its
+				// original bytes so later qualifications or corrections survive.
 				entry["observation"] = observation
 			}
 		case ownerReflectionFeedbackFactType:
@@ -88,15 +90,6 @@ func boundedReflectionScalarText(value any, maxRunes int) string {
 		return string(runes[:maxRunes])
 	}
 	return text
-}
-
-func boundedReflectionObservation(value string) string {
-	value = strings.TrimSpace(value)
-	const maxRunes = 8000
-	if runes := []rune(value); len(runes) > maxRunes {
-		return string(runes[:maxRunes])
-	}
-	return value
 }
 
 func compactReflectionAppraisalV2(appraisal map[string]any) map[string]any {

@@ -365,8 +365,8 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 		call := providerCalls.Add(1)
 		body, _ := io.ReadAll(request.Body)
 		if call == 3 {
-			if strings.Contains(string(body), "无关的红色外套") || strings.Contains(string(body), "wardrobe.inspect") || !strings.Contains(string(body), "来源里的蓝色围巾") || !strings.Contains(string(body), "sequence:3") {
-				t.Fatalf("Reflection production request did not isolate wardrobe and source evidence: %s", body)
+			if strings.Contains(string(body), "无关的红色外套") || strings.Contains(string(body), "wardrobe.inspect") || !strings.Contains(string(body), "来源里的蓝色围巾被撤回") || !strings.Contains(string(body), "sequence:3") {
+				t.Fatal("Reflection production request did not preserve the long source or isolate wardrobe")
 			}
 		}
 		candidate := reflectionMemorySemanticCandidate("create")
@@ -474,7 +474,8 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 	state := mapValue(projection.CurrentState["data"])
 	state["appearance"] = map[string]any{"wearing_state": "known", "worn_items": []any{map[string]any{"slot": "top", "description": "无关的红色外套"}}}
 	projection.CurrentState["data"] = state
-	_, err = app.RunReflectionProposalTask(ctx, ReflectionProposalTaskInput{Projection: projection, Evidence: []map[string]any{{"sequence": 3, "event_type": "conversation.turn", "payload": map[string]any{"text": "来源里的蓝色围巾"}}}})
+	longSource := strings.Repeat("甲", 8000) + "来源里的蓝色围巾被撤回"
+	_, err = app.RunReflectionProposalTask(ctx, ReflectionProposalTaskInput{Projection: projection, Evidence: []map[string]any{{"sequence": 3, "event_type": "conversation.turn", "payload": map[string]any{"text": longSource}}}})
 	if err != nil || providerCalls.Load() != 3 {
 		t.Fatalf("production Reflection isolation request failed: calls=%d err=%v", providerCalls.Load(), err)
 	}
