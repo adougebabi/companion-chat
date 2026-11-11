@@ -75,6 +75,8 @@
 
 ## 验收及变更记录
 
+- 2026-11-12：T09 隔离数据库通过真实消息受理保存“买了票”和随后“是玩笑”的两次发言，对已生成的旧购票判断执行 Owner 纠错，再通过实际 `memory.recall` 工具检索；两条原话仍作为历史发言可见，旧购票判断不再作为长期记忆返回，纠正后的购买状态保持未知：`/private/tmp/fluctlight-t09-ticket-correction.log`。这是受控纠错与检索场景，不代表摘要已能根据纠错重建。
+
 - 2026-11-12：T09 的 `memory.recall` 原始交流回执增加实际说话者和消息类型，使用角色自身、当前说话者、Owner、会话内稳定匿名标签或 unknown，不将动态 Actor 别名当作跨续轮身份。隔离 PostgreSQL 对相同原话的用户、角色及其他参与者进行查询，并经原生 ToolCall/ToolResult 检查主 Agent 续轮；另测另一位 Fluctlight 发言时标为当前说话者，不混作 Human，跨会话内容和原始数据库 ID 不进入结果；纠错后检索、会话隔离及原生工具桥回归通过：`/private/tmp/fluctlight-t09-recall-regression-final.log`。记录仅证明谁说过，不证明陈述为外部事实；摘要纠错重建和锁序仍未解决。
 
 - 2026-11-12：T08 在隔离 PostgreSQL 经实际消息受理和 Owner 服务入口提取并启用候选，关闭学习但保留使用后，在下一次 direct 物理请求看到该候选；停用后新一轮匹配请求不再包含表达参考。候选处理没有改动核心人格或关系的角色、指标、趋势、摘要及版本；两次真实对话的互动计数正常增加。来源审核、在途停用、撤销和原 Writer 路径定向回归通过：`/private/tmp/fluctlight-t08-expression-regression.log`。Provider 为替身，只证明参考进入请求，不证明真实模型采用；关系含义称呼兼容性和一般注入排除仍未完成。
