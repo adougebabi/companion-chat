@@ -743,10 +743,21 @@ func compactCurrentStateForSurface(projection ContextProjection, surface Provide
 		resultData["life_context"] = life
 	}
 	if appearance := compactEffectiveAppearanceForSurface(mapValue(data["appearance"])); len(appearance) > 0 {
-		resultData["appearance"] = appearance
+		if surface == ProviderContextSurfaceReflection {
+			// Reflection may retain body facts as context, but the current
+			// wardrobe is not evidence from the selected reflection window.
+			for _, key := range []string{"ref", "wearing_state", "worn_items", "used_items"} {
+				delete(appearance, key)
+			}
+		}
+		if len(appearance) > 0 {
+			resultData["appearance"] = appearance
+		}
 	}
-	if activities := compactActiveActivitiesForSurface(data["active_activities"]); len(activities) > 0 {
-		resultData["active_activities"] = activities
+	if surface != ProviderContextSurfaceReflection {
+		if activities := compactActiveActivitiesForSurface(data["active_activities"]); len(activities) > 0 {
+			resultData["active_activities"] = activities
+		}
 	}
 	if len(resultData) == 0 {
 		return nil

@@ -364,6 +364,11 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 	providerHTTP := &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		call := providerCalls.Add(1)
 		body, _ := io.ReadAll(request.Body)
+		if call == 3 {
+			if strings.Contains(string(body), "无关的红色外套") || strings.Contains(string(body), "wardrobe.inspect") || !strings.Contains(string(body), "来源里的蓝色围巾") || !strings.Contains(string(body), "sequence:3") {
+				t.Fatalf("Reflection production request did not isolate wardrobe and source evidence: %s", body)
+			}
+		}
 		candidate := reflectionMemorySemanticCandidate("create")
 		candidate["evidence_refs"] = []any{"sequence:1"}
 		candidate["content"] = "用户偏好靠窗的安静位置"
@@ -465,6 +470,13 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 	})
 	if err != nil || len(projection.Memories) != 1 || intValue(projection.Memories[0]["revision"]) != 1 || stringValue(projection.Memories[0]["ref"]) == "" || stringValue(projection.Memories[0]["ref"]) == citedMemoryRef {
 		t.Fatalf("next projection Memories=%#v err=%v", projection.Memories, err)
+	}
+	state := mapValue(projection.CurrentState["data"])
+	state["appearance"] = map[string]any{"wearing_state": "known", "worn_items": []any{map[string]any{"slot": "top", "description": "无关的红色外套"}}}
+	projection.CurrentState["data"] = state
+	_, err = app.RunReflectionProposalTask(ctx, ReflectionProposalTaskInput{Projection: projection, Evidence: []map[string]any{{"sequence": 3, "event_type": "conversation.turn", "payload": map[string]any{"text": "来源里的蓝色围巾"}}}})
+	if err != nil || providerCalls.Load() != 3 {
+		t.Fatalf("production Reflection isolation request failed: calls=%d err=%v", providerCalls.Load(), err)
 	}
 }
 

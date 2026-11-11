@@ -740,6 +740,8 @@ type ReflectionProposalTaskInput struct {
 	Projection ContextProjection
 }
 
+const reflectionEvidenceAuthorityRule = "记忆候选必须由本次 evidence 中引用的来源支持；当前状态和其他背景不能单独作为来源窗口中的新记忆。历史发言只证明说过什么；外部行动和交付须有真实回执，未知不等于否定。"
+
 func compactReflectionEvidenceWithReferences(evidence []map[string]any, projection ContextProjection) []map[string]any {
 	result := compactReflectionEvidenceV2(evidence)
 	outcomeRefsByID := make(map[string]string)
@@ -775,7 +777,7 @@ func compactReflectionEvidenceWithReferences(evidence []map[string]any, projecti
 func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionProposalTaskInput) (ProjectionTaskResult, error) {
 	schema := reflectionProposalV2ProviderSchema()
 	providerEvidence := compactReflectionEvidenceWithReferences(input.Evidence, input.Projection)
-	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, input.Projection, "reflection", []string{providerContextAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
+	assembly, projection, err := a.assembleProjectionPromptForSurface(ctx, ProviderContextSurfaceReflection, input.Projection, "reflection", []string{reflectionEvidenceAuthorityRule, reflectionV2Instruction}, jsonString(map[string]any{"evidence": providerEvidence}), nil, "reflection_proposal_v2", schema)
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}

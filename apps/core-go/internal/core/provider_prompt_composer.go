@@ -205,6 +205,20 @@ func renderProviderSystem(operationRules []string, persona, actorRelationshipCon
 // tasks while giving WakeUp its own complete fixed protocol. Surface is an
 // explicit assembly input; model/user text is never inspected to select it.
 func renderProviderSystemForSurface(surface ProviderContextSurface, operationRules []string, persona, actorRelationshipContext map[string]any, role string) string {
+	if surface == ProviderContextSurfaceReflection {
+		var builder strings.Builder
+		builder.WriteString("# 运行协议\n\n" + providerTaskProtocol)
+		seen := map[string]bool{}
+		for _, rule := range operationRules {
+			rule = strings.TrimSpace(rule)
+			if rule != "" && rule != providerContextAuthorityRule && !seen[rule] {
+				builder.WriteString("\n\n" + rule)
+				seen[rule] = true
+			}
+		}
+		appendProviderPersona(&builder, persona, role)
+		return strings.TrimSpace(builder.String())
+	}
 	if surface == ProviderContextSurfaceGoalEvaluation {
 		rules := []string{providerTaskProtocol, "当前事实优先于历史；人格只约束身份行为，不能改写目标原标准。每条 sources 的 payload_ref 从 evidence_payloads 读取正文；证据事件仍以各自 ref、时间、有效性独立判断。"}
 		for _, rule := range operationRules {

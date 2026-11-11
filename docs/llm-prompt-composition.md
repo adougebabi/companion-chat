@@ -161,7 +161,7 @@ Studio 普通助手、文字预览及角色定义准备同样在各自模型阶�
 | diary_material | 选材规则 + 本地日期/时区 + source_window | 0；材料可含当天消息证据 | diary_runtime.go |
 | diary_expression | 日记表达协议 + Working Persona + 日期/时区/as_of + 选定真实材料 | 0 | diary_runtime.go |
 | persistent_switch | 切换判定规则 + Working Persona/切换规则 + D/M/S/H + user_text/candidate_reply/response_intent | 可带 H | model_tasks.go |
-| reflection | 反思规则 + Working Persona + D/M + 明确范围的 evidence | 0，无 S | model_tasks.go |
+| reflection | 反思专属规则 + Working Persona + 按需状态/记忆 + 明确范围的 evidence；记忆候选依据来源窗口，不附加公共当前穿着或进行中的购物活动 | 0，无 S；来源材料本身提及的衣着仍保留 | model_tasks.go |
 | schedule_replan | 重排规则 + 冻结 intent + 当前日程/生活事实/已声明住所 + 共享世界规则/时区/地点候选 | 0 | model_tasks.go；schedule_capability.go |
 | goal_planner | Planner 协议 + run/mode + goal-set snapshot；后续 query/commit 原生结果 | 0 | goal_planner.go |
 | goal_evaluation | 评估协议 + Working Persona + stable 目标/criteria/actor refs + 专属事实/记忆/其他目标背景 + 当前目标状态/sources/reviews/accepted submissions；重复正文通过 evidence_payloads 复用 | 0；sources 包含消息证据 | goal_evaluation_task.go；goal_evaluation_wire.go |
