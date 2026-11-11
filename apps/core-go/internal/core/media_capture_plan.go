@@ -439,6 +439,12 @@ func (a *App) parseMediaPlan(ctx context.Context, packet map[string]any) (map[st
 	return a.mediaStructuredCall(ctx, "media_subject_parse", "解析本次原始图像意图与明确要求，仅返回所给摄影方案结构，不决定新的主题。拍摄者、所属Actor和入镜者不同。遵守first_person指代绑定：actor_user是用户而不是task_actor，unknown不能自动假定本人；task_actor绑定也不代表入镜。没有人物不加载本人；我拍猫、我的猫、从我的视角都不等于本人入镜。不要用未来计划或引用的自拍词改变本次主体。明确约束优先；可用unknown/unspecified。镜面与景别独立，人偶/海报是物品，背影/剪影/路人属于人物。局部手/脚只用hands/feet范围。不要虚构生活事实。", packet, mediaCapturePlanSchema())
 }
 
+type mediaPromptSourceIntentKey struct{}
+
+func withMediaPromptSourceIntent(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, mediaPromptSourceIntentKey{}, id)
+}
+
 func (a *App) mediaStructuredCall(ctx context.Context, stage, instruction string, packet map[string]any, schema map[string]any) (map[string]any, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -447,7 +453,18 @@ func (a *App) mediaStructuredCall(ctx context.Context, stage, instruction string
 	// This independent, tool-free media task keeps cancellation/correlation but
 	// must not inherit that parent's physical tool-choice or catalog policy.
 	ctx = withoutPhysicalModelRequestPolicy(ctx)
-	prompt := PromptAssemblyResult{ResponseFormat: schema, Messages: formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": jsonString(packet)}}, "media_prompt")}
+	traceSlots := mediaStructuredSourceSlots(packet)
+	if id, _ := ctx.Value(mediaPromptSourceIntentKey{}).(string); strings.TrimSpace(id) != "" {
+		for index := range traceSlots {
+			if traceSlots[index].SlotID == "media_intent" {
+				traceSlots[index].Source = "frozen_media_intent"
+				traceSlots[index].SourceRefs = taskOptionalSourceRef("media_intent", id)
+			}
+		}
+	}
+	ctx = withTaskPromptSlots(ctx, traceSlots...)
+	prompt := taskPromptAssembly(ctx, formatProviderMessagesForRole([]map[string]any{{"role": "system", "content": instruction}, {"role": "user", "content": jsonString(packet)}}, "media_prompt"))
+	prompt.ResponseFormat = schema
 	run, err := a.RunFormalAgent(WithProviderScenario(ctx, "media_prompt"), FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: stage, OutputKind: FormalAgentOutputStructured})
 	if err != nil {
 		return nil, err
@@ -456,6 +473,33 @@ func (a *App) mediaStructuredCall(ctx context.Context, stage, instruction string
 		return parsed, nil
 	}
 	return nil, errMediaStructuredResponseInvalid
+}
+
+func mediaStructuredSourceSlots(packet map[string]any) []PromptSlotTrace {
+	slots := make([]PromptSlotTrace, 0)
+	for _, group := range []struct {
+		id, source, reason string
+		keys               []string
+	}{
+		{"media_intent", "caller_media_packet", "explicit_media_intent", []string{"intent", "intent_text"}},
+		{"media_constraints", "caller_media_packet", "explicit_media_constraints", []string{"explicit_constraints", "referent_bindings", "declared_capture"}},
+		{"media_capture_plan", "caller_media_packet", "selected_capture_plan", []string{"accepted_plan", "media_capture_plan"}},
+		{"media_subject_data", "caller_media_packet", "authorized_visible_subjects", []string{"allowed_subject_data", "other_subjects", "studio_definition_source"}},
+		{"media_reference_assets", "caller_media_packet", "explicit_allowed_reference", []string{"allowed_reference_assets", "reference_provenance"}},
+		{"media_dimensions", "caller_media_packet", "selected_image_dimensions", []string{"image_dimensions"}},
+		{"media_validation_feedback", "core_validation", "structured_output_repair", []string{"validation_error"}},
+	} {
+		for _, key := range group.keys {
+			if _, present := packet[key]; present {
+				slots = append(slots, PromptSlotTrace{SlotID: PromptSlotID(group.id), Source: group.source, Reason: group.reason})
+				break
+			}
+		}
+	}
+	if len(slots) == 0 {
+		slots = append(slots, PromptSlotTrace{SlotID: "media_task_packet", Source: "caller_media_packet", Reason: "explicit_task_input"})
+	}
+	return slots
 }
 
 // projectMediaAppearance exposes only the visible scope. Revision/digest stay

@@ -510,6 +510,7 @@ func TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration
 	if result.Status != "waiting" || !result.Accepted || result.MediaIntentID == "" {
 		t.Fatalf("visual Agent result=%#v", result)
 	}
+	requireTaskSourceSlots(t, ctx, repository, "visual_identity_agent", "visual_session_state", "visual_identity_snapshot")
 	expectedRunID := visualIdentityAgentCheckpointOperationID(visualIdentityAgentState{SessionID: sessionID, Attempt: 1, ActionRequired: visualIdentityGenerateCandidateCapabilityName})
 	var runStatus string
 	var linkedExecutions int

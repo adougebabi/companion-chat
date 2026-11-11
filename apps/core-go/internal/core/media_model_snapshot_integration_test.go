@@ -43,6 +43,11 @@ func TestMediaNormalizerKeepsModelAcrossIntentReload(t *testing.T) {
 	if _, err := app.runMediaPromptTaskResult(ctx, MediaPromptTaskInput{Intent: intent}); err != nil {
 		t.Fatal(err)
 	}
+	requireTaskSourceSlots(t, ctx, repository, "media_prompt", "media_intent", "media_constraints", "media_capture_plan")
+	var intentTraced bool
+	if err := repository.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.diagnostic_model_runs WHERE scenario='media_prompt' AND metrics->'prompt_slots' @> '[{"slot_id":"media_intent","source":"frozen_media_intent","source_refs":["media_intent:media-snapshot-intent"]}]'::jsonb)`).Scan(&intentTraced); err != nil || !intentTraced {
+		t.Fatalf("media normalizer did not trace its frozen intent: %v", err)
+	}
 	var provenance []byte
 	if err := repository.Pool().QueryRow(ctx, `SELECT model_provenance FROM public.media_intents WHERE id='media-snapshot-intent'`).Scan(&provenance); err != nil || strings.Contains(string(provenance), "test-media-secret") {
 		t.Fatalf("persisted media snapshot exposed a credential or could not be read: %v", err)

@@ -235,6 +235,7 @@ func TestMediaQualityFinalProviderRequestKeepsImageAndReadableText(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
+	requireTaskSourceSlots(t, ctx, repository, "media_quality_acceptance", "media_quality_concept", "media_candidate_image")
 	var diagnosticPrompt []byte
 	if err := repository.Pool().QueryRow(ctx, `SELECT prompt FROM public.diagnostic_model_runs WHERE scenario='media_quality_acceptance' ORDER BY queued_at DESC LIMIT 1`).Scan(&diagnosticPrompt); err != nil {
 		t.Fatal(err)

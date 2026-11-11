@@ -227,6 +227,23 @@ func (a *App) RunVisualIdentityAgent(ctx context.Context, input VisualIdentityAg
 	runCtx = withPhysicalModelRequestPolicy(runCtx, visualIdentityPhysicalRequestPolicy{
 		app: a, sessionID: state.SessionID, attempt: state.Attempt, expectedAction: state.ActionRequired,
 	})
+	traceSlots := []PromptSlotTrace{
+		{SlotID: "visual_session_state", Source: "visual_identity_session", SourceRefs: taskOptionalSourceRef("visual_session", state.SessionID), Reason: "current_visual_workflow_stage"},
+		{SlotID: "visual_identity_snapshot", Source: "visual_identity_attempt_snapshot", SourceRefs: taskOptionalSourceRef("visual_attempt", state.AttemptID), Reason: "frozen_identity_for_current_attempt"},
+	}
+	if len(state.History) > 0 {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "visual_attempt_history", Source: "visual_identity_attempts", Reason: "actual_previous_attempts"})
+	}
+	if len(visualIdentityPreviousReviewForModel(state.InputSnapshot)) > 0 {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "visual_previous_review", Source: "previous_visual_review", Reason: "review_feedback_for_next_attempt"})
+	}
+	if len(imageContent) > 0 {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "visual_candidate_image", Source: "authorized_media_asset", SourceRefs: taskOptionalSourceRef("asset", state.CandidateAssetID), Reason: "inspect_actual_candidate_image"})
+	}
+	runCtx = withTaskPromptSlots(runCtx, traceSlots...)
+	declared := taskPromptAssembly(runCtx, prompt.Messages)
+	declared.ResponseFormat = prompt.ResponseFormat
+	prompt = declared
 	run, err := a.RunFormalAgent(runCtx, FormalAgentVisualIdentity, FormalAgentRunInput{
 		Prompt: prompt, Definitions: stageDefinitions, SchemaName: "visual_identity_agent_response",
 		Capability: &ADKCapabilityRequest{

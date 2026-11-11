@@ -50,6 +50,13 @@ type PromptCompositionResult struct {
 
 type taskPromptSlotsKey struct{}
 
+func taskOptionalSourceRef(prefix, id string) []string {
+	if id = strings.TrimSpace(id); id != "" {
+		return []string{prefix + ":" + id}
+	}
+	return nil
+}
+
 func taskRowSourceRefs(rows []map[string]any, prefix string) []string {
 	refs := make([]string, 0, len(rows))
 	for _, row := range rows {

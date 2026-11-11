@@ -80,3 +80,14 @@ func TestTypedTaskRepairSlotsKeepTheirMessagePositions(t *testing.T) {
 		t.Fatalf("repair slot positions or messages changed: %#v", assembly.Trace.Slots)
 	}
 }
+
+func TestMediaStructuredSlotsReflectOnlySuppliedPacketFields(t *testing.T) {
+	slots := mediaStructuredSourceSlots(map[string]any{"intent": "风景", "explicit_constraints": map[string]any{}, "media_capture_plan": map[string]any{}, "validation_error": "invalid"})
+	seen := map[PromptSlotID]bool{}
+	for _, slot := range slots {
+		seen[slot.SlotID] = true
+	}
+	if !seen["media_intent"] || !seen["media_constraints"] || !seen["media_capture_plan"] || !seen["media_validation_feedback"] || seen["media_subject_data"] || seen["media_reference_assets"] || seen["media_quality_feedback"] {
+		t.Fatalf("media source slots do not reflect the supplied packet: %#v", slots)
+	}
+}

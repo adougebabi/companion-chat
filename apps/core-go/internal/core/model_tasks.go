@@ -132,6 +132,14 @@ func (a *App) runMediaPromptTaskResult(ctx context.Context, input MediaPromptTas
 	if err != nil {
 		return MediaPromptTaskResult{}, err
 	}
+	traceSlots := []PromptSlotTrace{{SlotID: "media_concept", Source: "frozen_media_intent", SourceRefs: taskOptionalSourceRef("media_intent", input.Intent.ID), Reason: "authorized_media_concept"}}
+	if input.Intent.QualityRetryCount > 0 {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "media_quality_feedback", Source: "media_intent.quality_retry_fields", Reason: "quality_retry_context"})
+	}
+	modelCtx = withTaskPromptSlots(modelCtx, traceSlots...)
+	declared := taskPromptAssembly(modelCtx, prompt.Messages)
+	declared.ResponseFormat = prompt.ResponseFormat
+	prompt = declared
 	run, err := a.RunFormalAgent(modelCtx, FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
 	if err != nil {
 		return MediaPromptTaskResult{}, err
@@ -206,6 +214,18 @@ func (a *App) runAvatarPromptTask(ctx context.Context, intent mediaIntent, conce
 	if err != nil {
 		return MediaPromptTaskResult{}, err
 	}
+	traceSlots := []PromptSlotTrace{
+		{SlotID: "avatar_character", Source: "frozen_avatar_character", SourceRefs: taskOptionalSourceRef("media_intent", intent.ID), Reason: "character_owned_avatar_concept"},
+		{SlotID: "avatar_appearance", Source: "confirmed_visual_identity", Reason: "known_visual_identity"},
+	}
+	if intent.QualityRetryCount > 0 {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "avatar_quality_feedback", Source: "media_intent.quality_retry_fields", Reason: "quality_retry_context"})
+	}
+	if strings.TrimSpace(stringValue(concept["derived_review_feedback"])) != "" {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "avatar_review_feedback", Source: "previous_visual_review", Reason: "derived_review_feedback"})
+	}
+	modelCtx = withTaskPromptSlots(modelCtx, traceSlots...)
+	prompt = taskPromptAssembly(modelCtx, prompt.Messages)
 	run, err := a.RunFormalAgent(modelCtx, FormalAgentMediaPrompt, FormalAgentRunInput{Prompt: prompt, SchemaName: "media_prompt_text"})
 	if err != nil {
 		return MediaPromptTaskResult{}, err
@@ -273,9 +293,10 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 	if err != nil {
 		return mediaQualityAcceptance{}, err
 	}
+	referenceID := ""
 	if isDerivedVisualIdentityMedia(input.Intent) {
 		concept := decodeObject([]byte(input.Intent.Prompt))
-		referenceID := visualIdentityReferenceAssetID(concept)
+		referenceID = visualIdentityReferenceAssetID(concept)
 		if referenceID == "" {
 			return mediaQualityAcceptance{}, errors.New("visual_identity_reference_image_missing")
 		}
@@ -302,6 +323,14 @@ func (a *App) RunMediaQualityTask(ctx context.Context, input MediaQualityTaskInp
 	}
 	ctx = withFrozenProviderAssignment(ctx, visionUnderstandingModelRole, assignment)
 	messages = formatProviderMessagesForRole(messages, "media_prompt")
+	traceSlots := []PromptSlotTrace{
+		{SlotID: "media_quality_concept", Source: "frozen_media_intent", SourceRefs: taskOptionalSourceRef("media_intent", input.Intent.ID), Reason: "review_frozen_concept_and_prompt"},
+		{SlotID: "media_candidate_image", Source: "caller_candidate_image", Reason: "inspect_actual_candidate_bytes"},
+	}
+	if referenceID != "" {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "media_reference_image", Source: "authorized_media_asset", SourceRefs: taskOptionalSourceRef("asset", referenceID), Reason: "compare_confirmed_reference_image"})
+	}
+	ctx = withTaskPromptSlots(ctx, traceSlots...)
 	run, err := a.runFormalStructuredTask(
 		WithProviderScenario(ctx, "media_quality_acceptance"),
 		FormalAgentMediaQuality, messages, nil, "media_quality_acceptance_response", mediaQualityAcceptanceResponseSchema(), false, nil,
@@ -352,6 +381,10 @@ func (a *App) RunVisualIdentityVisionTask(ctx context.Context, input VisualIdent
 		{"role": "system", "content": visualIdentityVisionTaskInstruction}, {"role": "user", "content": content},
 	})
 	messages = formatProviderMessagesForRole(messages, "visual_identity_vision")
+	ctx = withTaskPromptSlots(ctx,
+		PromptSlotTrace{SlotID: "visual_identity_snapshot", Source: "caller_visual_identity_snapshot", Reason: "identity_and_view_constraints"},
+		PromptSlotTrace{SlotID: "visual_candidate_image", Source: "caller_candidate_image", SourceRefs: taskOptionalSourceRef("asset", input.CandidateAssetID), Reason: "inspect_actual_candidate_image"},
+	)
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentVisualIdentityVision, messages, nil, "visual_identity_vision_response", visualIdentityVisionResponseSchema(), false, nil)
 	return run.Completion.Structured, err
 }
@@ -374,6 +407,10 @@ func (a *App) RunVisualIdentityPatchTask(ctx context.Context, input VisualIdenti
 	messages := (&PromptComposer{}).ComposeTaskMessages("visual_identity_patch", []map[string]any{
 		{"role": "system", "content": visualIdentityPatchTaskInstruction}, {"role": "user", "content": promptTaskData(payload)},
 	})
+	ctx = withTaskPromptSlots(ctx,
+		PromptSlotTrace{SlotID: "visual_identity_snapshot", Source: "caller_visual_identity_snapshot", Reason: "identity_and_review_constraints"},
+		PromptSlotTrace{SlotID: "visual_review_findings", Source: "caller_vision_findings", SourceRefs: taskOptionalSourceRef("asset", input.CandidateAssetID), Reason: "candidate_visual_observations"},
+	)
 	run, err := a.runFormalStructuredTask(ctx, FormalAgentVisualIdentityPatch, messages, nil, "visual_identity_patch_response", visualIdentityPatchResponseSchema(), false, nil)
 	return run.Completion.Structured, err
 }

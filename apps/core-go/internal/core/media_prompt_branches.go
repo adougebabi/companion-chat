@@ -225,6 +225,7 @@ func normalizeMediaPrompt(ctx context.Context, concept map[string]any, call func
 }
 
 func (a *App) runBranchedMediaPrompt(ctx context.Context, input MediaPromptTaskInput, concept map[string]any) (MediaPromptTaskResult, error) {
+	ctx = withMediaPromptSourceIntent(ctx, input.Intent.ID)
 	var assignment *providerAssignment
 	output, repairs, err := normalizeMediaPrompt(ctx, concept, func(ctx context.Context, packet map[string]any) (map[string]any, error) {
 		// Resolve only after the packet is validated, as in the original path.
