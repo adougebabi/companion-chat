@@ -62,6 +62,62 @@ func replySemanticValue(value any) any {
 	}
 }
 
+// The Writer receives the selected Working Persona, not its Core-owned
+// selection/provenance envelope. Its descriptive values remain opaque data.
+func replyPersonaPromptView(persona map[string]any) map[string]any {
+	result := mapValue(copyPromptData(persona))
+	for _, key := range []string{workingPersonaProfileIDKey, workingPersonaSwitchKey, "personality_system", "diary_persona_provenance", "source_revision", "source_hash", "overlay_revision"} {
+		delete(result, key)
+	}
+	if len(mapValue(result[workingPersonaSharedIdentityKey])) == 0 {
+		if shared := copyPromptFields(persona, "identity", "life_profile"); len(shared) > 0 {
+			result[workingPersonaSharedIdentityKey] = shared
+		}
+	}
+	body := mapValue(result[workingPersonaBodyKey])
+	if len(body) == 0 {
+		body = replyWorkingPersonaBody(persona)
+	}
+	for _, key := range []string{"profile_id", "source_revision", "source_hash", "overlay_revision"} {
+		delete(body, key)
+	}
+	if len(body) > 0 {
+		result[workingPersonaBodyKey] = body
+	}
+	return result
+}
+
+func replyWorkingPersonaBody(persona map[string]any) map[string]any {
+	body := copyPromptFields(persona, "personality", "behavioral_policy")
+	system := mapValue(persona["personality_system"])
+	active := stringValue(system["active_profile_id"])
+	for _, raw := range arrayValue(system["profiles"]) {
+		profile := mapValue(raw)
+		if active == "" || stringValue(profile["id"]) != active {
+			continue
+		}
+		for _, key := range workingPersonaSortedKeys(profile) {
+			if personaSwitchKeyMatched(key, []string{"id", "profile_id", "name"}) {
+				continue
+			}
+			if _, excluded := workingPersonaExcludedKeys[strings.ToLower(strings.TrimSpace(key))]; excluded {
+				continue
+			}
+			if key == "behavioral_policy" && len(mapValue(body[key])) > 0 && len(mapValue(profile[key])) > 0 {
+				merged := mapValue(copyPromptData(body[key]))
+				for field, value := range mapValue(profile[key]) {
+					merged[field] = copyPromptData(value)
+				}
+				body[key] = merged
+			} else {
+				body[key] = copyPromptData(profile[key])
+			}
+		}
+		break
+	}
+	return body
+}
+
 type ReplyContextInput struct {
 	ExpressionVersion     string
 	ViewVersion           string
@@ -161,7 +217,7 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 	if input.OutputCorrection != "" {
 		rules = append(rules, input.OutputCorrection)
 	}
-	persona := mapValue(replySemanticValue(input.WorkingPersona))
+	persona := replyPersonaPromptView(input.WorkingPersona)
 	personaDiagnostics := map[string]any{}
 	if input.Scene != replySceneMoment && viewVersion == replyViewVersion {
 		persona, personaDiagnostics = privateReplyPersonaView(persona, input.PersonaSource)

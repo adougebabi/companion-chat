@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -193,6 +194,45 @@ func TestPrivateChatPersonaViewKeepsArbitraryVoiceAndProfile(t *testing.T) {
 	projected, _ := privateReplyPersonaView(legacy, nil)
 	if wire := jsonString(filterCorePersona(projected)); !strings.Contains(wire, "严谨直白") || !strings.Contains(wire, "温和但不退让") {
 		t.Fatal("legacy structured persona was shadowed", wire)
+	}
+}
+
+func TestWriterPersonaPreservesOpaqueBusinessDataWithoutCoreBookkeeping(t *testing.T) {
+	value := map[string]any{"id": "business-id", "item_id": "business-item", "source_ref": "business-ref", "revision": 7, "large": json.Number("9007199254740993"), "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}
+	input := replyContextFixture()
+	input.WorkingPersona = map[string]any{"profile_id": "private-profile", "working_persona": map[string]any{"profile_id": "private-profile", "portrait_text": "保留角色自己的表达", "preferences": value}, "diary_persona_provenance": map[string]any{"source_hash": "private-hash"}}
+	before := jsonString(input.WorkingPersona)
+	prompt, err := buildFactOnlyReplyContext(input, providerAssignment{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	system := stringValue(prompt.Messages[0]["content"])
+	_, raw, ok := strings.Cut(system, "# 人格设定\n\n")
+	if !ok {
+		t.Fatal("Writer persona section missing")
+	}
+	decoder := json.NewDecoder(strings.NewReader(raw))
+	decoder.UseNumber()
+	var persona map[string]any
+	if err := decoder.Decode(&persona); err != nil {
+		t.Fatal(err)
+	}
+	if jsonString(mapValue(persona["working_persona"])["preferences"]) != jsonString(value) || strings.Contains(raw, "private-profile") || strings.Contains(raw, "private-hash") || jsonString(input.WorkingPersona) != before {
+		t.Fatal("Writer rewrote persona business data or leaked Core bookkeeping")
+	}
+	var request map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "好，我明白了。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err = app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire := jsonString(request["messages"])
+	if !strings.Contains(wire, "business-ref") || !strings.Contains(wire, "9007199254740993") || strings.Contains(wire, "private-profile") || strings.Contains(wire, "private-hash") {
+		t.Fatal("physical Writer request changed persona business data or leaked bookkeeping")
 	}
 }
 

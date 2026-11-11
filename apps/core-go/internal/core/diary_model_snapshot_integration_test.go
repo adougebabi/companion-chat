@@ -51,6 +51,10 @@ func setupDiarySnapshotFixture(t *testing.T, suffix string) (context.Context, *P
 
 func TestDiaryPostgresRestoresFrozenExpressionBinding(t *testing.T) {
 	ctx, repo, app, owner, fid, diary, attempt := setupDiarySnapshotFixture(t, "diary-frozen")
+	persona := map[string]any{"working_persona": map[string]any{"profile_id": "private-diary-profile", "portrait_text": "角色本人", "preferences": map[string]any{"item_id": "business-diary-item", "source_ref": "business-diary-reference"}}, "diary_persona_provenance": map[string]any{"source_hash": "private-diary-hash"}}
+	if _, err := repo.Pool().Exec(ctx, `UPDATE public.fluctlight_diary_attempts SET persona_snapshot=$2 WHERE id=$1`, attempt, jsonBytes(persona)); err != nil {
+		t.Fatal(err)
+	}
 	provenance := map[string]any{diaryModelSnapshotContractKey: diaryModelSnapshotVersion}
 	if _, err := repo.Pool().Exec(ctx, `UPDATE public.fluctlight_diary_attempts SET model_provenance=$2 WHERE id=$1`, attempt, jsonBytes(provenance)); err != nil {
 		t.Fatal(err)
@@ -88,6 +92,9 @@ func TestDiaryPostgresRestoresFrozenExpressionBinding(t *testing.T) {
 	}
 	if wire["temperature"] != 0.0 || wire["top_p"] != topP || wire["max_tokens"] != nil || wire["max_completion_tokens"] != nil {
 		t.Fatalf("frozen sampling or no-cap contract changed: %#v", wire)
+	}
+	if messages := jsonString(wire["messages"]); !strings.Contains(messages, "business-diary-reference") || !strings.Contains(messages, "business-diary-item") || strings.Contains(messages, "private-diary-profile") || strings.Contains(messages, "private-diary-hash") {
+		t.Fatal("diary Writer changed persona business data or leaked Core provenance")
 	}
 	requireTaskSourceSlots(t, ctx, repo, "diary_expression", "diary_selected_sources", "diary_date")
 	item, err := app.OwnerDiary(ctx, owner, fid, diary)

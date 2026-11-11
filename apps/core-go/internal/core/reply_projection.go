@@ -84,12 +84,12 @@ func applyPrivateReplyView(view *factOnlyContextView, projection ContextProjecti
 
 func privateReplyPersonaView(persona, source map[string]any) (map[string]any, map[string]any) {
 	original := jsonString(persona)
-	result := cloneMap(persona)
+	result := mapValue(copyPromptData(persona))
 	// Free text is deliberately retained; no lexical classification or prose
 	// rewriting. Structured/source mappings are provenance, not instructions.
 	body := mapValue(result[workingPersonaBodyKey])
 	if len(body) == 0 {
-		body = cloneMap(deriveWorkingPersonaBody(persona))
+		body = replyWorkingPersonaBody(persona)
 		if body == nil {
 			body = map[string]any{}
 		}
