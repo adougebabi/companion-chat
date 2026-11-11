@@ -267,6 +267,7 @@ func TestWakeUpConversationReplyCreatesAndDeliversPrivateMessage(t *testing.T) {
 	if stringValue(wakeResult["action_type"]) != "proactive_message" {
 		t.Fatalf("WakeUp action type = %#v", wakeResult)
 	}
+	requireTaskSourceSlots(t, ctx, repository, "wake_up", "wakeup_event", "wakeup_obligations")
 	var conversationID string
 	if err := repository.Pool().QueryRow(ctx, `SELECT conversation_id FROM public.fluctlight_direct_conversations WHERE owner_actor_id=$1 AND fluctlight_actor_id=$2`, ownerID, fluctlightID).Scan(&conversationID); err != nil {
 		t.Fatal(err)

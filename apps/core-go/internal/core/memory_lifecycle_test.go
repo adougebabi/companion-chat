@@ -398,6 +398,7 @@ func TestProcessReflectionMemoryCandidateUsesOpaqueRefLifecycleAuthority(t *test
 	if err != nil || stringValue(first["status"]) != "applied" || intValue(mapValue(mapValue(first["memory"])["counts"])["applied"]) != 1 {
 		t.Fatalf("first Reflection=%#v err=%v", first, err)
 	}
+	requireTaskSourceSlots(t, ctx, repository, "reflection", "reflection_evidence")
 	var portraitRuns int
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*) FROM public.diagnostic_model_runs WHERE scenario='persona_compilation'`).Scan(&portraitRuns); err != nil || portraitRuns != 0 {
 		t.Fatalf("Memory-only Reflection recompiled persona %d times: %v", portraitRuns, err)

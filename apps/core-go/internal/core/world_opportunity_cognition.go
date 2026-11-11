@@ -27,6 +27,7 @@ func (a *App) runNPCOpportunityTask(ctx context.Context, owner, fid, inbox strin
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "npc_opportunity", Source: "authorized_npc_opportunity", SourceRefs: taskOptionalSourceRef("npc_opportunity", stringValue(p["id"])), Reason: "actual_encounter_opportunity"})
 	ctx = a.bindProjectionRefresh(ctx, request, ProviderContextSurfaceNativeCognition, "cognitive_assessment", rules, input, defs, "npc_opportunity_decision", schema, nil)
 	scope := formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition)
 	run, err := a.runFormalStructuredAssemblyTask(ctx, FormalAgentNativeCognition, assembly, defs, "npc_opportunity_decision", schema, true, scope)

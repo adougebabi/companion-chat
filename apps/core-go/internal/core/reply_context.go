@@ -176,6 +176,13 @@ func buildFactOnlyReplyContext(input ReplyContextInput, assignment providerAssig
 	if err != nil {
 		return result, err
 	}
+	currentReason := "current_reply_input"
+	if proactive {
+		currentReason = "authorized_proactive_event"
+	} else if input.Scene == replySceneMoment {
+		currentReason = "authorized_moment_request"
+	}
+	result = declareAssembledTaskInputSlots(result, PromptSlotTrace{SlotID: "reply_task_input", Source: "reply_task_input", SourceRefs: taskOptionalSourceRef("fact", projection.SourceFactID), Reason: currentReason})
 	for _, dropped := range working.Trace.Dropped {
 		result.Trace.Dropped = append(result.Trace.Dropped, PromptAssemblyDecision{Kind: dropped.Kind, SourceRefs: dropped.SourceRefs, Tokens: dropped.Tokens, Reason: dropped.Reason})
 	}

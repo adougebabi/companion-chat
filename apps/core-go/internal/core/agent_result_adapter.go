@@ -959,6 +959,10 @@ func (a *App) ProcessWakeUp(ctx context.Context, fluctlightID string, cycle int)
 		return nil, err
 	}
 	projection = assembledProjection
+	assembly = declareAssembledTaskInputSlots(assembly,
+		PromptSlotTrace{SlotID: "wakeup_event", Source: "wakeup_cycle", SourceRefs: taskOptionalSourceRef("fact", wakeID), Reason: "periodic_wakeup_trigger"},
+		PromptSlotTrace{SlotID: "wakeup_obligations", Source: "goal_execution_obligations_and_schedule", Reason: "current_wakeup_handoff"},
+	)
 	providerCtx := WithPromptDiagnostics(WithProviderCancellationKey(WithProviderCorrelation(WithProviderScenario(ctx, "wake_up"), correlationID), WakeUpProviderCancellationMarker(fluctlightID, cycle)), replyRunDiagnostics(ctx, assembly.Diagnostics))
 	providerCtx = a.bindProjectionRefresh(providerCtx, projectionRequest, ProviderContextSurfaceWakeUp, "cognitive_assessment", operationRules, currentInput, definitions, "wake_up_response", schema, decorateProjection)
 	assembly.ResponseFormat = schema

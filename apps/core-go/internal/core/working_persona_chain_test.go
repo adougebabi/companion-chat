@@ -101,6 +101,7 @@ func TestCompiledWorkingPersonaNativeDetailChain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	requireTaskSourceSlots(t, ctx, repository, "cognitive_assessment", "conversation_current_input")
 	if compileIndex != 2 {
 		t.Fatalf("ordinary conversation triggered %d additional portrait compilations", compileIndex-2)
 	}

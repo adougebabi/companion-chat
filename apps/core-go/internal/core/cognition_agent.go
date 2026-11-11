@@ -141,6 +141,7 @@ func (a *App) RunConversationCognitionAgent(ctx context.Context, input Conversat
 	if err != nil {
 		return ConversationCognitionAgentResult{}, err
 	}
+	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "conversation_current_input", Source: "cognition_task_input", SourceRefs: taskOptionalSourceRef("fact", input.SourceFactID), Reason: "current_authorized_input"})
 
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "cognitive_assessment"), replyRunDiagnostics(ctx, assembly.Diagnostics))
 	providerCtx = WithProviderCorrelation(providerCtx, firstString(providerCorrelation(ctx), "conversation-cognition-agent:"+runID))

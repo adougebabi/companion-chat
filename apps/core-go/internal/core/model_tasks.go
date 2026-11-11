@@ -785,6 +785,7 @@ func (a *App) RunNativeCognitionTask(ctx context.Context, input NativeCognitionT
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "native_event_fact", Source: "native_cognition_task_input", SourceRefs: taskOptionalSourceRef("fact", input.ProjectionRequest.SourceFactID), Reason: "current_native_event"})
 	assembly.Diagnostics["native_event_type"] = input.EventType
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "native_cognition"), assembly.Diagnostics)
 	providerCtx = a.bindProjectionRefresh(providerCtx, input.ProjectionRequest, ProviderContextSurfaceNativeCognition, "cognitive_assessment", operationRules, currentInput, definitions, "native_cognition_response", schema, nil)
@@ -817,6 +818,7 @@ func (a *App) RunDailyReviewTask(ctx context.Context, input DailyReviewTaskInput
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "daily_review_date", Source: "daily_review_task_input", Reason: "requested_local_day"})
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "daily_review"), assembly.Diagnostics)
 	providerCtx = a.bindProjectionRefresh(providerCtx, input.ProjectionRequest, ProviderContextSurfaceDailyReview, "cognitive_assessment", operationRules, currentInput, definitions, "daily_review_response", schema, nil)
 	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentDailyReview, assembly, definitions, "daily_review_response", schema, true, formalTaskCapabilityRequest(FormalAgentDailyReview, projection, CapabilitySurfaceAutonomy))
@@ -842,6 +844,10 @@ func (a *App) RunPersistentSwitchTask(ctx context.Context, input PersistentSwitc
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	assembly = declareAssembledTaskInputSlots(assembly,
+		PromptSlotTrace{SlotID: "switch_current_text", Source: "persistent_switch_task_input", SourceRefs: taskOptionalSourceRef("fact", input.InboxID), Reason: "current_switch_request"},
+		PromptSlotTrace{SlotID: "switch_candidate_and_intent", Source: "persistent_switch_task_input", Reason: "candidate_and_response_intent"},
+	)
 	providerCtx := WithPromptDiagnostics(WithProviderCorrelation(WithProviderScenario(ctx, "cognitive_assessment"), "persona-switch-after:"+input.InboxID), assembly.Diagnostics)
 	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentPersistentSwitch, assembly, nil, persistentSwitchAssessmentSchemaName, schema, false, nil)
 	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err
@@ -893,6 +899,13 @@ func (a *App) RunReflectionProposalTask(ctx context.Context, input ReflectionPro
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	evidenceRefs := make([]string, 0, len(providerEvidence))
+	for _, evidence := range providerEvidence {
+		if ref := stringValue(evidence["evidence_ref"]); ref != "" {
+			evidenceRefs = append(evidenceRefs, ref)
+		}
+	}
+	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "reflection_evidence", Source: "reflection_evidence_window", SourceRefs: evidenceRefs, Reason: "provided_evidence_for_reflection"})
 	providerCtx := WithPromptDiagnostics(WithProviderScenario(ctx, "reflection"), assembly.Diagnostics)
 	run, err := a.runFormalStructuredAssemblyTask(providerCtx, FormalAgentReflection, assembly, nil, "reflection_proposal_v2", schema, true, nil)
 	return ProjectionTaskResult{Completion: run.Completion, Projection: projection, Diagnostics: assembly.Diagnostics, Trace: run.Trace}, err

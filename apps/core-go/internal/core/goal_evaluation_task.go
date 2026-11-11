@@ -248,6 +248,32 @@ func (a *App) RunGoalEvaluationTask(ctx context.Context, input goalEvaluationSna
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	goalRefs := make([]string, 0, len(input.Goals))
+	for _, goal := range input.Goals {
+		if id := firstString(goal.GoalID, goal.Goal.EntityID); id != "" {
+			goalRefs = append(goalRefs, "goal:"+id)
+		}
+	}
+	sourceRefs := make([]string, 0, len(input.Sources))
+	for _, source := range admittedGoalEvaluationSources(input) {
+		if source.Kind != "goal_revision" && strings.TrimSpace(source.Ref) != "" {
+			sourceRefs = append(sourceRefs, source.Ref)
+		}
+	}
+	assembly = declareAssembledStableTaskSlots(assembly,
+		PromptSlotTrace{SlotID: "goal_evaluation_definitions", Source: "frozen_goal_evaluation_snapshot", SourceRefs: goalRefs, Reason: "original_goals_and_success_criteria"},
+		PromptSlotTrace{SlotID: "goal_evaluation_actors", Source: "frozen_goal_evaluation_snapshot", Reason: "authorized_actor_references"},
+	)
+	traceSlots := []PromptSlotTrace{
+		{SlotID: "goal_evaluation_states", Source: "frozen_goal_evaluation_snapshot", SourceRefs: goalRefs, Reason: "current_goal_stage_and_commitment_states"},
+		{SlotID: "goal_evaluation_sources", Source: "admitted_goal_evidence", SourceRefs: sourceRefs, Reason: "selected_goal_evidence"},
+		{SlotID: "goal_evaluation_reviews", Source: "frozen_goal_reviews", Reason: "due_reviews"},
+		{SlotID: "goal_evaluation_submissions", Source: "accepted_goal_submissions", Reason: "preserve_already_committed_results"},
+	}
+	if _, present := current["submission_feedback"]; present {
+		traceSlots = append(traceSlots, PromptSlotTrace{SlotID: "goal_evaluation_feedback", Source: "core_coverage_check", Reason: "unresolved_goal_coverage"})
+	}
+	assembly = declareAssembledTaskInputSlots(assembly, traceSlots...)
 	runID := fmt.Sprintf("%s:claim:%d", input.RequestID, input.ClaimRevision)
 	if correcting, _ := ctx.Value(goalEvaluationCoverageCorrectionKey{}).(bool); correcting {
 		runID += ":coverage-correction"

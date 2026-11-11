@@ -13,7 +13,9 @@ func requireTaskSourceSlots(t *testing.T, ctx context.Context, repo *PostgresRep
 	}
 	var found bool
 	if err := repo.Pool().QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM public.diagnostic_model_runs WHERE scenario=$1 AND metrics->'prompt_slots' @> $2::jsonb)`, scenario, jsonBytes(expected)).Scan(&found); err != nil || !found {
-		t.Fatalf("physical source slots missing for %s: %v", scenario, err)
+		var actual []byte
+		_ = repo.Pool().QueryRow(ctx, `SELECT COALESCE(jsonb_agg(metrics->'prompt_slots'),'[]'::jsonb) FROM public.diagnostic_model_runs WHERE scenario=$1`, scenario).Scan(&actual)
+		t.Fatalf("physical source slots missing for %s: %v actual=%s", scenario, err, actual)
 	}
 }
 
@@ -89,5 +91,21 @@ func TestMediaStructuredSlotsReflectOnlySuppliedPacketFields(t *testing.T) {
 	}
 	if !seen["media_intent"] || !seen["media_constraints"] || !seen["media_capture_plan"] || !seen["media_validation_feedback"] || seen["media_subject_data"] || seen["media_reference_assets"] || seen["media_quality_feedback"] {
 		t.Fatalf("media source slots do not reflect the supplied packet: %#v", slots)
+	}
+}
+
+func TestDeclaredStableAndCurrentSlotsKeepSeparatePositions(t *testing.T) {
+	assembly, err := AssemblePromptContext(PromptAssemblyInput{StableTaskContext: map[string]any{"goals": []any{"target"}}, CurrentInput: `{"sources":["evidence"]}`, Policy: DefaultPromptBudgetPolicy(0)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assembly = declareAssembledStableTaskSlots(assembly, PromptSlotTrace{SlotID: "goal_definitions", Source: "goal_snapshot", SourceRefs: []string{"goal:one"}, Reason: "selected_original_criteria"})
+	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "goal_evidence", Source: "evidence_window", SourceRefs: []string{"source:one"}, Reason: "selected_evidence"})
+	positions := map[PromptSlotID]int{}
+	for _, slot := range assembly.Trace.Slots {
+		positions[slot.SlotID] = slot.MessageIndex
+	}
+	if positions["goal_definitions"] != 1 || positions["goal_evidence"] != 2 || positions["stable_task_context"] != 0 || positions[PromptSlotCurrent] != 0 {
+		t.Fatalf("stable/current slot positions do not match physical messages: %#v", assembly.Trace.Slots)
 	}
 }

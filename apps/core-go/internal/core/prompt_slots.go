@@ -130,6 +130,26 @@ func declareAssembledTaskInputSlots(assembly PromptAssemblyResult, slots ...Prom
 	return assembly
 }
 
+func declareAssembledStableTaskSlots(assembly PromptAssemblyResult, slots ...PromptSlotTrace) PromptAssemblyResult {
+	index := promptMessageOriginIndex(assembly, "stable_task_context")
+	if index < 0 || len(slots) == 0 {
+		return assembly
+	}
+	kept := make([]PromptSlotTrace, 0, len(assembly.Trace.Slots)+len(slots))
+	for _, slot := range assembly.Trace.Slots {
+		if slot.SlotID != "stable_task_context" || slot.MessageIndex != index {
+			kept = append(kept, slot)
+		}
+	}
+	for _, slot := range slots {
+		slot.Position = PromptSlotPosition("stable_task_context")
+		slot.MessageIndex = index
+		kept = append(kept, slot)
+	}
+	assembly.Trace.Slots = kept
+	return assembly
+}
+
 // PromptComposer is a pure renderer. It accepts already-resolved business
 // facts and never reaches into App, repositories, Redis or domain state.
 type PromptComposer struct {

@@ -409,6 +409,7 @@ func (a *App) runOwnerLifeRequestTask(ctx context.Context, owner, fid, inbox, ki
 	if err != nil {
 		return ProjectionTaskResult{}, err
 	}
+	assembly = declareAssembledTaskInputSlots(assembly, PromptSlotTrace{SlotID: "owner_life_request", Source: "owner_life_request_snapshot", SourceRefs: taskOptionalSourceRef("fact", inbox), Reason: "explicit_authorized_life_request"})
 	ctx = a.bindProjectionRefresh(ctx, projectionRequest, ProviderContextSurfaceNativeCognition, "cognitive_assessment", rules, input, definitions, "owner_life_request_decision", schema, nil)
 	scope := formalTaskCapabilityRequest(FormalAgentNativeCognition, projection, CapabilitySurfaceNativeCognition)
 	if attempt := intValue(request["_automatic_retry_count"]); attempt > 0 {
