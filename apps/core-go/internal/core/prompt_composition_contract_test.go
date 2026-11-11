@@ -42,6 +42,67 @@ func TestEveryFormalAgentSharesLosslessProtocolComposition(t *testing.T) {
 	}
 }
 
+func TestEveryFormalAgentAndVariantHasAnInputContract(t *testing.T) {
+	data, err := os.ReadFile("../../../../docs/llm-task-input-contracts.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := map[FormalAgentID]map[string]bool{}
+	for _, line := range strings.Split(string(data), "\n") {
+		if !strings.HasPrefix(line, "| `") {
+			continue
+		}
+		cells := strings.Split(line, "|")
+		if len(cells) != 11 {
+			t.Fatalf("task contract row has incomplete columns: %s", line)
+		}
+		for _, cell := range cells[1:10] {
+			if strings.TrimSpace(cell) == "" {
+				t.Fatalf("task contract has an empty field: %s", line)
+			}
+		}
+		id := FormalAgentID(strings.Trim(strings.TrimSpace(cells[1]), "`"))
+		variant := strings.Trim(strings.TrimSpace(cells[2]), "`")
+		if _, registered := FormalAgentDefinitionByID(id); !registered {
+			t.Fatalf("contract names an unregistered Agent: %s", id)
+		}
+		if entries[id] == nil {
+			entries[id] = map[string]bool{}
+		}
+		if entries[id][variant] {
+			t.Fatalf("duplicate task contract: %s/%s", id, variant)
+		}
+		entries[id][variant] = true
+	}
+	for _, definition := range FormalAgentDefinitions() {
+		variants := entries[definition.ID]
+		if len(variants) == 0 {
+			t.Errorf("Agent lacks an input contract: %s", definition.ID)
+		}
+		for _, required := range agentModelVariants[definition.ID] {
+			found := variants[required]
+			for variant := range variants {
+				found = found || strings.HasPrefix(variant, required+":")
+			}
+			if !found {
+				t.Errorf("Agent model variant lacks an input contract: %s/%s", definition.ID, required)
+			}
+		}
+	}
+	for id, variants := range map[FormalAgentID][]string{
+		FormalAgentConversationCognition: {"conversation_turn_response:fact_only", "conversation_turn_response:legacy", "conversation_turn_response:direct"},
+		FormalAgentConversationReply:     {"private_reply.style_repair", "proactive.style_repair", "moment.style_repair", "private_reply.correction", "proactive.correction", "moment.correction"},
+		FormalAgentWardrobePreparation:   {"wardrobe_preparation_v1:generate", "wardrobe_preparation_v1:select"},
+		FormalAgentMediaPrompt:           {"media_prompt_text:media", "media_prompt_text:avatar"},
+	} {
+		for _, variant := range variants {
+			if !entries[id][variant] {
+				t.Errorf("task-specific variant lacks an input contract: %s/%s", id, variant)
+			}
+		}
+	}
+}
+
 func TestGoalEvidenceSharesPayloadWithoutMergingEvents(t *testing.T) {
 	snapshot := richGoalEvaluationWireSnapshot()
 	first := snapshot.Sources[0]

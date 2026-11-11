@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "9c90fd29bba537a04e1f9f6576d9111334ea3b84d4251cf3e007a878f7fd7af0",
+      "hash": "f295bb04bfcbf43a83a41ae821f2e02530ca3e376b8e14253324facc3947bd21",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -102,7 +102,28 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "9c90fd29bba537a04e1f9f6576d9111334ea3b84d4251cf3e007a878f7fd7af0",
+        "hash": "f295bb04bfcbf43a83a41ae821f2e02530ca3e376b8e14253324facc3947bd21",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
+      "path": "docs/llm-task-input-contracts.md",
+      "hash": "121e9ff764c2d4efb1d2d6ea0958f97a3ca483ffbd60465b647f7d7afd0d00f6",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/llm-task-input-contracts.md",
+        "title": "llm-task-input-contracts.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/llm-task-input-contracts.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/llm-task-input-contracts.md",
+        "hash": "121e9ff764c2d4efb1d2d6ea0958f97a3ca483ffbd60465b647f7d7afd0d00f6",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -278,7 +299,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 11,
+    "historical": 12,
     "retired": 1
   }
 }

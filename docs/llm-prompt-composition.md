@@ -27,6 +27,8 @@
 
 每个任务按下表选择资料。统一构造并不表示所有任务共享整套摇光状态、记忆
 和私聊；共享 Agent ID 的不同子任务仍各有独立资料范围。
+逐 Agent/变体的必需与可选输入、禁止自动输入、来源、人格/历史/状态、工具及
+输出消费方见 [Agent 与任务变体输入契约](llm-task-input-contracts.md)。
 
 从 `assembleProjectionPromptForSurface` 构造的请求在进程内携带组装时选定的
 Provider 绑定；FormalAgent 运行时复用该快照，若调用方同时给出不同的冻结绑定
