@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "T08 部分完成：隔离 PostgreSQL 与受控 Provider 经实际消息受理、Owner 服务、候选提取/审核、direct 新轮请求和停用后新轮请求验证同一候选闭环；学习关闭与使用开启独立，核心人格和关系语义字段保持不变，普通对话互动计数照常增加。相关来源、在途停用及撤销回归通过。尚未完成：带关系含义称呼与真实关系/角色选择的可靠兼容性约束，用户消息内任意注入与日志内容的完整排除；真实 MeroMero 实际采用候选和真实浏览器至服务端整链未验收。任务外非阻断页面空态问题已登记 expression-panel-error-shows-empty，未调整。按用户授权先跳过未解决项继续后续任务。",
   "result": "",
   "created": "2026-11-10T08:34:31.014541Z",
-  "updated": "2026-11-10T08:34:31.014554Z",
+  "updated": "2026-11-11T16:42:48.088251Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-432dc79ffde875bb829e",
+        "unit": "define",
+        "executor": "codex-t08-expression",
+        "input_version": "9a0b8d65edbfe4f1721baff0a947cbc2390828e397c3d8eff779e9560ea062bc",
+        "candidate_version": "9a0b8d65edbfe4f1721baff0a947cbc2390828e397c3d8eff779e9560ea062bc",
+        "started": "2026-11-11T16:33:19.079188Z",
+        "ended": "2026-11-11T16:33:36.359041Z",
+        "status": "pass",
+        "reason": "按原 T08 完成真实交流来源、候选提取、Owner 审核与启停撤销、按对象情境选择性注入的表达学习闭环；不让候选修改人格、关系或事实，不学习日志、草稿或自身输出。优先核实并打通从真实来源到生效请求及停用后的可执行场景；模型真实性受限时保留未验收，任务外非阻断问题只登记 bug。"
+      },
+      {
+        "id": "AT-35537729345148c805b3",
+        "unit": "analysis",
+        "executor": "codex-t08-expression",
+        "input_version": "9a0b8d65edbfe4f1721baff0a947cbc2390828e397c3d8eff779e9560ea062bc",
+        "candidate_version": "ef0b7ee1f69e2a6649311aaf7bae9ad4956e5bd8ff4455a6430258c534e9ef58",
+        "started": "2026-11-11T16:33:56.552391Z",
+        "ended": "2026-11-11T16:38:38.624795Z",
+        "status": "pass",
+        "reason": "现有正式 UI 和 Core 已有真实 human 消息提取、待审核候选、独立学习/使用开关、Owner 启停撤销及按同 Actor/会话和触发词选择注入；先验证同一候选从来源到启用请求、停用后新请求不注入，并对比人格及关系状态。关系含义称呼的兼容性并无结构化保障，注入和日志语义排除尚不能普遍证明，需保留未完成，不靠无限扩展正则声称解决。页面读取失败误显空状态属于任务外非阻断问题，已单独登记。"
+      },
+      {
+        "id": "AT-ddd71ea24d393a6b1f96",
+        "unit": "execute",
+        "executor": "codex-t08-expression",
+        "input_version": "ef0b7ee1f69e2a6649311aaf7bae9ad4956e5bd8ff4455a6430258c534e9ef58",
+        "candidate_version": "e2c05647b4d040db268b0dda3390003329f0cda3b33d51aaf356c818fe08dd95",
+        "started": "2026-11-11T16:38:58.675065Z",
+        "ended": "2026-11-11T16:42:43.933761Z",
+        "status": "fail",
+        "reason": "T08 部分完成：隔离 PostgreSQL 与受控 Provider 经实际消息受理、Owner 服务、候选提取/审核、direct 新轮请求和停用后新轮请求验证同一候选闭环；学习关闭与使用开启独立，核心人格和关系语义字段保持不变，普通对话互动计数照常增加。相关来源、在途停用及撤销回归通过。尚未完成：带关系含义称呼与真实关系/角色选择的可靠兼容性约束，用户消息内任意注入与日志内容的完整排除；真实 MeroMero 实际采用候选和真实浏览器至服务端整链未验收。任务外非阻断页面空态问题已登记 expression-panel-error-shows-empty，未调整。按用户授权先跳过未解决项继续后续任务。"
+      }
+    ],
     "checks": null
   }
 }
