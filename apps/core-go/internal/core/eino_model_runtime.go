@@ -510,6 +510,22 @@ func (m *queuedToolCallingChatModel) withPhysicalPromptBudgetDiagnostics(ctx con
 	}
 	tools := RenderCapabilityTools(m.definitions)
 	diagnostics := providerPromptDiagnostics(ctx)
+	projection := cloneMap(mapValue(diagnostics["context_projection"]))
+	if len(projection) > 0 {
+		mapping := physicalModelSourceMap(input, arrayValue(projection["source_map"]))
+		if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Refresh != nil {
+			if refreshed := bridge.Refresh.latestPromptOrigins(); refreshed != nil {
+				applyRefreshedPromptOrigins(mapping, *refreshed)
+				// The original fragment decisions also contain historical turns,
+				// which are not replaced by a runtime refresh. Do not present
+				// that initial list as the refreshed selection.
+				projection["selection_status"] = "initial_assembly_only_after_refresh"
+			}
+		}
+		projection["source_map"] = mapping
+		projection["source_map_stage"] = "physical"
+		diagnostics["context_projection"] = projection
+	}
 	if logical := mapValue(diagnostics["prompt_budget"]); len(logical) > 0 {
 		diagnostics["logical_prompt_budget"] = cloneMap(logical)
 	}
@@ -517,6 +533,35 @@ func (m *queuedToolCallingChatModel) withPhysicalPromptBudgetDiagnostics(ctx con
 	diagnostics["prompt_budget"] = mergeProviderPromptBudgetDiagnostics(nil, messages, tools, m.responseFormat, m.assignment, estimate, arrayValue(mapValue(diagnostics["context_projection"])["source_map"]))
 	mapValue(diagnostics["prompt_budget"])["request_stage"] = "physical"
 	return WithPromptDiagnostics(ctx, diagnostics)
+}
+
+// Only the system and runtime messages are replaced by the refresh path;
+// historical and current-message origins still describe the original input.
+func applyRefreshedPromptOrigins(mapping []map[string]any, refreshed modelContextRefreshContent) {
+	for _, item := range mapping {
+		var origin promptMessageOrigin
+		switch stringValue(item["source"]) {
+		case "trusted_task_configuration":
+			origin = refreshed.SystemOrigin
+		case "scoped_runtime_projection":
+			origin = refreshed.RuntimeOrigin
+		default:
+			continue
+		}
+		delete(item, "source_refs")
+		delete(item, "reason")
+		delete(item, "source_refs_status")
+		if origin.Source == "" {
+			item["source_refs_status"] = "unavailable_after_refresh"
+			continue
+		}
+		if len(origin.SourceRefs) > 0 {
+			item["source_refs"] = append([]string(nil), origin.SourceRefs...)
+		}
+		if origin.Reason != "" {
+			item["reason"] = origin.Reason
+		}
+	}
 }
 
 func recordEinoModelInputDiagnostic(ctx context.Context, provider *ProviderClient, role, correlationID string, sequence uint64, input []*schema.Message) {

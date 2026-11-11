@@ -119,29 +119,29 @@ func boundedPromptDiagnostics(trace map[string]any) map[string]any {
 	if redacted == nil {
 		return map[string]any{}
 	}
-	var bound func(any) any
-	bound = func(value any) any {
+	var bound func(any, bool) any
+	bound = func(value any, preserveSources bool) any {
 		switch typed := value.(type) {
 		case map[string]any:
 			result := make(map[string]any, len(typed))
 			for key, child := range typed {
-				result[key] = bound(child)
+				result[key] = bound(child, preserveSources || key == "context_projection" || key == "prompt_slots")
 			}
 			return result
 		case []any:
-			if len(typed) > 64 {
+			if len(typed) > 64 && !preserveSources {
 				typed = typed[:64]
 			}
 			result := make([]any, len(typed))
 			for index, child := range typed {
-				result[index] = bound(child)
+				result[index] = bound(child, preserveSources)
 			}
 			return result
 		default:
 			return value
 		}
 	}
-	bounded, _ := bound(redacted).(map[string]any)
+	bounded, _ := bound(redacted, false).(map[string]any)
 	return bounded
 }
 

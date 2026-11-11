@@ -13,10 +13,12 @@ import (
 type runtimeContextRefreshPlanKey struct{}
 
 type modelContextRefreshContent struct {
-	System      string
-	Runtime     string
-	Projection  ContextProjection
-	BudgetTrace PromptAssemblyTrace
+	System        string
+	Runtime       string
+	SystemOrigin  promptMessageOrigin
+	RuntimeOrigin promptMessageOrigin
+	Projection    ContextProjection
+	BudgetTrace   PromptAssemblyTrace
 }
 
 // The plan is bound by the host surface. It rebuilds only Provider data, using
@@ -163,6 +165,18 @@ func (r *runtimeContextRefresh) latestBudgetTrace() *PromptAssemblyTrace {
 	return &trace
 }
 
+func (r *runtimeContextRefresh) latestPromptOrigins() *modelContextRefreshContent {
+	if r == nil {
+		return nil
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.latest == nil {
+		return nil
+	}
+	return &modelContextRefreshContent{SystemOrigin: r.latest.SystemOrigin, RuntimeOrigin: r.latest.RuntimeOrigin}
+}
+
 func (r *runtimeContextRefresh) markDirty() {
 	if r == nil {
 		return
@@ -209,9 +223,11 @@ func modelContextContent(assembly PromptAssemblyResult) (modelContextRefreshCont
 	runtimeIndex := promptMessageOriginIndex(assembly, "scoped_runtime_projection")
 	if systemIndex >= 0 && stringValue(assembly.Messages[systemIndex]["role"]) == "system" {
 		content.System = stringValue(assembly.Messages[systemIndex]["content"])
+		content.SystemOrigin = assembly.messageOrigins[systemIndex]
 	}
 	if runtimeIndex >= 0 && stringValue(assembly.Messages[runtimeIndex]["role"]) == "user" {
 		content.Runtime = stringValue(assembly.Messages[runtimeIndex]["content"])
+		content.RuntimeOrigin = assembly.messageOrigins[runtimeIndex]
 	}
 	if content.System == "" || !strings.HasPrefix(content.Runtime, "[RUNTIME CONTEXT]\n") || !strings.HasSuffix(content.Runtime, "\n[/RUNTIME CONTEXT]") {
 		return modelContextRefreshContent{}, errors.New("model_context_refresh_content_missing")

@@ -56,7 +56,7 @@ func TestRuntimeContextLabelsInUserTextDoNotBecomeAuthority(t *testing.T) {
 			systemOriginIndex:  promptMessageOriginIndex(assembly, "trusted_task_configuration"),
 			runtimeOriginIndex: promptMessageOriginIndex(assembly, "scoped_runtime_projection"),
 			refresh: func(context.Context) (modelContextRefreshContent, error) {
-				return modelContextRefreshContent{System: "updated task", Runtime: "[RUNTIME CONTEXT]\n更新状态\n[/RUNTIME CONTEXT]"}, nil
+				return modelContextRefreshContent{System: "updated task", Runtime: "[RUNTIME CONTEXT]\n更新状态\n[/RUNTIME CONTEXT]", RuntimeOrigin: promptMessageOrigin{Source: "scoped_runtime_projection", SourceRefs: []string{"state:updated"}, Reason: "selected refreshed state"}}, nil
 			},
 		}
 		if _, err := refresh.prepare(ctx, eino); err != nil {
@@ -74,6 +74,16 @@ func TestRuntimeContextLabelsInUserTextDoNotBecomeAuthority(t *testing.T) {
 		physicalMap := physicalModelSourceMap(physical, mapping)
 		if len(physicalMap) != len(physical) || physicalMap[1]["source"] != "scoped_runtime_projection" || physicalMap[2]["source"] != "historical_message" || physicalMap[4]["source"] != "current_task_input" || physicalMap[5]["source"] != "agent_tool_call" || physicalMap[6]["source"] != "tool_result" {
 			t.Fatalf("physical sources were not preserved: %#v", physicalMap)
+		}
+		ctx = withADKCapabilityContext(ctx, &adkResultInvoker{}, &ADKCapabilityTrace{}, refresh)
+		ctx = (&queuedToolCallingChatModel{}).withPhysicalPromptBudgetDiagnostics(ctx, physical)
+		physicalProjection := mapValue(providerPromptDiagnostics(ctx)["context_projection"])
+		physicalMap = mapsFromAny(arrayValue(physicalProjection["source_map"]))
+		if refs := arrayValue(physicalMap[1]["source_refs"]); len(refs) != 1 || refs[0] != "state:updated" {
+			t.Fatalf("refreshed request retained old runtime sources: %#v", physicalMap[1])
+		}
+		if refs := arrayValue(physicalMap[2]["source_refs"]); len(refs) != 1 || refs[0] != "message:history" {
+			t.Fatalf("refresh changed untouched history source: %#v", physicalMap[2])
 		}
 	})
 	t.Run("no trusted runtime", func(t *testing.T) {
@@ -111,6 +121,27 @@ func TestRuntimeContextLabelsInUserTextDoNotBecomeAuthority(t *testing.T) {
 			t.Fatalf("selected wrong runtime after stable context: %v", err)
 		}
 	})
+}
+
+func mapsFromAny(values []any) []map[string]any {
+	result := make([]map[string]any, len(values))
+	for index, value := range values {
+		result[index] = mapValue(value)
+	}
+	return result
+}
+
+func TestPromptDiagnosticsRetainAllContextSources(t *testing.T) {
+	sources := make([]any, 80)
+	for index := range sources {
+		sources[index] = map[string]any{"index": index, "source": "historical_message"}
+	}
+	ctx := WithPromptDiagnostics(context.Background(), map[string]any{"context_projection": map[string]any{"source_map": sources, "selected": sources}, "other": sources})
+	diagnostics := providerPromptDiagnostics(ctx)
+	projection := mapValue(diagnostics["context_projection"])
+	if len(arrayValue(projection["source_map"])) != 80 || len(arrayValue(projection["selected"])) != 80 || len(arrayValue(diagnostics["other"])) != 64 {
+		t.Fatal("context source diagnostics were truncated or unrelated bounds changed")
+	}
 }
 
 func TestRuntimeContextOriginSurvivesPhysicalToolContinuation(t *testing.T) {
