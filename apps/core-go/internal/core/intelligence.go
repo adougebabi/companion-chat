@@ -985,6 +985,51 @@ func evaluateOutputPreferenceAction(value map[string]any, action string, calls [
 	return result
 }
 
+// A preference is a proposed channel, not an action receipt. Reconcile it
+// with this turn's actual native results before recording the settlement.
+func settledOutputPreference(value map[string]any, action string, calls []CapabilityInvocation, results []CapabilityResult, registry *CapabilityRegistry) map[string]any {
+	if stringValue(value["status"]) == "unsupported" {
+		return mapValue(copyPromptData(value))
+	}
+	byCall := make(map[string]CapabilityResult, len(results))
+	for _, result := range results {
+		byCall[result.CallID] = result
+	}
+	accepted := make([]CapabilityInvocation, 0, len(calls))
+	var acceptedMediaStatus, failedMediaStatus string
+	for _, call := range calls {
+		result, found := byCall[call.CallID]
+		if !found || result.CapabilityName != call.CapabilityName {
+			continue
+		}
+		media := false
+		if registry != nil {
+			if definition, ok := registry.Definition(call.CapabilityName); ok && definition.OutputRole == "media" && definition.IsDeferredOutput() {
+				media = true
+			}
+		}
+		if result.Status == "completed" || result.Status == "accepted" {
+			accepted = append(accepted, call)
+			if media {
+				acceptedMediaStatus = result.Status
+			}
+			continue
+		}
+		if media {
+			failedMediaStatus = result.Status
+		}
+	}
+	settled := evaluateOutputPreferenceAction(value, action, accepted, registry)
+	if stringValue(settled["channel"]) == "image" && settled["matched"] == true && stringValue(settled["status"]) == "authorized" && acceptedMediaStatus != "" {
+		settled["capability_status"] = acceptedMediaStatus
+	}
+	if stringValue(settled["channel"]) == "image" && settled["matched"] == true && stringValue(settled["status"]) == "matched_without_capability_request" && failedMediaStatus != "" {
+		settled["status"] = "capability_request_not_accepted"
+		settled["capability_status"] = failedMediaStatus
+	}
+	return settled
+}
+
 func validateResponsePlan(plan map[string]any) error {
 	version := stringValue(plan["schema_version"])
 	if version != "fluctlight.response-plan.v1" {

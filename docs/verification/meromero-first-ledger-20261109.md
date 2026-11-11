@@ -60,7 +60,7 @@
 | claims | `intelligence.go` 的 `normalizeResponsePlan` → `evaluateClaims` → `persistClaimsTx`；有效 claim 后续进入 hypothesis、记忆检索线索及上下文。低置信度记录现在保留 uncertain 状态和过期时间，真实数据库尚未验证。 | evidence 必须绑定本轮 Core 引用；`cognition_claims` 按 `(fluctlight_id,repetition_key)` 冲突不写。现有评估允许相同 repetition key 带新证据，但持久化仍 `DO NOTHING`，新证据可能未落入旧 claim；需在不覆盖历史证据前提下解决。字段可为空，无法据此证明主动判断过无候选。 |
 | influences | `freezeDecisionInfluences` 校验并冻结本轮引用，`frozenDecisionCausality` 导出 Goal、Intention 及引用；assessment/proposal 保存完整 decision，appraisal 存在时其因果字段也被保存。 | 引用必须在当前 `ReferenceIndex`；assessment/decision ID 由 inbox 确定，冲突不重复写。允许空数组，发布后的合成最小终态可能使引用无故为空。 |
 | appraisal / attention / thought / desire / agency | `applyFrozenCognitiveStagesTx` 在私聊结算事务内消费；appraisal 和状态归约写入 appraisal、focus、dynamics 与 state revision。 | 以 source fact 和状态 revision 防止重复；无 appraisal 时显式为 `not_proposed`。已发布回复后的结算失败只保留工具 partial，不代表这些状态已经结算。 |
-| output_preference_decision | `normalizeResponsePlan` 调用 `normalizeOutputPreferenceDecision`，原 decision 可进入 assessment/proposal。 | 缺省合法；当前结算未保存完整 normalized plan，`evaluateOutputPreferenceAction` 没有生产调用，不能声称媒体偏好已实际执行或校验。 |
+| output_preference_decision | 原路径由 `normalizeResponsePlan` 规范化，原 decision 进入 assessment/proposal，但此前未找到规范化结果的生产消费方。`direct` 现由 `settledOutputPreference` 结合本轮真实工具回执校对，并随 `agent_result` 和已处理事件在回复事务内保存。 | 缺省合法；文本回应、未申请媒体、媒体未受理及已受理的状态分开记录，不把偏好本身当作媒体生成或交付。隔离 PostgreSQL 验证文本结果、回滚和重放；媒体状态目前为受控回执单元测试，真实媒体未验收。 |
 | goal_event_candidates | `enqueueTurnGoalCandidatesTx` 验证本轮 Goal ref，关联同 inbox 的 committed 消息来源，再对新增关联排 Goal 评估。 | source event 和 `(goal_id,source_event_id)` 关联均有幂等键；候选不直接完成 Goal。空候选或找不到匹配来源均不建关联；等待媒体续接是否补关联仍待核验。 |
 | 人格/关系 | root personality decision 可进入原始 decision/plan；真正人格切换由 `persona.switch` 等实际工具或 Owner 工作流经 CAS 和规则执行。普通私聊的 `recordRelationshipInteractionTx` 更新已有关系的互动次数与时间。 | 不能把 root 字段视为已切换人格；互动频次依赖 inbox 结算守卫去重，语义关系变化由反思或 Goal 等独立生产路径处理。 |
 
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-11：T04 将 direct 主回复的规范化输出偏好接入结算结果，按实际匹配的 ToolCall/ToolResult 区分媒体未申请、未受理与已受理；不新增媒体动作，也不把 accepted 当成生成或交付。单元测试覆盖无请求、失败、accepted、completed、错误配对和不支持渠道；隔离 PostgreSQL 验证文本偏好与消息、认知结算同事务提交/回滚及重放。非空 Goal、influences、关系等 direct 消费的完整回归仍待补齐。
 
 - 2026-11-11：按 T04 将未保存模式的新主私聊缺省切为 `direct`，管理入口显示并允许选择该模式；已明确保存的 `fact_only` / `legacy` 不被改写，同源旧草稿继续按原合同恢复。隔离 PostgreSQL 与受控 Provider 的 `TestDirectMainReply*`、`TestFactOnlyMoment*`、`TestFactOnlyReply*` 和认知续接回归通过；未保存模式下验证了一次物理请求、一次发布与认知结算，失败回滚和重放有效。Web 回复模式两项测试、类型检查及生产构建通过。真实 MeroMero 此前的 direct 私聊失败仍未消除，本次按用户指示跳过真实模型验证；不能将默认切换记为真实模型验收通过。
 

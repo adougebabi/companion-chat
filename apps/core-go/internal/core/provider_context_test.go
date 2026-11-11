@@ -689,6 +689,45 @@ func TestEvaluateOutputPreferenceActionRequiresCapabilityBinding(t *testing.T) {
 	}
 }
 
+func TestSettledOutputPreferenceUsesActualCapabilityReceipts(t *testing.T) {
+	registry := mustCapabilityRegistry(imageGenerateCapability{})
+	call := CapabilityInvocation{CallID: "media-call", CapabilityName: "media.image.generate"}
+	preference := map[string]any{"matched": true, "channel": "image", "confidence": 0.8}
+	before := jsonString(preference)
+	for _, test := range []struct {
+		name, resultStatus, expectedStatus string
+	}{
+		{"not called", "", "matched_without_capability_request"},
+		{"failed", "failed", "capability_request_not_accepted"},
+		{"accepted", "accepted", "authorized"},
+		{"completed", "completed", "authorized"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var calls []CapabilityInvocation
+			var results []CapabilityResult
+			if test.resultStatus != "" {
+				calls = []CapabilityInvocation{call}
+				results = []CapabilityResult{{CallID: call.CallID, CapabilityName: call.CapabilityName, Status: test.resultStatus}}
+			}
+			got := settledOutputPreference(preference, "reply", calls, results, registry)
+			if got["status"] != test.expectedStatus || test.resultStatus != "" && got["capability_status"] != test.resultStatus {
+				t.Fatalf("preference reconciliation = %#v", got)
+			}
+		})
+	}
+	unsupported := map[string]any{"matched": false, "channel": "voice", "status": "unsupported", "reason": "output_channel_not_installed"}
+	if got := settledOutputPreference(unsupported, "reply", nil, nil, registry); got["status"] != "unsupported" || got["reason"] != unsupported["reason"] {
+		t.Fatalf("unsupported output was reported as a completed action: %#v", got)
+	}
+	wrongReceipt := []CapabilityResult{{CallID: call.CallID, CapabilityName: "other.tool", Status: "completed"}}
+	if got := settledOutputPreference(preference, "reply", []CapabilityInvocation{call}, wrongReceipt, registry); got["status"] != "matched_without_capability_request" {
+		t.Fatalf("unmatched receipt authorized a media preference: %#v", got)
+	}
+	if jsonString(preference) != before {
+		t.Fatal("preference reconciliation mutated the source")
+	}
+}
+
 func TestRecentPromptFragmentsUseRealRolesAndSkipCurrentInput(t *testing.T) {
 	projection := ContextProjection{
 		CurrentUserText: "当前输入",

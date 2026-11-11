@@ -671,6 +671,9 @@ func (a *App) settleAgentConversationTurnTx(ctx context.Context, tx pgx.Tx, inbo
 	}
 	if atomicDirect {
 		resultPayload["settlement_contract"] = "direct-main.v1"
+		if preference := mapValue(responsePlan["output_preference_decision"]); len(preference) > 0 {
+			resultPayload["output_preference_decision"] = settledOutputPreference(preference, actionType, outcome.Invocations, outcome.Results, a.capabilityRegistryForContext(ctx))
+		}
 	}
 	settlementStatus := "processed"
 	if ref := pendingReplyDraft(outcome.Results); ref != "" && len(messageIDs) == 0 {

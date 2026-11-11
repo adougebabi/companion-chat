@@ -204,7 +204,8 @@ func TestDirectMainReplyPublishesAndSettlesAtomically(t *testing.T) {
 			router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
 				calls++
 				assertDirectReplyWireDescriptions(t, payload)
-				decision := map[string]any{"action_type": "reply", "response_intent": "回应当前对话", "influences": []any{}, "claims": []any{map[string]any{"kind": "uncertain_hypothesis", "content": "对方可能想休息", "confidence": 0.3, "evidence_refs": []any{}}}}
+				decision := map[string]any{"action_type": "reply", "response_intent": "回应当前对话", "influences": []any{}, "claims": []any{map[string]any{"kind": "uncertain_hypothesis", "content": "对方可能想休息", "confidence": 0.3, "evidence_refs": []any{}}},
+					"output_preference_decision": map[string]any{"matched": true, "channel": "text", "profile_id": "", "trigger_id": "test-trigger", "reason": "本轮文本回应", "confidence": 0.8}}
 				args := map[string]any{"text": "今天还不错，你呢？", "decision": decision}
 				return fakeProviderResult{ToolCalls: []map[string]any{{"id": "direct-main-call", "type": "function", "function": map[string]any{"name": conversationReplyCapabilityName, "arguments": jsonString(args)}}}}
 			})
@@ -241,13 +242,16 @@ func TestDirectMainReplyPublishesAndSettlesAtomically(t *testing.T) {
 			if err != nil || stringValue(result.Assistant["text"]) != "今天还不错，你呢？" || calls != 1 || messages != 1 || assessments != 1 || claims != 1 || receipts != 1 {
 				t.Fatalf("direct result=%#v err=%v calls=%d messages=%d assessments=%d claims=%d receipts=%d", result, err, calls, messages, assessments, claims, receipts)
 			}
-			var status, contract string
-			if err := repo.Pool().QueryRow(ctx, `SELECT status,COALESCE(payload->'agent_result'->>'settlement_contract','') FROM public.cognition_inbox WHERE fluctlight_id=$1 AND payload->>'turn_id'=$2`, fid, payload["turn_id"]).Scan(&status, &contract); err != nil || status != "processed" || contract != "direct-main.v1" {
-				t.Fatalf("direct settlement status=%s contract=%s err=%v", status, contract, err)
+			var status, contract, preferenceChannel, preferenceStatus string
+			if err := repo.Pool().QueryRow(ctx, `SELECT status,COALESCE(payload->'agent_result'->>'settlement_contract',''),COALESCE(payload->'agent_result'->'output_preference_decision'->>'channel',''),COALESCE(payload->'agent_result'->'output_preference_decision'->>'status','') FROM public.cognition_inbox WHERE fluctlight_id=$1 AND payload->>'turn_id'=$2`, fid, payload["turn_id"]).Scan(&status, &contract, &preferenceChannel, &preferenceStatus); err != nil || status != "processed" || contract != "direct-main.v1" || preferenceChannel != "text" || preferenceStatus != "authorized" {
+				t.Fatalf("direct settlement status=%s contract=%s preference=%s/%s err=%v", status, contract, preferenceChannel, preferenceStatus, err)
 			}
 			replayed, err := app.HandleTurn(ctx, owner, conversation, payload)
 			if err != nil || stringValue(replayed.Assistant["text"]) != "今天还不错，你呢？" || calls != 1 {
 				t.Fatalf("direct replay result=%#v err=%v calls=%d", replayed, err, calls)
+			}
+			if err := repo.Pool().QueryRow(ctx, `SELECT COALESCE(payload->'agent_result'->'output_preference_decision'->>'status','') FROM public.cognition_inbox WHERE fluctlight_id=$1 AND payload->>'turn_id'=$2`, fid, payload["turn_id"]).Scan(&preferenceStatus); err != nil || preferenceStatus != "authorized" {
+				t.Fatalf("replay changed the settled output preference: status=%s err=%v", preferenceStatus, err)
 			}
 			if queryErr := repo.Pool().QueryRow(ctx, `SELECT (SELECT count(*) FROM public.conversation_messages WHERE conversation_id=$1 AND kind='assistant'),
 				(SELECT count(*) FROM public.cognition_assessments WHERE fluctlight_id=$2),
