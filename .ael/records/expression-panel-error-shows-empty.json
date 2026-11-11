@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "expression-panel-error-shows-empty",
+  "definition_hash": "abd649ef7926680539b5005497723f603d667b30d2f76f185576850f0e588eea",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-11T16:37:59.389766Z",
+  "updated": "2026-11-11T16:37:59.389777Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}
