@@ -25,7 +25,7 @@
 | T02 | R01 任务模型配置 | IN_PROGRESS | `model_roles` 支持 variant → Agent → 默认用途；新后台任务采用各自的模型快照。隔离 PostgreSQL 与受控 Provider 验证任务覆盖、拒绝不换模型及视觉隔离；本机 MeroMero 普通聊天真实请求通过。升级前无可证明快照的旧任务仍按既有策略并记录诊断；真实 Qwen 任务覆盖与真实 Temporal 尚未验收。地址/密钥原子保存作为任务外问题另记 `provider-endpoint-credential-atomic-save`。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | `direct` 使用同一主 Agent 的原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交；隔离 PostgreSQL 与受控 Provider 验证单次请求、重放、回滚、旧草稿及先行动再回复。隔离场景发现无附件却可发布“照片已发送”，因此暂不切为默认，缺口归 T06；真实 MeroMero 私聊和实时增量流仍未验收。 |
-| T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告未配置/配置不完整，已配置仍显示未检测。隔离 PostgreSQL 验证配置回读、直接调用、停用及回执回放；已受理图片的 ready 夹具在停用并重建应用后可去重交付。真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
+| T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告配置缺口，动态页反映停用状态并保留历史/原提交核对。隔离 PostgreSQL 验证配置、直接调用、停用及 ready 夹具重建后去重交付。当前照片与创作场景的完整区分、真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
 | T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。隔离 PostgreSQL 的部分媒体恢复、历史回执及重放测试通过；真实渲染和媒体正文语义仍未验证。 |
 | T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加；未知受理结果保留身份，多端更新不会让旧追发超车。受控页面、状态恢复及本地浏览器夹具通过；真实数据库并发、最终上下文合并及真实模型正反场景未验收。 |
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；fact-only Writer 和 `direct` 主 Agent 均按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；真实模型及 UI 到实际运行的完整闭环未验收。 |
