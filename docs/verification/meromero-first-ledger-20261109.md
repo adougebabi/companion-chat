@@ -22,7 +22,7 @@
 | --- | --- | --- | --- |
 | T00 | 范围、基线、台账 | VERIFIED | 本文件记录起始 commit、分支、用户文件、环境、失败基线、工作包、依赖及验收状态；后续继续追加事实。 |
 | T01 | 完整运行入口盘点 | VERIFIED | [当前入口清单](meromero-agent-inventory-20261109.md)按源码核对 31 个正式 Agent、36 个显式声明的可配置 variant及额外表达变体、实际 Writer 修复 variant、非正式 Provider/embedding/Kev、独立 Tool 与后台调度；记录版本/hash 的实际口径和未确认生产上游。逐项覆盖和源码位置检查及独立静态审查已完成；真实模型能力和后台快照分属后续任务。 |
-| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。新人格准备、衣柜准备、新媒体各模型阶段、新视觉身份会话、新 Goal 评估、每日记忆和片段摘要新代已冻结绑定；隔离 PostgreSQL 和受控 Provider 验证了部分恢复、并发、视觉开关、错误及回放。升级前旧任务策略、embedding 重试时的端点地址快照和凭据配置原子性仍有缺口，真实 Provider 及真实 Temporal 仍未验收。 |
+| T02 | R01 任务模型配置 | IN_PROGRESS | 现有 `model_roles` 支持 variant → Agent → 默认用途，新增可空采样参数；主认知、WakeUp、NPC 和表达候选提取默认继承 `conversation_reply`，视觉独立。新人格准备、衣柜准备、新媒体各模型阶段、新视觉身份会话、新 Goal 评估、每日记忆、片段摘要及 embedding 新任务已冻结绑定；隔离 PostgreSQL 和受控 Provider 验证了部分恢复、并发、视觉开关、错误及回放。升级前旧任务策略和凭据配置原子性仍有缺口，真实 Provider 及真实 Temporal 仍未验收。 |
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | 已修复低置信度 claim 状态；新增显式实验性 `direct` 模式，使主 Agent 同一原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交，受控 PostgreSQL 验证提交、重放及回滚。默认生产链仍是 fact-only 加独立 Writer，旧草稿兼容、真实模型和默认切换尚未完成。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；受控 Tool 目录、物理 schema、Writer 与 React 通过。隔离 PostgreSQL 已验证直接调用、配置及部分回执回放；NPC 完整重启及真实媒体尚未验证。 |
@@ -49,7 +49,7 @@
 11. Diary 的素材/表达以及 Studio 普通助手、文字预览、角色定义准备与按需媒体主体规划各自在首次请求前冻结无密钥绑定；同 attempt 恢复按阶段绑定重取凭据。Studio 自动重试保持原绑定，显式新 attempt 对未完成阶段可重新选择；Diary 显式重试仅保留已完成阶段快照。升级前 running 且需要继续的阶段没有快照时明确失败，原材料保留供显式重试。隔离数据库已验证这些阶段的部分恢复；后续独立媒体工作流的跨进程绑定仍需分别验证。
 12. 为避免扩大上述写入锁反转，本次采用只读的保守摘要屏障：对已解析来源追溯修订前历史，整段摘要在无法证明已吸收纠错时不注入。它保留原始消息和独立 Memory，但同一来源中无关事实可能随摘要一起退出，后台仍可能写出旧摘要。`0106` 将同一判断用于派生记忆及常驻快照的来源校验；每日汇总对被污染的一整天停止生成并保留可重开状态。已发出的请求、未知旧来源和正确吸收纠错后的摘要重建仍不能保证；不能由局部数据库测试推断整个 T09 已完成。
 13. 每日任务沿用现有稳定 intent，终态重开时递增 Core 内部来源代次。调度、终态结算使用原 payload 和 attempt 原子比较；遇到旧 run 的 AlreadyStarted 不接管旧运行。Activity 携带启动时的代次，模型前和最终事务锁定 intent 后均复核；未绑定代次的旧 Temporal Activity 会先失败，随后由调度器按当前代次重启。隔离 PostgreSQL 与受控 Temporal 客户端验证了旧 run 未结束、Describe 和 Execute 期间重开，以及旧模型结果迟到；真实 Temporal worker、混合版本部署和所有数据库锁并发尚未验收。无来源、角色暂停及来源被纠错的成功返回均会持久结算并支持同代重放。
-14. 凭据恢复在同一数据库读取中获取端点、密钥及版本；端点版本和密钥都变化时保守拒绝，包括地址 A→B→A。端点从未变化时同用途密钥轮换仍可恢复。模型目录和 embedding 已改成同语句读取地址与密钥，防止一次配置提交在两次读取之间造成错配。地址与密钥目前仍可独立保存：先把准备给新地址的密钥写入旧地址所用的用途，再保存新地址，间隙内系统无法知道未来意图；完整原子配置仍待处理。embedding 只持久化端点 ID 与模型 ID，端点地址变更后重试仍可能使用新地址。
+14. 凭据恢复在同一数据库读取中获取端点、密钥及版本；端点版本和密钥都变化时保守拒绝，包括地址 A→B→A。端点从未变化时同用途密钥轮换仍可恢复。模型目录和 embedding 已改成同语句读取地址与密钥，防止一次配置提交在两次读取之间造成错配。地址与密钥目前仍可独立保存：先把准备给新地址的密钥写入旧地址所用的用途，再保存新地址，间隙内系统无法知道未来意图；完整原子配置仍待处理。新 embedding intent 冻结端点地址，升级前仅有端点 ID 的旧任务仍沿旧行为并记录诊断。
 
 ## 主聊天认知结算迁移底稿
 
@@ -87,7 +87,9 @@
 
 - 2026-11-11：片段摘要新建或重开代次在同一入队事务建立独立模型快照，同代失败重试保持模型、采样和端点，新代选择当时配置；旧代缺快照保留原有调用后配置变更检查并记录诊断。隔离 PostgreSQL 的并发竞争、快照缺失/损坏、旧代行为、原文纠错重建及受控 Temporal 回归通过：`/private/tmp/fluctlight-t02-segment-model-current.log`、`/private/tmp/fluctlight-t02-segment-migration-current.log`、`/private/tmp/fluctlight-t02-segment-workflow-model-current.log`。`0114` 只在隔离数据库运行，真实模型和真实 Temporal 尚未验收。
 
-- 2026-11-11：隔离 PostgreSQL 受控交错复现模型目录和 embedding 恢复分别读到旧地址与新密钥：`/private/tmp/fluctlight-t02-endpoint-secret-red.log`。改为单语句读取并在 embedding 诊断记录实际端点/凭据版本后，7 项数据库和受控请求回归通过：`/private/tmp/fluctlight-t02-endpoint-secret-final.log`；诊断不含密钥。该修复不解决地址和密钥分别保存的中间状态，也不等于 embedding 已拥有跨重试的端点快照。
+- 2026-11-11：隔离 PostgreSQL 受控交错复现模型目录和 embedding 恢复分别读到旧地址与新密钥：`/private/tmp/fluctlight-t02-endpoint-secret-red.log`。改为单语句读取并在 embedding 诊断记录实际端点/凭据版本后，7 项数据库和受控请求回归通过：`/private/tmp/fluctlight-t02-endpoint-secret-final.log`；诊断不含密钥。该修复不解决地址和密钥分别保存的中间状态；embedding 快照随后补齐，见下一条。
+
+- 2026-11-11：新 embedding intent 与 Memory 同事务保存无密钥模型快照；无配置时先保留未选状态，首次配置可用后持久确定绑定。已选任务在重试和进程重建后保留原端点、模型及超时；已完成向量可在凭据不可用时重放。隔离库修复前复现地址漂移（`/private/tmp/fluctlight-t02-embedding-address-red.log`，测试替身中的断言导致进程等待，随后已终止）；修复后 10 项相关回归及迁移链通过：`/private/tmp/fluctlight-t02-embedding-snapshot-final-v2.log`、`/private/tmp/fluctlight-t02-embedding-migration-final-v2.log`；既有 Memory 生命周期和摘要到每日记忆回归通过：`/private/tmp/fluctlight-t02-embedding-memory-regression.log`。快照写入失败与 Memory 同事务回滚；未配置不影响 Memory 保存。旧任务无可证明地址，保留旧选模并标记诊断；真实 Provider 未验收。
 
 - 2026-11-10：用户要求按原 T01–T12 拆分为 12 个 AEL 子任务并逐个处理；任务定义已提交 `12b05faa`。T01 重做当前运行入口盘点，核对 31 个正式 Agent、36 个显式配置 variant、表达变体、Writer 实际基础及修复变体、Provider/embedding/Kev、8 个 `ExecuteTool` 调用方、插件注册、发布和 worker。覆盖核对及 132 个源码位置通过：`/private/tmp/fluctlight-t01-inventory-check.log`；首次因一处缩写引用未通过，完整引用后重检通过：`/private/tmp/fluctlight-t01-inventory-check-first.log`。两项独立静态审查指出的工具、Kev 和 worker 复查命令缺口已补。此项只验收源码清单，不声称真实模型、配置快照或用户体验已验收。
 

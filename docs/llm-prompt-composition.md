@@ -308,7 +308,7 @@ R8 增加专用 `moment.inspect`：只读本人已发布动态，真实结果以
 | Owner life request | 本次请求所需字段、原始意图、冻结目标与真实状态 | `_request_id`/CAS 留服务端；必要 item/intention/asset target 保留 |
 | ADK/Writer/persona/media correction | 原任务上下文、必要真实结果和校验/质量反馈 | 保留工具隔离、原生 transcript、旧草稿 contract；不重做已提交效果 |
 | vision probe | 诊断规则、测试文字和图片 | 非业务人格任务 |
-| embedding | 文本向量输入 | 不使用 chat 运行协议；诊断记录实际端点及凭据版本，不记录密钥 |
+| embedding | 文本向量输入 | 不使用 chat 运行协议；新任务冻结端点、模型和凭据引用，诊断记录实际版本而不记录密钥。旧任务无可证明快照时沿旧行为并记录诊断 |
 
 ## 必要标识例外
 

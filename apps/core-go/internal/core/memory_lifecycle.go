@@ -1064,22 +1064,36 @@ func (a *App) enqueueMemoryEmbeddingTx(ctx context.Context, tx pgx.Tx, row memor
 	intentID := "memory_embedding_intent:" + row.ID + ":" + fmt.Sprint(row.Revision)
 	workflowID := "memory_embedding:" + row.ID + ":" + fmt.Sprint(row.Revision)
 	payload := map[string]any{"memory_id": row.ID, "revision": row.Revision, "request_digest": row.RequestDigest}
-	var providerEndpointID, modelID string
-	assignmentErr := tx.QueryRow(ctx, `SELECT r.provider_endpoint_id,r.model_id FROM public.model_roles r JOIN public.provider_endpoints e ON e.id=r.provider_endpoint_id WHERE r.role='embedding' AND e.capability_status<>'failed' LIMIT 1`).Scan(&providerEndpointID, &modelID)
+	assignment, assignmentErr := embeddingAssignmentForEnqueue(ctx, tx)
+	snapshot, selected := []byte(`{}`), false
 	if assignmentErr == nil {
-		payload["provider_endpoint_id"] = providerEndpointID
-		payload["model_id"] = modelID
+		payload["provider_endpoint_id"] = assignment.EndpointID
+		payload["model_id"] = assignment.ModelID
+		snapshot, selected = jsonBytes(newMemoryEmbeddingModelSnapshot(assignment)), true
 	} else if !errors.Is(assignmentErr, pgx.ErrNoRows) {
 		return assignmentErr
 	}
-	inserted, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload) VALUES($1,$2,'lifecycle','memory.embedding',$3) ON CONFLICT(intent_id) DO NOTHING`, intentID, workflowID, jsonBytes(payload))
+	inserted, err := tx.Exec(ctx, `INSERT INTO public.platform_workflow_intents(intent_id,workflow_id,task_queue,intent_type,payload,embedding_snapshot_contract) VALUES($1,$2,'lifecycle','memory.embedding',$3,$4) ON CONFLICT(intent_id) DO NOTHING`, intentID, workflowID, jsonBytes(payload), memoryEmbeddingModelSnapshotVersion)
 	if err != nil {
 		return err
 	}
-	if inserted.RowsAffected() != 1 {
+	if inserted.RowsAffected() == 1 {
+		if _, err := tx.Exec(ctx, `INSERT INTO public.memory_embedding_model_snapshots(intent_id,snapshot,selected) VALUES($1,$2,$3)`, intentID, snapshot, selected); err != nil {
+			return err
+		}
+	} else {
 		var existing []byte
-		if err := tx.QueryRow(ctx, `SELECT payload FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&existing); err != nil || jsonString(decodeObject(existing)) != jsonString(payload) {
+		var contract string
+		var snapshotExists bool
+		if err := tx.QueryRow(ctx, `SELECT payload,embedding_snapshot_contract,EXISTS(SELECT 1 FROM public.memory_embedding_model_snapshots WHERE intent_id=$1) FROM public.platform_workflow_intents WHERE intent_id=$1`, intentID).Scan(&existing, &contract, &snapshotExists); err != nil {
+			return err
+		}
+		current := decodeObject(existing)
+		if stringValue(current["memory_id"]) != row.ID || intValue(current["revision"]) != row.Revision || stringValue(current["request_digest"]) != row.RequestDigest || (stringValue(current["provider_endpoint_id"]) == "") != (stringValue(current["model_id"]) == "") {
 			return errors.New("memory_embedding_intent_conflict")
+		}
+		if contract != "" && (contract != memoryEmbeddingModelSnapshotVersion || !snapshotExists) {
+			return errMemoryEmbeddingModelSnapshotInvalid
 		}
 	}
 	return appendOutboxTx(ctx, tx, "memory.embedding.requested", "memory", row.ID, row.OwnerFluctlightID, command.SourceFactID, "memory:"+row.ID, "memory-embedding:"+row.ID+":"+fmt.Sprint(row.Revision), map[string]any{"memory_id": row.ID, "revision": row.Revision, "aggregate_sequence": 2*row.Revision + 2})

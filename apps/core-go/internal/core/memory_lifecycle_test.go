@@ -84,6 +84,14 @@ func TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple(t *testing.T
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.model_roles(role,provider_endpoint_id,model_id,required_capabilities,token_budget,timeout_seconds,retry_policy) VALUES('embedding',$1,'embedding-model-a','embedding',4096,5,'{}')`, endpointID); err != nil {
 		t.Fatal(err)
 	}
+	settingsKey := []byte("0123456789abcdef0123456789abcdef")
+	secret, err := encryptSecret(settingsKey, "memory-embed-secret", "embedding-fixture-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.setting_secrets(purpose,ciphertext,nonce) VALUES('memory-embed-secret',$1,$2)`, secret.ciphertext, secret.nonce); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := repository.Pool().Exec(ctx, `INSERT INTO public.actors(id,actor_type,status) VALUES($1,'human','active'),($2,'fluctlight','active')`, ownerID, fluctlightID); err != nil {
 		t.Fatal(err)
 	}
@@ -91,8 +99,12 @@ func TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple(t *testing.T
 		t.Fatal(err)
 	}
 	var providerCalls atomic.Int32
-	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+	var wrongProviderHost atomic.Bool
+	app := &App{DB: repository, Provider: &ProviderClient{DB: repository, SettingsKey: settingsKey, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		call := providerCalls.Add(1)
+		if request.URL.Host != "embedding-a.invalid" {
+			wrongProviderHost.Store(true)
+		}
 		body, _ := io.ReadAll(request.Body)
 		if !strings.Contains(string(body), `"model":"embedding-model-a"`) {
 			t.Fatalf("embedding assignment was not frozen: %s", body)
@@ -130,13 +142,46 @@ func TestProcessMemoryEmbeddingFailureThenSuccessUsesOneFrozenTuple(t *testing.T
 	if _, err := app.ProcessMemoryEmbeddingIntentAt(ctx, intentID, created.MemoryID, 0, "other-endpoint", "embedding-model-a"); err == nil || err.Error() != "memory_embedding_assignment_conflict" {
 		t.Fatalf("mismatched frozen assignment err=%v", err)
 	}
-	result, err := app.ProcessMemoryEmbeddingIntentAt(ctx, intentID, created.MemoryID, 0, "", "")
+	if _, err := app.ProcessMemoryEmbeddingIntentAt(ctx, intentID, "another-memory", 0, "", ""); err == nil || err.Error() != "memory_embedding_intent_conflict" {
+		t.Fatalf("mismatched intent memory identity err=%v", err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET base_url='http://embedding-b.invalid' WHERE id=$1`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	restarted := &App{DB: repository, Provider: &ProviderClient{DB: repository, SettingsKey: settingsKey, HTTP: app.Provider.HTTP}}
+	result, err := restarted.ProcessMemoryEmbeddingIntentAt(ctx, intentID, created.MemoryID, 0, "", "")
 	if err != nil || stringValue(result["status"]) != "ready" || intValue(result["dimensions"]) != 3 {
 		t.Fatalf("ready result=%#v err=%v", result, err)
 	}
-	result, err = app.ProcessMemoryEmbeddingIntentAt(ctx, intentID, created.MemoryID, 0, "", "")
+	if wrongProviderHost.Load() {
+		t.Fatal("embedding retry changed the frozen endpoint")
+	}
+	rotated, err := encryptSecret(settingsKey, "memory-embed-secret", "embedding-rotated-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.setting_secrets SET ciphertext=$1,nonce=$2 WHERE purpose='memory-embed-secret'`, rotated.ciphertext, rotated.nonce); err != nil {
+		t.Fatal(err)
+	}
+	result, err = restarted.ProcessMemoryEmbeddingIntentAt(ctx, intentID, created.MemoryID, 0, "", "")
 	if err != nil || !boolValueForTest(result["replayed"]) || providerCalls.Load() != 2 {
 		t.Fatalf("ready replay=%#v err=%v provider_calls=%d", result, err, providerCalls.Load())
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.platform_workflow_intents SET embedding_snapshot_contract='' WHERE intent_id=$1`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.ProcessMemoryEmbeddingIntentAt(ctx, intentID, created.MemoryID, 0, "", ""); !errors.Is(err, errMemoryEmbeddingModelSnapshotInvalid) {
+		t.Fatalf("ready snapshot with a missing contract was treated as legacy: %v", err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `DELETE FROM public.memory_embedding_model_snapshots WHERE intent_id=$1`, intentID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.Pool().Exec(ctx, `UPDATE public.provider_endpoints SET capability_status='failed' WHERE id=$1`, endpointID); err != nil {
+		t.Fatal(err)
+	}
+	result, err = restarted.ProcessMemoryEmbeddingIntentAt(ctx, intentID, created.MemoryID, 0, "", "")
+	if err != nil || !boolValueForTest(result["replayed"]) || providerCalls.Load() != 2 {
+		t.Fatalf("legacy ready replay required a provider: result=%#v calls=%d err=%v", result, providerCalls.Load(), err)
 	}
 	if err := repository.Pool().QueryRow(ctx, `SELECT count(*),max(status),max(dimensions),max(COALESCE(error_code,'')) FROM public.memory_embeddings WHERE memory_id=$1 AND memory_revision=0 AND model_id='embedding-model-a'`, created.MemoryID).Scan(&rowCount, &status, &dimensions, &errorCode); err != nil {
 		t.Fatal(err)
