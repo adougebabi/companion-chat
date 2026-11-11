@@ -35,7 +35,7 @@ func (s *diagnosticExportSanitizer) alias(value string) string {
 func diagnosticExportStatus(value any) string {
 	status := stringValue(value)
 	switch status {
-	case "pending", "queued", "running", "started", "completed", "failed", "cancelled", "canceled", "timeout", "timed_out", "retry", "rejected", "accepted", "blocked", "superseded", "skipped", "unknown":
+	case "pending", "queued", "running", "started", "opened", "empty", "completed", "failed", "cancelled", "canceled", "timeout", "timed_out", "retry", "rejected", "accepted", "blocked", "superseded", "skipped", "unknown":
 		return status
 	default:
 		return ""
@@ -57,7 +57,7 @@ func diagnosticExportIdentity(value any) string {
 func (s *diagnosticExportSanitizer) data(raw map[string]any) map[string]any {
 	result := map[string]any{}
 	sources := []map[string]any{raw, mapValue(raw["metrics"]), mapValue(raw["payload"])}
-	for _, key := range []string{"id", "run_id", "logical_run_id", "parent_run_id", "model_call_id", "model_run_id", "provider_attempt_id", "provider_request_id", "correlation_id", "causation_id", "fluctlight_id", "conversation_id", "actor_id", "world_id", "workflow_id", "intent_id", "endpoint_id", "model_id", "agent_id", "capability_name", "call_id", "event_type"} {
+	for _, key := range []string{"id", "run_id", "logical_run_id", "parent_run_id", "model_call_id", "model_run_id", "physical_attempt_id", "provider_attempt_id", "provider_request_id", "correlation_id", "causation_id", "fluctlight_id", "conversation_id", "actor_id", "world_id", "workflow_id", "intent_id", "endpoint_id", "model_id", "agent_id", "capability_name", "call_id", "event_type"} {
 		for _, source := range sources {
 			if value := diagnosticExportIdentity(source[key]); value != "" {
 				result[key] = s.alias(value)

@@ -31,7 +31,7 @@
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；隔离 PostgreSQL 与受控 Provider 验证同一候选从受理消息提取、启用进入 direct 请求、停用后新请求不再注入，学习开关与使用开关独立，测试中人格和关系语义未变化。关系含义称呼的兼容性、任意注入/日志内容排除、真实模型及 UI 到实际运行的闭环仍未完成或未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。`memory.recall` 的原始会话回执区分真实发言主体并保留消息类型；隔离 PostgreSQL 与受控原生工具续轮验证主体标签和会话隔离。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决。 |
 | T10 | R09 现有领域回归 | IN_PROGRESS | 隔离 PostgreSQL 和受控 Provider 抽样验证 Goal 上限/空集、已完成旧愿望与 Owner 暂停保护、衣柜借还与穿着、人格切换、Actor/NPC 隔离、世界事件准入、Studio 与日记；四组 Goal/活动闭环测试在本轮及起始提交均失败，已另记 bug。真实模型、真实渲染及完整领域矩阵仍未验收。 |
-| T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；两条诊断导出改为隐私安全投影，同一报告内保留匿名关联和完整性回执。插件真实健康、完整 Prompt 的调试权限、早期重试失败 Trace、通用隔离重放和真实页面到运行消费仍未完成或未验收。 |
+| T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；两条诊断导出使用隐私安全投影，上游重试逐次记录安全状态与错误分类。插件真实健康、完整 Prompt 的调试权限、通用隔离重放和真实页面到运行消费仍未完成或未验收。 |
 | T12 | R11 全链路验收 | TODO | E01–E18 分层核验；当前已有隔离 PostgreSQL，真实模型、渲染及全链路仍未验收。 |
 
 ## 已发现的冲突与依赖
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T11 的每次上游物理尝试记录实际状态、耗时和安全错误码；HTTP 错误保留数值状态码，不保存错误正文。Generate 成功标为 completed，Stream 成功仅标为 opened，最终流结果仍由原有观察器记录。隔离 PostgreSQL 和受控 Provider 分别验证 503 后成功、重新进入同一逻辑任务、错误正文含测试凭据不泄漏，以及诊断写入阻塞时模型不受阻：`/private/tmp/fluctlight-t11-attempt-regression.log`。诊断仍为尽力异步写入，不能保证进程崩溃时每条事件都落盘。
 
 - 2026-11-12：T11 流式和旧版诊断导出使用独立安全投影：不导出 Prompt、回复、工具参数、错误自由文本、筛选值及原始身份；身份以每次导出独立密钥生成不可用于产品操作的匿名标签，同一报告内仍可关联模型尝试、事件及运行。为避免将任意用户数据伪装为计数泄露，记录内数值暂不导出，完整性终止回执和数据集计数保留；流式格式标为 `fluctlight.diagnostics.jsonl.v2`。隔离 PostgreSQL 覆盖隐私/凭据、动态字段、数值、匿名关联、旧路径及快照完整性：`/private/tmp/fluctlight-t11-export-regression-final.log`。Owner 原诊断查看未更改，完整 Prompt 的独立调试权限和日志自由文本凭据问题仍待处理；这不是 T11 全部完成。
 

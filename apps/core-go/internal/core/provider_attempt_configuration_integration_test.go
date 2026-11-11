@@ -84,7 +84,7 @@ func TestUpstreamRetriesRecordEachEffectiveModelConfiguration(t *testing.T) {
 			var calls atomic.Int32
 			provider := &ProviderClient{DB: repo, SettingsKey: key, HTTP: &http.Client{Transport: projectHealthRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 				if calls.Add(1) == 1 {
-					return embeddingHTTPResponse(request, http.StatusServiceUnavailable, `{"error":{"message":"temporary"}}`), nil
+					return embeddingHTTPResponse(request, http.StatusServiceUnavailable, jsonString(map[string]any{"error": map[string]any{"message": fixtureSecret}})), nil
 				}
 				if streaming {
 					return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/event-stream"}}, Body: io.NopCloser(strings.NewReader("data: {\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")), Request: request}, nil
@@ -139,6 +139,7 @@ func TestUpstreamRetriesRecordEachEffectiveModelConfiguration(t *testing.T) {
 			count = 0
 			var modelCallID string
 			attempts, physicalIDs := map[int]int{}, map[string]bool{}
+			statuses := map[string]int{}
 			for rows.Next() {
 				var raw []byte
 				if err := rows.Scan(&raw); err != nil {
@@ -151,6 +152,13 @@ func TestUpstreamRetriesRecordEachEffectiveModelConfiguration(t *testing.T) {
 					modelCallID = stringValue(payload["model_call_id"])
 				}
 				attempts[intValue(payload["attempt"])]++
+				statuses[stringValue(payload["status"])]++
+				if payload["status"] == "failed" && (payload["error_code"] != "provider_request_failed" || intValue(payload["http_status"]) != http.StatusServiceUnavailable) {
+					t.Fatalf("failed physical attempt lost its safe cause: %#v", payload)
+				}
+				if _, found := payload["duration_ms"]; !found || (payload["status"] != "failed" && payload["error_code"] != nil) {
+					t.Fatalf("attempt duration or success status is incorrect: %#v", payload)
+				}
 				physicalID := stringValue(payload["physical_attempt_id"])
 				if physicalID == "" || physicalIDs[physicalID] {
 					t.Fatalf("physical attempt %d reused its identity", count)
@@ -174,8 +182,12 @@ func TestUpstreamRetriesRecordEachEffectiveModelConfiguration(t *testing.T) {
 					t.Fatalf("physical attempt %d did not record its effective configuration", count)
 				}
 			}
-			if err := rows.Err(); err != nil || count != 3 || attempts[1] != 2 || attempts[2] != 1 {
-				t.Fatalf("physical attempt records=%d err=%v", count, err)
+			wantSuccess := "completed"
+			if streaming {
+				wantSuccess = "opened"
+			}
+			if err := rows.Err(); err != nil || count != 3 || attempts[1] != 2 || attempts[2] != 1 || statuses["failed"] != 1 || statuses[wantSuccess] != 2 {
+				t.Fatalf("physical attempt records=%d statuses=%#v err=%v", count, statuses, err)
 			}
 		})
 	}

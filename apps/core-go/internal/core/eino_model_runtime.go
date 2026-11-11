@@ -83,7 +83,7 @@ type queuedToolCallingChatModel struct {
 
 // Retries share a Provider idempotency key, but each actual request records
 // its effective model configuration separately. Diagnostics remain best effort.
-func (m *queuedToolCallingChatModel) recordPhysicalAttempt(ctx context.Context, requestID string, sequence uint64, attempt int, transport string) {
+func (m *queuedToolCallingChatModel) recordPhysicalAttempt(ctx context.Context, requestID string, sequence uint64, attempt int, transport, successStatus string, elapsed time.Duration, attemptErr error) {
 	if m.provider == nil || m.provider.DB == nil {
 		return
 	}
@@ -94,9 +94,22 @@ func (m *queuedToolCallingChatModel) recordPhysicalAttempt(ctx context.Context, 
 		"model_configuration": providerAssignmentDiagnostics(m.assignment),
 		"prompt_slots":        diagnostics["prompt_slots"], "source_map": mapValue(diagnostics["context_projection"])["source_map"],
 	}
+	severity := "info"
+	if attemptErr != nil {
+		payload["status"] = providerRunStatusForError(attemptErr)
+		payload["error_code"] = providerRunErrorCode(attemptErr)
+		var response *providerHTTPResponseError
+		if errors.As(attemptErr, &response) && response.StatusCode >= 400 && response.StatusCode <= 599 {
+			payload["http_status"] = response.StatusCode
+		}
+		severity = "warning"
+	} else {
+		payload["status"] = successStatus
+	}
+	payload["duration_ms"] = elapsed.Milliseconds()
 	support, diagnosticCtx := m.provider.runtimeSupport(), context.WithoutCancel(ctx)
 	fluctlightID, correlationID := stringValue(diagnostics["fluctlight_id"]), m.correlationID
-	go support.RecordDiagnosticEvent(diagnosticCtx, "provider.physical_attempt", "info", fluctlightID, requestID, correlationID, payload)
+	go support.RecordDiagnosticEvent(diagnosticCtx, "provider.physical_attempt", severity, fluctlightID, requestID, correlationID, payload)
 }
 
 func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*schema.Message, opts ...model.Option) (*schema.Message, error) {
@@ -167,8 +180,13 @@ func (m *queuedToolCallingChatModel) Generate(ctx context.Context, input []*sche
 				return nil, err
 			}
 			attempt++
+			started := time.Now()
 			result, err := m.inner.Generate(attemptCtx, input, opts...)
-			m.recordPhysicalAttempt(attemptCtx, callRequestID, sequence, attempt, "generate")
+			status := "completed"
+			if err == nil && result == nil {
+				status = "empty"
+			}
+			m.recordPhysicalAttempt(attemptCtx, callRequestID, sequence, attempt, "generate", status, time.Since(started), err)
 			return result, err
 		}
 		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
@@ -308,8 +326,13 @@ func (m *queuedToolCallingChatModel) Stream(ctx context.Context, input []*schema
 				return nil, err
 			}
 			attempt++
+			started := time.Now()
 			stream, err := m.inner.Stream(attemptCtx, input, opts...)
-			m.recordPhysicalAttempt(attemptCtx, callRequestID, sequence, attempt, "stream")
+			status := "opened"
+			if err == nil && stream == nil {
+				status = "empty"
+			}
+			m.recordPhysicalAttempt(attemptCtx, callRequestID, sequence, attempt, "stream", status, time.Since(started), err)
 			return stream, err
 		}
 		if !upstreamModelRetryEnabled(runCtx, m.scenario) {
