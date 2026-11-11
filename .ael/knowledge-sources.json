@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "4c29e986c0ae756282905d9ef2e47c3e8f4cdfdfe764b04f742b544d77f60e04",
+      "hash": "c7c19fa5df8861512f22ff05248e210c96b008fe56ff9a05b5957425def15dfd",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -102,7 +102,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "4c29e986c0ae756282905d9ef2e47c3e8f4cdfdfe764b04f742b544d77f60e04",
+        "hash": "c7c19fa5df8861512f22ff05248e210c96b008fe56ff9a05b5957425def15dfd",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

@@ -41,6 +41,51 @@ func TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene(t *testing.T) {
 	}
 }
 
+func TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy(t *testing.T) {
+	input := replyContextFixture()
+	input.Scene = replySceneMoment
+	criteria := []any{"原始完成条件\n第二行", map[string]any{"id": "business-id", "source_ref": "business-ref", "valid": false, "ratio": 0.123456, "changed_at": "2026-10-10T01:02:03Z", "schema": map[string]any{"properties": map[string]any{"item_ids": map[string]any{"type": "array"}}}}}
+	input.Projection.Goals = []map[string]any{{
+		"id": "private-goal", "description": "阅读目标", "status": "active", "success_criteria": criteria,
+		"execution": map[string]any{"next_step": "old-next-step", "current_stage": map[string]any{"strategy": "old-strategy"}, "last_evaluation": map[string]any{"impact": "old-evaluation"}},
+	}}
+	input.Projection.GoalPolicy = map[string]any{"active_count": 1, "ordering_mode": "manual"}
+	before := jsonString(input)
+	var request map[string]any
+	router := newFakeProviderRouter().otherwise(func(payload map[string]any) fakeProviderResult {
+		request = payload
+		return fakeProviderResult{Text: "今天读到一段有趣的文字。"}
+	})
+	app := &App{Provider: &ProviderClient{HTTP: &http.Client{Transport: router}}}
+	_, err := app.RunConversationReplyTask(context.Background(), ConversationReplyTaskInput{Context: input, Assignment: providerAssignment{Role: conversationReplyModelRole, BaseURL: "http://controlled.invalid", ModelID: "fixture", Timeout: time.Second}, Concurrency: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var runtime map[string]any
+	for _, raw := range arrayValue(request["messages"]) {
+		content := stringValue(mapValue(raw)["content"])
+		if strings.HasPrefix(content, "[RUNTIME CONTEXT]\n") {
+			text := strings.TrimSuffix(strings.TrimPrefix(content, "[RUNTIME CONTEXT]\n"), "\n[/RUNTIME CONTEXT]")
+			if err := json.Unmarshal([]byte(text), &runtime); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	goals := arrayValue(runtime["goals"])
+	if len(goals) != 1 || jsonString(mapValue(goals[0])["success_criteria"]) != jsonString(criteria) {
+		t.Fatalf("Moment request changed original Goal conditions: %#v", goals)
+	}
+	wire := jsonString(runtime)
+	for _, forbidden := range []string{"private-goal", "old-next-step", "old-strategy", "old-evaluation", "goal_policy"} {
+		if strings.Contains(wire, forbidden) {
+			t.Fatalf("Moment request retained %q: %s", forbidden, wire)
+		}
+	}
+	if jsonString(input) != before {
+		t.Fatal("Moment projection mutated its source")
+	}
+}
+
 func TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker(t *testing.T) {
 	ctx, repo, app, owner, self, conversation := setupDirectPublicationToolTest(t, "moment-cache-identity")
 	config := defaultConversationReplySettings()

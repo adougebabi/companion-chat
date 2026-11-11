@@ -285,12 +285,13 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 	compact := compactCognitionContextForSurface(projection, ProviderContextSurfaceFactOnlyReply)
 	// Keep the original Goal criteria and current progress, not a previous
 	// evaluator's strategy/assessment prose or the parent decision plan.
-	compact["goals"] = compactProviderGoalsForSurface(projection.Goals, projection.Actors, projection.ReferenceIndex, ProviderContextSurfaceFactOnlyReply)
+	compact["goals"] = momentReplyGoals(projection)
 	compact["actor_background"] = replyActorBackgroundView(compactActorBackground(projection))
 	compact["time_view"] = projectionTimeView(projection)
 	compact["capability_boundaries"] = input.CapabilityFacts
 	delete(compact, "intentions")
 	delete(compact, "recent_outcomes")
+	delete(compact, "goal_policy")
 	if len(input.ToolFacts) > 0 {
 		compact["tool_facts"] = input.ToolFacts
 	}
@@ -305,7 +306,7 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 			continue
 		}
 		value := compact[key]
-		if key != "actor_background" {
+		if key != "actor_background" && key != "goals" {
 			value = replySemanticValue(value)
 		}
 		workingInput.RuntimeFacts = append(workingInput.RuntimeFacts, PromptFragment{Kind: PromptFragmentRuntimeFact, Required: true, Priority: 100,
@@ -365,6 +366,18 @@ func momentReplyWorkingInput(input ReplyContextInput) WorkingMemoryInput {
 			Content: map[string]any{"content": content, "confidence": memory["confidence"], "certainty": "记忆或转述，不能代替当前状态/真实结果"}, SourceRefs: []string{"memory-semantic:" + stableDigest(content)}})
 	}
 	return workingInput
+}
+
+// Moment's Writer needs the Goal and original conditions, not a previous
+// evaluator's plan or Core-owned selector. Business values stay unchanged.
+func momentReplyGoals(projection ContextProjection) []map[string]any {
+	goals := compactProviderGoalsForSurface(projection.Goals, projection.Actors, projection.ReferenceIndex, ProviderContextSurfaceFactOnlyReply)
+	for _, goal := range goals {
+		delete(goal, "ref")
+		delete(goal, "execution")
+		delete(mapValue(goal["target_actor"]), "ref")
+	}
+	return goals
 }
 
 func (a *App) assembleFactOnlyReplyContext(ctx context.Context, projection ContextProjection, currentInput string, assignment providerAssignment, toolFacts []map[string]any) (PromptAssemblyResult, error) {
