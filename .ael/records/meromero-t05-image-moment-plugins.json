@@ -19,10 +19,10 @@
   "current_step": "execute",
   "status": "open",
   "candidate": "",
-  "failure": "",
+  "failure": "已实现插件配置/依赖状态和动态页停用展示，隔离 PostgreSQL 验证插件开关、独立调用、回执重放和 ready 图片意图重建后去重交付。T05 尚未完成：真实渲染/连通、未 ready 任务完整恢复、当前照片与创作场景的完整区分及 NPC 全流程重启未验收。按用户授权先跳过受限部分并继续 T06，不降低验收条件。",
   "result": "",
   "created": "2026-11-10T08:34:30.759305Z",
-  "updated": "2026-11-11T15:28:19.877681Z",
+  "updated": "2026-11-11T15:29:02.162186Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -54,11 +54,11 @@
         "unit": "execute",
         "executor": "codex-t05-plugins",
         "input_version": "dca8be27c2c8282546c200f92ad2178c6dee83acc85def68ca9e934c6b9c46ac",
-        "candidate_version": "",
+        "candidate_version": "093b84f498251a46775036800bbc540971bd36efec7f72e30827158bdc063076",
         "started": "2026-11-11T15:09:08.322806Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-11T15:28:58.024764Z",
+        "status": "fail",
+        "reason": "已实现插件配置/依赖状态和动态页停用展示，隔离 PostgreSQL 验证插件开关、独立调用、回执重放和 ready 图片意图重建后去重交付。T05 尚未完成：真实渲染/连通、未 ready 任务完整恢复、当前照片与创作场景的完整区分及 NPC 全流程重启未验收。按用户授权先跳过受限部分并继续 T06，不降低验收条件。"
       }
     ],
     "checks": null
