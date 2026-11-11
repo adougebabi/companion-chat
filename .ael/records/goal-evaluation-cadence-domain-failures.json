@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "goal-evaluation-cadence-domain-failures",
+  "definition_hash": "c5a6b7d6795e17b5d282fc1eddcf321217fd2974650ad67070ebb1e774656005",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-11T17:21:47.017605Z",
+  "updated": "2026-11-11T17:21:47.017617Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}
