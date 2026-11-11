@@ -1,6 +1,6 @@
 # MeroMero-first 实施台账
 
-更新时间：2026-11-11。此记录区分已实现、已验证和未完成事项；它不是验收通过声明。
+更新时间：2026-11-12。此记录区分已实现、已验证和未完成事项；它不是验收通过声明。
 
 ## 基线与边界
 
@@ -32,7 +32,7 @@
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。`memory.recall` 的原始会话回执区分真实发言主体并保留消息类型；隔离 PostgreSQL 与受控原生工具续轮验证主体标签和会话隔离。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决。 |
 | T10 | R09 现有领域回归 | IN_PROGRESS | 隔离 PostgreSQL 和受控 Provider 抽样验证 Goal 上限/空集、已完成旧愿望与 Owner 暂停保护、衣柜借还与穿着、人格切换、Actor/NPC 隔离、世界事件准入、Studio 与日记；四组 Goal/活动闭环测试在本轮及起始提交均失败，已另记 bug。真实模型、真实渲染及完整领域矩阵仍未验收。 |
 | T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；图片插件可显式检查已保存 ComfyUI 连接；两条诊断导出使用隐私安全投影，上游重试逐次记录安全状态与错误分类；Agent 错误及失败工具结果对可识别凭据进行有限脱敏。真实 ComfyUI/生成、Moment 健康、完整 Prompt 的调试权限、通用隔离重放和真实页面到运行消费仍未完成或未验收。 |
-| T12 | R11 全链路验收 | TODO | E01–E18 分层核验；当前已有隔离 PostgreSQL，真实模型、渲染及全链路仍未验收。 |
+| T12 | R11 全链路验收 | IN_PROGRESS | 已更新主复核报告及 E01–E18 矩阵，在干净提交 `42b43abf` 上执行 Go 全量和 14 个隔离数据库/受控工具专项；Web 定向 8 项与类型检查通过。额外衣柜/无人主体回归 9 个顶层测试中 8 通过、1 失败，失败的两个回退纠错子场景在起始提交通过，已另记 bug；E14 旧 Goal/活动失败、E16 正文与媒体一致性，以及真实模型、渲染与 UI 到运行消费仍未全部验收。 |
 
 ## 已发现的冲突与依赖
 
@@ -74,6 +74,10 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T12 在干净提交 `42b43abf` 加隔离 PostgreSQL 中补跑无人主体、当前穿着、独立衣柜权限、来源及原生换衣的 9 个顶层测试：8 通过、1 失败；子场景 28 通过、2 失败。两项失败均为 `TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair` 的流式和非流式版本，起始提交对照均通过。旧夹具用 HTTP 400 触发跨模型回退，与当前只允许合格技术故障回退的策略不一致；临时改为 503 后两项仍失败，实验已撤回。新增独立受控检查确认 HTTP 400 不调用备用模型；整体原因未确定，不将 503 实验当作通过，已登记 `reply-wear-fallback-correction-regression`。日志 `/private/tmp/fluctlight-t12-head-capture-wear.log`、`/private/tmp/fluctlight-t12-baseline-wear-fallback.log`、`/private/tmp/fluctlight-t12-wear-fallback-updated.log`、`/private/tmp/fluctlight-t12-bad-request-no-fallback.log`。
+
+- 2026-11-12：T12 对提交 `42b43abf` 的干净源码副本执行 Go 全量回归，退出 0：18 个有测试的包通过，按测试事件计数 3,108 通过、1,073 跳过；未配置隔离库或真实服务的跳过不算通过。另用一次性 PostgreSQL 和受控 Provider 执行模型配置、工具循环、追发、插件、表达、记忆、媒体状态、WakeUp 与诊断共 14 个顶层专项，全部通过；Web 定向 8 项及类型检查通过。证据 `/private/tmp/fluctlight-t12-clean-go-all.jsonl`、`/private/tmp/fluctlight-t12-head-pg-matrix.log`、`/private/tmp/fluctlight-t12-head-web-matrix.log`、`/private/tmp/fluctlight-t12-head-web-typecheck.log`；过滤后的测试结果保存在 `evidence/meromero-t12-verification-20261112.txt`。已更新 `review-for-chatgpt.md`，明确默认仍为 fact-only + Writer、E14 已知失败及 E16 未完成；这不是 T12 整体验收通过。
 
 - 2026-11-12：T11 新 Agent 错误和失败、拒绝或 handled 工具结果的持久化副本，以及历史错误、生命周期原因和失败重放的读取，对可识别的凭据形式执行有限脱敏；原始实时回执及成功工具结果保留。失败结果中的原始 JSON 先保持数字精度再检查，字节内容在诊断副本中隐藏。隔离 PostgreSQL 验证新旧 Bearer 错误、失败工具结果及生命周期原因，受控回归验证既有已提交工具证据和失败重放；Agent 包 race 测试通过：`/private/tmp/fluctlight-t11-agent-redaction-final.log`、`/private/tmp/fluctlight-t11-agent-redaction-race.log`。规则依赖可识别的凭据标记，不能保证任意未标记秘密或其他入口均已脱敏；完整 Prompt/历史独立调试权限仍未完成。
 

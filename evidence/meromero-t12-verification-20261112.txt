@@ -1,0 +1,134 @@
+T12 verification evidence (synthetic fixtures only)
+Tested source commit: 42b43abf
+Database: disposable local PostgreSQL; model and renderer: controlled substitutes.
+
+=== Targeted PostgreSQL and controlled Provider (filtered to test results) ===
+=== RUN   TestAgentModelConfigurationSavesReadsRunsAndClears
+--- PASS: TestAgentModelConfigurationSavesReadsRunsAndClears (2.37s)
+=== RUN   TestDirectFollowupsSupersedeLateReplyAndKeepWholeInput
+--- PASS: TestDirectFollowupsSupersedeLateReplyAndKeepWholeInput (2.38s)
+=== RUN   TestDirectFollowupKeepsPriorCommittedAction
+--- PASS: TestDirectFollowupKeepsPriorCommittedAction (2.47s)
+=== RUN   TestFactOnlyFollowupRejectsStaleWriterDraft
+--- PASS: TestFactOnlyFollowupRejectsStaleWriterDraft (2.15s)
+=== RUN   TestAgentDiagnosticErrorDoesNotExposeBearerCredential
+--- PASS: TestAgentDiagnosticErrorDoesNotExposeBearerCredential (1.91s)
+=== RUN   TestAgentDiagnosticProjectionRedactsEncodedFailureOutput
+--- PASS: TestAgentDiagnosticProjectionRedactsEncodedFailureOutput (0.00s)
+=== RUN   TestDomainPluginPostgresSettingsAdmissionAndReplay
+--- PASS: TestDomainPluginPostgresSettingsAdmissionAndReplay (1.86s)
+=== RUN   TestExpressionCandidateEnableUseAndDisableAcrossNewTurns
+--- PASS: TestExpressionCandidateEnableUseAndDisableAcrossNewTurns (2.77s)
+=== RUN   TestKevNativeLoopDiscoversAndExecutesHiddenTool
+=== RUN   TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=false
+=== RUN   TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=true
+=== RUN   TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=false
+=== RUN   TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=true
+--- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool (0.01s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=false (0.01s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=true (0.00s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=false (0.00s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=true (0.00s)
+=== RUN   TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate
+--- PASS: TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate (2.75s)
+=== RUN   TestMemoryCorrectionPreservesStatementsWithoutRevivingTicketClaim
+--- PASS: TestMemoryCorrectionPreservesStatementsWithoutRevivingTicketClaim (2.64s)
+=== RUN   TestMemoryRecallDistinguishesActualMessageSpeakers
+--- PASS: TestMemoryRecallDistinguishesActualMessageSpeakers (2.50s)
+=== RUN   TestReplyMediaTerminalStateDoesNotAttachCancelledOrFailedAsset
+--- PASS: TestReplyMediaTerminalStateDoesNotAttachCancelledOrFailedAsset (3.22s)
+=== RUN   TestWakeUpRequestReceivesNewEventAndUnansweredDelivery
+--- PASS: TestWakeUpRequestReceivesNewEventAndUnansweredDelivery (2.39s)
+PASS
+
+=== React tests (filtered to results) ===
+✔ primary list stays compact and call dialog owns raw values, Close and source focus (1849.193708ms)
+✔ main pagination retries the exact opaque cursor and correlation while retaining confirmed data (230.349833ms)
+✔ initial call read failure never looks empty or missing wire fields; retry can reveal actual empty data (200.139875ms)
+✔ correlation switch clears selection and rejects late original pagination (323.155167ms)
+✔ Owner switch retires unresolved main records and selected sources (215.250333ms)
+✔ plugin card shows an explicit version-bound connection check without claiming generation (2068.871959ms)
+✔ plugin check does not reuse a prior scope or call a superseded check a failure (237.779875ms)
+✔ saving the first renderer configuration refreshes plugin availability (464.3475ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3556.017625
+
+=== Full Go suite with database and live services disabled ===
+Test-event counts (include subtests): pass=3108, fail=0, skip=1073; packages passed=18, failed=0
+Go command exit code: 0
+Web typecheck exit code: 0
+
+=== Historical Goal/activity failures (filtered to failing test names) ===
+current-at-T10:
+--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (13.32s)
+--- FAIL: TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete (1.15s)
+current-at-T10:
+--- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow (6.91s)
+--- FAIL: TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody (2.29s)
+starting-commit:
+--- FAIL: TestMutualRelationshipGoalRequiresActualAcceptanceAndFrozenRevision (9.86s)
+--- FAIL: TestGoalEvaluationSummaryWithoutNativeSubmissionCannotComplete (1.81s)
+--- FAIL: TestScheduledAcquisitionGoalClockIndependentWearAndFinalWorkflow (3.64s)
+--- FAIL: TestIntentionScheduleCommitsLinkedFutureDyeWithoutChangingCurrentBody (2.25s)
+Historical logs also recorded evaluation_cadence for several failing cases; root cause is not confirmed.
+
+Full temporary logs and exact commands are indexed in review-for-chatgpt.md. Filtering removed unrelated runtime metadata; no user conversations or credentials are included.
+
+=== Additional capture / wardrobe matrix on 42b43abf ===
+Nine top-level tests: 8 PASS and 1 FAIL; child cases: 28 PASS and 2 FAIL.
+
+--- PASS: TestCurrentCaptureRejectsClothingFreeTextAndKeepsActualWearing (2.36s)
+--- PASS: TestCurrentCapturePlanCannotUseAnUnheldObject (0.00s)
+--- PASS: TestEvaluateClaimsResolvesOnlyVisibleOpaqueEvidence (0.00s)
+--- PASS: TestMediaBranchM30M31SequenceAndActorIsolation (0.00s)
+--- PASS: TestMediaBranchNoMandatoryPersonSlotsAndDeferredReadCounts (0.00s)
+--- PASS: TestNativeActorContractRequiresAssertionAndBindsCurrentSource (0.00s)
+--- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter (39.25s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/normal/stream=false (1.97s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/after_moment/stream=false (1.46s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch/stream=false (1.35s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/reply_first_batch/stream=false (1.54s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable/stream=false (2.03s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch_unavailable/stream=false (1.97s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_bad_reply/stream=false (1.97s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_repair/stream=false (1.91s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false (2.39s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_check_error/stream=false (2.23s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/refusal/stream=false (2.28s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/normal/stream=true (2.28s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/after_moment/stream=true (2.23s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch/stream=true (2.22s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/reply_first_batch/stream=true (1.39s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable/stream=true (1.43s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/same_batch_unavailable/stream=true (1.47s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_bad_reply/stream=true (1.46s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_repair/stream=true (1.38s)
+    --- FAIL: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true (1.43s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_check_error/stream=true (1.57s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/refusal/stream=true (1.28s)
+--- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays (21.46s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/success (5.25s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/rejected (3.09s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/deferred (2.68s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/pretend_success (2.41s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/wrong_target (2.57s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/stale (2.26s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/no_change (1.87s)
+    --- PASS: TestR6OwnerOutfitNativeDiscoveryActuallyWearsAndReplays/final_failure (1.33s)
+--- PASS: TestWardrobeIndependentToolRejectsUnavailableAndForeignOwner (1.16s)
+
+=== Starting commit ffa808bc: same two historical 400-fallback cases ===
+--- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter (6.43s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=false (3.45s)
+    --- PASS: TestR6PrivateChatDiscoveryWearReceiptAndWriter/wear_unavailable_fallback_repair/stream=true (2.98s)
+
+=== Exploratory fixture changed from 400 to 503, not retained ===
+Both fallback-repair child cases still failed; see /private/tmp/fluctlight-t12-wear-fallback-updated.log.
+A separate controlled test confirmed HTTP 400 does not invoke an explicitly configured fallback; re-run after commit 45489e84:
+--- PASS: TestReplyBadRequestDoesNotInvokeExplicitFallback
