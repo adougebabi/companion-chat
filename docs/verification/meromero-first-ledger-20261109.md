@@ -75,7 +75,7 @@
 
 ## 验收及变更记录
 
-- 2026-11-11：T06 为 direct 主 Agent 同批发出 `media.image.generate` 与 `conversation.reply` 增加未执行拒绝回执，避免回复拒绝图片时同批图片请求继续执行；由同一主 Agent 读取真实回执并在后续轮次选择，普通纯文本仍保持单次主模型调用。隔离 PostgreSQL 与受控 Provider 验证两种工具顺序、拒绝后的自然回复及重放；原子结算、先行动后回复和旧混合媒体模式回归通过：`/private/tmp/fluctlight-t06-batch-regression.log`。这没有解决无媒体调用的虚假“已发送”声明，也不是整个 T06 或真实模型验收。
+- 2026-11-11：T06 为 direct 主 Agent 同批发出 `media.image.generate` 与 `conversation.reply` 增加未执行拒绝回执，避免回复拒绝图片时同批图片请求继续执行；由同一主 Agent 读取真实回执并在后续轮次选择，普通纯文本仍保持单次主模型调用。隔离 PostgreSQL 与受控 Provider 验证两种工具顺序、拒绝后的自然回复及重放；原子结算、先行动后回复和旧混合媒体模式回归通过：`/private/tmp/fluctlight-t06-batch-regression.log`。随后独立复核发现重复 ToolCall ID 会遮住同批名称、重复同批调用缺少终止；补充检测并在连续三个无进展响应后终止，红绿日志为 `/private/tmp/fluctlight-t06-batch-bounds-red.log` 与 `/private/tmp/fluctlight-t06-batch-bounds-green.log`。这没有解决无媒体调用的虚假“已发送”声明，也不是整个 T06 或真实模型验收。
 
 - 2026-11-11：T05 的正式 React 动态页读取已保存插件开关；Moment 停用或状态未知时不开放新的发布、建议、评论和回应，仍可读取历史、隐藏/恢复已有动态及核对原提交。窗口重新获得焦点或手动刷新时重新读取，旧 Owner 的迟到响应不能覆盖新状态。20 个受控 React 场景、类型检查和生产构建通过；包括停用后原未知提交按同一身份恢复。首次运行的 19 项断言通过但测试夹具意外启动后台通知定时器，进程未退出而被终止；改为只安装所需受控配置服务后完整重跑通过。未进行真实浏览器到生产后端的端到端验收。
 

@@ -44,6 +44,7 @@ type runtimeContextRefresh struct {
 	refresh            func(context.Context) (modelContextRefreshContent, error)
 	base               ContextProjection
 	batches            map[uint64]map[string]string
+	batchNames         map[uint64]map[string]bool
 	staleReplyCallID   string
 }
 
@@ -62,9 +63,17 @@ func (r *runtimeContextRefresh) noteModelToolCalls(sequence uint64, calls []sche
 	if r.batches[sequence] == nil {
 		r.batches[sequence] = make(map[string]string)
 	}
+	if r.batchNames == nil {
+		r.batchNames = make(map[uint64]map[string]bool)
+	}
+	if r.batchNames[sequence] == nil {
+		r.batchNames[sequence] = make(map[string]bool)
+	}
 	for _, call := range calls {
 		if id, name := strings.TrimSpace(call.ID), strings.TrimSpace(call.Function.Name); id != "" && name != "" {
-			r.batches[sequence][id] = capabilitycontract.CanonicalCapabilityName(name)
+			name = capabilitycontract.CanonicalCapabilityName(name)
+			r.batches[sequence][id] = name
+			r.batchNames[sequence][name] = true
 		}
 	}
 }
@@ -105,12 +114,8 @@ func (r *runtimeContextRefresh) directMediaReplyBatch(sequence uint64, callID st
 	if name != conversationReplyCapabilityName && name != "media.image.generate" {
 		return false
 	}
-	var reply, media bool
-	for _, name := range batch {
-		reply = reply || name == conversationReplyCapabilityName
-		media = media || name == "media.image.generate"
-	}
-	return reply && media
+	names := r.batchNames[sequence]
+	return names[conversationReplyCapabilityName] && names["media.image.generate"]
 }
 
 // replyBlockedBySameBatchSideEffect rejects a visible reply that shares a

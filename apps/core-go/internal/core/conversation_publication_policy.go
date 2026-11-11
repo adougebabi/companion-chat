@@ -45,6 +45,9 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMainInvalidReplyAttempts(adkContext.Trace) >= 3 {
 		return physicalModelRequestDecision{}, newCapabilityError("direct_reply_arguments_unresolved", false, errors.New("direct_reply_arguments_unresolved"))
 	}
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && directMediaReplyRejectedBatches(adkContext.Trace) >= 3 {
+		return physicalModelRequestDecision{}, newCapabilityError("direct_media_reply_stalled", false, errors.New("direct_media_reply_stalled"))
+	}
 	if conversationLoopNeedsReply(ctx) {
 		if conversationClosedActionAttempts(adkContext.Trace) >= 2 {
 			return physicalModelRequestDecision{}, newCapabilityError("tool_progress_stalled", false, errors.New("tool_progress_stalled"))
@@ -77,6 +80,30 @@ func (conversationPublicationPhysicalRequestPolicy) DecidePhysicalModelRequest(c
 		return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: append([]string{"moment.publish"}, repeatedDiscoveryExclusions(adkContext.Trace)...)}, nil
 	}
 	return physicalModelRequestDecision{ToolChoice: schema.ToolChoiceForced, OmitResponseFormat: true, ExcludedToolNames: repeatedDiscoveryExclusions(adkContext.Trace)}, nil
+}
+
+// Count physical model responses, not individual rejected Tool results. Any
+// intervening real result ends the consecutive no-progress sequence.
+func directMediaReplyRejectedBatches(trace *ADKCapabilityTrace) int {
+	if trace == nil {
+		return 0
+	}
+	_, results := trace.Snapshot()
+	sequences := map[uint64]bool{}
+	for index := len(results) - 1; index >= 0; index-- {
+		result := results[index]
+		if result.Status == "handled" && stringValue(mapValue(result.Output)["warning_code"]) == "invalid_arguments" &&
+			(result.CapabilityName == conversationReplyCapabilityName || result.CapabilityName == "media.image.generate") {
+			continue
+		}
+		if result.Status != "rejected" || result.ErrorCode != "direct_media_reply_separate_turn_required" {
+			break
+		}
+		if identity, ok := trace.ModelIdentity(result.CallID); ok && identity.ModelCallSequence != 0 {
+			sequences[identity.ModelCallSequence] = true
+		}
+	}
+	return len(sequences)
 }
 
 // Consecutive invalid direct replies did not execute any effect. Bound this
