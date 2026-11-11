@@ -311,6 +311,20 @@ func (i *appADKCapabilityInvoker) ExecuteWithID(ctx context.Context, callID, cap
 		}
 	}
 	i.trace.AppendInvocation(invocation)
+	if capabilityName == conversationReplyCapabilityName || capabilityName == "media.image.generate" {
+		if reply, found := i.scopeRegistry.Lookup(conversationReplyCapabilityName); found {
+			if _, direct := reply.(directMainReplyCapability); direct {
+				if bridge, ok := adkCapabilityContext(ctx); ok && bridge.Refresh.directMediaReplyBatch(modelIdentity.ModelCallSequence, callID) {
+					result := CapabilityResult{CallID: callID, CapabilityName: capabilityName, Status: "rejected",
+						ErrorCode: "direct_media_reply_separate_turn_required", Output: map[string]any{"detail": "This call was not executed. Decide whether to request media or reply; use separate model turns and the actual tool result before making a completion claim."},
+						ProviderRequestID: modelIdentity.ProviderRequestID, CorrelationID: "capability:" + callID}
+					i.trace.AppendResult(result)
+					i.recordADKToolDiagnostic(ctx, "adk.tool.rejected", callID, capabilityName, result.Status, result.ErrorCode, argumentsJSON)
+					return modelFacingToolResultForContext(ctx, ToolExecutionReceipt{Result: result}, definition)
+				}
+			}
+		}
+	}
 	if rejection := kevRejectNativeTool(ctx, capabilityName, arguments); rejection != "" {
 		result := failedCapabilityResultDetail(invocation, rejection, false, "The capability was not admitted for this request")
 		i.trace.AppendResult(result)

@@ -91,6 +91,28 @@ func (r *runtimeContextRefresh) sameBatch(sequence uint64, callID string) (map[s
 	return copyBatch, true
 }
 
+// A direct reply and a media request from the same model response were both
+// composed before either result existed. Reject both calls so a refusal in the
+// reply cannot race an image request, and a later reply can use a real receipt.
+func (r *runtimeContextRefresh) directMediaReplyBatch(sequence uint64, callID string) bool {
+	if r == nil || sequence == 0 {
+		return false
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	batch := r.batches[sequence]
+	name := batch[callID]
+	if name != conversationReplyCapabilityName && name != "media.image.generate" {
+		return false
+	}
+	var reply, media bool
+	for _, name := range batch {
+		reply = reply || name == conversationReplyCapabilityName
+		media = media || name == "media.image.generate"
+	}
+	return reply && media
+}
+
 // replyBlockedBySameBatchSideEffect rejects a visible reply that shares a
 // physical model response with a recording tool. memory_event,
 // actor.fact.record, and active_memory_event must commit first; the reply is

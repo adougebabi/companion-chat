@@ -26,7 +26,7 @@
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | `direct` 使用同一主 Agent 的原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交；隔离 PostgreSQL 与受控 Provider 验证单次请求、重放、回滚、旧草稿及先行动再回复。隔离场景发现无附件却可发布“照片已发送”，因此暂不切为默认，缺口归 T06；真实 MeroMero 私聊和实时增量流仍未验收。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告配置缺口，动态页反映停用状态并保留历史/原提交核对。隔离 PostgreSQL 验证配置、直接调用、停用及 ready 夹具重建后去重交付。当前照片与创作场景的完整区分、真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
-| T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。隔离 PostgreSQL 的部分媒体恢复、历史回执及重放测试通过；真实渲染和媒体正文语义仍未验证。 |
+| T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。direct 同批图片请求与回复会分别拒绝并等待重新决定；隔离 PostgreSQL 的部分媒体恢复、历史回执及重放测试通过。未调用媒体却声称发送的正文语义缺口仍未解决，真实渲染未验证。 |
 | T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加；未知受理结果保留身份，多端更新不会让旧追发超车。受控页面、状态恢复及本地浏览器夹具通过；真实数据库并发、最终上下文合并及真实模型正反场景未验收。 |
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；fact-only Writer 和 `direct` 主 Agent 均按来源会话与触发词选择已审核参考，发布时复核来源版本与状态。隔离 PostgreSQL 及 React 恢复夹具通过；真实模型及 UI 到实际运行的完整闭环未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。隔离 PostgreSQL 已验证旧 Confirm、相同引用重新绑定、旧快照、调用中纠错及受控调度重开交错。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决；真实 Temporal 并发尚未验证。 |
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-11：T06 为 direct 主 Agent 同批发出 `media.image.generate` 与 `conversation.reply` 增加未执行拒绝回执，避免回复拒绝图片时同批图片请求继续执行；由同一主 Agent 读取真实回执并在后续轮次选择，普通纯文本仍保持单次主模型调用。隔离 PostgreSQL 与受控 Provider 验证两种工具顺序、拒绝后的自然回复及重放；原子结算、先行动后回复和旧混合媒体模式回归通过：`/private/tmp/fluctlight-t06-batch-regression.log`。这没有解决无媒体调用的虚假“已发送”声明，也不是整个 T06 或真实模型验收。
 
 - 2026-11-11：T05 的正式 React 动态页读取已保存插件开关；Moment 停用或状态未知时不开放新的发布、建议、评论和回应，仍可读取历史、隐藏/恢复已有动态及核对原提交。窗口重新获得焦点或手动刷新时重新读取，旧 Owner 的迟到响应不能覆盖新状态。20 个受控 React 场景、类型检查和生产构建通过；包括停用后原未知提交按同一身份恢复。首次运行的 19 项断言通过但测试夹具意外启动后台通知定时器，进程未退出而被终止；改为只安装所需受控配置服务后完整重跑通过。未进行真实浏览器到生产后端的端到端验收。
 
