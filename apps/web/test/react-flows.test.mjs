@@ -200,7 +200,7 @@ test("React model settings save a task override and restore inheritance", async 
 test("React plugin settings save and reread independent Image and Moment switches", async () => {
   const {default: Management} = await load("react-app/pages/ManagementPage.jsx");
   const server = {endpoints:[], bindings:[], versions:{}, effective_values:{"plugins.domains":{image:true,moment:true}},
-    domain_plugins:[{id:"image",version:"1",enabled:true,optional_dependencies:[]},{id:"moment",version:"1",enabled:true,optional_dependencies:["image"]}]};
+    domain_plugins:[{id:"image",version:"1",enabled:true,health:"unconfigured",error_code:"media_not_configured",required_dependencies:["comfyui"],optional_dependencies:[]},{id:"moment",version:"1",enabled:true,health:"not_checked",optional_dependencies:["image"]}]};
   const writes=[];let failNextRead=false;
   const w={...storeFacade(proxy({session:{actorId:"owner-plugin-react"},managementTab:"配置中心",characters:[],operations:[],managementSection:"能力插件",runtimeCatalog:{}})),
     services:{configurationClient:{read:async()=>{if(failNextRead){failNextRead=false;throw Error('catalog unavailable');}return structuredClone(server);},models:async()=>({models:[]}),catalog:async()=>({agents:[]}),
@@ -216,7 +216,7 @@ test("React plugin settings save and reread independent Image and Moment switche
     await act(async()=>view.host.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
     await view.flush();
     assert.deepEqual(writes[0].values["plugins.domains"],{image:false,moment:true});
-    assert.match(view.host.textContent,/图片 · v1 · 已停用 · 健康状态未检测/);
+    assert.match(view.host.textContent,/图片 · v1 · 已停用 · 图片服务未配置 · 生图需要 ComfyUI/);
     assert.match(view.host.textContent,/动态 · v1 · 已启用 · 健康状态未检测 · 图片为可选依赖/);
     await view.dispose();
     view=await mountReact(vite,Management,{workspace:w});

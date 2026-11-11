@@ -16,17 +16,51 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "execute",
   "status": "open",
   "candidate": "",
   "failure": "",
   "result": "",
   "created": "2026-11-10T08:34:30.759305Z",
-  "updated": "2026-11-10T08:34:30.759319Z",
+  "updated": "2026-11-11T15:12:48.628413Z",
   "completed": null,
   "feedback": [],
   "history": {
-    "attempts": null,
+    "attempts": [
+      {
+        "id": "AT-6cebc3326aef9ac3a281",
+        "unit": "define",
+        "executor": "codex-t05-plugins",
+        "input_version": "dca8be27c2c8282546c200f92ad2178c6dee83acc85def68ca9e934c6b9c46ac",
+        "candidate_version": "dca8be27c2c8282546c200f92ad2178c6dee83acc85def68ca9e934c6b9c46ac",
+        "started": "2026-11-11T15:01:46.770843Z",
+        "ended": "2026-11-11T15:02:57.838489Z",
+        "status": "pass",
+        "reason": "按原 T05 核对和补齐现有 Capability 中 Image/Moment 的真实领域边界、生命周期、发现、启停与独立调用；保留 Core 权限、事务、持久工作流和交付，不新增平行插件平台。隔离数据库与受控服务用于验证，真实渲染或模型不可用时保留未验收并继续。任务外非阻断问题只登记 bug。"
+      },
+      {
+        "id": "AT-adef266fcec407261f31",
+        "unit": "analysis",
+        "executor": "codex-t05-plugins",
+        "input_version": "dca8be27c2c8282546c200f92ad2178c6dee83acc85def68ca9e934c6b9c46ac",
+        "candidate_version": "dca8be27c2c8282546c200f92ad2178c6dee83acc85def68ca9e934c6b9c46ac",
+        "started": "2026-11-11T15:03:10.510049Z",
+        "ended": "2026-11-11T15:08:56.768166Z",
+        "status": "pass",
+        "reason": "Image/Moment 已复用现有 Capability 注册、权限和持久事务；Moment 以 Image 为可选依赖，停用回放边界已有部分测试。直接缺口是插件目录只返回 not_checked、没有声明 Image 生成所需渲染配置或暴露缺失配置，管理页面硬编码状态；先补真实配置状态，不把配置完整当作服务健康。随后核对停用后已受理任务恢复及纯文字动态。真实模型/渲染不能用替身冒充。"
+      },
+      {
+        "id": "AT-342ef0e50c81c7ffec4e",
+        "unit": "execute",
+        "executor": "codex-t05-plugins",
+        "input_version": "dca8be27c2c8282546c200f92ad2178c6dee83acc85def68ca9e934c6b9c46ac",
+        "candidate_version": "",
+        "started": "2026-11-11T15:09:08.322806Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
     "checks": null
   }
 }

@@ -114,7 +114,7 @@ func (a *App) OwnerConfigurationCatalog(ctx context.Context, owner string) (map[
 	}
 	saved["endpoints"], saved["bindings"] = endpoints, bindings
 	saved["agent_model_routes"] = routes
-	saved["domain_plugins"] = domainPluginCatalog(pluginSettings)
+	saved["domain_plugins"] = domainPluginCatalog(pluginSettings, effective)
 	saved["provider_budget_defaults"] = map[string]any{"policy_version": promptBudgetPolicyVersionV1, "safety_margin_tokens": defaultPromptSafetyMarginTokens, "output_tokens": defaultOutputReserveTokens}
 	saved["effective_values"], saved["value_sources"] = effective, sources
 	return saved, nil

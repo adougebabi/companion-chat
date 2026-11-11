@@ -20,12 +20,13 @@ type domainPluginDeclaration struct {
 	Settings             []string
 	Events               []string
 	PersistentTasks      []string
+	RequiredDependencies []string
 	OptionalDependencies []string
 	Register             func(*App, *ToolPublicationService) []Capability
 }
 
 var builtInDomainPlugins = []domainPluginDeclaration{
-	{ID: "image", Version: "1", Capabilities: []string{"media.image.generate", replyImageRequestName, "visual_identity.initialize", visualIdentityGenerateCandidateCapabilityName, visualIdentityCommitReviewCapabilityName, visualIdentityFinalizeCapabilityName}, NewWorkCapabilities: []string{"media.image.generate", replyImageRequestName, "visual_identity.initialize", visualIdentityGenerateCandidateCapabilityName}, Agents: []string{"media_prompt", "media_quality", "visual_identity", "visual_identity_vision", "visual_identity_patch"}, Settings: []string{domainPluginsSettingKey, "media.comfyui"}, Events: []string{"media.intent.created", "media.asset.ready"}, PersistentTasks: []string{"media.generation", "visual_identity.initialize", "studio.generate:image_preview"}, Register: imagePluginCapabilities},
+	{ID: "image", Version: "1", Capabilities: []string{"media.image.generate", replyImageRequestName, "visual_identity.initialize", visualIdentityGenerateCandidateCapabilityName, visualIdentityCommitReviewCapabilityName, visualIdentityFinalizeCapabilityName}, NewWorkCapabilities: []string{"media.image.generate", replyImageRequestName, "visual_identity.initialize", visualIdentityGenerateCandidateCapabilityName}, Agents: []string{"media_prompt", "media_quality", "visual_identity", "visual_identity_vision", "visual_identity_patch"}, Settings: []string{domainPluginsSettingKey, "media.comfyui"}, Events: []string{"media.intent.created", "media.asset.ready"}, PersistentTasks: []string{"media.generation", "visual_identity.initialize", "studio.generate:image_preview"}, RequiredDependencies: []string{"comfyui"}, Register: imagePluginCapabilities},
 	{ID: "moment", Version: "1", Capabilities: []string{"moment.publish", "moment.inspect"}, NewWorkCapabilities: []string{"moment.publish", "moment.inspect"}, Agents: []string{"conversation_reply:moment", "npc_response:npc_moment_response_v1"}, Settings: []string{domainPluginsSettingKey}, Events: []string{"moment.published", "moment.comment.created", "moment.reaction.created", npcMomentFactType}, PersistentTasks: []string{"cognition.processing:npc_moment"}, OptionalDependencies: []string{"image"}, Register: momentPluginCapabilities},
 }
 
@@ -177,17 +178,25 @@ func filterDomainPluginDefinitions(ctx context.Context, definitions []Capability
 	return out
 }
 
-func domainPluginCatalog(settings domainPluginSettings) []map[string]any {
+func domainPluginCatalog(settings domainPluginSettings, effective map[string]any) []map[string]any {
 	out := make([]map[string]any, 0, len(builtInDomainPlugins))
 	for _, plugin := range builtInDomainPlugins {
 		inFlight := "current_process_runs_and_accepted_media_continue_unaccepted_recovery_checks_current_setting"
 		if plugin.ID == "moment" {
 			inFlight = "current_process_runs_continue_committed_publications_replay_unaccepted_recovery_checks_current_setting"
 		}
+		health, errorCode := "not_checked", ""
+		if plugin.ID == "image" {
+			if raw, exists := effective["media.comfyui"]; !exists || raw == nil {
+				health, errorCode = "unconfigured", "media_not_configured"
+			} else if _, _, err := comfyConfig(mapValue(raw)); err != nil {
+				health, errorCode = "configuration_invalid", "media_configuration_invalid"
+			}
+		}
 		out = append(out, map[string]any{
 			"id": plugin.ID, "version": plugin.Version, "installed": true,
-			"enabled": settings.enabled(plugin.ID), "health": "not_checked",
-			"required_dependencies": []string{}, "optional_dependencies": append([]string{}, plugin.OptionalDependencies...),
+			"enabled": settings.enabled(plugin.ID), "health": health, "error_code": errorCode,
+			"required_dependencies": append([]string{}, plugin.RequiredDependencies...), "optional_dependencies": append([]string{}, plugin.OptionalDependencies...),
 			"capabilities": plugin.Capabilities, "agents": plugin.Agents, "settings": plugin.Settings,
 			"events": plugin.Events, "persistent_tasks": plugin.PersistentTasks,
 			"in_flight_policy": inFlight,

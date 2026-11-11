@@ -59,8 +59,31 @@ func TestDomainPluginConfigurationAndRegistration(t *testing.T) {
 			}
 		}
 	}
-	if got := domainPluginCatalog(settings); len(got) != 2 || got[0]["health"] != "not_checked" || got[1]["health"] != "not_checked" {
-		t.Fatalf("installation must not assert untested service health: %#v", got)
+	if got := domainPluginCatalog(settings, nil); len(got) != 2 || got[0]["health"] != "unconfigured" || got[0]["error_code"] != "media_not_configured" || got[1]["health"] != "not_checked" {
+		t.Fatalf("plugin configuration status is incorrect: %#v", got)
+	}
+}
+
+func TestDomainPluginCatalogDistinguishesConfigurationFromHealth(t *testing.T) {
+	settings := domainPluginSettings{Image: true, Moment: true}
+	for _, test := range []struct {
+		name, health, errorCode string
+		config                  map[string]any
+	}{
+		{"missing", "unconfigured", "media_not_configured", nil},
+		{"invalid", "configuration_invalid", "media_configuration_invalid", map[string]any{"media.comfyui": map[string]any{"baseUrl": "http://comfy.invalid"}}},
+		{"configured", "not_checked", "", map[string]any{"media.comfyui": map[string]any{"baseUrl": "http://comfy.invalid", "workflow": map[string]any{"prompt": "fixture"}}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			catalog := domainPluginCatalog(settings, test.config)
+			image, moment := catalog[0], catalog[1]
+			if image["health"] != test.health || image["error_code"] != test.errorCode || !reflect.DeepEqual(image["required_dependencies"], []string{"comfyui"}) {
+				t.Fatalf("Image status = %#v", image)
+			}
+			if moment["health"] != "not_checked" || !reflect.DeepEqual(moment["optional_dependencies"], []string{"image"}) || len(moment["required_dependencies"].([]string)) != 0 {
+				t.Fatalf("Moment incorrectly depends on image: %#v", moment)
+			}
+		})
 	}
 }
 

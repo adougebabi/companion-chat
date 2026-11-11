@@ -97,6 +97,40 @@ func TestDomainPluginPostgresSettingsAdmissionAndReplay(t *testing.T) {
 	}
 }
 
+func TestDomainPluginCatalogReportsSavedRendererConfiguration(t *testing.T) {
+	ctx, repo, app, owner, _, _ := setupDirectPublicationToolTest(t, "plugin-health")
+	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_accounts(human_actor_id,credential_hash,credential_revision) VALUES($1,'fixture','fixture')`, owner); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Pool().Exec(ctx, `DELETE FROM public.runtime_settings WHERE key='media.comfyui'`); err != nil {
+		t.Fatal(err)
+	}
+	read := func() map[string]any {
+		t.Helper()
+		catalog, err := app.OwnerConfigurationCatalog(ctx, owner)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, raw := range arrayValue(catalog["domain_plugins"]) {
+			if plugin := mapValue(raw); plugin["id"] == "image" {
+				return plugin
+			}
+		}
+		t.Fatal("Image plugin missing from saved catalog")
+		return nil
+	}
+	if image := read(); image["health"] != "unconfigured" || image["error_code"] != "media_not_configured" {
+		t.Fatalf("missing renderer configuration not reported: %#v", image)
+	}
+	config := map[string]any{"baseUrl": "http://comfy.invalid", "workflow": map[string]any{"1": map[string]any{"class_type": "CLIPTextEncode", "inputs": map[string]any{"text": "{{prompt}}"}}}}
+	if _, err := app.UpdateSettings(ctx, owner, map[string]any{"values": map[string]any{"media.comfyui": config}, "expected_versions": map[string]any{"media.comfyui": 0}, "idempotency_key": "plugin-health-save"}); err != nil {
+		t.Fatal(err)
+	}
+	if image := read(); image["health"] != "not_checked" || image["error_code"] != "" {
+		t.Fatalf("saved configuration was not reread or claimed untested health: %#v", image)
+	}
+}
+
 // A fresh Agent trace can replay the same durable operation after disable;
 // a different operation must instead return a disabled ToolResult.
 func TestDomainPluginPostgresNativeAgentReceiptReplay(t *testing.T) {
