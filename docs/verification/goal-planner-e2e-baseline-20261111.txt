@@ -1,0 +1,8 @@
+2026/11/11 20:04:05 INFO capability lifecycle capability=goal_planner.query call_id=planner-call-1 type=query surface=goal_planner required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/11 20:04:05 INFO capability lifecycle capability=goal_planner.query call_id=planner-call-2 type=query surface=goal_planner required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+2026/11/11 20:04:05 INFO capability lifecycle capability=goal_planner.query call_id=planner-call-4 type=query surface=goal_planner required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+--- FAIL: TestGoalPlannerNativeLoopConsumesQueryCommitAndReread (2.47s)
+    goal_planner_test.go:309: new goal did not complete original evidence chain active 0 <nil>
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	2.901s
+FAIL
