@@ -15,13 +15,13 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "define",
+  "current_step": "verify",
   "status": "open",
-  "candidate": "",
-  "failure": "执行前阻塞：用户要求先将已完成的 T02 恢复为未完成；AEL 0.1.18 对 resume 返回 TERMINAL_TASK，现有 Edit/Resume 均不支持对 completed 任务重新打开。历史验收保留，R1 已单独登记但 A/B/C 未执行。",
+  "candidate": "20b8c72890f1dc0961d40c400b6fc89b7b0f64595329385ebe352973d1dd1a3c",
+  "failure": "",
   "result": "",
   "created": "2026-11-12T01:49:19.502514Z",
-  "updated": "2026-11-12T01:50:46.249455Z",
+  "updated": "2026-11-12T02:28:41.502549Z",
   "completed": null,
   "feedback": [],
   "history": {
@@ -36,6 +36,28 @@
         "ended": "2026-11-12T01:50:42.067695Z",
         "status": "blocked",
         "reason": "执行前阻塞：用户要求先将已完成的 T02 恢复为未完成；AEL 0.1.18 对 resume 返回 TERMINAL_TASK，现有 Edit/Resume 均不支持对 completed 任务重新打开。历史验收保留，R1 已单独登记但 A/B/C 未执行。"
+      },
+      {
+        "id": "AT-4cc28b57cd0be2ba9446",
+        "unit": "define",
+        "executor": "codex-batch-01",
+        "input_version": "e9b299fb5bd2278f224fd4220132de6c711d1f1cd4fa737f12302fc9bcf65a4c",
+        "candidate_version": "e9b299fb5bd2278f224fd4220132de6c711d1f1cd4fa737f12302fc9bcf65a4c",
+        "started": "2026-11-12T01:57:58.58083Z",
+        "ended": "2026-11-12T01:58:17.474342Z",
+        "status": "pass",
+        "reason": "用户明确撤销先重开父 T02 的执行前条件；继续使用现有 R1 关联任务，父 T02 历史状态保留。先验证两轮真实 A/B/C，全部通过才执行用户授权的 direct 零媒体声明修复；失败即停止。"
+      },
+      {
+        "id": "AT-796616f693cb983ba4c0",
+        "unit": "execute",
+        "executor": "codex-batch-01",
+        "input_version": "e9b299fb5bd2278f224fd4220132de6c711d1f1cd4fa737f12302fc9bcf65a4c",
+        "candidate_version": "20b8c72890f1dc0961d40c400b6fc89b7b0f64595329385ebe352973d1dd1a3c",
+        "started": "2026-11-12T01:58:40.824483Z",
+        "ended": "2026-11-12T02:28:29.185065Z",
+        "status": "pass",
+        "reason": "A 的两次独立隔离数据库 A1/A2/A3 真实模型测试通过，无 SKIP；每阶段 reflection 与 expression_learning 的请求及 Provider 返回模型、配置来源版本和任务最终合同已记录。第一轮 A2 有两次 Qwen 物理请求，均计入同一任务、不是两次独立场景。测试文件提交 0bd08f2b，已将原始日志和合成响应保存仓库外私有证据目录。用户授权 A 通过后进入 B，父 T02 不变。"
       }
     ],
     "checks": null
