@@ -1,0 +1,83 @@
+SOURCE_HEAD 2b05a972e9c03f81857babb6854cb4e56626f371 (clean archive, no overlays)
+CANDIDATE /private/tmp/fluctlight-m2-mainline-cub_jpfk
+MANIFEST /private/tmp/fluctlight-m2-mainline-cub_jpfk/m2-mainline-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestDirectMainReplyPublishesAndSettlesAtomically|TestDirectMainReplyRetainsPriorNativeAction|TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce|TestM2DirectRelationshipInfluenceUsesOfferedReference|TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops|TestImageDisabledKeepsDirectChatAndTextMomentAvailable|TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable|TestDirectMomentImageTargetsPublishedMoment|TestImageRunningJobRecoversAcrossProcessesAfterDisable|TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob|TestSDXLPositiveTextCannotOverrideNoPersonImage)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (4.94s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (2.47s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (2.47s)
+=== RUN   TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce
+--- PASS: TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce (2.41s)
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/success
+2026/11/13 07:43:01 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/settlement_failure
+2026/11/13 07:43:04 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMainReplyRetainsPriorNativeAction (5.45s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/success (2.57s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/settlement_failure (2.87s)
+=== RUN   TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops
+--- PASS: TestM1RepeatedUnauthorizedToolWithChangedArgumentsStops (3.38s)
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=97664 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:51707/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.07s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=97668 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.02s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (3.21s)
+=== RUN   TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter
+--- PASS: TestDefaultPrivateReplyUsesConfiguredModelWithoutWriter (3.36s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/13 07:43:17 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (2.92s)
+=== RUN   TestM2DirectRelationshipInfluenceUsesOfferedReference
+--- PASS: TestM2DirectRelationshipInfluenceUsesOfferedReference (2.20s)
+=== RUN   TestImageDisabledKeepsDirectChatAndTextMomentAvailable
+2026/11/13 07:43:20 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:image-off-chat metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 07:43:20 INFO reply.evidence.reconciled correlation_id=tool-operation:image-off-independent-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestImageDisabledKeepsDirectChatAndTextMomentAvailable (1.41s)
+=== RUN   TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable
+2026/11/13 07:43:22 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-existing-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/13 07:43:22 INFO capability lifecycle capability=capability.catalog call_id=m2-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestMomentDisabledKeepsDefaultDirectChatAndImageAvailable (1.40s)
+=== RUN   TestDirectMomentImageTargetsPublishedMoment
+2026/11/13 07:43:25 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:m2-moment-image metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+2026/11/13 07:43:25 INFO capability lifecycle capability=capability.catalog call_id=moment-image-load type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMomentImageTargetsPublishedMoment (2.96s)
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:156: child phase=interrupt pid=97692 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:221: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.05s)
+        PASS
+    m2_running_image_recovery_test.go:166: child phase=resume pid=97696 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:231: resume and replay completed once; child pid=97696
+        --- PASS: TestImageRunningJobRecoveryChild (0.06s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (3.09s)
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-global
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-local
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-via-positive-prompt-edge
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-primitive
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/both-frozen
+=== RUN   TestSDXLPositiveTextCannotOverrideNoPersonImage/empty-local
+--- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage (12.41s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-global (2.93s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-local (2.55s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-via-positive-prompt-edge (2.21s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/fixed-primitive (1.13s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/both-frozen (1.48s)
+    --- PASS: TestSDXLPositiveTextCannotOverrideNoPersonImage/empty-local (2.11s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	49.794s
+
+EXIT_CODE 0
