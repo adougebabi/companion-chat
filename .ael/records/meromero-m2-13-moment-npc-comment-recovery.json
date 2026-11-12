@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "8d676352ffdebfbf3a7be7cc85a6ab145f40bb8d337b51c87c410663a3a3dc06",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T15:19:32.956149Z",
-  "updated": "2026-11-12T15:32:19.103445Z",
-  "completed": null,
+  "updated": "2026-11-12T15:36:22.406483Z",
+  "completed": "2026-11-12T15:36:22.403797Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,43 @@
         "unit": "execute",
         "executor": "codex-m2-13",
         "input_version": "457aaffc7edb66d7143c8567371bce6881454f7eeaf749ef24cd4223caa96508",
-        "candidate_version": "",
+        "candidate_version": "8d676352ffdebfbf3a7be7cc85a6ab145f40bb8d337b51c87c410663a3a3dc06",
         "started": "2026-11-12T15:21:06.795247Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T15:35:14.821222Z",
+        "status": "pass",
+        "reason": "提交 b1b4498f 增加正式动态与 NPC 评论的隔离集成场景：正常及重放、停用前未决定、已持久决定在注入失败后停用恢复均通过；5 项直接相关回归通过。最终断言及提交后复验因磁盘不足使用 -vet=off，先前相关回归使用默认 vet；无 SKIP，真实模型及 Temporal 未验证。"
+      },
+      {
+        "id": "AT-44a0f64a1ff1b730f02d",
+        "unit": "check:m2-13-npc-comment-scenario",
+        "executor": "codex-m2-13",
+        "input_version": "8d676352ffdebfbf3a7be7cc85a6ab145f40bb8d337b51c87c410663a3a3dc06",
+        "candidate_version": "8d676352ffdebfbf3a7be7cc85a6ab145f40bb8d337b51c87c410663a3a3dc06",
+        "started": "2026-11-12T15:36:11.436733Z",
+        "ended": "2026-11-12T15:36:11.525222Z",
+        "status": "pass",
+        "reason": "b1b4498f 的等同 Go 源码、一次性 PostgreSQL 和受控 Provider：正式动态已结识 NPC 评论及重放、停用前未决抑制、已保存决定在注入数据库错误后停用恢复三场景均实际通过无 SKIP；提交前 5 项直接相关回归默认 vet 通过。磁盘不足导致最终测试及提交后复验使用 -vet=off，两次构建失败均保留；不代表真实模型、Temporal 或父任务通过。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-13-npc-comment-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-13",
+        "config_hash": "3d34dbaf751ab741307693ecca40ebedc2cd220ef426013dd11d9346d2c7f7d0",
+        "at": "2026-11-12T15:36:11.522225Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/domain_plugins.go": "236916c540d8e7d63a3ad9d00a00877fdab595bbdd7e09c39a342236d55337a2",
+          "apps/core-go/internal/core/m2_moment_npc_comment_recovery_test.go": "cc854c6caa05f85b09e0aede244c7ab72561bd2d8f77dc8ce9eac73458b0a593",
+          "apps/core-go/internal/core/moment_npc_interactions.go": "5b0ea4b00ed34dbd50c6fb3ddbc40d2b8487df389fecb8d3a8b226a8fa609807",
+          "docs/verification/meromero-m2-evidence/m2-13-final-build-failure.log": "f9eccbc0718e920a0b0de966e108a722c570fd491b7089b8bc0ce3484f820895",
+          "docs/verification/meromero-m2-evidence/m2-13-final-no-vet.log": "49fd82210fa497b02fb7ce9abfd66b57a5d49b913337f8d641df2660ba4dd516",
+          "docs/verification/meromero-m2-evidence/m2-13-first.log": "5676c35e388f62c1b7f95c841d15eb32bfe88a78227e69a5ca512481a709da37",
+          "docs/verification/meromero-m2-evidence/m2-13-postcommit.log": "9957dc261ca84e236fbb3d92f0cd83b9092299da265212cd85f4938a4e1d5d49",
+          "docs/verification/meromero-m2-evidence/m2-13-regression.log": "1ac63ff60abd758c4cd02d91ed3ca19a66281409fd39e779a5a9f5c588f5a557",
+          "docs/verification/meromero-m2-evidence/m2-13-review-notes.md": "4a00794f747dd2d973526ad2f992265fb38ffcffb789147531dbb08fdbe08ae6"
+        }
+      }
+    ]
   }
 }
