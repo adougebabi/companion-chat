@@ -16,14 +16,14 @@
     "reason": "explicit preset",
     "approved": false
   },
-  "current_step": "execute",
-  "status": "open",
-  "candidate": "",
+  "current_step": "verify",
+  "status": "completed",
+  "candidate": "be1191b224a0426591f0a7fb704f1456cdcb3e5e905fe779b290a23834b9252b",
   "failure": "",
-  "result": "",
+  "result": "verified",
   "created": "2026-11-12T08:48:43.260251Z",
-  "updated": "2026-11-12T08:54:08.524678Z",
-  "completed": null,
+  "updated": "2026-11-12T08:56:53.573659Z",
+  "completed": "2026-11-12T08:56:53.57319Z",
   "feedback": [],
   "history": {
     "attempts": [
@@ -54,13 +54,40 @@
         "unit": "execute",
         "executor": "codex-m2-04",
         "input_version": "a54ef7e53d525424c1a0a59db1a5db6202e30ae86f690402fc7b9c84fcec15ad",
-        "candidate_version": "",
+        "candidate_version": "be1191b224a0426591f0a7fb704f1456cdcb3e5e905fe779b290a23834b9252b",
         "started": "2026-11-12T08:49:52.816407Z",
-        "ended": null,
-        "status": "running",
-        "reason": ""
+        "ended": "2026-11-12T08:54:45.849144Z",
+        "status": "pass",
+        "reason": "提交 707ac2ad；隔离 PostgreSQL、两个独立进程与受控 HTTP 服务验证已保存 job ID 的任务在停用 Image 后恢复并幂等交付；不覆盖提交返回前的崩溃窗口，不宣称真实 Temporal 或渲染。"
+      },
+      {
+        "id": "AT-b28d69e23b37a74c14b9",
+        "unit": "check:m2-04-scenario",
+        "executor": "codex-m2-04",
+        "input_version": "be1191b224a0426591f0a7fb704f1456cdcb3e5e905fe779b290a23834b9252b",
+        "candidate_version": "be1191b224a0426591f0a7fb704f1456cdcb3e5e905fe779b290a23834b9252b",
+        "started": "2026-11-12T08:56:38.503754Z",
+        "ended": "2026-11-12T08:56:38.758038Z",
+        "status": "pass",
+        "reason": "受检源码 707ac2ad：干净导出和隔离 PostgreSQL 运行 7 个顶层用例通过、无 SKIP；另外在含四处原有草稿的工作区复核主场景通过。使用两个独立 OS 进程及受控模型、renderer 与对象存储；不代表真实 Temporal、ComfyUI 或 job ID 落库前崩溃窗口通过。"
       }
     ],
-    "checks": null
+    "checks": [
+      {
+        "id": "m2-04-scenario",
+        "result": "pass",
+        "source": "scenario:codex-m2-04",
+        "config_hash": "90aa75fadd892c7c56bb25fbcfb84231b3f9ed6159506b5fe00e3ff5dd4a27da",
+        "at": "2026-11-12T08:56:38.757696Z",
+        "artifact_hashes": {
+          "apps/core-go/internal/core/domain_plugins.go": "236916c540d8e7d63a3ad9d00a00877fdab595bbdd7e09c39a342236d55337a2",
+          "apps/core-go/internal/core/m2_running_image_recovery_test.go": "e5343e24f5708646a3f7cd29aca9020e39b6d97da7bed2a112460edb7a01a21f",
+          "apps/core-go/internal/core/media.go": "52b1e474b6476ff5dcbc02209392f4d53b9b5ee9cb2611ae156e532db79fc3ad",
+          "apps/core-go/internal/core/media_quality.go": "668f7192d2f62a9af13642936153cfdee09beac76433b52f86e17f08d4800758",
+          "docs/verification/meromero-m2-evidence/m2-04-initial.log": "c5b7f379c5fbe5d648d7950dc2fcb36600efd612f3dd717dcbdb77154dd81ee5",
+          "docs/verification/meromero-m2-evidence/m2-04-regression.log": "10f059635f1028dbfcc1c7dd1f7f73af265b763f942db6c7ea5be2fdb8d0f68a"
+        }
+      }
+    ]
   }
 }

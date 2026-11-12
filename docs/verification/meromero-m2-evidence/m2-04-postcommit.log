@@ -1,0 +1,34 @@
+SOURCE_HEAD 707ac2ad5f96428a57cda8fe8e513842d721857e CANDIDATE /private/tmp/fluctlight-m2-02-85__hu71
+OVERLAYS (none)
+COMMAND go test ./internal/core -count=1 -run ^(TestImageRunningJobRecoversAcrossProcessesAfterDisable|TestDisabledImagePluginRecoversAcceptedReadyIntentOnce|TestMediaNormalizerSnapshotSurvivesProcessRecovery|TestMediaQualitySnapshotFailureCannotBecomeSkippedDelivery|TestCompletedMediaReplayDoesNotNeedValidModelSnapshot|TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate|TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestDisabledImagePluginRecoversAcceptedReadyIntentOnce
+--- PASS: TestDisabledImagePluginRecoversAcceptedReadyIntentOnce (2.39s)
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:156: child phase=interrupt pid=19596 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:221: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.06s)
+        PASS
+    m2_running_image_recovery_test.go:166: child phase=resume pid=19599 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:231: resume and replay completed once; child pid=19599
+        --- PASS: TestImageRunningJobRecoveryChild (0.07s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (2.00s)
+=== RUN   TestMediaNormalizerSnapshotSurvivesProcessRecovery
+--- PASS: TestMediaNormalizerSnapshotSurvivesProcessRecovery (2.10s)
+=== RUN   TestMediaQualitySnapshotFailureCannotBecomeSkippedDelivery
+--- PASS: TestMediaQualitySnapshotFailureCannotBecomeSkippedDelivery (1.85s)
+=== RUN   TestCompletedMediaReplayDoesNotNeedValidModelSnapshot
+--- PASS: TestCompletedMediaReplayDoesNotNeedValidModelSnapshot (1.77s)
+=== RUN   TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate
+--- PASS: TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate (2.01s)
+=== RUN   TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction
+=== RUN   TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/resume
+=== RUN   TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/regenerate
+--- PASS: TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction (2.35s)
+    --- PASS: TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/resume (0.01s)
+    --- PASS: TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/regenerate (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	15.135s
+EXIT_CODE 0

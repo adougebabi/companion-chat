@@ -7,7 +7,7 @@
 | M2-01 | T04/T06：跨轮媒体话题中省略图片名的已交付声明进入现有核验 | BLOCKED | 正式路径无依据红测已修复，受控 Provider 的匹配、无关交付和普通闲聊对照通过；两次真实 MeroMero 的无依据场景均通过，但匹配交付场景未通过：首次是后端对完整引用误拦，修正后第二次模型返回空 `subject_quote`，后端保守拒绝。按用户授权不继续调 Prompt 或模型字段，保留全部证据，不标 VERIFIED。 |
 | M2-02 | T04：默认私聊使用现有配置的主模型及原生工具链，不固定进入独立 Writer | BLOCKED | 未设置 mode 时默认 direct；已保存或显式选择的 fact_only/legacy 继续生效，开关保留，不写死模型 ID。隔离库与受控 Provider 已验证默认选模、variant 覆盖、模式切换、原生查询、认知结算、幂等、旧草稿和相关回归；页面测试通过。本机真实 MeroMero 默认私聊发出 3 次请求后因 `direct_reply_arguments_unresolved` 未发布，真实模型合同未通过。保留日志 `meromero-m2-evidence/m2-02-live-default.log` 与请求证据 `meromero-m2-evidence/m2-02-live-default.json`，按用户要求不调整 Prompt、采样或合同。 |
 | M2-03 | T05：Image 停用时默认私聊与纯文字动态隔离 | VERIFIED | 受检提交 `1d67046e`：一次性数据库中，正式设置关闭 Image 后，默认 direct 私聊经真实原生工具调用发布纯文字动态、消费结果并回复；独立 Moment 调用及重放通过，新的图片调用被拒绝且无媒体 intent。干净提交的 10 个相关顶层受控回归通过、无 SKIP；含四处原有草稿的工作区主场景也通过。日志 `meromero-m2-evidence/m2-03-postcommit.log`、`meromero-m2-evidence/m2-03-working-tree.log`。Provider 是测试替身，真实模型和渲染不在此项证据范围内。 |
-| M2-04 | T05/T06：已保存渲染 Job ID 的未完成图片跨进程恢复 | IMPLEMENTED | 正式 Image 请求受理后，第一个进程在 Job ID 落库后遇到受控 503；Image 停用后第二个独立进程恢复同一 Job，经受控质量检查和存储后只交付一次，重放不重复；新图片请求被拒绝。7 个定向顶层回归通过、无 SKIP，日志 `meromero-m2-evidence/m2-04-regression.log`；待提交后复核。渲染服务已接单但 ID 尚未落库的崩溃窗口仍为父任务缺口；受控服务不冒充真实 Temporal、ComfyUI 或模型。 |
+| M2-04 | T05/T06：已保存渲染 Job ID 的未完成图片跨进程恢复 | VERIFIED | 受检提交 `707ac2ad`：正式 Image 请求受理后，第一个进程在 Job ID 落库后遇到受控 503；Image 停用后第二个独立进程恢复同一 Job，经受控质量检查和存储后只交付一次，重放不重复；新图片请求被拒绝。干净提交的 7 个定向顶层回归通过、无 SKIP，含四处原有草稿的工作区主场景也通过；日志 `meromero-m2-evidence/m2-04-postcommit.log`、`meromero-m2-evidence/m2-04-working-tree.log`。渲染服务已接单但 ID 尚未落库的崩溃窗口仍为父任务缺口；受控服务不冒充真实 Temporal、ComfyUI 或模型。 |
 
 M1 中同一调用 ID 重放的非阻断缺陷已登记 AEL，按用户要求暂缓，不在 M2 顺手修复。其余 M2 验收仍按原 T03～T06 和里程碑要求逐项处理，不以局部完成替代父任务验收。
 

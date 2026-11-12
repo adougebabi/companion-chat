@@ -1,0 +1,27 @@
+{
+  "id": "meromero-m2-04-running-image-recovery",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "be1191b224a0426591f0a7fb704f1456cdcb3e5e905fe779b290a23834b9252b",
+  "completed": "2026-11-12T08:56:53.57319Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-04-scenario",
+      "result": "pass",
+      "source": "scenario:codex-m2-04",
+      "config_hash": "90aa75fadd892c7c56bb25fbcfb84231b3f9ed6159506b5fe00e3ff5dd4a27da",
+      "at": "2026-11-12T08:56:38.757696Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/domain_plugins.go": "236916c540d8e7d63a3ad9d00a00877fdab595bbdd7e09c39a342236d55337a2",
+        "apps/core-go/internal/core/m2_running_image_recovery_test.go": "e5343e24f5708646a3f7cd29aca9020e39b6d97da7bed2a112460edb7a01a21f",
+        "apps/core-go/internal/core/media.go": "52b1e474b6476ff5dcbc02209392f4d53b9b5ee9cb2611ae156e532db79fc3ad",
+        "apps/core-go/internal/core/media_quality.go": "668f7192d2f62a9af13642936153cfdee09beac76433b52f86e17f08d4800758",
+        "docs/verification/meromero-m2-evidence/m2-04-initial.log": "c5b7f379c5fbe5d648d7950dc2fcb36600efd612f3dd717dcbdb77154dd81ee5",
+        "docs/verification/meromero-m2-evidence/m2-04-regression.log": "10f059635f1028dbfcc1c7dd1f7f73af265b763f942db6c7ea5be2fdb8d0f68a"
+      }
+    }
+  ]
+}
