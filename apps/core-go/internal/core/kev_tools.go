@@ -43,6 +43,7 @@ func kevSelection(ctx context.Context) *kevRunSelection {
 // reports available tools when used directly; loading is scoped to an Agent.
 type capabilityDiscoverCapability struct {
 	catalog func(CapabilitySurface) []CapabilityDefinition
+	lookup  func(string) (CapabilityDefinition, bool)
 }
 
 // capabilityCatalogCapability exposes the complete authorized installation on
@@ -51,6 +52,59 @@ type capabilityDiscoverCapability struct {
 // and admitted by a named catalog request.
 type capabilityCatalogCapability struct {
 	catalog func(CapabilitySurface) []CapabilityDefinition
+	lookup  func(string) (CapabilityDefinition, bool)
+}
+
+// A surface- or run-scoped catalog is not an installation inventory. Only an
+// authoritative registry lookup can distinguish a missing tool from one this
+// Agent cannot use. Never disclose its schema through the denied result.
+func unavailableCapability(ctx context.Context, name string, fallback func(string) (CapabilityDefinition, bool)) toolDisclosureAvailability {
+	if registry, ok := scopedCapabilityRegistry(ctx); ok {
+		if _, installed := registry.Definition(name); installed {
+			return toolDisclosureAvailability{Name: name, Status: "denied", ErrorCode: "capability_not_authorized"}
+		}
+	}
+	if fallback == nil {
+		return toolDisclosureAvailability{Name: name, Status: "unknown", ErrorCode: "capability_installation_unknown"}
+	}
+	if _, installed := fallback(name); installed {
+		return toolDisclosureAvailability{Name: name, Status: "denied", ErrorCode: "capability_not_authorized"}
+	}
+	return toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"}
+}
+
+// Standalone discovery may describe explicitly named utility Tools that are
+// actually in its current registry, although ordinary listings omit them.
+func includeNamedStandaloneUtilities(ctx context.Context, definitions []CapabilityDefinition, own CapabilityDefinition, names []string, surface CapabilitySurface, fallback func(string) (CapabilityDefinition, bool)) []CapabilityDefinition {
+	if kevSelection(ctx) != nil {
+		return definitions
+	}
+	lookup := fallback
+	if registry, ok := scopedCapabilityRegistry(ctx); ok {
+		lookup = registry.Definition
+	}
+	for _, name := range []string{capabilityCatalogName, capabilityDiscoverName} {
+		if !requestedToolName(names, name) {
+			continue
+		}
+		definition, found := CapabilityDefinition{}, false
+		if name == own.Name {
+			definition, found = own, true
+		} else if lookup != nil {
+			definition, found = lookup(name)
+		}
+		if !found || definition.InternalOnly || !definition.SupportsSurface(surface) {
+			continue
+		}
+		present := false
+		for _, existing := range definitions {
+			present = present || existing.Name == name
+		}
+		if !present {
+			definitions = append(append([]CapabilityDefinition(nil), definitions...), definition)
+		}
+	}
+	return definitions
 }
 
 func capabilityUtilitySurfaces() []CapabilitySurface {
@@ -79,6 +133,7 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 	if err := json.Unmarshal(inv.Arguments, &args); err != nil && len(inv.Arguments) > 0 {
 		return CapabilityResult{}, err
 	}
+	definitions = includeNamedStandaloneUtilities(ctx, definitions, c.Definition(), args.Names, inv.Metadata.Surface, c.lookup)
 	available := map[string]bool{}
 	for _, d := range definitions {
 		available[d.Name] = true
@@ -92,7 +147,7 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 		} else if available[name] {
 			args.Names = append(args.Names, name)
 		} else {
-			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
+			unavailable = append(unavailable, unavailableCapability(ctx, name, c.lookup))
 		}
 	}
 	loaded := []string{}
@@ -108,6 +163,23 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 		} else {
 			for _, name := range args.Names {
 				unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "tool_run_context_required"})
+			}
+		}
+	}
+	loadedState := ""
+	if len(requestedNames) == 0 {
+		if selection := kevSelection(ctx); selection != nil {
+			loadedState = "unknown"
+			if selection.service != nil && selection.service.Settings != nil {
+				visible, err := selection.definitions(ctx)
+				if err != nil {
+					return CapabilityResult{}, err
+				}
+				loaded = make([]string, 0, len(visible))
+				for _, definition := range visible {
+					loaded = append(loaded, definition.Name)
+				}
+				loadedState = "known"
 			}
 		}
 	}
@@ -143,7 +215,11 @@ func (c capabilityCatalogCapability) Execute(ctx context.Context, inv Capability
 		items = append(items, item)
 	}
 	output := map[string]any{"items": items, "count": len(items), "run_scoped": kevSelection(ctx) != nil, "loaded": loaded, "unavailable": unavailable, "admissions": admissions, "replaces_optional_window": len(args.Names) > 0}
-	if len(loaded) > 0 {
+	if loadedState != "" {
+		output["loaded_state"] = loadedState
+		output["loaded_scope"] = "run_disclosure_window_before_physical_policy"
+	}
+	if len(requestedNames) > 0 && len(loaded) > 0 {
 		output["next_step"] = "These schemas are loaded in the next native tools list. Call the selected tool itself using its wire name and parameters; loading does not execute it. Do not repeat this same catalog request."
 	}
 	return CapabilityResult{CallID: inv.CallID, CapabilityName: inv.CapabilityName, Status: "completed", Output: output}, nil
@@ -172,6 +248,7 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 	}
 	definitions := nativeDefinitionsForContext(ctx, authorizedDiscoveryDefinitions(ctx, inv.Metadata.Surface, catalog))
 	selection := kevSelection(ctx)
+	definitions = includeNamedStandaloneUtilities(ctx, definitions, c.Definition(), args.Names, inv.Metadata.Surface, c.lookup)
 	available := map[string]CapabilityDefinition{}
 	items := []map[string]any{}
 	for _, d := range definitions {
@@ -191,7 +268,7 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 		} else if ok {
 			validNames = append(validNames, name)
 		} else {
-			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
+			unavailable = append(unavailable, unavailableCapability(ctx, name, c.lookup))
 		}
 	}
 	args.Names = validNames
@@ -202,6 +279,10 @@ func (c capabilityDiscoverCapability) Execute(ctx context.Context, inv Capabilit
 		unavailable = append(unavailable, missing...)
 		if err != nil {
 			return CapabilityResult{}, err
+		}
+	} else {
+		for _, name := range args.Names {
+			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "tool_run_context_required"})
 		}
 	}
 
@@ -289,7 +370,7 @@ func (s *kevRunSelection) load(ctx context.Context, names []string) ([]string, [
 		} else if ok {
 			validNames = append(validNames, name)
 		} else {
-			unavailable = append(unavailable, toolDisclosureAvailability{Name: name, Status: "unavailable", ErrorCode: "capability_not_installed"})
+			unavailable = append(unavailable, unavailableCapability(ctx, name, nil))
 		}
 	}
 	names = validNames

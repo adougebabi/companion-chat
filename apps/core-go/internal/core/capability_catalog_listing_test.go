@@ -58,7 +58,8 @@ func TestCapabilityCatalogListingKeepsCompleteDirectoryWithoutSchemas(t *testing
 
 func TestCapabilityCatalogNamedDisclosurePreservesCompleteSchemaAndUnavailable(t *testing.T) {
 	definition := CapabilityDefinition{Name: "large.tool", Description: "Full schema", InputSchema: objectSchema(map[string]any{"nested": objectSchema(map[string]any{"source": stringSchema()}, []string{"source"}, false)}, []string{"nested"}, false)}
-	catalog := capabilityCatalogCapability{catalog: func(CapabilitySurface) []CapabilityDefinition { return []CapabilityDefinition{definition} }}
+	catalog := capabilityCatalogCapability{catalog: func(CapabilitySurface) []CapabilityDefinition { return []CapabilityDefinition{definition} },
+		lookup: func(name string) (CapabilityDefinition, bool) { return definition, name == definition.Name }}
 	result, err := catalog.Execute(context.Background(), CapabilityInvocation{CallID: "named", CapabilityName: capabilityCatalogName, Arguments: json.RawMessage(`{"names":["large.tool","not.installed"]}`)}, CapabilityContext{})
 	if err != nil {
 		t.Fatal(err)

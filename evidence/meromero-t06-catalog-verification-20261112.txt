@@ -1,0 +1,66 @@
+T06 capability discovery and run authority verification
+Environment: disposable local PostgreSQL, controlled Provider. No real model or renderer was used.
+
+=== Previous catalog mismatch (red) ===
+--- FAIL: TestCapabilityDiscoveryDistinguishesInstalledButUnauthorized (0.00s)
+    --- FAIL: TestCapabilityDiscoveryDistinguishesInstalledButUnauthorized/catalog (0.00s)
+    --- FAIL: TestCapabilityDiscoveryDistinguishesInstalledButUnauthorized/discover (0.00s)
+
+=== Previous stage authority mismatch (red) ===
+--- FAIL: TestFormalAgentWithoutKevRejectsToolOutsideStage (0.01s)
+
+=== Previous loaded-window mismatch (red) ===
+--- FAIL: TestCapabilityCatalogListsCurrentLoadedWindow (0.00s)
+
+=== Final targeted regression ===
+--- PASS: TestCapabilityDiscoveryDistinguishesInstalledButUnauthorized (0.00s)
+    --- PASS: TestCapabilityDiscoveryDistinguishesInstalledButUnauthorized/catalog (0.00s)
+    --- PASS: TestCapabilityDiscoveryDistinguishesInstalledButUnauthorized/discover (0.00s)
+--- PASS: TestStandaloneCapabilityCatalogUsesInstalledRegistry (0.00s)
+    --- PASS: TestStandaloneCapabilityCatalogUsesInstalledRegistry/capability.catalog (0.00s)
+    --- PASS: TestStandaloneCapabilityCatalogUsesInstalledRegistry/capability.discover (0.00s)
+--- PASS: TestCapabilityCatalogUsesCompleteRegistryWhenRunRegistryIsNarrow (0.00s)
+--- PASS: TestKevNativeRejectionDistinguishesUnauthorizedFromMissing (0.00s)
+--- PASS: TestNativeInvokerRejectsInstalledToolOutsideRunScope (0.00s)
+--- PASS: TestNativeInvokerReportsCrossSurfaceDenialWithoutSchemaDetails (0.00s)
+--- PASS: TestNativeInvokerReportsDisabledBeforeInvalidArguments (0.00s)
+--- PASS: TestCapabilityCatalogReportsUnknownWithoutInstallationInventory (0.00s)
+--- PASS: TestPostgresStandaloneCapabilityCatalogKeepsAuthorizationBoundaries (2.61s)
+--- PASS: TestNativeInvokerUsesCompleteRegistryForNarrowRun (0.00s)
+--- PASS: TestFormalAgentWithoutKevRejectsToolOutsideStage (0.01s)
+--- PASS: TestFormalAgentReplaysCommittedToolAfterPluginDisabled (2.63s)
+--- PASS: TestCapabilityCatalogListsCurrentLoadedWindow (0.00s)
+--- PASS: TestCapabilityCatalogNamedDisclosurePreservesCompleteSchemaAndUnavailable (0.00s)
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (3.55s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (1.51s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (2.04s)
+--- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted (2.87s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_false (1.39s)
+    --- PASS: TestDirectMediaAndReplySameBatchAreNotCommitted/reply_first_true (1.48s)
+--- PASS: TestDomainPluginPostgresSettingsAdmissionAndReplay (2.20s)
+--- PASS: TestDomainPluginPostgresNativeAgentReceiptReplay (2.25s)
+--- PASS: TestKevDiscoveryNeverWidensInstalledSetOrPartiallyLoads (0.00s)
+--- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool (0.02s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=false (0.01s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=true (0.00s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=false (0.00s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=true (0.00s)
+--- PASS: TestVisualIdentityAgentUsesFormalRunnerAndToolReceiptForCandidateGeneration (2.28s)
+
+=== Race regression ===
+--- PASS: TestFormalAgentWithoutKevRejectsToolOutsideStage (0.02s)
+--- PASS: TestFormalAgentReplaysCommittedToolAfterPluginDisabled (2.73s)
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (5.30s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (2.99s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (2.32s)
+--- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool (0.07s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=false (0.02s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=false/stream=true (0.02s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=false (0.01s)
+    --- PASS: TestKevNativeLoopDiscoversAndExecutesHiddenTool/kev=true/stream=true (0.01s)
+
+Final targeted regression: 21 top-level PASS, 0 FAIL, 0 SKIP.
+Race regression: 4 top-level PASS, 0 FAIL, 0 SKIP (before the separate loaded-window reporting addition).
+Go suite with database/live tests disabled: 18 packages PASS; test-event counts including subtests: 3125 PASS, 0 FAIL, 1076 SKIP.
+The original free-text media-delivery verification and workflow cancellation races remain unresolved.
+Filtered to test names and results; no credentials or private conversations.

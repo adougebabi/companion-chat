@@ -173,7 +173,13 @@ func kevRejectNativeTool(ctx context.Context, name string, arguments json.RawMes
 	// Installed disabled capabilities must reach ExecuteTool: it first replays
 	// a durable receipt, then rejects any new work with domain_plugin_disabled.
 	if selection := kevSelection(ctx); selection != nil && !selection.installed(name) {
-		return "capability_not_installed"
+		var lookup func(string) (CapabilityDefinition, bool)
+		if bridge, ok := adkCapabilityContext(ctx); ok {
+			if invoker, ok := bridge.Invoker.(*appADKCapabilityInvoker); ok && invoker.app != nil {
+				lookup = invoker.app.capabilityRegistry().Definition
+			}
+		}
+		return unavailableCapability(ctx, name, lookup).ErrorCode
 	}
 	return ""
 }

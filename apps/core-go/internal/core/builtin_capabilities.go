@@ -132,10 +132,10 @@ func builtinCapabilities(app *App) []Capability {
 		newNPCEncounterCapability(app, ""),
 		capabilityDiscoverCapability{catalog: func(surface CapabilitySurface) []CapabilityDefinition {
 			return capabilityCatalog(app.capabilityRegistry(), surface)
-		}},
+		}, lookup: func(name string) (CapabilityDefinition, bool) { return app.capabilityRegistry().Definition(name) }},
 		capabilityCatalogCapability{catalog: func(surface CapabilitySurface) []CapabilityDefinition {
 			return capabilityCatalog(app.capabilityRegistry(), surface)
-		}},
+		}, lookup: func(name string) (CapabilityDefinition, bool) { return app.capabilityRegistry().Definition(name) }},
 		goalCapability{service: newGoalCapabilityService(app), name: "goal.inspect"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.decide"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.evaluate"}, goalCapability{service: newGoalCapabilityService(app), name: "goal.review"},
 		conversationReplyCapability{publication: publication}, sceneEventCapability{service: lifeScene}, schedule,
 		presenceEventCapability{service: lifePresence}, memoryEventCapability{service: memory}, activeMemoryEventCapability{service: activeMemory}, affectEventCapability{service: affect},

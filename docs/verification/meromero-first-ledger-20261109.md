@@ -26,7 +26,7 @@
 | T03 | R03 Prompt/Context | IN_PROGRESS | 目录查询指令与严格 schema 已对齐，表达候选提取使用独立最小投影；Moment 选中的 Active Memory 将内部 Actor 引用投影为关联别名或未知，避免误称内容主体。外貌证据的业务值/系统伤情 ID 边界、其他证据类型、全 Agent 输入契约及来源追踪仍待核实。 |
 | T04 | R02 主对话与认知结算 | IN_PROGRESS | `direct` 使用同一主 Agent 的原生 ToolCall 携带正文与决策，消息、回执和认知结算原子提交；隔离 PostgreSQL 与受控 Provider 验证单次请求、重放、回滚、旧草稿及先行动再回复。隔离场景发现无附件却可发布“照片已发送”，因此暂不切为默认，缺口归 T06；真实 MeroMero 私聊和实时增量流仍未验收。 |
 | T05 | R04 Image/Moment 插件 | IN_PROGRESS | 已接领域声明、现有 Capability 注册、持久配置和主要新工作门禁；Image 声明生图依赖 ComfyUI，目录能报告配置缺口，动态页反映停用状态并保留历史/原提交核对。隔离 PostgreSQL 验证配置、直接调用、停用及 ready 夹具重建后去重交付。当前照片与创作场景的完整区分、真实连通/渲染、未 ready 的完整恢复与 NPC 完整重启仍未验收。 |
-| T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。同步回复事件及历史重放按已提交消息 ID 去重。direct 同批图片请求与回复会分别拒绝并等待重新决定；回复读取既有媒体状态时区分取消和失败，非 ready 的资产不会自动作为附件。工作流取消同步、未调用媒体却声称发送的正文语义缺口仍未解决，真实渲染未验证。 |
+| T06 | R05 工具、异步、发布 | IN_PROGRESS | 普通图片第二次非通过时记录真实结论并终止交付；视觉身份候选保留为待审核。direct 同批图片请求与回复会分别拒绝并等待重新决定；回复读取既有媒体状态时区分取消和失败。能力目录现区分未安装、当前运行无权限、禁用及无法确认；正式 Agent 冻结运行工具范围，未授权调用不暴露参数要求，已提交回执仍可重放。工作流取消同步、未调用媒体却声称发送的正文语义缺口仍未解决，真实渲染未验证。 |
 | T07 | R06 节奏与 WakeUp | IN_PROGRESS | WakeUp 区分未回应同话题与真实新事件；正式聊天支持在前一条真实入站后追发，包括刷新或重新进入后追加。隔离 PostgreSQL 与受控 Provider 验证 direct、fact-only 追发及旧结果栅栏，并对照核验 WakeUp 新事件、未回应状态、静默和新话题发布；现有固定十分钟周期没有连续无事退避，真实模型正反场景仍未验收。 |
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；隔离 PostgreSQL 与受控 Provider 验证同一候选从受理消息提取、启用进入 direct 请求、停用后新请求不再注入，学习开关与使用开关独立，测试中人格和关系语义未变化。关系含义称呼的兼容性、任意注入/日志内容排除、真实模型及 UI 到实际运行的闭环仍未完成或未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。`memory.recall` 的原始会话回执区分真实发言主体并保留消息类型；隔离 PostgreSQL 与受控原生工具续轮验证主体标签和会话隔离。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决。 |
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T06 修复能力目录与原生调用对工具权限的状态误报。完整安装注册表与当前运行范围分开核对；点名查询区分已安装但无权、插件禁用、未安装及缺少安装信息，独立目录调用不创建 Agent 工具窗口。空目录查询报告当前已加载的披露窗口，设置变更后不再展示已撤销的工具，无法确定时标记未知；披露窗口不代表后续物理策略或业务权限已通过。正式 Agent 的执行工具范围从该次任务定义冻结，不使用 Kev 的视觉身份阶段也不能调用其他阶段工具；无权限先于 schema 参数校验返回无副作用回执。禁用工具的非法参数不再泄露 schema，合法的已提交工具回执继续先于禁用门禁重放。旧代码红测 `/private/tmp/fluctlight-t06-catalog-authority-red.log`、`/private/tmp/fluctlight-t06-formal-stage-red.log`、`/private/tmp/fluctlight-t06-catalog-loaded-red.log`；隔离 PostgreSQL 和受控原生循环的 21 个顶层专项通过，4 个重点专项 race 通过，证据 `/private/tmp/fluctlight-t06-catalog-authority-final.log`、`/private/tmp/fluctlight-t06-catalog-authority-race.log`、`evidence/meromero-t06-catalog-verification-20261112.txt`。无数据库和真实服务的 Go 全量 18 包通过、按测试事件计数 3,125 通过和 1,076 跳过：`/private/tmp/fluctlight-t06-catalog-go-all-final2.jsonl`；跳过不算通过。这只完成工具发现和权限边界的一部分，不解决无媒体调用却声称已发送的正文语义核验或取消竞态。
 
 - 2026-11-12：T07 静态复核确认 WakeUp 正常完成后按既有固定十分钟周期续排，没有基于连续 `no_action_selected` 的退避；睡眠免模型、Kev 延期和失败重试各自存在，但不能冒充无事退避。现行相关场景记录固定十分钟与 Redis 缺键立即释放策略；原 T07 同时要求不增加第二套时钟、保留新事件及 Goal/日程义务。直接延长 due 可能被缺键恢复绕过或延迟义务，暂未改变调度。后续须在既有持久时钟内证明无事退避、新事件/到期义务、Redis 恢复和并发栅栏同时成立。
 

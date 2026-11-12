@@ -94,8 +94,9 @@ func TestDomainPluginDiscoveryAndExecutionAgree(t *testing.T) {
 	config := decision.DefaultConfig()
 	selection := &kevRunSelection{service: &decision.Service{Settings: &kevFixedSettings{config: config}}, original: definitions, loaded: map[string]bool{}, version: 1}
 	ctx := context.WithValue(pluginTestContext(false, true), kevRunSelectionKey{}, selection)
+	ctx = withCapabilityRunRegistry(ctx, registry)
 	inv := CapabilityInvocation{CallID: "directory", CapabilityName: capabilityCatalogName, Arguments: json.RawMessage(`{"names":[]}`), Metadata: InvocationMetadata{Surface: CapabilitySurfaceConversation}}
-	catalog := capabilityCatalogCapability{catalog: registry.Catalog}
+	catalog := capabilityCatalogCapability{catalog: registry.Catalog, lookup: registry.Definition}
 	result, err := catalog.Execute(ctx, inv, CapabilityContext{})
 	if err != nil {
 		t.Fatal(err)
@@ -110,7 +111,7 @@ func TestDomainPluginDiscoveryAndExecutionAgree(t *testing.T) {
 		t.Fatal("directory did not disclose the installed but disabled image capability")
 	}
 	inv.Arguments = json.RawMessage(`{"names":["media.image.generate","missing.plugin.tool"]}`)
-	for _, execute := range []func(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error){catalog.Execute, (capabilityDiscoverCapability{catalog: registry.Catalog}).Execute} {
+	for _, execute := range []func(context.Context, CapabilityInvocation, CapabilityContext) (CapabilityResult, error){catalog.Execute, (capabilityDiscoverCapability{catalog: registry.Catalog, lookup: registry.Definition}).Execute} {
 		result, err = execute(ctx, inv, CapabilityContext{})
 		if err != nil {
 			t.Fatal(err)
@@ -127,7 +128,7 @@ func TestDomainPluginDiscoveryAndExecutionAgree(t *testing.T) {
 	if got := kevRejectNativeTool(ctx, "media.image.generate", nil); got != "" {
 		t.Fatalf("installed call cannot reach durable receipt replay: %q", got)
 	}
-	if got := kevRejectNativeTool(ctx, "missing.plugin.tool", nil); got != "capability_not_installed" {
+	if got := kevRejectNativeTool(ctx, "missing.plugin.tool", nil); got != "capability_installation_unknown" {
 		t.Fatalf("missing call reported %q", got)
 	}
 	if got := kevRejectNativeTool(ctx, "moment.publish", nil); got != "" {

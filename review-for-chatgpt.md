@@ -7,6 +7,7 @@
 - **主聊天仍未达到原目标。** 当前无保存配置时默认 `fact_only`，该路径仍有独立 Writer；`direct` 可显式选择，但存在未调用媒体仍可发布“照片已发送”的缺口，真实 MeroMero 私聊也尚未通过。见 `apps/core-go/internal/core/reply_vision_settings.go:43`、`reply_provider.go:212` 及台账第 108 行。
 - T01 的正式入口盘点已完成。T02 在 AEL 中标记完成，但真实 Qwen 覆盖、真实 Temporal 和旧任务原绑定等并未全部验收，不能据该状态声称 R01 的所有原始要求均已证明。T03–T11 在 AEL 中仍为待修复；T12 的这份矩阵是进行中的验收和交付材料，不代表 T12 已通过。
 - 快照后的 T03 增量：Moment 选中的 Active Memory 不再把 Core Actor ID 直接传给 Writer，而是输出关联人物别名或未知，且不把关联者断言为内容主体。隔离 PostgreSQL 和受控 Writer 验证了实际 Moment 准备路径；外貌与其他证据类型仍未完成，详细记录见 [T03 专项](docs/verification/meromero-t03-context-isolation-20261111.md)。下文的全量和矩阵统计仍对应各自标明的受检提交，不自动延伸到此增量。
+- 快照后的 T06 增量：能力目录与原生调用区分未安装、运行范围无权限、插件停用和安装状态未知，并报告当前已加载的披露窗口；正式 Agent 按本次任务冻结可执行工具集合，分阶段 Agent 不能执行其他阶段工具。隔离数据库及受控原生循环的 21 个顶层专项通过，验证权限、已提交回执重放和无重复动态，见 [脱敏证据](evidence/meromero-t06-catalog-verification-20261112.txt)；正文与媒体语义一致性仍未解决。
 - 已实施并局部验证：模型按 Agent/variant 路由及多类异步快照；显式 `direct` 的原子消息/工具/认知结算；Image/Moment 的声明和主要运行门禁；连续消息栅栏；表达候选审核启停；记忆来源屏障；诊断导出隐私投影、物理重试记录和图片插件连接检查。各项的边界和失败见下表。
 - 本次基于干净提交副本完成 Go 全量回归、14 个隔离 PostgreSQL/受控工具专项、8 个受控 React 测试及 Web 类型检查。**全量 Go 有 1,073 个测试事件跳过**，不能把跳过当成通过。真实模型历史上有合成聊天和测试工具的有限证据，真实媒体、真实视觉及浏览器到运行消费的完整链仍未验收。
 - 用户要求非阻断问题先登记、不顺手扩展。已登记的例子包括 `provider-endpoint-credential-atomic-save`、`media-normalization-quality-retry-feedback`、`goal-evaluation-cadence-domain-failures` 和本次发现的 `reply-wear-fallback-correction-regression`。四组 Goal/活动测试在起始版本也失败；换衣回退纠错的两个子场景则在起始版本通过、当前版本失败，原因仍未确定。
@@ -70,7 +71,7 @@ Image 和 Moment 使用既有 Capability Registry 与领域实现。Image 声明
 | --- | --- | --- |
 | E01 模型路由 | `agent_model_routing_test.go:246` 在隔离库和受控 Provider 验证保存、回读、单任务覆盖、其他任务不变及清除；此前本机模型的一次合成普通会话发出一次 `conversation.reply`。 | **未完成。** 真实私聊默认链仍有 Writer；未证明所有迁移任务在无 Qwen 下可运行，也未完成真实 Qwen/Temporal 验收。 |
 | E02 上下文隔离 | `reflection_context_isolation_test.go`、`wardrobe_preparation_prompt_test.go` 和 [T03 专项](docs/verification/meromero-t03-context-isolation-20261111.md)提供部分投影及受控请求证据。 | 事实检查、全部任务及 NPC/Studio 的真实语义和边界未全验收。 |
-| E03 原生工具循环 | 本次 `kev_test.go:548` 的 Generate/Stream 受控四个子场景通过发现、加载、执行和续接；部分独立 Tool 权限有隔离测试。 | 受控 Provider 和测试工具不证明真实模型完成全部真实领域调用；各独立 Tool 权限矩阵未全验收。 |
+| E03 原生工具循环 | `kev_test.go:548` 的 Generate/Stream 受控四个子场景通过发现、加载、执行和续接；后续 T06 增量覆盖目录权限状态、分阶段 Agent 拒绝及停用后真实回执重放。 | 受控 Provider 和测试工具不证明真实模型完成全部真实领域调用；各独立 Tool 权限矩阵未全验收。 |
 | E04 无人图片 | `media_capture_plan_test.go:130,243,518` 覆盖无人主体投影和自拍矛盾的局部约束。 | 冻结时间/主体贯穿实际规范化和真实渲染未证明；无真实无人图片证据。 |
 | E05 换衣自拍 | 本次 `r6_wear_contract_test.go:52` 的真实持久换衣及重放、`current_capture_test.go:16` 的当前穿着约束和质量状态测试通过。 | 没有一次完整“实际换衣 → 冻结穿着 → 真实生图 → 真实质量检查 → 交付”的通过证据；私聊换衣不可用后的两个回退纠错子场景失败，见 G。 |
 | E06 缺失物品 | 本次 `wardrobe_capabilities_test.go:114` 验证不可用衣物不穿、缺失物品有明确回执和跨 Owner 查询被拒；`current_capture_test.go:16` 验证愿望衣物不能代替实际穿着。 | 缺失紫色大衣、角色自主拒绝或未来购买的完整真实模型/图片场景未验收；回退纠错两项失败不能忽略。 |
