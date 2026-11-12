@@ -1,0 +1,12 @@
+SOURCE_HEAD 4bf8a52b863315dffd55e7d267038f1376e13182 (clean archive + test and source overlays)
+CANDIDATE /private/tmp/fluctlight-m2-12-green-2fd2giwu
+MANIFEST /private/tmp/fluctlight-m2-12-green-2fd2giwu/m2-12-green-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2DirectRelationshipInfluenceUsesOfferedReference|TestM2DirectRelationshipInfluenceRejectsForgedReference)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2DirectRelationshipInfluenceUsesOfferedReference
+--- PASS: TestM2DirectRelationshipInfluenceUsesOfferedReference (2.81s)
+=== RUN   TestM2DirectRelationshipInfluenceRejectsForgedReference
+--- PASS: TestM2DirectRelationshipInfluenceRejectsForgedReference (2.67s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	6.202s
+
+EXIT_CODE 0

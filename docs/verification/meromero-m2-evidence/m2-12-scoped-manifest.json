@@ -1,0 +1,9 @@
+{
+  "head": "4bf8a52b863315dffd55e7d267038f1376e13182",
+  "overlays": {
+    "apps/core-go/internal/core/m2_direct_relationship_influence_test.go": "56030e9e92a8d4dfec6197f05dc64b2944744caa89cca4dcc8335812745e52d1",
+    "apps/core-go/internal/core/provider_context.go": "6871d5b0f6eb8608f2d94a0586a7b0dcf364ebc6a6680ecc3e9d53b72e675220",
+    "docs/llm-prompt-composition.md": "21e0c9c02a5f78e5eaf17ff8fc5b1dc3c0ab23bd141073fbcd7183e92884a938",
+    "docs/llm-task-input-contracts.md": "49f27b566ed56d355abbe0d4e32002dce65439b5e7634869188c6774b6034013"
+  }
+}

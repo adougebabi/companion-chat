@@ -162,7 +162,11 @@ func (a *App) assembleProjectionPromptForSurface(ctx context.Context, surface Pr
 			return PromptAssemblyResult{}, projection, err
 		}
 	}
-	workingInput := workingMemoryInputFromProjectionForSurface(projection, surface, activeResult.Items, summaries)
+	includeRelationshipInfluences := false
+	if run := replyRunFromContext(ctx); run != nil && run.Settings.Mode == "direct" && surface == ProviderContextSurfaceConversationMain {
+		includeRelationshipInfluences = true
+	}
+	workingInput := workingMemoryInputForSurface(projection, surface, activeResult.Items, summaries, includeRelationshipInfluences)
 	contextSelection := a.startKevContextSelection(ctx, projection, surface, currentInput, workingInput)
 	defer contextSelection.cancel()
 	policy, err := promptBudgetPolicyForAssignment(assignment)
@@ -234,10 +238,19 @@ func workingMemoryInputFromProjection(projection ContextProjection, active, summ
 }
 
 func workingMemoryInputFromProjectionForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any) WorkingMemoryInput {
+	return workingMemoryInputForSurface(projection, surface, active, summaries, false)
+}
+
+func workingMemoryInputForSurface(projection ContextProjection, surface ProviderContextSurface, active, summaries []map[string]any, includeRelationshipInfluences bool) WorkingMemoryInput {
 	if surface == ProviderContextSurfaceFactOnlyCognition {
 		return factOnlyCognitionMemoryInput(projection, active, summaries)
 	}
 	compact := compactCognitionContextForSurface(projection, surface)
+	if includeRelationshipInfluences && surface == ProviderContextSurfaceConversationMain {
+		if relationships := compactRelationshipsForSurface(projection.Relationships, projection.Actors, projection.ReferenceIndex, surface, true); len(relationships) > 0 {
+			compact["relationships"] = relationships
+		}
+	}
 	compact["time_view"] = projectionTimeView(projection)
 	if len(projection.CommunicationState) > 0 {
 		compact["communication_state"] = projection.CommunicationState
@@ -650,7 +663,7 @@ func compactCognitionContextForSurface(projection ContextProjection, surface Pro
 	} else {
 		delete(compact, "developing_self")
 	}
-	if values := compactRelationshipsForSurface(projection.Relationships, projection.Actors, projection.ReferenceIndex, surface); len(values) > 0 {
+	if values := compactRelationshipsForSurface(projection.Relationships, projection.Actors, projection.ReferenceIndex, surface, false); len(values) > 0 {
 		compact["relationships"] = values
 	} else {
 		delete(compact, "relationships")
@@ -985,7 +998,7 @@ func compactDevelopingSelfForSurface(values []map[string]any, index ContextRefer
 	return result
 }
 
-func compactRelationshipsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex, surface ProviderContextSurface) []map[string]any {
+func compactRelationshipsForSurface(values []map[string]any, actors []map[string]any, index ContextReferenceIndex, surface ProviderContextSurface, includeInfluenceRefs bool) []map[string]any {
 	result := make([]map[string]any, 0, len(values))
 	for _, value := range values {
 		item := map[string]any{}
@@ -994,7 +1007,7 @@ func compactRelationshipsForSurface(values []map[string]any, actors []map[string
 				item[key] = stripProviderContextMetadata(raw)
 			}
 		}
-		if surfaceAllowsEntityRef(surface, ContextReferenceRelationship) {
+		if includeInfluenceRefs || surfaceAllowsEntityRef(surface, ContextReferenceRelationship) {
 			if ref := providerSafeContextRef(value["ref"], index, ContextReferenceRelationship); ref != "" {
 				item["ref"] = ref
 			}

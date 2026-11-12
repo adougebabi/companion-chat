@@ -1,0 +1,14 @@
+SOURCE_HEAD 4bf8a52b863315dffd55e7d267038f1376e13182 (clean archive + test and source overlays)
+CANDIDATE /private/tmp/fluctlight-m2-12-scoped-ckyv2olj
+MANIFEST /private/tmp/fluctlight-m2-12-scoped-ckyv2olj/m2-12-scoped-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2DirectRelationshipInfluenceUsesOfferedReference|TestM2DirectRelationshipInfluenceRejectsForgedReference|TestM2RelationshipReferenceRemainsScopedToConversationMain)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2DirectRelationshipInfluenceUsesOfferedReference
+--- PASS: TestM2DirectRelationshipInfluenceUsesOfferedReference (2.06s)
+=== RUN   TestM2DirectRelationshipInfluenceRejectsForgedReference
+--- PASS: TestM2DirectRelationshipInfluenceRejectsForgedReference (1.59s)
+=== RUN   TestM2RelationshipReferenceRemainsScopedToConversationMain
+--- PASS: TestM2RelationshipReferenceRemainsScopedToConversationMain (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	4.485s
+
+EXIT_CODE 0

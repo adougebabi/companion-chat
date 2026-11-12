@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "id": "meromero-m2-12-direct-relationship-influence",
+  "definition_hash": "cc619bcaa3f1532742ca21d0cb8362debd3c4f6dc89bf5e60f8e450bdefff14e",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 2,
+  "plan": {
+    "revision": 2,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "execute",
+  "status": "open",
+  "candidate": "",
+  "failure": "definition revised; relevant inputs and acceptance require revalidation",
+  "result": "",
+  "created": "2026-11-12T14:52:39.690021Z",
+  "updated": "2026-11-12T15:12:11.219398Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": [
+      {
+        "id": "AT-3128a6382bb2676f5e00",
+        "unit": "define",
+        "executor": "codex-m2-12",
+        "input_version": "a09e7f95383a74c1fad0b1089095d0d35af659c8dfa64ed01112e2447b17eb34",
+        "candidate_version": "a09e7f95383a74c1fad0b1089095d0d35af659c8dfa64ed01112e2447b17eb34",
+        "started": "2026-11-12T14:53:21.523543Z",
+        "ended": "2026-11-12T14:54:11.165088Z",
+        "status": "pass",
+        "reason": "T04 主链认知结算的单一行为：验证 direct 当前关系引用能否进入正式请求和 influences；保持模型配置、fact_only 开关及其他 surface。"
+      },
+      {
+        "id": "AT-9649af63d2659654042e",
+        "unit": "analysis",
+        "executor": "codex-m2-12",
+        "input_version": "a09e7f95383a74c1fad0b1089095d0d35af659c8dfa64ed01112e2447b17eb34",
+        "candidate_version": "a09e7f95383a74c1fad0b1089095d0d35af659c8dfa64ed01112e2447b17eb34",
+        "started": "2026-11-12T14:54:26.615408Z",
+        "ended": "2026-11-12T14:54:26.919763Z",
+        "status": "pass",
+        "reason": "静态代码显示现有关系引用在 direct surface 可能被过滤，而 fact_only 和冻结结算可消费；先通过隔离库、受控原生 Provider 物理请求复现，再仅修直接必需的上下文投影并核验作用域及重放。"
+      },
+      {
+        "id": "AT-5284de90fe6343f7475c",
+        "unit": "execute",
+        "executor": "codex-m2-12",
+        "input_version": "a09e7f95383a74c1fad0b1089095d0d35af659c8dfa64ed01112e2447b17eb34",
+        "candidate_version": "",
+        "started": "2026-11-12T14:54:35.629902Z",
+        "ended": "2026-11-12T15:09:21.679022Z",
+        "status": "abandoned",
+        "reason": "definition changed; resume requires stopped-process acknowledgement"
+      },
+      {
+        "id": "AT-5347c25d83c038ab308c",
+        "unit": "define",
+        "executor": "codex-m2-12",
+        "input_version": "0eac8eb922eaf997d100a4b18e2e3945233f706bb404baa0614c57b6b789668c",
+        "candidate_version": "0eac8eb922eaf997d100a4b18e2e3945233f706bb404baa0614c57b6b789668c",
+        "started": "2026-11-12T15:09:52.59353Z",
+        "ended": "2026-11-12T15:10:20.148436Z",
+        "status": "pass",
+        "reason": "T04 主链认知结算的单一行为：验证 direct 当前关系引用能否进入正式请求和 influences；保持模型配置、fact_only 开关及其他 surface。"
+      },
+      {
+        "id": "AT-36a79cab178f9864727c",
+        "unit": "analysis",
+        "executor": "codex-m2-12",
+        "input_version": "0eac8eb922eaf997d100a4b18e2e3945233f706bb404baa0614c57b6b789668c",
+        "candidate_version": "0eac8eb922eaf997d100a4b18e2e3945233f706bb404baa0614c57b6b789668c",
+        "started": "2026-11-12T15:10:40.956414Z",
+        "ended": "2026-11-12T15:10:41.329001Z",
+        "status": "pass",
+        "reason": "静态代码显示现有关系引用在 direct surface 可能被过滤，而 fact_only 和冻结结算可消费；先通过隔离库、受控原生 Provider 物理请求复现，再仅修直接必需的上下文投影并核验作用域及重放。"
+      },
+      {
+        "id": "AT-1b27c2fa89935f1fb160",
+        "unit": "execute",
+        "executor": "codex-m2-12",
+        "input_version": "0eac8eb922eaf997d100a4b18e2e3945233f706bb404baa0614c57b6b789668c",
+        "candidate_version": "",
+        "started": "2026-11-12T15:10:50.73762Z",
+        "ended": null,
+        "status": "running",
+        "reason": ""
+      }
+    ],
+    "checks": null
+  }
+}

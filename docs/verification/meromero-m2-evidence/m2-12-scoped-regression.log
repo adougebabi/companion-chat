@@ -1,0 +1,68 @@
+SOURCE_HEAD 4bf8a52b863315dffd55e7d267038f1376e13182 (clean archive + test and source overlays)
+CANDIDATE /private/tmp/fluctlight-m2-12-scoped-ckyv2olj
+MANIFEST /private/tmp/fluctlight-m2-12-scoped-ckyv2olj/m2-12-scoped-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestDirectMainReplyPublishesAndSettlesAtomically|TestDirectMainReplyRetainsExistingDraftContract|TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce|TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls|TestDirectMainReplyRetainsPriorNativeAction|TestPrivateReplyModeSwitchKeepsExplicitFactOnly|TestConversationProviderSurfaceKeepsSemanticFactsAndDropsInternalMetadata|TestSameObservationDifferentFrozenSceneProducesDistinctInfluenceChain|TestValidateDecisionInfluencesFailsClosed|TestFreezeDecisionInfluencesUsesOnlyCoreOwnedIndex|TestEveryFormalAgentAndVariantHasAnInputContract|TestPromptSlotsTraceSelectedSourcesAndReasons)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestSameObservationDifferentFrozenSceneProducesDistinctInfluenceChain
+--- PASS: TestSameObservationDifferentFrozenSceneProducesDistinctInfluenceChain (0.00s)
+=== RUN   TestValidateDecisionInfluencesFailsClosed
+=== RUN   TestValidateDecisionInfluencesFailsClosed/foreign_ref
+=== RUN   TestValidateDecisionInfluencesFailsClosed/stale_revision_token
+=== RUN   TestValidateDecisionInfluencesFailsClosed/duplicate
+=== RUN   TestValidateDecisionInfluencesFailsClosed/bad_role
+=== RUN   TestValidateDecisionInfluencesFailsClosed/confidence_below
+=== RUN   TestValidateDecisionInfluencesFailsClosed/confidence_above
+=== RUN   TestValidateDecisionInfluencesFailsClosed/oversized_ref
+=== RUN   TestValidateDecisionInfluencesFailsClosed/oversized_note
+=== RUN   TestValidateDecisionInfluencesFailsClosed/unknown_field
+=== RUN   TestValidateDecisionInfluencesFailsClosed/not_an_array
+--- PASS: TestValidateDecisionInfluencesFailsClosed (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/foreign_ref (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/stale_revision_token (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/duplicate (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/bad_role (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/confidence_below (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/confidence_above (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/oversized_ref (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/oversized_note (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/unknown_field (0.00s)
+    --- PASS: TestValidateDecisionInfluencesFailsClosed/not_an_array (0.00s)
+=== RUN   TestFreezeDecisionInfluencesUsesOnlyCoreOwnedIndex
+--- PASS: TestFreezeDecisionInfluencesUsesOnlyCoreOwnedIndex (0.00s)
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/commit
+=== RUN   TestDirectMainReplyPublishesAndSettlesAtomically/rollback
+--- PASS: TestDirectMainReplyPublishesAndSettlesAtomically (4.93s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/commit (2.61s)
+    --- PASS: TestDirectMainReplyPublishesAndSettlesAtomically/rollback (2.32s)
+=== RUN   TestDirectMainReplyRetainsExistingDraftContract
+--- PASS: TestDirectMainReplyRetainsExistingDraftContract (2.34s)
+=== RUN   TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce
+--- PASS: TestDirectMainReplySettlesGoalInfluenceAndRelationshipOnce (2.39s)
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema
+=== RUN   TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal
+--- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls (4.35s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/schema (2.48s)
+    --- PASS: TestDirectMainReplyStopsAfterRepeatedInvalidNativeCalls/foreign_goal (1.86s)
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/success
+2026/11/12 23:04:49 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=1 status=completed retryable=false intent_present=false intent_runes=0
+=== RUN   TestDirectMainReplyRetainsPriorNativeAction/settlement_failure
+2026/11/12 23:04:51 INFO capability lifecycle capability=capability.catalog call_id=direct-action-1 type=query surface=conversation required_context=[] duration_ms=0 status=completed retryable=false intent_present=false intent_runes=0
+--- PASS: TestDirectMainReplyRetainsPriorNativeAction (4.88s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/success (2.45s)
+    --- PASS: TestDirectMainReplyRetainsPriorNativeAction/settlement_failure (2.44s)
+=== RUN   TestPrivateReplyModeSwitchKeepsExplicitFactOnly
+2026/11/12 23:04:53 INFO reply.evidence.reconciled correlation_id=conversation-cognition-agent:turn:switch-fact metadata="map[capability_name:conversation.reply excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:conversation]"
+--- PASS: TestPrivateReplyModeSwitchKeepsExplicitFactOnly (1.58s)
+=== RUN   TestEveryFormalAgentAndVariantHasAnInputContract
+--- PASS: TestEveryFormalAgentAndVariantHasAnInputContract (0.00s)
+=== RUN   TestPromptSlotsTraceSelectedSourcesAndReasons
+--- PASS: TestPromptSlotsTraceSelectedSourcesAndReasons (0.00s)
+=== RUN   TestConversationProviderSurfaceKeepsSemanticFactsAndDropsInternalMetadata
+    provider_context_test.go:1276: conversation runtime context bytes: surface=1563 legacy=1503 reduction=-4.0%
+--- PASS: TestConversationProviderSurfaceKeepsSemanticFactsAndDropsInternalMetadata (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	20.931s
+
+EXIT_CODE 0

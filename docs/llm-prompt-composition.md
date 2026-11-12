@@ -248,7 +248,9 @@ Core 协调字段只在对应结果外层移除；真实地点和计划引用仍
 私聊 `direct` 模式使用同一个 `conversation_cognition` Agent 和原生
 `conversation.reply`：主 Agent 的工具参数同时包含自拟正文和该轮 decision。
 运行协议保留人格差异、自然表达、可信来源和真实工具结果边界；decision
-按既有认知 schema 与当前 Core 引用验证。正文、工具回执和认知结算在同一
+按既有认知 schema 与当前 Core 引用验证。当前关系可带由 Core 签发、绑定会话
+作用域的不透明引用，供该轮 influence 使用；原始关系数据库标识不进入请求。
+正文、工具回执和认知结算在同一
 数据库事务提交。未显式配置回复模式时，新私聊默认选择 `direct`；已保存的
 `fact_only`、`legacy` 和 `direct` 仍保留，用户可在设置中切换。旧草稿、WakeUp、
 Moment 和独立工具沿各自原合同。受控 Provider 的隔离 PostgreSQL 测试覆盖

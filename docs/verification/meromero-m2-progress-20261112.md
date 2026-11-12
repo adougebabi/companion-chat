@@ -15,6 +15,7 @@
 | M2-09 | T04：direct 主链 Goal 候选的实际下游结算 | BLOCKED | 受检提交 `ef717eb1` 的正向场景证明：候选先遵守原静默窗口，隔离库模拟窗口结束后，正式评估消费已提交消息和原 Goal 条件，完成领域结算及幂等重放；提交后 7 个定向用例通过、无 SKIP。扩展回归中 3 项既有 Goal 测试失败，在干净提交 `f74fbc1c`、无源码覆盖及同一隔离库环境复现；其中两项实际返回静默期延期，另一项只报告未出现预期错误，原因待核查。见 `meromero-m2-evidence/m2-09-precommit.log`、`m2-09-baseline-goal.log` 和 `m2-09-postcommit.log`；已关联 AEL `goal-cadence-additional-baseline-regressions`，未更改 Goal 规则或既有测试，不能宣称本子项全部验收通过。 |
 | M2-10 | T05：Moment 停用时默认私聊与 Image 独立运行 | VERIFIED | 受检提交 `763ab46c`：正式设置关闭 Moment 后，旧动态回执可重放、新动态拒绝；默认 direct 私聊及独立 Image 工具可用。干净提交的 11 个顶层插件和主链回归通过、无 SKIP，含四处草稿的工作区主场景通过，见 `meromero-m2-evidence/m2-10-postcommit*.log`。Provider 为受控替身，未实际渲染。 |
 | M2-11 | T05/T06：动态正文与实际媒体交付一致性 | BLOCKED | 提交 `b3249912` 在既有无附件和媒体类型保护上，增加当前附件、历史动态与私聊交付的作用域检查和事务重查；保留先前红测。干净候选 9 项定向和 27 项回归、含四处草稿的工作区 3 项场景均通过；干净提交后 4 项关键场景通过，均无 SKIP，见 `meromero-m2-evidence/m2-11-resume-*.log` 和 `m2-11-postcommit-resume.log`。生成意图不是图片内容依据；已选素材具体画面主体和真实模型语义仍未验收，未知交付时间的保守拒绝可能误挡合法表达。本项保持阻塞，不据此宣称 T05、T06 或 M2 完成。 |
+| M2-12 | T04：direct 关系引用与认知影响结算 | IN_PROGRESS | 静态核对显示 direct 主链可能过滤关系引用，而旧 fact_only 认知与 Core 结算可消费该引用；先用隔离数据库的正式请求验证，不更改模型、提示词文本或 fact_only 开关。 |
 
 M1 中同一调用 ID 重放的非阻断缺陷已登记 AEL，按用户要求暂缓，不在 M2 顺手修复。其余 M2 验收仍按原 T03～T06 和里程碑要求逐项处理，不以局部完成替代父任务验收。
 
