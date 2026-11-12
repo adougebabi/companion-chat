@@ -1,0 +1,50 @@
+SOURCE_HEAD 50d3b0be42d53fcbddba857bae3338c9bf46ec07 (clean archive plus source and test overlays)
+CANDIDATE /private/tmp/fluctlight-m2-15-final-my6mu3el
+MANIFEST /private/tmp/fluctlight-m2-15-final-my6mu3el/m2-15-final-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene|TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy|TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope|TestMomentActiveMemoryEvidenceKeepsAssociationsWithoutCoreIDs|TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs|TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker|TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays|TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife|TestReplyOptionalEvidenceReconciliationKeepsExactScope|TestMomentWithOwnerSelectedAttachmentRemainsPublishable|TestEveryFormalAgentAndVariantHasAnInputContract)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene
+2026/11/13 00:08:31 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id=controlled-moment error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestFactOnlyMomentUsesSameFrozenWriterWithFeedScene (0.01s)
+=== RUN   TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy
+--- PASS: TestMomentWriterPreservesGoalConditionsWithoutPreviousStrategy (0.00s)
+=== RUN   TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope
+--- PASS: TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope (0.00s)
+=== RUN   TestMomentActiveMemoryEvidenceKeepsAssociationsWithoutCoreIDs
+--- PASS: TestMomentActiveMemoryEvidenceKeepsAssociationsWithoutCoreIDs (0.00s)
+=== RUN   TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs
+2026/11/13 00:08:33 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestMomentPublicationResolvesActiveMemoryEvidenceWithoutCoreIDs (1.92s)
+=== RUN   TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker
+2026/11/13 00:08:34 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestFactOnlyMomentPublicationPreparedCacheRejectsChangedSourceOrSpeaker (1.22s)
+=== RUN   TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays
+2026/11/13 00:08:35 INFO reply.evidence.reconciled correlation_id=tool-operation:writer-moment-operation metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestFactOnlyMomentPublicationUsesWriterWithoutConversationAndReplays (1.19s)
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed
+2026/11/13 00:08:36 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed
+2026/11/13 00:08:38 INFO reply.evidence.reconciled correlation_id=tool-operation:blocked-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/13 00:08:38 WARN tool.call.handled capability=moment.publish call_id=direct_call_2bc862a0c556159e2f90e5288c3b7afc warning_code=moment_context_stale disposition=awaiting_state effect_applied=false
+--- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife (2.93s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/writer_failed (1.54s)
+    --- PASS: TestFactOnlyMomentPublicationRejectsWriterFailureAndStaleLife/life_changed (1.39s)
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image
+2026/11/13 00:08:39 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed
+2026/11/13 00:08:40 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary
+2026/11/13 00:08:42 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-owner-moment metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable (3.58s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/image (1.20s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/mixed (1.23s)
+    --- PASS: TestMomentWithOwnerSelectedAttachmentRemainsPublishable/ordinary (1.14s)
+=== RUN   TestEveryFormalAgentAndVariantHasAnInputContract
+--- PASS: TestEveryFormalAgentAndVariantHasAnInputContract (0.00s)
+=== RUN   TestReplyOptionalEvidenceReconciliationKeepsExactScope
+--- PASS: TestReplyOptionalEvidenceReconciliationKeepsExactScope (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	11.341s
+
+EXIT_CODE 0

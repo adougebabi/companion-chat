@@ -1,0 +1,13 @@
+SOURCE_HEAD 50d3b0be42d53fcbddba857bae3338c9bf46ec07 (clean archive plus test overlay)
+CANDIDATE /private/tmp/fluctlight-m2-15-red-pjt72000
+MANIFEST /private/tmp/fluctlight-m2-15-red-pjt72000/m2-15-red-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^TestM2MomentRelationshipEvidencePreservesBusinessValues$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2MomentRelationshipEvidencePreservesBusinessValues
+2026/11/12 23:59:21 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+    m2_moment_relationship_evidence_test.go:77: relationship business data changed: got={"schema":{"properties":{"item_ids":{"type":"array"}}},"valid":false} want={"id":"business-relationship-id","revision":7,"schema":{"properties":{"item_ids":{"type":"array"}}},"source_ref":"business-source-ref","valid":false}
+--- FAIL: TestM2MomentRelationshipEvidencePreservesBusinessValues (2.63s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.289s
+FAIL
+
+EXIT_CODE 1

@@ -93,6 +93,16 @@ func momentReplyEvidenceFact(entry ContextReference, projection ContextProjectio
 		return nil
 	case ContextReferenceActorFact:
 		return factOnlyReplyEvidenceFact(entry, projection)
+	case ContextReferenceRelationship:
+		value := momentReplyRelationshipEvidence(row)
+		if targetID := stringValue(row["target_actor_id"]); targetID != "" {
+			actor := actorRefForID(projection.Actors, targetID)
+			if len(actor) == 0 {
+				actor = map[string]any{"type": row["target_actor_type"]}
+			}
+			value["target_actor"] = momentReplyAssociatedActor(actor)
+		}
+		return map[string]any{"kind": string(entry.Kind), "value": value, "certainty": "关系记录描述当前对象，不证明其他事件已经发生。"}
 	case ContextReferenceActiveMemory:
 		value := momentReplyActiveMemoryEvidence(row)
 		if refs := arrayValue(row["actor_refs"]); len(refs) > 0 {
@@ -110,6 +120,16 @@ func momentReplyEvidenceFact(entry ContextReference, projection ContextProjectio
 		return nil
 	}
 	return map[string]any{"kind": string(entry.Kind), "value": replySemanticValue(row), "certainty": "仅按对应类型的权威状态/真实消息解释，引用本身不证明事件发生"}
+}
+
+// The relationship envelope is Core-owned; its declared domain values remain
+// opaque data and must not be recursively filtered by field-name suffix.
+func momentReplyRelationshipEvidence(row map[string]any) map[string]any {
+	result := copyPromptFields(row, "role", "metrics", "trend", "summary", "emotional_association", "is_current_user")
+	if target := mapValue(row["target_actor"]); len(target) > 0 {
+		result["target_actor"] = momentReplyAssociatedActor(target)
+	}
+	return result
 }
 
 func momentReplyActiveMemoryEvidence(row map[string]any) map[string]any {
@@ -154,6 +174,10 @@ func momentReplyToolFacts(facts []map[string]any) []map[string]any {
 		case string(ContextReferenceActiveMemory):
 			item := copyPromptFields(fact, "kind", "certainty")
 			item["value"] = momentReplyActiveMemoryEvidence(mapValue(fact["value"]))
+			result = append(result, item)
+		case string(ContextReferenceRelationship):
+			item := copyPromptFields(fact, "kind", "certainty")
+			item["value"] = momentReplyRelationshipEvidence(mapValue(fact["value"]))
 			result = append(result, item)
 		case string(ContextReferenceDrive), string(ContextReferencePreference), string(ContextReferenceTrigger):
 			item := copyPromptFields(fact, "kind", "certainty")

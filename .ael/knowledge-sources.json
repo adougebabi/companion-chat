@@ -88,7 +88,7 @@
     },
     {
       "path": "docs/llm-prompt-composition.md",
-      "hash": "21e0c9c02a5f78e5eaf17ff8fc5b1dc3c0ab23bd141073fbcd7183e92884a938",
+      "hash": "b75964c058cef18084714c8431acecf14d699485c0a0466fa65dcccc67517b30",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -102,14 +102,14 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-prompt-composition.md",
-        "hash": "21e0c9c02a5f78e5eaf17ff8fc5b1dc3c0ab23bd141073fbcd7183e92884a938",
+        "hash": "b75964c058cef18084714c8431acecf14d699485c0a0466fa65dcccc67517b30",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
     },
     {
       "path": "docs/llm-task-input-contracts.md",
-      "hash": "49f27b566ed56d355abbe0d4e32002dce65439b5e7634869188c6774b6034013",
+      "hash": "28559ad53a87782cf954ee5502ada83e7080008f3b0d97592f33afb15cf0aee8",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -123,7 +123,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/llm-task-input-contracts.md",
-        "hash": "49f27b566ed56d355abbe0d4e32002dce65439b5e7634869188c6774b6034013",
+        "hash": "28559ad53a87782cf954ee5502ada83e7080008f3b0d97592f33afb15cf0aee8",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -339,8 +339,29 @@
       }
     },
     {
+      "path": "docs/verification/meromero-m2-evidence/m2-15-review-notes.md",
+      "hash": "05cd0e93fa679c2797f31081c415121334fe0804b6a2c314114aad90d811e26d",
+      "action": "historical",
+      "reason": "original file remains the sole authoritative source",
+      "record": {
+        "id": "source:docs/verification/meromero-m2-evidence/m2-15-review-notes.md",
+        "title": "m2-15-review-notes.md",
+        "kind": "reference",
+        "status": "historical",
+        "paths": null,
+        "source": "docs/verification/meromero-m2-evidence/m2-15-review-notes.md",
+        "superseded_by": "",
+        "tasks": null,
+        "critical": false,
+        "path": "docs/verification/meromero-m2-evidence/m2-15-review-notes.md",
+        "hash": "05cd0e93fa679c2797f31081c415121334fe0804b6a2c314114aad90d811e26d",
+        "body": "",
+        "reason": "inherited baseline; implementation compliance has not been verified"
+      }
+    },
+    {
       "path": "docs/verification/meromero-m2-progress-20261112.md",
-      "hash": "33426810776594de1d5d6b04bfdd6629a7c1a9062d4012822ba1e703cb22850b",
+      "hash": "d623a25dad224075794b8e522446b719f5a231334c5fabd4fde3f4cfddca4142",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -354,7 +375,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-m2-progress-20261112.md",
-        "hash": "33426810776594de1d5d6b04bfdd6629a7c1a9062d4012822ba1e703cb22850b",
+        "hash": "d623a25dad224075794b8e522446b719f5a231334c5fabd4fde3f4cfddca4142",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }
@@ -467,7 +488,7 @@
   ],
   "counts": {
     "connected": 1,
-    "historical": 20,
+    "historical": 21,
     "retired": 1
   }
 }

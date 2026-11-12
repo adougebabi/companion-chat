@@ -1,0 +1,13 @@
+SOURCE_HEAD 50d3b0be42d53fcbddba857bae3338c9bf46ec07 (clean archive plus source and test overlays)
+CANDIDATE /private/tmp/fluctlight-m2-15-final-my6mu3el
+MANIFEST /private/tmp/fluctlight-m2-15-final-my6mu3el/m2-15-final-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2MomentRelationshipEvidencePreservesBusinessValues|TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestM2MomentRelationshipEvidencePreservesBusinessValues
+2026/11/13 00:07:05 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestM2MomentRelationshipEvidencePreservesBusinessValues (2.60s)
+=== RUN   TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown
+--- PASS: TestM2MomentRelationshipEvidenceKeepsUnknownTargetUnknown (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	3.395s
+
+EXIT_CODE 0
