@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "id": "avatar-manual-review-snapshot-baseline-failure",
+  "definition_hash": "4381d4c224713c1b3c71a77ed9c14d69478c50ffb28dba74ef50d90a1b50c6eb",
+  "policy_hash": "bc41c23e801e739ffc7ef4250e5ee589798041832f351d5ed37d9bf77628b4f6",
+  "definition_revision": 1,
+  "plan": {
+    "revision": 1,
+    "preset": "standard",
+    "steps": [
+      "define",
+      "analysis",
+      "execute",
+      "verify"
+    ],
+    "reason": "explicit preset",
+    "approved": false
+  },
+  "current_step": "define",
+  "status": "open",
+  "candidate": "",
+  "failure": "",
+  "result": "",
+  "created": "2026-11-12T10:12:21.081198Z",
+  "updated": "2026-11-12T10:12:21.081208Z",
+  "completed": null,
+  "feedback": [],
+  "history": {
+    "attempts": null,
+    "checks": null
+  }
+}

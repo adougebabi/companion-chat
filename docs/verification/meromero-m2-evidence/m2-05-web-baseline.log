@@ -1,0 +1,118 @@
+SOURCE_HEAD b3f5cd40b125364a202b117d2b270e41dfb9e995 BASELINE clean git export
+COMMAND node --test test/diagnostic-task-detail.test.mjs
+✔ task status labels never expose inherited object properties for unknown wire values (43.448583ms)
+✖ dialog task recovery is owned once and portaled outside its scrolling body across tabs (1431.455583ms)
+✖ sheet task recovery is owned once and portaled outside its scrolling body across tabs (117.700958ms)
+✖ task checkpoint reset uses the actual completed history point and keeps its confirmation locked while submitting (117.535917ms)
+✖ readable task title and subtitle keep exact IDs and raw recovery semantics in technical details (81.178792ms)
+✖ task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery (0.946083ms)
+✔ queued unattempted task uses a preparation link while retaining the backend domain target (103.81975ms)
+✔ failed media task recovers the original attempt and follows the accepted new task (291.353042ms)
+✔ media retry uses explicit regenerate mode and keeps its original revision (205.804292ms)
+✔ media quality failure presents only supported recovery actions (true) (86.718ms)
+✔ media quality failure presents only supported recovery actions (false) (83.40225ms)
+✔ media quality failure presents only supported recovery actions (null) (84.793583ms)
+✔ media quality recovery preserves a ready legacy asset (80.842917ms)
+✔ media quality recovery checks already delivered legacy results (unsettled) (113.455041ms)
+✔ media quality recovery checks already delivered legacy results (failed) (83.205083ms)
+✔ media recovery respects visual domain and attempt boundaries (102.045458ms)
+✔ media recovery respects studio domain and attempt boundaries (98.6345ms)
+✔ media recovery respects superseded domain and attempt boundaries (73.223208ms)
+✔ media recovery respects active domain and attempt boundaries (69.839875ms)
+✔ media stage display uses only persisted checkpoints and never turns provider admission into a finished image (0.377667ms)
+✔ media recovery survives remount after an unknown transport result without changing the submission (301.027958ms)
+✔ media revision conflict requires a fresh read and explicit release before a new submission (395.547375ms)
+✔ incomplete media recovery receipt retains the original command for safe replay (244.188583ms)
+✔ media recovery warns about an unknown provider submission only when job id is missing (129.166291ms)
+✔ media recovery warns about an unknown provider submission only when job id is saved (146.644417ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 20
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4911.290084
+
+✖ failing tests:
+
+test at test/diagnostic-task-detail.test.mjs:24:46
+✖ dialog task recovery is owned once and portaled outside its scrolling body across tabs (1431.455583ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /生命周期记录 · 已读取 2 条/. Input:
+
+  '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭'
+
+      at TestContext.<anonymous> (file:///private/tmp/fluctlight-m2-05-web-zprquqgp/apps/web/test/diagnostic-task-detail.test.mjs:32:33)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭',
+    expected: /生命周期记录 · 已读取 2 条/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/diagnostic-task-detail.test.mjs:24:46
+✖ sheet task recovery is owned once and portaled outside its scrolling body across tabs (117.700958ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /生命周期记录 · 已读取 2 条/. Input:
+
+  '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭'
+
+      at TestContext.<anonymous> (file:///private/tmp/fluctlight-m2-05-web-zprquqgp/apps/web/test/diagnostic-task-detail.test.mjs:32:33)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭',
+    expected: /生命周期记录 · 已读取 2 条/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/diagnostic-task-detail.test.mjs:38:1
+✖ task checkpoint reset uses the actual completed history point and keeps its confirmation locked while submitting (117.535917ms)
+  TypeError: Cannot read properties of undefined (reading 'click')
+      at file:///private/tmp/fluctlight-m2-05-web-zprquqgp/apps/web/test/helpers/react-dom.mjs:121:34
+      at process.env.NODE_ENV.exports.act (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/react@19.3.1/node_modules/react/cjs/react.development.js:890:22)
+      at Object.click (file:///private/tmp/fluctlight-m2-05-web-zprquqgp/apps/web/test/helpers/react-dom.mjs:121:13)
+      at TestContext.<anonymous> (file:///private/tmp/fluctlight-m2-05-web-zprquqgp/apps/web/test/diagnostic-task-detail.test.mjs:44:198)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test/diagnostic-task-detail.test.mjs:50:1
+✖ readable task title and subtitle keep exact IDs and raw recovery semantics in technical details (81.178792ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /人格资料整理 · 需要处理/. Input:
+
+  '人格资料整理 · 10-30 09:00'
+
+      at TestContext.<anonymous> (file:///private/tmp/fluctlight-m2-05-web-zprquqgp/apps/web/test/diagnostic-task-detail.test.mjs:55:212)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '人格资料整理 · 10-30 09:00',
+    expected: /人格资料整理 · 需要处理/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/diagnostic-task-detail.test.mjs:60:1
+✖ task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery (0.946083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'unrecognized raw cause'
+  - ''
+
+      at TestContext.<anonymous> (file:///private/tmp/fluctlight-m2-05-web-zprquqgp/apps/web/test/diagnostic-task-detail.test.mjs:62:156)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unrecognized raw cause',
+    expected: '',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+EXIT_CODE 1

@@ -1,0 +1,93 @@
+SOURCE_HEAD b3f5cd40b125364a202b117d2b270e41dfb9e995 CANDIDATE /private/tmp/fluctlight-m2-02-8xt2jbjk
+OVERLAYS apps/core-go/internal/core/studio_jobs.go,apps/core-go/internal/core/visual_brief.go,apps/core-go/internal/core/visual_identity_failure.go,packages/browser-client/openapi.json,apps/core-go/internal/httpapi/browser/media_submission_guard_test.go,apps/core-go/internal/workflow/m2_media_submission_reconcile_test.go,apps/core-go/internal/core/owner_media_requests.go,apps/core-go/internal/core/media_quality.go,apps/core-go/internal/core/diagnostic_media_recovery.go,apps/core-go/internal/core/operations.go,apps/core-go/internal/core/studio_media.go,apps/core-go/internal/core/studio_retry.go,apps/core-go/internal/core/visual_identity_agent.go,apps/core-go/internal/workflow/workflow.go,apps/core-go/internal/migrations/media_submission_guard_test.go,apps/core-go/internal/core/media.go,apps/core-go/internal/core/media_submission_guard.go,apps/core-go/internal/migrations/runner.go,apps/core-go/internal/migrations/current_chain_test.go,apps/core-go/internal/migrations/media_submission_guard.go,apps/core-go/internal/core/m2_ambiguous_image_submit_test.go
+COMMAND go test ./internal/core -count=1 -run ^(TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob|TestDefiniteRendererValidationRejectionCanBeRetried|TestOnlyKnownRendererValidationRejectionsClearSubmissionFence|TestMediaSubmissionGuardPausesLegacyAndInterruptedWork|TestStudioAndVisualIdentityKeepAmbiguousMediaPaused|TestLegacyVisualIdentityWithoutJobRemainsUncertain|TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset|TestImageRunningJobRecoversAcrossProcessesAfterDisable|TestMediaNormalizerSnapshotSurvivesProcessRecovery|TestMediaQualitySnapshotFailureCannotBecomeSkippedDelivery|TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate|TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction|TestStudioMediaReadyRecoveryAuthorizationAndExplicitMaterialRetention|TestStudioReadyNonPassingCandidateIsNotPromotedDuringRecovery|TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays|TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion|TestGeneratedAvatarRealMediaHTTPWaitsForManualReview|TestGeneratedAvatarRealMediaHTTPModelReview|TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestGeneratedAvatarRealMediaHTTPWaitsForManualReview
+    generated_avatar_test.go:453: avatar media execution: map[string]interface {}(nil) uploaded=false err=media prompt generation failed: media_model_snapshot_failure: media_model_snapshot_invalid
+--- FAIL: TestGeneratedAvatarRealMediaHTTPWaitsForManualReview (1.47s)
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview/pass
+=== RUN   TestGeneratedAvatarRealMediaHTTPModelReview/reject_after_retry
+--- PASS: TestGeneratedAvatarRealMediaHTTPModelReview (2.40s)
+    --- PASS: TestGeneratedAvatarRealMediaHTTPModelReview/pass (1.12s)
+    --- PASS: TestGeneratedAvatarRealMediaHTTPModelReview/reject_after_retry (1.29s)
+=== RUN   TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob
+    m2_ambiguous_image_submit_test.go:115: child phase=lost_response pid=47393 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=lost_response actual_error=media_submission_ambiguous: Post "http://127.0.0.1:60340/prompt": EOF
+        --- PASS: TestImageAmbiguousSubmitChild (0.04s)
+        PASS
+    m2_ambiguous_image_submit_test.go:120: child phase=resume pid=47395 output:
+        === RUN   TestImageAmbiguousSubmitChild
+            m2_ambiguous_image_submit_test.go:185: phase=resume actual_error=media_submission_ambiguous
+        --- PASS: TestImageAmbiguousSubmitChild (0.01s)
+        PASS
+--- PASS: TestImageAmbiguousSubmitDoesNotCreateAnotherRendererJob (1.20s)
+=== RUN   TestMediaSubmissionGuardPausesLegacyAndInterruptedWork
+=== RUN   TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/legacy-no-job
+=== RUN   TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/legacy-failed-no-job
+=== RUN   TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/interrupted-submit
+--- PASS: TestMediaSubmissionGuardPausesLegacyAndInterruptedWork (1.10s)
+    --- PASS: TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/legacy-no-job (0.01s)
+    --- PASS: TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/legacy-failed-no-job (0.00s)
+    --- PASS: TestMediaSubmissionGuardPausesLegacyAndInterruptedWork/interrupted-submit (0.01s)
+=== RUN   TestStudioAndVisualIdentityKeepAmbiguousMediaPaused
+--- PASS: TestStudioAndVisualIdentityKeepAmbiguousMediaPaused (1.04s)
+=== RUN   TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset
+--- PASS: TestReviewedAmbiguousMediaCanResumeAlreadyReadyAsset (1.48s)
+=== RUN   TestDefiniteRendererValidationRejectionCanBeRetried
+--- PASS: TestDefiniteRendererValidationRejectionCanBeRetried (1.64s)
+=== RUN   TestOnlyKnownRendererValidationRejectionsClearSubmissionFence
+--- PASS: TestOnlyKnownRendererValidationRejectionsClearSubmissionFence (0.00s)
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate
+=== RUN   TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet
+--- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain (4.75s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/candidate (2.40s)
+    --- PASS: TestLegacyVisualIdentityWithoutJobRemainsUncertain/character_sheet (2.35s)
+=== RUN   TestImageRunningJobRecoversAcrossProcessesAfterDisable
+    m2_running_image_recovery_test.go:156: child phase=interrupt pid=47403 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:221: controlled renderer history failed after submission, as intended
+        --- PASS: TestImageRunningJobRecoveryChild (0.05s)
+        PASS
+    m2_running_image_recovery_test.go:166: child phase=resume pid=47406 output:
+        === RUN   TestImageRunningJobRecoveryChild
+            m2_running_image_recovery_test.go:231: resume and replay completed once; child pid=47406
+        --- PASS: TestImageRunningJobRecoveryChild (0.05s)
+        PASS
+--- PASS: TestImageRunningJobRecoversAcrossProcessesAfterDisable (2.52s)
+=== RUN   TestMediaNormalizerSnapshotSurvivesProcessRecovery
+--- PASS: TestMediaNormalizerSnapshotSurvivesProcessRecovery (2.18s)
+=== RUN   TestMediaQualitySnapshotFailureCannotBecomeSkippedDelivery
+--- PASS: TestMediaQualitySnapshotFailureCannotBecomeSkippedDelivery (2.10s)
+=== RUN   TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate
+--- PASS: TestMediaQualityRetryPersistsFeedbackAndRejectsSecondCandidate (1.79s)
+=== RUN   TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction
+=== RUN   TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/resume
+=== RUN   TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/regenerate
+--- PASS: TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction (1.91s)
+    --- PASS: TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/resume (0.01s)
+    --- PASS: TestRejectedMediaRecoveryDoesNotReplayOrReuseTerminalAction/regenerate (0.00s)
+=== RUN   TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference
+=== RUN   TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/accepted
+=== RUN   TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/final_failure
+=== RUN   TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/declined
+=== RUN   TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/wrong_intent
+--- PASS: TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference (5.66s)
+    --- PASS: TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/accepted (1.95s)
+    --- PASS: TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/final_failure (1.26s)
+    --- PASS: TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/declined (1.21s)
+    --- PASS: TestOwnerMediaNativeRequestFreezesTargetRecoversAcceptedIntentAndPublishesItemReference/wrong_intent (1.24s)
+=== RUN   TestStudioMediaReadyRecoveryAuthorizationAndExplicitMaterialRetention
+--- PASS: TestStudioMediaReadyRecoveryAuthorizationAndExplicitMaterialRetention (1.14s)
+=== RUN   TestStudioReadyNonPassingCandidateIsNotPromotedDuringRecovery
+--- PASS: TestStudioReadyNonPassingCandidateIsNotPromotedDuringRecovery (1.31s)
+=== RUN   TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays
+--- PASS: TestVisualIdentityGenerateCandidateToolCommitsDurableIntentAndReplays (1.22s)
+=== RUN   TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion
+2026/11/12 18:11:28 WARN tool.call.handled capability=visual_identity.finalize call_id=direct_call_3ca3bdd13f1341578599a2d74d6a5a45 warning_code=visual_identity_character_sheet_asset_load_failed disposition=unavailable effect_applied=false
+--- PASS: TestVisualIdentityFinalizeToolCommitsCanonicalCharacterSheetAndCompletion (1.32s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	37.063s
+FAIL
+EXIT_CODE 1

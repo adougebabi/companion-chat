@@ -22,9 +22,11 @@
   "failure": "已在生产 dist 的隔离 loopback fixture 查看失败任务行、尝试数、居中弹窗、三个标签、生命周期时间线和任务信息；但 fixture 仅提供 visual_identity.prepare，缺少 media.generation、媒体 correlation_id 和 ModelRuns 数据，无法执行本验收要求的媒体任务“查看关联模型调用”场景。恢复条件：在隔离 fixture 或可用本地环境提供一条媒体失败任务及真实关联调用/明确空记录；恢复节点：verify。",
   "result": "",
   "created": "2026-11-06T09:46:07.475026Z",
-  "updated": "2026-11-06T10:44:01.06293Z",
+  "updated": "2026-11-12T09:41:26.411213Z",
   "completed": null,
-  "feedback": [],
+  "feedback": [
+    "diagnostic-task-detail-baseline-regression"
+  ],
   "history": {
     "attempts": [
       {

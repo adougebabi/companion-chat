@@ -1,0 +1,137 @@
+✔ Studio directory reads nine actual resource types, searches and keeps archived collection separate (356.119083ms)
+✔ r34c Studio read count includes drafts and labels publication and archive counts (95.404792ms)
+✔ Studio empty directory and failed initial read are distinct and recover via original GET (228.207792ms)
+✔ Studio saves typed edits using the opaque draft version and publishes an exact immutable saved version (293.701042ms)
+✔ Studio new save checkpoints the actual identity and canonical name before navigation (218.824833ms)
+✔ Studio apply freezes the exact publication and generic accepted receipt does not require a fabricated target kind (315.158916ms)
+✔ Studio version history reads immutable content, while independent copies stay unpublished (270.489125ms)
+✔ sandbox freezes current working input, observes actual jobs and adopts suggestions only after explicit review (243.887ms)
+✔ acknowledged sandbox readback failure survives remount and recovers with GET only while preserving newer composer text (302.09725ms)
+✔ late sandbox acceptance after unmount retains its pointer (183.044708ms)
+✔ legacy directory recovery replays the original localStorage identity and body (203.511834ms)
+✔ raw JSON edits cannot be silently replaced by an assistant proposal, including edits made while confirmation is open (266.289834ms)
+✔ event scope changes remove only the invalid place reference while preserving unknown extensions (177.183083ms)
+✔ an Owner purge prevents a late accepted sandbox task from recreating another Owners recovery pointer (172.988083ms)
+✔ a late independent-copy acknowledgement after unmount preserves its actual copied identity (178.466417ms)
+✔ copying a historical publication uses its exact immutable definition and restores dialog source focus on cancel (373.645958ms)
+✔ sandbox text materials retain their original job and release only the resource association (485.495125ms)
+✔ Studio real editor applies linked world and result navigation retains original role (329.151459ms)
+✔ Studio shows an uncertain renderer submission as paused (174.329667ms)
+✔ task status labels never expose inherited object properties for unknown wire values (54.8915ms)
+✖ dialog task recovery is owned once and portaled outside its scrolling body across tabs (1426.118083ms)
+✖ sheet task recovery is owned once and portaled outside its scrolling body across tabs (121.138125ms)
+✖ task checkpoint reset uses the actual completed history point and keeps its confirmation locked while submitting (110.597875ms)
+✖ readable task title and subtitle keep exact IDs and raw recovery semantics in technical details (77.446375ms)
+✖ task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery (0.826083ms)
+✔ queued unattempted task uses a preparation link while retaining the backend domain target (99.750459ms)
+✔ failed media task recovers the original attempt and follows the accepted new task (279.146125ms)
+✔ media retry uses explicit regenerate mode and keeps its original revision (178.595416ms)
+✔ media quality failure presents only supported recovery actions (true) (79.858291ms)
+✔ media quality failure presents only supported recovery actions (false) (80.097666ms)
+✔ media quality failure presents only supported recovery actions (null) (82.685209ms)
+✔ media quality recovery preserves a ready legacy asset (78.995917ms)
+✔ media quality recovery checks already delivered legacy results (unsettled) (112.297791ms)
+✔ media quality recovery checks already delivered legacy results (failed) (78.938708ms)
+✔ media recovery respects visual domain and attempt boundaries (108.460083ms)
+✔ media recovery respects studio domain and attempt boundaries (97.522541ms)
+✔ media recovery respects superseded domain and attempt boundaries (68.844875ms)
+✔ media recovery respects active domain and attempt boundaries (70.538042ms)
+✔ media stage display uses only persisted checkpoints and never turns provider admission into a finished image (0.254417ms)
+✔ media recovery survives remount after an unknown transport result without changing the submission (281.566084ms)
+✔ media revision conflict requires a fresh read and explicit release before a new submission (378.212458ms)
+✔ incomplete media recovery receipt retains the original command for safe replay (237.683792ms)
+✔ media recovery warns about an unknown provider submission only when job id is missing (129.287375ms)
+✔ media recovery warns about an unknown provider submission only when job id is saved (125.311ms)
+✔ uncertain media submission_unknown requires explicit review before regeneration (213.068916ms)
+✔ uncertain media failed requires explicit review before regeneration (217.110792ms)
+✔ uncertain media with a ready asset offers reviewed recovery without regeneration (110.047917ms)
+ℹ tests 47
+ℹ suites 0
+ℹ pass 42
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7011.805375
+
+✖ failing tests:
+
+test at test/diagnostic-task-detail.test.mjs:24:46
+✖ dialog task recovery is owned once and portaled outside its scrolling body across tabs (1426.118083ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /生命周期记录 · 已读取 2 条/. Input:
+
+  '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭'
+
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/diagnostic-task-detail.test.mjs:32:33)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭',
+    expected: /生命周期记录 · 已读取 2 条/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/diagnostic-task-detail.test.mjs:24:46
+✖ sheet task recovery is owned once and portaled outside its scrolling body across tabs (121.138125ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /生命周期记录 · 已读取 2 条/. Input:
+
+  '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭'
+
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/diagnostic-task-detail.test.mjs:32:33)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '原角色 · 人格整理人格整理 · 未记录时间需要处理原角色 · 已尝试 2 次执行阶段执行记录已读取 2任务信息09:00:00排队中09:02:00执行失败模型调用记录 · 0 次生命周期原始记录查看完整生命周期执行方式后台工作流 · 执行失败恢复策略当前支持重试原任务；操作受理后仍需读取实际任务结果。执行历史与检查点管理命令与技术详情重试任务关闭',
+    expected: /生命周期记录 · 已读取 2 条/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/diagnostic-task-detail.test.mjs:38:1
+✖ task checkpoint reset uses the actual completed history point and keeps its confirmation locked while submitting (110.597875ms)
+  TypeError: Cannot read properties of undefined (reading 'click')
+      at file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/helpers/react-dom.mjs:121:34
+      at process.env.NODE_ENV.exports.act (/Users/vinson/Documents/project/个人/local-ai-companion/node_modules/.pnpm/react@19.3.1/node_modules/react/cjs/react.development.js:890:22)
+      at Object.click (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/helpers/react-dom.mjs:121:13)
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/diagnostic-task-detail.test.mjs:44:198)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+
+test at test/diagnostic-task-detail.test.mjs:50:1
+✖ readable task title and subtitle keep exact IDs and raw recovery semantics in technical details (77.446375ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /人格资料整理 · 需要处理/. Input:
+
+  '人格资料整理 · 10-30 09:00'
+
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/diagnostic-task-detail.test.mjs:55:212)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '人格资料整理 · 10-30 09:00',
+    expected: /人格资料整理 · 需要处理/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/diagnostic-task-detail.test.mjs:60:1
+✖ task reasons translate only known causes, unknown types stay readable and pending source links do not claim recovery (0.826083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'unrecognized raw cause'
+  - ''
+
+      at TestContext.<anonymous> (file:///Users/vinson/Documents/project/%E4%B8%AA%E4%BA%BA/local-ai-companion/apps/web/test/diagnostic-task-detail.test.mjs:62:156)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unrecognized raw cause',
+    expected: '',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
