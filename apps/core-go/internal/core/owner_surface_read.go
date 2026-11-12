@@ -67,6 +67,9 @@ func (a *App) DispatchOwnerSurface(ctx context.Context, method, path string, que
 	if method == "POST" && len(configParts) == 3 && strings.Join(configParts, "/") == "settings/media/test-connection" {
 		return a.TestSavedMediaConnection(ctx, owner)
 	}
+	if method == "POST" && len(configParts) == 3 && strings.Join(configParts, "/") == "settings/moment/test-health" {
+		return a.TestMomentPluginHealth(ctx, owner)
+	}
 	if matchMomentFeed(method, path) {
 		return a.dispatchMomentFeed(ctx, method, path, query, owner, body)
 	}

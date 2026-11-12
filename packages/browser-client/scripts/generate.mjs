@@ -176,6 +176,7 @@ export class BrowserClient {
   async configurationCommandByKey(key:string):Promise<Record<string,unknown>>{return this.json(\`/api/configuration-commands/by-key?\${new URLSearchParams({key})}\`) as Promise<Record<string,unknown>>;}
   async runtimeCapabilityCatalog():Promise<BrowserConfigurationRuntimeCatalog>{return this.json('/api/settings/agents') as Promise<BrowserConfigurationRuntimeCatalog>;}
   async testSavedMediaConnection():Promise<Record<string,unknown>>{return this.json('/api/settings/media/test-connection',{method:'POST',body:{}}) as Promise<Record<string,unknown>>;}
+  async testMomentPluginHealth():Promise<Record<string,unknown>>{return this.json('/api/settings/moment/test-health',{method:'POST',body:{}}) as Promise<Record<string,unknown>>;}
   async revokeAllSessions():Promise<void>{await this.json('/auth/revoke-all',{method:'POST',body:{}});}
   async settings(): Promise<BrowserSafeSettings> { return this.json("/api/settings") as Promise<BrowserSafeSettings>; }
   async updateSettings(body: { values?: Record<string, unknown>; secrets?: Record<string, string | null>; clearSecrets?: string[];expectedVersions:Record<string,number>;idempotencyKey:string }): Promise<BrowserSafeSettings> { return this.json("/api/settings", { method: "PUT", body }) as Promise<BrowserSafeSettings>; }

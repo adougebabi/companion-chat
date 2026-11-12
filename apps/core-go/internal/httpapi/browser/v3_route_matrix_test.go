@@ -78,6 +78,7 @@ func browserV3RouteCases() []browserRouteCase {
 		{name: "configurationCatalog", method: "GET", path: "/api/configuration-catalog"},
 		{name: "configurationCommandByKey", method: "GET", path: "/api/configuration-commands/by-key?key=fixture-original-key"},
 		{name: "testSavedMediaConnection", method: "POST", path: "/api/settings/media/test-connection", body: `{}`},
+		{name: "testMomentPluginHealth", method: "POST", path: "/api/settings/moment/test-health", body: `{}`},
 		{name: "momentNPCInteractions", method: "GET", path: "/api/moment-feed/moment-1/npc-interactions"},
 		{name: "momentNPCInteraction", method: "GET", path: "/api/moment-feed/moment-1/npc-interactions/interaction-1"},
 		{name: "retryMomentNPCInteraction", method: "POST", path: "/api/moment-feed/moment-1/npc-interactions/interaction-1/retry", body: `{"expectedRevision":1,"reason":"Owner contract regression","idempotencyKey":"fixture-command"}`},

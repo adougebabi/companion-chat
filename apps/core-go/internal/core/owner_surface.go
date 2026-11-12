@@ -223,7 +223,7 @@ func MatchOwnerSurface(method, path string) bool {
 	if method == "GET" && len(surfaceParts(path)) == 1 && surfaceParts(path)[0] == "configuration-catalog" {
 		return true
 	}
-	if method == "POST" && len(surfaceParts(path)) == 3 && strings.Join(surfaceParts(path), "/") == "settings/media/test-connection" {
+	if method == "POST" && len(surfaceParts(path)) == 3 && (strings.Join(surfaceParts(path), "/") == "settings/media/test-connection" || strings.Join(surfaceParts(path), "/") == "settings/moment/test-health") {
 		return true
 	}
 	if matchMomentFeed(method, path) {

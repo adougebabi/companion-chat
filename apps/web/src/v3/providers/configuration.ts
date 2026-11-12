@@ -20,7 +20,7 @@ export function installConfigurationProvider(client:BrowserClient,refresh:()=>Pr
  binding:(body:Parameters<BrowserClient['configureModelRole']>[0])=>client.configureModelRole(body),
  models:(id:string)=>client.providerEndpointModels(id),
  catalog:async()=>normalizeRuntimeCatalog(await client.runtimeCapabilityCatalog()),
- test:(kind:'kev'|'vision'|'media')=>kind==='kev'?client.testKevConnection():kind==='vision'?client.testVisionUnderstanding():client.testSavedMediaConnection(),
+ test:(kind:'kev'|'vision'|'media'|'moment')=>kind==='kev'?client.testKevConnection():kind==='vision'?client.testVisionUnderstanding():kind==='moment'?client.testMomentPluginHealth():client.testSavedMediaConnection(),
  parseWorkflow:parseWorkflowTemplate,
  async password(value:string){await client.changePassword(value);await refresh();},
  async logout(){await client.logout();await refresh();},

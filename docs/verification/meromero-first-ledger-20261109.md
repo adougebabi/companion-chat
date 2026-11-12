@@ -31,7 +31,7 @@
 | T08 | R07 表达学习 | IN_PROGRESS | 已接真实人类来源、候选持久化、Owner 审核及启停/撤销；隔离 PostgreSQL 与受控 Provider 验证同一候选从受理消息提取、启用进入 direct 请求、停用后新请求不再注入，学习开关与使用开关独立，测试中人格和关系语义未变化。关系含义称呼的兼容性、任意注入/日志内容排除、真实模型及 UI 到实际运行的闭环仍未完成或未验收。 |
 | T09 | R08 记忆治理 | IN_PROGRESS | 摘要、长期记忆、混合来源派生记忆和常驻快照读取均对已解析的纠错来源执行保守屏障；每日记忆在模型前和提交前复查整日来源。`memory.recall` 的原始会话回执区分真实发言主体并保留消息类型；隔离 PostgreSQL 与受控原生工具续轮验证主体标签和会话隔离。未知旧来源、可证明已吸收纠错的重建、全部在途请求及既有锁序仍未解决。 |
 | T10 | R09 现有领域回归 | IN_PROGRESS | 隔离 PostgreSQL 和受控 Provider 抽样验证 Goal 上限/空集、已完成旧愿望与 Owner 暂停保护、衣柜借还与穿着、人格切换、Actor/NPC 隔离、世界事件准入、Studio 与日记；四组 Goal/活动闭环测试在本轮及起始提交均失败，已另记 bug。真实模型、真实渲染及完整领域矩阵仍未验收。 |
-| T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；图片插件可显式检查已保存 ComfyUI 连接；两条诊断导出使用隐私安全投影，上游重试逐次记录安全状态与错误分类；Agent 错误及失败工具结果对可识别凭据进行有限脱敏。真实 ComfyUI/生成、Moment 健康、完整 Prompt 的调试权限、通用隔离重放和真实页面到运行消费仍未完成或未验收。 |
+| T11 | R10 管理、Trace、重放 | IN_PROGRESS | 正式 React 管理页已接 Agent/variant 覆盖、恢复继承与 Image/Moment 开关；图片插件可显式检查已保存 ComfyUI 连接；Moment 已有 Owner 授权的只读注册与列表检查 API，页面接入尚在进行。两条诊断导出使用隐私安全投影，上游重试逐次记录安全状态与错误分类；Agent 错误及失败工具结果对可识别凭据进行有限脱敏。真实 ComfyUI/生成、完整 Prompt 的调试权限、通用隔离重放和真实页面到运行消费仍未完成或未验收。 |
 | T12 | R11 全链路验收 | IN_PROGRESS | 已更新主复核报告及 E01–E18 矩阵，在干净提交 `42b43abf` 上执行 Go 全量和 14 个隔离数据库/受控工具专项；Web 定向 8 项与类型检查通过。额外衣柜/无人主体回归 9 个顶层测试中 8 通过、1 失败，失败的两个回退纠错子场景在起始提交通过，已另记 bug；E14 旧 Goal/活动失败、E16 正文与媒体一致性，以及真实模型、渲染与 UI 到运行消费仍未全部验收。 |
 
 ## 已发现的冲突与依赖
@@ -74,6 +74,8 @@
 - 表达学习方面读取了 `src/learners/expression_learner.py`、`expression_review_store.py`、`src/chat/replyer/maisaka_expression_selector.py`、`src/common/data_models/expression_data_model.py`。可借鉴来源消息筛选、情境/表达分离及审核记录；其可选审核门槛、候选来源未在所查写入链持久保存、选择时间不等于实际采用，不能直接满足本轮闭环。关键依据：[候选写入](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/learners/expression_learner.py#L505)、[审核筛选](https://github.com/Mai-with-u/MaiBot/blob/e5391507531706a8bfce011d55ed94628039f2de/src/chat/replyer/maisaka_expression_selector.py#L114)。以上仅为所读文件的范围结论，不声称已审完对方全仓。
 
 ## 验收及变更记录
+
+- 2026-11-12：T11 新增 Moment 只读健康检查后端与浏览器 API 合同：验证当前进程 `moment.publish`/`moment.inspect` 注册，以及 Owner 动态列表最多一条的真实读取；空列表正常，停用与检查失败分开，配置在检查中变化时旧成功或旧失败均标记过期。检查不发布动态、不执行模型，也不宣称事件投递或发布成功。隔离 PostgreSQL 验证无业务写入、Owner 访问、停用、缺少列表依赖及配置竞争，浏览器路由/CSRF 与客户端测试通过：`/private/tmp/fluctlight-t11-moment-backend-route-final.log`、`/private/tmp/fluctlight-t11-moment-browser-contract.log`、`/private/tmp/fluctlight-t11-moment-client.log`。此时管理页尚未接入该检查，不能将后端 API 视为 T11 完成。
 
 - 2026-11-12：T06 修复能力目录与原生调用对工具权限的状态误报。完整安装注册表与当前运行范围分开核对；点名查询区分已安装但无权、插件禁用、未安装及缺少安装信息，独立目录调用不创建 Agent 工具窗口。空目录查询报告当前已加载的披露窗口，设置变更后不再展示已撤销的工具，无法确定时标记未知；披露窗口不代表后续物理策略或业务权限已通过。正式 Agent 的执行工具范围从该次任务定义冻结，不使用 Kev 的视觉身份阶段也不能调用其他阶段工具；无权限先于 schema 参数校验返回无副作用回执。禁用工具的非法参数不再泄露 schema，合法的已提交工具回执继续先于禁用门禁重放。旧代码红测 `/private/tmp/fluctlight-t06-catalog-authority-red.log`、`/private/tmp/fluctlight-t06-formal-stage-red.log`、`/private/tmp/fluctlight-t06-catalog-loaded-red.log`；隔离 PostgreSQL 和受控原生循环的 21 个顶层专项通过，4 个重点专项 race 通过，证据 `/private/tmp/fluctlight-t06-catalog-authority-final.log`、`/private/tmp/fluctlight-t06-catalog-authority-race.log`、`evidence/meromero-t06-catalog-verification-20261112.txt`。无数据库和真实服务的 Go 全量 18 包通过、按测试事件计数 3,125 通过和 1,076 跳过：`/private/tmp/fluctlight-t06-catalog-go-all-final2.jsonl`；跳过不算通过。这只完成工具发现和权限边界的一部分，不解决无媒体调用却声称已发送的正文语义核验或取消竞态。
 

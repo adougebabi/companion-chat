@@ -18,5 +18,6 @@ export const configurationPaths=ownerPathContracts({
  '/api/configuration-commands/by-key':{get:{operationId:'configurationCommandByKey',parameters:[{name:'key',in:'query',required:true,schema:{type:'string',minLength:1,maxLength:256}}],responses:{200:{description:'Safe committed receipt, never credentials',content:{'application/json':{schema:data}}}}}},
  '/api/settings/agents':{get:{operationId:'runtimeCapabilityCatalog',...response('BrowserConfigurationRuntimeCatalog')}},
  '/api/settings/media/test-connection':{post:{operationId:'testSavedMediaConnection',responses:{200:{description:'Saved endpoint connectivity; not an image generation test',content:{'application/json':{schema:data}}}}}},
+ '/api/settings/moment/test-health':{post:{operationId:'testMomentPluginHealth',responses:{200:{description:'Read-only Moment registration and data access check; not a publication or model test',content:{'application/json':{schema:data}}}}}},
  '/api/settings':{get:{operationId:'readSettings',...response('BrowserConfigurationSaved')},put:{operationId:'updateSettings',requestBody:{required:true,content:{'application/json':{schema:ref('BrowserConfigurationWrite')}}},...response('BrowserConfigurationSaved')}},
 });

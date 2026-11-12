@@ -193,7 +193,7 @@
     },
     {
       "path": "docs/verification/meromero-first-ledger-20261109.md",
-      "hash": "40f1f8aaf74b3b8a03c8c5e18b016705d9bb32e3bbf4663d156aaaccf4897728",
+      "hash": "3f0fa9f7dca8e2324a58e2fd086bad057170e28b98e330241516a23ebbedeaf1",
       "action": "historical",
       "reason": "original file remains the sole authoritative source",
       "record": {
@@ -207,7 +207,7 @@
         "tasks": null,
         "critical": false,
         "path": "docs/verification/meromero-first-ledger-20261109.md",
-        "hash": "40f1f8aaf74b3b8a03c8c5e18b016705d9bb32e3bbf4663d156aaaccf4897728",
+        "hash": "3f0fa9f7dca8e2324a58e2fd086bad057170e28b98e330241516a23ebbedeaf1",
         "body": "",
         "reason": "inherited baseline; implementation compliance has not been verified"
       }

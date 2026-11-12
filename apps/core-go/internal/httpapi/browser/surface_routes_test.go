@@ -121,6 +121,14 @@ func TestSurfaceRoutesRequireOwnerSessionAndCSRF(t *testing.T) {
 	if missingCSRF.code != http.StatusForbidden || missingCSRF.json(t)["code"] != "invalid_origin" {
 		t.Fatalf("csrf = %d %s", missingCSRF.code, missingCSRF.body)
 	}
+	momentAnonymous := surfaceInvoke(handler, http.MethodPost, "/api/settings/moment/test-health", `{}`, false, true)
+	if momentAnonymous.code != http.StatusUnauthorized || momentAnonymous.json(t)["code"] != "unauthenticated" {
+		t.Fatalf("anonymous Moment health = %d %s", momentAnonymous.code, momentAnonymous.body)
+	}
+	momentNoCSRF := surfaceInvoke(handler, http.MethodPost, "/api/settings/moment/test-health", `{}`, true, false)
+	if momentNoCSRF.code != http.StatusForbidden || momentNoCSRF.json(t)["code"] != "invalid_origin" {
+		t.Fatalf("Moment health csrf = %d %s", momentNoCSRF.code, momentNoCSRF.body)
+	}
 }
 
 func TestSurfaceIdempotencyReplayAndConflict(t *testing.T) {

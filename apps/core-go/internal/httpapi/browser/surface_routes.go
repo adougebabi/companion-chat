@@ -34,7 +34,7 @@ var surfaceRoutes = []surfaceRoute{
 	{http.MethodPost, "/api/configuration-commands/recover"},
 	{http.MethodPost, "/api/configuration-commands/cancel-unaccepted"},
 	{http.MethodGet, "/api/configuration-commands/by-key"},
-	{http.MethodGet, "/api/configuration-catalog"}, {http.MethodPost, "/api/settings/media/test-connection"},
+	{http.MethodGet, "/api/configuration-catalog"}, {http.MethodPost, "/api/settings/media/test-connection"}, {http.MethodPost, "/api/settings/moment/test-health"},
 	{http.MethodGet, "/api/moment-suggestions"},
 	{http.MethodGet, "/api/moment-feed/:momentId/npc-interactions"}, {http.MethodGet, "/api/moment-feed/:momentId/npc-interactions/:interactionId"}, {http.MethodPost, "/api/moment-feed/:momentId/npc-interactions/:interactionId/retry"},
 	{http.MethodGet, "/api/moment-feed"}, {http.MethodGet, "/api/moment-feed/:momentId"}, {http.MethodGet, "/api/moment-feed/:momentId/comments"},

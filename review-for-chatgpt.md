@@ -8,6 +8,7 @@
 - T01 的正式入口盘点已完成。T02 在 AEL 中标记完成，但真实 Qwen 覆盖、真实 Temporal 和旧任务原绑定等并未全部验收，不能据该状态声称 R01 的所有原始要求均已证明。T03–T11 在 AEL 中仍为待修复；T12 的这份矩阵是进行中的验收和交付材料，不代表 T12 已通过。
 - 快照后的 T03 增量：Moment 选中的 Active Memory 不再把 Core Actor ID 直接传给 Writer，而是输出关联人物别名或未知，且不把关联者断言为内容主体。隔离 PostgreSQL 和受控 Writer 验证了实际 Moment 准备路径；外貌与其他证据类型仍未完成，详细记录见 [T03 专项](docs/verification/meromero-t03-context-isolation-20261111.md)。下文的全量和矩阵统计仍对应各自标明的受检提交，不自动延伸到此增量。
 - 快照后的 T06 增量：能力目录与原生调用区分未安装、运行范围无权限、插件停用和安装状态未知，并报告当前已加载的披露窗口；正式 Agent 按本次任务冻结可执行工具集合，分阶段 Agent 不能执行其他阶段工具。隔离数据库及受控原生循环的 21 个顶层专项通过，验证权限、已提交回执重放和无重复动态，见 [脱敏证据](evidence/meromero-t06-catalog-verification-20261112.txt)；正文与媒体语义一致性仍未解决。
+- 快照后的 T11 增量：Moment 的 Owner 授权只读健康检查 API 已验证注册和实际列表读取，但管理页尚未接入；检查不等于发布或模型可用。
 - 已实施并局部验证：模型按 Agent/variant 路由及多类异步快照；显式 `direct` 的原子消息/工具/认知结算；Image/Moment 的声明和主要运行门禁；连续消息栅栏；表达候选审核启停；记忆来源屏障；诊断导出隐私投影、物理重试记录和图片插件连接检查。各项的边界和失败见下表。
 - 本次基于干净提交副本完成 Go 全量回归、14 个隔离 PostgreSQL/受控工具专项、8 个受控 React 测试及 Web 类型检查。**全量 Go 有 1,073 个测试事件跳过**，不能把跳过当成通过。真实模型历史上有合成聊天和测试工具的有限证据，真实媒体、真实视觉及浏览器到运行消费的完整链仍未验收。
 - 用户要求非阻断问题先登记、不顺手扩展。已登记的例子包括 `provider-endpoint-credential-atomic-save`、`media-normalization-quality-retry-feedback`、`goal-evaluation-cadence-domain-failures` 和本次发现的 `reply-wear-fallback-correction-regression`。四组 Goal/活动测试在起始版本也失败；换衣回退纠错的两个子场景则在起始版本通过、当前版本失败，原因仍未确定。
