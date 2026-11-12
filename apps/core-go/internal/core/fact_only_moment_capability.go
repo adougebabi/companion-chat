@@ -121,14 +121,31 @@ func (c factOnlyMomentCapability) Prepare(ctx context.Context, inv CapabilityInv
 // Owner-selected attachment. Matching claims to selected or historical Moment
 // assets still needs its own evidence contract and is not asserted here.
 func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context, inv CapabilityInvocation, draft ReplyDraft) (CapabilityInvocation, error) {
+	surface := "moment_without_attachment"
 	if s.run.Scope.TargetKind == "owner_moment_request" {
 		var raw []byte
 		err := s.app.DB.Pool().QueryRow(ctx, `SELECT payload FROM public.owner_surface_records WHERE id=$1 AND owner_actor_id=$2 AND fluctlight_id=$3 AND kind='owner_request' AND status='pending' AND payload->>'kind'='moment_suggestion' AND payload->>'source_fact_id'=$4`, s.run.Scope.TargetRef, inv.Metadata.AuthorizationActorID, inv.Metadata.FluctlightID, inv.SourceFactID).Scan(&raw)
 		if err != nil {
 			return inv, err
 		}
-		if selected := stringList(mapValue(decodeObject(raw)["payload"])["media_ids"]); len(selected) > 0 {
-			return withCapabilityPreparedData(inv, "moment_owner_selected_media", selected)
+		selected := stringList(mapValue(decodeObject(raw)["payload"])["media_ids"])
+		assets, hasImage, err := s.app.selectedMomentMedia(ctx, s.app.DB.Pool(), inv.Metadata.AuthorizationActorID, selected, false)
+		if err != nil {
+			return inv, err
+		}
+		inv, err = withCapabilityPreparedData(inv, "moment_owner_selected_media", selected)
+		if err != nil {
+			return inv, err
+		}
+		inv, err = withCapabilityPreparedData(inv, "moment_owner_selected_assets", assets)
+		if err != nil || hasImage {
+			return inv, err
+		}
+		for _, asset := range assets {
+			kind := stringValue(asset["kind"])
+			if kind == "audio" || kind == "video" {
+				surface += ":" + kind
+			}
 		}
 	}
 	text, err := momentPublicationText(draft.Text, false)
@@ -154,7 +171,7 @@ func (s *factOnlyMomentService) prepareUnattachedMediaClaims(ctx context.Context
 			return inv, newCapabilityError("direct_media_delivery_check_failed", true, err)
 		}
 	}
-	refs, err := s.app.checkDirectMediaDeliveryClaims(ctx, projection, s.run.CurrentInput, text, deliveries, nil, "moment_without_attachment")
+	refs, err := s.app.checkDirectMediaDeliveryClaims(ctx, projection, s.run.CurrentInput, text, deliveries, nil, surface)
 	if err != nil {
 		return inv, err
 	}
@@ -247,7 +264,7 @@ func (c factOnlyMomentCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx
 		code, retryable := publicationCapabilityError(err, "moment_publication_failed")
 		return failedCapabilityResult(inv, code, retryable), newCapabilityError(code, retryable, err)
 	}
-	if err := requireMomentSelectedMediaTx(ctx, tx, inv, target, resource.ID); err != nil {
+	if err := c.service.app.requireMomentSelectedMediaTx(ctx, tx, inv, target, resource.ID); err != nil {
 		code, retryable := capabilityErrorInfo(err, "moment_media_check_failed", true)
 		return failedCapabilityResult(inv, code, retryable), err
 	}
@@ -267,7 +284,7 @@ func requireMomentHistoricalMediaTx(ctx context.Context, tx pgx.Tx, inv Capabili
 	return nil
 }
 
-func requireMomentSelectedMediaTx(ctx context.Context, tx pgx.Tx, inv CapabilityInvocation, target DirectToolTarget, momentID string) error {
+func (a *App) requireMomentSelectedMediaTx(ctx context.Context, tx pgx.Tx, inv CapabilityInvocation, target DirectToolTarget, momentID string) error {
 	selected, found, err := capabilityPreparedData(inv, "moment_owner_selected_media")
 	if err != nil || !found {
 		return err
@@ -280,6 +297,17 @@ func requireMomentSelectedMediaTx(ctx context.Context, tx pgx.Tx, inv Capability
 		return err
 	}
 	if jsonString(decodeArray(actual)) != jsonString(arrayValue(selected)) {
+		return newCapabilityError("moment_media_delivery_stale", false, ErrConflict)
+	}
+	assets, found, err := capabilityPreparedData(inv, "moment_owner_selected_assets")
+	if err != nil || !found {
+		return err
+	}
+	actualAssets, _, err := a.selectedMomentMedia(ctx, tx, target.AuthorizationActorID, arrayValue(selected), true)
+	if err != nil {
+		return directMediaDeliveryTxError(err)
+	}
+	if jsonString(actualAssets) != jsonString(arrayValue(assets)) {
 		return newCapabilityError("moment_media_delivery_stale", false, ErrConflict)
 	}
 	return nil

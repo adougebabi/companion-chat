@@ -1,0 +1,17 @@
+SOURCE_HEAD 4081357ac3d8258fa0770f904f7123005e46f0e4 CANDIDATE /private/tmp/fluctlight-m2-02-enlmpno1
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentAudioAttachmentDoesNotProvePhoto$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/false-claim
+2026/11/12 21:30:09 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-false-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+    m2_moment_media_claim_test.go:151: audio authorized a photo claim: capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_7d02ac9bd1d8c80d502c341f78bed43b", CapabilityName:"moment.publish", Status:"completed", Output:map[string]interface {}{"replayed":false, "target_kind":"moment", "target_ref":"moment_149297eca5d1ab05aa7819668ad235c3", "text":"我已经把这张照片附在这条动态里了。"}, ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"moment:moment_149297eca5d1ab05aa7819668ad235c3", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} moments=1 err=<nil>
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/placeholder
+2026/11/12 21:30:11 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-placeholder metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+    m2_moment_media_claim_test.go:157: audio retained a photo placeholder: capability.CapabilityResult{ActingProfileID:"", CallID:"direct_call_acca6e5e21fd7c62dff828262e21eb6b", CapabilityName:"moment.publish", Status:"completed", Output:map[string]interface {}{"replayed":false, "target_kind":"moment", "target_ref":"moment_8055ea67ac94a4e673f2b3fd78a4d899", "text":"今天听歌。\n[自拍照：站在窗边]"}, ErrorCode:"", Retryable:false, ProviderRequestID:"", CorrelationID:"moment:moment_8055ea67ac94a4e673f2b3fd78a4d899", Duration:0, RequiredContext:[]capability.ContextSlot(nil)} moments=1 err=<nil>
+--- FAIL: TestMomentAudioAttachmentDoesNotProvePhoto (4.74s)
+    --- FAIL: TestMomentAudioAttachmentDoesNotProvePhoto/false-claim (2.47s)
+    --- FAIL: TestMomentAudioAttachmentDoesNotProvePhoto/placeholder (2.27s)
+FAIL
+FAIL	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	5.481s
+FAIL
+EXIT_CODE 1

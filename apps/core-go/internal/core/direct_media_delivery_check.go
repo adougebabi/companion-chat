@@ -212,7 +212,7 @@ func directExtractedClaimExplicitlyNonDelivery(clause string) bool {
 // refs. The model cannot confer authority: every returned ref is resolved to a
 // Core-owned committed delivery and checked again inside the publish tx.
 func (a *App) checkDirectMediaDeliveryClaims(ctx context.Context, projection ContextProjection, currentInput, candidate string, deliveries []directMediaDelivery, currentIntents map[string]bool, surface ...string) ([]string, error) {
-	moment := len(surface) > 0 && surface[0] == "moment_without_attachment"
+	moment := len(surface) > 0 && strings.HasPrefix(surface[0], "moment_without_attachment")
 	if !directMediaDeliveryCheckNeeded(candidate, currentInput, projection.RecentMessages) && !(moment && momentMediaCheckNeeded(candidate, currentInput, projection.RecentMessages)) {
 		return nil, nil
 	}
@@ -275,6 +275,10 @@ func (a *App) checkDirectMediaDeliveryClaims(ctx context.Context, projection Con
 		if directExtractedClaimExplicitlyNonDelivery(clause) {
 			continue
 		}
+		if moment && momentVerifiedNonImageAttachmentClause(clause, surface[0]) {
+			remaining = strings.Replace(remaining, clause, "", 1)
+			continue
+		}
 		if moment && containsAnyDirectMedia(strings.ToLower(clause), []string{"这条动态", "本条动态", "这篇动态", "本篇动态", "this post", "this moment"}) {
 			return nil, newCapabilityError("direct_media_delivery_unverified", false, ErrInvalidArguments)
 		}
@@ -296,7 +300,7 @@ func (a *App) checkDirectMediaDeliveryClaims(ctx context.Context, projection Con
 		remaining = strings.Replace(remaining, clause, "", 1)
 	}
 	if moment {
-		remaining = momentWithoutObviousPhotoDiscussion(remaining)
+		remaining = momentWithoutObviousPhotoDiscussion(remaining, surface[0])
 		if directUnattachedCurrentMomentClaim(remaining, currentInput, projection.RecentMessages) {
 			return nil, newCapabilityError("direct_media_delivery_unverified", false, ErrInvalidArguments)
 		}
@@ -351,10 +355,13 @@ func momentHasMediaContext(candidate, currentInput string, history []map[string]
 
 // The extractor must return no claim for these clear discussion clauses; a
 // concrete attach/send verb keeps them under the ordinary evidence check.
-func momentWithoutObviousPhotoDiscussion(value string) string {
+func momentWithoutObviousPhotoDiscussion(value, surface string) string {
 	var result strings.Builder
 	for _, raw := range directMediaClauses(value) {
 		clause := strings.ToLower(raw)
+		if momentVerifiedNonImageAttachmentClause(clause, surface) {
+			continue
+		}
 		discussion := containsAnyDirectMedia(clause, []string{"对照片的看法", "对图片的看法", "对照片的感想", "对图片的感想", "关于照片的看法", "关于图片的看法"})
 		if discussion && !containsAnyDirectMedia(clause, []string{"附在", "附上", "贴在", "贴到", "发给", "发到", "传给", "上传", "attached", "sent"}) {
 			continue
@@ -362,6 +369,17 @@ func momentWithoutObviousPhotoDiscussion(value string) string {
 		result.WriteString(raw)
 	}
 	return result.String()
+}
+
+// A separately selected audio/video asset may support a generic statement
+// about its attachment to this post. It never supports a photo claim.
+func momentVerifiedNonImageAttachmentClause(clause, surface string) bool {
+	clause = strings.ToLower(clause)
+	kindMatches := strings.Contains(surface, ":audio") && containsAnyDirectMedia(clause, []string{"音频", "录音", "audio"}) || strings.Contains(surface, ":video") && containsAnyDirectMedia(clause, []string{"视频", "video"})
+	return kindMatches && !containsAnyDirectMedia(clause, directMediaContextWords) &&
+		containsAnyDirectMedia(clause, []string{"这条动态", "本条动态", "这篇动态", "本篇动态", "this post", "this moment"}) &&
+		containsAnyDirectMedia(clause, []string{"附在", "附上", "贴在", "贴到", "放在", "放到", "attached"}) &&
+		!containsAnyDirectMedia(clause, []string{"发给你", "发送给你", "传给你", "sent you"})
 }
 
 func directSameCurrentMediaIntent(delivery directMediaDelivery, currentInput, quote string, currentIntents map[string]bool) bool {

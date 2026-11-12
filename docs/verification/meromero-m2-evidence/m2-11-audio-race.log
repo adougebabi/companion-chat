@@ -1,0 +1,14 @@
+SOURCE_HEAD 4081357ac3d8258fa0770f904f7123005e46f0e4 CANDIDATE /private/tmp/fluctlight-m2-02-7iox2jgl
+OVERLAYS apps/core-go/internal/core/m2_moment_media_claim_test.go,apps/core-go/internal/core/fact_only_moment_capability.go,apps/core-go/internal/core/moment_feed.go
+COMMAND go test ./internal/core -count=1 -run ^TestMomentSelectedAttachmentChangeRollsBackPublication$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/selection
+2026/11/12 21:34:53 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind
+2026/11/12 21:34:55 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication (4.99s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/selection (2.56s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind (2.43s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	5.680s
+EXIT_CODE 0

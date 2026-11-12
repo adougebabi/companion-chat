@@ -87,75 +87,166 @@ func TestMomentMediaRejectionCountsPhysicalRounds(t *testing.T) {
 }
 
 func TestMomentWithOwnerSelectedAttachmentRemainsPublishable(t *testing.T) {
-	checks := 0
-	router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
-		checks++
-		return fakeProviderResult{Status: 500}
-	}).otherwise(func(map[string]any) fakeProviderResult {
-		return fakeProviderResult{Text: "我已经把这张照片附在这条动态里了。"}
-	})
-	ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-moment-owner-media", router)
-	app.Storage = &minio.Client{}
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES('m2-owner-asset',$1,'v1','image','image/png',1,'fixture','fixture','fixture','m2-owner-provider','m2-owner-workflow','ready')`, fid); err != nil {
-		t.Fatal(err)
+	for _, mixed := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mixed-%t", mixed), func(t *testing.T) {
+			checks := 0
+			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+				checks++
+				return fakeProviderResult{Status: 500}
+			}).otherwise(func(map[string]any) fakeProviderResult {
+				return fakeProviderResult{Text: "我已经把这张照片附在这条动态里了。"}
+			})
+			ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-moment-owner-media", router)
+			app.Storage = &minio.Client{}
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES('m2-owner-asset',$1,'v1','image','image/png',1,'fixture','fixture','fixture','m2-owner-provider','m2-owner-workflow','ready')`, fid); err != nil {
+				t.Fatal(err)
+			}
+			selected := []any{"m2-owner-asset"}
+			if mixed {
+				if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES('m2-owner-audio',$1,'v1','audio','audio/mpeg',1,'fixture','fixture','fixture','m2-audio-provider','m2-audio-workflow','ready')`, fid); err != nil {
+					t.Fatal(err)
+				}
+				selected = append(selected, "m2-owner-audio")
+			}
+			payload := map[string]any{"kind": "moment_suggestion", "status": "pending", "source_fact_id": "m2-owner-source", "payload": map[string]any{"media_ids": selected}}
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_surface_records(id,owner_actor_id,fluctlight_id,kind,resource_key,status,payload) VALUES('m2-owner-request',$1,$2,'owner_request','m2-owner-request','pending',$3)`, owner, fid, jsonBytes(payload)); err != nil {
+				t.Fatal(err)
+			}
+			request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-owner-moment", AuthorizationActorID: owner, FluctlightID: fid, EvidenceID: "m2-owner-source", TargetKind: "owner_moment_request", TargetRef: "m2-owner-request", Arguments: jsonBytes(map[string]any{})}
+			receipt, err := app.ExecuteTool(ctx, request)
+			if err != nil || receipt.Result.Status != "completed" || checks != 0 {
+				t.Fatalf("Moment with selected attachment: %#v checks=%d err=%v", receipt.Result, checks, err)
+			}
+			id := stringValue(mapValue(receipt.Result.Output)["target_ref"])
+			var assets []byte
+			var refs int
+			if err := repo.Pool().QueryRow(ctx, `SELECT media_asset_ids,(SELECT count(*) FROM public.media_references WHERE target_type='moment' AND target_id=$1) FROM public.moments WHERE id=$1`, id).Scan(&assets, &refs); err != nil || jsonString(decodeArray(assets)) != jsonString(selected) || refs != len(selected) {
+				t.Fatalf("selected attachment was not committed: assets=%s refs=%d err=%v", assets, refs, err)
+			}
+		})
 	}
-	payload := map[string]any{"kind": "moment_suggestion", "status": "pending", "source_fact_id": "m2-owner-source", "payload": map[string]any{"media_ids": []any{"m2-owner-asset"}}}
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_surface_records(id,owner_actor_id,fluctlight_id,kind,resource_key,status,payload) VALUES('m2-owner-request',$1,$2,'owner_request','m2-owner-request','pending',$3)`, owner, fid, jsonBytes(payload)); err != nil {
-		t.Fatal(err)
-	}
-	request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-owner-moment", AuthorizationActorID: owner, FluctlightID: fid, EvidenceID: "m2-owner-source", TargetKind: "owner_moment_request", TargetRef: "m2-owner-request", Arguments: jsonBytes(map[string]any{})}
-	receipt, err := app.ExecuteTool(ctx, request)
-	if err != nil || receipt.Result.Status != "completed" || checks != 0 {
-		t.Fatalf("Moment with selected attachment: %#v checks=%d err=%v", receipt.Result, checks, err)
-	}
-	id := stringValue(mapValue(receipt.Result.Output)["target_ref"])
-	var assets []byte
-	var refs int
-	if err := repo.Pool().QueryRow(ctx, `SELECT media_asset_ids,(SELECT count(*) FROM public.media_references WHERE target_type='moment' AND target_id=$1 AND asset_id='m2-owner-asset') FROM public.moments WHERE id=$1`, id).Scan(&assets, &refs); err != nil || !containsStringValue(decodeArray(assets), "m2-owner-asset") || refs != 1 {
-		t.Fatalf("selected attachment was not committed: assets=%s refs=%d err=%v", assets, refs, err)
+}
+
+func TestMomentAudioAttachmentDoesNotProvePhoto(t *testing.T) {
+	for _, sample := range []struct {
+		name, text, want string
+		publish          bool
+	}{
+		{"false-claim", "我已经把这张照片附在这条动态里了。", "", false},
+		{"placeholder", "今天听歌。\n[自拍照：站在窗边]", "今天听歌。", true},
+		{"audio-discussion", "我把这段音频附在这条动态里，聊聊照片。", "我把这段音频附在这条动态里，聊聊照片。", true},
+	} {
+		t.Run(sample.name, func(t *testing.T) {
+			router := newFakeProviderRouter().on(directMediaDeliveryCheckSchema, func(map[string]any) fakeProviderResult {
+				claims := []any{}
+				if !sample.publish {
+					claims = append(claims, map[string]any{"quote": sample.text, "delivery_ref": "", "subject_quote": ""})
+				}
+				return fakeProviderResult{Structured: map[string]any{"claims": claims}}
+			}).otherwise(func(map[string]any) fakeProviderResult {
+				return fakeProviderResult{Text: sample.text}
+			})
+			ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-moment-audio-"+sample.name, router)
+			app.Storage = &minio.Client{}
+			assetID, requestID, sourceID := "m2-audio-"+sample.name, "m2-audio-request-"+sample.name, "m2-audio-source-"+sample.name
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES($1,$2,'v1','audio','audio/mpeg',1,'fixture','fixture','fixture',$3,$4,'ready')`, assetID, fid, "provider-"+sample.name, "workflow-"+sample.name); err != nil {
+				t.Fatal(err)
+			}
+			payload := map[string]any{"kind": "moment_suggestion", "status": "pending", "source_fact_id": sourceID, "payload": map[string]any{"media_ids": []any{assetID}}}
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_surface_records(id,owner_actor_id,fluctlight_id,kind,resource_key,status,payload) VALUES($1,$2,$3,'owner_request',$1,'pending',$4)`, requestID, owner, fid, jsonBytes(payload)); err != nil {
+				t.Fatal(err)
+			}
+			request := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-audio-moment-" + sample.name, AuthorizationActorID: owner, FluctlightID: fid, EvidenceID: sourceID, TargetKind: "owner_moment_request", TargetRef: requestID, Arguments: jsonBytes(map[string]any{})}
+			receipt, err := app.ExecuteTool(ctx, request)
+			var moments int
+			if queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, fid).Scan(&moments); queryErr != nil {
+				t.Fatal(queryErr)
+			}
+			if !sample.publish {
+				if err != nil || receipt.Result.Status != "handled" || stringValue(mapValue(receipt.Result.Output)["warning_code"]) != "direct_media_delivery_unverified" || moments != 0 {
+					t.Fatalf("audio authorized a photo claim: %#v moments=%d err=%v", receipt.Result, moments, err)
+				}
+				return
+			}
+			text := stringValue(mapValue(receipt.Result.Output)["text"])
+			if err != nil || receipt.Result.Status != "completed" || moments != 1 || text != sample.want {
+				t.Fatalf("audio retained a photo placeholder: %#v moments=%d err=%v", receipt.Result, moments, err)
+			}
+		})
 	}
 }
 
 func TestMomentSelectedAttachmentChangeRollsBackPublication(t *testing.T) {
-	router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
-		return fakeProviderResult{Text: "我已经把这张照片附在这条动态里了。"}
-	})
-	ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-moment-owner-stale", router)
-	app.Storage = &minio.Client{}
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES('m2-owner-stale-asset',$1,'v1','image','image/png',1,'fixture','fixture','fixture','m2-owner-stale-provider','m2-owner-stale-workflow','ready')`, fid); err != nil {
-		t.Fatal(err)
-	}
-	payload := map[string]any{"kind": "moment_suggestion", "status": "pending", "source_fact_id": "m2-owner-stale-source", "payload": map[string]any{"media_ids": []any{"m2-owner-stale-asset"}}}
-	if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_surface_records(id,owner_actor_id,fluctlight_id,kind,resource_key,status,payload) VALUES('m2-owner-stale-request',$1,$2,'owner_request','m2-owner-stale-request','pending',$3)`, owner, fid, jsonBytes(payload)); err != nil {
-		t.Fatal(err)
-	}
-	scope := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-owner-stale", AuthorizationActorID: owner, FluctlightID: fid, EvidenceID: "m2-owner-stale-source", TargetKind: "owner_moment_request", TargetRef: "m2-owner-stale-request", Arguments: jsonBytes(map[string]any{})}
-	ctx, err := app.withMomentWriterRun(ctx, scope)
-	if err != nil {
-		t.Fatal(err)
-	}
-	service := ctx.Value(momentWriterRunKey{}).(*factOnlyMomentService)
-	capability := factOnlyMomentCapability{service: service}
-	inv := CapabilityInvocation{CallID: "m2-owner-stale-call", CapabilityName: "moment.publish", SourceFactID: scope.EvidenceID, Arguments: scope.Arguments, Metadata: InvocationMetadata{AuthorizationActorID: owner, SubjectActorID: owner, FluctlightID: fid, OperationID: scope.OperationID}}
-	prepared, err := capability.Prepare(ctx, inv, CapabilityContext{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	mapValue(payload["payload"])["media_ids"] = []any{}
-	if _, err := repo.Pool().Exec(ctx, `UPDATE public.owner_surface_records SET payload=$2 WHERE id=$1`, scope.TargetRef, jsonBytes(payload)); err != nil {
-		t.Fatal(err)
-	}
-	target := DirectToolTarget{Kind: scope.TargetKind, Ref: scope.TargetRef, AuthorizationActorID: owner, FluctlightID: fid}
-	err = withTransaction(ctx, repo.Pool(), func(tx pgx.Tx) error {
-		_, err := capability.ExecuteDirectTx(ctx, tx, prepared, CapabilityContext{}, target)
-		return err
-	})
-	var moments int
-	if queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, fid).Scan(&moments); queryErr != nil {
-		t.Fatal(queryErr)
-	}
-	if err == nil || moments != 0 {
-		t.Fatalf("changed selected attachment published the Moment: moments=%d err=%v", moments, err)
+	for _, change := range []string{"selection", "empty-to-image", "image-kind", "audio-to-image", "version"} {
+		t.Run(change, func(t *testing.T) {
+			router := newFakeProviderRouter().otherwise(func(map[string]any) fakeProviderResult {
+				if change == "empty-to-image" || change == "audio-to-image" {
+					return fakeProviderResult{Text: "今天的动态。"}
+				}
+				return fakeProviderResult{Text: "我已经把这张照片附在这条动态里了。"}
+			})
+			ctx, repo, app, owner, fid, _ := setupMixedMediaReplyTurnWithTransport(t, "m2-moment-owner-stale", router)
+			app.Storage = &minio.Client{}
+			kind, mime := "image", "image/png"
+			if change == "audio-to-image" {
+				kind, mime = "audio", "audio/mpeg"
+			}
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.media_assets(id,owner_fluctlight_id,version,kind,mime_type,byte_size,sha256,bucket,object_key,provider_request_id,workflow_id,status) VALUES('m2-owner-stale-asset',$1,'v1',$2,$3,1,'fixture','fixture','fixture','m2-owner-stale-provider','m2-owner-stale-workflow','ready')`, fid, kind, mime); err != nil {
+				t.Fatal(err)
+			}
+			selected := []any{"m2-owner-stale-asset"}
+			if change == "empty-to-image" {
+				selected = []any{}
+			}
+			payload := map[string]any{"kind": "moment_suggestion", "status": "pending", "source_fact_id": "m2-owner-stale-source", "payload": map[string]any{"media_ids": selected}}
+			if _, err := repo.Pool().Exec(ctx, `INSERT INTO public.owner_surface_records(id,owner_actor_id,fluctlight_id,kind,resource_key,status,payload) VALUES('m2-owner-stale-request',$1,$2,'owner_request','m2-owner-stale-request','pending',$3)`, owner, fid, jsonBytes(payload)); err != nil {
+				t.Fatal(err)
+			}
+			scope := ToolExecutionRequest{CapabilityName: "moment.publish", OperationID: "m2-owner-stale", AuthorizationActorID: owner, FluctlightID: fid, EvidenceID: "m2-owner-stale-source", TargetKind: "owner_moment_request", TargetRef: "m2-owner-stale-request", Arguments: jsonBytes(map[string]any{})}
+			ctx, err := app.withMomentWriterRun(ctx, scope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			service := ctx.Value(momentWriterRunKey{}).(*factOnlyMomentService)
+			capability := factOnlyMomentCapability{service: service}
+			inv := CapabilityInvocation{CallID: "m2-owner-stale-call", CapabilityName: "moment.publish", SourceFactID: scope.EvidenceID, Arguments: scope.Arguments, Metadata: InvocationMetadata{AuthorizationActorID: owner, SubjectActorID: owner, FluctlightID: fid, OperationID: scope.OperationID}}
+			prepared, err := capability.Prepare(ctx, inv, CapabilityContext{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if change == "selection" || change == "empty-to-image" {
+				if change == "selection" {
+					mapValue(payload["payload"])["media_ids"] = []any{}
+				} else {
+					mapValue(payload["payload"])["media_ids"] = []any{"m2-owner-stale-asset"}
+				}
+				if _, err := repo.Pool().Exec(ctx, `UPDATE public.owner_surface_records SET payload=$2 WHERE id=$1`, scope.TargetRef, jsonBytes(payload)); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				query := `UPDATE public.media_assets SET kind='audio',mime_type='audio/mpeg',revision=revision+1 WHERE id='m2-owner-stale-asset'`
+				if change == "audio-to-image" {
+					query = `UPDATE public.media_assets SET kind='image',mime_type='image/png',revision=revision+1 WHERE id='m2-owner-stale-asset'`
+				} else if change == "version" {
+					query = `UPDATE public.media_assets SET version='v2' WHERE id='m2-owner-stale-asset'`
+				}
+				if _, err := repo.Pool().Exec(ctx, query); err != nil {
+					t.Fatal(err)
+				}
+			}
+			target := DirectToolTarget{Kind: scope.TargetKind, Ref: scope.TargetRef, AuthorizationActorID: owner, FluctlightID: fid}
+			err = withTransaction(ctx, repo.Pool(), func(tx pgx.Tx) error {
+				_, err := capability.ExecuteDirectTx(ctx, tx, prepared, CapabilityContext{}, target)
+				return err
+			})
+			var moments int
+			if queryErr := repo.Pool().QueryRow(ctx, `SELECT count(*) FROM public.moments WHERE owner_fluctlight_id=$1`, fid).Scan(&moments); queryErr != nil {
+				t.Fatal(queryErr)
+			}
+			if err == nil || moments != 0 {
+				t.Fatalf("changed selected attachment published the Moment: moments=%d err=%v", moments, err)
+			}
+		})
 	}
 }
 

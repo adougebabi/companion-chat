@@ -1,0 +1,35 @@
+SOURCE_HEAD 4081357ac3d8258fa0770f904f7123005e46f0e4 WORKING_TREE includes four preserved pre-existing drafts
+COMMAND go test ./internal/core -count=1 -run ^(TestMomentAudioAttachmentDoesNotProvePhoto|TestMomentSelectedAttachmentChangeRollsBackPublication)$ -v -timeout=12m DATABASE disposable-loopback
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/false-claim
+2026/11/12 21:47:39 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-false-claim metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+2026/11/12 21:47:39 WARN tool.call.handled capability=moment.publish call_id=direct_call_7d02ac9bd1d8c80d502c341f78bed43b warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+2026/11/12 21:47:39 WARN tool.call.handled capability=moment.publish call_id=direct_call_7d02ac9bd1d8c80d502c341f78bed43b warning_code=direct_media_delivery_unverified disposition=needs_input effect_applied=false
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/placeholder
+2026/11/12 21:47:41 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-placeholder metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+=== RUN   TestMomentAudioAttachmentDoesNotProvePhoto/audio-discussion
+2026/11/12 21:47:44 INFO reply.evidence.reconciled correlation_id=tool-operation:m2-audio-moment-audio-discussion metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:native_cognition]"
+--- PASS: TestMomentAudioAttachmentDoesNotProvePhoto (6.90s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/false-claim (2.17s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/placeholder (2.44s)
+    --- PASS: TestMomentAudioAttachmentDoesNotProvePhoto/audio-discussion (2.30s)
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/selection
+2026/11/12 21:47:46 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/empty-to-image
+2026/11/12 21:47:48 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind
+2026/11/12 21:47:51 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/audio-to-image
+2026/11/12 21:47:53 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+=== RUN   TestMomentSelectedAttachmentChangeRollsBackPublication/version
+2026/11/12 21:47:55 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication (11.35s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/selection (2.31s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/empty-to-image (2.31s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/image-kind (2.42s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/audio-to-image (2.35s)
+    --- PASS: TestMomentSelectedAttachmentChangeRollsBackPublication/version (1.96s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	18.944s
+EXIT_CODE 0

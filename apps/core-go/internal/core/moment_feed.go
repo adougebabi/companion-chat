@@ -263,6 +263,35 @@ func (a *App) linkMomentMediaTx(ctx context.Context, tx pgx.Tx, owner, fid, id s
 	return nil
 }
 
+// Image claims and photo placeholders require an actual readable image, not
+// merely a nonempty selection that could contain only audio or video.
+func (a *App) selectedMomentMedia(ctx context.Context, q lifeContextQuerier, owner string, ids []any, lock bool) ([]map[string]any, bool, error) {
+	ordered := append([]any{}, ids...)
+	sort.Slice(ordered, func(i, j int) bool { return stringValue(ordered[i]) < stringValue(ordered[j]) })
+	assets := make([]map[string]any, 0)
+	hasImage := false
+	seen := map[string]bool{}
+	for _, raw := range ordered {
+		id, ok := raw.(string)
+		if !ok || strings.TrimSpace(id) == "" || len(id) > 128 || seen[id] {
+			return nil, false, invalid("Invalid or duplicate media asset ID")
+		}
+		seen[id] = true
+		asset, err := a.ownerMediaAssetWith(ctx, q, owner, id, lock)
+		if err != nil {
+			return nil, false, err
+		}
+		if asset["readable"] != true {
+			return nil, false, &SurfaceError{Status: 409, Code: "moment_media_unavailable", Message: "发布素材当前不可读取，请核对原任务和权限"}
+		}
+		if asset["kind"] == "image" && strings.HasPrefix(strings.ToLower(stringValue(asset["mime_type"])), "image/") {
+			hasImage = true
+		}
+		assets = append(assets, map[string]any{"id": id, "kind": asset["kind"], "version": asset["version"], "revision": asset["asset_revision"], "sha256": asset["sha256"], "mime_type": asset["mime_type"]})
+	}
+	return assets, hasImage, nil
+}
+
 func (a *App) publishOwnerFeedMoment(ctx context.Context, owner string, body map[string]any) (map[string]any, error) {
 	if momentAuthorForbidden(body) {
 		return nil, &SurfaceError{Status: 422, Code: "moment_author_forbidden", Message: "不能以角色或 NPC 身份代发动态"}
@@ -428,7 +457,11 @@ func (a *App) publishInvocationMomentTx(ctx context.Context, tx pgx.Tx, inv Capa
 		return publishedResource{}, err
 	}
 	media := stringList(mapValue(request["payload"])["media_ids"])
-	text, err = momentPublicationText(text, len(media) > 0)
+	_, hasImage, err := a.selectedMomentMedia(ctx, tx, target.AuthorizationActorID, media, true)
+	if err != nil {
+		return publishedResource{}, err
+	}
+	text, err = momentPublicationText(text, hasImage)
 	if err != nil {
 		return publishedResource{}, err
 	}

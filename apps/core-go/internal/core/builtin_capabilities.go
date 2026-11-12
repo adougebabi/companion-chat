@@ -323,7 +323,7 @@ func (c momentPublishCapability) ExecuteDirectTx(ctx context.Context, tx pgx.Tx,
 		code, retryable := publicationCapabilityError(err, "moment_publication_failed")
 		return failedCapabilityResultDetail(invocation, code, retryable, err.Error()), newCapabilityError(code, retryable, err)
 	}
-	if err := requireMomentSelectedMediaTx(ctx, tx, invocation, target, resource.ID); err != nil {
+	if err := c.publication.app.requireMomentSelectedMediaTx(ctx, tx, invocation, target, resource.ID); err != nil {
 		code, retryable := capabilityErrorInfo(err, "moment_media_check_failed", true)
 		return failedCapabilityResult(invocation, code, retryable), err
 	}
