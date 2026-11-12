@@ -1,0 +1,30 @@
+{
+  "id": "meromero-m2-16-moment-relationship-context",
+  "definition_revision": 1,
+  "plan_revision": 1,
+  "status": "completed",
+  "result": "verified",
+  "candidate": "c0a98dd2a81e19c3b44dbeb7e3c719b89b28a3f262733e6928ecbb47519affc4",
+  "completed": "2026-11-12T16:38:42.865303Z",
+  "historical": false,
+  "checks": [
+    {
+      "id": "m2-16-moment-relationship-context",
+      "result": "pass",
+      "source": "scenario:codex-m2-16",
+      "config_hash": "4834e1bf9d08f87409db55be4aefdfd1844367d8e7cc54aa4258f725d6a3b87f",
+      "at": "2026-11-12T16:38:30.160611Z",
+      "artifact_hashes": {
+        "apps/core-go/internal/core/fact_only_reply_facts.go": "47e434b90ce6cdfa916973d8fac5c41ce238cbb6ed5ea148ec7c9f299698d8e4",
+        "apps/core-go/internal/core/m2_moment_relationship_context_test.go": "8c406a39fab7b7ecd9112a4e0430feb2bbd3a2b7c876a2781c1ce406f04aacf7",
+        "apps/core-go/internal/core/reply_context.go": "06d8f6810094be486229c25df90c35abcf0efe8321dda934f3f0f1e48096babf",
+        "docs/verification/meromero-m2-evidence/m2-16-final.log": "86832c03fbd8aa59497c51e7a3833f4261d084b570099c0f8d63bd7be203f896",
+        "docs/verification/meromero-m2-evidence/m2-16-postcommit.log": "e52cfd6b5e8667364ca85947abe14f85ca2bebad05a472b000ca34687621afe3",
+        "docs/verification/meromero-m2-evidence/m2-16-red.log": "51fb28b5c651e798040f1bebb29262889e85b224ef6f3e87c8282e9379658ad9",
+        "docs/verification/meromero-m2-evidence/m2-16-regression.log": "2f83717a487c68b418eda76dded711874e699ac8656cff3c8abf293adc0d642c",
+        "docs/verification/meromero-m2-evidence/m2-16-review-notes.md": "4eff667fa2db9cfab7da62b4f0d74d21baa537a54ff5e6c0f0edef6c04001c76",
+        "docs/verification/meromero-m2-evidence/m2-16-working-tree.log": "26a598b12102ca6a11f6edce6cb8a5a545d7f558b5471705f416a86172e2d53a"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+SOURCE_HEAD b0fc38fd61aec51ab992207a4670ff0fb18100ba (clean archive)
+CANDIDATE /private/tmp/fluctlight-m2-16-postcommit-1kkz1986
+MANIFEST /private/tmp/fluctlight-m2-16-postcommit-1kkz1986/docs/verification/meromero-m2-evidence/m2-16-final-manifest.json
+COMMAND go test ./internal/core -count=1 -run ^(TestM2MomentDefaultRelationshipContextPreservesBusinessValues|TestM2MomentDefaultRelationshipContextDoesNotGuessUnknownActor|TestM2MomentRelationshipEvidencePreservesBusinessValues|TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope|TestReplyOptionalEvidenceReconciliationKeepsExactScope)$ -v -timeout=8m DATABASE disposable-loopback
+=== RUN   TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope
+2026/11/13 00:36:01 WARN Go Core diagnostic persistence failed component=event stage=create correlation_id="" error_type=*errors.errorString safe_cause=diagnostics_unavailable event_type=reply.draft.prepared
+--- PASS: TestMomentActorEvidencePreservesBusinessValueWithoutCoreEnvelope (0.01s)
+=== RUN   TestM2MomentDefaultRelationshipContextPreservesBusinessValues
+2026/11/13 00:36:04 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:0 retained_count:0 surface:]"
+--- PASS: TestM2MomentDefaultRelationshipContextPreservesBusinessValues (2.54s)
+=== RUN   TestM2MomentDefaultRelationshipContextDoesNotGuessUnknownActor
+--- PASS: TestM2MomentDefaultRelationshipContextDoesNotGuessUnknownActor (0.00s)
+=== RUN   TestM2MomentRelationshipEvidencePreservesBusinessValues
+2026/11/13 00:36:06 INFO reply.evidence.reconciled correlation_id="" metadata="map[capability_name:moment.publish excluded_count:0 reasons:map[] requested_count:1 retained_count:1 surface:]"
+--- PASS: TestM2MomentRelationshipEvidencePreservesBusinessValues (2.63s)
+=== RUN   TestReplyOptionalEvidenceReconciliationKeepsExactScope
+--- PASS: TestReplyOptionalEvidenceReconciliationKeepsExactScope (0.00s)
+PASS
+ok  	github.com/fluctlight/local-ai-companion/apps/core-go/internal/core	5.978s
+
+EXIT_CODE 0
